@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Governance Health Panels{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page governance-health-panels" data-narrative-page="governance_health">
-    <h1>Governance Health Dashboard</h1>
-    <p class="manage-muted">Real-time quality assessment, token budgeting, cost tracking, and evaluation metrics.</p>
+{% set active_narrative_section = 'governance_health' %}
+<section class="manage-section narrative-governance-page governance-health-panels" data-narrative-page="governance_health">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Governance Health Dashboard</h1>
+            <p class="mui-deck-headline">Real-time quality assessment, token budgeting, cost tracking, and evaluation metrics.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
 
     <!-- Session Selector -->
     <div class="session-selector-panel">

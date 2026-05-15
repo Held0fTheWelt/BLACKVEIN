@@ -19,33 +19,14 @@ from ai_stack.langfuse_evaluator_catalog import (
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
 )
+from ai_stack.runtime_aspect_ledger import ASPECT_KEYS
 from ai_stack.quality_lab.schemas import user_decision_prompt
 
 
-# Canonical aspect names — match
-# ``world-engine/app/story_runtime/aspect_names.py``. Kept as a tuple here
-# so this module has no import dependency on world-engine; if the canonical
-# set ever drifts, the drift test on ``WOS_CATEGORICAL_JUDGES_ORDER`` won't
-# catch it, but ``test_quality_lab_trace_interpreter.py`` cross-checks
-# against the live ledger structure produced by ``fetch_langfuse_trace``.
-ASPECT_NAMES: tuple[str, ...] = (
-    "input",
-    "action_resolution",
-    "beat",
-    "scene_energy",
-    "capability_selection",
-    "narrator_authority",
-    "npc_authority",
-    "npc_agency",
-    "dramatic_irony",
-    "voice_consistency",
-    "narrative_aspect",
-    "information_disclosure",
-    "hierarchical_memory",
-    "validation",
-    "commit",
-    "visible_projection",
-)
+# Canonical aspect names come from the runtime ledger contract. Keeping this
+# as an alias lets Quality Lab inspect traces without creating a second aspect
+# taxonomy or a Table-B-shaped oracle list.
+ASPECT_NAMES: tuple[str, ...] = tuple(ASPECT_KEYS)
 
 # Metadata fields that should appear on a live-canonical trace. Mirrors
 # the fields ``_extract_metadata`` + ``_extract_path_summary_from_trace``

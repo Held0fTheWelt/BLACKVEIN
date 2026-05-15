@@ -67,7 +67,8 @@ jobs:
       - name: Run engine fast tests
         working-directory: ./world-engine
         run: |
-          python -m pytest tests/ -m "not slow and not websocket" -v --tb=short
+          python -m pytest tests/ -m "not slow and not websocket" -v --tb=short \
+            --cov=app --cov-config=.coveragerc --cov-fail-under=90
 
       - name: Upload test results
         if: always()
@@ -109,7 +110,8 @@ jobs:
       - name: Run engine full tests
         working-directory: ./world-engine
         run: |
-          python -m pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short \
+            --cov=app --cov-config=.coveragerc --cov-fail-under=90
 
       - name: Upload test results
         if: always()

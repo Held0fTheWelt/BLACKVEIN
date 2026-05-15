@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
@@ -105,6 +107,68 @@ class FailingAdapter(BaseModelAdapter):
         model_name: str | None = None,
     ) -> ModelCallResult:
         return ModelCallResult(content="", success=False, metadata={"error": "forced_failure"})
+
+
+@pytest.fixture(autouse=True)
+def _isolate_langfuse_backend_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep scene-progression tests deterministic when a local backend exposes Langfuse credentials."""
+    from app.observability import langfuse_adapter as lf_mod
+
+    monkeypatch.setenv("BACKEND_RUNTIME_CONFIG_URL", "")
+    monkeypatch.delenv("INTERNAL_RUNTIME_CONFIG_TOKEN", raising=False)
+    lf_mod.LangfuseAdapter._instance = None
+    monkeypatch.setattr(
+        lf_mod.LangfuseAdapter,
+        "_fetch_credentials_from_backend",
+        lambda self: None,
+    )
+
+
+class _FakeTurnGraph:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def run(self, **kwargs) -> dict:
+        return self._payload
+
+
+def _graph_envelope(*, interpreted_input: dict, generation: dict | None = None) -> dict:
+    gen = dict(generation or {"success": True, "metadata": {}})
+    if "content" not in gen and "model_raw_text" not in gen:
+        gen["content"] = "x" * 120
+    return {
+        "interpreted_input": interpreted_input,
+        "generation": gen,
+        "graph_diagnostics": {"errors": []},
+        "retrieval": {"domain": "runtime", "status": "ok"},
+        "routing": {"selected_model": "mock"},
+        "validation_outcome": {"status": "approved", "reason": "rag_progression_fixture"},
+        "visible_output_bundle": {"gm_narration": ["RAG progression fixture narration."]},
+        "committed_result": {"commit_applied": True, "committed_effects": []},
+    }
+
+
+def _opening_graph(start_scene_id: str) -> _FakeTurnGraph:
+    return _FakeTurnGraph(
+        _graph_envelope(
+            interpreted_input={"kind": "speech", "confidence": 0.9},
+            generation={
+                "success": True,
+                "metadata": {
+                    "structured_output": {
+                        "narrative_response": "Opening.",
+                        "proposed_scene_id": start_scene_id,
+                        "intent_summary": "",
+                    }
+                },
+            },
+        )
+    )
+
+
+def _advance_past_opening(manager: StoryRuntimeManager, session_id: str, *, start_scene_id: str) -> None:
+    manager.turn_graph = _opening_graph(start_scene_id)  # type: ignore[assignment]
+    manager.execute_turn(session_id=session_id, player_input="I open the door")
 
 
 class ControlledScoreRetriever:
@@ -260,6 +324,17 @@ def test_story_runtime_commits_legal_scene_progression(tmp_path):
             transition_hints=[{"from": "scene_1", "to": "scene_2"}],
         ),
     )
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_2"],
+                "confidence": 0.99,
+            },
+        )
+    )
 
     turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
     state = manager.get_state(session.session_id)
@@ -291,6 +366,17 @@ def test_story_runtime_rejects_illegal_scene_progression(tmp_path):
             scenes=[{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
             transition_hints=[{"from": "scene_1", "to": "scene_2"}],
         ),
+    )
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_3"],
+                "confidence": 0.99,
+            },
+        )
     )
 
     turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_3")
@@ -325,16 +411,36 @@ def test_story_runtime_builds_multi_turn_committed_progression(tmp_path):
             ],
         ),
     )
-
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_2"],
+                "confidence": 0.99,
+            },
+        )
+    )
     first_turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_3"],
+                "confidence": 0.99,
+            },
+        )
+    )
     second_turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_3")
     state = manager.get_state(session.session_id)
     diagnostics = manager.get_diagnostics(session.session_id)
 
     assert first_turn["narrative_commit"]["allowed"] is True
     assert second_turn["narrative_commit"]["allowed"] is True
-    assert state["turn_counter"] == 2
-    assert state["history_count"] == 2
+    assert state["turn_counter"] == 3
+    assert state["history_count"] == 3
     assert state["current_scene_id"] == "scene_3"
     assert diagnostics["diagnostics"][-1]["narrative_commit"]["committed_scene_id"] == "scene_3"
     assert "graph" in diagnostics["diagnostics"][-1]
@@ -366,6 +472,13 @@ def test_story_runtime_natural_language_with_scene_token_commits_progression(tmp
             scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
             transition_hints=[{"from": "scene_1", "to": "scene_2"}],
         ),
+    )
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={"kind": "speech", "confidence": 0.8},
+            generation={"success": True, "metadata": {}},
+        )
     )
 
     turn = manager.execute_turn(
@@ -405,6 +518,13 @@ def test_story_runtime_natural_language_without_scene_reference_leaves_current_s
             transition_hints=[{"from": "scene_1", "to": "scene_2"}],
         ),
     )
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={"kind": "speech", "confidence": 0.9},
+            generation={"success": True, "metadata": {}},
+        )
+    )
 
     turn = manager.execute_turn(
         session_id=session.session_id,
@@ -440,6 +560,17 @@ def test_story_runtime_natural_language_with_invalid_scene_token_is_rejected_saf
             scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
             transition_hints=[{"from": "scene_1", "to": "scene_2"}],
         ),
+    )
+    _advance_past_opening(manager, session.session_id, start_scene_id="scene_1")
+    manager.turn_graph = _FakeTurnGraph(  # type: ignore[assignment]
+        _graph_envelope(
+            interpreted_input={
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_99"],
+                "confidence": 0.99,
+            },
+        )
     )
 
     turn = manager.execute_turn(

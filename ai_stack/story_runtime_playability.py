@@ -214,6 +214,12 @@ def collect_playability_feedback_codes(
             code_text = str(code or "").strip()
             if code_text:
                 feedback.append(code_text)
+    dramatic_irony_validation = outcome.get("dramatic_irony_validation") if isinstance(outcome, dict) else None
+    if isinstance(dramatic_irony_validation, dict):
+        for code in dramatic_irony_validation.get("violation_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
     raw = str(gen.get("model_raw_text") or gen.get("content") or "")
     if raw.strip().startswith("[mock]"):
         feedback.append("mock_fallback_output")
@@ -421,6 +427,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "and never move dialogue or action onto the human/player actor."
         )
         return preserve_prefix + base_instruction + npc_agency_feedback
+
+    dramatic_irony_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("dramatic_irony_")
+        or code == "forbidden_omniscient_hidden_intent_reveal"
+    ]
+    if dramatic_irony_issues:
+        dramatic_irony_feedback = (
+            " Dramatic irony repair: remove direct statements of private motive, hidden intent, or planner-only facts. "
+            "Keep the same approved actors and scene pressure, but realize the opportunity only through visible behavior, "
+            "subtext, misread reaction, or withheld context. Do not explain what an actor secretly plans or wants."
+        )
+        return preserve_prefix + base_instruction + dramatic_irony_feedback
 
     scene_energy_issues = [
         code

@@ -2,18 +2,19 @@
 {% block title %}Runtime Config Truth{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="runtime-config-truth">
-    <div class="manage-section-header">
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">Runtime</p>
+            <p class="mui-deck-eyebrow">Runtime · Config Truth</p>
             <h1>Configuration Truth</h1>
-            <p class="manage-lead">What's configured, what's actually effective, and what the runtime has loaded. Helps identify mismatches between policy and practice.</p>
+            <p class="mui-deck-headline">What's configured, what's actually effective, and what the runtime has loaded. Helps identify mismatches between policy and practice.</p>
         </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="config-truth-refresh">Refresh snapshot</button>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn btn-primary" id="config-truth-refresh">Refresh snapshot</button>
+            <span class="mui-inline-result" id="config-truth-header-result" hidden></span>
         </div>
-    </div>
+    </header>
 
-    <p id="config-truth-error" class="form-error" style="display:none;" role="alert"></p>
+    <p id="config-truth-error" class="form-error mui-legacy-hidden" hidden role="alert"></p>
 
     <!-- Summary Status -->
     <section class="panel config-truth-summary" style="margin-bottom:1rem;">

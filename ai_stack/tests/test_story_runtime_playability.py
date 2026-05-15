@@ -197,3 +197,42 @@ def test_npc_agency_missing_required_feedback_is_retryable_but_not_degradable() 
     assert exhausted.should_retry is False
     assert exhausted.allow_degraded_commit is False
     assert all(actor_id in instruction for actor_id in plan["required_actor_ids"])
+
+
+def test_dramatic_irony_failure_feedback_is_retryable_but_not_degradable() -> None:
+    violation_code = "dramatic_irony_hidden_fact_echo"
+    outcome = {
+        "status": "rejected",
+        "reason": violation_code,
+        "recoverable_rejection": True,
+        "dramatic_irony_validation": {
+            "status": "rejected",
+            "violation_codes": [violation_code],
+        },
+    }
+
+    retry = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=1,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    exhausted = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=3,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    instruction = build_rewrite_instruction(retry.feedback_codes)
+
+    assert retry.should_retry is True
+    assert violation_code in retry.feedback_codes
+    assert exhausted.should_retry is False
+    assert exhausted.allow_degraded_commit is False
+    assert "private motive" in instruction

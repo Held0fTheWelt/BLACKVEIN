@@ -2,16 +2,16 @@
 {% block title %}Research governance overview{% endblock %}
 {% block content %}
 <section class="manage-section research-governance-page" data-research-governance-page="overview">
-    <header class="manage-section-header">
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">Governance</p>
-            <h1 class="page-header">Research domain overview</h1>
-            <p class="manage-lead">Strategic visibility across source intake, extraction experiments, candidate findings, promoted canonical packages, and MCP/workbench posture. This surface is not the full research lab — it bundles ownership and drill-downs.</p>
+            <p class="mui-deck-eyebrow">Research · Governance</p>
+            <h1>Research domain overview</h1>
+            <p class="mui-deck-headline">Strategic visibility across source intake, extraction experiments, candidate findings, promoted canonical packages, and MCP/workbench posture. This surface is not the full research lab — it bundles ownership and drill-downs.</p>
         </div>
     </header>
     {% set active_section = 'overview' %}
     {% include "manage/research_governance/_subnav.html" %}
-    <p id="research-error-banner" class="form-error" style="display:none;" role="alert"></p>
+    <p id="research-error-banner" class="form-error mui-legacy-hidden" hidden role="alert"></p>
     <p id="research-strip" class="muted" aria-live="polite">Loading…</p>
     <p id="research-principles" class="muted small"></p>
     <section class="panel">

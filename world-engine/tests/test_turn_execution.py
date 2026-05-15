@@ -85,3 +85,25 @@ class TestTurnExecution:
 
         assert not result.success
         assert "session" in result.error_message.lower()
+
+    def test_execution_fails_when_player_not_bound(self, session_mgr, turn_executor):
+        session = session_mgr.create_session("wos", "player_game", {})
+        result = turn_executor.execute_turn(
+            session_id=session.session_id,
+            player_id="p_unbound",
+            action={"type": "wait"},
+        )
+        assert not result.success
+        assert "not bound" in result.error_message.lower()
+        assert result.new_turn_number == 0
+
+    def test_execution_fails_for_invalid_action_format(self, session_mgr, turn_executor):
+        session = session_mgr.create_session("wos", "player_game", {})
+        session_mgr.bind_player(session.session_id, "p_1")
+        result = turn_executor.execute_turn(
+            session_id=session.session_id,
+            player_id="p_1",
+            action="not-a-dict",
+        )
+        assert not result.success
+        assert "invalid action" in result.error_message.lower()

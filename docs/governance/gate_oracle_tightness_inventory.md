@@ -1,6 +1,6 @@
 # Gate Oracle Tightness Inventory
 
-**Phase:** inventory + completed refactor waves 1-4 (gates must stay contract-strict per ADR-0039).
+**Phase:** inventory + completed refactor waves 1-6 (gates must stay contract-strict per ADR-0039).
 **Normative guidance:** [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md), [ADR-0033](../ADR/adr-0033-live-runtime-commit-semantics.md).  
 **Path:** `docs/governance/gate_oracle_tightness_inventory.md` (confirmed per plan).
 
@@ -149,8 +149,10 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 | N evidence-complete C/D (and mixed) rows with strategies | Done (§4, **N=22**) |
 | Initial inventory phase: zero edits | Done (superseded by refactor waves; see §9) |
 | Explicit “do not loosen” contractual list | Done (§3) |
-| Refactor waves 1–4 applied without loosening gates | Done (§9) |
-| Current gate runner evidence | `python tests/run_tests.py --suite gates` — **96 passed** in 100.52s (2026-05-14) |
+| Refactor waves 1–6 applied without loosening gates | Done (§9) |
+| Latest full gate runner evidence | `python tests/run_tests.py --suite gates` — **96 passed** in 100.52s (2026-05-14, before wave 5) |
+| Π1-Π13 re-audit evidence | Done (§9 wave 5; targeted proof 2026-05-15) |
+| Π16 dramatic-irony oracle evidence | Done (§9 wave 6; targeted proof 2026-05-15) |
 
 ---
 
@@ -218,6 +220,46 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 - `python -m py_compile tests/gates/gate_contract_constants.py tests/gates/we_contract_helpers.py tests/gates/test_goc_mvp01_mvp02_foundation_gate.py tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` — **passed**.
 - `python -m pytest tests/gates/test_goc_mvp04_observability_diagnostics_gate.py::test_mvp04_execute_turn_includes_diagnostics_envelope -q --no-cov` — **1 passed** in 76.84s.
 - `python tests/run_tests.py --suite gates` — **96 passed** in 100.52s (`tests/reports/pytest_gates_20260514_214137.xml`).
+
+### Wave 5 (completed)
+
+**Rows addressed:** Table B production-control scan and Quality Lab runtime-aspect taxonomy.
+
+**Rows deferred:** none.
+
+**Summary:**
+
+- The Table B anti-hardcoding gate now covers the re-audited legacy control ids `pi_1` through `pi_13` / `Π1` through `Π13`, not only the previously covered `pi_11`.
+- A production scan found no active code hits for Π1-Π13 legacy labels in `ai_stack`, backend/frontend runtime roots, `story_runtime_core`, MCP, or World-Engine app code.
+- `ai_stack/quality_lab/trace_interpreter.py` no longer carries a parallel hardcoded runtime-aspect list. It imports `ASPECT_KEYS` from `ai_stack.runtime_aspect_ledger`, so Quality Lab diagnostics follow the same canonical aspect taxonomy as the runtime ledger.
+
+**Test results (authoritative targeted run after wave 05 implementation):**
+
+- `python -m py_compile ai_stack/quality_lab/trace_interpreter.py tests/gates/test_table_b_anti_hardcoding_gate.py` — **passed**.
+- `python -m pytest ai_stack/tests/test_quality_lab_trace_interpreter.py -q --tb=short` — **20 passed**.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` — **6 passed**.
+- `python -m pytest ai_stack/tests/test_hierarchical_memory_contracts.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_context_synthesis_engine.py ai_stack/tests/test_context_synthesis_retry_loop.py ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_scene_energy_engine.py ai_stack/tests/test_narrative_aspect_contracts.py ai_stack/tests/test_semantic_move_interpretation_goc.py ai_stack/tests/test_npc_agency_long_horizon_claim_readiness.py ai_stack/tests/test_npc_agency_planner.py ai_stack/tests/test_npc_agency_contracts.py ai_stack/tests/test_langgraph_runtime.py ai_stack/tests/test_rag.py ai_stack/tests/test_story_runtime_playability.py ai_stack/tests/test_runtime_authority_aspects.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_langfuse_verify_tools.py story_runtime_core/tests/test_input_interpreter.py tests/branching/test_branching_forecast.py tests/branching/test_branching_tree_record.py tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` — **238 passed**.
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_story_runtime_rag_runtime.py world-engine/tests/test_story_runtime_aspect_ledger.py world-engine/tests/test_story_runtime_branching_simulation_tree.py world-engine/tests/test_story_runtime_branching_tree_api.py world-engine/tests/test_branching_tree_store.py world-engine/tests/test_branch_timeline_store.py world-engine/tests/test_runtime_engine.py -q --tb=short` — **50 passed**.
+
+### Wave 6 (completed)
+
+**Rows addressed:** Π16 dramatic-irony runtime contract and ADR-0039 oracle discipline.
+
+**Rows deferred:** none.
+
+**Summary:**
+
+- Π16 tests derive selected opportunities from fixture-built `npc_private_plan` records and normalized module policy instead of matching generated dramatic-irony prose.
+- Prompt-safety coverage asserts `compact_dramatic_irony_context` exposes only bounded surface opportunities and omits hidden fact summaries / private-plan intent strings.
+- Validation coverage asserts structured surface modes, hidden-fact echo violation codes, and leak-block status. MCP/ledger coverage asserts dramatic-irony fields and scores from runtime aspect records.
+
+**Test results (authoritative targeted run after Π16 implementation):**
+
+- `python -m py_compile ai_stack/dramatic_irony_contracts.py ai_stack/dramatic_irony_runtime.py ai_stack/story_runtime_playability.py ai_stack/module_runtime_policy.py ai_stack/langgraph_runtime_executor.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — **passed**.
+- `python -m pytest ai_stack/tests/test_dramatic_irony_runtime.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_story_runtime_playability.py -q --tb=short` — **24 passed**.
+- `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short` — **1 passed**.
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` — **7 passed**.
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` — **11 passed**.
 
 ---
 

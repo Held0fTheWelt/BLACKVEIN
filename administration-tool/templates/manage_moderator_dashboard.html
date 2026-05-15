@@ -1,12 +1,23 @@
 {% extends "manage/base.html" %}
 {% block title %}Moderator Dashboard{% endblock %}
 {% block content %}
-<div class="manage-moderator-dashboard">
-    <h1 class="page-header">Moderator Dashboard</h1>
-    <p class="muted">Moderation tools and flagged content (moderator+).</p>
-    <div class="moderation-section">
-        <h2>Moderation Overview</h2>
-        <p>Dashboard for managing reported content, moderation actions, and community guidelines enforcement.</p>
-    </div>
+<div class="manage-moderator-dashboard manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Community · Moderation</p>
+            <h1>Moderator Dashboard</h1>
+            <p class="mui-deck-headline">Moderation tools and flagged content (moderator+).</p>
+        </div>
+    </header>
+
+    <article class="mui-inspector">
+        <header class="mui-inspector-head">
+            <span class="mui-inspector-eyebrow">Overview</span>
+            <h2>Moderation Overview</h2>
+        </header>
+        <div class="mui-inspector-body">
+            <p>Dashboard for managing reported content, moderation actions, and community guidelines enforcement.</p>
+        </div>
+    </article>
 </div>
 {% endblock %}

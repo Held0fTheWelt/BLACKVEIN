@@ -1,12 +1,23 @@
 {% extends "manage/base.html" %}
 {% block title %}Community Analytics{% endblock %}
 {% block content %}
-<div class="manage-analytics">
-    <h1 class="page-header">Community Analytics</h1>
-    <p class="muted">Community engagement metrics and statistics (admin only).</p>
-    <div class="analytics-section">
-        <h2>Activity Overview</h2>
-        <p>Analytics dashboard for community engagement, user activity, and forum metrics.</p>
-    </div>
+<div class="manage-analytics manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Community · Analytics</p>
+            <h1>Community Analytics</h1>
+            <p class="mui-deck-headline">Community engagement metrics and statistics (admin only).</p>
+        </div>
+    </header>
+
+    <article class="mui-inspector">
+        <header class="mui-inspector-head">
+            <span class="mui-inspector-eyebrow">Overview</span>
+            <h2>Activity Overview</h2>
+        </header>
+        <div class="mui-inspector-body">
+            <p>Analytics dashboard for community engagement, user activity, and forum metrics.</p>
+        </div>
+    </article>
 </div>
 {% endblock %}

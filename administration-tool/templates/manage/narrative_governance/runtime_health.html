@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Runtime Health{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="runtime_health">
-    <h1>Narrative Runtime Health</h1>
-    <p class="manage-muted">Live quality counters for first pass, corrective retry, and safe fallback usage.</p>
+{% set active_narrative_section = 'runtime_health' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="runtime_health">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Runtime Health</h1>
+            <p class="mui-deck-headline">Live quality counters for first pass, corrective retry, and safe fallback usage.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-runtime-health-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

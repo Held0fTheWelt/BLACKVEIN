@@ -65,7 +65,7 @@ Think of the play service as a building with **two rooms**: one for **group temp
 | Face | Primary modules | Entry transport | Authoritative objects |
 |------|-----------------|-----------------|------------------------|
 | **Run / lobby runtime** | `world-engine/app/runtime/*`, tickets `world-engine/app/auth/tickets.py` | REST under `/api/runs`, `/api/tickets`, `/ws` | `RuntimeInstance`, participants, transcript, snapshots via `RuntimeEngine.build_snapshot` |
-| **Story runtime** | `world-engine/app/story_runtime/*` | REST under `/api/story/sessions` (internal API key) | `StorySession` (`session_id`, `module_id`, `runtime_projection`, `current_scene_id`, `history`, `diagnostics`, narrative threads) |
+| **Story runtime** | `world-engine/app/story_runtime/*` | REST under `/api/story/sessions` (internal API key) | `StorySession` (`session_id`, `module_id`, `runtime_projection`, `current_scene_id`, `environment_state`, `history`, `diagnostics`, narrative threads) |
 
 **Shared process:** `world-engine/app/main.py` initializes both managers on startup; trace middleware (`world-engine/app/middleware/trace_middleware.py`) can correlate requests.
 
@@ -194,12 +194,12 @@ For **story runtime**, `resolve_narrative_commit` (`world-engine/app/story_runti
 | Kind | Meaning | Anchors |
 |------|---------|---------|
 | **Authored truth** | Canonical module YAML and compiled projections | `content/modules/`, `backend/app/content/compiler/compiler.py` (`compile_module`) |
-| **Runtime truth** | Committed session fields (`current_scene_id`, turn history tail, narrative commit records) | `StorySession`, `session.history` in `manager.py` |
+| **Runtime truth** | Committed session fields (`current_scene_id`, `environment_state`, turn history tail, narrative commit records) | `StorySession`, `session.history` in `manager.py`, `ai_stack/environment_state_contracts.py` |
 | **Retrieved context** | RAG / context packs feeding prompts | `ai_stack/rag.py`, graph retrieval stage ([`ai-stack-overview.md`](../ai/ai-stack-overview.md)) |
 | **AI proposal space** | Structured outputs, narration bundles, diagnostics | `graph_state` before commit; **not** authoritative alone |
 | **Player-visible consequence** | UI renders engine-returned bundles and `committed_state` summaries | [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md) |
 
-**What the engine validates / refuses to delegate.** Scene progression legality against `runtime_projection` scenes and `transition_hints` ([`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md)). Illegal transitions do not mutate committed scene state.
+**What the engine validates / refuses to delegate.** Scene progression legality against `runtime_projection` scenes and `transition_hints` ([`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md)). Illegal transitions do not mutate committed scene state. Environment state follows the same authority rule: `StorySession.environment_state` is initialized from canonical layout/object content and mutates only after approved committed actions; model narration, RAG context, and render support are projection/proposal surfaces.
 
 ### Why this matters in World of Shadows
 
@@ -273,15 +273,16 @@ stateDiagram-v2
 
 ### Plain language
 
-Each story session is a small, server-side record: which module, which scene you are in, how many turns ran, a bounded history of **what the engine accepted** as the narrative commit for each turn, a policy-driven hierarchical memory snapshot derived only from committed turns, and runtime-aspect evidence for what the engine allowed the model to reveal.
+Each story session is a small, server-side record: which module, which scene you are in, committed environment state, how many turns ran, a bounded history of **what the engine accepted** as the narrative commit for each turn, a policy-driven hierarchical memory snapshot derived only from committed turns, and runtime-aspect evidence for what the engine allowed the model to reveal or imply.
 
 ### Technical precision
 
 - **Session map:** `StoryRuntimeManager.sessions: dict[str, StorySession]` (`world-engine/app/story_runtime/manager.py`).
 - **Turn execution:** increments `turn_counter`, runs `turn_graph.run(...)`, computes `narrative_commit`, updates `narrative_threads`, appends to `history` and `diagnostics`, returns a turn envelope including `visible_output_bundle` and graph diagnostics references.
-- **Runtime intelligence ledger:** records `turn_aspect_ledger` for input, selected beat, selected/required/blocked capabilities, narrator/NPC/player authority, voice consistency, information disclosure, visible origin evidence, validation status, commit result, and hierarchical memory. The ledger is persisted with the canonical turn record and projected to diagnostics/path summaries; the frontend may render it only as backend-provided data.
+- **Runtime intelligence ledger:** records `turn_aspect_ledger` for input, selected beat, selected/required/blocked capabilities, narrator/NPC/player authority, voice consistency, information disclosure, dramatic irony, visible origin evidence, validation status, commit result, and hierarchical memory. The ledger is persisted with the canonical turn record and projected to diagnostics/path summaries; the frontend may render it only as backend-provided data.
 - **Voice consistency:** derives active character voice profiles from canonical module content and validates `spoken_lines` before commit. Policy-declared forbidden language markers can trigger recoverable rejection and rewrite feedback through `runtime_voice_consistency_v1`. The semantic classifier compares spoken lines to every active canonical profile, emits ranking/dimension evidence, and, in `strict_rule_engine`, can reject high-confidence cross-actor or mixed voice drift through `runtime_voice_consistency_v2`. The same evidence is projected to the `voice_consistency` aspect, Langfuse runtime-aspect spans/scores, and the MCP runtime-aspect matrix. Authoring `dialogue_examples` are excluded from runtime profile serialization and are not used as prose oracles.
 - **Information disclosure:** loads module `information_disclosure_policy.yaml` through `ModuleRuntimePolicy`, derives a bounded `information_disclosure` target before context synthesis, and validates any structured `disclosure_events` against selected unit ids, withheld/forbidden units, stage/mode, and per-turn budget. This is the implemented Π20/mystery-rationing slice, but production code uses the generic aspect name rather than Table-B labels. The validation oracle is the policy/schema/ledger contract, not generated story text.
+- **Dramatic irony:** loads module `runtime_intelligence.dramatic_irony` policy through `ModuleRuntimePolicy`, derives selected opportunities from NPC private-plan records before context synthesis, and passes only bounded surface-safe opportunity metadata into `dramatic_irony_context`. Validation requires structured opportunity/surface-mode evidence and blocks direct hidden-intent or selected private-plan echoes before commit. Ledger, Langfuse, and MCP evidence report selected/realized opportunities, leak-block status, contract pass, and violation codes; the oracle is policy/schema/private-plan provenance, not story prose.
 - **Module runtime governance:** loads `ModuleRuntimePolicy.runtime_governance_policy` from module content. The runtime core consumes generic policy fields such as action-resolution short-path eligibility, visible-projection hard-failure behavior, capability gate behavior, and continuity hooks; module-specific names stay in content/configuration.
 - **Hierarchical memory:** loads module `memory_policy` through `ModuleRuntimePolicy`, records the `hierarchical_memory` runtime aspect, writes bounded memory items only after canonical commit, and projects safe memory context into the next LangGraph turn. Recoverable/rejected turns record guard evidence but do not write memory truth.
 - **Failure handling:** graph exceptions log via `log_story_runtime_failure` (`world-engine/app/observability/audit_log.py`) and re-raise; HTTP layer maps missing session to 404 (`world-engine/app/api/http.py`).

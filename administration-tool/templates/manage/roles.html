@@ -1,15 +1,21 @@
 {% extends "manage/base.html" %}
 {% block title %}Roles{% endblock %}
 {% block content %}
-<div class="manage-roles">
-    <h1 class="page-header">Role management</h1>
-    <p class="muted">Admin only. Create and edit roles; assign roles to users in Users.</p>
+<div class="manage-roles manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Identity · Roles</p>
+            <h1>Role management</h1>
+            <p class="mui-deck-headline">Admin only. Create and edit roles; assign roles to users in <a href="{{ url_for('manage_users') }}">Users</a>.</p>
+        </div>
+    </header>
+
     <div class="manage-split">
         <div class="manage-panel manage-roles-list-panel">
             <h2>Roles</h2>
             <button type="button" class="btn btn-primary" id="manage-roles-new-btn">New role</button>
             <div id="manage-roles-loading" class="manage-loading" hidden>Loading…</div>
-            <div id="manage-roles-error" class="form-error manage-state" role="alert" hidden></div>
+            <div id="manage-roles-error" class="form-error manage-state mui-legacy-hidden" role="alert" hidden></div>
             <div class="manage-table-wrap" id="manage-roles-table-wrap" hidden>
                 <table class="manage-table" id="manage-roles-table">
                     <thead>
@@ -41,8 +47,8 @@
                     <label for="manage-roles-default-level">Default role level</label>
                     <input type="number" id="manage-roles-default-level" name="default_role_level" class="form-input" min="0" max="9999" step="1" placeholder="Optional">
                 </div>
-                <div id="manage-roles-form-error" class="form-error" role="alert" hidden></div>
-                <div id="manage-roles-form-success" class="form-success" hidden></div>
+                <div id="manage-roles-form-error" class="form-error mui-legacy-hidden" role="alert" hidden></div>
+                <div id="manage-roles-form-success" class="form-success mui-legacy-hidden" hidden></div>
                 <div class="manage-roles-form-actions">
                     <button type="submit" class="btn btn-primary" id="manage-roles-save">Save</button>
                     <button type="button" class="btn btn-danger" id="manage-roles-delete-btn">Delete</button>

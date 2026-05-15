@@ -34,6 +34,13 @@ DRAMATIC_IRONY_SURFACE_SUBTEXT_PRESSURE = "subtext_pressure"
 DRAMATIC_IRONY_SURFACE_DIRECT_REVEAL = "direct_hidden_intent_reveal"
 DRAMATIC_IRONY_SURFACE_OMNISCIENT_REVEAL = "omniscient_reveal"
 
+DRAMATIC_IRONY_CONTEXT_VISIBILITY_BOUNDED_SURFACE_ONLY = "bounded_surface_only"
+DRAMATIC_IRONY_RECOVERY_BEHAVIOR_RECOVER = "recover"
+DRAMATIC_IRONY_RECOVERY_BEHAVIOR_REJECT = "reject"
+
+DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE = "dramatic_irony_forbidden_surface_mode"
+DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO = "dramatic_irony_hidden_fact_echo"
+
 DEFAULT_DRAMATIC_IRONY_ALLOWED_SOURCES: tuple[str, ...] = (
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
 )
@@ -73,6 +80,10 @@ def default_dramatic_irony_policy() -> dict[str, Any]:
         "forbidden_surface_modes": list(DEFAULT_DRAMATIC_IRONY_FORBIDDEN_SURFACE_MODES),
         "max_opportunities": 3,
         "direct_reveal_allowed": False,
+        "model_context_visibility": DRAMATIC_IRONY_CONTEXT_VISIBILITY_BOUNDED_SURFACE_ONLY,
+        "require_structured_realization": True,
+        "recovery_behavior": DRAMATIC_IRONY_RECOVERY_BEHAVIOR_RECOVER,
+        "hidden_fact_echo_check": True,
     }
 
 
@@ -107,6 +118,14 @@ def normalize_dramatic_irony_policy(policy: dict[str, Any] | None) -> dict[str, 
         "forbidden_surface_modes": forbidden_surface_modes,
         "max_opportunities": max_opportunities,
         "direct_reveal_allowed": bool(raw.get("direct_reveal_allowed", False)),
+        "model_context_visibility": _clean_text(raw.get("model_context_visibility"))
+        or DRAMATIC_IRONY_CONTEXT_VISIBILITY_BOUNDED_SURFACE_ONLY,
+        "require_structured_realization": bool(
+            raw.get("require_structured_realization", True)
+        ),
+        "recovery_behavior": _clean_text(raw.get("recovery_behavior"))
+        or DRAMATIC_IRONY_RECOVERY_BEHAVIOR_RECOVER,
+        "hidden_fact_echo_check": bool(raw.get("hidden_fact_echo_check", True)),
     }
 
 
@@ -161,11 +180,22 @@ class DramaticIronyRealization(BaseModel):
     realized_opportunity_ids: list[str] = Field(default_factory=list)
     surface_mode: str | None = None
     visible_text_refs: list[str] = Field(default_factory=list)
+    visible_anchor_refs: list[str] = Field(default_factory=list)
     violation_codes: list[str] = Field(default_factory=list)
     leak_blocked: bool = False
     contract_pass: bool = True
+    surface_mode_contract_pass: bool = True
+    hidden_fact_echo_absent: bool = True
+    unused_selected_opportunity_ids: list[str] = Field(default_factory=list)
 
-    @field_validator("realized_opportunity_ids", "visible_text_refs", "violation_codes", mode="before")
+    @field_validator(
+        "realized_opportunity_ids",
+        "visible_text_refs",
+        "visible_anchor_refs",
+        "violation_codes",
+        "unused_selected_opportunity_ids",
+        mode="before",
+    )
     @classmethod
     def _dedupe_values(cls, value: Any) -> list[str]:
         return _dedupe_strings(value)

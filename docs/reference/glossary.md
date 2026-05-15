@@ -44,7 +44,13 @@ String identifier for a content module (for GoC, `god_of_carnage` is the slice b
 Model output is **non-authoritative** until validated and **committed** by runtime rules. The graph may produce proposals; committed state follows validation and commit seams (see `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` for normative detail).
 
 **Runtime aspect ledger**  
-Backend/world-engine-owned per-turn evidence record for runtime intelligence contracts such as beat, capability, authority, voice consistency, information disclosure, visible projection, validation, commit, and memory. It is diagnostics/authority evidence; the player shell may display provided data but must not infer correctness from prose.
+Backend/world-engine-owned per-turn evidence record for runtime intelligence contracts such as beat, capability, authority, voice consistency, information disclosure, dramatic irony, visible projection, validation, commit, and memory. It is diagnostics/authority evidence; the player shell may display provided data but must not infer correctness from prose.
+
+**EnvironmentState / environmental story**
+Durable, bounded story-session environment state for the GoC slice: current room, actor locations, prop states, visible rooms, salient objects, and recent environment events. It is initialized from canonical module content and mutates only through committed/admitted actions; narration and RAG do not create persistent environment truth.
+
+**Dramatic irony runtime aspect**
+Bounded Π16 runtime contract for selected NPC private-plan asymmetry. The runtime may pass only surface-safe opportunity ids and allowed surface modes into model context; validation rejects direct hidden-intent/private-plan echoes and records leak, realization, and violation evidence in the runtime aspect ledger. Tests derive expectations from policy, schema, selected private-plan records, and violation codes rather than generated prose.
 
 **Information disclosure runtime aspect**  
 Generic runtime aspect implementing bounded reveal control for mystery-rationing behavior. Content policy selects which disclosure units may be visible in a turn, validation checks structured `disclosure_events` and budget/failure codes, and tests use policy/schema/ledger fields rather than story prose as oracles.

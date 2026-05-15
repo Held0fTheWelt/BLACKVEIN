@@ -2,19 +2,20 @@
 {% block title %}AI Stack Release Readiness{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="ai-stack-release-readiness">
-    <div class="manage-section-header">
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">AI Stack</p>
+            <p class="mui-deck-eyebrow">AI Stack · Release Readiness</p>
             <h1>Release Readiness Gates</h1>
-            <p class="manage-lead">Canonical gate status for AI Stack release readiness. Each gate tracks whether a specific system capability is ready (closed), partially ready (partial), or not ready (open). Green gates close off when all evidence criteria are met.</p>
+            <p class="mui-deck-headline">Canonical gate status for AI Stack release readiness. Each gate tracks whether a specific capability is ready (<strong>closed</strong>), partially ready (<strong>partial</strong>), or not ready (<strong>open</strong>).</p>
         </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="readiness-refresh-btn">Refresh gates</button>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn btn-primary" id="readiness-refresh-btn">Refresh gates</button>
+            <span class="mui-inline-result" id="readiness-header-result" hidden></span>
         </div>
-    </div>
+    </header>
 
-    <p id="readiness-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-    <p id="readiness-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="readiness-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="readiness-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
 
     <!-- Closure Summary -->
     <section class="panel readiness-summary-panel" style="margin-bottom:1rem;">

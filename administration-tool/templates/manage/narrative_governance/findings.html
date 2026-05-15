@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Findings{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="findings">
-    <h1>Narrative Findings</h1>
-    <p class="manage-muted">High-confidence findings and linked revision candidates.</p>
+{% set active_narrative_section = 'findings' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="findings">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Findings</h1>
+            <p class="mui-deck-headline">High-confidence findings and linked revision candidates.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-findings-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

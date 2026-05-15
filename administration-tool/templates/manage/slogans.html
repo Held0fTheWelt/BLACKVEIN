@@ -1,9 +1,15 @@
 {% extends "manage/base.html" %}
 {% block title %}Slogans{% endblock %}
 {% block content %}
-<div class="manage-slogans">
-    <h1 class="page-header">Slogans</h1>
-    <p class="muted">Manage landing and site slogans. Placement resolution is backend-driven; use <code>landing.teaser.primary</code> for the main landing teaser.</p>
+<div class="manage-slogans manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Content · Slogans</p>
+            <h1>Slogans</h1>
+            <p class="mui-deck-headline">Manage landing and site slogans. Placement resolution is backend-driven — use <code>landing.teaser.primary</code> for the main landing teaser.</p>
+        </div>
+    </header>
+
     <div class="manage-slogans-toolbar">
         <select id="slogan-filter-placement" class="filter-select">
             <option value="">All placements</option>
@@ -20,7 +26,7 @@
         <button type="button" class="btn btn-primary" id="slogan-new">New slogan</button>
     </div>
     <div id="slogan-loading" class="manage-loading">Loading…</div>
-    <div id="slogan-error" class="form-error manage-state" role="alert" hidden></div>
+    <div id="slogan-error" class="form-error manage-state mui-legacy-hidden" role="alert" hidden></div>
     <div class="table-wrap">
         <table class="data-table" id="slogan-table">
             <thead>

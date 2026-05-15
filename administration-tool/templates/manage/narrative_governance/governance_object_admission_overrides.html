@@ -1,9 +1,14 @@
 {% extends "manage/base.html" %}
 {% block title %}Object Admission Overrides{% endblock %}
 {% block content %}
-<section class="manage-card governance-overrides-page" data-override-type="object_admission">
-    <h1>Object Admission Overrides</h1>
-    <p class="manage-muted">Manage object admission tier overrides for narrative governance. Use with caution.</p>
+<section class="manage-section governance-overrides-page" data-override-type="object_admission">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Object Admission Overrides</h1>
+            <p class="mui-deck-headline">Manage object admission tier overrides for narrative governance. Use with caution.</p>
+        </div>
+    </header>
 
     <!-- Create Override Panel -->
     <div class="override-creation-panel">

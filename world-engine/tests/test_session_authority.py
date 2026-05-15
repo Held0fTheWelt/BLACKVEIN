@@ -50,3 +50,19 @@ class TestSessionAuthority:
         retrieved = session_mgr.get_session(session.session_id)
         assert retrieved is not None
         assert retrieved.state == {"data": "test"}
+
+    def test_session_to_dict_serializes_authoritative_fields(self, session_mgr):
+        session = session_mgr.create_session("wos", "player_game", {"version": 2})
+        payload = session.to_dict()
+        assert payload["session_id"] == session.session_id
+        assert payload["world_id"] == "wos"
+        assert payload["state"] == {"version": 2}
+        assert isinstance(payload["created_at"], str)
+
+    def test_bind_player_returns_false_for_unknown_session(self, session_mgr):
+        assert session_mgr.bind_player("s_missing", "player_a") is False
+
+    def test_list_sessions_returns_authoritative_registry(self, session_mgr):
+        session_mgr.create_session("wos", "player_game", {})
+        session_mgr.create_session("wos", "npc_scene", {})
+        assert len(session_mgr.list_sessions()) == 2

@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Notifications{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="notifications">
-    <h1>Narrative Notifications</h1>
-    <p class="manage-muted">Governance event rules and critical notification feed.</p>
+{% set active_narrative_section = 'notifications' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="notifications">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Notifications</h1>
+            <p class="mui-deck-headline">Governance event rules and critical notification feed.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-notifications-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

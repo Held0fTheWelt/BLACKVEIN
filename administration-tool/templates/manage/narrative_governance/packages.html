@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Packages{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="packages">
-    <h1>Narrative Packages</h1>
-    <p class="manage-muted">Active and preview package lifecycle with rollback access.</p>
+{% set active_narrative_section = 'packages' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="packages">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Packages</h1>
+            <p class="mui-deck-headline">Active and preview package lifecycle with rollback access.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-packages-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

@@ -80,9 +80,20 @@ MODULE_SPECIFIC_PATTERNS = (
     ForbiddenPattern("beat.ritual_civility", re.compile(r"\britual_civility\b", re.IGNORECASE)),
 )
 
+REAUDITED_TABLE_B_CONTROL_IDS = tuple(range(1, 14))
+
+LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
+    ForbiddenPattern(
+        f"table_b.pi_{index}",
+        re.compile(rf"\bpi_0?{index}\b|Π{index}\b", re.IGNORECASE),
+    )
+    for index in REAUDITED_TABLE_B_CONTROL_IDS
+) + (
+    ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22\b", re.IGNORECASE)),
+)
+
 TABLE_B_CONTROL_PATTERNS = (
-    ForbiddenPattern("table_b.pi_11", re.compile(r"\bpi_11\b|Π11", re.IGNORECASE)),
-    ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22", re.IGNORECASE)),
+    *LEGACY_TABLE_B_CONTROL_ID_PATTERNS,
     ForbiddenPattern("table_b.tension_calibration", re.compile(r"\btension_calibration\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.failure_as_story", re.compile(r"\bfailure_as_story\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.symbolic_resonance", re.compile(r"\bsymbolic_resonance\b", re.IGNORECASE)),
@@ -228,6 +239,14 @@ def test_table_b_control_ids_do_not_drive_production_code() -> None:
             violations.append(f"{rel}: {', '.join(hits)}")
 
     assert not violations, "Table B control literals leaked into production code:\n" + "\n".join(violations)
+
+
+def test_reaudited_table_b_control_id_guard_covers_pi1_through_pi13() -> None:
+    """The Π1-Π13 re-audit must stay represented in this production scan."""
+    labels = {pattern.label for pattern in LEGACY_TABLE_B_CONTROL_ID_PATTERNS}
+    expected = {f"table_b.pi_{index}" for index in REAUDITED_TABLE_B_CONTROL_IDS}
+
+    assert expected.issubset(labels)
 
 
 def test_scene_energy_runtime_aspect_is_limited_to_canonical_surfaces() -> None:

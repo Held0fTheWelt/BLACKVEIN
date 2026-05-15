@@ -2,81 +2,196 @@
 {% block title %}AI Orchestration{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="ai-orchestration">
-    <div class="manage-section-header">
+
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <p class="mui-deck-eyebrow">AI Engineer Suite · Orchestration</p>
             <h1>AI Orchestration</h1>
-            <p class="manage-lead">LangGraph and LangChain runtime observability with bounded operational controls only.</p>
+            <p class="mui-deck-headline">LangGraph and LangChain runtime observability with bounded operational controls only.</p>
         </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="manage-orch-refresh">Reload orchestration status</button>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn btn-primary" id="manage-orch-refresh">Reload</button>
+            <span class="mui-inline-result" id="manage-orch-header-result" hidden></span>
         </div>
+    </header>
+
+    <p id="manage-orch-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-orch-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+
+    <div class="mui-deck" data-mui-deck>
+
+        <aside class="mui-deck-rail" aria-label="Orchestration sections">
+            <a href="#langgraph" class="mui-rail-btn" data-deck-target="langgraph">
+                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">LangGraph runtime</span>
+                    <span class="mui-rail-secondary">visibility + execution</span>
+                </span>
+            </a>
+            <a href="#langchain" class="mui-rail-btn" data-deck-target="langchain">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">LangChain integration</span>
+                </span>
+            </a>
+            <a href="#comparison" class="mui-rail-btn" data-deck-target="comparison">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Expected vs active</span>
+                    <span class="mui-rail-secondary">posture + guidance</span>
+                </span>
+            </a>
+            <a href="#controls" class="mui-rail-btn" data-deck-target="controls">
+                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Bounded controls</span>
+                    <span class="mui-rail-secondary">profile + retries</span>
+                </span>
+            </a>
+            <a href="#related" class="mui-rail-btn" data-deck-target="related">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Related pages</span>
+                </span>
+            </a>
+            <a href="#audit" class="mui-rail-btn" data-deck-target="audit">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Technical audit</span>
+                </span>
+            </a>
+        </aside>
+
+        <main class="mui-deck-main">
+
+            <section class="mui-deck-section is-active" data-deck-section="langgraph">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Graph runtime</span>
+                        <h2>LangGraph runtime visibility</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-card-grid">
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Status</p>
+                                <ul id="manage-orch-langgraph-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Recent execution summary</p>
+                                <ul id="manage-orch-exec-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="langchain">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Chain runtime</span>
+                        <h2>LangChain integration visibility</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <ul id="manage-orch-langchain-lines" class="muted" style="margin: 0; padding-left: 1.1rem; line-height: 1.7;"></ul>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="comparison">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Posture</span>
+                        <h2>Expected vs active orchestration posture</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-card-grid">
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Comparison</p>
+                                <ul id="manage-orch-comparison-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Operator guidance</p>
+                                <ul id="manage-orch-guidance-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="controls">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Overrides</span>
+                        <h2>Bounded orchestration controls</h2>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-orch-controls-form" onsubmit="return false;">
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Runtime profile</span>
+                                <select id="manage-orch-setting-runtime-profile" class="form-input">
+                                    <option value="safe_local">safe_local</option>
+                                    <option value="balanced">balanced</option>
+                                    <option value="cost_aware">cost_aware</option>
+                                    <option value="quality_first">quality_first</option>
+                                    <option value="custom">custom</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Diagnostics verbosity</span>
+                                <select id="manage-orch-setting-verbosity" class="form-input">
+                                    <option value="operator">operator</option>
+                                    <option value="detailed">detailed</option>
+                                    <option value="debug">debug</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Max retry attempts</span>
+                                <input type="number" id="manage-orch-setting-max-retry" class="form-input" min="0" max="5" value="1" />
+                            </label>
+                            <label class="mui-field-check mui-field-full">
+                                <input type="checkbox" id="manage-orch-setting-corrective" />
+                                <span>Enable corrective feedback</span>
+                            </label>
+                        </div>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-orch-save-settings">Save orchestration settings</button>
+                        <span class="mui-inline-result" id="manage-orch-controls-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="related">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Navigation</span>
+                        <h2>Canonical related pages</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <ul class="muted" style="margin: 0; padding-left: 1.1rem; line-height: 1.9;">
+                            <li><a href="{{ url_for('manage_runtime_dashboard') }}">Runtime Dashboard</a> — blocker-first domain summary</li>
+                            <li><a href="{{ url_for('manage_runtime_settings') }}">Runtime Settings</a> — preset/override settings affecting orchestration</li>
+                            <li><a href="{{ url_for('manage_rag_operations') }}">RAG Operations</a> — retrieval quality and fallback posture</li>
+                            <li><a href="{{ url_for('manage_ai_runtime_governance') }}">AI Runtime Governance</a> — route/provider dependencies</li>
+                        </ul>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="audit">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Audit</span>
+                        <h2>Technical audit: full orchestration payload</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <pre id="manage-orch-json" class="manage-psc-json" data-json-label="Orchestration payload"></pre>
+                    </div>
+                </article>
+            </section>
+
+        </main>
     </div>
-
-    <p id="manage-orch-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-    <p id="manage-orch-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
-
-    <div class="manage-grid two-col">
-        <section class="panel">
-            <header class="panel-header"><h2>LangGraph runtime visibility</h2></header>
-            <ul id="manage-orch-langgraph-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Recent execution summary</h3>
-            <ul id="manage-orch-exec-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-        </section>
-        <section class="panel">
-            <header class="panel-header"><h2>LangChain integration visibility</h2></header>
-            <ul id="manage-orch-langchain-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-        </section>
-    </div>
-
-    <section class="panel" style="margin-top:1rem;">
-        <header class="panel-header"><h2>Expected vs active orchestration posture</h2></header>
-        <ul id="manage-orch-comparison-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-        <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Operator guidance</h3>
-        <ul id="manage-orch-guidance-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-    </section>
-
-    <section class="panel" style="margin-top:1rem;">
-        <header class="panel-header"><h2>Bounded orchestration controls</h2></header>
-        <label class="form-label">Runtime profile
-            <select id="manage-orch-setting-runtime-profile" class="form-input">
-                <option value="safe_local">safe_local</option>
-                <option value="balanced">balanced</option>
-                <option value="cost_aware">cost_aware</option>
-                <option value="quality_first">quality_first</option>
-                <option value="custom">custom</option>
-            </select>
-        </label>
-        <label class="form-label">Runtime diagnostics verbosity
-            <select id="manage-orch-setting-verbosity" class="form-input">
-                <option value="operator">operator</option>
-                <option value="detailed">detailed</option>
-                <option value="debug">debug</option>
-            </select>
-        </label>
-        <label class="form-label">Max retry attempts
-            <input type="number" id="manage-orch-setting-max-retry" class="form-input" min="0" max="5" value="1" />
-        </label>
-        <label class="form-label"><input type="checkbox" id="manage-orch-setting-corrective" /> Enable corrective feedback</label>
-        <div class="manage-actions-row">
-            <button type="button" class="btn btn-primary" id="manage-orch-save-settings">Save orchestration settings</button>
-        </div>
-    </section>
-
-    <details class="panel" style="margin-top:1rem;">
-        <summary class="muted">Technical audit: full orchestration payload</summary>
-        <pre id="manage-orch-json" class="manage-psc-json muted"></pre>
-    </details>
-
-    <section class="panel" style="margin-top:1rem;">
-        <header class="panel-header"><h2>Canonical related pages</h2></header>
-        <ul class="muted" style="margin:0.35rem 0 0 1.25rem;">
-            <li><a href="{{ url_for('manage_runtime_dashboard') }}">Runtime Dashboard</a> — blocker-first domain summary</li>
-            <li><a href="{{ url_for('manage_runtime_settings') }}">Runtime Settings</a> — preset/override settings affecting orchestration</li>
-            <li><a href="{{ url_for('manage_rag_operations') }}">RAG Operations</a> — retrieval quality and fallback posture</li>
-            <li><a href="{{ url_for('manage_ai_runtime_governance') }}">AI Runtime Governance</a> — route/provider dependencies</li>
-        </ul>
-    </section>
 </section>
 {% endblock %}
 {% block extra_scripts %}

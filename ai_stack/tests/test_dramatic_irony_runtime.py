@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+
 from ai_stack.dramatic_irony_contracts import (
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
     DRAMATIC_IRONY_STATUS_SELECTED,
+    DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
+    DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE,
+    DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO,
 )
 from ai_stack.dramatic_irony_runtime import (
     DIRECT_HIDDEN_INTENT_VIOLATION,
@@ -113,6 +118,38 @@ def test_dramatic_irony_validation_rejects_direct_hidden_intent_reveal() -> None
     assert validation["contract_pass"] is False
 
 
+def test_dramatic_irony_validation_blocks_source_derived_private_plan_echo() -> None:
+    simulation = _runtime_private_plan_simulation()
+    actor_ids = simulation["candidate_actor_ids"]
+    record = build_dramatic_irony_record(
+        actor_lane_context={"npc_actor_ids": actor_ids},
+        selected_responder_set=[{"actor_id": actor_id} for actor_id in actor_ids],
+        npc_agency_simulation=simulation,
+    )
+    selected_plan_id = simulation["npc_plan_conflict_resolution"]["selected_private_plan_ids"][0]
+    selected_plan = next(
+        row
+        for row in simulation["npc_private_plans"]
+        if row["private_plan_id"] == selected_plan_id
+    )
+    known_actor = record["facts"][0]["known_by_actor_ids"][0]
+    intent_phrase = selected_plan["intent"].replace("_", " ")
+    generation = {
+        "content": f"{known_actor} plans to {intent_phrase}.",
+    }
+
+    validation = validate_dramatic_irony_realization(
+        record=record,
+        generation=generation,
+        proposed_state_effects=[],
+    )
+
+    assert validation["status"] == "rejected"
+    assert DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO in validation["violation_codes"]
+    assert validation["leak_blocked"] is True
+    assert validation["hidden_fact_echo_absent"] is False
+
+
 def test_dramatic_irony_realization_accepts_structured_bounded_reference() -> None:
     record = build_dramatic_irony_record(
         actor_lane_context={"npc_actor_ids": _runtime_private_plan_simulation()["candidate_actor_ids"]},
@@ -127,7 +164,13 @@ def test_dramatic_irony_realization_accepts_structured_bounded_reference() -> No
         "metadata": {
             "structured_output": {
                 "dramatic_irony_opportunity_ids": [selected_id],
-                "spoken_lines": [{"speaker_id": record["facts"][0]["known_by_actor_ids"][0], "text": "Not yet."}],
+                "dramatic_irony_surface_mode": DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
+                "spoken_lines": [
+                    {
+                        "speaker_id": record["facts"][0]["known_by_actor_ids"][0],
+                        "text": "Not yet.",
+                    }
+                ],
             }
         }
     }
@@ -141,5 +184,62 @@ def test_dramatic_irony_realization_accepts_structured_bounded_reference() -> No
 
     assert validation["status"] == "approved"
     assert validation["realized_opportunity_ids"] == [selected_id]
+    assert validation["surface_mode_contract_pass"] is True
     assert compact["selected_opportunity_ids"] == record["selected_opportunity_ids"]
     assert compact["surface_rule"]
+
+
+def test_dramatic_irony_rejects_forbidden_surface_mode_from_policy() -> None:
+    record = build_dramatic_irony_record(
+        actor_lane_context={"npc_actor_ids": _runtime_private_plan_simulation()["candidate_actor_ids"]},
+        selected_responder_set=[
+            {"actor_id": actor_id}
+            for actor_id in _runtime_private_plan_simulation()["candidate_actor_ids"]
+        ],
+        npc_agency_simulation=_runtime_private_plan_simulation(),
+    )
+    selected_id = record["selected_opportunity_ids"][0]
+    forbidden_mode = record["policy"]["forbidden_surface_modes"][0]
+    generation = {
+        "metadata": {
+            "structured_output": {
+                "dramatic_irony_opportunity_ids": [selected_id],
+                "dramatic_irony_surface_mode": forbidden_mode,
+                "narrative_response": "Visible pressure shifts.",
+            }
+        }
+    }
+
+    validation = validate_dramatic_irony_realization(
+        record=record,
+        generation=generation,
+        proposed_state_effects=[],
+    )
+
+    assert validation["status"] == "rejected"
+    assert DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE in validation["violation_codes"]
+    assert validation["surface_mode_contract_pass"] is False
+
+
+def test_dramatic_irony_compact_context_omits_hidden_fact_summary() -> None:
+    simulation = _runtime_private_plan_simulation()
+    actor_ids = simulation["candidate_actor_ids"]
+    record = build_dramatic_irony_record(
+        actor_lane_context={"npc_actor_ids": actor_ids},
+        selected_responder_set=[{"actor_id": actor_id} for actor_id in actor_ids],
+        npc_agency_simulation=simulation,
+    )
+    selected_plan_id = simulation["npc_plan_conflict_resolution"]["selected_private_plan_ids"][0]
+    selected_plan = next(
+        row
+        for row in simulation["npc_private_plans"]
+        if row["private_plan_id"] == selected_plan_id
+    )
+
+    compact = compact_dramatic_irony_context(record)
+    compact_json = json.dumps(compact, sort_keys=True)
+
+    assert compact["model_context_visibility"] == record["policy"]["model_context_visibility"]
+    assert "facts" not in compact
+    assert selected_plan["intent"] not in compact_json
+    assert record["facts"][0]["summary"] not in compact_json

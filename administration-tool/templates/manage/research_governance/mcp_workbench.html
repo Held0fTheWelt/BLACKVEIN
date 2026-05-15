@@ -2,16 +2,16 @@
 {% block title %}Research — MCP &amp; workbench{% endblock %}
 {% block content %}
 <section class="manage-section research-governance-page" data-research-governance-page="layer:mcp_workbench">
-    <header class="manage-section-header">
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">Execution posture</p>
-            <h1 class="page-header">MCP &amp; workbench connectivity</h1>
-            <p class="manage-lead">What exists on disk for MCP research handlers, what runs in MCP Operations, and what stays deferred to specialized clients. Canonical truth is still owned by governed packages — MCP traces do not auto-promote.</p>
+            <p class="mui-deck-eyebrow">Research · Execution posture</p>
+            <h1>MCP &amp; workbench connectivity</h1>
+            <p class="mui-deck-headline">What exists on disk for MCP research handlers, what runs in MCP Operations, and what stays deferred to specialized clients. Canonical truth is still owned by governed packages — MCP traces do not auto-promote.</p>
         </div>
     </header>
     {% set active_section = 'mcp_workbench' %}
     {% include "manage/research_governance/_subnav.html" %}
-    <p id="research-error-banner" class="form-error" style="display:none;" role="alert"></p>
+    <p id="research-error-banner" class="form-error mui-legacy-hidden" hidden role="alert"></p>
     <p id="research-strip" class="muted">Loading…</p>
     <p id="research-layer-role" class="muted small"></p>
     <p id="research-canonical-note" class="manage-state manage-state--ok" style="display:none;"></p>

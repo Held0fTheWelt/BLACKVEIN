@@ -1,17 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Governance Overview{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="overview">
-    <h1>Narrative Governance Overview</h1>
-    <p class="manage-muted">Active package, preview readiness, unresolved conflicts, runtime degradation, and critical alerts.</p>
-    <div class="narrative-nav-row">
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_runtime') }}">Runtime</a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_runtime_health') }}">Runtime Health</a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_packages') }}">Packages</a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_revisions') }}">Revisions</a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_evaluations') }}">Evaluations</a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('manage_narrative_notifications') }}">Notifications</a>
-    </div>
+{% set active_narrative_section = 'overview' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="overview">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Governance Overview</h1>
+            <p class="mui-deck-headline">Active package, preview readiness, unresolved conflicts, runtime degradation, and critical alerts.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-overview-grid" class="narrative-grid"></div>
 </section>
 {% endblock %}

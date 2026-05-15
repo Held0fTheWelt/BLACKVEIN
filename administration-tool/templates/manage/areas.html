@@ -1,15 +1,21 @@
 {% extends "manage/base.html" %}
 {% block title %}Areas{% endblock %}
 {% block content %}
-<div class="manage-areas">
-    <h1 class="page-header">Area management</h1>
-    <p class="muted">Admin only. Create and edit areas; assign areas to users in Users and to features in Feature access.</p>
+<div class="manage-areas manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Content · Areas</p>
+            <h1>Area management</h1>
+            <p class="mui-deck-headline">Admin only. Create and edit areas; assign areas to users in <a href="{{ url_for('manage_users') }}">Users</a> and to features in <a href="{{ url_for('manage_feature_areas') }}">Feature access</a>.</p>
+        </div>
+    </header>
+
     <div class="manage-split">
         <div class="manage-panel manage-areas-list-panel">
             <h2>Areas</h2>
             <button type="button" class="btn btn-primary" id="manage-areas-new-btn">New area</button>
             <div id="manage-areas-loading" class="manage-loading" hidden>Loading…</div>
-            <div id="manage-areas-error" class="form-error manage-state" role="alert" hidden></div>
+            <div id="manage-areas-error" class="form-error manage-state mui-legacy-hidden" role="alert" hidden></div>
             <div class="manage-table-wrap" id="manage-areas-table-wrap" hidden>
                 <table class="manage-table" id="manage-areas-table">
                     <thead>
@@ -42,8 +48,8 @@
                     <label for="manage-areas-description">Description</label>
                     <input type="text" id="manage-areas-description" name="description" class="form-input">
                 </div>
-                <div id="manage-areas-form-error" class="form-error" role="alert" hidden></div>
-                <div id="manage-areas-form-success" class="form-success" hidden></div>
+                <div id="manage-areas-form-error" class="form-error mui-legacy-hidden" role="alert" hidden></div>
+                <div id="manage-areas-form-success" class="form-success mui-legacy-hidden" hidden></div>
                 <div class="manage-areas-form-actions">
                     <button type="submit" class="btn btn-primary" id="manage-areas-save">Save</button>
                     <button type="button" class="btn btn-danger" id="manage-areas-delete-btn">Delete</button>

@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Revisions{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="revisions">
-    <h1>Narrative Revisions</h1>
-    <p class="manage-muted">Revision workflow state machine with inline conflict visibility.</p>
+{% set active_narrative_section = 'revisions' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="revisions">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Revisions</h1>
+            <p class="mui-deck-headline">Revision workflow state machine with inline conflict visibility.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-revisions-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

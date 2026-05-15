@@ -197,3 +197,22 @@ runtime_intelligence:
         volatility: breaking
         target_transition: rise
         minimum_actor_response_count: 2
+  dramatic_irony:
+    enabled: true
+    schema_version: dramatic_irony.v1
+    allowed_sources:
+      - npc_private_plan_selected
+    allowed_surface_modes:
+      - behavioral_echo
+      - misread_reaction
+      - withheld_context
+      - subtext_pressure
+    forbidden_surface_modes:
+      - direct_hidden_intent_reveal
+      - omniscient_reveal
+    max_opportunities: 3
+    direct_reveal_allowed: false
+    model_context_visibility: bounded_surface_only
+    require_structured_realization: true
+    recovery_behavior: recover
+    hidden_fact_echo_check: true

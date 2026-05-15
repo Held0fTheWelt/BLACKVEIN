@@ -246,27 +246,10 @@ def _capture_flags_for_suite(suite_name: str) -> list[str]:
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
 FRONTEND_COV_FAIL_UNDER = "90"
-# World-engine: ``app/story_runtime/manager.py`` alone is ~3.5k statements; measuring the full ``app``
-# tree makes a 90% line gate dominated by that module. The engine suite therefore measures runtime
-# surfaces (HTTP/WS, narrative, observability, content, config) while story-runtime graph work
-# remains exercised by the same tests but attributed under ``story_runtime_core`` / integration gates.
-ENGINE_COV_SOURCES: tuple[str, ...] = tuple(
-    str(WORLD_ENGINE_DIR / "app" / rel)
-    for rel in (
-        "api",
-        "auth",
-        "content",
-        "middleware",
-        "narrative",
-        "observability",
-        "runtime",
-        "repo_root.py",
-        "config.py",
-        "main.py",
-        "__init__.py",
-        "story_runtime_shell_readout.py",
-    )
-)
+# World-engine: measure the app package through one Coverage.py source root.
+# ``world-engine/.coveragerc`` owns the explicit omits for story-runtime host
+# modules that are integration-heavy and would otherwise dominate the 90% gate.
+ENGINE_COV_SOURCES: tuple[str, ...] = (WORLD_ENGINE_APP_ROOT,)
 ENGINE_COV_FAIL_UNDER = "90"
 DEFAULT_COV_FAIL_UNDER = "80"
 # writers_room and improvement suites test only their own modules within the larger app package

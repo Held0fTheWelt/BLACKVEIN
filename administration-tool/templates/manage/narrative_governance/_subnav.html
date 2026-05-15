@@ -1,0 +1,13 @@
+{# Narrative governance subnav — included from every subpage so operators can
+   jump between sections without going back to overview. #}
+<div class="research-nav-row" aria-label="Narrative governance sections">
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'overview' %} is-active{% endif %}" href="{{ url_for('manage_narrative_overview') }}">Overview</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'runtime' %} is-active{% endif %}" href="{{ url_for('manage_narrative_runtime') }}">Runtime</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'runtime_health' %} is-active{% endif %}" href="{{ url_for('manage_narrative_runtime_health') }}">Runtime Health</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'packages' %} is-active{% endif %}" href="{{ url_for('manage_narrative_packages') }}">Packages</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'policies' %} is-active{% endif %}" href="{{ url_for('manage_narrative_policies') }}">Policies</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'findings' %} is-active{% endif %}" href="{{ url_for('manage_narrative_findings') }}">Findings</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'revisions' %} is-active{% endif %}" href="{{ url_for('manage_narrative_revisions') }}">Revisions</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'evaluations' %} is-active{% endif %}" href="{{ url_for('manage_narrative_evaluations') }}">Evaluations</a>
+    <a class="btn btn-outline btn-sm{% if active_narrative_section == 'notifications' %} is-active{% endif %}" href="{{ url_for('manage_narrative_notifications') }}">Notifications</a>
+</div>

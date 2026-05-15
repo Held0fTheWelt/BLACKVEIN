@@ -798,6 +798,33 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "dramatic_irony": {
+                        "status": "passed",
+                        "expected": {
+                            "policy_present": True,
+                            "policy_enabled": True,
+                            "allowed_surface_modes": ["misread_reaction"],
+                            "direct_reveal_allowed": False,
+                        },
+                        "selected": {
+                            "selected_opportunity_ids": ["opportunity_alpha"],
+                            "selected_fact_ids": ["fact_alpha"],
+                        },
+                        "actual": {
+                            "status": "selected",
+                            "fact_count": 1,
+                            "opportunity_count": 1,
+                            "selected_opportunity_count": 1,
+                            "realization_status": "realized",
+                            "realized_opportunity_ids": ["opportunity_alpha"],
+                            "visible_anchor_refs": ["opportunity_alpha"],
+                            "leak_blocked": False,
+                            "violation_codes": [],
+                            "contract_pass": True,
+                            "surface_mode_contract_pass": True,
+                            "hidden_fact_echo_absent": True,
+                        },
+                    },
                     "narrative_aspect": {
                         "status": "passed",
                         "expected": {
@@ -874,6 +901,9 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "information_disclosure_budget_pass", "value": 1.0},
             {"name": "information_disclosure_premature_reveal_absent", "value": 1.0},
             {"name": "information_disclosure_contract_pass", "value": 1.0},
+            {"name": "dramatic_irony_policy_present", "value": 1.0},
+            {"name": "dramatic_irony_opportunity_present", "value": 1.0},
+            {"name": "dramatic_irony_contract_pass", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
             {"name": "theme_tracking_policy_present", "value": 1.0},
             {"name": "theme_tracking_selected", "value": 1.0},
@@ -920,6 +950,14 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["information_disclosure_withheld_units"] == ["unit_beta"]
     assert row["information_disclosure_budget_pass"] is True
     assert row["information_disclosure_contract_pass"] == 1.0
+    assert row["dramatic_irony_policy_present"] is True
+    assert row["dramatic_irony_opportunity_present"] is True
+    assert row["dramatic_irony_selected_opportunities"] == ["opportunity_alpha"]
+    assert row["dramatic_irony_realized_opportunities"] == ["opportunity_alpha"]
+    assert row["dramatic_irony_realization_status"] == "realized"
+    assert row["dramatic_irony_leak_blocked"] is False
+    assert row["dramatic_irony_contract_pass"] is True
+    assert row["dramatic_irony_violation_codes"] == []
     assert row["narrative_aspect_policy_present"] is True
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]

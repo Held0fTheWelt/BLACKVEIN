@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Runtime{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="runtime">
-    <h1>Narrative Runtime</h1>
-    <p class="manage-muted">MVP4 — Operator evidence from the live God of Carnage runtime path.</p>
+{% set active_narrative_section = 'runtime' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="runtime">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Runtime</h1>
+            <p class="mui-deck-headline">MVP4 — Operator evidence from the live God of Carnage runtime path.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
 
     <!-- MVP4: Narrative Gov Summary Panels (sourced from play-service live diagnostics) -->
     <div id="mvp4-narrative-gov-summary" class="narrative-grid" data-testid="narrative-gov-summary">

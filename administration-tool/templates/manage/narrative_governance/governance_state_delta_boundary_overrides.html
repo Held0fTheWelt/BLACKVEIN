@@ -1,9 +1,14 @@
 {% extends "manage/base.html" %}
 {% block title %}State Delta Boundary Overrides (Breakglass){% endblock %}
 {% block content %}
-<section class="manage-card governance-overrides-page governance-state-delta" data-override-type="state_delta_boundary">
-    <h1>State Delta Boundary Overrides</h1>
-    <p class="manage-muted">Breakglass protection overrides for protected state paths. Use only in emergency situations.</p>
+<section class="manage-section governance-overrides-page governance-state-delta" data-override-type="state_delta_boundary">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative · Breakglass</p>
+            <h1>State Delta Boundary Overrides</h1>
+            <p class="mui-deck-headline">Breakglass protection overrides for protected state paths. Use only in emergency situations.</p>
+        </div>
+    </header>
 
     <div class="warning-banner">
         <strong>⚠️ Warning:</strong> These overrides allow mutations to normally-protected state paths.

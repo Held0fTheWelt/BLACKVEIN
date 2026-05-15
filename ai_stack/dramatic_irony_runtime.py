@@ -17,6 +17,8 @@ from ai_stack.dramatic_irony_contracts import (
     DRAMATIC_IRONY_STATUS_SELECTED,
     DRAMATIC_IRONY_SURFACE_DIRECT_REVEAL,
     DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
+    DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE,
+    DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO,
     DramaticIronyOpportunity,
     DramaticIronyRealization,
     DramaticIronyRecord,
@@ -360,48 +362,31 @@ def build_dramatic_irony_record(
 def compact_dramatic_irony_context(record: dict[str, Any] | None) -> dict[str, Any]:
     """Return model-visible Pi16 context without exposing direct hidden prose."""
     src = record if isinstance(record, dict) else {}
+    policy = normalize_dramatic_irony_policy(src.get("policy") if isinstance(src.get("policy"), dict) else None)
     selected_id_list = _clean_list(src.get("selected_opportunity_ids"))
     selected_ids = set(selected_id_list)
-    facts = coerce_dict_rows(src.get("facts"))
-    facts_by_id = {str(row.get("fact_id") or ""): row for row in facts if row.get("fact_id")}
     opportunities = [
         row
         for row in coerce_dict_rows(src.get("opportunities"))
         if str(row.get("opportunity_id") or "") in selected_ids
     ]
-    selected_facts: list[dict[str, Any]] = []
-    emitted_fact_ids: set[str] = set()
-    for opportunity in opportunities:
-        fact_id = str(opportunity.get("fact_id") or "")
-        fact = facts_by_id.get(fact_id)
-        if not fact or fact_id in emitted_fact_ids:
-            continue
-        emitted_fact_ids.add(fact_id)
-        selected_facts.append(
-            {
-                "fact_id": fact_id,
-                "source": fact.get("source"),
-                "summary": fact.get("summary"),
-                "known_by_actor_ids": fact.get("known_by_actor_ids") or [],
-                "unknown_to_actor_ids": fact.get("unknown_to_actor_ids") or [],
-            }
-        )
     return {
         "schema_version": src.get("schema_version") or DRAMATIC_IRONY_SCHEMA_VERSION,
         "status": src.get("status") or DRAMATIC_IRONY_STATUS_NOT_APPLICABLE,
+        "model_context_visibility": policy.get("model_context_visibility"),
+        "allowed_surface_modes": policy.get("allowed_surface_modes") or [],
         "selected_opportunity_ids": selected_id_list,
         "opportunities": [
             {
                 "opportunity_id": row.get("opportunity_id"),
-                "fact_id": row.get("fact_id"),
                 "ignorant_actor_id": row.get("ignorant_actor_id"),
                 "scene_relevance": row.get("scene_relevance"),
                 "risk_band": row.get("risk_band"),
                 "allowed_surface_mode": row.get("allowed_surface_mode"),
+                "knowledge_gap_class": "actor_does_not_know_planner_selected_fact",
             }
             for row in opportunities
         ],
-        "facts": selected_facts,
         "surface_rule": "Use subtext, behavior, or misread reactions; do not state hidden intent directly.",
     }
 
@@ -471,21 +456,170 @@ def _detect_direct_hidden_intent_reveal(text: str) -> bool:
     return any(pattern.search(text) for pattern in _DIRECT_REVEAL_PATTERNS)
 
 
-def _realized_opportunity_ids(
-    *,
-    record: dict[str, Any],
-    structured_output: dict[str, Any],
-) -> list[str]:
+_DIRECT_REVEAL_VERBS: frozenset[str] = frozenset(
+    {
+        "want",
+        "wants",
+        "plan",
+        "plans",
+        "planned",
+        "planning",
+        "intend",
+        "intends",
+        "intended",
+        "intention",
+        "intent",
+        "motive",
+        "agenda",
+        "absicht",
+        "motiv",
+        "plant",
+    }
+)
+
+
+def _normalized_text(value: Any) -> str:
+    text = _clean_text(value).replace("_", " ").replace("-", " ").lower()
+    return re.sub(r"[^a-z0-9äöüß]+", " ", text).strip()
+
+
+def _tokens(value: Any) -> set[str]:
+    return {token for token in _normalized_text(value).split() if len(token) > 1}
+
+
+def _mentions_actor(text_norm: str, actor_id: Any) -> bool:
+    actor_norm = _normalized_text(actor_id)
+    return bool(actor_norm and f" {actor_norm} " in f" {text_norm} ")
+
+
+def _summary_parts(summary: Any) -> dict[str, str]:
+    parts: dict[str, str] = {}
+    for chunk in _clean_text(summary).split(";"):
+        if ":" not in chunk:
+            continue
+        key, value = chunk.split(":", 1)
+        key_text = _clean_text(key)
+        value_text = _clean_text(value)
+        if key_text and value_text:
+            parts[key_text] = value_text
+    return parts
+
+
+def _selected_fact_ids(record: dict[str, Any]) -> set[str]:
     selected_ids = set(_clean_list(record.get("selected_opportunity_ids")))
-    if not selected_ids:
-        return []
+    return {
+        str(row.get("fact_id") or "")
+        for row in coerce_dict_rows(record.get("opportunities"))
+        if str(row.get("opportunity_id") or "") in selected_ids
+        and str(row.get("fact_id") or "")
+    }
+
+
+def _detect_hidden_fact_echo(record: dict[str, Any], text: str) -> bool:
+    if not text:
+        return False
+    text_norm = _normalized_text(text)
+    text_tokens = _tokens(text)
+    if not text_tokens.intersection(_DIRECT_REVEAL_VERBS):
+        return False
+    selected_fact_ids = _selected_fact_ids(record)
+    for fact in coerce_dict_rows(record.get("facts")):
+        fact_id = str(fact.get("fact_id") or "")
+        if fact_id not in selected_fact_ids:
+            continue
+        if not any(_mentions_actor(text_norm, actor_id) for actor_id in fact.get("known_by_actor_ids") or []):
+            continue
+        parts = _summary_parts(fact.get("summary"))
+        intent_tokens = _tokens(parts.get("intent"))
+        if intent_tokens and len(text_tokens.intersection(intent_tokens)) >= min(2, len(intent_tokens)):
+            return True
+    return False
+
+
+def _candidate_opportunity_ids(structured_output: dict[str, Any]) -> list[str]:
     raw_ids: list[Any] = []
     for key in ("dramatic_irony_opportunity_ids", "dramatic_irony_refs"):
         raw_ids.extend(structured_output.get(key) or [])
-    for row in coerce_dict_rows(structured_output.get("initiative_events")):
-        raw_ids.extend(row.get("dramatic_irony_opportunity_ids") or [])
-        raw_ids.extend(row.get("dramatic_irony_refs") or [])
-    return [value for value in dedupe_strings(raw_ids) if value in selected_ids]
+    for key in ("initiative_events", "spoken_lines", "action_lines"):
+        for row in coerce_dict_rows(structured_output.get(key)):
+            raw_ids.extend(row.get("dramatic_irony_opportunity_ids") or [])
+            raw_ids.extend(row.get("dramatic_irony_refs") or [])
+    return dedupe_strings(raw_ids)
+
+
+def _surface_modes_by_opportunity(structured_output: dict[str, Any]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    ids = _candidate_opportunity_ids(structured_output)
+    default_mode = _clean_text(
+        structured_output.get("dramatic_irony_surface_mode")
+        or structured_output.get("dramatic_irony_mode")
+    )
+    if default_mode:
+        for opportunity_id in ids:
+            out.setdefault(opportunity_id, default_mode)
+    modes = structured_output.get("dramatic_irony_surface_modes")
+    if isinstance(modes, dict):
+        for opportunity_id, mode in modes.items():
+            oid = _clean_text(opportunity_id)
+            mode_text = _clean_text(mode)
+            if oid and mode_text:
+                out[oid] = mode_text
+    for key in ("initiative_events", "spoken_lines", "action_lines"):
+        for row in coerce_dict_rows(structured_output.get(key)):
+            row_mode = _clean_text(
+                row.get("dramatic_irony_surface_mode")
+                or row.get("surface_mode")
+                or row.get("allowed_surface_mode")
+            )
+            if not row_mode:
+                continue
+            for opportunity_id in dedupe_strings(
+                (row.get("dramatic_irony_opportunity_ids") or [])
+                + (row.get("dramatic_irony_refs") or [])
+            ):
+                out[opportunity_id] = row_mode
+    return out
+
+
+def _realization_evidence(
+    *,
+    record: dict[str, Any],
+    structured_output: dict[str, Any],
+    text: str,
+) -> dict[str, Any]:
+    selected_ids = set(_clean_list(record.get("selected_opportunity_ids")))
+    if not selected_ids:
+        return {
+            "realized_ids": [],
+            "invalid_surface_mode_ids": [],
+            "visible_anchor_refs": [],
+            "surface_modes": {},
+        }
+    candidate_ids = [value for value in _candidate_opportunity_ids(structured_output) if value in selected_ids]
+    surface_modes = _surface_modes_by_opportunity(structured_output)
+    policy = normalize_dramatic_irony_policy(record.get("policy") if isinstance(record.get("policy"), dict) else None)
+    allowed_modes = set(_clean_list(policy.get("allowed_surface_modes")))
+    forbidden_modes = set(_clean_list(policy.get("forbidden_surface_modes")))
+    visible_anchor_present = bool(_clean_text(text))
+    realized_ids: list[str] = []
+    invalid_surface_mode_ids: list[str] = []
+    for opportunity_id in candidate_ids:
+        mode = _clean_text(surface_modes.get(opportunity_id))
+        if mode in forbidden_modes or (mode and allowed_modes and mode not in allowed_modes):
+            invalid_surface_mode_ids.append(opportunity_id)
+            continue
+        if policy.get("require_structured_realization") and not mode:
+            invalid_surface_mode_ids.append(opportunity_id)
+            continue
+        if visible_anchor_present:
+            realized_ids.append(opportunity_id)
+    anchor_refs = _clean_list(structured_output.get("dramatic_irony_visible_text_refs")) or realized_ids
+    return {
+        "realized_ids": dedupe_strings(realized_ids),
+        "invalid_surface_mode_ids": dedupe_strings(invalid_surface_mode_ids),
+        "visible_anchor_refs": dedupe_strings(anchor_refs),
+        "surface_modes": surface_modes,
+    }
 
 
 def validate_dramatic_irony_realization(
@@ -506,7 +640,15 @@ def validate_dramatic_irony_realization(
         if _detect_direct_hidden_intent_reveal(text):
             violation_codes.append(DIRECT_HIDDEN_INTENT_VIOLATION)
             leak_blocked = True
-    realized_ids = _realized_opportunity_ids(record=src, structured_output=structured)
+        if policy.get("hidden_fact_echo_check") and _detect_hidden_fact_echo(src, text):
+            violation_codes.append(DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO)
+            leak_blocked = True
+    evidence = _realization_evidence(record=src, structured_output=structured, text=text)
+    realized_ids = evidence["realized_ids"]
+    invalid_surface_mode_ids = evidence["invalid_surface_mode_ids"]
+    if invalid_surface_mode_ids:
+        violation_codes.append(DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE)
+    violation_codes = dedupe_strings(violation_codes)
     if violation_codes:
         realization_status = DRAMATIC_IRONY_REALIZATION_REJECTED
     elif realized_ids:
@@ -515,19 +657,31 @@ def validate_dramatic_irony_realization(
         realization_status = DRAMATIC_IRONY_REALIZATION_SELECTED_ONLY
     else:
         realization_status = DRAMATIC_IRONY_REALIZATION_NOT_EVALUATED
+    surface_mode = None
+    for opportunity_id in realized_ids:
+        mode = _clean_text(evidence["surface_modes"].get(opportunity_id))
+        if mode:
+            surface_mode = mode
+            break
     realization = DramaticIronyRealization(
         status=realization_status,
         selected_opportunity_id=selected_ids[0] if selected_ids else None,
         realized_opportunity_ids=realized_ids,
         surface_mode=DRAMATIC_IRONY_SURFACE_DIRECT_REVEAL
         if violation_codes
-        else DRAMATIC_IRONY_SURFACE_MISREAD_REACTION
+        else surface_mode or DRAMATIC_IRONY_SURFACE_MISREAD_REACTION
         if realized_ids
         else None,
         visible_text_refs=realized_ids,
+        visible_anchor_refs=evidence["visible_anchor_refs"],
         violation_codes=violation_codes,
         leak_blocked=leak_blocked,
         contract_pass=not violation_codes,
+        surface_mode_contract_pass=not invalid_surface_mode_ids,
+        hidden_fact_echo_absent=DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO not in violation_codes,
+        unused_selected_opportunity_ids=[
+            opportunity_id for opportunity_id in selected_ids if opportunity_id not in realized_ids
+        ],
     ).model_dump(mode="json")
     updated_record = dict(src)
     updated_record["realization"] = realization
@@ -539,7 +693,10 @@ def validate_dramatic_irony_realization(
         "leak_blocked": leak_blocked,
         "selected_opportunity_ids": selected_ids,
         "realized_opportunity_ids": realized_ids,
+        "visible_anchor_refs": evidence["visible_anchor_refs"],
         "realization_status": realization_status,
+        "surface_mode_contract_pass": not invalid_surface_mode_ids,
+        "hidden_fact_echo_absent": DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO not in violation_codes,
         "record": updated_record,
     }
 
@@ -593,9 +750,20 @@ def build_dramatic_irony_aspect_record(
             "selected_opportunity_count": len(selected_ids),
             "realization_status": validation_src.get("realization_status"),
             "realized_opportunity_ids": validation_src.get("realized_opportunity_ids") or [],
+            "visible_anchor_refs": validation_src.get("visible_anchor_refs") or [],
             "leak_blocked": bool(validation_src.get("leak_blocked")),
             "violation_codes": violation_codes,
             "contract_pass": not violation_codes,
+            "surface_mode_contract_pass": (
+                validation_src.get("surface_mode_contract_pass")
+                if "surface_mode_contract_pass" in validation_src
+                else not violation_codes
+            ),
+            "hidden_fact_echo_absent": (
+                validation_src.get("hidden_fact_echo_absent")
+                if "hidden_fact_echo_absent" in validation_src
+                else DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO not in violation_codes
+            ),
         },
         "reasons": reasons,
         "source": source,

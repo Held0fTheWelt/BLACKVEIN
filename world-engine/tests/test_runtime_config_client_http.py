@@ -110,3 +110,104 @@ def test_fetch_hf_hub_token_from_backend_trims_value(config_http_server: str) ->
 def test_fetch_clients_return_none_when_missing_params() -> None:
     assert fetch_resolved_runtime_config(base_url="  ", token="x", timeout_seconds=1.0) is None
     assert fetch_hf_hub_token_from_backend(base_url="http://127.0.0.1:9", token="  ", timeout_seconds=1.0) is None
+
+
+@pytest.mark.contract
+def test_fetch_resolved_runtime_config_wrong_token(config_http_server: str) -> None:
+    assert (
+        fetch_resolved_runtime_config(
+            base_url=config_http_server,
+            token="wrong-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_resolved_runtime_config_non_envelope_payload(config_http_server: str) -> None:
+    _RuntimeConfigHandler.runtime_payload = {"status": "ok"}
+    assert (
+        fetch_resolved_runtime_config(
+            base_url=config_http_server,
+            token="cfg-test-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_hf_hub_token_missing_token_field(config_http_server: str) -> None:
+    _RuntimeConfigHandler.hf_payload = {"ok": True, "data": {}}
+    assert (
+        fetch_hf_hub_token_from_backend(
+            base_url=config_http_server,
+            token="cfg-test-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_resolved_runtime_config_connection_failure() -> None:
+    assert (
+        fetch_resolved_runtime_config(
+            base_url="http://127.0.0.1:1",
+            token="cfg-test-token",
+            timeout_seconds=0.001,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_hf_hub_token_connection_failure() -> None:
+    assert (
+        fetch_hf_hub_token_from_backend(
+            base_url="http://127.0.0.1:1",
+            token="cfg-test-token",
+            timeout_seconds=0.001,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_resolved_runtime_config_non_dict_json(config_http_server: str) -> None:
+    _RuntimeConfigHandler.runtime_payload = ["not-a-dict"]
+    assert (
+        fetch_resolved_runtime_config(
+            base_url=config_http_server,
+            token="cfg-test-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_hf_hub_token_non_dict_json(config_http_server: str) -> None:
+    _RuntimeConfigHandler.hf_payload = "not-a-dict"
+    assert (
+        fetch_hf_hub_token_from_backend(
+            base_url=config_http_server,
+            token="cfg-test-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )
+
+
+@pytest.mark.contract
+def test_fetch_hf_hub_token_rejects_non_ok_envelope(config_http_server: str) -> None:
+    _RuntimeConfigHandler.hf_payload = {"ok": False, "data": {"token": "x"}}
+    assert (
+        fetch_hf_hub_token_from_backend(
+            base_url=config_http_server,
+            token="cfg-test-token",
+            timeout_seconds=5.0,
+        )
+        is None
+    )

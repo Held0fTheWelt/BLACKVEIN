@@ -1,14 +1,20 @@
 {% extends "manage/base.html" %}
 {% block title %}Feature access{% endblock %}
 {% block content %}
-<div class="manage-feature-areas">
-    <h1 class="page-header">Feature / view area access</h1>
-    <p class="muted">Admin only. Assign which areas can access each feature. Empty = all areas. Users need at least one of the assigned areas (or "all") to access the feature.</p>
+<div class="manage-feature-areas manage-section">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Content · Feature Access</p>
+            <h1>Feature / view area access</h1>
+            <p class="mui-deck-headline">Admin only. Assign which areas can access each feature. Empty = all areas. Users need at least one of the assigned areas (or "all") to access the feature.</p>
+        </div>
+    </header>
+
     <div class="manage-split">
         <div class="manage-panel manage-feature-areas-list-panel">
             <h2>Features</h2>
             <div id="manage-feature-areas-loading" class="manage-loading" hidden>Loading…</div>
-            <div id="manage-feature-areas-error" class="form-error manage-state" role="alert" hidden></div>
+            <div id="manage-feature-areas-error" class="form-error manage-state mui-legacy-hidden" role="alert" hidden></div>
             <div class="manage-table-wrap" id="manage-feature-areas-table-wrap" hidden>
                 <table class="manage-table" id="manage-feature-areas-table">
                     <thead>
@@ -32,8 +38,8 @@
                     <select id="manage-feature-areas-multi" name="area_ids" multiple class="form-input" size="10"></select>
                     <span class="form-hint">Empty = all areas. Hold Ctrl/Cmd to select multiple.</span>
                 </div>
-                <div id="manage-feature-areas-form-error" class="form-error" role="alert" hidden></div>
-                <div id="manage-feature-areas-form-success" class="form-success" hidden></div>
+                <div id="manage-feature-areas-form-error" class="form-error mui-legacy-hidden" role="alert" hidden></div>
+                <div id="manage-feature-areas-form-success" class="form-success mui-legacy-hidden" hidden></div>
                 <div class="manage-feature-areas-form-actions">
                     <button type="submit" class="btn btn-primary" id="manage-feature-areas-save">Save</button>
                 </div>

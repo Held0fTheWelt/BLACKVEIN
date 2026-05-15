@@ -1,9 +1,16 @@
 {% extends "manage/base.html" %}
 {% block title %}Narrative Evaluations{% endblock %}
 {% block content %}
-<section class="manage-card narrative-governance-page" data-narrative-page="evaluations">
-    <h1>Narrative Evaluations</h1>
-    <p class="manage-muted">Preview evaluation status, gate readiness, and coverage summaries.</p>
+{% set active_narrative_section = 'evaluations' %}
+<section class="manage-section narrative-governance-page" data-narrative-page="evaluations">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
+            <h1>Narrative Evaluations</h1>
+            <p class="mui-deck-headline">Preview evaluation status, gate readiness, and coverage summaries.</p>
+        </div>
+    </header>
+    {% include "manage/narrative_governance/_subnav.html" %}
     <div id="narrative-evaluations-panel" class="narrative-grid"></div>
 </section>
 {% endblock %}

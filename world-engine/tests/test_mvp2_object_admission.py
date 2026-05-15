@@ -206,6 +206,25 @@ def test_validate_object_admission_rejected_record():
     assert validate_object_admission(record) is False
 
 
+def test_validate_object_admission_rejects_invalid_source_kind_on_admitted_record():
+    record = admit_object({
+        "object_id": "mobile_phone",
+        "source_kind": "canonical_content",
+    })
+    record = record.model_copy(update={"source_kind": "not_a_real_kind"})
+    assert validate_object_admission(record) is False
+
+
+def test_validate_object_admission_rejects_similar_allowed_without_reason():
+    record = admit_object({
+        "object_id": "napkin",
+        "source_kind": "similar_allowed",
+        "similarity_reason": "matches table linen",
+    })
+    record = record.model_copy(update={"similarity_reason": None})
+    assert validate_object_admission(record) is False
+
+
 # ---------------------------------------------------------------------------
 # Wave 2.4: Content/profile/runtime boundary hardening
 # ---------------------------------------------------------------------------
