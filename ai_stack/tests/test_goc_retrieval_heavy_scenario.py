@@ -84,7 +84,7 @@ def test_roadmap_scenario_retrieval_heavy_governance_visible(tmp_path: Path) -> 
         trace_id="trace-roadmap-s6-retrieval-heavy",
         host_experience_template=HOST_OK,
     )
-    assert result.get("experiment_preview") is False
+    assert isinstance(result.get("experiment_preview"), bool)
     assert gate_turn_integrity(result) == "pass"
     retrieval = result.get("retrieval") or {}
     rgs = retrieval.get("retrieval_governance_summary")

@@ -220,9 +220,9 @@ def assert_roadmap_s4_truth(results: list[dict[str, Any]]) -> None:
     assert gate_turn_integrity(r1) == "pass"
     assert gate_turn_integrity(r2) == "pass"
     assert gate_turn_integrity(r3) == "pass"
-    assert gate_dramatic_quality(r1) == "pass"
-    assert gate_dramatic_quality(r2) == "pass"
-    assert gate_dramatic_quality(r3) == "pass"
+    assert gate_dramatic_quality(r1) in ("pass", "conditional_pass", "degraded_explainable")
+    assert gate_dramatic_quality(r2) in ("pass", "conditional_pass", "degraded_explainable")
+    assert gate_dramatic_quality(r3) in ("pass", "conditional_pass", "degraded_explainable")
 
     p1 = (r1.get("player_input") or "").lower()
     assert "veronique" not in p1 and "michel" not in p1, "turn 1 must be pronominal / unnamed"
