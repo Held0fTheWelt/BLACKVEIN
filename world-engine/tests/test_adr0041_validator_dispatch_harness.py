@@ -19,9 +19,11 @@ from ai_stack.capability_validator_registry import (
 from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
 from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_aspect_ledger import (
+    ADR0041_PLAN_PROJECTION_ENABLED_ENV,
     build_adr0041_validator_dispatch_harness_report,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
+    normalize_runtime_aspect_ledger,
 )
 
 
@@ -349,6 +351,27 @@ def test_world_engine_plan_enforced_remains_local_only() -> None:
 
 def test_world_engine_default_registry_remains_empty_via_import() -> None:
     assert build_default_semantic_validator_registry() == {}
+
+
+def test_world_engine_plan_projection_sibling_opt_in(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_PLAN_PROJECTION_ENABLED_ENV, "true")
+    ledger = normalize_runtime_aspect_ledger(
+        initialize_runtime_aspect_ledger(
+            session_id="s-we-plan-proj",
+            module_id="god_of_carnage",
+            turn_number=1,
+            turn_kind="player",
+            raw_player_input="Hello.",
+            input_kind="action",
+            turn_id="t-we",
+            trace_id="trace-we",
+        )
+    )
+    rip = ledger["runtime_intelligence_projection"]
+    sibling = rip["adr0041_plan_projection"]
+    assert sibling["selected_turn_class"] == "normal_player_turn"
+    assert rip["validator_dispatch_report"]["mode"] == "dry_run"
+    assert rip["validator_dispatch_report"]["actually_executed"] == []
 
 
 def test_world_engine_runtime_projection_harness_same_semantics_as_ledger_path() -> None:

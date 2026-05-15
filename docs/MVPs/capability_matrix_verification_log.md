@@ -32,6 +32,8 @@ ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_valida
 
 ADR-0041 world-engine harness (2026-05-15): `build_adr0041_validator_dispatch_harness_report`; tests under `world-engine/tests/`; run pytest from `world-engine/` so `app` resolves; `live_or_staging_evidence=false`; default ledger projection unchanged (`dry_run`).
 
+ADR-0041 opt-in plan projection sibling (2026-05-15): `ADR0041_PLAN_PROJECTION_ENABLED` adds `runtime_intelligence_projection.adr0041_plan_projection` only; `validator_dispatch_report` stays default `dry_run` with `actually_executed=[]`; evidence remains projection-only (no `run_validation_seam` / validation_outcome changes). Tests: `ai_stack/tests/test_adr0041_plan_projection_evidence.py`, `world-engine/tests/test_adr0041_validator_dispatch_harness.py::test_world_engine_plan_projection_sibling_opt_in`.
+
 ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow map and insertion guidance in `docs/MVPs/capability_selection_runtime_design.md` (ADR-0041 Production Orchestration Readiness); **no production orchestration implemented**. Canonical dispatch field: **`actually_executed`** (repo-wide search: no `actually_detected`). World-engine pytest: prefer `cd world-engine && python -m pytest …` to avoid `ModuleNotFoundError: app` when running from repo root.
 
 ---

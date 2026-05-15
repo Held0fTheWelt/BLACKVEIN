@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from ai_stack.capability_selector import (
+    CapabilitySelectionResult,
+    TurnKind,
+    TurnSituation,
     derive_turn_situation_from_runtime_context,
     select_capabilities,
 )
@@ -22,7 +26,20 @@ from ai_stack.capability_validator_dispatch import (
     build_validator_dispatch_report,
     resolve_validator_dispatch_mode,
 )
-from ai_stack.capability_validator_plan import build_validator_execution_plan
+from ai_stack.capability_validator_plan import (
+    ValidatorExecutionPlan,
+    build_validator_execution_plan,
+)
+from ai_stack.capability_validator_registry import (
+    VALIDATOR_REGISTRY_INVENTORY,
+    TURN_CLASS_NPC_CONFLICT_TURN,
+    TURN_CLASS_NORMAL_PLAYER_TURN,
+    TURN_CLASS_OPENING_SCENE,
+    build_available_semantic_validator_registry,
+    build_npc_conflict_enforced_semantic_validator_registry,
+    build_opening_enforced_semantic_validator_registry,
+    build_player_turn_enforced_semantic_validator_registry,
+)
 
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
@@ -32,6 +49,14 @@ RUNTIME_ASPECT_RECORD_VERSION = "runtime_aspect_record.v1"
 ADR0041_HARNESS_PLAN_ENFORCED_REQUIRES_REGISTRY_WARNING = (
     "adr0041_harness_plan_enforced_requires_explicit_validator_registry"
 )
+
+ADR0041_PLAN_PROJECTION_ENABLED_ENV = "ADR0041_PLAN_PROJECTION_ENABLED"
+ADR0041_PLAN_PROJECTION_SCHEMA_VERSION = "adr0041_plan_projection.v1"
+
+# Ephemeral bundle attached by LangGraph validate_seam when
+# ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
+# repeated ``normalize_runtime_aspect_ledger`` calls recompute the same sidecar.
+ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY = "_adr0041_runtime_graph_dispatch_context"
 
 ASPECT_INPUT = "input"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
@@ -447,6 +472,85 @@ def build_semantic_validator_dispatch_report_projection(
     return _json_safe(payload)
 
 
+def adr0041_validator_registry_for_turn_class(turn_class_key: str) -> dict[str, Any]:
+    """Return semantic validator callables scoped to one ADR-0041 turn class."""
+    key = str(turn_class_key or "").strip()
+    if key == TURN_CLASS_OPENING_SCENE:
+        return dict(build_opening_enforced_semantic_validator_registry())
+    if key == TURN_CLASS_NORMAL_PLAYER_TURN:
+        return dict(build_player_turn_enforced_semantic_validator_registry())
+    if key == TURN_CLASS_NPC_CONFLICT_TURN:
+        return dict(build_npc_conflict_enforced_semantic_validator_registry())
+    return {}
+
+
+def _build_adr0041_plan_enforced_runtime_projection_dispatch(
+    *,
+    capability_context: dict[str, Any],
+    graph_bundle: dict[str, Any],
+    dispatch_mode_warnings: tuple[str, ...],
+) -> dict[str, Any]:
+    """Plan-enforced dispatch report for runtime_intelligence (graph runtime path only)."""
+    selection_for_sidecar, sidecar_deriv_warnings = _select_semantic_capabilities_from_runtime_context(
+        **capability_context
+    )
+    execution_plan_sidecar = build_validator_execution_plan(selection_for_sidecar)
+    turn_class_key, turn_class_hints = _infer_adr0041_turn_class_from_situation(
+        selection_for_sidecar.situation
+    )
+    registry_sidecar = adr0041_validator_registry_for_turn_class(turn_class_key)
+    dispatch_ctx_raw = graph_bundle.get("dispatch_context")
+    dispatch_ctx: dict[str, Any] = (
+        dict(dispatch_ctx_raw) if isinstance(dispatch_ctx_raw, dict) else {}
+    )
+
+    report_obj = build_validator_dispatch_report(
+        execution_plan_sidecar,
+        mode=ValidatorDispatchMode.PLAN_ENFORCED,
+        validator_registry=registry_sidecar,
+        dispatch_context=dispatch_ctx,
+        feature_flag_enabled=True,
+    )
+    semantic_validator_dispatch_report = report_obj.to_runtime_projection()["validator_dispatch_report"]
+    seam_summary = graph_bundle.get("validation_seam_summary")
+    visibility: dict[str, Any] = {
+        "canonical_commitment_seam": "ai_stack.goc_turn_seams.run_validation_seam",
+        "adr0041_runtime_sidecar": (
+            "ai_stack.runtime_aspect_ledger / ADR-0041 plan_enforced local validators"
+        ),
+        "relationship_note": (
+            "run_validation_seam drives validation_outcome and commitment; ADR-0041 sidecar "
+            "runs additional registered local validators for observability only."
+        ),
+        "validation_seam_status": seam_summary.get("status") if isinstance(seam_summary, dict) else None,
+        "validation_seam_reason": seam_summary.get("reason") if isinstance(seam_summary, dict) else None,
+        "plan_enforced_actually_executed": list(
+            semantic_validator_dispatch_report.get("actually_executed") or []
+        ),
+        "plan_enforced_validators_unavailable": list(
+            semantic_validator_dispatch_report.get("validators_unavailable") or []
+        ),
+        "selected_turn_class": turn_class_key,
+    }
+    semantic_validator_dispatch_report["run_validation_seam_outcome_echo"] = (
+        _json_safe(seam_summary) if isinstance(seam_summary, dict) else {}
+    )
+    semantic_validator_dispatch_report["adr0041_selected_turn_class"] = turn_class_key
+    semantic_validator_dispatch_report["adr0041_turn_class_hints"] = _json_safe(turn_class_hints)
+    semantic_validator_dispatch_report["seam_vs_adr0041_sidecar_drift_visibility"] = _json_safe(
+        visibility
+    )
+    extra_warnings = [*dispatch_mode_warnings, *sidecar_deriv_warnings]
+    existing_warnings = semantic_validator_dispatch_report.get("warnings")
+    merged: list[str] = list(existing_warnings) if isinstance(existing_warnings, list) else []
+    for w in extra_warnings:
+        t = str(w).strip()
+        if t and t not in merged:
+            merged.append(t)
+    semantic_validator_dispatch_report["warnings"] = merged
+    return _json_safe(semantic_validator_dispatch_report)
+
+
 def build_adr0041_validator_dispatch_harness_report(
     *,
     harness_allow_plan_enforced_local_dispatch: bool = False,
@@ -554,6 +658,174 @@ def _select_semantic_capabilities_from_runtime_context(
         world_state_change_requested=world_state_change_requested,
     )
     return select_capabilities(situation), derivation_warnings
+
+
+def resolve_adr0041_plan_projection_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve optional ADR-0041 plan-aware sibling projection under runtime_intelligence_projection.
+
+    Default ``False`` (fail closed): sibling omitted; validator_dispatch_report unchanged.
+    Explicit truthy env enables sibling-only evidence (still projection-only; no execution).
+    """
+    warnings: list[str] = []
+    raw = env_value if env_value is not None else os.environ.get(ADR0041_PLAN_PROJECTION_ENABLED_ENV)
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_PLAN_PROJECTION_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 plan projection sibling disabled."
+    )
+    return False, tuple(warnings)
+
+
+def _infer_adr0041_turn_class_from_situation(situation: TurnSituation) -> tuple[str, dict[str, Any]]:
+    """Map selector TurnSituation to ADR-0041 drift-guard turn class labels."""
+    tk = situation.turn_kind
+    tk_val = tk.value if isinstance(tk, TurnKind) else str(tk)
+    hints: dict[str, Any] = {
+        "situation_turn_kind": tk_val,
+        "npc_decision_required": bool(situation.npc_decision_required),
+        "player_input_present": bool(situation.player_input_present),
+    }
+    if tk is TurnKind.OPENING:
+        return TURN_CLASS_OPENING_SCENE, hints
+    if tk is TurnKind.NPC_TURN and situation.npc_decision_required:
+        return TURN_CLASS_NPC_CONFLICT_TURN, hints
+    if tk is TurnKind.PLAYER_INPUT:
+        return TURN_CLASS_NORMAL_PLAYER_TURN, hints
+    return "other_turn_profile", hints
+
+
+def _build_adr0041_plan_projection_sibling(
+    *,
+    selection_result: CapabilitySelectionResult,
+    execution_plan: ValidatorExecutionPlan,
+    dispatch_report: dict[str, Any],
+    flag_warnings: tuple[str, ...],
+    derivation_warnings: tuple[str, ...],
+) -> dict[str, Any]:
+    """Sibling projection-only envelope (never executes validators or seams)."""
+    situation = selection_result.situation
+    turn_class_key, turn_class_hints = _infer_adr0041_turn_class_from_situation(situation)
+
+    avail = build_available_semantic_validator_registry()
+    avail_keys = frozenset(avail.keys())
+    inventory_safe = {
+        row.validator_id: row.safe_for_local_plan_enforced for row in VALIDATOR_REGISTRY_INVENTORY
+    }
+
+    planned_validators = list(execution_plan.validators_to_run)
+    planned_observers = list(execution_plan.observer_diagnostics)
+
+    would_execute_local_sorted = sorted(vid for vid in planned_validators if vid in avail_keys)
+    blocked_missing_registry_sorted = sorted(vid for vid in planned_validators if vid not in avail_keys)
+    inventory_marked_unsafe = sorted(
+        vid for vid in planned_validators if vid in inventory_safe and not inventory_safe[vid]
+    )
+
+    registry_availability: dict[str, dict[str, Any]] = {}
+    for vid in sorted(set(planned_validators) | set(planned_observers)):
+        registry_availability[vid] = {
+            "adapter_registered_for_local_dispatch": vid in avail_keys,
+            "inventory_marks_safe_for_local_plan_enforced": bool(inventory_safe.get(vid)),
+        }
+
+    consciously_not_executed = {
+        "validators_skipped_by_plan_budget_or_exclusion": list(dispatch_report.get("validators_would_skip") or []),
+        "judges_disallowed_by_plan": list(dispatch_report.get("judges_would_be_disallowed") or []),
+        "observer_diagnostics_planned_only_non_blocking": list(dispatch_report.get("diagnostics_would_run") or []),
+        "note": (
+            "Dry-run projection does not invoke validators or judges; skipped/disallowed rows reflect "
+            "plan semantics only."
+        ),
+    }
+
+    drift = {
+        "production_validation_seam_symbol": "ai_stack.goc_turn_seams.run_validation_seam",
+        "adr0041_dispatch_projection_symbol": (
+            "ai_stack.runtime_aspect_ledger.build_semantic_validator_dispatch_report_projection"
+        ),
+        "relationship_note": (
+            "run_validation_seam enforces GoC proposal seams (actor lane, transcript shell caps, "
+            "hard-forbidden runtime, opening coverage, dramatic-effect gate). ADR-0041 plan projection "
+            "enumerates semantic capability-linked validator contracts for local planning only; it does not "
+            "replace or reorder run_validation_seam."
+        ),
+        "validation_seam_contract_surfaces": [
+            "actor_lane_human_ai_boundary",
+            "npc_lane_transcript_shell_blob_cap",
+            "authoritative_action_resolution_surface_waiver",
+            "non_goc_module_vertical_slice_waiver",
+            "generation_success_gate",
+            "proposal_effect_wellformedness_gate",
+            "hard_forbidden_runtime_detection",
+            "opening_event_coverage_gate",
+            "dramatic_effect_gate",
+        ],
+        "adr0041_planned_local_validator_contract_ids": planned_validators,
+    }
+
+    dr_warnings_list = dispatch_report.get("warnings")
+    dispatch_warnings: tuple[str, ...] = ()
+    if isinstance(dr_warnings_list, list):
+        dispatch_warnings = tuple(str(item).strip() for item in dr_warnings_list if str(item).strip())
+
+    warn_seen: list[str] = []
+    for bucket in (
+        flag_warnings,
+        derivation_warnings,
+        dispatch_warnings,
+        execution_plan.warnings,
+        selection_result.warnings,
+    ):
+        for w in bucket:
+            text = str(w).strip()
+            if text and text not in warn_seen:
+                warn_seen.append(text)
+
+    payload: dict[str, Any] = {
+        "schema_version": ADR0041_PLAN_PROJECTION_SCHEMA_VERSION,
+        "adr0041_plan_projection_enabled": True,
+        "proof_level": "local_only",
+        "evidence_scope": dispatch_report.get("evidence_scope"),
+        "live_or_staging_evidence": False,
+        "execution_changed": False,
+        "actually_executed": [],
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "judge_execution_changed": False,
+        "selected_turn_class": turn_class_key,
+        "turn_class_hints": turn_class_hints,
+        "capabilities": {
+            "enforced": list(selection_result.enforced),
+            "observed": list(selection_result.observed),
+            "excluded": list(selection_result.excluded),
+            "judged": list(selection_result.judged),
+        },
+        "planned_local_validator_ids": planned_validators,
+        "planned_observer_diagnostic_ids": planned_observers,
+        "registry_availability_by_id": registry_availability,
+        "would_execute_local_validators_if_plan_enforced_with_inventory_adapters": would_execute_local_sorted,
+        "validators_unavailable_per_dispatch_report": list(dispatch_report.get("validators_unavailable") or []),
+        "unavailable_local_adapters_for_planned_validators": blocked_missing_registry_sorted,
+        "blocked_by_missing_registry_or_context": blocked_missing_registry_sorted,
+        "inventory_marks_unsafe_for_local_plan_enforced": inventory_marked_unsafe,
+        "consciously_not_executed": consciously_not_executed,
+        "validator_dispatch_report_echo": {
+            "mode": dispatch_report.get("mode"),
+            "execution_changed": dispatch_report.get("execution_changed"),
+            "actually_executed": dispatch_report.get("actually_executed"),
+            "feature_flag_enabled": dispatch_report.get("feature_flag_enabled"),
+        },
+        "seam_vs_plan_projection_drift_visibility": drift,
+        "warnings": warn_seen,
+    }
+    return _json_safe(payload)
 
 
 def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict[str, Any]:
@@ -805,12 +1077,24 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     semantic_validator_execution_plan = build_semantic_validator_execution_plan_projection(
         **capability_context
     )
-    semantic_validator_dispatch_report = build_semantic_validator_dispatch_report_projection(
-        **capability_context
-    )
+    graph_bundle = src.get(ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY)
+    graph_bundle = graph_bundle if isinstance(graph_bundle, dict) else None
+    resolved_dispatch_mode, runtime_dispatch_mode_warnings = resolve_validator_dispatch_mode()
+    if (
+        graph_bundle is not None
+        and resolved_dispatch_mode is ValidatorDispatchMode.PLAN_ENFORCED
+    ):
+        semantic_validator_dispatch_report = _build_adr0041_plan_enforced_runtime_projection_dispatch(
+            capability_context=capability_context,
+            graph_bundle=graph_bundle,
+            dispatch_mode_warnings=runtime_dispatch_mode_warnings,
+        )
+    else:
+        semantic_validator_dispatch_report = build_semantic_validator_dispatch_report_projection(
+            **capability_context
+        )
 
-    return _json_safe(
-        {
+    projection_payload = {
             "schema_version": TURN_ASPECT_LEDGER_SCHEMA_VERSION,
             "module_id": src.get("module_id"),
             "runtime_profile_id": src.get("runtime_profile_id"),
@@ -1699,7 +1983,18 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "status": commit_rec.get("status"),
             },
         }
-    )
+    enabled_plan_projection, fp_warnings = resolve_adr0041_plan_projection_enabled()
+    if enabled_plan_projection:
+        sibling_sel, sibling_deriv = _select_semantic_capabilities_from_runtime_context(**capability_context)
+        sibling_plan = build_validator_execution_plan(sibling_sel)
+        projection_payload["adr0041_plan_projection"] = _build_adr0041_plan_projection_sibling(
+            selection_result=sibling_sel,
+            execution_plan=sibling_plan,
+            dispatch_report=semantic_validator_dispatch_report,
+            flag_warnings=fp_warnings,
+            derivation_warnings=sibling_deriv,
+        )
+    return _json_safe(projection_payload)
 
 
 def ensure_runtime_aspect_ledger(

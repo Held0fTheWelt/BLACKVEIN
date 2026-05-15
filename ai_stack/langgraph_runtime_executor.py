@@ -60,7 +60,12 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     RAW_FALLBACK_BYPASS_NOTE,
 )
+from ai_stack.capability_validator_dispatch import (
+    ValidatorDispatchMode,
+    resolve_validator_dispatch_mode,
+)
 from ai_stack.runtime_aspect_ledger import (
+    ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
@@ -936,6 +941,101 @@ def _voice_profiles_from_state(state: "RuntimeTurnState") -> list[dict[str, Any]
             module_id=str(state.get("module_id") or ""),
         )
     ]
+
+
+def _build_adr0041_runtime_graph_dispatch_bundle(
+    state: "RuntimeTurnState",
+    generation: dict[str, Any],
+    proposed_state_effects: list[dict[str, Any]],
+    validation_seam_outcome: dict[str, Any],
+) -> dict[str, Any]:
+    """ADR-0041 Option B: dispatch context + seam echo for plan_enforced runtime sidecar."""
+    meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured_output = (
+        meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else {}
+    )
+    interpreted_input = (
+        state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+    )
+    host_template = (
+        state.get("host_experience_template")
+        if isinstance(state.get("host_experience_template"), dict)
+        else {}
+    )
+    sre = (
+        state.get("story_runtime_experience")
+        if isinstance(state.get("story_runtime_experience"), dict)
+        else {}
+    )
+    runtime_projection: dict[str, Any] | None = None
+    if host_template:
+        runtime_projection = dict(host_template)
+    elif sre:
+        runtime_projection = dict(sre)
+
+    dispatch_context: dict[str, Any] = {
+        "structured_output": structured_output,
+        "module_id": str(state.get("module_id") or ""),
+        "turn_number": int(state.get("turn_number") or 0),
+        "generation": generation,
+        "proposed_state_effects": list(proposed_state_effects or []),
+        "player_input_kind": interpreted_input.get("player_input_kind") or interpreted_input.get("kind"),
+        "input_kind": interpreted_input.get("kind") or interpreted_input.get("player_input_kind"),
+        "raw_player_input": str(state.get("player_input") or "").strip() or None,
+        "raw_text": str(state.get("player_input") or "").strip() or None,
+        "interpreted_input": interpreted_input,
+        "interpreted_move": state.get("semantic_move_record")
+        if isinstance(state.get("semantic_move_record"), dict)
+        else None,
+        "player_action_frame": state.get("player_action_frame")
+        if isinstance(state.get("player_action_frame"), dict)
+        else None,
+        "affordance_resolution": state.get("affordance_resolution")
+        if isinstance(state.get("affordance_resolution"), dict)
+        else None,
+        "runtime_projection": runtime_projection,
+        "content_modules_root": state.get("content_modules_root"),
+        "environment_state": state.get("environment_state")
+        if isinstance(state.get("environment_state"), dict)
+        else None,
+        "environment_model": state.get("environment_model")
+        if isinstance(state.get("environment_model"), dict)
+        else None,
+        "player_local_context": state.get("player_local_context")
+        if isinstance(state.get("player_local_context"), dict)
+        else None,
+        "actor_lane_context": state.get("actor_lane_context")
+        if isinstance(state.get("actor_lane_context"), dict)
+        else None,
+        "scene_energy_target": state.get("scene_energy_target")
+        if isinstance(state.get("scene_energy_target"), dict)
+        else None,
+        "scene_energy_transition": state.get("scene_energy_transition")
+        if isinstance(state.get("scene_energy_transition"), dict)
+        else None,
+        "information_disclosure_target": state.get("information_disclosure_target")
+        if isinstance(state.get("information_disclosure_target"), dict)
+        else None,
+        "voice_profiles": _voice_profiles_from_state(state),
+        "voice_validation_mode": _voice_validation_mode_from_state(state),
+        "npc_agency_plan": _npc_agency_plan_from_state(state),
+        "scene_plan_record": state.get("scene_plan_record")
+        if isinstance(state.get("scene_plan_record"), dict)
+        else None,
+        "dramatic_irony_record": state.get("dramatic_irony_record")
+        if isinstance(state.get("dramatic_irony_record"), dict)
+        else None,
+    }
+    outcome = validation_seam_outcome if isinstance(validation_seam_outcome, dict) else {}
+    return {
+        "dispatch_context": dispatch_context,
+        "validation_seam_summary": {
+            "status": outcome.get("status"),
+            "reason": outcome.get("reason"),
+            "error_code": outcome.get("error_code"),
+            "validator_lane": outcome.get("validator_lane"),
+        },
+    }
 
 
 def _voice_consistency_validation(
@@ -8076,6 +8176,17 @@ class RuntimeTurnGraphExecutor:
 
         actor_lane_validation = validation_eval["actor_lane_validation"]
         authority_ledger = validation_eval["turn_aspect_ledger"]
+        adr_mode, _ = resolve_validator_dispatch_mode()
+        if adr_mode is ValidatorDispatchMode.PLAN_ENFORCED and isinstance(authority_ledger, dict):
+            authority_ledger = dict(authority_ledger)
+            authority_ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = (
+                _build_adr0041_runtime_graph_dispatch_bundle(
+                    state,
+                    generation,
+                    proposed,
+                    outcome,
+                )
+            )
         update["generation"] = generation
         update["proposed_state_effects"] = proposed
         update["validation_outcome"] = outcome
