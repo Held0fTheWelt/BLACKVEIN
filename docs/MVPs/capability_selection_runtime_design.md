@@ -47,6 +47,8 @@ A semantic validator registry inventory now exists in
 `ai_stack/capability_validator_registry.py`. `build_default_semantic_validator_registry()`
 returns an empty map; `build_available_semantic_validator_registry()` exposes thin
 adapters only for inventory rows marked `safe_for_local_plan_enforced`.
+`build_player_turn_enforced_semantic_validator_registry()` covers the normal
+player-turn enforced set when opt-in plan-enforced dispatch is used in tests.
 
 Current boundaries:
 

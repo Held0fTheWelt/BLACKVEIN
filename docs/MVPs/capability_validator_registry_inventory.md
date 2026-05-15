@@ -11,8 +11,8 @@ Canonical machine-readable rows: `ai_stack/capability_validator_registry.py::VAL
 
 | Status | Local validators | Observer diagnostics | Judges |
 |--------|------------------|----------------------|--------|
-| `implemented_callable` | 7 | 1 (sensory) | 0 |
-| `implemented_but_needs_adapter` | 4 | 2 | 0 |
+| `implemented_callable` | 9 | 1 (sensory) | 0 |
+| `implemented_but_needs_adapter` | 2 | 2 | 0 |
 | `planned_only` | 1 | 0 | 0 |
 | `observer_only` (planned) | 0 | 2 | 0 |
 | `judge_only` | 0 | 0 | all `{capability}_judge` IDs |
@@ -30,8 +30,8 @@ Opt-in adapters: `build_semantic_validator_registry(include_available_adapters=T
 | information_disclosure_contract | information_disclosure | implemented_callable | `information_disclosure_engine::validate_information_disclosure_realization` | yes | yes | blocking |
 | voice_consistency_contract | voice_consistency | implemented_callable | `character_voice_validation::validate_voice_consistency` | yes | yes | blocking |
 | npc_agency_contract | npc_agency | implemented_callable | `npc_agency_realization::validate_npc_initiative_realization` | yes | yes | blocking |
-| player_intent_contract | player_intent_inference | implemented_but_needs_adapter | `semantic_move_interpretation_goc` | yes | no | blocking |
-| action_resolution_contract | action_resolution | implemented_but_needs_adapter | `player_action_resolution::resolve_player_action` | yes | no | blocking |
+| player_intent_contract | player_intent_inference | implemented_callable | `player_turn_validator_evaluation::evaluate_player_intent_contract` | yes | yes | blocking |
+| action_resolution_contract | action_resolution | implemented_callable | `player_turn_validator_evaluation::evaluate_action_resolution_contract` | yes | yes | blocking |
 | consequence_cascade_contract | consequence_cascade | implemented_but_needs_adapter | `consequence_cascade_contracts::validate_consequence_cascade_record` | yes | no | blocking |
 | forecast_contract | long_horizon_forecast | planned_only | `runtime_aspect_ledger` branching_forecast projection | yes | no | blocking |
 | silence_negative_space_contract | silence_negative_space | implemented_but_needs_adapter | `silence_negative_space_contract::build_silence_negative_space_decision` | yes | no | blocking |
@@ -61,10 +61,22 @@ All IDs matching `{semantic_capability}_judge` from `capability_validator_plan.J
 3. Missing context or unregistered IDs return `available=false`, `passed=false` — never success.
 4. No dynamic import by string; no Pi / Π active runtime keys.
 
+## Player-turn enforced registry
+
+`build_player_turn_enforced_semantic_validator_registry()` exposes the normal player-turn enforced set:
+
+- `player_intent_contract`
+- `action_resolution_contract`
+- `information_disclosure_contract`
+- `voice_consistency_contract`
+- `scene_energy_contract`
+
+Default registry remains `{}`. Plan-enforced dispatch remains opt-in.
+
 ## Pending integration
 
 - Production world-engine / langgraph orchestration (not wired to plan_enforced)
-- Narrator authority, environment state, player intent, action resolution, cascade, forecast, silence adapters
+- Consequence cascade, forecast, silence adapters
 - Observer diagnostics in plan_enforced (remain non-blocking; not in opening enforced set)
 - Commit/readiness gate coupling
 - Live/staging proof

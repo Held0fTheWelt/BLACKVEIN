@@ -42,6 +42,10 @@ from ai_stack.environment_state_contracts import evaluate_environment_state_cont
 from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
 from ai_stack.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.player_turn_validator_evaluation import (
+    evaluate_action_resolution_contract,
+    evaluate_player_intent_contract,
+)
 from ai_stack.scene_energy_engine import validate_scene_energy_realization
 from ai_stack.sensory_context_engine import validate_sensory_context_realization
 
@@ -153,24 +157,24 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
     ValidatorRegistryInventoryRow(
         validator_id="player_intent_contract",
         capability=CAP_PLAYER_INTENT_INFERENCE,
-        current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/semantic_move_interpretation_goc.py",
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol="ai_stack/player_turn_validator_evaluation.py::evaluate_player_intent_contract",
         adapter_needed=True,
-        safe_for_local_plan_enforced=False,
+        safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Interpretation exists; no validate_player_intent_realization contract entry point.",
+        notes="Thin adapter over player_input_kind contract checks and interpret_goc_semantic_move.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id="action_resolution_contract",
         capability=CAP_ACTION_RESOLUTION,
-        current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/player_action_resolution.py::resolve_player_action",
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol="ai_stack/player_turn_validator_evaluation.py::evaluate_action_resolution_contract",
         adapter_needed=True,
-        safe_for_local_plan_enforced=False,
+        safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Resolution path exists; registry needs a validation wrapper distinct from resolve_player_action.",
+        notes="Thin adapter over resolve_player_action affordance outcomes or pre-resolved frames.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id="consequence_cascade_contract",
@@ -463,6 +467,69 @@ def _adapter_dramatic_irony(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> d
     }
 
 
+def _adapter_player_intent(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
+    interpreted = ctx.get("interpreted_input")
+    if not isinstance(interpreted, dict):
+        return unavailable_validator_result(
+            "player_intent_contract",
+            reason="missing_required_context",
+        )
+    raw = ctx.get("raw_player_input") or ctx.get("raw_text")
+    raw_text = str(raw or interpreted.get("raw_text") or "").strip() or None
+    raw = evaluate_player_intent_contract(
+        raw_player_input=raw_text,
+        interpreted_input=interpreted,
+        interpreted_move=ctx.get("interpreted_move")
+        if isinstance(ctx.get("interpreted_move"), dict)
+        else None,
+        module_id=str(ctx.get("module_id") or "").strip() or None,
+    )
+    return normalize_validator_dispatch_result("player_intent_contract", raw, blocking=True)
+
+
+def _adapter_action_resolution(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
+    frame = ctx.get("player_action_frame")
+    aff = ctx.get("affordance_resolution")
+    if isinstance(frame, dict) and isinstance(aff, dict):
+        raw = evaluate_action_resolution_contract(
+            player_action_frame=frame,
+            affordance_resolution=aff,
+        )
+        return normalize_validator_dispatch_result("action_resolution_contract", raw, blocking=True)
+
+    interpreted = ctx.get("interpreted_input")
+    raw_input = ctx.get("raw_player_input") or ctx.get("raw_text")
+    module_id = str(ctx.get("module_id") or "").strip() or None
+    projection = ctx.get("runtime_projection")
+    if not isinstance(interpreted, dict) or not str(raw_input or "").strip():
+        return unavailable_validator_result(
+            "action_resolution_contract",
+            reason="missing_required_context",
+        )
+    if not module_id or not isinstance(projection, dict):
+        return unavailable_validator_result(
+            "action_resolution_contract",
+            reason="missing_required_context",
+        )
+    raw = evaluate_action_resolution_contract(
+        raw_player_input=str(raw_input or "").strip(),
+        interpreted_input=interpreted,
+        module_id=module_id,
+        runtime_projection=projection,
+        content_modules_root=ctx.get("content_modules_root"),
+        environment_state=ctx.get("environment_state")
+        if isinstance(ctx.get("environment_state"), dict)
+        else None,
+        environment_model=ctx.get("environment_model")
+        if isinstance(ctx.get("environment_model"), dict)
+        else None,
+        player_local_context=ctx.get("player_local_context")
+        if isinstance(ctx.get("player_local_context"), dict)
+        else None,
+    )
+    return normalize_validator_dispatch_result("action_resolution_contract", raw, blocking=True)
+
+
 def _adapter_sensory_context_diagnostic(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
     target = ctx.get("sensory_context_target")
     if not isinstance(target, dict):
@@ -495,6 +562,14 @@ _OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "voice_consistency_contract",
 )
 
+_PLAYER_TURN_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "player_intent_contract",
+    "action_resolution_contract",
+    "information_disclosure_contract",
+    "voice_consistency_contract",
+    "scene_energy_contract",
+)
+
 
 _AVAILABLE_ADAPTER_REGISTRY: dict[str, LocalValidatorCallable] = {
     "narrator_authority_contract": _adapter_narrator_authority,
@@ -502,6 +577,8 @@ _AVAILABLE_ADAPTER_REGISTRY: dict[str, LocalValidatorCallable] = {
     "scene_energy_contract": _adapter_scene_energy,
     "information_disclosure_contract": _adapter_information_disclosure,
     "voice_consistency_contract": _adapter_voice_consistency,
+    "player_intent_contract": _adapter_player_intent,
+    "action_resolution_contract": _adapter_action_resolution,
     "npc_agency_contract": _adapter_npc_agency,
     "dramatic_irony_contract": _adapter_dramatic_irony,
     "sensory_context_diagnostic": _adapter_sensory_context_diagnostic,
@@ -533,6 +610,16 @@ def build_opening_enforced_semantic_validator_registry() -> dict[str, LocalValid
     return {
         validator_id: available[validator_id]
         for validator_id in _OPENING_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
+    }
+
+
+def build_player_turn_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return normal player-turn enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _PLAYER_TURN_ENFORCED_VALIDATOR_IDS
         if validator_id in available
     }
 

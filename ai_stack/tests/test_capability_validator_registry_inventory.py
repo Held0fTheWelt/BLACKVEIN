@@ -62,6 +62,8 @@ def test_safe_for_plan_enforced_subset_is_conservative() -> None:
     assert "scene_energy_contract" in safe_ids
     assert "narrator_authority_contract" in safe_ids
     assert "environment_state_contract" in safe_ids
+    assert "player_intent_contract" in safe_ids
+    assert "action_resolution_contract" in safe_ids
     assert "forecast_contract" not in safe_ids
     for diagnostic_id in OBSERVER_DIAGNOSTICS.values():
         row = inventory_rows_by_validator_id()[diagnostic_id]
