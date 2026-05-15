@@ -3642,14 +3642,14 @@ class RuntimeTurnGraphExecutor:
         kind_raw = str(interp_dict.get("kind") or "").strip().lower()
         interp_intent = str(interp_dict.get("intent") or "").strip().lower()
         interp_ambiguity = str(interp_dict.get("ambiguity") or "").strip().lower()
-        pi14_no_lexical_silence = (
+        silence_negative_space_no_lexical_input = (
             not raw_pi
             or interp_ambiguity in {"empty_input", "no_lexical_tokens", "punctuation_only"}
         )
-        pi14_withheld_silence = (
+        silence_negative_space_active = (
             "withheld_response_or_silence" in interp_intent
             or "silence" in interp_intent
-            or pi14_no_lexical_silence
+            or silence_negative_space_no_lexical_input
         )
         session_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
         module_for_rules = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
@@ -3719,8 +3719,8 @@ class RuntimeTurnGraphExecutor:
                 interp_dict["kind"] = json_kind
                 kind_raw = json_kind
             else:
-                if pi14_withheld_silence:
-                    pik = "wait_or_observe" if pi14_no_lexical_silence else "social_nonverbal_action"
+                if silence_negative_space_active:
+                    pik = "wait_or_observe" if silence_negative_space_no_lexical_input else "social_nonverbal_action"
                 else:
                     imap = {
                         "speech": "speech",
@@ -3733,16 +3733,18 @@ class RuntimeTurnGraphExecutor:
                     }
                     pik = imap.get(kind_raw, "speech")
                 intent_fields["player_input_kind"] = pik
-                intent_fields["semantic_category"] = "silence_withdrawal" if pi14_withheld_silence else pik
+                intent_fields["semantic_category"] = "silence_withdrawal" if silence_negative_space_active else pik
                 intent_fields["speech_projection_allowed"] = pik in SPEECH_PROJECTION_KINDS
                 intent_fields["projection_key"] = None
                 intent_fields["projection_captures"] = {}
                 flags = default_player_intent_commit_flags(pik)
                 intent_fields.update(flags)
-                if pi14_withheld_silence:
-                    intent_fields["pi14_silence_signal"] = True
-                    intent_fields["pi14_silence_signal_source"] = (
-                        "non_lexical_input" if pi14_no_lexical_silence else "withheld_response_or_silence"
+                if silence_negative_space_active:
+                    intent_fields["silence_negative_space_signal"] = True
+                    intent_fields["silence_negative_space_signal_source"] = (
+                        "non_lexical_input"
+                        if silence_negative_space_no_lexical_input
+                        else "withheld_response_or_silence"
                     )
         input_kind = input_kind_map.get(kind_raw, "speech")
         if is_perception_like_player_input_kind(intent_fields.get("player_input_kind")):
@@ -4327,7 +4329,7 @@ class RuntimeTurnGraphExecutor:
         if not self.action_resolution_short_path_enabled:
             return "full_pipeline"
         interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
-        if bool(interp.get("pi14_silence_signal")):
+        if bool(interp.get("silence_negative_space_signal")):
             return "full_pipeline"
         frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
         aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
