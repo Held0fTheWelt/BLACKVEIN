@@ -20,6 +20,8 @@ Proposed
 | Feature-flagged plan-enforced local dispatch adapter | Implemented | `ADR0041_VALIDATOR_DISPATCH_MODE` defaults to `dry_run`; explicit `plan_enforced` with a registered local validator registry can execute opening-scene local validators in tests only. Production projection remains dry-run unless the env flag is explicitly set. |
 | Semantic validator registry inventory | Implemented | `docs/MVPs/capability_validator_registry_inventory.md` and `ai_stack/capability_validator_registry.py` map planned validator IDs to real local surfaces; default registry remains empty. Opening-scene, normal player-turn, and NPC conflict-turn enforced adapters exist via thin local evaluators (`build_opening_enforced_semantic_validator_registry`, `build_player_turn_enforced_semantic_validator_registry`, `build_npc_conflict_enforced_semantic_validator_registry`). Plan-enforced remains opt-in; production orchestration and live/staging proof remain pending. |
 | Turn-class enforced registry coverage (local-only drift guard) | Implemented | `TURN_CLASS_ENFORCED_VALIDATORS`, `get_registry_coverage_for_turn_class`, tests in `ai_stack/tests/test_capability_validator_turn_class_coverage.py`. Observer diagnostics remain non-blocking and are not production-gated. |
+| World-engine ADR-0041 validator dispatch harness (tests only) | Implemented | `build_adr0041_validator_dispatch_harness_report()` in `ai_stack/runtime_aspect_ledger.py`; `world-engine/tests/test_adr0041_validator_dispatch_harness.py`. Requires explicit `harness_allow_plan_enforced_local_dispatch=True` and an explicit validator registry for plan-enforced execution; default `normalize_runtime_aspect_ledger` / ledger projection remains `dry_run` with `actually_executed=[]`. Not wired into LangGraph production orchestration. |
+| Production orchestration readiness (ADR-0041 dispatch → live runtime) | Documented only | Audit map and Options A–C in `docs/MVPs/capability_selection_runtime_design.md` § ADR-0041 Production Orchestration Readiness (2026-05-15). No production wiring; implementation deferred until explicit governance slice. |
 | World-engine prompt/runtime assembly integration | Not implemented | Future phase; no prompt authority or runtime behavior changes in the first implementation. |
 | Actual selected validator execution/gating integration | Not implemented | Future phase; production validator orchestration is not wired to plan-enforced dispatch yet; commit/readiness integration remains pending. |
 | LLM-as-a-Judge execution integration | Not implemented | Judge mode remains budget-gated metadata only; no judge execution is added. |
@@ -30,6 +32,7 @@ Proposed
 | Check | Scope | Evidence |
 |-------|-------|----------|
 | Turn-class vs registry coverage | `opening_scene`, `normal_player_turn`, `npc_conflict_turn` enforced validator IDs vs opt-in builders; enforced sets disjoint from canonical observer diagnostic IDs | `ai_stack/tests/test_capability_validator_turn_class_coverage.py` |
+| World-engine harness (local-only; default projection unchanged) | Explicit harness enables plan-enforced only with registry + harness flag; `live_or_staging_evidence=false`; ledger normalization stays dry-run | `world-engine/tests/test_adr0041_validator_dispatch_harness.py` |
 
 ## Intellectual property rights
 

@@ -18,6 +18,7 @@ from ai_stack.capability_selector import (
 )
 from ai_stack.capability_validator_dispatch import (
     ValidatorDispatchMode,
+    ValidatorRegistry,
     build_validator_dispatch_report,
     resolve_validator_dispatch_mode,
 )
@@ -27,6 +28,10 @@ from ai_stack.capability_validator_plan import build_validator_execution_plan
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
 TURN_ASPECT_LEDGER_SCHEMA_VERSION = "turn_aspect_ledger.v1"
 RUNTIME_ASPECT_RECORD_VERSION = "runtime_aspect_record.v1"
+
+ADR0041_HARNESS_PLAN_ENFORCED_REQUIRES_REGISTRY_WARNING = (
+    "adr0041_harness_plan_enforced_requires_explicit_validator_registry"
+)
 
 ASPECT_INPUT = "input"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
@@ -437,6 +442,83 @@ def build_semantic_validator_dispatch_report_projection(
         ),
         *mode_warnings,
         *derivation_warnings,
+    ]
+    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
+    return _json_safe(payload)
+
+
+def build_adr0041_validator_dispatch_harness_report(
+    *,
+    harness_allow_plan_enforced_local_dispatch: bool = False,
+    validator_registry: ValidatorRegistry | None = None,
+    dispatch_context: dict[str, Any] | None = None,
+    dispatch_mode: ValidatorDispatchMode | str | None = None,
+    turn_kind: str | None = None,
+    turn_number: int | None = None,
+    raw_player_input: str | None = None,
+    input_kind: str | None = None,
+    active_actor: str | None = None,
+    npc_decision_required: bool | None = None,
+    action_resolution_required: bool | None = None,
+    visible_projection_required: bool | None = None,
+    canonical_scene_seed: bool | None = None,
+    non_lexical_input_present: bool | None = None,
+    knowledge_gap_present: bool | None = None,
+    world_state_change_requested: bool | None = None,
+) -> dict[str, Any]:
+    """Explicit ADR-0041 harness for plan-enforced local validator dispatch (tests only).
+
+    When ``harness_allow_plan_enforced_local_dispatch`` is false, behavior matches
+    ``build_semantic_validator_dispatch_report_projection`` (registry ignored).
+    When true, ``plan_enforced`` runs registered validators only if an explicit
+    registry mapping is supplied; missing registry fails closed to ``dry_run``.
+    Production ledger normalization continues to use dry-run projection only.
+    """
+    cap_kw: dict[str, Any] = {
+        "turn_kind": turn_kind,
+        "turn_number": turn_number,
+        "raw_player_input": raw_player_input,
+        "input_kind": input_kind,
+        "active_actor": active_actor,
+        "npc_decision_required": npc_decision_required,
+        "action_resolution_required": action_resolution_required,
+        "visible_projection_required": visible_projection_required,
+        "canonical_scene_seed": canonical_scene_seed,
+        "non_lexical_input_present": non_lexical_input_present,
+        "knowledge_gap_present": knowledge_gap_present,
+        "world_state_change_requested": world_state_change_requested,
+    }
+
+    if not harness_allow_plan_enforced_local_dispatch:
+        return build_semantic_validator_dispatch_report_projection(
+            **cap_kw,
+            dispatch_mode=dispatch_mode,
+        )
+
+    selection_result, derivation_warnings = _select_semantic_capabilities_from_runtime_context(**cap_kw)
+    execution_plan = build_validator_execution_plan(selection_result)
+    resolved_mode, mode_warnings = resolve_validator_dispatch_mode(explicit_mode=dispatch_mode)
+    harness_warnings: list[str] = []
+
+    if resolved_mode is ValidatorDispatchMode.PLAN_ENFORCED and validator_registry is None:
+        resolved_mode = ValidatorDispatchMode.DRY_RUN
+        harness_warnings.append(ADR0041_HARNESS_PLAN_ENFORCED_REQUIRES_REGISTRY_WARNING)
+
+    registry_arg: ValidatorRegistry = validator_registry if validator_registry is not None else {}
+
+    report_obj = build_validator_dispatch_report(
+        execution_plan,
+        mode=resolved_mode,
+        validator_registry=registry_arg,
+        dispatch_context=dispatch_context or {},
+        feature_flag_enabled=(resolved_mode is ValidatorDispatchMode.PLAN_ENFORCED),
+    )
+    payload = report_obj.to_runtime_projection()["validator_dispatch_report"]
+    warnings = [
+        *(payload.get("warnings") if isinstance(payload.get("warnings"), list) else []),
+        *mode_warnings,
+        *derivation_warnings,
+        *harness_warnings,
     ]
     payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
     return _json_safe(payload)

@@ -87,6 +87,11 @@ Canonical enforced validator IDs per turn class: `TURN_CLASS_ENFORCED_VALIDATORS
 Coverage vs an opt-in registry map: `get_registry_coverage_for_turn_class()` /
 `assert_turn_class_registry_coverage()` (no validator execution; no production dispatch).
 
+A **world-engine test harness** (`build_adr0041_validator_dispatch_harness_report`) can build the same
+dispatch projection shape with opt-in plan-enforced execution when tests pass an explicit registry map and
+`harness_allow_plan_enforced_local_dispatch=True`. Ledger normalization (`normalize_runtime_aspect_ledger`)
+does not call this harness; default runtime intelligence projection stays dry-run.
+
 | Turn class | Enforced validators (local-only complete when all IDs are in the opt-in registry) |
 |------------|-----------------------------------------------------------------------------------|
 | `opening_scene` | `narrator_authority_contract`, `scene_energy_contract`, `environment_state_contract`, `information_disclosure_contract`, `voice_consistency_contract` |
@@ -99,6 +104,15 @@ Coverage vs an opt-in registry map: `get_registry_coverage_for_turn_class()` /
 `knowledge_gap_present`) are not part of this fixed enforced/diagnostic table.
 
 Default registry remains `{}`. Plan-enforced dispatch remains opt-in.
+
+## ADR-0041 production orchestration readiness
+
+See **ADR-0041 Production Orchestration Readiness** in
+[`capability_selection_runtime_design.md`](capability_selection_runtime_design.md)
+(audit 2026-05-15): runtime validation flow map, safe insertion anchors, Options A–C,
+world-engine pytest cwd convention (`cd world-engine`), and confirmation that the
+canonical executed-validator field name is **`actually_executed`** (there is no
+`actually_detected` symbol in this repository).
 
 ## Pending integration
 

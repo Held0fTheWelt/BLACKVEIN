@@ -30,7 +30,9 @@ ADR-0041 plan-enforced dispatch (2026-05-15): local tests only (`test_capability
 
 ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_validator_registry_inventory.md`, `ai_stack/capability_validator_registry.py`; default registry empty; `live_or_staging_evidence=false`; no Capability Matrix promotion.
 
-ADR-0041 opening-scene registry adapters (2026-05-15): `narrator_authority_contract` and `environment_state_contract` opt-in adapters via `evaluate_narrator_authority_contract` / `evaluate_environment_state_contract`; `build_opening_enforced_semantic_validator_registry()` covers full opening enforced set with context; default_mode=dry_run.
+ADR-0041 world-engine harness (2026-05-15): `build_adr0041_validator_dispatch_harness_report`; tests under `world-engine/tests/`; run pytest from `world-engine/` so `app` resolves; `live_or_staging_evidence=false`; default ledger projection unchanged (`dry_run`).
+
+ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow map and insertion guidance in `docs/MVPs/capability_selection_runtime_design.md` (ADR-0041 Production Orchestration Readiness); **no production orchestration implemented**. Canonical dispatch field: **`actually_executed`** (repo-wide search: no `actually_detected`). World-engine pytest: prefer `cd world-engine && python -m pytest …` to avoid `ModuleNotFoundError: app` when running from repo root.
 
 ---
 

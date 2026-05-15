@@ -60,6 +60,11 @@ For each of `opening_scene`, `normal_player_turn`, and `npc_conflict_turn`, loca
 registry builders are expected to register every enforced validator ID; observer
 diagnostics remain non-blocking and must not appear in enforced sets.
 
+World-engine **test harness only**: ``build_adr0041_validator_dispatch_harness_report``
+(``ai_stack/runtime_aspect_ledger.py``) enables plan-enforced local validator execution when tests pass
+``harness_allow_plan_enforced_local_dispatch=True`` and an explicit registry; ledger normalization does not
+invoke it. Evidence: ``world-engine/tests/test_adr0041_validator_dispatch_harness.py``.
+
 Current boundaries:
 
 - Not wired into world-engine prompt assembly.
@@ -67,6 +72,103 @@ Current boundaries:
 - Not wired into judge execution.
 - Not wired into Langfuse/MCP live or staging proof.
 - Not Capability Matrix promotion evidence.
+
+## ADR-0041 Production Orchestration Readiness (audit 2026-05-15)
+
+**Verdict:** Production wiring for plan-aware dispatch is **not** ready; **do not**
+enable `plan_enforced` in live LangGraph/world-engine paths until an explicit ADR
+slice defines gate policy, registry sourcing, and rollback. **Do not begin implementation yet**
+— use only the patch map below.
+
+### Current state
+
+- **Default path:** `normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` →
+  `build_semantic_validator_dispatch_report_projection` → **always `dry_run`**,
+  `actually_executed=[]`, `commit_gate_changed=false`, local-only proof flags.
+- **Harness path:** `build_adr0041_validator_dispatch_harness_report` — tests only; **not** invoked from ledger normalization.
+- **Semantic naming / Pi:** Validator IDs remain semantic contract names; **no `actually_detected`** symbol exists in the repo (canonical field is **`actually_executed`**).
+
+### Runtime validation flow map (discovered paths)
+
+| Path | Symbol / anchor | What it does | When | Blocking vs narrative | Commit / readiness | LLM/Judge | Classification |
+|------|-------------------|--------------|------|------------------------|-------------------|-----------|----------------|
+| GoC validation seam | `ai_stack/goc_turn_seams.py::run_validation_seam` | Proposal validation (`validation_outcome`): actor lane, dramatic-effect gate, GoC rules | After generation proposal, before commit | **Blocking** for rejected outcomes | **Drives** retry/degraded path via executor + aspect ledger | No judge by default in seam | **must_not_be_plan_routed** (canonical commitment seam — ADR-0041 dispatch must not replace this without governance) |
+| LangGraph validation node | `ai_stack/langgraph_runtime_executor.py` — `_run_validation` closure calling `run_validation_seam`; `_build_runtime_aspect_validation`; retry loop `decide_playability_recovery` | Packages seam outcome into `validation_outcome`, aspect ledger aspects, per-contract validation dicts on graph state | During graph execution on turn | **Blocking** / degraded leniency | **Indirectly** affects commit via `validation_outcome` + ledger | Optional provider generation upstream; seam local | **must_not_be_plan_routed** without separate ADR |
+| Aspect ledger normalization | `ai_stack/runtime_aspect_ledger.py::normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` | Adds **`runtime_intelligence_projection`** (capability selection, validator plan, **dry-run** dispatch report) | On ledger normalize | **Non-blocking** for gameplay (projection) | **Does not** change commit/readiness | No | **dry_run_projection_only** + **safe_candidate_for_future_plan_enforced** (attach *additional* evidence only) |
+| ADR-0041 harness | `ai_stack/runtime_aspect_ledger.py::build_adr0041_validator_dispatch_harness_report` | Optional plan-enforced execution in tests | Explicit test call only | Test-scoped | No | No | **dry_run_projection_only** (production) / harness-only execution |
+| Commit narrative capture | `world-engine/app/story_runtime/commit_models.py` — `resolve_narrative_commit` family | Snapshots validator layers / validation blobs into commit record | Commit persistence | N/A | **Yes** (record shape) | N/A | **requires_commit_policy_decision** if ADR-0041 results ever feed this |
+| Recoverable / blocking ledger | `world-engine/app/story_runtime/manager.py` — `_recoverable_runtime_aspect_ledger`, `_runtime_aspect_commit_blocking_failure` | Marks validation/commit aspects failed/partial; detects blocking failures | Recoverable error paths | Can block “clean” commit path | **Yes** | No | **must_not_be_plan_routed** blindly |
+
+### Safe insertion candidates (future)
+
+1. **Post-projection enrichment (preferred minimal):** After `build_semantic_validator_dispatch_report_projection` inside a **new optional branch** (feature flag + explicit registry), merge **additional** `validator_dispatch_report` fields or a **sibling** key (e.g. `semantic_validator_dispatch_execution_preview`) so default payload stays byte-stable dry-run. **Insertion anchor:** `build_semantic_validator_dispatch_report_projection` call site inside `build_runtime_intelligence_projection` (`runtime_aspect_ledger.py`, ~726–728).
+2. **LangGraph side-channel (non-commit):** After validation seam resolves but **before** mutating `validation_outcome`, run ADR-0041 dispatch **only if** flag+registry — record diagnostics on state **without** changing `validation_outcome`. **Anchor:** `langgraph_runtime_executor.py` near `update["validation_outcome"] = outcome` (~8081) — **high risk of duplication**; prefer ledger projection first.
+3. **World-engine envelope only:** Attach harness output to diagnostics envelope returned to API — **anchor:** `manager.py` paths that assemble turn diagnostics (search `diagnostics` / `turn_aspect_ledger`). Lowest coupling; still requires flag/registry discipline.
+
+### Unsafe / deferred areas
+
+- **Replacing or short-circuiting `run_validation_seam`** with registry adapters.
+- **Feeding ADR-0041 `passed` into commit/readiness** without a dedicated ADR and golden tests.
+- **Auto-building registry from Capability Matrix** (hidden promotion risk).
+- **Inferring `plan_enforced` from turn situation alone** (already forbidden by harness design).
+
+### Option analysis (next phases)
+
+**Option A — Projection-only remains default (recommended near-term)**
+
+- Benefits: Zero gameplay risk; aligns with current architecture; Table-B / ADR-0039 friendly.
+- Risks: Dispatch stays non-authoritative; operators may confuse projection with enforcement.
+- Tests: Extend `ai_stack/tests/test_runtime_aspect_ledger.py` if projection shape grows.
+- ADR-0039: Continue semantic IDs only; no Pi keys.
+- ADR-0041: Completes “explainability” layer only.
+- **Implement next:** Yes — **only** enriched projection or sibling diagnostic payload under explicit flag.
+
+**Option B — Feature-flagged local execution, no gate effects**
+
+- Benefits: Real adapter execution in production graph with observable traces; still no commit coupling.
+- Risks: Latency, double-validation conceptual drift vs `run_validation_seam`, operational confusion.
+- Tests: LangGraph integration tests + world-engine smoke from `world-engine/` cwd; assert `validation_outcome` unchanged when flag off.
+- ADR-0039: Same; add assertions judges never run.
+- ADR-0041: Moves from “plan” to “observe executed adapters.”
+- **Implement next:** Only **after** Option A policy text + flag/registry ownership decided.
+
+**Option C — Execution + gate-readiness preview (still no gate mutation)**
+
+- Benefits: Rehearses future governance without changing commits.
+- Risks: Two sources of “truth” (`validation_outcome` vs preview) — documentation burden.
+- Tests: Snapshot tests for preview dict; property: preview disagreeing with seam does **not** fail turn.
+- **Implement next:** After Option B proves stable.
+
+### Recommended next narrow step
+
+Document and implement **Option A only**: add an explicit env/feature flag that toggles **additional**
+projection payload (or sibling key) populated via the **same** registry builders used in tests,
+with **default off** and **fail-closed** to current dry-run shape. **Do not** call harness from
+`normalize_runtime_aspect_ledger` until named ADR acceptance.
+
+### Future patch map (do not implement yet)
+
+| Element | Guidance |
+|---------|----------|
+| Minimal insertion | `runtime_aspect_ledger.build_runtime_intelligence_projection` → conditional branch around semantic dispatch (~726–728) **or** diagnostics-only merge |
+| Feature flag | New explicit flag (e.g. `ADR0041_SEMANTIC_DISPATCH_EXECUTION_IN_LEDGER`) **plus** existing dispatch mode resolution; **missing/invalid → dry_run** |
+| Registry source | Explicit runtime-provided mapping **or** static opt-in builder — **never** implicit empty-as-success |
+| Fallback | No registry → dry-run projection identical to today |
+| Judges | Remain disallow-listed; registry builders unchanged |
+| Tests | `test_runtime_aspect_ledger`, harness tests, new LangGraph contract test if touching executor |
+| Risks | Drift between seam validators and ADR-0041 adapter set |
+| Rollback | Flag default off; delete branch |
+
+### World-engine pytest convention
+
+Several suites import `app.*` and expect **`world-engine/` on `sys.path`**.
+
+```bash
+cd world-engine
+python -m pytest tests/test_story_runtime_aspect_ledger.py tests/test_adr0041_validator_dispatch_harness.py -q
+```
+
+Running the same paths **from the repository root** often yields `ModuleNotFoundError: No module named 'app'` — this is an **environment/cwd convention**, not an implementation regression.
 
 ## Problem Solved
 
