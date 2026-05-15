@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
+from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
 from tools.mcp_server.tools_registry import create_default_registry
 from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
     _runtime_aspect_recommended_repair,
@@ -856,6 +857,40 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "sensory_context": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": SENSORY_CONTEXT_SCHEMA_VERSION,
+                            "policy_present": True,
+                            "policy_enabled": True,
+                        },
+                        "selected": {
+                            "target": {
+                                "schema_version": SENSORY_CONTEXT_SCHEMA_VERSION,
+                                "intensity": "high",
+                                "location_id": "room_alpha",
+                                "object_id": "object_alpha",
+                                "mood_key": "mid_tension",
+                                "selected_layers": [
+                                    {
+                                        "layer_id": "room:room_alpha:ambient",
+                                        "source_ref": "narrator_sensory_palette.rooms.room_alpha.ambient",
+                                    }
+                                ],
+                                "required_layer_ids": ["room:room_alpha:ambient"],
+                                "min_layers_per_turn": 1,
+                                "max_layers_per_turn": 3,
+                            }
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "event_count": 1,
+                            "realized_layer_ids": ["room:room_alpha:ambient"],
+                            "required_layer_ids": ["room:room_alpha:ambient"],
+                            "selected_layer_ids": ["room:room_alpha:ambient"],
+                            "failure_codes": [],
+                        },
+                    },
                     "improvisational_coherence": {
                         "status": "passed",
                         "expected": {
@@ -1032,6 +1067,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "pacing_rhythm_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_density_respected", "value": 1.0},
             {"name": "pacing_rhythm_pause_respected", "value": 1.0},
+            {"name": "sensory_context_target_present", "value": 1.0},
+            {"name": "sensory_context_contract_pass", "value": 1.0},
+            {"name": "sensory_context_required_layers_realized", "value": 1.0},
+            {"name": "sensory_context_source_refs_valid", "value": 1.0},
             {"name": "improvisational_coherence_policy_present", "value": 1.0},
             {"name": "improvisational_coherence_target_selected", "value": 1.0},
             {"name": "improvisational_coherence_acknowledged", "value": 1.0},
@@ -1094,6 +1133,14 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["pacing_rhythm_response_shape"] == "exchange"
     assert row["pacing_rhythm_density_respected"] is True
     assert row["pacing_rhythm_contract_pass"] is True
+    assert row["sensory_context_target_present"] is True
+    assert row["sensory_context_intensity"] == "high"
+    assert row["sensory_context_location_id"] == "room_alpha"
+    assert row["sensory_context_object_id"] == "object_alpha"
+    assert row["sensory_context_required_layers_realized"] is True
+    assert row["sensory_context_source_refs_valid"] is True
+    assert row["sensory_context_contract_pass"] is True
+    assert row["sensory_context_failure_codes"] == []
     assert row["improvisational_coherence_policy_present"] is True
     assert row["improvisational_coherence_target_selected"] is True
     assert row["improvisational_coherence_contribution_id"] == "turn_contribution:alpha"

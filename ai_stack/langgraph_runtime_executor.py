@@ -66,13 +66,16 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
     ASPECT_DRAMATIC_IRONY,
+    ASPECT_EXPECTATION_VARIATION,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
+    ASPECT_META_NARRATIVE_AWARENESS,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_RELATIONSHIP_STATE,
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
@@ -143,11 +146,23 @@ from ai_stack.information_disclosure_engine import (
     derive_information_disclosure,
     validate_information_disclosure_realization,
 )
+from ai_stack.expectation_variation_engine import (
+    build_expectation_variation_aspect_record,
+    compact_expectation_variation_context,
+    derive_expectation_variation,
+    validate_expectation_variation_realization,
+)
 from ai_stack.improvisational_coherence_engine import (
     build_improvisational_coherence_aspect_record,
     compact_improvisational_coherence_context,
     derive_improvisational_coherence,
     validate_improvisational_coherence_realization,
+)
+from ai_stack.meta_narrative_awareness_engine import (
+    build_meta_narrative_awareness_aspect_record,
+    compact_meta_narrative_awareness_context,
+    derive_meta_narrative_awareness,
+    validate_meta_narrative_awareness_realization,
 )
 from ai_stack.pacing_rhythm_engine import (
     derive_pacing_rhythm,
@@ -156,6 +171,11 @@ from ai_stack.pacing_rhythm_engine import (
 from ai_stack.social_pressure_engine import (
     derive_social_pressure,
     validate_social_pressure_metric,
+)
+from ai_stack.relationship_state_engine import (
+    build_relationship_state_aspect_record,
+    derive_relationship_state,
+    validate_relationship_state_realization,
 )
 from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
 from ai_stack.sensory_context_engine import (
@@ -1675,6 +1695,38 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "social_pressure_validation": social_pressure_validation,
     }
+    relationship_state_validation = validate_relationship_state_realization(
+        relationship_state_record=state.get("relationship_state_record")
+        if isinstance(state.get("relationship_state_record"), dict)
+        else None,
+        relationship_dynamics_target=state.get("relationship_dynamics_target")
+        if isinstance(state.get("relationship_dynamics_target"), dict)
+        else None,
+        structured_output=structured_output,
+        actor_lane_context=state.get("actor_lane_context")
+        if isinstance(state.get("actor_lane_context"), dict)
+        else None,
+        module_runtime_policy=state.get("module_runtime_policy")
+        if isinstance(state.get("module_runtime_policy"), dict)
+        else None,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_RELATIONSHIP_STATE,
+        build_relationship_state_aspect_record(
+            state_record=state.get("relationship_state_record")
+            if isinstance(state.get("relationship_state_record"), dict)
+            else None,
+            target=state.get("relationship_dynamics_target")
+            if isinstance(state.get("relationship_dynamics_target"), dict)
+            else None,
+            validation=relationship_state_validation,
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "relationship_state_validation": relationship_state_validation,
+    }
     sensory_context_validation = validate_sensory_context_realization(
         sensory_context_target=state.get("sensory_context_target")
         if isinstance(state.get("sensory_context_target"), dict)
@@ -1742,6 +1794,54 @@ def _build_runtime_aspect_validation(
     next_outcome = {
         **next_outcome,
         "dramatic_irony_validation": dramatic_irony_validation,
+    }
+    expectation_variation_validation = validate_expectation_variation_realization(
+        expectation_variation_target=state.get("expectation_variation_target")
+        if isinstance(state.get("expectation_variation_target"), dict)
+        else None,
+        expectation_variation_state=state.get("expectation_variation_state")
+        if isinstance(state.get("expectation_variation_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_EXPECTATION_VARIATION,
+        build_expectation_variation_aspect_record(
+            target=state.get("expectation_variation_target")
+            if isinstance(state.get("expectation_variation_target"), dict)
+            else None,
+            state=state.get("expectation_variation_state")
+            if isinstance(state.get("expectation_variation_state"), dict)
+            else None,
+            validation=expectation_variation_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "expectation_variation_validation": expectation_variation_validation,
+    }
+    meta_narrative_validation = validate_meta_narrative_awareness_realization(
+        meta_narrative_awareness_target=state.get("meta_narrative_awareness_target")
+        if isinstance(state.get("meta_narrative_awareness_target"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_META_NARRATIVE_AWARENESS,
+        build_meta_narrative_awareness_aspect_record(
+            target=state.get("meta_narrative_awareness_target")
+            if isinstance(state.get("meta_narrative_awareness_target"), dict)
+            else None,
+            validation=meta_narrative_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "meta_narrative_awareness_validation": meta_narrative_validation,
     }
     npc_agency_plan = _npc_agency_plan_from_state(state)
     actor_lane_context = (
@@ -1943,6 +2043,23 @@ def _build_runtime_aspect_validation(
             "failure_codes": pressure_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
+    relationship_state_failure = None
+    if (
+        isinstance(relationship_state_validation, dict)
+        and str(relationship_state_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        relationship_codes = [
+            str(code)
+            for code in (relationship_state_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        relationship_state_failure = {
+            "failure_reason": relationship_codes[0]
+            if relationship_codes
+            else "relationship_state_validation_failed",
+            "failure_codes": relationship_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     sensory_context_failure = None
     if (
         isinstance(sensory_context_validation, dict)
@@ -1999,6 +2116,50 @@ def _build_runtime_aspect_validation(
                 or (irony_codes[0] if irony_codes else "dramatic_irony_validation_failed")
             ),
             "violation_codes": irony_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    expectation_variation_failure = None
+    if (
+        isinstance(expectation_variation_validation, dict)
+        and str(expectation_variation_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        variation_codes = [
+            str(code)
+            for code in (expectation_variation_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        expectation_variation_failure = {
+            "failure_reason": str(
+                expectation_variation_validation.get("feedback_code")
+                or (
+                    variation_codes[0]
+                    if variation_codes
+                    else "expectation_variation_validation_failed"
+                )
+            ),
+            "failure_codes": variation_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    meta_narrative_failure = None
+    if (
+        isinstance(meta_narrative_validation, dict)
+        and str(meta_narrative_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        meta_codes = [
+            str(code)
+            for code in (meta_narrative_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        meta_narrative_failure = {
+            "failure_reason": str(
+                meta_narrative_validation.get("feedback_code")
+                or (
+                    meta_codes[0]
+                    if meta_codes
+                    else "meta_narrative_awareness_validation_failed"
+                )
+            ),
+            "failure_codes": meta_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
     npc_agency_failure = None
@@ -2123,6 +2284,46 @@ def _build_runtime_aspect_validation(
             "dramatic_irony_failure": dramatic_irony_failure,
         }
     elif (
+        expectation_variation_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            expectation_variation_failure.get("failure_reason")
+            or "expectation_variation_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "expectation_variation_validation_v1",
+            "expectation_variation_contract_violation": True,
+            "failure_class": expectation_variation_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "expectation_variation_failure": expectation_variation_failure,
+        }
+    elif (
+        meta_narrative_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            meta_narrative_failure.get("failure_reason")
+            or "meta_narrative_awareness_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "meta_narrative_awareness_validation_v1",
+            "meta_narrative_awareness_contract_violation": True,
+            "failure_class": meta_narrative_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "meta_narrative_awareness_failure": meta_narrative_failure,
+        }
+    elif (
         scene_energy_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -2198,6 +2399,26 @@ def _build_runtime_aspect_validation(
             "hard_boundary_failure": False,
             "recoverable_rejection": True,
             "social_pressure_failure": social_pressure_failure,
+        }
+    elif (
+        relationship_state_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            relationship_state_failure.get("failure_reason")
+            or "relationship_state_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "relationship_state_validation_v1",
+            "relationship_state_contract_violation": True,
+            "failure_class": relationship_state_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "relationship_state_failure": relationship_state_failure,
         }
     elif (
         sensory_context_failure is not None
@@ -2292,6 +2513,14 @@ def _build_runtime_aspect_validation(
                 "social_pressure_contract_violation": bool(
                     next_outcome.get("social_pressure_contract_violation")
                 ),
+                "relationship_state_validation_status": (
+                    relationship_state_validation.get("status")
+                    if isinstance(relationship_state_validation, dict)
+                    else None
+                ),
+                "relationship_state_contract_violation": bool(
+                    next_outcome.get("relationship_state_contract_violation")
+                ),
                 "sensory_context_validation_status": (
                     sensory_context_validation.get("status")
                     if isinstance(sensory_context_validation, dict)
@@ -2315,6 +2544,22 @@ def _build_runtime_aspect_validation(
                 ),
                 "dramatic_irony_contract_violation": bool(
                     next_outcome.get("dramatic_irony_contract_violation")
+                ),
+                "expectation_variation_validation_status": (
+                    expectation_variation_validation.get("status")
+                    if isinstance(expectation_variation_validation, dict)
+                    else None
+                ),
+                "expectation_variation_contract_violation": bool(
+                    next_outcome.get("expectation_variation_contract_violation")
+                ),
+                "meta_narrative_awareness_validation_status": (
+                    meta_narrative_validation.get("status")
+                    if isinstance(meta_narrative_validation, dict)
+                    else None
+                ),
+                "meta_narrative_awareness_contract_violation": bool(
+                    next_outcome.get("meta_narrative_awareness_contract_violation")
                 ),
                 "npc_initiative_validation_status": (
                     npc_initiative_validation.get("status")
@@ -2370,18 +2615,24 @@ def _build_runtime_aspect_validation(
         "pacing_rhythm_validation": pacing_rhythm_validation,
         "improvisational_coherence_validation": improvisational_validation,
         "social_pressure_validation": social_pressure_validation,
+        "relationship_state_validation": relationship_state_validation,
         "sensory_context_validation": sensory_context_validation,
         "information_disclosure_validation": information_disclosure_validation,
         "dramatic_irony_validation": dramatic_irony_validation,
+        "expectation_variation_validation": expectation_variation_validation,
+        "meta_narrative_awareness_validation": meta_narrative_validation,
         "npc_initiative_validation": npc_initiative_validation,
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
         "scene_energy_failure": scene_energy_failure,
         "improvisational_coherence_failure": improvisational_failure,
         "social_pressure_failure": social_pressure_failure,
+        "relationship_state_failure": relationship_state_failure,
         "sensory_context_failure": sensory_context_failure,
         "information_disclosure_failure": information_disclosure_failure,
         "dramatic_irony_failure": dramatic_irony_failure,
+        "expectation_variation_failure": expectation_variation_failure,
+        "meta_narrative_awareness_failure": meta_narrative_failure,
         "npc_agency_failure": npc_agency_failure,
     }
 
@@ -3276,6 +3527,16 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("improvisational_coherence_target"), dict)
         else None
     )
+    expectation_variation_context = compact_expectation_variation_context(
+        state.get("expectation_variation_target")
+        if isinstance(state.get("expectation_variation_target"), dict)
+        else None
+    )
+    meta_narrative_context = compact_meta_narrative_awareness_context(
+        state.get("meta_narrative_awareness_target")
+        if isinstance(state.get("meta_narrative_awareness_target"), dict)
+        else None
+    )
     prior_cascade = (
         state.get("prior_consequence_cascade_state")
         if isinstance(state.get("prior_consequence_cascade_state"), dict)
@@ -3363,7 +3624,30 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "npc_agency_plan": npc_agency_plan,
         "npc_initiative_directives": npc_initiative_directives,
         "relationship_dynamics_context": relationship_dynamics_context,
+        "relationship_state": {
+            "state": state.get("relationship_state_record")
+            if isinstance(state.get("relationship_state_record"), dict)
+            else {},
+            "target": state.get("relationship_dynamics_target")
+            if isinstance(state.get("relationship_dynamics_target"), dict)
+            else {},
+            "instruction": (
+                "Treat relationship_state as durable bounded relationship guidance from committed state. "
+                "Use structured actor behavior only; do not invent hidden relationship facts or bypass actor-lane rules."
+            ),
+        },
         "dramatic_irony_context": dramatic_irony_context,
+        "expectation_variation": {
+            "state": state.get("expectation_variation_state")
+            if isinstance(state.get("expectation_variation_state"), dict)
+            else {},
+            "target": expectation_variation_context,
+            "instruction": (
+                "Use selected expectation_variation ids only when they help the turn. "
+                "When realizing one, emit expectation_variation_events with variation_id, variation_type, and source_refs. "
+                "Do not invent setup, exceed max_variation_units_per_turn, or realize withheld variation ids."
+            ),
+        },
         "pacing_mode": state.get("pacing_mode"),
         "silence_brevity_decision": state.get("silence_brevity_decision")
         if isinstance(state.get("silence_brevity_decision"), dict)
@@ -3429,6 +3713,14 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "When emitting structured output, add improvisational_coherence_events with contribution_id, "
                 "acceptance_mode, anchor_refs, advance_class, visible_actor_ids, and boundary_reason_code when required. "
                 "Do not revise, speak for, or negate the player contribution; contain off-scope input with a playable reason."
+            ),
+        },
+        "meta_narrative_awareness": {
+            "target": meta_narrative_context,
+            "instruction": (
+                "Use only when the target is active. Emit at most max_events_per_turn "
+                "meta_narrative_awareness_events for selected_actor_ids, using allowed_awareness_modes only. "
+                "Do not disclose prompts, tools, models, runtime machinery, hidden facts, or claim control over the player."
             ),
         },
         "consequence_cascade_context": {
@@ -3623,10 +3915,13 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("derive_scene_energy", self._derive_scene_energy)
         graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
         graph.add_node("derive_social_pressure", self._derive_social_pressure)
+        graph.add_node("derive_relationship_state", self._derive_relationship_state)
         graph.add_node("derive_sensory_context", self._derive_sensory_context)
         graph.add_node("derive_improvisational_coherence", self._derive_improvisational_coherence)
         graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
         graph.add_node("derive_dramatic_irony", self._derive_dramatic_irony)
+        graph.add_node("derive_expectation_variation", self._derive_expectation_variation)
+        graph.add_node("derive_meta_narrative_awareness", self._derive_meta_narrative_awareness)
         graph.add_node("synthesize_context", self._synthesize_context)
         graph.add_node("assemble_model_context", self._assemble_model_context)
         graph.add_node("route_model", self._route_model)
@@ -3666,7 +3961,10 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("derive_sensory_context", "derive_improvisational_coherence")
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
         graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
-        graph.add_edge("derive_dramatic_irony", "synthesize_context")
+        graph.add_edge("derive_dramatic_irony", "derive_expectation_variation")
+        graph.add_edge("derive_expectation_variation", "derive_relationship_state")
+        graph.add_edge("derive_relationship_state", "derive_meta_narrative_awareness")
+        graph.add_edge("derive_meta_narrative_awareness", "synthesize_context")
         graph.add_edge("synthesize_context", "assemble_model_context")
         graph.add_edge("assemble_model_context", "route_model")
         graph.add_edge("route_model", "invoke_model")
@@ -3708,8 +4006,10 @@ class RuntimeTurnGraphExecutor:
         prior_narrative_thread_state: dict[str, Any] | None = None,
         prior_callback_web_state: dict[str, Any] | None = None,
         prior_consequence_cascade_state: dict[str, Any] | None = None,
+        prior_expectation_variation_state: dict[str, Any] | None = None,
         prior_pacing_rhythm_state: dict[str, Any] | None = None,
         prior_social_pressure_state: dict[str, Any] | None = None,
+        prior_relationship_state_record: dict[str, Any] | None = None,
         prior_planner_truth: dict[str, Any] | None = None,
         hierarchical_memory_context: dict[str, Any] | None = None,
         turn_number: int | None = None,
@@ -3754,10 +4054,14 @@ class RuntimeTurnGraphExecutor:
                 snapshot rehydrated from the story session.
             prior_consequence_cascade_state: bounded committed consequence
                 cascade feedback snapshot rehydrated from the story session.
+            prior_expectation_variation_state: bounded committed variation
+                feedback snapshot rehydrated from the story session.
             prior_pacing_rhythm_state: bounded committed rhythm feedback
                 snapshot rehydrated from the story session.
             prior_social_pressure_state: bounded committed pressure metric
                 snapshot rehydrated from the story session.
+            prior_relationship_state_record: bounded committed relationship
+                state-machine snapshot rehydrated from the story session.
             prior_planner_truth: bounded committed planner-truth snapshot used
                 to bias retrieval toward continuity-relevant precedents.
             hierarchical_memory_context: bounded committed memory context
@@ -3874,10 +4178,16 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_consequence_cascade_state"] = dict(
                 prior_consequence_cascade_state
             )
+        if prior_expectation_variation_state:
+            initial_state["prior_expectation_variation_state"] = dict(
+                prior_expectation_variation_state
+            )
         if prior_pacing_rhythm_state:
             initial_state["prior_pacing_rhythm_state"] = dict(prior_pacing_rhythm_state)
         if prior_social_pressure_state:
             initial_state["prior_social_pressure_state"] = dict(prior_social_pressure_state)
+        if prior_relationship_state_record:
+            initial_state["prior_relationship_state_record"] = dict(prior_relationship_state_record)
         if prior_planner_truth:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
         if hierarchical_memory_context:
@@ -5572,6 +5882,116 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_relationship_state(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_relationship_state")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_relationship_state(
+            yaml_slice=state.get("goc_yaml_slice")
+            if isinstance(state.get("goc_yaml_slice"), dict)
+            else None,
+            social_state_record=state.get("social_state_record")
+            if isinstance(state.get("social_state_record"), dict)
+            else None,
+            relationship_dynamics_context=state.get("relationship_dynamics_context")
+            if isinstance(state.get("relationship_dynamics_context"), dict)
+            else None,
+            npc_agency_simulation=state.get("npc_agency_simulation")
+            if isinstance(state.get("npc_agency_simulation"), dict)
+            else None,
+            social_pressure_state=state.get("social_pressure_state")
+            if isinstance(state.get("social_pressure_state"), dict)
+            else None,
+            prior_relationship_state_record=state.get("prior_relationship_state_record")
+            if isinstance(state.get("prior_relationship_state_record"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            prior_continuity_impacts=state.get("prior_continuity_impacts")
+            if isinstance(state.get("prior_continuity_impacts"), list)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            turn_number=state.get("turn_number"),
+        )
+        relationship_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if relationship_state:
+            scene_plan["relationship_state_record"] = relationship_state
+        if target:
+            scene_plan["relationship_dynamics_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["relationship_state_record"] = relationship_state
+        update["relationship_dynamics_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_RELATIONSHIP_STATE,
+            build_relationship_state_aspect_record(
+                state_record=relationship_state,
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
+    def _derive_meta_narrative_awareness(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_meta_narrative_awareness")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_meta_narrative_awareness(
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            story_runtime_experience=state.get("story_runtime_experience")
+            if isinstance(state.get("story_runtime_experience"), dict)
+            else None,
+            selected_responder_set=state.get("selected_responder_set")
+            if isinstance(state.get("selected_responder_set"), list)
+            else None,
+            actor_lane_context=state.get("actor_lane_context")
+            if isinstance(state.get("actor_lane_context"), dict)
+            else None,
+            current_scene_id=state.get("current_scene_id")
+            if isinstance(state.get("current_scene_id"), str)
+            else None,
+            selected_scene_function=state.get("selected_scene_function")
+            if isinstance(state.get("selected_scene_function"), str)
+            else None,
+            scene_plan_record=scene_plan,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            dramatic_irony_record=state.get("dramatic_irony_record")
+            if isinstance(state.get("dramatic_irony_record"), dict)
+            else None,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+        )
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if target:
+            scene_plan["meta_narrative_awareness_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["meta_narrative_awareness_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_META_NARRATIVE_AWARENESS,
+            build_meta_narrative_awareness_aspect_record(
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+                source="runtime",
+            ),
+        )
+        return update
+
     def _derive_sensory_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
         update = _track(state, node_name="derive_sensory_context")
         scene_plan = (
@@ -5838,6 +6258,69 @@ class RuntimeTurnGraphExecutor:
                 record=dramatic_irony_record,
                 validation=None,
                 source="runtime",
+            ),
+        )
+        return update
+
+    def _derive_expectation_variation(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_expectation_variation")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_expectation_variation(
+            scene_plan_record=scene_plan,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            pacing_rhythm_target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            sensory_context_target=state.get("sensory_context_target")
+            if isinstance(state.get("sensory_context_target"), dict)
+            else None,
+            improvisational_coherence_target=state.get("improvisational_coherence_target")
+            if isinstance(state.get("improvisational_coherence_target"), dict)
+            else None,
+            information_disclosure_target=state.get("information_disclosure_target")
+            if isinstance(state.get("information_disclosure_target"), dict)
+            else None,
+            dramatic_irony_record=state.get("dramatic_irony_record")
+            if isinstance(state.get("dramatic_irony_record"), dict)
+            else None,
+            prior_consequence_cascade_state=state.get("prior_consequence_cascade_state")
+            if isinstance(state.get("prior_consequence_cascade_state"), dict)
+            else None,
+            prior_expectation_variation_state=state.get("prior_expectation_variation_state")
+            if isinstance(state.get("prior_expectation_variation_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        variation_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        if variation_state:
+            scene_plan["expectation_variation_state"] = variation_state
+        if target:
+            scene_plan["expectation_variation_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["expectation_variation_state"] = variation_state
+        update["expectation_variation_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_EXPECTATION_VARIATION,
+            build_expectation_variation_aspect_record(
+                target=target,
+                state=variation_state,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
             ),
         )
         return update
@@ -6221,6 +6704,50 @@ class RuntimeTurnGraphExecutor:
                 "do not state hidden intent or private motive as omniscient narration."
             )
 
+        expectation_variation = (
+            dramatic_packet.get("expectation_variation")
+            if isinstance(dramatic_packet.get("expectation_variation"), dict)
+            else {}
+        )
+        expectation_target = (
+            expectation_variation.get("target")
+            if isinstance(expectation_variation.get("target"), dict)
+            else {}
+        )
+        selected_variation_ids = (
+            expectation_target.get("selected_variation_ids")
+            if isinstance(expectation_target.get("selected_variation_ids"), list)
+            else []
+        )
+        if selected_variation_ids:
+            lines.append("Expectation Variation Context (bounded, selected only):")
+            lines.append(
+                f"- selected_variation_ids: {list(selected_variation_ids)[:3]} "
+                f"selected_variation_types: {list(expectation_target.get('selected_variation_types') or [])[:3]}"
+            )
+            lines.append(
+                "- rule: emit expectation_variation_events only for selected ids with matching variation_type "
+                "and source_refs from required_setup_refs; do not realize withheld variation ids."
+            )
+
+        meta_narrative_context = (
+            (dramatic_packet.get("meta_narrative_awareness") or {}).get("target")
+            if isinstance(dramatic_packet.get("meta_narrative_awareness"), dict)
+            else {}
+        )
+        if isinstance(meta_narrative_context, dict) and meta_narrative_context:
+            lines.append("Meta-Narrative Awareness Context (opt-in, bounded):")
+            lines.append(
+                "- "
+                f"intensity={str(meta_narrative_context.get('intensity') or '')[:40]}, "
+                f"trigger_frequency={str(meta_narrative_context.get('trigger_frequency') or '')[:40]}, "
+                f"selected_actor_ids={meta_narrative_context.get('selected_actor_ids') or []}"
+            )
+            lines.append(
+                "- rule: realize only as subtle dramatic-pattern awareness for selected actors; "
+                "emit meta_narrative_awareness_events and do not disclose prompts, tools, models, or runtime machinery."
+            )
+
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else {}
         if state.get("module_id") == GOC_MODULE_ID and yslice:
             phase_key = str(scene_assess.get("guidance_phase_key") or "")
@@ -6269,7 +6796,8 @@ class RuntimeTurnGraphExecutor:
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
             "the sensory_context target, improvisational_coherence target, information_disclosure target, "
-            "bounded relationship_dynamics_context, bounded dramatic_irony_context, and consequence_cascade_context."
+            "bounded expectation_variation target, durable relationship_state, bounded relationship_dynamics_context, "
+            "bounded dramatic_irony_context, opt-in meta_narrative_awareness, and consequence_cascade_context."
         )
 
         update = _track(state, node_name="assemble_model_context")
@@ -7125,6 +7653,10 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "information_disclosure"
             elif isinstance(outcome.get("dramatic_irony_failure"), dict):
                 trigger_source = "dramatic_irony"
+            elif isinstance(outcome.get("expectation_variation_failure"), dict):
+                trigger_source = "expectation_variation"
+            elif isinstance(outcome.get("meta_narrative_awareness_failure"), dict):
+                trigger_source = "meta_narrative_awareness"
             runtime_aspect_failure_before_retry = (
                 dict(outcome.get("runtime_aspect_failure"))
                 if isinstance(outcome.get("runtime_aspect_failure"), dict)
@@ -7165,6 +7697,16 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("dramatic_irony_failure"), dict)
                 else None
             )
+            expectation_variation_failure_before_retry = (
+                dict(outcome.get("expectation_variation_failure"))
+                if isinstance(outcome.get("expectation_variation_failure"), dict)
+                else None
+            )
+            meta_narrative_failure_before_retry = (
+                dict(outcome.get("meta_narrative_awareness_failure"))
+                if isinstance(outcome.get("meta_narrative_awareness_failure"), dict)
+                else None
+            )
             validation_feedback = {
                 "codes": list(decision.feedback_codes),
                 "attempt_index": attempt_index,
@@ -7179,6 +7721,8 @@ class RuntimeTurnGraphExecutor:
                 "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
+                "expectation_variation_failure_before_retry": expectation_variation_failure_before_retry,
+                "meta_narrative_awareness_failure_before_retry": meta_narrative_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
                 if isinstance(actor_lane_validation, dict)
                 else None,
@@ -7223,6 +7767,8 @@ class RuntimeTurnGraphExecutor:
                     "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
+                    "expectation_variation_failure_before_retry": expectation_variation_failure_before_retry,
+                    "meta_narrative_awareness_failure_before_retry": meta_narrative_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
                     "failure_reason_after_retry": outcome.get("reason"),
                     "context_synthesis_retry": retry_context_synthesis_diagnostics,
@@ -7311,6 +7857,8 @@ class RuntimeTurnGraphExecutor:
             ]
         if isinstance(validation_eval.get("social_pressure_validation"), dict):
             update["social_pressure_validation"] = validation_eval["social_pressure_validation"]
+        if isinstance(validation_eval.get("relationship_state_validation"), dict):
+            update["relationship_state_validation"] = validation_eval["relationship_state_validation"]
         if isinstance(validation_eval.get("sensory_context_validation"), dict):
             update["sensory_context_validation"] = validation_eval["sensory_context_validation"]
         if isinstance(validation_eval.get("information_disclosure_validation"), dict):
@@ -7321,6 +7869,14 @@ class RuntimeTurnGraphExecutor:
             update["dramatic_irony_validation"] = validation_eval["dramatic_irony_validation"]
             if isinstance(validation_eval["dramatic_irony_validation"].get("record"), dict):
                 update["dramatic_irony_record"] = validation_eval["dramatic_irony_validation"]["record"]
+        if isinstance(validation_eval.get("expectation_variation_validation"), dict):
+            update["expectation_variation_validation"] = validation_eval[
+                "expectation_variation_validation"
+            ]
+        if isinstance(validation_eval.get("meta_narrative_awareness_validation"), dict):
+            update["meta_narrative_awareness_validation"] = validation_eval[
+                "meta_narrative_awareness_validation"
+            ]
         if isinstance(validation_eval.get("npc_initiative_validation"), dict):
             update["npc_initiative_validation"] = validation_eval["npc_initiative_validation"]
         update["self_correction"] = {

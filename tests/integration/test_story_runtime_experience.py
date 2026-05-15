@@ -32,6 +32,9 @@ def test_canonical_defaults_are_recap_and_safe():
     assert defaults["max_scene_pulses_per_response"] == 1
     assert defaults["allow_scene_progress_without_player_action"] is False
     assert defaults.get("npc_spoken_action_text_char_cap") == 1200
+    assert defaults["meta_narrative_awareness_enabled"] is False
+    assert defaults["meta_narrative_awareness_intensity"] == "subtle"
+    assert defaults["meta_narrative_characters_with_awareness"] == []
 
 
 def test_normalize_drops_unknown_keys_and_coerces():
@@ -52,6 +55,28 @@ def test_normalize_drops_unknown_keys_and_coerces():
     assert normalized["allow_scene_progress_without_player_action"] is True
     assert "unknown_key" not in normalized
     assert normalized.get("npc_spoken_action_text_char_cap") == 1200
+
+
+def test_normalize_meta_narrative_awareness_opt_in_settings():
+    normalized = normalize_story_runtime_experience(
+        {
+            "meta_narrative_awareness_enabled": "true",
+            "meta_narrative_awareness_intensity": "FULL_FOURTH_WALL",
+            "meta_narrative_trigger_frequency": "OCCASIONAL",
+            "meta_narrative_characters_with_awareness": ["veronique", "", "veronique"],
+            "meta_narrative_allow_player_toggle": "false",
+        }
+    )
+    policy = resolve_story_runtime_experience_policy(normalized)
+
+    assert normalized["meta_narrative_awareness_enabled"] is True
+    assert normalized["meta_narrative_awareness_intensity"] == "full_fourth_wall"
+    assert normalized["meta_narrative_trigger_frequency"] == "occasional"
+    assert normalized["meta_narrative_characters_with_awareness"] == ["veronique"]
+    assert normalized["meta_narrative_allow_player_toggle"] is False
+    assert policy.meta_narrative_awareness_enabled is True
+    assert policy.meta_narrative_awareness_intensity == "full_fourth_wall"
+    assert policy.meta_narrative_characters_with_awareness == ["veronique"]
 
 
 def test_normalize_clamps_npc_spoken_action_text_char_cap():

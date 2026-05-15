@@ -258,6 +258,51 @@ class TestW31ResponderSetStrengthening:
                 {"actor_id": "michel_longstreet", "role": "secondary_reactor", "preferred_reaction_order": 1},
             ],
             "social_state_record": social_state,
+            "relationship_state_record": {
+                "schema_version": "relationship_state_machine.v1",
+                "turn_number": 12,
+                "pair_states": [
+                    {
+                        "relationship_id": next(iter(yaml_slice["relationships"])),
+                        "character_ids": [],
+                        "axis_ids": social_state["active_relationship_axis_ids"][:1],
+                        "tension_score": 0.75,
+                        "trust_score": 0.35,
+                        "alliance_score": 0.2,
+                        "dominance_score": 0.5,
+                        "stability_band": "fractured",
+                        "trend": "rising",
+                        "last_transition_codes": ["blame_pressure"],
+                        "last_updated_turn": 12,
+                    }
+                ],
+                "axis_states": [
+                    {
+                        "axis_id": social_state["active_relationship_axis_ids"][0],
+                        "relationship_ids": [next(iter(yaml_slice["relationships"]))],
+                        "tension_score": 0.75,
+                        "stability_band": "fractured",
+                        "trend": "rising",
+                        "active": True,
+                        "last_transition_codes": ["blame_pressure"],
+                    }
+                ],
+                "transition_events": [],
+                "active_relationship_axis_ids": social_state["active_relationship_axis_ids"][:1],
+                "dominant_relationship_axis_id": social_state["active_relationship_axis_ids"][0],
+                "source_evidence": [],
+                "rationale_codes": ["relationship_state_policy_applied"],
+            },
+            "relationship_dynamics_target": {
+                "schema_version": "relationship_state_machine.v1",
+                "target_axis_ids": social_state["active_relationship_axis_ids"][:1],
+                "target_relationship_ids": [next(iter(yaml_slice["relationships"]))],
+                "required_transition_codes": ["blame_pressure"],
+                "pressure_band": "fractured",
+                "requires_visible_relationship_beat": True,
+                "source_evidence": [],
+                "rationale_codes": ["relationship_state_target_from_durable_state"],
+            },
             "pacing_mode": "standard",
             "silence_brevity_decision": {},
         }
@@ -271,6 +316,8 @@ class TestW31ResponderSetStrengthening:
         assert set(context["active_relationship_axis_ids"]).issubset(set(yaml_slice["relationship_axes"]))
         assert context["relationship_axes"]
         assert context["npc_interaction_edges"]
+        assert packet["relationship_state"]["state"]["schema_version"] == "relationship_state_machine.v1"
+        assert packet["relationship_state"]["target"]["requires_visible_relationship_beat"] is True
         assert all(
             edge["source_actor_id"] in selected_actor_ids and edge["target_actor_id"] in selected_actor_ids
             for edge in context["npc_interaction_edges"]

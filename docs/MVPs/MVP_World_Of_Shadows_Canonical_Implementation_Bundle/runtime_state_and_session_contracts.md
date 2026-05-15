@@ -329,6 +329,40 @@ source fields such as `thread_pressure_state`, `social_risk_band`, and
 `thread_pressure_level`. Generated narration, copied dialogue, frontend card
 shape, and judge labels are never the pass/fail oracle.
 
+### Sensory Context / Pi26
+
+Sensory context is implemented as the generic `sensory_context` runtime aspect.
+It is the bounded sensory-layer contract for a turn: selected authored layer
+ids, layer kinds, source references, location/object focus, mood key, intensity,
+required layers, and structured realization evidence. It consumes module
+`runtime_intelligence.sensory_context`, narrator sensory palette content, scene
+affordances, current location/object context, `scene_energy_target`,
+`pacing_rhythm_target`, `social_pressure_target`, prior planner truth, and
+output language. It does not replace environment state, scene energy, social
+pressure, committed truth, or visible narration.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.sensory_context` into `runtime_governance_policy.sensory_context`;
+- LangGraph derives `sensory_context_state` and `sensory_context_target` after social pressure and before improvisational coherence;
+- the dramatic generation packet receives only bounded authored layers and source references;
+- structured output may emit `sensory_context_events` with selected `layer_id` and `source_ref`;
+- validation checks required layer realization, unselected layer use, source-ref consistency, and layer budget;
+- recoverable failures feed self-correction with bounded `sensory_context_*` failure codes;
+- `turn_aspect_ledger.sensory_context` records policy presence, selected target, actual event evidence, contract pass, and failure codes;
+- World-Engine persists `sensory_context_state`, `sensory_context_target`, and `sensory_context_validation` in planner truth and governance surfaces;
+- Langfuse and MCP expose target, intensity, location/object ids, required-layer realization, source-ref validity, pass/fail, and repair evidence.
+
+The aspect is bounded planner/generation governance, not canon. It may shape
+the current response and retry feedback, but it does not mutate story truth
+outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, canonical sensory-palette and
+scene-affordance content, ledger/MCP fields, and structured
+`sensory_context_events`. Generated narration, copied dialogue, frontend card
+shape, and judge labels are never the pass/fail oracle.
+
 ### Improvisational Coherence / Pi24
 
 Improvisational coherence is implemented as the generic

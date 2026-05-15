@@ -43,11 +43,21 @@ _NPC_INITIATIVE: tuple[str, ...] = ("passive", "reactive", "assertive")
 _EXCHANGE_INTENSITY: tuple[str, ...] = ("off", "light", "medium", "strong")
 _PULSE_LENGTH: tuple[str, ...] = ("short", "medium", "long")
 _BEAT_SPEED: tuple[str, ...] = ("slow", "normal", "fast")
+_META_NARRATIVE_INTENSITY: tuple[str, ...] = (
+    "subtle",
+    "moderate",
+    "full_fourth_wall",
+)
+_META_NARRATIVE_TRIGGER_FREQUENCY: tuple[str, ...] = (
+    "rare",
+    "occasional",
+    "frequent",
+)
 
 
 # -- Contract / packaging versioning --------------------------------------
 
-STORY_RUNTIME_EXPERIENCE_CONFIG_VERSION: str = "1.0"
+STORY_RUNTIME_EXPERIENCE_CONFIG_VERSION: str = "1.1"
 STORY_RUNTIME_EXPERIENCE_PACKAGING_CONTRACT_VERSION: str = "1.0"
 
 
@@ -91,6 +101,11 @@ def canonical_defaults() -> dict[str, Any]:
         "goc_transcript_merge_consecutive_same_actor": True,
         "goc_transcript_split_speech_stage_same_actor": False,
         "goc_map_action_lines_to_actor_line_lane": False,
+        "meta_narrative_awareness_enabled": False,
+        "meta_narrative_awareness_intensity": "subtle",
+        "meta_narrative_trigger_frequency": "rare",
+        "meta_narrative_characters_with_awareness": [],
+        "meta_narrative_allow_player_toggle": True,
     }
 
 
@@ -150,6 +165,16 @@ def _coerce_bool(raw: Any, fallback: bool) -> bool:
         if lo in {"false", "0", "no", "off"}:
             return False
     return fallback
+
+
+def _coerce_str_list(raw: Any) -> list[str]:
+    values = raw if isinstance(raw, (list, tuple, set)) else []
+    out: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in out:
+            out.append(text)
+    return out
 
 
 def normalize_story_runtime_experience(payload: Any) -> dict[str, Any]:
@@ -216,6 +241,25 @@ def normalize_story_runtime_experience(payload: Any) -> dict[str, Any]:
     base["goc_map_action_lines_to_actor_line_lane"] = _coerce_bool(
         payload.get("goc_map_action_lines_to_actor_line_lane"),
         bool(base.get("goc_map_action_lines_to_actor_line_lane", False)),
+    )
+    base["meta_narrative_awareness_enabled"] = _coerce_bool(
+        payload.get("meta_narrative_awareness_enabled"),
+        bool(base.get("meta_narrative_awareness_enabled", False)),
+    )
+    base["meta_narrative_awareness_intensity"] = pick_choice(
+        "meta_narrative_awareness_intensity",
+        _META_NARRATIVE_INTENSITY,
+    )
+    base["meta_narrative_trigger_frequency"] = pick_choice(
+        "meta_narrative_trigger_frequency",
+        _META_NARRATIVE_TRIGGER_FREQUENCY,
+    )
+    base["meta_narrative_characters_with_awareness"] = _coerce_str_list(
+        payload.get("meta_narrative_characters_with_awareness")
+    )
+    base["meta_narrative_allow_player_toggle"] = _coerce_bool(
+        payload.get("meta_narrative_allow_player_toggle"),
+        bool(base.get("meta_narrative_allow_player_toggle", True)),
     )
     return base
 
@@ -327,6 +371,18 @@ class StoryRuntimeExperiencePolicy:
     @property
     def goc_map_action_lines_to_actor_line_lane(self) -> bool:
         return bool(self.effective.get("goc_map_action_lines_to_actor_line_lane", False))
+
+    @property
+    def meta_narrative_awareness_enabled(self) -> bool:
+        return bool(self.effective.get("meta_narrative_awareness_enabled", False))
+
+    @property
+    def meta_narrative_awareness_intensity(self) -> str:
+        return str(self.effective.get("meta_narrative_awareness_intensity") or "subtle")
+
+    @property
+    def meta_narrative_characters_with_awareness(self) -> list[str]:
+        return _coerce_str_list(self.effective.get("meta_narrative_characters_with_awareness"))
 
     def to_truth_surface(self) -> dict[str, Any]:
         return {

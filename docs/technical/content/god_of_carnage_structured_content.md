@@ -26,13 +26,13 @@ decide hard-forbidden pass/fail.
 | `knowledge/opening_scene_sequence.yaml` | `_goc_resolve_canonical_content`, `build_opening_scene_plan_metadata`, opening prompt builder | `opening_scene_sequence_id`, `opening_event_ids`, `opening_render_policy`, `opening_event_coverage_pass`, `opening_handover_contract_pass` |
 | `knowledge/hard_forbidden_rules.yaml` | `detect_hard_forbidden_runtime` (validation seam), narrator packet | `hard_forbidden_detection`, `hard_forbidden_absent`, `opening_summary_only_absent`, per-category absent scores (`opening_player_speech_absent`, `opening_npc_exposition_absent`, `meta_runtime_language_absent`, `stage_direction_labels_absent`, `source_reproduction_absent`, `player_agency_violation_absent`) |
 | `knowledge/premise_and_backstory.yaml` | narrator packet, opening prompt, RAG seed | `knowledge_runtime_loaded.premise_and_backstory_loaded` |
-| `knowledge/narrator_sensory_palette.yaml` | narrator packet, scene-director dramatic parameters | `narrator_sensory_palette_loaded` |
+| `knowledge/narrator_sensory_palette.yaml` | narrator packet, scene-director dramatic parameters, `sensory_context` layer derivation | `narrator_sensory_palette_loaded`, `sensory_context_state`, `sensory_context_target`, `turn_aspect_ledger.sensory_context` |
 | `apartment_layout.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, player-local context, RAG | `apartment_layout_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
 | `apartment_objects.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, narrator packet, RAG | `apartment_objects_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
 | `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
 | `direction/character_voice.yaml` | character voice profile builder, prompt packet, runtime voice validator | `character_voice_profiles`, `voice_consistency_validation`, `turn_aspect_ledger.voice_consistency` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
-| `module.yaml` / `runtime_intelligence` | `ModuleRuntimePolicy.runtime_governance_policy`, runtime route/capability/projection gates | `runtime_governance_policy`, `selection_source`, `capability_selection_valid`, `visible_projection_contract_pass`, `committed_result` |
+| `module.yaml` / `runtime_intelligence` | `ModuleRuntimePolicy.runtime_governance_policy`, runtime route/capability/projection gates, sensory-context policy | `runtime_governance_policy`, `selection_source`, `capability_selection_valid`, `visible_projection_contract_pass`, `sensory_context_contract_pass`, `committed_result` |
 | `memory_policy.yaml` | `ModuleRuntimePolicy.memory_policy`, hierarchical memory write/project contracts | `hierarchical_memory`, `memory_policy_applied`, `memory_write_from_committed_turn`, `memory_context_bounded`, `hierarchical_memory_contract_pass` |
 
 ## Hard-forbidden detection policy
@@ -92,6 +92,9 @@ policy keys such as:
   forbidden capabilities are realized.
 - `continuity.hooks`: named compatibility hooks that may run after canonical
   commit without moving module-specific conditions into generic algorithms.
+- `sensory_context`: bounded sensory-layer policy. Runtime derives layer ids
+  from authored sensory palette / scene-affordance content and validates
+  structured `sensory_context_events`; generated prose is not the oracle.
 
 Module-specific actor names, room aliases, phase names, beat ids, and sample
 prose stay in content files. Generic runtime validators read the policy and

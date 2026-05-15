@@ -43,8 +43,8 @@ Interpreter returns a structured object containing:
 
 Out-of-world and out-of-character player input is represented as
 `kind=meta`, `player_input_kind=meta`, and `selected_handling_path=meta`.
-This is a non-story control path, not dialogue, action, narration, or an
-active meta-narrative layer.
+This is a non-story control path, not dialogue, action, narration, or the
+story-play `meta_narrative_awareness` aspect.
 
 Canonical handling:
 
@@ -159,7 +159,7 @@ scene-director response policy, and Langfuse deterministic scores.
 - Story turn execution consumes interpreted input objects, not blind raw strings.
 - Diagnostics must expose raw input, interpreted mode, confidence, ambiguity, and selected handling path.
 - `selected_handling_path=meta` is consumed as a deterministic control path,
-  not as story prose or as the future experimental meta-narrative layer.
+  not as story prose or as `meta_narrative_awareness`.
 
 ## Primary runtime path contract
 

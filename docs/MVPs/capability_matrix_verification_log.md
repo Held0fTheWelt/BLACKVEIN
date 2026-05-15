@@ -6,6 +6,8 @@ This log preserves dated local verification history for the Capability Matrix. I
 
 When adding a verification run, include the command, Git SHA or branch if available, environment scope, notable limitations, and whether the evidence is local-only, staging, live-provider, Langfuse, MCP, or mixed. Do not paste secrets. Do not treat local PASS output as live-provider proof.
 
+If a future run records ADR-0041 capability-selection evidence, mark it as selection/diagnostic evidence unless the run also includes runtime execution, validator results, RuntimeAspectLedger projection, and explicit live/staging/provider/Langfuse/MCP proof. A selector PASS, selected capability list, or local ledger row is not live proof by itself.
+
 Historical entries may include machine-local absolute paths because they preserve the command transcript from that workstation. Treat those paths as local environment evidence only, not as portable instructions or live/staging proof. New entries should prefer repo-relative commands, `REPO_ROOT`, or `$PWD`-relative invocation notes whenever practical.
 
 ## Local verification snapshot for Π1-Π13 / ADR-0039 re-audit
@@ -285,6 +287,22 @@ ADR-0039 discipline for this slice: tests assert shared intent-contract flags, g
 
 ---
 
+## Local verification snapshot for Π25 / opt-in meta-narrative awareness
+
+Latest local verification recorded for the bounded story-play meta-awareness aspect:
+
+- Date: 2026-05-15.
+- Git SHA at verification time: `1f46b6a8` on `master` (dirty worktree).
+- Environment scope: local py_compile/pytest/docs check; no live-provider, staging, or live Langfuse claim.
+- `PYTHONPATH=. python -m py_compile ai_stack/meta_narrative_awareness_contracts.py ai_stack/meta_narrative_awareness_engine.py ai_stack/story_runtime_experience.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py` -> passed.
+- `PYTHONPATH=. pytest ai_stack/tests/test_meta_narrative_awareness_engine.py tests/integration/test_story_runtime_experience.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_langgraph_runtime.py -q -s` -> 44 passed.
+
+Evidence summary: `meta_narrative_awareness` is now a separate story-play RuntimeAspectLedger aspect. Activation requires module support plus Story Runtime Experience opt-in, configured actor ids, selected eligible actors, actor-lane safety, and nonzero policy budget. The GoC module currently clamps to `subtle` / `rare`. Validation consumes structured `meta_narrative_awareness_events` and can reject unauthorized actors, forbidden awareness modes, prompt/tool/model disclosure, direct full fourth-wall address in subtle mode, unbounded rewrite, and player-control claims before commit.
+
+ADR-0039 discipline for this slice: runtime code uses the semantic name `meta_narrative_awareness`; Pi / Π vocabulary remains Capability Matrix index language. Tests assert policy normalization, opt-in gating, graph node execution, structured failure codes, and ledger projection rather than generated meta-flavored prose.
+
+---
+
 ## Local verification snapshot for ADR-0039 / Pi-test coverage and MCP evidence scope
 
 Latest local verification recorded for ADR-0039 as an active Capability Matrix governance source:
@@ -315,6 +333,27 @@ ADR-0039 discipline for this slice: the new ADR gate discovers every Pi / Π-lab
 
 Evidence scope: `live_or_staging_evidence=false` (MCP `run_projection_tests` and this log entry are local-only). Local PASS lines above are **not** live-, provider-, or staging proof.
 
-Known limitations: no real provider traces; no fresh staging Langfuse scores; no end-to-end replay evidence. `sensory_context` remains diagnostic/local-only until an owning ADR, world-engine projection proof, and focused tests support any `implemented` or live claim.
+Known limitations at that snapshot: no real provider traces; no fresh staging Langfuse scores; no end-to-end replay evidence. `sensory_context` was still diagnostic/local-only until focused implementation and projection tests landed in a later local snapshot.
+
+---
+
+## Local verification snapshot for Π26 / sensory-context runtime aspect
+
+- Date: 2026-05-15
+- Git SHA at verification time: `1f46b6a8` (dirty worktree; local implementation and adjacent governance fixes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** — no live-provider, staging, or live Langfuse claim.
+- `python -m py_compile ai_stack/sensory_context_contracts.py ai_stack/sensory_context_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py ai_stack/story_runtime_playability.py ai_stack/langchain_integration/bridges.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tests/gates/test_table_b_anti_hardcoding_gate.py tools/mcp_server/tests/test_langfuse_verify_tools.py` -> passed
+- `python -m pytest ai_stack/tests/test_sensory_context_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_goc_structured_setting_knowledge.py ai_stack/tests/test_narrator_consequence_contract.py -q` -> 53 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -k "runtime_aspect" -q` -> 4 passed, 27 deselected
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q` -> 4 passed
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py -q` -> 8 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q` -> 11 passed
+- `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: Π26 is implemented as the generic `sensory_context` runtime aspect. The runtime selects bounded authored layers from normalized module policy, narrator sensory palette, scene affordances, location/object focus, adjacent runtime targets, prior planner truth, and output language; validates structured `sensory_context_events`; records `turn_aspect_ledger.sensory_context`; persists planner-truth fields; and exposes semantic Langfuse/MCP matrix fields. There are no Pi-number score names or production control-flow keys.
+
+ADR-0039 discipline for this slice: tests derive expectations from schema constants, normalized policy, canonical sensory/affordance content, structured event rows, ledger projection, MCP extraction fields, and anti-hardcoding scopes. Generated narration, copied scene prose, and sensory quality labels are not pass/fail oracles.
+
+Known limitations: this is local implementation and mocked/fixture verification only. Fresh staging traces, provider evidence, and end-to-end player-visible replay remain outside this snapshot.
 
 ---

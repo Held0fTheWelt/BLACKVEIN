@@ -31,3 +31,4 @@ Parent index: [`docs/INDEX.md`](../INDEX.md).
 - [`capability_matrix_status_and_adr_relations.md`](capability_matrix_status_and_adr_relations.md) — current Capability Matrix truth map, ADR relations, semantic names, maturity, RuntimeAspectLedger mapping, and partial boundaries.
 - [`capability_matrix_verification_log.md`](capability_matrix_verification_log.md) — dated verification runs and limitations.
 - [`capability_matrix_live_claim_gates.md`](capability_matrix_live_claim_gates.md) — promotion rules, live/staging/Langfuse/MCP claim gates, Pi / Π vocabulary rules, and anti-hardcoding expectations.
+- [`capability_selection_runtime_design.md`](capability_selection_runtime_design.md) — ADR-0041 design notes for semantic per-turn capability selection, activation modes, budgets, validator/judge gating, and evidence boundaries.

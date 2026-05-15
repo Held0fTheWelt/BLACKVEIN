@@ -24,12 +24,15 @@ ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_PACING_RHYTHM = "pacing_rhythm"
 ASPECT_SENSORY_CONTEXT = "sensory_context"
 ASPECT_IMPROVISATIONAL_COHERENCE = "improvisational_coherence"
+ASPECT_META_NARRATIVE_AWARENESS = "meta_narrative_awareness"
 ASPECT_SOCIAL_PRESSURE = "social_pressure"
+ASPECT_RELATIONSHIP_STATE = "relationship_state"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
 ASPECT_NPC_AGENCY = "npc_agency"
 ASPECT_DRAMATIC_IRONY = "dramatic_irony"
+ASPECT_EXPECTATION_VARIATION = "expectation_variation"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_INFORMATION_DISCLOSURE = "information_disclosure"
@@ -48,12 +51,15 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_PACING_RHYTHM,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_IMPROVISATIONAL_COHERENCE,
+    ASPECT_META_NARRATIVE_AWARENESS,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_RELATIONSHIP_STATE,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_DRAMATIC_IRONY,
+    ASPECT_EXPECTATION_VARIATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_INFORMATION_DISCLOSURE,
@@ -319,9 +325,19 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE), dict)
         else {}
     )
+    meta_narrative_rec = (
+        aspects.get(ASPECT_META_NARRATIVE_AWARENESS)
+        if isinstance(aspects.get(ASPECT_META_NARRATIVE_AWARENESS), dict)
+        else {}
+    )
     social_pressure_rec = (
         aspects.get(ASPECT_SOCIAL_PRESSURE)
         if isinstance(aspects.get(ASPECT_SOCIAL_PRESSURE), dict)
+        else {}
+    )
+    relationship_state_rec = (
+        aspects.get(ASPECT_RELATIONSHIP_STATE)
+        if isinstance(aspects.get(ASPECT_RELATIONSHIP_STATE), dict)
         else {}
     )
     cap_rec = (
@@ -343,6 +359,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     dramatic_irony_rec = (
         aspects.get(ASPECT_DRAMATIC_IRONY)
         if isinstance(aspects.get(ASPECT_DRAMATIC_IRONY), dict)
+        else {}
+    )
+    expectation_variation_rec = (
+        aspects.get(ASPECT_EXPECTATION_VARIATION)
+        if isinstance(aspects.get(ASPECT_EXPECTATION_VARIATION), dict)
         else {}
     )
     voice_rec = (
@@ -405,9 +426,15 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     improvisational_expected = _record_block(improvisational_rec, "expected")
     improvisational_selected = _record_block(improvisational_rec, "selected")
     improvisational_actual = _record_block(improvisational_rec, "actual")
+    meta_narrative_expected = _record_block(meta_narrative_rec, "expected")
+    meta_narrative_selected = _record_block(meta_narrative_rec, "selected")
+    meta_narrative_actual = _record_block(meta_narrative_rec, "actual")
     social_pressure_expected = _record_block(social_pressure_rec, "expected")
     social_pressure_selected = _record_block(social_pressure_rec, "selected")
     social_pressure_actual = _record_block(social_pressure_rec, "actual")
+    relationship_state_expected = _record_block(relationship_state_rec, "expected")
+    relationship_state_selected = _record_block(relationship_state_rec, "selected")
+    relationship_state_actual = _record_block(relationship_state_rec, "actual")
     cap_expected = _record_block(cap_rec, "expected")
     cap_selected = _record_block(cap_rec, "selected")
     cap_actual = _record_block(cap_rec, "actual")
@@ -421,6 +448,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     dramatic_irony_expected = _record_block(dramatic_irony_rec, "expected")
     dramatic_irony_selected = _record_block(dramatic_irony_rec, "selected")
     dramatic_irony_actual = _record_block(dramatic_irony_rec, "actual")
+    expectation_variation_expected = _record_block(expectation_variation_rec, "expected")
+    expectation_variation_selected = _record_block(expectation_variation_rec, "selected")
+    expectation_variation_actual = _record_block(expectation_variation_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
     voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
@@ -698,6 +728,52 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 ),
                 "status": improvisational_rec.get("status"),
             },
+            "meta_narrative_awareness": {
+                "schema_version": meta_narrative_expected.get("schema_version")
+                or meta_narrative_selected.get("schema_version")
+                or meta_narrative_actual.get("schema_version"),
+                "policy_present": bool(meta_narrative_expected.get("policy_present")),
+                "policy_enabled": bool(meta_narrative_expected.get("policy_enabled")),
+                "opt_in_required": bool(meta_narrative_expected.get("opt_in_required")),
+                "opt_in_enabled": bool(meta_narrative_selected.get("opt_in_enabled")),
+                "active": bool(meta_narrative_selected.get("active")),
+                "intensity": meta_narrative_selected.get("intensity"),
+                "trigger_frequency": meta_narrative_selected.get("trigger_frequency"),
+                "supported_actor_ids": meta_narrative_selected.get("supported_actor_ids")
+                or [],
+                "configured_actor_ids": meta_narrative_selected.get("configured_actor_ids")
+                or [],
+                "selected_actor_ids": meta_narrative_selected.get("selected_actor_ids")
+                or [],
+                "allowed_awareness_modes": meta_narrative_expected.get(
+                    "allowed_awareness_modes"
+                )
+                or [],
+                "forbidden_awareness_modes": meta_narrative_expected.get(
+                    "forbidden_awareness_modes"
+                )
+                or [],
+                "max_events_per_turn": int(
+                    meta_narrative_selected.get("max_events_per_turn") or 0
+                ),
+                "structured_events_present": bool(
+                    meta_narrative_actual.get("structured_events_present")
+                ),
+                "event_count": int(meta_narrative_actual.get("event_count") or 0),
+                "realized_actor_ids": meta_narrative_actual.get("realized_actor_ids")
+                or [],
+                "awareness_modes": meta_narrative_actual.get("awareness_modes") or [],
+                "contract_pass": meta_narrative_actual.get("contract_pass"),
+                "failure_codes": meta_narrative_actual.get("failure_codes")
+                or _record_reasons(meta_narrative_rec),
+                "failure_reason": meta_narrative_rec.get("failure_reason")
+                or (
+                    _record_reasons(meta_narrative_rec)[0]
+                    if _record_reasons(meta_narrative_rec)
+                    else None
+                ),
+                "status": meta_narrative_rec.get("status"),
+            },
             "social_pressure": {
                 "schema_version": social_pressure_expected.get("schema_version")
                 or social_pressure_selected.get("schema_version")
@@ -747,6 +823,56 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     else None
                 ),
                 "status": social_pressure_rec.get("status"),
+            },
+            "relationship_state": {
+                "schema_version": relationship_state_expected.get("schema_version")
+                or relationship_state_selected.get("schema_version")
+                or relationship_state_actual.get("schema_version"),
+                "policy_present": bool(relationship_state_expected.get("policy_present")),
+                "policy_enabled": bool(relationship_state_expected.get("policy_enabled")),
+                "target_axis_ids": relationship_state_selected.get("target_axis_ids")
+                or (
+                    relationship_state_selected.get("target", {}).get("target_axis_ids")
+                    if isinstance(relationship_state_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "target_relationship_ids": relationship_state_selected.get("target_relationship_ids")
+                or (
+                    relationship_state_selected.get("target", {}).get("target_relationship_ids")
+                    if isinstance(relationship_state_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "pressure_band": relationship_state_selected.get("pressure_band")
+                or (
+                    relationship_state_selected.get("target", {}).get("pressure_band")
+                    if isinstance(relationship_state_selected.get("target"), dict)
+                    else None
+                ),
+                "requires_visible_relationship_beat": bool(
+                    relationship_state_selected.get("requires_visible_relationship_beat")
+                    or (
+                        relationship_state_selected.get("target", {}).get("requires_visible_relationship_beat")
+                        if isinstance(relationship_state_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "pair_count": int(relationship_state_actual.get("pair_count") or 0),
+                "axis_count": int(relationship_state_actual.get("axis_count") or 0),
+                "transition_event_count": int(
+                    relationship_state_actual.get("transition_event_count") or 0
+                ),
+                "contract_pass": relationship_state_actual.get("contract_pass"),
+                "failure_codes": relationship_state_actual.get("failure_codes")
+                or _record_reasons(relationship_state_rec),
+                "failure_reason": relationship_state_rec.get("failure_reason")
+                or (
+                    _record_reasons(relationship_state_rec)[0]
+                    if _record_reasons(relationship_state_rec)
+                    else None
+                ),
+                "status": relationship_state_rec.get("status"),
             },
             "capability": {
                 "selected_capabilities": selected_capabilities
@@ -882,6 +1008,71 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     else None
                 ),
                 "status": dramatic_irony_rec.get("status"),
+            },
+            "expectation_variation": {
+                "schema_version": expectation_variation_expected.get("schema_version")
+                or expectation_variation_actual.get("schema_version"),
+                "policy_present": bool(expectation_variation_expected.get("policy_present")),
+                "policy_enabled": bool(expectation_variation_expected.get("policy_enabled")),
+                "commit_impact": expectation_variation_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    expectation_variation_expected.get("require_structured_events")
+                ),
+                "max_variation_units_per_turn": int(
+                    expectation_variation_expected.get("max_variation_units_per_turn")
+                    or 0
+                ),
+                "cooldown_turns": int(
+                    expectation_variation_expected.get("cooldown_turns") or 0
+                ),
+                "allowed_variation_types": expectation_variation_expected.get(
+                    "allowed_variation_types"
+                )
+                or [],
+                "selected_variation_ids": expectation_variation_selected.get(
+                    "selected_variation_ids"
+                )
+                or [],
+                "selected_variation_types": expectation_variation_selected.get(
+                    "selected_variation_types"
+                )
+                or [],
+                "withheld_variation_ids": expectation_variation_selected.get(
+                    "withheld_variation_ids"
+                )
+                or [],
+                "required_setup_refs": expectation_variation_selected.get(
+                    "required_setup_refs"
+                )
+                or [],
+                "budget_remaining": int(
+                    expectation_variation_selected.get("budget_remaining")
+                    or expectation_variation_actual.get("budget_remaining")
+                    or 0
+                ),
+                "structured_events_present": bool(
+                    expectation_variation_actual.get("structured_events_present")
+                ),
+                "event_count": int(expectation_variation_actual.get("event_count") or 0),
+                "realized_variation_ids": expectation_variation_actual.get(
+                    "realized_variation_ids"
+                )
+                or [],
+                "realized_variation_types": expectation_variation_actual.get(
+                    "realized_variation_types"
+                )
+                or [],
+                "budget_used": int(expectation_variation_actual.get("budget_used") or 0),
+                "contract_pass": expectation_variation_actual.get("contract_pass"),
+                "failure_codes": expectation_variation_actual.get("failure_codes")
+                or _record_reasons(expectation_variation_rec),
+                "failure_reason": expectation_variation_rec.get("failure_reason")
+                or (
+                    _record_reasons(expectation_variation_rec)[0]
+                    if _record_reasons(expectation_variation_rec)
+                    else None
+                ),
+                "status": expectation_variation_rec.get("status"),
             },
             "visible_projection": {
                 "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),
@@ -1250,6 +1441,13 @@ def aspect_score_metadata(
         "improvisational_coherence_acknowledged": actual.get("contribution_acknowledged"),
         "improvisational_coherence_contract_pass": actual.get("contract_pass"),
         "improvisational_coherence_failure_codes": actual.get("failure_codes"),
+        "meta_narrative_awareness_active": selected.get("active"),
+        "meta_narrative_awareness_intensity": selected.get("intensity"),
+        "meta_narrative_awareness_trigger_frequency": selected.get("trigger_frequency"),
+        "meta_narrative_awareness_selected_actor_ids": selected.get("selected_actor_ids"),
+        "meta_narrative_awareness_event_count": actual.get("event_count"),
+        "meta_narrative_awareness_contract_pass": actual.get("contract_pass"),
+        "meta_narrative_awareness_failure_codes": actual.get("failure_codes"),
         "social_pressure_target_score": selected.get("target_score")
         or target.get("target_score"),
         "social_pressure_target_band": selected.get("target_band")
@@ -1265,6 +1463,13 @@ def aspect_score_metadata(
         "information_disclosure_visible_unit_ids": actual.get("visible_unit_ids"),
         "information_disclosure_contract_pass": actual.get("contract_pass"),
         "information_disclosure_failure_codes": actual.get("failure_codes"),
+        "expectation_variation_selected_ids": selected.get("selected_variation_ids"),
+        "expectation_variation_selected_types": selected.get("selected_variation_types"),
+        "expectation_variation_realized_ids": actual.get("realized_variation_ids"),
+        "expectation_variation_realized_types": actual.get("realized_variation_types"),
+        "expectation_variation_budget_used": actual.get("budget_used"),
+        "expectation_variation_contract_pass": actual.get("contract_pass"),
+        "expectation_variation_failure_codes": actual.get("failure_codes"),
         "consequence_cascade_selected_consequence_ids": selected.get("selected_consequence_ids"),
         "consequence_cascade_selected_edge_ids": selected.get("selected_edge_ids"),
         "consequence_cascade_selected_continuity_classes": selected.get(

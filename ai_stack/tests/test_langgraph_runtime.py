@@ -27,7 +27,11 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     EXECUTION_HEALTH_VALUES,
 )
-from ai_stack.runtime_aspect_ledger import ASPECT_ACTION_RESOLUTION, ASPECT_BEAT
+from ai_stack.runtime_aspect_ledger import (
+    ASPECT_ACTION_RESOLUTION,
+    ASPECT_BEAT,
+    ASPECT_META_NARRATIVE_AWARENESS,
+)
 
 
 class SuccessAdapter(BaseModelAdapter):
@@ -242,6 +246,7 @@ def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: 
     prompt = result.get("model_prompt") or ""
     nodes_executed = result["graph_diagnostics"]["nodes_executed"]
     assert "synthesize_context" in nodes_executed
+    assert "derive_meta_narrative_awareness" in nodes_executed
     assert "assemble_model_context" in nodes_executed
     synthesis_bundle = result.get("context_synthesis_bundle") or {}
     assert synthesis_bundle.get("authority") == "proposal_support_only"
@@ -268,9 +273,12 @@ def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: 
     assert gen_meta.get("dramatic_generation_packet_included") is True
     assert gen_meta.get("dramatic_generation_packet_scene_function")
     packet = result.get("dramatic_generation_packet") or {}
+    assert "meta_narrative_awareness" in packet
     semantic_packet = packet.get("semantic_interpretation") or {}
     assert semantic_packet.get("primary_move_type")
     assert "ranked_move_candidates" in semantic_packet
+    ledger = (result.get("turn_aspect_ledger") or {}).get("turn_aspect_ledger") or {}
+    assert ASPECT_META_NARRATIVE_AWARENESS in ledger
 
 
 def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> None:

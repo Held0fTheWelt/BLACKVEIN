@@ -75,6 +75,14 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `information_disclosure_premature_reveal_absent`
 - `information_disclosure_contract_pass`
 - `information_disclosure_failure_codes`
+- `sensory_context_target_present`
+- `sensory_context_intensity`
+- `sensory_context_location_id`
+- `sensory_context_object_id`
+- `sensory_context_contract_pass`
+- `sensory_context_required_layers_realized`
+- `sensory_context_source_refs_valid`
+- `sensory_context_failure_codes`
 - `dramatic_irony_policy_present`
 - `dramatic_irony_opportunity_present`
 - `dramatic_irony_selected_opportunities`
@@ -89,4 +97,4 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `memory_context_bounded`
 - `hierarchical_memory_contract_pass`
 
-For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.
+For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, sensory-layer realization, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.

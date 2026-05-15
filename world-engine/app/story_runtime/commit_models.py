@@ -135,6 +135,9 @@ class PlannerTruth(BaseModel):
     social_pressure_state: dict[str, Any] = Field(default_factory=dict)
     social_pressure_target: dict[str, Any] = Field(default_factory=dict)
     social_pressure_validation: dict[str, Any] = Field(default_factory=dict)
+    relationship_state_record: dict[str, Any] = Field(default_factory=dict)
+    relationship_dynamics_target: dict[str, Any] = Field(default_factory=dict)
+    relationship_state_validation: dict[str, Any] = Field(default_factory=dict)
     spoken_line_count: int = 0
     action_line_count: int = 0
     initiative_summary: dict[str, Any] = Field(default_factory=dict)
@@ -802,6 +805,16 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_social_pressure.get("target")
     )
     social_pressure_validation = _as_dict(graph_state.get("social_pressure_validation"))
+    dramatic_packet_relationship_state = _as_dict(dramatic_packet.get("relationship_state"))
+    relationship_state_record = _as_dict(
+        graph_state.get("relationship_state_record")
+        or dramatic_packet_relationship_state.get("state")
+    )
+    relationship_dynamics_target = _as_dict(
+        graph_state.get("relationship_dynamics_target")
+        or dramatic_packet_relationship_state.get("target")
+    )
+    relationship_state_validation = _as_dict(graph_state.get("relationship_state_validation"))
     npc_agency_simulation = _as_dict(
         dramatic_packet.get("npc_agency_simulation")
         or graph_state.get("npc_agency_simulation")
@@ -883,6 +896,9 @@ def _planner_truth_from_graph_state(
         social_pressure_state=social_pressure_state,
         social_pressure_target=social_pressure_target,
         social_pressure_validation=social_pressure_validation,
+        relationship_state_record=relationship_state_record,
+        relationship_dynamics_target=relationship_dynamics_target,
+        relationship_state_validation=relationship_state_validation,
         spoken_line_count=spoken_line_count,
         action_line_count=action_line_count,
         initiative_summary=initiative_summary,

@@ -6802,6 +6802,23 @@ def _prior_social_pressure_state_from_session(session: "StorySession") -> dict[s
     return None
 
 
+def _prior_relationship_state_record_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed relationship-state-machine record from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("relationship_state_record")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
 def _prior_narrative_thread_state_from_session(
     session: "StorySession",
     *,
@@ -9378,6 +9395,7 @@ class StoryRuntimeManager:
         prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
         prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
+        prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
 
         try:
             graph_state = self.turn_graph.run(
@@ -9395,6 +9413,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
+                prior_relationship_state_record=prior_relationship_state_record,
                 turn_number=0,
                 turn_initiator_type="engine",
                 turn_input_class="opening",
@@ -10672,6 +10691,7 @@ class StoryRuntimeManager:
             prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
+            prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
                 runtime_profile_id=_runtime_profile_id_from_projection(
@@ -10702,6 +10722,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
+                prior_relationship_state_record=prior_relationship_state_record,
                 prior_planner_truth=prior_planner_truth,
                 hierarchical_memory_context=hierarchical_memory_context,
                 turn_number=commit_turn_number,

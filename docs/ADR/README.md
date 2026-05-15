@@ -58,6 +58,8 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0038](adr-0038-canonical-turn-lifecycle-single-commit-path.md) | Canonical turn lifecycle and single commit / persist / project path | Proposed |
 | [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) | Gate tests must not use hardcoded oracles (no example-shaped bypasses) | Accepted |
 | [ADR-0040](adr-0040-quality-lab-mcp-runtime-diagnostics.md) | Quality Lab MCP runtime diagnostics and judge-guided improvement | Accepted |
+| [ADR-0041](adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) | Semantic Capability Selection and Runtime Capability Budgeting | Proposed |
+| [ADR-0042](adr-0042-meta-narrative-awareness-opt-in.md) | Opt-in Meta-Narrative Awareness Runtime Aspect | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
 

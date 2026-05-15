@@ -370,6 +370,56 @@ runtime_intelligence:
       per_active_thread: 0.04
       prior_high_band: 0.08
       thread_pressure_level: 0.04
+  relationship_state_machine:
+    enabled: true
+    schema_version: relationship_state_policy.v1
+    default_tension_score: 0.35
+    default_trust_score: 0.65
+    default_alliance_score: 0.2
+    default_dominance_score: 0.5
+    trend_deadband: 0.04
+    max_tracked_pairs: 24
+    max_tracked_axes: 12
+    max_transition_events: 24
+    stability_thresholds:
+      strained_min: 0.45
+      fractured_min: 0.72
+    transition_weights:
+      blame_pressure:
+        tension_delta: 0.18
+        trust_delta: -0.08
+        alliance_delta: 0.0
+        dominance_delta: 0.03
+      repair_attempt:
+        tension_delta: -0.12
+        trust_delta: 0.08
+        alliance_delta: 0.02
+        dominance_delta: -0.01
+      alliance_shift:
+        tension_delta: 0.05
+        trust_delta: -0.02
+        alliance_delta: 0.14
+        dominance_delta: 0.02
+      social_state_shifted:
+        tension_delta: 0.05
+        trust_delta: -0.02
+        alliance_delta: 0.0
+        dominance_delta: 0.0
+      high_social_pressure:
+        tension_delta: 0.08
+        trust_delta: -0.03
+        alliance_delta: 0.0
+        dominance_delta: 0.0
+      npc_initiative_pressure:
+        tension_delta: 0.06
+        trust_delta: -0.02
+        alliance_delta: 0.0
+        dominance_delta: 0.04
+      relationship_axis_pressure:
+        tension_delta: 0.04
+        trust_delta: 0.0
+        alliance_delta: 0.0
+        dominance_delta: 0.0
   improvisational_coherence:
     enabled: true
     schema_version: improvisational_coherence_policy.v1
@@ -391,6 +441,25 @@ runtime_intelligence:
     default_commit_impact: recover
     model_context_visibility: bounded_structured_only
     boundary_reason_required: true
+  expectation_variation:
+    enabled: true
+    schema_version: expectation_variation_policy.v1
+    allowed_variation_types:
+      - social_alignment_shift
+      - responder_handoff
+      - pressure_reversal
+      - consequence_return
+      - bounded_reveal
+      - ironic_misread
+      - sensory_reframe
+      - silence_pivot
+    require_structured_events: false
+    max_variation_units_per_turn: 1
+    cooldown_turns: 1
+    min_setup_refs: 1
+    max_setup_refs: 6
+    default_commit_impact: recover
+    model_context_visibility: bounded_structured_only
   dramatic_irony:
     enabled: true
     schema_version: dramatic_irony.v1
@@ -410,3 +479,28 @@ runtime_intelligence:
     require_structured_realization: true
     recovery_behavior: recover
     hidden_fact_echo_check: true
+  meta_narrative_awareness:
+    enabled: true
+    schema_version: meta_narrative_awareness_policy.v1
+    allowed_intensities:
+      - subtle
+    default_intensity: subtle
+    allowed_trigger_frequencies:
+      - rare
+    default_trigger_frequency: rare
+    characters_with_awareness:
+      - veronique
+    allowed_awareness_modes:
+      - dramatic_pattern_sense
+      - narrative_pressure_sense
+    forbidden_awareness_modes:
+      - system_prompt_disclosure
+      - tool_or_model_disclosure
+      - player_control_claim
+      - unbounded_rewrite
+      - unauthorized_fourth_wall_break
+    max_events_per_turn: 1
+    requires_player_consent: true
+    allow_player_toggle: true
+    model_context_visibility: bounded_structured_only
+    default_commit_impact: recover

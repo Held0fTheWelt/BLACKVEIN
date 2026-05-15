@@ -8,8 +8,12 @@ from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SC
 from ai_stack.improvisational_coherence_contracts import (
     IMPROVISATIONAL_COHERENCE_POLICY_VERSION,
 )
+from ai_stack.meta_narrative_awareness_contracts import (
+    META_NARRATIVE_AWARENESS_POLICY_VERSION,
+)
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
+from ai_stack.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_POLICY_VERSION
 from ai_stack.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
 from ai_stack.runtime_aspect_ledger import (
@@ -69,9 +73,22 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     )
     assert policy["runtime_governance_policy"]["improvisational_coherence"]["enabled"] is True
     assert policy["runtime_governance_policy"]["improvisational_coherence"]["min_anchor_refs"] >= 1
+    assert (
+        policy["runtime_governance_policy"]["meta_narrative_awareness"]["schema_version"]
+        == META_NARRATIVE_AWARENESS_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["allowed_intensities"] == ["subtle"]
+    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["characters_with_awareness"]
     assert policy["runtime_governance_policy"]["social_pressure"]["schema_version"] == SOCIAL_PRESSURE_POLICY_VERSION
     assert policy["runtime_governance_policy"]["social_pressure"]["enabled"] is True
     assert policy["runtime_governance_policy"]["social_pressure"]["source_scores"]["social_risk_band"]
+    assert (
+        policy["runtime_governance_policy"]["relationship_state_machine"]["schema_version"]
+        == RELATIONSHIP_STATE_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["relationship_state_machine"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["relationship_state_machine"]["transition_weights"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]
@@ -79,6 +96,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert "information_disclosure_policy" in policy["content_sources"]
     assert "memory_policy" in policy["content_sources"]
     assert "dramatic_irony_policy" in policy["content_sources"]
+    assert "meta_narrative_awareness_policy" in policy["content_sources"]
     assert "runtime_intelligence" in policy["content_sources"]
 
 

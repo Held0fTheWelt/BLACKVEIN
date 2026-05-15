@@ -496,6 +496,10 @@ def _extract_normalized_wos_evidence(
         "pacing_rhythm_contract_pass",
         "pacing_rhythm_density_respected",
         "pacing_rhythm_pause_respected",
+        "sensory_context_target_present",
+        "sensory_context_contract_pass",
+        "sensory_context_required_layers_realized",
+        "sensory_context_source_refs_valid",
         "improvisational_coherence_policy_present",
         "improvisational_coherence_target_selected",
         "improvisational_coherence_acknowledged",
@@ -504,6 +508,8 @@ def _extract_normalized_wos_evidence(
         "social_pressure_target_present",
         "social_pressure_contract_pass",
         "social_pressure_metric_bounded",
+        "relationship_state_target_present",
+        "relationship_state_contract_pass",
         "information_disclosure_policy_present",
         "information_disclosure_target_selected",
         "information_disclosure_budget_pass",
@@ -627,6 +633,12 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "social_pressure_contract_pass",
     "social_pressure_metric_bounded",
     "social_pressure_failure_codes",
+    "relationship_state_target_present",
+    "relationship_state_pressure_band",
+    "relationship_state_pair_count",
+    "relationship_state_transition_event_count",
+    "relationship_state_contract_pass",
+    "relationship_state_failure_codes",
     "information_disclosure_policy_present",
     "information_disclosure_target_selected",
     "information_disclosure_selected_units",
@@ -813,6 +825,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     sensory_context_rec = _aspect_record(ledger, "sensory_context")
     improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
+    relationship_state_rec = _aspect_record(ledger, "relationship_state")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     callback_rec = _aspect_record(ledger, "callback_web")
@@ -841,6 +854,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     improvisational_actual = _aspect_block(improvisational_rec, "actual")
     social_pressure_selected = _aspect_block(social_pressure_rec, "selected")
     social_pressure_actual = _aspect_block(social_pressure_rec, "actual")
+    relationship_state_selected = _aspect_block(relationship_state_rec, "selected")
+    relationship_state_actual = _aspect_block(relationship_state_rec, "actual")
     disclosure_expected = _aspect_block(disclosure_rec, "expected")
     disclosure_selected = _aspect_block(disclosure_rec, "selected")
     disclosure_actual = _aspect_block(disclosure_rec, "actual")
@@ -954,6 +969,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     social_pressure_failure_codes = social_pressure_actual.get("failure_codes") or []
     if not isinstance(social_pressure_failure_codes, list):
         social_pressure_failure_codes = []
+    relationship_state_target = (
+        relationship_state_selected.get("target")
+        if isinstance(relationship_state_selected.get("target"), dict)
+        else relationship_state_selected
+    )
+    relationship_state_failure_codes = relationship_state_actual.get("failure_codes") or []
+    if not isinstance(relationship_state_failure_codes, list):
+        relationship_state_failure_codes = []
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
@@ -979,6 +1002,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
+            relationship_state_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
@@ -999,6 +1023,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
+            relationship_state_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
@@ -1181,6 +1206,26 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("social_pressure_metric_bounded")
         ),
         "social_pressure_failure_codes": social_pressure_failure_codes,
+        "relationship_state_target_present": (
+            bool(relationship_state_target)
+            if relationship_state_rec
+            else det_scores.get("relationship_state_target_present")
+        ),
+        "relationship_state_pressure_band": relationship_state_target.get("pressure_band")
+        if isinstance(relationship_state_target, dict)
+        else None,
+        "relationship_state_pair_count": int(
+            relationship_state_actual.get("pair_count") or 0
+        ),
+        "relationship_state_transition_event_count": int(
+            relationship_state_actual.get("transition_event_count") or 0
+        ),
+        "relationship_state_contract_pass": (
+            relationship_state_actual.get("contract_pass")
+            if "contract_pass" in relationship_state_actual
+            else det_scores.get("relationship_state_contract_pass")
+        ),
+        "relationship_state_failure_codes": relationship_state_failure_codes,
         "information_disclosure_policy_present": (
             disclosure_expected.get("policy_present")
             if "policy_present" in disclosure_expected

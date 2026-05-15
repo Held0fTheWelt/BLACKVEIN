@@ -20,6 +20,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_KEYS,
     ASPECT_NPC_AGENCY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_RELATIONSHIP_STATE,
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
@@ -533,6 +534,59 @@ def test_runtime_projection_exposes_social_pressure_aspect() -> None:
     assert pressure["trend"] == "rising"
     assert pressure["requires_visible_pressure"] is True
     assert pressure["contract_pass"] is True
+
+
+def test_runtime_projection_exposes_relationship_state_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-relationship",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    target = {
+        "schema_version": "relationship_state_machine.v1",
+        "target_axis_ids": ["axis_alpha"],
+        "target_relationship_ids": ["rel_alpha"],
+        "required_transition_codes": ["blame_pressure"],
+        "pressure_band": "strained",
+        "requires_visible_relationship_beat": True,
+        "source_evidence": [],
+        "rationale_codes": ["relationship_state_target_from_durable_state"],
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_RELATIONSHIP_STATE,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": target["schema_version"],
+                "policy_present": True,
+                "policy_enabled": True,
+            },
+            "selected": {"target": target},
+            "actual": {
+                "pair_count": 1,
+                "axis_count": 1,
+                "transition_event_count": 1,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    relationship = projection[ASPECT_RELATIONSHIP_STATE]
+    assert relationship["schema_version"] == target["schema_version"]
+    assert relationship["target_axis_ids"] == target["target_axis_ids"]
+    assert relationship["target_relationship_ids"] == target["target_relationship_ids"]
+    assert relationship["pressure_band"] == "strained"
+    assert relationship["requires_visible_relationship_beat"] is True
+    assert relationship["pair_count"] == 1
+    assert relationship["contract_pass"] is True
 
 
 def test_runtime_projection_exposes_consequence_cascade_aspect() -> None:

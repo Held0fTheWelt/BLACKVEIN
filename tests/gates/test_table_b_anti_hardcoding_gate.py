@@ -93,6 +93,7 @@ LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
     ForbiddenPattern("table_b.pi_21", re.compile(r"\bpi_21\b|Π21\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_24", re.compile(r"\bpi_24\b|Π24\b", re.IGNORECASE)),
+    ForbiddenPattern("table_b.pi_25", re.compile(r"\bpi_25\b|Π25\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_26", re.compile(r"\bpi_26\b|Π26\b", re.IGNORECASE)),
 )
 
@@ -129,6 +130,10 @@ CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 IMPROVISATIONAL_COHERENCE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.improvisational_coherence",
     re.compile(r"\bimprovisational_coherence\b", re.IGNORECASE),
+)
+META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.meta_narrative_awareness",
+    re.compile(r"\bmeta_narrative_awareness\b", re.IGNORECASE),
 )
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
@@ -212,6 +217,16 @@ IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager.py",
+}
+
+META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/meta_narrative_awareness_contracts.py",
+    "ai_stack/meta_narrative_awareness_engine.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_experience.py",
 }
 
 
@@ -429,6 +444,24 @@ def test_improvisational_coherence_runtime_aspect_is_limited_to_canonical_surfac
 
     assert not violations, (
         "improvisational_coherence appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_meta_narrative_awareness_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Meta-narrative awareness is opt-in contract behavior, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in META_NARRATIVE_AWARENESS_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "meta_narrative_awareness appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

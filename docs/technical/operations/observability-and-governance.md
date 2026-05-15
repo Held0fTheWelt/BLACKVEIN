@@ -122,6 +122,8 @@ Langfuse runtime aspect spans include:
 - `story.capability.realize`
 - `story.information_disclosure.select`
 - `story.information_disclosure.validate`
+- `story.sensory_context.target`
+- `story.sensory_context.validate`
 - `story.npc_agency.plan`
 - `story.npc_agency.realize`
 - `story.visible.project`
@@ -159,6 +161,10 @@ Deterministic runtime aspect scores include:
 - `information_disclosure_budget_pass`
 - `information_disclosure_premature_reveal_absent`
 - `information_disclosure_contract_pass`
+- `sensory_context_target_present`
+- `sensory_context_contract_pass`
+- `sensory_context_required_layers_realized`
+- `sensory_context_source_refs_valid`
 - `npc_agency_plan_present`
 - `npc_independent_planning_used`
 - `npc_required_initiatives_realized`

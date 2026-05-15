@@ -85,9 +85,12 @@ flowchart LR
   E[derive_scene_energy]
   PR[derive_pacing_rhythm]
   SP[derive_social_pressure]
+  SC[derive_sensory_context]
   IC[derive_improvisational_coherence]
   ID[derive_information_disclosure]
   DI[derive_dramatic_irony]
+  RS[derive_relationship_state]
+  MNA[derive_meta_narrative_awareness]
   SYN[synthesize_context]
   AMC[assemble_model_context]
   RM[route_model]
@@ -101,13 +104,13 @@ flowchart LR
   I -->|meta_control| MC --> P
   I -->|story_play| RA
   RA -->|deterministic_short_path| AAR --> PN
-  RA -->|full_pipeline| R --> G --> D1 --> D2 --> E --> PR --> SP --> IC --> ID --> DI --> SYN --> AMC --> RM --> M
+  RA -->|full_pipeline| R --> G --> D1 --> D2 --> E --> PR --> SP --> SC --> IC --> ID --> DI --> RS --> MNA --> SYN --> AMC --> RM --> M
   M -->|success_or_skip_fallback| PN
   M -->|needs_fallback| FB --> PN
   PN --> V --> C --> RV --> P
 ```
 
-**What this clarifies:** Model invocation sits **between** routing and seams on the story-play path. Fallback is an **explicit** branch, not a silent retry inside validation. Meta/OOC control input is also explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
+**What this clarifies:** Model invocation sits **between** routing and seams on the story-play path. Runtime aspects are derived before context synthesis and prompt assembly. The opt-in `meta_narrative_awareness` aspect lives on the story-play path after relationship-state derivation; it is separate from Meta/OOC control input. Fallback is an **explicit** branch, not a silent retry inside validation. Meta/OOC control input is also explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
 
 ---
 

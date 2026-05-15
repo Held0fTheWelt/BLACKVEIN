@@ -18,13 +18,18 @@ from ai_stack.callback_web_contracts import normalize_callback_web_policy
 from ai_stack.consequence_cascade_contracts import normalize_consequence_cascade_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
+from ai_stack.expectation_variation_contracts import normalize_expectation_variation_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
 from ai_stack.improvisational_coherence_contracts import (
     normalize_improvisational_coherence_policy,
 )
 from ai_stack.information_disclosure_contracts import normalize_information_disclosure_policy
+from ai_stack.meta_narrative_awareness_contracts import (
+    normalize_meta_narrative_awareness_policy,
+)
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
+from ai_stack.relationship_state_contracts import normalize_relationship_state_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
 from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
@@ -192,6 +197,10 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     callback_web = callback_web if isinstance(callback_web, dict) else {}
     consequence_cascade = raw.get("consequence_cascade")
     consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
+    expectation_variation = raw.get("expectation_variation")
+    expectation_variation = (
+        expectation_variation if isinstance(expectation_variation, dict) else {}
+    )
     pacing_rhythm = raw.get("pacing_rhythm")
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
     sensory_context = raw.get("sensory_context")
@@ -202,8 +211,20 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         if isinstance(improvisational_coherence, dict)
         else {}
     )
+    meta_narrative_awareness = raw.get("meta_narrative_awareness")
+    meta_narrative_awareness = (
+        meta_narrative_awareness
+        if isinstance(meta_narrative_awareness, dict)
+        else {}
+    )
     social_pressure = raw.get("social_pressure")
     social_pressure = social_pressure if isinstance(social_pressure, dict) else {}
+    relationship_state_machine = raw.get("relationship_state_machine")
+    relationship_state_machine = (
+        relationship_state_machine
+        if isinstance(relationship_state_machine, dict)
+        else {}
+    )
 
     return {
         "action_resolution_short_path": {
@@ -253,8 +274,17 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "improvisational_coherence": normalize_improvisational_coherence_policy(
             improvisational_coherence
         ),
+        "meta_narrative_awareness": normalize_meta_narrative_awareness_policy(
+            meta_narrative_awareness
+        ),
         "social_pressure": normalize_social_pressure_policy(social_pressure),
+        "relationship_state_machine": normalize_relationship_state_policy(
+            relationship_state_machine
+        ),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
+        "expectation_variation": normalize_expectation_variation_policy(
+            expectation_variation
+        ),
         "callback_web": normalize_callback_web_policy(callback_web),
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
     }
@@ -281,6 +311,8 @@ class ModuleRuntimePolicy:
     memory_policy: dict[str, Any] = field(default_factory=dict)
     dramatic_irony_policy: dict[str, Any] = field(default_factory=dict)
     improvisational_coherence_policy: dict[str, Any] = field(default_factory=dict)
+    expectation_variation_policy: dict[str, Any] = field(default_factory=dict)
+    meta_narrative_awareness_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
 
@@ -358,6 +390,22 @@ def load_module_runtime_policy(
     improvisational_coherence_policy = normalize_improvisational_coherence_policy(
         improvisational_coherence_raw if improvisational_coherence_raw else None
     )
+    expectation_variation_raw = (
+        runtime_intelligence.get("expectation_variation")
+        if isinstance(runtime_intelligence.get("expectation_variation"), dict)
+        else {}
+    )
+    expectation_variation_policy = normalize_expectation_variation_policy(
+        expectation_variation_raw if expectation_variation_raw else None
+    )
+    meta_narrative_awareness_raw = (
+        runtime_intelligence.get("meta_narrative_awareness")
+        if isinstance(runtime_intelligence.get("meta_narrative_awareness"), dict)
+        else {}
+    )
+    meta_narrative_awareness_policy = normalize_meta_narrative_awareness_policy(
+        meta_narrative_awareness_raw if meta_narrative_awareness_raw else None
+    )
 
     sources = []
     for label, payload in (
@@ -383,6 +431,8 @@ def load_module_runtime_policy(
         ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
         ("dramatic_irony_policy", dramatic_irony_raw),
         ("improvisational_coherence_policy", improvisational_coherence_raw),
+        ("expectation_variation_policy", expectation_variation_raw),
+        ("meta_narrative_awareness_policy", meta_narrative_awareness_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
     ):
         if payload:
@@ -423,6 +473,8 @@ def load_module_runtime_policy(
         memory_policy=memory_policy,
         dramatic_irony_policy=dramatic_irony_policy,
         improvisational_coherence_policy=improvisational_coherence_policy,
+        expectation_variation_policy=expectation_variation_policy,
+        meta_narrative_awareness_policy=meta_narrative_awareness_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,
     )

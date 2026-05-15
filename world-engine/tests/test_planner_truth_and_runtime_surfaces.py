@@ -130,6 +130,57 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "contract_pass": True,
                 "failure_codes": [],
             },
+            "relationship_state_record": {
+                "schema_version": "relationship_state_machine.v1",
+                "turn_number": 4,
+                "pair_states": [
+                    {
+                        "relationship_id": "rel_a",
+                        "character_ids": ["annette", "alain"],
+                        "axis_ids": ["axis_a"],
+                        "tension_score": 0.7,
+                        "trust_score": 0.3,
+                        "alliance_score": 0.2,
+                        "dominance_score": 0.5,
+                        "stability_band": "strained",
+                        "trend": "rising",
+                        "last_transition_codes": ["blame_pressure"],
+                        "last_updated_turn": 4,
+                    }
+                ],
+                "axis_states": [
+                    {
+                        "axis_id": "axis_a",
+                        "relationship_ids": ["rel_a"],
+                        "tension_score": 0.7,
+                        "stability_band": "strained",
+                        "trend": "rising",
+                        "active": True,
+                        "last_transition_codes": ["blame_pressure"],
+                    }
+                ],
+                "transition_events": [],
+                "active_relationship_axis_ids": ["axis_a"],
+                "dominant_relationship_axis_id": "axis_a",
+                "source_evidence": [],
+                "rationale_codes": ["relationship_state_policy_applied"],
+            },
+            "relationship_dynamics_target": {
+                "schema_version": "relationship_state_machine.v1",
+                "target_axis_ids": ["axis_a"],
+                "target_relationship_ids": ["rel_a"],
+                "required_transition_codes": ["blame_pressure"],
+                "pressure_band": "strained",
+                "requires_visible_relationship_beat": True,
+                "source_evidence": [],
+                "rationale_codes": ["relationship_state_target_from_durable_state"],
+            },
+            "relationship_state_validation": {
+                "schema_version": "relationship_state_machine.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
             "character_mind_summary": {"annette": {"stance": "defensive"}},
             "continuity_impacts": [{"class": "tension_escalation"}],
         },
@@ -172,6 +223,9 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.social_pressure_state["current_score"] == 0.74
     assert pt.social_pressure_target["target_band"] == "high"
     assert pt.social_pressure_validation["contract_pass"] is True
+    assert pt.relationship_state_record["schema_version"] == "relationship_state_machine.v1"
+    assert pt.relationship_dynamics_target["requires_visible_relationship_beat"] is True
+    assert pt.relationship_state_validation["contract_pass"] is True
     assert pt.character_mind_summary == {"annette": {"stance": "defensive"}}
     assert pt.validation_status == "approved"
     assert pt.validation_reason == "scope_ok"

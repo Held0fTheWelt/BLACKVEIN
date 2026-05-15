@@ -8,6 +8,8 @@ The Capability Matrix is not a wishlist and not a historical idea list. It is a 
 
 [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) is an active governance source for these gates. It governs hardcoded-oracle prevention, Pi / Π vocabulary boundaries, MCP/Langfuse verification quality, repository-root portability, local-vs-live evidence separation, and false-green prevention.
 
+[ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) adds the future Semantic Capability Selector boundary. Selection evidence can explain why a capability was `off`, `observe`, `enforce`, or `judge` for a turn, but it is not implementation proof, live/staging proof, or promotion evidence by itself.
+
 ## Promotion Rules
 
 Use the repository's current statuses (`target_state`, `partially_proven` / `partial`, `implemented`). The project does not currently use `live_verified` as a matrix status; instead, live proof is a separate claim gate. If a future ADR adds `live_verified`, the same evidence below becomes the promotion rule for `implemented` -> `live_verified`.
@@ -45,6 +47,17 @@ Required proof:
 
 Do not promote a capability based only on documentation, comments, local trace IDs, test names, PASS labels, or string presence.
 
+## Capability Selection Evidence Is Not Live Proof
+
+Future selector evidence must preserve these boundaries:
+
+- `off` means intentionally excluded for the turn; no successful runtime work should be inferred.
+- `observe` means diagnostic/local observation only; it must not block commit or promote a claim unless a later ADR explicitly changes that capability's role.
+- `enforce` means the capability may shape prompt/runtime/validation for the turn, but implementation and live/staging claims still require runtime wiring, validators, tests, RuntimeAspectLedger projection, and live-claim evidence.
+- `judge` means a heavier LLM-as-a-Judge or external evaluator was allowed for a scoped reason; judge output is not deterministic runtime truth by itself.
+
+MCP/Langfuse selection records must include semantic capability names, evidence scope, environment scope, budget decisions, selected validators, selected judges, and reason codes. They must not use Pi / Π labels as score names or payload keys, and they must not count degraded/fallback/local-only selector output as live success.
+
 ## Pi / Π Vocabulary Rule
 
 Pi / Π labels are historical capability-map vocabulary. They must not be used as active production runtime IDs, score names, schema keys, routing keys, or control-flow branches. Production-facing systems must use stable semantic names.
@@ -61,6 +74,8 @@ Allowed cross-reference examples:
 | Π20 | `information_disclosure` |
 | Π22 | `social_pressure` |
 | Π24 | `improvisational_coherence` |
+| Π25 | `meta_narrative_awareness` |
+| Π26 | `sensory_context` |
 
 Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.
 

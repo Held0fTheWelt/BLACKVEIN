@@ -76,6 +76,9 @@ Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag.py
 **Meta control input / Pi25**
 Out-of-world or out-of-character player input represented as `kind=meta`, `player_input_kind=meta`, and `selected_handling_path=meta`. It is a deterministic non-story control path for diagnostics/UI acknowledgement, not in-world self-awareness, adaptive meta-dialogue, or committed story prose.
 
+**Meta-narrative awareness**
+A separate story-play runtime aspect named `meta_narrative_awareness`. It is full opt-in through Story Runtime Experience settings, bounded by module policy, actor-lane-gated, and validated through `meta_narrative_awareness_events`. It is not the Meta/OOC control branch and not full fourth-wall play.
+
 **LangChain**  
 Adapter invocation bridge for structured runtime output under `ai_stack/langchain_integration/`.
 

@@ -8,6 +8,7 @@
 - **Related ADR:** [ADR-0008](adr-0008-validation-strategy-explicit-configurable.md) — validation strategy must remain explicit and meaningful
 - **Related ADR:** [ADR-0009](adr-0009-evaluation-is-a-promotion-gate.md) — evaluation and gates are promotion mechanisms, not decoration
 - **Related ADR:** [ADR-0025](adr-0025-canonical-authored-content-model.md) — canonical content is the right oracle surface for slice truth
+- **Related ADR:** [ADR-0041](adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) — future capability selection must use semantic names and must not treat selection as implementation or live proof
 - **Related ADR:** [ADR-MVP2-016](MVP_Live_Runtime_Completion/adr-mvp2-016-operational-gates.md) — operational gates must prove real coverage, not checklist theatre
 - **Supersedes:** None
 - **Superseded by:** None
@@ -61,9 +62,11 @@ Gates exist to prove that **promotion criteria** hold under change. If a gate te
 
 ### Capability Matrix and Pi / Π vocabulary
 
-For Capability Matrix work, Pi / Π labels are historical cross-reference vocabulary only. They must not become runtime IDs, score names, schema keys, routing keys, or control-flow branches. Production code must use stable semantic names such as `silence_negative_space`, `environment_state`, `dramatic_irony`, `callback_web`, `subtext`, `information_disclosure`, `social_pressure`, and `improvisational_coherence`.
+For Capability Matrix work, Pi / Π labels are historical cross-reference vocabulary only. They must not become runtime IDs, score names, schema keys, routing keys, or control-flow branches. Production code must use stable semantic names such as `silence_negative_space`, `environment_state`, `dramatic_irony`, `callback_web`, `subtext`, `information_disclosure`, `social_pressure`, `sensory_context`, and `improvisational_coherence`.
 
 Semantic names are allowed in production when they are contract-backed. Tests must distinguish forbidden Pi-number usage from valid semantic runtime surfaces. When a new Capability Matrix row gains implementation code, update `tests/gates/test_table_b_anti_hardcoding_gate.py` with the legacy label and any reviewed semantic runtime-aspect surface, or document why the row is out of scope.
+
+ADR-0041 adds a future Semantic Capability Selector boundary. Selector manifests, selector outputs, activation modes, RuntimeAspectLedger selection evidence, MCP payloads, and Langfuse score names must follow the same semantic-name rule. A selector decision can explain why `narrator_authority`, `scene_energy`, or `npc_agency` was selected or excluded for a turn, but it must not use Pi / Π labels as active keys and must not be treated as implementation, promotion, or live/staging proof by itself.
 
 ADR-0039 applies to every test file that references a Pi / Π capability label, including tests that use Table-B metadata only as fixture data. Those tests must be covered by `tests/gates/test_adr_0039_pi_scope.py`, and any new Pi-labeled test must either join that coverage manifest or remove the legacy label. A Pi-labeled test is not evidence by name alone; it must assert contract fields, validators, policy-derived values, runtime wiring, ledger projection, MCP extraction, or Langfuse/staging evidence.
 
