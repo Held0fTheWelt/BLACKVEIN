@@ -1,7 +1,8 @@
 """ADR-0041 authority bridge: explicit mapping between ``run_validation_seam`` and local validators.
 
-This module is diagnostic-only. It does **not** change ``validation_outcome``,
-commit/readiness gates, prompts, or story generation.
+This module can emit non-mutating scoped authority decisions. It does **not**
+change ``validation_outcome``, commit/readiness gates, prompts, or story
+generation.
 """
 
 from __future__ import annotations
@@ -25,7 +26,8 @@ from ai_stack.goc_seam_mirror_validator_adapters import (
     PROPOSED_EFFECTS_SHAPE_CONTRACT,
 )
 
-VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION = "validation_authority_bridge.v4"
+VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION = "validation_authority_bridge.v5"
+VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION = "validation_co_authority_decision.v1"
 
 # Drift labels align with ``runtime_aspect_ledger.classify_adr0041_validation_authority_drift`` (no cyclic import).
 _DRIFT_ALIGNED = "aligned"
@@ -48,6 +50,11 @@ HANDOFF_RECOMMENDED_ADR0041_CANDIDATE = "adr0041_candidate"
 HANDOFF_RECOMMENDED_SHADOW_READY = "adr0041_ready_for_shadow_authority"
 HANDOFF_RECOMMENDED_BLOCKED = "blocked"
 
+CO_AUTHORITY_STAGE_SCOPED = "scoped_co_authority"
+CO_AUTHORITY_DECISION_READY = "validation_co_authority_ready"
+CO_AUTHORITY_LEGACY_SEAM = "run_validation_seam"
+CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.goc_turn_seams.run_validation_seam"
+
 # Declarative map: canonical seam concern IDs (see ``ai_stack.goc_turn_seams.run_validation_seam``)
 # Seam concerns that must be explicitly delegated before ADR-0041 could share gate authority.
 CRITICAL_SEAM_CONCERN_IDS: frozenset[str] = frozenset(
@@ -55,6 +62,7 @@ CRITICAL_SEAM_CONCERN_IDS: frozenset[str] = frozenset(
         "actor_lane_forbidden_output",
         "dramatic_effect_gate",
         "hard_forbidden_runtime",
+        "opening_event_coverage",
     }
 )
 
@@ -138,6 +146,9 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
             "``opening_event_coverage_contract`` calls ``evaluate_opening_event_coverage``; "
             "narrator/environment contracts remain narrative-adjacent supplements."
         ),
+        "partial_transfer_required_validators_by_turn_class": {
+            "opening_scene": (OPENING_EVENT_COVERAGE_CONTRACT,),
+        },
     },
     "dramatic_effect_gate": {
         "label": "Dramatic effect evaluation gate (fluency, plausibility, scene function, continuity)",
@@ -325,12 +336,28 @@ def _collect_blockers(
 _PARTIAL_TRANSFER_DISCLAIMERS: tuple[str, ...] = (
     "Partial-transfer readiness is diagnostic-only: ``run_validation_seam`` remains canonical for "
     "``validation_outcome`` and commit/readiness.",
+    "``actor_lane_forbidden_output``, ``hard_forbidden_runtime``, ``opening_event_coverage``, and "
+    "``dramatic_effect_gate`` are the only scoped co-authority concerns considered in this phase; "
+    "opening coverage is scoped to ``opening_scene`` only.",
     "``dramatic_effect_gate`` mirror may still rely on defaulted evaluation fields unless the graph "
     "dispatch supplies the same structured context as the commitment seam; evidence flag "
     "``dramatic_effect_mirror_fidelity=partial_defaults`` blocks ``partial_transfer_ready`` even on pass.",
     "``hard_forbidden_runtime`` partial-transfer scope is the deterministic ``detect_hard_forbidden_runtime`` "
     "mirror only; supplemental environment/disclosure contracts are not required for scoped readiness.",
 )
+
+
+def _concern_turn_class_scope(concern_id: str) -> tuple[str, ...]:
+    if concern_id == "opening_event_coverage":
+        return (normalize_turn_class_key(TURN_CLASS_OPENING_SCENE),)
+    return tuple(normalize_turn_class_key(k) for k in KNOWN_TURN_CLASSES)
+
+
+def _critical_concerns_for_turn_class(turn_class_key: str) -> frozenset[str]:
+    tc_key = normalize_turn_class_key(turn_class_key)
+    return frozenset(
+        cid for cid in CRITICAL_SEAM_CONCERN_IDS if tc_key in _concern_turn_class_scope(cid)
+    )
 
 
 def _partial_transfer_required_for_concern(concern_id: str, turn_class_key: str) -> frozenset[str]:
@@ -344,7 +371,7 @@ def _partial_transfer_required_for_concern(concern_id: str, turn_class_key: str)
 def _registry_satisfies_partial_transfer(turn_class_key: str) -> tuple[bool, list[str]]:
     enforced = _turn_class_enforced_set(turn_class_key)
     blockers: list[str] = []
-    for cid in CRITICAL_SEAM_CONCERN_IDS:
+    for cid in _critical_concerns_for_turn_class(turn_class_key):
         req = _partial_transfer_required_for_concern(cid, turn_class_key)
         missing = sorted(req - enforced)
         if missing:
@@ -356,7 +383,7 @@ def _registry_satisfies_partial_transfer(turn_class_key: str) -> tuple[bool, lis
 
 def _partial_transfer_union_required(turn_class_key: str) -> frozenset[str]:
     out: set[str] = set()
-    for cid in CRITICAL_SEAM_CONCERN_IDS:
+    for cid in _critical_concerns_for_turn_class(turn_class_key):
         out.update(_partial_transfer_required_for_concern(cid, turn_class_key))
     return frozenset(out)
 
@@ -412,11 +439,12 @@ def _turn_class_migration_snapshot(
     cov = _concern_coverage_for_turn_class(turn_class)
     overlap_count = len(set(cov["covered_seam_concern_ids"]))
     total = len(SEAM_CONCERN_SPECS)
+    active_critical = _critical_concerns_for_turn_class(tc_key)
     critical_gaps = [
-        c for c in CRITICAL_SEAM_CONCERN_IDS if c in cov["uncovered_seam_concern_ids"]
+        c for c in active_critical if c in cov["uncovered_seam_concern_ids"]
     ]
     critical_partial = [
-        c for c in CRITICAL_SEAM_CONCERN_IDS if c in cov["partially_covered_seam_concern_ids"]
+        c for c in active_critical if c in cov["partially_covered_seam_concern_ids"]
     ]
     registry_ok, reg_blockers = _registry_satisfies_partial_transfer(tc_key)
     exec_ok, exec_blockers = _execution_satisfies_partial_transfer(
@@ -455,7 +483,7 @@ def _turn_class_migration_snapshot(
         missing.append("Proposed-effect shape concern not covered by enforced validators.")
 
     concern_scope: dict[str, Any] = {}
-    for cid in CRITICAL_SEAM_CONCERN_IDS:
+    for cid in active_critical:
         concern_scope[cid] = {
             "partial_transfer_required_validators": sorted(_partial_transfer_required_for_concern(cid, tc_key)),
         }
@@ -471,16 +499,10 @@ def _turn_class_migration_snapshot(
         "partial_transfer_ready": partial_transfer_ready,
         "partial_transfer_blocked": partial_transfer_blocked,
         "partial_transfer_disclaimers": list(_PARTIAL_TRANSFER_DISCLAIMERS),
-        "partial_transfer_critical_scope": concern_scope,
+        "partial_transfer_critical_scope": dict(sorted(concern_scope.items())),
         "missing_adapter_or_context_notes": missing,
         "coverage_ratio": {"covered_distinct": overlap_count, "total_seam_concerns": total},
     }
-
-
-def _concern_turn_class_scope(concern_id: str) -> tuple[str, ...]:
-    if concern_id == "opening_event_coverage":
-        return (normalize_turn_class_key(TURN_CLASS_OPENING_SCENE),)
-    return tuple(normalize_turn_class_key(k) for k in KNOWN_TURN_CLASSES)
 
 
 def _seam_area_relationship_for_concern(
@@ -532,11 +554,14 @@ def _concern_bounded_scope_satisfied(
     validator_dispatch_report: dict[str, Any],
     partial_transfer_ready: bool,
 ) -> bool:
+    tc_key = normalize_turn_class_key(turn_class)
     if concern_id not in CRITICAL_SEAM_CONCERN_IDS:
+        return False
+    if tc_key not in _concern_turn_class_scope(concern_id):
         return False
     if not partial_transfer_ready:
         return False
-    req = _partial_transfer_required_for_concern(concern_id, turn_class)
+    req = _partial_transfer_required_for_concern(concern_id, tc_key)
     entries_list = validator_dispatch_report.get("entries") or []
     by_id: dict[str, dict[str, Any]] = {}
     for ent in entries_list:
@@ -657,6 +682,7 @@ def build_authority_handoff_candidate(
     recommended = HANDOFF_RECOMMENDED_SEAM_CANONICAL
     reason: str
     safe_next_step: str
+    active_scope = sorted(_critical_concerns_for_turn_class(selected_turn_class))
 
     if adr.get("engagement") != "plan_enforced":
         reason = "ADR-0041 plan-enforced dispatch not engaged; ledger remains dry-run observation."
@@ -693,10 +719,10 @@ def build_authority_handoff_candidate(
     ):
         candidate = True
         recommended = HANDOFF_RECOMMENDED_SHADOW_READY
-        scope = sorted(CRITICAL_SEAM_CONCERN_IDS)
+        scope = active_scope
         reason = (
-            "Bounded partial-transfer scope (dramatic_effect_gate + hard_forbidden_runtime mirrors for this turn "
-            "class) passed locally with drift aligned vs seam echo; shadow governance candidate only."
+            "Bounded partial-transfer scope for this turn class passed locally with drift aligned "
+            "vs seam echo; shadow governance candidate only."
         )
         safe_next_step = (
             "Governance-only: review mirror fidelity + seam parity before any promotion; "
@@ -761,6 +787,127 @@ def build_authority_handoff_candidate(
         "affects_readiness": False,
         "proof_level": "local_only",
         "live_or_staging_evidence": False,
+    }
+
+
+def _dramatic_mirror_fidelity(validator_dispatch_report: dict[str, Any]) -> str | None:
+    for ent in validator_dispatch_report.get("entries") or []:
+        if not isinstance(ent, dict):
+            continue
+        if ent.get("validator_id") != DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT:
+            continue
+        ev = ent.get("local_execution_evidence")
+        if isinstance(ev, dict):
+            raw = ev.get("dramatic_effect_mirror_fidelity")
+            return str(raw) if raw is not None else None
+    return None
+
+
+def build_validation_co_authority_decision(
+    *,
+    validation_authority_bridge: dict[str, Any],
+    validator_dispatch_report: dict[str, Any],
+    selected_turn_class: str,
+    feature_flag_name: str,
+    feature_flag_enabled: bool,
+) -> dict[str, Any] | None:
+    """Return a non-mutating scoped co-authority decision when the bounded scope is ready."""
+    if not feature_flag_enabled:
+        return None
+    bridge = validation_authority_bridge if isinstance(validation_authority_bridge, dict) else {}
+    raw_turn_class = str(selected_turn_class or bridge.get("selected_turn_class") or "").strip()
+    if not raw_turn_class:
+        return None
+    tc_key = normalize_turn_class_key(raw_turn_class)
+    per_tc = bridge.get("per_turn_class") if isinstance(bridge.get("per_turn_class"), dict) else {}
+    snap = per_tc.get(tc_key) if isinstance(per_tc.get(tc_key), dict) else {}
+    handoff = (
+        bridge.get("authority_handoff_candidate")
+        if isinstance(bridge.get("authority_handoff_candidate"), dict)
+        else {}
+    )
+    if not (
+        bool(snap.get("partial_transfer_ready"))
+        and handoff.get("candidate") is True
+        and bridge.get("migration_readiness") == "observation_ready"
+        and bridge.get("drift_classification") == _DRIFT_ALIGNED
+    ):
+        return None
+
+    scope = sorted(_critical_concerns_for_turn_class(tc_key))
+    if not scope:
+        return None
+    coverage = (
+        bridge.get("seam_concern_coverage")
+        if isinstance(bridge.get("seam_concern_coverage"), dict)
+        else {}
+    )
+    concern_decisions: list[dict[str, Any]] = []
+    for cid in scope:
+        cov = coverage.get(cid) if isinstance(coverage.get(cid), dict) else {}
+        if cov.get("authority_transfer_status") != "bounded_partial_transfer_scope_met":
+            return None
+        concern_decisions.append(
+            {
+                "concern_id": cid,
+                "decision": "ready_for_scoped_co_authority",
+                "authority_transfer_status": cov.get("authority_transfer_status"),
+                "required_validators": sorted(_partial_transfer_required_for_concern(cid, tc_key)),
+                "bounded_scope_satisfied": True,
+            }
+        )
+
+    seam_status = bridge.get("seam_status") if isinstance(bridge.get("seam_status"), dict) else {}
+    dramatic_fidelity = _dramatic_mirror_fidelity(validator_dispatch_report)
+    return {
+        "schema_version": VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION,
+        "authority_stage": CO_AUTHORITY_STAGE_SCOPED,
+        "decision": CO_AUTHORITY_DECISION_READY,
+        "selected_turn_class": tc_key,
+        "scope": scope,
+        "concern_decisions": concern_decisions,
+        "readiness_preview": {
+            "status": "ready_for_scoped_co_authority",
+            "partial_transfer_ready": True,
+            "may_influence_readiness_preview": True,
+            "allowed_effect": "preview_only",
+        },
+        "validation_preview": {
+            "status": "ready_for_validation_co_authority",
+            "legacy_seam_status": seam_status.get("status"),
+            "legacy_seam_reason": seam_status.get("reason"),
+            "may_influence_validation_preview": True,
+            "allowed_effect": "preview_only",
+        },
+        "authority_basis": [
+            "explicit_feature_flag_enabled",
+            "partial_transfer_ready",
+            "migration_readiness_observation_ready",
+            "drift_aligned_with_run_validation_seam_echo",
+            "deterministic_local_validators_all_pass",
+            "dramatic_effect_mirror_fidelity_sufficient",
+        ],
+        "dramatic_effect_mirror_fidelity": dramatic_fidelity,
+        "dramatic_effect_mirror_fidelity_sufficient": dramatic_fidelity != "partial_defaults",
+        "legacy_canonical_authority": CO_AUTHORITY_LEGACY_SEAM,
+        "legacy_fallback_authority": CO_AUTHORITY_LEGACY_SEAM,
+        "canonical_commitment_seam": CO_AUTHORITY_COMMITMENT_SEAM,
+        "authority_limits": [
+            "does_not_block_commit",
+            "does_not_overwrite_validation_outcome",
+            "does_not_replace_run_validation_seam",
+            "readiness_preview_only",
+        ],
+        "must_not_override_validation_outcome": True,
+        "validation_outcome_changed": False,
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "affects_commit": False,
+        "affects_readiness": False,
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
+        "feature_flag": feature_flag_name,
+        "feature_flag_enabled": True,
     }
 
 

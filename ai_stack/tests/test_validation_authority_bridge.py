@@ -10,6 +10,7 @@ from ai_stack.runtime_aspect_ledger import (
     ADR0041_DRIFT_MISSING_CONTEXT,
     ADR0041_DRIFT_SEAM_STRICTER,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
+    ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
     ADR0041_VALIDATION_AUTHORITY_PREVIEW_SCHEMA_VERSION,
     ASPECT_NPC_AGENCY,
     initialize_runtime_aspect_ledger,
@@ -23,6 +24,7 @@ from ai_stack.tests.test_capability_validator_registry import (
 )
 from ai_stack.validation_authority_bridge import (
     VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION,
+    VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION,
     build_validation_authority_bridge,
     seam_concerns_covered_by_adr0041_validators,
 )
@@ -106,6 +108,7 @@ def test_plan_enforced_emits_handoff_candidate_and_seam_coverage(monkeypatch) ->
         "actor_lane_forbidden_output",
         "dramatic_effect_gate",
         "hard_forbidden_runtime",
+        "opening_event_coverage",
     }
     cov = bridge["seam_concern_coverage"]
     for cid in (
@@ -125,6 +128,93 @@ def test_plan_enforced_emits_handoff_candidate_and_seam_coverage(monkeypatch) ->
     assert "mirrored_by_adr0041" in buckets
     assert "authoritative_action_resolution_surface" in buckets["seam_owned"]
     assert "intent_surface_npc_narrated_player_action" in buckets["migration_candidate"]
+
+
+def test_plan_enforced_does_not_emit_scoped_co_authority_without_flag(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.delenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, raising=False)
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-no-coauth",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+    report = proj["validator_dispatch_report"]
+
+    assert "validation_co_authority_decision" not in report
+    assert "validation_co_authority_decision" not in proj
+
+
+def test_scoped_co_authority_decision_when_flagged_and_partial_transfer_ready(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-coauth",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+    report = proj["validator_dispatch_report"]
+    decision = proj["validation_co_authority_decision"]
+
+    assert decision == report["validation_co_authority_decision"]
+    assert decision["schema_version"] == VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION
+    assert decision["authority_stage"] == "scoped_co_authority"
+    assert decision["decision"] == "validation_co_authority_ready"
+    assert set(decision["scope"]) == {
+        "actor_lane_forbidden_output",
+        "dramatic_effect_gate",
+        "hard_forbidden_runtime",
+        "opening_event_coverage",
+    }
+    assert {row["concern_id"] for row in decision["concern_decisions"]} == set(decision["scope"])
+    assert decision["readiness_preview"]["status"] == "ready_for_scoped_co_authority"
+    assert decision["validation_preview"]["status"] == "ready_for_validation_co_authority"
+    assert decision["legacy_fallback_authority"] == "run_validation_seam"
+    assert decision["dramatic_effect_mirror_fidelity_sufficient"] is True
+    assert decision["affects_commit"] is False
+    assert decision["affects_readiness"] is False
+    assert decision["validation_outcome_changed"] is False
+    assert decision["commit_gate_changed"] is False
+    assert decision["readiness_gate_changed"] is False
+
+
+def test_scoped_co_authority_decision_blocked_without_partial_transfer_ready(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-coauth-blocked",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": {},
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+
+    assert proj["validation_authority_bridge"]["per_turn_class"]["opening_scene"][
+        "partial_transfer_ready"
+    ] is False
+    assert "validation_co_authority_decision" not in proj
+    assert "validation_co_authority_decision" not in proj["validator_dispatch_report"]
 
 
 def test_handoff_blocked_when_missing_context_opening(monkeypatch) -> None:
@@ -348,6 +438,7 @@ def test_partial_transfer_blocked_when_dramatic_mirror_emits_partial_defaults_fi
         "dramatic_effect_gate_mirror_contract",
         "scene_energy_contract",
         "hard_forbidden_runtime_contract",
+        "opening_event_coverage_contract",
     ]
     entries: list[dict] = []
     for vid in req_ids:

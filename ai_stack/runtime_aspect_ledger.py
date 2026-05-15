@@ -43,7 +43,10 @@ from ai_stack.capability_validator_registry import (
     build_player_turn_enforced_semantic_validator_registry,
     goc_seam_mirror_plan_validator_ids_for_turn_class,
 )
-from ai_stack.validation_authority_bridge import build_validation_authority_bridge
+from ai_stack.validation_authority_bridge import (
+    build_validation_authority_bridge,
+    build_validation_co_authority_decision,
+)
 
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
@@ -56,6 +59,7 @@ ADR0041_HARNESS_PLAN_ENFORCED_REQUIRES_REGISTRY_WARNING = (
 
 ADR0041_PLAN_PROJECTION_ENABLED_ENV = "ADR0041_PLAN_PROJECTION_ENABLED"
 ADR0041_PLAN_PROJECTION_SCHEMA_VERSION = "adr0041_plan_projection.v1"
+ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV = "ADR0041_SCOPED_CO_AUTHORITY_ENABLED"
 
 # Ephemeral bundle attached by LangGraph validate_seam when
 # ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
@@ -625,6 +629,29 @@ def build_adr0041_validation_authority_preview(
     )
 
 
+def resolve_adr0041_scoped_co_authority_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve the explicit ADR-0041 scoped co-authority feature flag.
+
+    Default ``False`` (fail closed): no co-authority decision payload is emitted.
+    Enabling this flag still does not mutate validation, readiness, or commit state.
+    """
+    warnings: list[str] = []
+    raw = env_value if env_value is not None else os.environ.get(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV)
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 scoped co-authority decision disabled."
+    )
+    return False, tuple(warnings)
+
+
 def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     *,
     capability_context: dict[str, Any],
@@ -699,7 +726,24 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
         selected_turn_class=turn_class_key,
     )
     semantic_validator_dispatch_report["validation_authority_bridge"] = _json_safe(bridge)
-    extra_warnings = [*dispatch_mode_warnings, *sidecar_deriv_warnings]
+    co_authority_enabled, co_authority_warnings = resolve_adr0041_scoped_co_authority_enabled()
+    if co_authority_enabled:
+        co_authority_decision = build_validation_co_authority_decision(
+            validation_authority_bridge=bridge,
+            validator_dispatch_report=semantic_validator_dispatch_report,
+            selected_turn_class=turn_class_key,
+            feature_flag_name=ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
+            feature_flag_enabled=True,
+        )
+        if isinstance(co_authority_decision, dict):
+            semantic_validator_dispatch_report["validation_co_authority_decision"] = _json_safe(
+                co_authority_decision
+            )
+    extra_warnings = [
+        *dispatch_mode_warnings,
+        *sidecar_deriv_warnings,
+        *co_authority_warnings,
+    ]
     existing_warnings = semantic_validator_dispatch_report.get("warnings")
     merged: list[str] = list(existing_warnings) if isinstance(existing_warnings, list) else []
     for w in extra_warnings:
@@ -1250,7 +1294,8 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         )
     else:
         semantic_validator_dispatch_report = build_semantic_validator_dispatch_report_projection(
-            **capability_context
+            **capability_context,
+            dispatch_mode=ValidatorDispatchMode.DRY_RUN,
         )
 
     projection_payload = {
@@ -2162,6 +2207,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         ho = bridge_obj.get("authority_handoff_candidate")
         if isinstance(ho, dict):
             projection_payload["authority_handoff_candidate"] = ho
+    co_authority_decision = semantic_validator_dispatch_report.get("validation_co_authority_decision")
+    if isinstance(co_authority_decision, dict):
+        projection_payload["validation_co_authority_decision"] = co_authority_decision
     return _json_safe(projection_payload)
 
 

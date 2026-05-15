@@ -8,7 +8,7 @@ The Capability Matrix is not a wishlist and not a historical idea list. It is a 
 
 [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) is an active governance source for these gates. It governs hardcoded-oracle prevention, Pi / Π vocabulary boundaries, MCP/Langfuse verification quality, repository-root portability, local-vs-live evidence separation, and false-green prevention.
 
-[ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) adds the future Semantic Capability Selector boundary. Selection evidence can explain why a capability was `off`, `observe`, `enforce`, or `judge` for a turn, but it is not implementation proof, live/staging proof, or promotion evidence by itself.
+[ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) adds the Runtime Capability Authority boundary. Selection evidence can explain why a capability was `off`, `observe`, `enforce`, or `judge` for a turn, and scoped co-authority decision preview can explain why bounded concerns are locally ready, but neither is live/staging proof or promotion evidence by itself.
 
 ## Promotion Rules
 

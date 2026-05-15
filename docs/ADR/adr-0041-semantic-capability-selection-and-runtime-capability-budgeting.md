@@ -1,8 +1,10 @@
-# ADR-0041: Semantic Capability Selection and Runtime Capability Budgeting
+# ADR-0041: Controlled Runtime Capability Authority
+
+Former working title: Semantic Capability Selection and Runtime Capability Budgeting.
 
 ## Status
 
-Proposed
+Not Finished
 
 ## Date
 
@@ -10,9 +12,9 @@ Proposed
 
 ## Strategic direction (governance)
 
-ADR-0041 should be treated as a **controlled runtime-authority track**, not an observability-only sidecar. **Intended end state:** ADR-0041 becomes a **central runtime mechanism** that (1) classifies the current runtime situation, (2) selects relevant semantic capabilities, (3) routes only necessary validators/checks, (4) reduces unnecessary validation cost, (5) exposes drift against legacy seams, (6) prepares scoped authority transfer, and (7) under **explicit future governance**, supports **controlled runtime co-authority** for bounded, well-proven concerns.
+ADR-0041 should be treated as **Controlled Runtime Capability Authority**, not an observability-only sidecar. **Intended end state:** ADR-0041 becomes a central runtime mechanism that (1) classifies the current runtime situation, (2) selects relevant semantic capabilities, (3) routes only necessary validators/checks, (4) reduces unnecessary validation cost, (5) exposes drift against legacy seams, (6) decides which results are authoritative enough for bounded transfer, and (7) supports controlled runtime co-authority for bounded, well-proven concerns.
 
-**Today:** projection, dry-run dispatch, opt-in plan-enforced sidecar, authority bridge, preview, and handoff-candidate policy are **temporary safety phases**; they are **not** the target end state. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness until separate decisions say otherwise.
+**Today:** projection, dry-run dispatch, opt-in plan-enforced sidecar, authority bridge, preview, and handoff-candidate policy are temporary safety phases; they are not the target end state. The current scoped step is `scoped_co_authority`: under `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`, ADR-0041 may emit a non-mutating `validation_co_authority_decision` only when `partial_transfer_ready` is true for bounded concerns. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness.
 
 **Guardrails:** feature-flag and governance discipline; no commit/readiness or `validation_outcome` ownership claims from ADR-0041 alone; no live/staging claims from local-only evidence; no Capability Matrix promotion from local proof; semantic names only (ADR-0039); no Pi/Π active runtime keys; judges not default-on; unavailable validators do not pass.
 
@@ -28,22 +30,24 @@ ADR-0041 should be treated as a **controlled runtime-authority track**, not an o
 | Feature-flagged plan-enforced local dispatch adapter | Implemented | `ADR0041_VALIDATOR_DISPATCH_MODE` defaults to `dry_run`; `plan_enforced` runs **turn-class–scoped** local validators from the semantic registry when dispatch context is present (ledger path + LangGraph `validate_seam` sidecar). Default remains `dry_run`; no change to `validation_outcome` or commit/readiness. Evidence: per-validator `local_execution_evidence`; judges never run. |
 | Validation authority preview (non-commit) | Implemented | When `plan_enforced` sidecar merges into `runtime_intelligence_projection`, top-level `validation_authority_preview` mirrors `validator_dispatch_report.adr0041_authority_preview`: `affects_commit=false`, `affects_readiness=false`, `proof_level=local_only`, `live_or_staging_evidence=false`, plus `drift_vs_validation_seam` classification vs `run_validation_seam` summary (`aligned`, `adr0041_stricter`, `seam_stricter`, `missing_context`, `unavailable_validator`, `conflicting_result`). Preview does **not** gate turns. |
 | Validation authority bridge (seam ↔ ADR-0041 map) | Implemented | ``build_validation_authority_bridge`` in ``ai_stack/validation_authority_bridge.py``; surfaced as ``runtime_intelligence_projection.validation_authority_bridge`` when plan-enforced graph sidecar merges. Includes per-concern ``seam_concern_coverage``, machine-readable ``seam_area_adr0041_relationship(_buckets)``, and ``authority_handoff_candidate`` (shadow governance signal; not commit authority). Bridge ``recommended_authority`` remains ``seam_canonical``; handoff may recommend ``adr0041_ready_for_shadow_authority`` when bounded partial-transfer scope is satisfied locally. Tests: ``ai_stack/tests/test_validation_authority_bridge.py``. |
+| Scoped co-authority decision (flag-gated, non-mutating) | Implemented locally / Not commit authority | `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` plus `plan_enforced` and `partial_transfer_ready=true` may emit `runtime_intelligence_projection.validation_co_authority_decision` with `authority_stage=scoped_co_authority`, `readiness_preview`, and `validation_preview`. It is limited to `actor_lane_forbidden_output`, `hard_forbidden_runtime`, `opening_event_coverage` (opening only), and `dramatic_effect_gate` with sufficient mirror fidelity. It never overwrites `validation_outcome`, never blocks commit, and never replaces `run_validation_seam`. Tests: `ai_stack/tests/test_validation_authority_bridge.py`. |
 | Semantic validator registry inventory | Implemented | `docs/MVPs/capability_validator_registry_inventory.md` and `ai_stack/capability_validator_registry.py` map planned validator IDs to real local surfaces; default registry remains empty. Opening-scene, normal player-turn, and NPC conflict-turn enforced adapters exist via thin local evaluators (`build_opening_enforced_semantic_validator_registry`, `build_player_turn_enforced_semantic_validator_registry`, `build_npc_conflict_enforced_semantic_validator_registry`). Plan-enforced remains opt-in; production orchestration and live/staging proof remain pending. |
 | Turn-class enforced registry coverage (local-only drift guard) | Implemented | `TURN_CLASS_ENFORCED_VALIDATORS`, `get_registry_coverage_for_turn_class`, tests in `ai_stack/tests/test_capability_validator_turn_class_coverage.py`. Observer diagnostics remain non-blocking and are not production-gated. |
 | World-engine ADR-0041 validator dispatch harness (tests only) | Implemented | `build_adr0041_validator_dispatch_harness_report()` in `ai_stack/runtime_aspect_ledger.py`; `world-engine/tests/test_adr0041_validator_dispatch_harness.py`. Requires explicit `harness_allow_plan_enforced_local_dispatch=True` and an explicit validator registry for plan-enforced execution; default `normalize_runtime_aspect_ledger` / ledger projection remains `dry_run` with `actually_executed=[]`. |
 | LangGraph validate_seam ADR-0041 sidecar (opt-in) | Implemented | When `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced`, `_validate_seam` attaches `ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY` (`_adr0041_runtime_graph_dispatch_context`) on the aspect ledger: local-only dispatch context + `validation_seam_summary` echo. **Not** commit truth or player-facing state; consumed during `normalize_runtime_aspect_ledger` to merge plan-enforced `validator_dispatch_report`. `run_validation_seam` remains canonical for `validation_outcome`. Tests: `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`. |
-| Production orchestration readiness (ADR-0041 dispatch → live runtime) | Partially implemented / still governed | Opt-in LangGraph sidecar + preview/drift are implemented under explicit env flag; **Capability Matrix promotion, live/staging proof, and commit/readiness authority** remain explicitly **not** implemented. Options map in `docs/MVPs/capability_selection_runtime_design.md` updated for current behavior. |
+| Production orchestration readiness (ADR-0041 dispatch → live runtime) | Partially implemented / still governed | Opt-in LangGraph sidecar + preview/drift + scoped co-authority decision preview are implemented under explicit env flags; **Capability Matrix promotion, live/staging proof, `validation_outcome` override, and commit/readiness mutation** remain explicitly **not** implemented. Options map in `docs/MVPs/capability_selection_runtime_design.md` updated for current behavior. |
 | World-engine prompt/runtime assembly integration | Not implemented | Future phase; no prompt authority or runtime behavior changes in the first implementation. |
 | Actual selected validator execution/gating integration | Not implemented | Future phase; production validator orchestration is not wired to plan-enforced dispatch yet; commit/readiness integration remains pending. |
 | LLM-as-a-Judge execution integration | Not implemented | Judge mode remains budget-gated metadata only; no judge execution is added. |
 | Langfuse/MCP live or staging verification | Not implemented | No live/staging evidence is produced by the local selector core, capability projection, or validator-plan projection. |
 
-#### Seam mirror ↔ authority bridge (`validation_authority_bridge.v4`, local-only)
+#### Seam mirror ↔ authority bridge (`validation_authority_bridge.v5`, local-only)
 
-- **`validation_authority_bridge.v4`** records deterministic ADR-0041 **seam-mirror** validators for core seam concerns (diagnostic mapping only; not a commitment seam).
+- **`validation_authority_bridge.v5`** records deterministic ADR-0041 **seam-mirror** validators for core seam concerns and exposes bounded transfer readiness. It is still not a commitment seam.
 - **`seam_concern_coverage`:** each catalog concern has `coverage_status`, `validator_ids`, `turn_class_scope`, `seam_area_adr0041_relationship` (`mirrored_by_adr0041` | `partially_mirrored_by_adr0041` | `seam_owned` | `migration_candidate` | `not_safe_to_migrate`), `authority_transfer_status`, and `blockers`.
 - **`authority_handoff_candidate`:** also copied to `runtime_intelligence_projection.authority_handoff_candidate` for observability; `candidate=true` only when bounded `partial_transfer_ready`, drift `aligned`, no unavailable validators, and `migration_readiness=observation_ready`; always `affects_commit=false`, `proof_level=local_only`.
-- **Partial-transfer scope (bounded):** critical concerns **`dramatic_effect_gate`** and **`hard_forbidden_runtime`** use turn-class–specific **required** validator subsets (`partial_transfer_required_validators_by_turn_class` + `partial_transfer_critical_scope` in bridge snapshots). Broad `related_adr0041_validators` lists remain documentation-oriented.
+- **`validation_co_authority_decision`:** with `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`, ADR-0041 may emit `authority_stage=scoped_co_authority` and nested `readiness_preview` / `validation_preview` when all bounded transfer checks pass. It is a runtime authority decision payload, not a commit blocker.
+- **Partial-transfer scope (bounded):** critical concerns **`actor_lane_forbidden_output`**, **`hard_forbidden_runtime`**, **`opening_event_coverage`** (opening only), and **`dramatic_effect_gate`** use turn-class–specific **required** validator subsets (`partial_transfer_required_validators_by_turn_class` + `partial_transfer_critical_scope` in bridge snapshots). Broad `related_adr0041_validators` lists remain documentation-oriented.
 - **`partial_transfer_scope_registry_satisfied`** / **`complete_enough_for_future_seam_partial_transfer`** mean: enforced registry covers those scoped requirements (nominal plan-enforced readiness), not full seam equivalence.
 - **`partial_transfer_ready`:** additionally requires **this** turn class to match **`bridge_selected_turn_class`**, `plan_enforced` execution, all scoped validators **executed**, **`local_evidence=all_pass`**, and **no** `dramatic_effect_mirror_fidelity=partial_defaults` on mirror evidence (honest bounded gate; waiver/defaults block readiness).
 - **`partial_transfer_blocked`:** machine-readable reasons when readiness is false (registry gaps, execution gaps, local failures, dramatic fidelity flag).
@@ -51,7 +55,7 @@ ADR-0041 should be treated as a **controlled runtime-authority track**, not an o
 - **`opening_event_coverage_contract`**: missing opening coverage context (e.g. absent **`turn_input_class`**) → **`unavailable`**, not a silent “not applicable” pass.
 - **`authoritative_action_resolution_surface`** stays **`seam_owned`** in the bridge catalog.
 - **`npc_conflict_turn`**: fixture dispatch must include non-empty **`proposed_state_effects`** (legacy alignment minimum), valid scene-energy contract inputs, and (for tests) **`voice_validation_mode=schema_only`** with **`voice_profiles=[]`** so voice consistency runs deterministically without missing-profile noise; end-to-end **`partial_transfer_ready`** is asserted in `ai_stack/tests/test_validation_authority_bridge.py`.
-- **`recommended_authority`** remains **`seam_canonical`**; **no** commit/readiness behavior change attached to the bridge; **no** live/staging proof claims.
+- **`recommended_authority`** on the bridge remains **`seam_canonical`**; the scoped co-authority decision is copied separately and keeps `validation_outcome_changed=false`, `commit_gate_changed=false`, and `readiness_gate_changed=false`.
 
 ### Local verification log (ADR-0041 governance)
 
@@ -60,6 +64,7 @@ ADR-0041 should be treated as a **controlled runtime-authority track**, not an o
 | Turn-class vs registry coverage | `opening_scene`, `normal_player_turn`, `npc_conflict_turn` enforced validator IDs vs opt-in builders; enforced sets disjoint from canonical observer diagnostic IDs | `ai_stack/tests/test_capability_validator_turn_class_coverage.py` |
 | World-engine harness (local-only; default projection unchanged) | Explicit harness enables plan-enforced only with registry + harness flag; `live_or_staging_evidence=false`; ledger normalization stays dry-run | `world-engine/tests/test_adr0041_validator_dispatch_harness.py` |
 | LangGraph plan_enforced sidecar + authority preview | Default path dry-run; with env + graph bundle, turn-class validators execute locally only; preview/drift + **validation_authority_bridge** + **authority_handoff_candidate** visible; seam outcome unchanged | `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`, `ai_stack/tests/test_validation_authority_bridge.py` |
+| Scoped co-authority decision preview | Requires `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced`, graph sidecar, `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`, `partial_transfer_ready=true`, aligned seam drift, and all scoped deterministic validators passing; emits `validation_co_authority_decision` only, with no commit/readiness mutation | `ai_stack/tests/test_validation_authority_bridge.py` |
 
 ## Intellectual property rights
 
@@ -122,43 +127,42 @@ creating false implementation or live/staging claims from mere selection.
 
 ## Decision
 
-Introduce the design contract for a **Semantic Capability Selector**. The first
-implementation is a local deterministic selector core plus a local runtime
-intelligence projection hook only; it does not change prompt authority,
-validator execution, judge execution, generated story content, or commit gates.
-The validator execution plan is planning evidence only; it does not execute,
-skip, or gate real validators.
-
-The future selector must answer for each turn:
+Introduce the design contract for a **Runtime Capability Authority Layer**. The
+selector is one internal stage of that layer, not the final capability by itself.
+ADR-0041 must decide per turn:
 
 ```text
+What situation is this?
 Which capabilities are needed now?
 Which capabilities are observed only?
 Which capabilities are excluded?
-Which expensive judges or validators are allowed?
-Why was this decision made?
+Which local validators should run?
+Which checks are irrelevant and must be skipped?
+Which local results are ready for bounded authority transfer?
+Which concerns remain owned by run_validation_seam?
+What may influence readiness/validation preview without mutating commit?
 ```
 
 The architecture concept is:
 
 ```text
-Runtime Context / Scene Director
+Runtime / LangGraph Turn State
         ->
 Situation Classifier
         ->
-Capability Selector
+Semantic Capability Selector
         ->
-Capability Budgeter
+Turn-Class Capability Plan
         ->
-Prompt / Runtime Assembly
+Validator Router
         ->
-Runtime Execution
+Deterministic Local Validators
         ->
-Selected Validators / Judges
+Authority Bridge vs. run_validation_seam
         ->
-RuntimeAspectLedger Projection
+Scoped Runtime Authority Decision
         ->
-Langfuse / MCP / Operator Evidence
+Readiness / Commit Policy (later and bounded)
 ```
 
 Normative rules:
@@ -180,17 +184,21 @@ Normative rules:
 - Runtime execution, validation, ledger projection, MCP/Langfuse evidence, and
   Capability Matrix promotion rules still govern implementation and live
   claims.
+- `run_validation_seam` remains legacy canonical authority, fallback authority,
+  and comparison baseline until a later explicit handoff decision changes a
+  specific concern.
+- Scoped co-authority may be previewed only for named concern slices with
+  `partial_transfer_ready=true`; this does not overwrite `validation_outcome`,
+  does not block commit, and does not replace the seam.
 
 ## Non-goals
 
-- Not implementing the selector in this task.
-- Not introducing new runtime capabilities.
-- Not adding selectors, validators, prompt assemblers, or tests in this task.
-- Not promoting partial capabilities.
-- Not creating live/staging proof.
-- Not replacing the Capability Matrix.
-- Not replacing RuntimeAspectLedger.
+- Not replacing `run_validation_seam` globally.
+- Not blocking commit from ADR-0041 local evidence.
+- Not overwriting `validation_outcome`.
+- Not making prompt assembly or generated story content depend on this decision.
 - Not making LLM-as-a-Judge mandatory for all turns.
+- Not creating live/staging proof or Capability Matrix promotion evidence.
 - Not making Pi / Π labels active runtime identifiers.
 - Not allowing local-only evidence to become live proof.
 
@@ -587,18 +595,36 @@ flowchart TB
 
 ## Testing
 
-Not yet automated. This ADR is documentation-only.
+Automated local coverage exists for the implemented local selector, projection,
+validator planning, dry-run dispatch, opt-in plan-enforced sidecar, registry
+coverage, authority preview, authority bridge, and world-engine harness paths.
+Key tests include:
 
-Future tests must comply with ADR-0039 and should cover:
+- `ai_stack/tests/test_capability_selector.py`
+- `ai_stack/tests/test_capability_selector_runtime_projection.py`
+- `ai_stack/tests/test_capability_validator_plan.py`
+- `ai_stack/tests/test_capability_validator_runtime_projection.py`
+- `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`
+- `ai_stack/tests/test_capability_validator_dispatch_plan_enforced.py`
+- `ai_stack/tests/test_capability_validator_turn_class_coverage.py`
+- `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`
+- `ai_stack/tests/test_adr0041_plan_projection_evidence.py`
+- `ai_stack/tests/test_validation_authority_bridge.py`
+- `world-engine/tests/test_adr0041_validator_dispatch_harness.py`
+- `world-engine/tests/test_story_runtime_aspect_ledger.py`
 
-- Manifest semantic-name validation.
-- No Pi / Π active selector keys.
-- Opening-scene selection output.
-- Budget limits by situation class.
-- Validator gating by activation mode.
-- Judge gating by ambiguity/high-stakes/promotion reasons.
-- RuntimeAspectLedger projection shape.
-- MCP/Langfuse evidence-scope fields.
+These tests must comply with ADR-0039: semantic capability names only, no active
+Pi / Π selector or runtime keys, structured contract/projection fields as
+oracles, and no generated prose, PASS label, or local-only evidence used as
+Capability Matrix promotion or live/staging proof.
+
+Remaining future coverage should be added only when the corresponding governed
+implementation exists:
+
+- World-engine prompt/runtime assembly integration.
+- Production selected-validator orchestration and gating.
+- Judge execution integration.
+- MCP/Langfuse live or staging verification with environment metadata.
 
 ## References
 

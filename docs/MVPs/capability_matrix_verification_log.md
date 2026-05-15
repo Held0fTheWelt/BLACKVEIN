@@ -46,6 +46,8 @@ ADR-0041 governance wording / Capability Map direction (2026-05-15): documentati
 
 ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow map and insertion guidance in `docs/MVPs/capability_selection_runtime_design.md` (ADR-0041 Production Orchestration Readiness); **no production orchestration implemented**. Canonical dispatch field: **`actually_executed`** (repo-wide search: no `actually_detected`). World-engine pytest: prefer `cd world-engine && python -m pytest …` to avoid `ModuleNotFoundError: app` when running from repo root.
 
+ADR-0041 scoped co-authority decision preview (2026-05-15): `validation_authority_bridge.v5` adds `opening_event_coverage` to the bounded critical scope and `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` may emit `runtime_intelligence_projection.validation_co_authority_decision` only when plan-enforced sidecar execution is `partial_transfer_ready`. Verification: `python -m pytest ai_stack/tests/test_validation_authority_bridge.py ai_stack/tests/test_capability_validator_dispatch_feature_flag.py -q`; `validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`; `run_validation_seam` remains canonical; `live_or_staging_evidence=false`; no Capability Matrix promotion.
+
 ---
 
 ## Local verification snapshot for Π28 / temporal-control runtime aspect

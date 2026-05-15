@@ -3,7 +3,7 @@
 Last updated: 2026-05-15
 
 This document is the implementation-readiness companion for
-[ADR-0041: Semantic Capability Selection and Runtime Capability Budgeting](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md).
+[ADR-0041: Controlled Runtime Capability Authority](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md).
 It is implementation guidance for the local selector core and future runtime
 integration. It does not change world-engine runtime behavior, promote
 Capability Matrix status, or create live/staging proof.
@@ -12,7 +12,7 @@ Capability Matrix status, or create live/staging proof.
 
 ADR-0041 **semantic capability selection** is an **elemental runtime building block** whose **target role** is **controlled runtime authority**—situation classification, capability selection, lean validator routing, seam drift visibility, scoped transfer preparation, and eventual **bounded co-authority** for proven concern slices.
 
-**Current phases** (dry-run, projection, opt-in plan-enforced sidecar, bridge, preview, handoff-candidate) are **safety scaffolding**, valid only as **intermediate** steps. They must not become the **final** architecture by inertia. **`run_validation_seam` stays canonical** for `validation_outcome`, commit, and readiness **until an explicit governance decision** changes that.
+**Current phases** (dry-run, projection, opt-in plan-enforced sidecar, bridge, preview, handoff-candidate, scoped co-authority decision preview) are **safety scaffolding**, valid only as **intermediate** steps. They must not become the **final** architecture by inertia. **`run_validation_seam` stays canonical** for `validation_outcome`, commit, and readiness **until an explicit governance decision** changes that.
 
 When reading the Capability Map/matrix, separate **local implementation** from **runtime-path participation**, **shadow/preview** layers from **partial-transfer readiness**, and **real co-authority** from **live/staging verification**—see [capability_matrix_status_and_adr_relations.md](capability_matrix_status_and_adr_relations.md) § ADR-0041 runtime authority direction.
 
@@ -50,6 +50,14 @@ not change commit/readiness gates, and remains `proof_level=local_only`. Missing
 or invalid env values fail closed to `dry_run`. Production validator orchestration
 and commit/readiness integration remain pending.
 
+A second explicit flag, `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`, can emit
+`runtime_intelligence_projection.validation_co_authority_decision` when
+`plan_enforced` graph sidecar execution is present and the selected turn class is
+`partial_transfer_ready`. This is the current `scoped_co_authority` step: it may
+produce `readiness_preview` and `validation_preview`, but it keeps
+`validation_outcome_changed=false`, `commit_gate_changed=false`, and
+`readiness_gate_changed=false`.
+
 A semantic validator registry inventory now exists in
 `docs/MVPs/capability_validator_registry_inventory.md` with code-backed rows in
 `ai_stack/capability_validator_registry.py`. `build_default_semantic_validator_registry()`
@@ -76,7 +84,7 @@ invoke it. Evidence: ``world-engine/tests/test_adr0041_validator_dispatch_harnes
 Current boundaries:
 
 - Not wired into world-engine prompt assembly.
-- Not wired into selected validator execution or gating.
+- Not wired into commit/readiness gating.
 - Not wired into judge execution.
 - Not wired into Langfuse/MCP live or staging proof.
 - Not Capability Matrix promotion evidence.
@@ -84,9 +92,12 @@ Current boundaries:
 ## ADR-0041 Production Orchestration Readiness (audit 2026-05-15)
 
 **Verdict:** Plan-enforced dispatch is **opt-in only** (`ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced`).
-**Do not** treat ADR-0041 local results as commit/readiness truth; **`run_validation_seam`**
-remains canonical for `validation_outcome`. Broader production rollout (registry sourcing,
-operational policy, rollback) still needs an explicit governance slice.
+Scoped co-authority decision preview is also **opt-in only**
+(`ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`). **Do not** treat ADR-0041 local
+results as commit/readiness truth; **`run_validation_seam`** remains canonical
+for `validation_outcome`. Broader production rollout (registry sourcing,
+operational policy, rollback, commit/readiness policy) still needs an explicit
+governance slice.
 
 ### Current state
 
@@ -100,7 +111,9 @@ operational policy, rollback) still needs an explicit governance slice.
   registry) and sets `runtime_intelligence_projection.validation_authority_preview` plus
   `validation_authority_bridge` and **top-level** `authority_handoff_candidate` (duplicate of the bridge field)
   with explicit `affects_commit=false` / `affects_readiness=false` and drift classification vs the seam
-  summary — **preview / routing observability**, not gate authority.
+  summary. With `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` and `partial_transfer_ready=true`,
+  the same path can add **top-level** `validation_co_authority_decision`; this is a bounded
+  runtime authority decision preview, not gate mutation.
 - **Harness path:** `build_adr0041_validator_dispatch_harness_report` — tests only; **not** invoked from ledger normalization.
 - **Semantic naming / Pi:** Validator IDs remain semantic contract names; **no `actually_detected`** symbol exists in the repo (canonical field is **`actually_executed`**).
 
@@ -128,52 +141,30 @@ operational policy, rollback) still needs an explicit governance slice.
 - **Auto-building registry from Capability Matrix** (hidden promotion risk).
 - **Inferring `plan_enforced` from turn situation alone** (already forbidden by harness design).
 
-### Option analysis (next phases)
+### Authority status model
 
-**Option A — Projection-only remains default (recommended near-term)**
+| Stage | Current state |
+|-------|---------------|
+| `dry_run` | Default ledger projection; no validators execute. |
+| `plan_enforced` | Implemented behind `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` plus graph sidecar. |
+| `authority_preview` | Implemented as `validation_authority_preview` and bridge drift fields. |
+| `authority_handoff_candidate` | Implemented as a shadow governance signal. |
+| `scoped_co_authority` | Implemented as `validation_co_authority_decision` behind `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`; preview-only today. |
+| `scoped_primary_authority` | Not implemented. |
+| `full runtime authority` | Not implemented and explicitly long-term. |
 
-- Benefits: Zero gameplay risk; aligns with current architecture; Table-B / ADR-0039 friendly.
-- Risks: Dispatch stays non-authoritative; operators may confuse projection with enforcement.
-- Tests: Extend `ai_stack/tests/test_runtime_aspect_ledger.py` if projection shape grows.
-- ADR-0039: Continue semantic IDs only; no Pi keys.
-- ADR-0041: Completes “explainability” layer only.
-- **Implement next:** Yes — **only** enriched projection or sibling diagnostic payload under explicit flag.
-
-**Option B — Feature-flagged local execution, no gate effects**
-
-- Benefits: Real adapter execution in production graph with observable traces; still no commit coupling.
-- Risks: Latency, double-validation conceptual drift vs `run_validation_seam`, operational confusion.
-- Tests: LangGraph integration tests + world-engine smoke from `world-engine/` cwd; assert `validation_outcome` unchanged when flag off.
-- ADR-0039: Same; add assertions judges never run.
-- ADR-0041: Moves from “plan” to “observe executed adapters.”
-- **Implement next:** Only **after** Option A policy text + flag/registry ownership decided.
-
-**Option C — Execution + gate-readiness preview (still no gate mutation)**
-
-- Benefits: Rehearses future governance without changing commits.
-- Risks: Two sources of “truth” (`validation_outcome` vs preview) — documentation burden.
-- Tests: Snapshot tests for preview dict; property: preview disagreeing with seam does **not** fail turn.
-- **Implement next:** After Option B proves stable.
-
-### Recommended next narrow step
-
-Document and implement **Option A only**: add an explicit env/feature flag that toggles **additional**
-projection payload (or sibling key) populated via the **same** registry builders used in tests,
-with **default off** and **fail-closed** to current dry-run shape. **Do not** call harness from
-`normalize_runtime_aspect_ledger` until named ADR acceptance.
-
-### Future patch map (do not implement yet)
+### Future patch map
 
 | Element | Guidance |
 |---------|----------|
-| Minimal insertion | `runtime_aspect_ledger.build_runtime_intelligence_projection` → conditional branch around semantic dispatch (~726–728) **or** diagnostics-only merge |
-| Feature flag | New explicit flag (e.g. `ADR0041_SEMANTIC_DISPATCH_EXECUTION_IN_LEDGER`) **plus** existing dispatch mode resolution; **missing/invalid → dry_run** |
+| Minimal insertion | Keep the existing `runtime_aspect_ledger.build_runtime_intelligence_projection` sidecar branch; do not add a second commitment path. |
+| Feature flags | Preserve `ADR0041_VALIDATOR_DISPATCH_MODE` and `ADR0041_SCOPED_CO_AUTHORITY_ENABLED`; missing/invalid values fail closed. |
 | Registry source | Explicit runtime-provided mapping **or** static opt-in builder — **never** implicit empty-as-success |
 | Fallback | No registry → dry-run projection identical to today |
 | Judges | Remain disallow-listed; registry builders unchanged |
-| Tests | `test_runtime_aspect_ledger`, harness tests, new LangGraph contract test if touching executor |
+| Tests | `test_runtime_aspect_ledger`, bridge tests, harness tests, LangGraph contract tests if touching executor |
 | Risks | Drift between seam validators and ADR-0041 adapter set |
-| Rollback | Flag default off; delete branch |
+| Rollback | Flags default off; remove the co-authority decision copy without touching `run_validation_seam` |
 
 ### World-engine pytest convention
 
@@ -227,28 +218,29 @@ failed, degraded, or recovered turns.
 Target architecture:
 
 ```text
-Runtime Context / Scene Director
+Runtime / LangGraph Turn State
         ->
 Situation Classifier
         ->
-Capability Selector
+Semantic Capability Selector
         ->
-Capability Budgeter
+Turn-Class Capability Plan
         ->
-Prompt / Runtime Assembly
+Validator Router
         ->
-Runtime Execution
+Deterministic Local Validators
         ->
-Selected Validators / Judges
+Authority Bridge vs. run_validation_seam
         ->
-RuntimeAspectLedger Projection
+Scoped Runtime Authority Decision
         ->
-Langfuse / MCP / Operator Evidence
+Readiness / Commit Policy (later and bounded)
 ```
 
-The selector should sit after scene/runtime context is known and before prompt
-or runtime assembly. It must be deterministic-first. LLM-based selection is a
-fallback for ambiguous or high-stakes situations, not the normal path.
+The authority layer should sit after scene/runtime context is known and before
+any future readiness or commit policy handoff. It must be deterministic-first.
+LLM-based selection or judging is a fallback for ambiguous or high-stakes
+situations, not the normal path.
 
 ## Input Signals
 

@@ -128,23 +128,23 @@ Future promotions use the evidence rules in [capability_matrix_live_claim_gates.
 
 If the project later adopts a `live_verified` status, this same live-claim rule becomes the `implemented` -> `live_verified` promotion gate.
 
-## ADR-0041 runtime authority direction
+## ADR-0041 Controlled Runtime Capability Authority
 
-ADR-0041 should be treated as a **controlled runtime-authority track**, not an observability-only sidecar. **Target role:** a central runtime mechanism that classifies the situation, selects semantic capabilities, routes only necessary validators, reduces validation cost, surfaces drift versus legacy seams (`run_validation_seam`), prepares **scoped** authority transfer, and — under explicit future governance — can support **controlled runtime co-authority** for bounded concerns.
+ADR-0041 should be treated as **Controlled Runtime Capability Authority**, not an observability-only sidecar. **Target role:** a central runtime mechanism that classifies the situation, selects semantic capabilities, routes only necessary validators, reduces validation cost, surfaces drift versus legacy seams (`run_validation_seam`), prepares **scoped** authority transfer, and supports controlled runtime co-authority for bounded concerns.
 
-**Current status (implementation):** selector, validator execution plan, dispatch (default `dry_run`; opt-in `plan_enforced`), registry inventory, turn-class coverage, LangGraph sidecar local execution, authority bridge, partial-transfer readiness, and handoff-candidate policy exist **locally** with bounded, flag-gated behavior. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness **today**.
+**Current status (implementation):** **Not Finished — local runtime authority readiness implemented; scoped co-authority decision preview flag-gated; commit/readiness authority pending.** Selector, validator execution plan, dispatch (default `dry_run`; opt-in `plan_enforced`), registry inventory, turn-class coverage, LangGraph sidecar local execution, authority bridge, partial-transfer readiness, handoff-candidate policy, and `validation_co_authority_decision` exist **locally** with bounded, flag-gated behavior. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness **today**.
 
-**Safety phases (temporary):** dry-run projection, plan-enforced sidecar, bridge, preview, and handoff-candidate output are **safety scaffolding** on the path toward real runtime participation. They must not be mistaken for the **final** architecture.
+**Description:** ADR-0041 is the runtime capability authority track. It classifies turn situations, selects semantic capabilities, routes validators, reduces unnecessary checks, compares against legacy seam authority, and prepares scoped transfer of validation authority. Sidecar, projection, preview, and bridge modes are temporary safety phases, not the target end state.
 
-**Forward direction:** advance ADR-0041 toward **scoped runtime participation** and, when proven, **bounded co-authority** for well-specified concern slices — not open-ended “more local evidence” as an end state.
+**Current scoped co-authority boundary:** `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` plus `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` may emit `runtime_intelligence_projection.validation_co_authority_decision` only when `partial_transfer_ready=true` for the selected turn class. The bounded concern set is `actor_lane_forbidden_output`, `hard_forbidden_runtime`, `opening_event_coverage` (opening only), and `dramatic_effect_gate` with sufficient mirror fidelity.
 
-**Guardrails:** no default behavior change without explicit flags/governance; no commit/readiness authority without a **later explicit decision**; no live/staging claims from local-only proof; no Capability Matrix promotion from local-only proof; no active Pi/Π runtime keys (per ADR-0039); unavailable validators must not pass; no LLM-as-a-Judge by default.
+**Guardrails:** no default behavior change without explicit flags/governance; the co-authority decision is preview-only today (`validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`); no live/staging claims from local-only proof; no Capability Matrix promotion from local-only proof; no active Pi/Π runtime keys (per ADR-0039); unavailable validators must not pass; no LLM-as-a-Judge by default.
 
-**Capability Map / matrix interpretation:** distinguish at least: **local implementation** (code/tests); **runtime-path participation** (wired into canonical turn execution beyond projection-only); **shadow/preview authority** (non-commit diagnostics, drift, handoff signal); **partial-transfer readiness** (governed bounded scope); **real runtime co-authority** (future; explicit ADR/gate); **live/staging verification** (dated provider/Langfuse/MCP evidence per promotion rules). **“Sidecar present”** or **projection present** does **not** equal final capability maturity or co-authority.
+**Capability Map / matrix interpretation:** distinguish at least: **local implementation** (code/tests); **runtime-path participation** (wired into canonical turn execution beyond projection-only); **shadow/preview authority** (non-commit diagnostics, drift, handoff signal); **partial-transfer readiness** (governed bounded scope); **scoped co-authority decision preview** (current flag-gated step); **commit/readiness co-authority** (future explicit gate); **live/staging verification** (dated provider/Langfuse/MCP evidence per promotion rules). **“Sidecar present”** or **projection present** does **not** equal final capability maturity or commit authority.
 
 ## Capability Matrix vs Capability Selector
 
-[ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) defines the future Semantic Capability Selector boundary.
+[ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) defines the Runtime Capability Authority boundary; semantic capability selection is one stage inside it.
 
 The Capability Matrix answers: what exists, what maturity it has, what ADR governs it, and what evidence is required.
 

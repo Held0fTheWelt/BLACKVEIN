@@ -56,6 +56,30 @@ def test_invalid_feature_flag_fails_closed_or_warns() -> None:
     assert "falling back" in warnings[0]
 
 
+def test_scoped_co_authority_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
+        resolve_adr0041_scoped_co_authority_enabled,
+    )
+
+    monkeypatch.delenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, raising=False)
+
+    enabled, warnings = resolve_adr0041_scoped_co_authority_enabled()
+
+    assert enabled is False
+    assert warnings == ()
+
+
+def test_invalid_scoped_co_authority_flag_fails_closed() -> None:
+    from ai_stack.runtime_aspect_ledger import resolve_adr0041_scoped_co_authority_enabled
+
+    enabled, warnings = resolve_adr0041_scoped_co_authority_enabled(env_value="maybe")
+
+    assert enabled is False
+    assert warnings
+    assert "scoped co-authority decision disabled" in warnings[0]
+
+
 def test_env_plan_enforced_requires_explicit_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, "plan_enforced")
 
@@ -81,6 +105,39 @@ def test_runtime_projection_defaults_to_dry_run_without_env(monkeypatch: pytest.
     assert report["execution_changed"] is False
     assert report["actually_executed"] == []
     assert report["feature_flag_enabled"] is False
+
+
+def test_runtime_projection_without_graph_sidecar_stays_dry_run_with_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        initialize_runtime_aspect_ledger,
+        normalize_runtime_aspect_ledger,
+    )
+
+    monkeypatch.setenv(
+        ADR0041_VALIDATOR_DISPATCH_MODE_ENV,
+        ValidatorDispatchMode.PLAN_ENFORCED.value,
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="dispatch-flag-no-sidecar",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    normalized = normalize_runtime_aspect_ledger(ledger)
+    projection = normalized["runtime_intelligence_projection"]
+    report = projection["validator_dispatch_report"]
+
+    assert report["mode"] == ValidatorDispatchMode.DRY_RUN.value
+    assert report["execution_changed"] is False
+    assert report["actually_executed"] == []
+    assert report["validators_unavailable"] == []
+    assert report["feature_flag_enabled"] is False
+    assert "validation_authority_preview" not in projection
+    assert "validation_authority_bridge" not in projection
+    assert "authority_handoff_candidate" not in projection
 
 
 def test_explicit_mode_overrides_env(monkeypatch: pytest.MonkeyPatch) -> None:
