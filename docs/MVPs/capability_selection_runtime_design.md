@@ -14,6 +14,12 @@ The first local deterministic selector core now exists in
 `ai_stack/capability_selector.py`, with focused tests in
 `ai_stack/tests/test_capability_selector.py`.
 
+The RuntimeAspectLedger runtime intelligence projection now exposes
+`runtime_intelligence_projection.capability_selection` as local-only evidence
+derived from existing turn context. This projection does not set
+`turn_aspect_ledger.capability_selection` to passed, does not change commit or
+readiness status, and does not execute validators or judges.
+
 Current boundaries:
 
 - Not wired into world-engine prompt assembly.

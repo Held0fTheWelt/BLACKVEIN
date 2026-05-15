@@ -12,6 +12,11 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from ai_stack.capability_selector import (
+    derive_turn_situation_from_runtime_context,
+    select_capabilities,
+)
+
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
 TURN_ASPECT_LEDGER_SCHEMA_VERSION = "turn_aspect_ledger.v1"
@@ -288,6 +293,51 @@ def _record_reasons(record: dict[str, Any]) -> list[str]:
     return [str(reason) for reason in reasons if str(reason).strip()] if isinstance(reasons, list) else []
 
 
+def build_semantic_capability_selection_projection(
+    *,
+    turn_kind: str | None = None,
+    turn_number: int | None = None,
+    raw_player_input: str | None = None,
+    input_kind: str | None = None,
+    active_actor: str | None = None,
+    npc_decision_required: bool | None = None,
+    action_resolution_required: bool | None = None,
+    visible_projection_required: bool | None = None,
+    canonical_scene_seed: bool | None = None,
+    non_lexical_input_present: bool | None = None,
+    knowledge_gap_present: bool | None = None,
+    world_state_change_requested: bool | None = None,
+) -> dict[str, Any]:
+    """Build ADR-0041 local selector evidence for runtime intelligence projection."""
+    situation, derivation_warnings = derive_turn_situation_from_runtime_context(
+        turn_kind=turn_kind,
+        turn_number=turn_number,
+        raw_player_input=raw_player_input,
+        input_kind=input_kind,
+        active_actor=active_actor,
+        npc_decision_required=npc_decision_required,
+        action_resolution_required=action_resolution_required,
+        visible_projection_required=visible_projection_required,
+        canonical_scene_seed=canonical_scene_seed,
+        non_lexical_input_present=non_lexical_input_present,
+        knowledge_gap_present=knowledge_gap_present,
+        world_state_change_requested=world_state_change_requested,
+    )
+    payload = select_capabilities(situation).to_runtime_aspect_projection()[
+        ASPECT_CAPABILITY_SELECTION
+    ]
+    warnings = [
+        *(
+            payload.get("warnings")
+            if isinstance(payload.get("warnings"), list)
+            else []
+        ),
+        *derivation_warnings,
+    ]
+    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
+    return _json_safe(payload)
+
+
 def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict[str, Any]:
     """Project aspect-record storage into the requested turn-ledger design shape.
 
@@ -486,6 +536,44 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     realized_capabilities = cap_actual.get("realized_capabilities")
     violated_capabilities = cap_actual.get("violated_capabilities") or cap_actual.get(
         "missing_required_capabilities"
+    )
+    npc_decision_required_signal = bool(
+        npc_agency_expected.get("candidate_actor_ids")
+        or npc_agency_selected.get("selected_private_plan_actor_ids")
+        or npc_agency_actual.get("planned_actor_ids")
+    )
+    knowledge_gap_signal = bool(
+        dramatic_irony_selected.get("selected_opportunity_ids")
+        or dramatic_irony_selected.get("selected_fact_ids")
+        or dramatic_irony_actual.get("opportunity_count")
+        or dramatic_irony_actual.get("fact_count")
+    )
+    world_state_change_signal = bool(
+        cascade_selected.get("selected_consequence_ids")
+        or cascade_actual.get("event_count")
+        or cascade_actual.get("consequence_count")
+        or cascade_actual.get("committed_consequences")
+    )
+    raw_player_input_signal = (
+        input_actual.get("raw_player_input")
+        if "raw_player_input" in input_actual
+        else src.get("raw_player_input")
+    )
+    semantic_capability_selection = build_semantic_capability_selection_projection(
+        turn_kind=src.get("turn_kind"),
+        turn_number=src.get("turn_number"),
+        raw_player_input=raw_player_input_signal,
+        input_kind=input_actual.get("player_input_kind")
+        or input_actual.get("input_kind")
+        or action_actual.get("input_kind"),
+        active_actor=src.get("active_actor"),
+        npc_decision_required=npc_decision_required_signal or None,
+        action_resolution_required=False
+        if action_rec.get("applicable") is False
+        else None,
+        visible_projection_required=True,
+        knowledge_gap_present=knowledge_gap_signal,
+        world_state_change_requested=world_state_change_signal,
     )
 
     return _json_safe(
@@ -929,6 +1017,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 else [],
                 "status": cap_rec.get("status"),
             },
+            "capability_selection": semantic_capability_selection,
             "authority": {
                 "narrator": {
                     "required": bool(narr_expected.get("required")),

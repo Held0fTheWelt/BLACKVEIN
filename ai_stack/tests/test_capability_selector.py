@@ -267,3 +267,8 @@ def test_selection_projection_does_not_claim_live_or_staging_evidence() -> None:
     assert payload["proof_level"] == "local_only"
     assert payload["live_or_staging_evidence"] is False
     assert payload["implementation_proof"] is False
+    assert payload["implemented_by_runtime"] is False
+    assert payload["live_verified"] is False
+    assert payload["staging_verified"] is False
+    assert payload["provider_verified"] is False
+    assert payload["capability_promoted"] is False

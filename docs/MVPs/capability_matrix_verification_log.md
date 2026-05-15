@@ -420,3 +420,37 @@ ADR-0039 discipline for this slice: tests derive expectations from schema consta
 Known limitations: this is local implementation and mocked/fixture verification only. Fresh staging traces, provider evidence, and end-to-end player-visible replay remain outside this snapshot.
 
 ---
+
+## Local verification snapshot for ADR-0041 semantic capability selection projection
+
+- Date: 2026-05-15
+- Git SHA at verification time: `7784f246` (dirty worktree; local ADR-0041 projection changes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, or MCP live proof claim.
+- `python -m pytest ai_stack/tests/test_capability_selector.py -q` -> 12 passed
+- `python -m pytest ai_stack/tests/test_capability_selector_runtime_projection.py -q` -> 6 passed
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py -q` -> 13 passed
+- `python -m pytest world-engine/tests/test_story_runtime_aspect_ledger.py -q` -> 21 passed
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py -q` -> 7 passed
+- `python -m pytest tests/gates/test_adr0039_* -q` -> 1 passed
+- `python -m pytest tests/gates/test_adr_0039_* -q` -> 7 passed
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q` -> 4 passed
+- `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: ADR-0041 now exposes a local-only semantic selector payload at
+`runtime_intelligence_projection.capability_selection` for initialized runtime
+aspect ledgers. The projection records selected, observed, judged, and excluded
+semantic capability names, activation modes, budget, reason, warnings,
+`proof_level=local_only`, and `live_or_staging_evidence=false`.
+
+ADR-0039 discipline for this slice: selector projection uses semantic capability
+names only, adds no active Pi / Π runtime keys, does not mark
+`turn_aspect_ledger.capability_selection` as passed, and does not promote
+Capability Matrix maturity. The projection does not change prompt authority,
+validator execution, judge execution, generated story content, or
+commit/readiness gates.
+
+Known limitations: full prompt assembly integration, selected validator gating,
+judge execution, Langfuse/MCP live proof, and Capability Matrix promotion remain
+future work.
+
+---
