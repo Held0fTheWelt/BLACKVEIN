@@ -49,6 +49,16 @@ returns an empty map; `build_available_semantic_validator_registry()` exposes th
 adapters only for inventory rows marked `safe_for_local_plan_enforced`.
 `build_player_turn_enforced_semantic_validator_registry()` covers the normal
 player-turn enforced set when opt-in plan-enforced dispatch is used in tests.
+`build_npc_conflict_enforced_semantic_validator_registry()` covers the NPC
+conflict-turn enforced set the same way.
+
+Turn-class coverage (drift guard, no runtime wiring): `TURN_CLASS_ENFORCED_VALIDATORS`,
+`get_turn_class_enforced_validators`, `get_registry_coverage_for_turn_class`, and
+`assert_turn_class_registry_coverage` in `ai_stack/capability_validator_registry.py`
+with tests in `ai_stack/tests/test_capability_validator_turn_class_coverage.py`.
+For each of `opening_scene`, `normal_player_turn`, and `npc_conflict_turn`, local-only
+registry builders are expected to register every enforced validator ID; observer
+diagnostics remain non-blocking and must not appear in enforced sets.
 
 Current boundaries:
 

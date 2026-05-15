@@ -7,7 +7,6 @@ fields. Unregistered IDs must never false-green as success.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,6 +49,19 @@ from ai_stack.scene_energy_engine import validate_scene_energy_realization
 from ai_stack.sensory_context_engine import validate_sensory_context_realization
 
 LOCAL_PROOF_LEVEL = "local_only"
+
+# ADR-0041 turn-class coverage (deterministic semantic validator IDs only; no Pi/Π keys).
+# Enforced IDs align with `capability_selector` opening / player / NPC conflict paths.
+TURN_CLASS_OPENING_SCENE = "opening_scene"
+TURN_CLASS_NORMAL_PLAYER_TURN = "normal_player_turn"
+TURN_CLASS_NPC_CONFLICT_TURN = "npc_conflict_turn"
+
+# Observer diagnostic IDs referenced by validator plans when a capability is observed (non-blocking).
+# Includes `environment_state_diagnostic` (fallback from `_observer_diagnostic_id` — not listed in OBSERVER_DIAGNOSTICS).
+CANONICAL_OBSERVER_DIAGNOSTIC_IDS: frozenset[str] = frozenset(
+    frozenset(OBSERVER_DIAGNOSTICS.values()) | {"environment_state_diagnostic"}
+)
+
 
 # Inventory status vocabulary (ADR-0041 registry audit).
 STATUS_IMPLEMENTED_CALLABLE = "implemented_callable"
@@ -570,6 +582,43 @@ _PLAYER_TURN_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "scene_energy_contract",
 )
 
+_NPC_CONFLICT_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "npc_agency_contract",
+    "voice_consistency_contract",
+    "scene_energy_contract",
+    "information_disclosure_contract",
+)
+
+KNOWN_TURN_CLASSES: tuple[str, ...] = (
+    TURN_CLASS_OPENING_SCENE,
+    TURN_CLASS_NORMAL_PLAYER_TURN,
+    TURN_CLASS_NPC_CONFLICT_TURN,
+)
+
+TURN_CLASS_ENFORCED_VALIDATORS: dict[str, tuple[str, ...]] = {
+    TURN_CLASS_OPENING_SCENE: _OPENING_ENFORCED_VALIDATOR_IDS,
+    TURN_CLASS_NORMAL_PLAYER_TURN: _PLAYER_TURN_ENFORCED_VALIDATOR_IDS,
+    TURN_CLASS_NPC_CONFLICT_TURN: _NPC_CONFLICT_ENFORCED_VALIDATOR_IDS,
+}
+
+# Typical observer diagnostics for each turn class (selector-driven; always non-blocking in plans).
+TURN_CLASS_TYPICAL_OBSERVER_DIAGNOSTIC_IDS: dict[str, tuple[str, ...]] = {
+    TURN_CLASS_OPENING_SCENE: (
+        "thematic_tracking_diagnostic",
+        "callback_web_diagnostic",
+        "sensory_context_diagnostic",
+    ),
+    TURN_CLASS_NORMAL_PLAYER_TURN: (
+        "environment_state_diagnostic",
+        "thematic_tracking_diagnostic",
+        "callback_web_diagnostic",
+    ),
+    TURN_CLASS_NPC_CONFLICT_TURN: (
+        "thematic_tracking_diagnostic",
+        "callback_web_diagnostic",
+    ),
+}
+
 
 _AVAILABLE_ADAPTER_REGISTRY: dict[str, LocalValidatorCallable] = {
     "narrator_authority_contract": _adapter_narrator_authority,
@@ -622,6 +671,84 @@ def build_player_turn_enforced_semantic_validator_registry() -> dict[str, LocalV
         for validator_id in _PLAYER_TURN_ENFORCED_VALIDATOR_IDS
         if validator_id in available
     }
+
+
+def build_npc_conflict_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return NPC conflict-turn enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _NPC_CONFLICT_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
+    }
+
+
+def normalize_turn_class_key(turn_class: str) -> str:
+    """Normalize and validate a turn-class key (lowercase semantic identifier)."""
+    return validate_semantic_capability_name(str(turn_class or "").strip())
+
+
+def get_turn_class_enforced_validators(turn_class: str) -> tuple[str, ...]:
+    """Return enforced validator IDs for an ADR-0041 turn class; fail closed if unknown."""
+    key = normalize_turn_class_key(turn_class)
+    if key not in TURN_CLASS_ENFORCED_VALIDATORS:
+        raise ValueError(f"Unknown ADR-0041 turn class: {turn_class!r}")
+    return TURN_CLASS_ENFORCED_VALIDATORS[key]
+
+
+def get_typical_observer_diagnostic_ids_for_turn_class(turn_class: str) -> tuple[str, ...]:
+    """Return typical non-blocking observer diagnostic IDs for a turn class."""
+    key = normalize_turn_class_key(turn_class)
+    if key not in TURN_CLASS_TYPICAL_OBSERVER_DIAGNOSTIC_IDS:
+        raise ValueError(f"Unknown ADR-0041 turn class: {turn_class!r}")
+    return TURN_CLASS_TYPICAL_OBSERVER_DIAGNOSTIC_IDS[key]
+
+
+@dataclass(frozen=True)
+class TurnClassRegistryCoverage:
+    """Local-only coverage report: which enforced validators are present in a registry map."""
+
+    turn_class: str
+    required_enforced_validator_ids: tuple[str, ...]
+    validator_ids_registered: tuple[str, ...]
+    validator_ids_missing: tuple[str, ...]
+    typical_observer_diagnostic_ids: tuple[str, ...]
+    coverage_complete: bool
+
+
+def get_registry_coverage_for_turn_class(
+    turn_class: str,
+    registry: Mapping[str, LocalValidatorCallable],
+) -> TurnClassRegistryCoverage:
+    """Compare required enforced validators for a turn class to a registry (no execution)."""
+    required = get_turn_class_enforced_validators(turn_class)
+    registered = tuple(vid for vid in required if vid in registry)
+    missing = tuple(vid for vid in required if vid not in registry)
+    observers = get_typical_observer_diagnostic_ids_for_turn_class(turn_class)
+    key = normalize_turn_class_key(turn_class)
+    return TurnClassRegistryCoverage(
+        turn_class=key,
+        required_enforced_validator_ids=required,
+        validator_ids_registered=registered,
+        validator_ids_missing=missing,
+        typical_observer_diagnostic_ids=observers,
+        coverage_complete=len(missing) == 0,
+    )
+
+
+def assert_turn_class_registry_coverage(
+    turn_class: str,
+    registry: Mapping[str, LocalValidatorCallable],
+    *,
+    require_complete: bool = True,
+) -> TurnClassRegistryCoverage:
+    """Assert optional full adapter coverage for a turn class; returns the coverage report."""
+    cov = get_registry_coverage_for_turn_class(turn_class, registry)
+    if require_complete and not cov.coverage_complete:
+        raise AssertionError(
+            f"Turn class {cov.turn_class!r} missing registry adapters for: {cov.validator_ids_missing!r}"
+        )
+    return cov
 
 
 def build_semantic_validator_registry(

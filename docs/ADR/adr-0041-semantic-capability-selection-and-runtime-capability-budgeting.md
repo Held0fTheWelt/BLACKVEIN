@@ -18,11 +18,18 @@ Proposed
 | Local validator execution-plan projection | Implemented | `runtime_intelligence_projection.validator_execution_plan` maps selected capabilities to planned validator, diagnostic, skipped, and judge-disallowed IDs with `execution_changed=false`. |
 | Dry-run validator dispatch projection | Implemented | `runtime_intelligence_projection.validator_dispatch_report` consumes the local execution plan in `dry_run` mode only; `actually_executed` remains empty and `execution_changed=false`. |
 | Feature-flagged plan-enforced local dispatch adapter | Implemented | `ADR0041_VALIDATOR_DISPATCH_MODE` defaults to `dry_run`; explicit `plan_enforced` with a registered local validator registry can execute opening-scene local validators in tests only. Production projection remains dry-run unless the env flag is explicitly set. |
-| Semantic validator registry inventory | Implemented | `docs/MVPs/capability_validator_registry_inventory.md` and `ai_stack/capability_validator_registry.py` map planned validator IDs to real local surfaces; default registry remains empty. Opening-scene and normal player-turn enforced adapters exist via thin local evaluators (`build_opening_enforced_semantic_validator_registry`, `build_player_turn_enforced_semantic_validator_registry`). Plan-enforced remains opt-in; production orchestration and live/staging proof remain pending. |
+| Semantic validator registry inventory | Implemented | `docs/MVPs/capability_validator_registry_inventory.md` and `ai_stack/capability_validator_registry.py` map planned validator IDs to real local surfaces; default registry remains empty. Opening-scene, normal player-turn, and NPC conflict-turn enforced adapters exist via thin local evaluators (`build_opening_enforced_semantic_validator_registry`, `build_player_turn_enforced_semantic_validator_registry`, `build_npc_conflict_enforced_semantic_validator_registry`). Plan-enforced remains opt-in; production orchestration and live/staging proof remain pending. |
+| Turn-class enforced registry coverage (local-only drift guard) | Implemented | `TURN_CLASS_ENFORCED_VALIDATORS`, `get_registry_coverage_for_turn_class`, tests in `ai_stack/tests/test_capability_validator_turn_class_coverage.py`. Observer diagnostics remain non-blocking and are not production-gated. |
 | World-engine prompt/runtime assembly integration | Not implemented | Future phase; no prompt authority or runtime behavior changes in the first implementation. |
 | Actual selected validator execution/gating integration | Not implemented | Future phase; production validator orchestration is not wired to plan-enforced dispatch yet; commit/readiness integration remains pending. |
 | LLM-as-a-Judge execution integration | Not implemented | Judge mode remains budget-gated metadata only; no judge execution is added. |
 | Langfuse/MCP live or staging verification | Not implemented | No live/staging evidence is produced by the local selector core, capability projection, or validator-plan projection. |
+
+### Local verification log (ADR-0041 governance)
+
+| Check | Scope | Evidence |
+|-------|-------|----------|
+| Turn-class vs registry coverage | `opening_scene`, `normal_player_turn`, `npc_conflict_turn` enforced validator IDs vs opt-in builders; enforced sets disjoint from canonical observer diagnostic IDs | `ai_stack/tests/test_capability_validator_turn_class_coverage.py` |
 
 ## Intellectual property rights
 

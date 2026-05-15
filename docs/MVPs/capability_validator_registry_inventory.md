@@ -71,6 +71,33 @@ All IDs matching `{semantic_capability}_judge` from `capability_validator_plan.J
 - `voice_consistency_contract`
 - `scene_energy_contract`
 
+## NPC conflict-turn enforced registry
+
+`build_npc_conflict_enforced_semantic_validator_registry()` exposes the NPC conflict-turn enforced set (selector: `npc_turn` + `npc_decision_required`):
+
+- `npc_agency_contract`
+- `voice_consistency_contract`
+- `scene_energy_contract`
+- `information_disclosure_contract`
+
+## Turn-class coverage (local-only)
+
+Canonical enforced validator IDs per turn class: `TURN_CLASS_ENFORCED_VALIDATORS` and
+`get_turn_class_enforced_validators()` in `ai_stack/capability_validator_registry.py`.
+Coverage vs an opt-in registry map: `get_registry_coverage_for_turn_class()` /
+`assert_turn_class_registry_coverage()` (no validator execution; no production dispatch).
+
+| Turn class | Enforced validators (local-only complete when all IDs are in the opt-in registry) |
+|------------|-----------------------------------------------------------------------------------|
+| `opening_scene` | `narrator_authority_contract`, `scene_energy_contract`, `environment_state_contract`, `information_disclosure_contract`, `voice_consistency_contract` |
+| `normal_player_turn` | `player_intent_contract`, `action_resolution_contract`, `information_disclosure_contract`, `voice_consistency_contract`, `scene_energy_contract` |
+| `npc_conflict_turn` | `npc_agency_contract`, `voice_consistency_contract`, `scene_energy_contract`, `information_disclosure_contract` |
+
+**Observer diagnostics** (non-blocking in execution plans; not production-gated as enforced validators):
+`environment_state_diagnostic`, `thematic_tracking_diagnostic`, `callback_web_diagnostic`,
+`sensory_context_diagnostic`. Optional situational observers (e.g. dramatic irony when
+`knowledge_gap_present`) are not part of this fixed enforced/diagnostic table.
+
 Default registry remains `{}`. Plan-enforced dispatch remains opt-in.
 
 ## Pending integration
