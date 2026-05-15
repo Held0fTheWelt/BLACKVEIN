@@ -6,7 +6,9 @@ import pytest
 
 from ai_stack.capability_selector import (
     CAP_ACTION_RESOLUTION,
+    CAP_BROAD_NLU_LISTENING,
     CAP_CALLBACK_WEB,
+    CAP_CONVERSATIONAL_MEMORY,
     CAP_CONSEQUENCE_CASCADE,
     CAP_DRAMATIC_IRONY,
     CAP_ENVIRONMENT_STATE,
@@ -16,6 +18,7 @@ from ai_stack.capability_selector import (
     CAP_NARRATOR_AUTHORITY,
     CAP_NPC_AGENCY,
     CAP_PLAYER_INTENT_INFERENCE,
+    CAP_PROMPT_AUTHORITY,
     CAP_SCENE_ENERGY,
     CAP_SENSORY_CONTEXT,
     CAP_SILENCE_NEGATIVE_SPACE,
@@ -117,6 +120,9 @@ def test_player_turn_selects_action_resolution_without_forecast_by_default() -> 
     )
     assert result.observed == (
         CAP_ENVIRONMENT_STATE,
+        CAP_BROAD_NLU_LISTENING,
+        CAP_CONVERSATIONAL_MEMORY,
+        CAP_PROMPT_AUTHORITY,
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
         CAP_GENRE_AWARENESS,

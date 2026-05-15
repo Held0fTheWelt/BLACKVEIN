@@ -145,6 +145,96 @@ def test_add_score_create_score_emits_trace_and_observation_not_session() -> Non
     assert "session_id" not in cc_kw
 
 
+def test_record_wos_nested_span_observation_uses_active_parent() -> None:
+    from types import SimpleNamespace
+
+    class _Child:
+        trace_id = "0123456789abcdef0123456789abcdef"
+        id = "child-obs"
+
+        def __init__(self) -> None:
+            self.ended = False
+
+        def end(self) -> None:
+            self.ended = True
+
+    class _Parent:
+        trace_id = "0123456789abcdef0123456789abcdef"
+        id = "parent-obs"
+
+        def __init__(self) -> None:
+            self.child = _Child()
+            self.kwargs: dict[str, object] | None = None
+
+        def start_observation(self, **kwargs):
+            self.kwargs = kwargs
+            return self.child
+
+    parent = _Parent()
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    adapter._clients = {"development": object()}
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        diag = adapter.record_wos_nested_span_observation(
+            name="story.semantic_capability.local_evidence",
+            metadata={"proof_level": "local_only"},
+            input_data={"turn": 1},
+            output_data={"contract_pass": True},
+        )
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    assert diag["emitted"] is True
+    assert diag["proof_level"] == "local_only"
+    assert diag["live_or_staging_evidence"] is False
+    assert diag["langfuse_trace_id"] == "0123456789abcdef0123456789abcdef"
+    assert parent.kwargs is not None
+    assert parent.kwargs["as_type"] == "span"
+    assert parent.kwargs["name"] == "story.semantic_capability.local_evidence"
+    assert parent.child.ended is True
+
+
+def test_record_adr0041_langfuse_scores_are_local_only_scores() -> None:
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    parent = MagicMock()
+    parent.trace_id = "0123456789abcdef0123456789abcdef"
+    parent.id = "parent-obs"
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    adapter._clients = {"development": client}
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        diag = adapter.record_adr0041_langfuse_scores(
+            scores=[("npc_agency_contract", 1.0), ("scene_energy_contract", 0.5)],
+            comment="local contract evidence",
+        )
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    assert diag["emitted"] is True
+    assert diag["scores_emitted"] == 2
+    assert client.create_score.call_count == 2
+    for call in client.create_score.call_args_list:
+        metadata = call.kwargs["metadata"]
+        assert metadata["score_origin"] == "adr0041_runtime_intelligence"
+        assert metadata["proof_level"] == "local_only"
+        assert metadata["live_or_staging_evidence"] is False
+        assert "session_id" not in call.kwargs
+
+
 def test_trace_metadata_backfill_reports_unsupported_when_sdk_method_missing() -> None:
     from types import SimpleNamespace
 

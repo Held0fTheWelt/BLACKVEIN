@@ -123,7 +123,9 @@
                             <div class="mui-field-grid">
                                 <label class="mui-field">
                                     <span class="mui-field-label">module_id</span>
-                                    <input type="text" id="wec-new-module" class="form-input" value="{{ admin_default_content_module_id | default('') | e }}" />
+                                    <input type="text" id="wec-new-module" class="form-input"
+                                           value="{{ content_module_id | default('') | e }}"
+                                           placeholder="Set in backend GET/PUT /api/v1/site/settings (content_module_id) or operator env ADMIN_DEFAULT_CONTENT_MODULE_ID; required to create a session." />
                                 </label>
                                 <label class="mui-field">
                                     <span class="mui-field-label">start_scene_id</span>

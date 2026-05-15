@@ -4,6 +4,16 @@
 (function() {
     var pollTimer = null;
 
+    function operatorContentModuleId() {
+        var cfg = (typeof window !== "undefined" && window.__FRONTEND_CONFIG__) || {};
+        var v = String(cfg.contentModuleId || "").trim();
+        if (v) return v;
+        if (typeof document !== "undefined" && document.body && document.body.dataset) {
+            v = String(document.body.dataset.contentModuleId || "").trim();
+        }
+        return v;
+    }
+
     function showBanner(msg) {
         var el = document.getElementById("wec-banner");
         if (!el) return;
@@ -198,6 +208,12 @@
 
         setupPoll();
 
+        var midIn = document.getElementById("wec-new-module");
+        if (midIn && !String(midIn.value || "").trim()) {
+            var pref = operatorContentModuleId();
+            if (pref) midIn.value = pref;
+        }
+
         var term = document.getElementById("wec-terminate-run");
         if (term) term.addEventListener("click", function() {
             if (!selectedRunId) return;
@@ -237,6 +253,7 @@
             var mid = document.getElementById("wec-new-module");
             var sc = document.getElementById("wec-new-scene");
             var moduleId = mid && mid.value ? mid.value.trim() : "";
+            if (!moduleId) moduleId = operatorContentModuleId();
             var scene = sc && sc.value ? sc.value.trim() : "scene_1";
             if (!moduleId) return;
             fetchJSON("/api/v1/admin/world-engine/story/sessions", {

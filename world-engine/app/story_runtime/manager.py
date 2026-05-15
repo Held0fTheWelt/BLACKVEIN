@@ -204,7 +204,13 @@ from ai_stack.diagnostics_envelope import (
     build_diagnostics_envelope,
     build_narrative_gov_summary,
 )
-from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
+from ai_stack.runtime_cost_attribution import (
+    aggregate_phase_costs,
+    build_deterministic_phase_cost,
+    build_mock_phase_cost,
+    build_provider_usage_phase_cost,
+    build_unavailable_phase_cost,
+)
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 from ai_stack.goc_npc_transcript_projection import (
@@ -2741,6 +2747,117 @@ def _build_p0_action_resolution_evidence(
         "turn_status": event.get("turn_status"),
         "http_status": event.get("http_status"),
     }
+
+
+def _coerce_non_negative_int(value: Any) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _build_model_generation_phase_cost(graph_state: dict[str, Any]) -> dict[str, Any] | None:
+    """Build truthful phase cost for the final model invocation, when present."""
+    if not isinstance(graph_state, dict):
+        return None
+    generation = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
+    routing = graph_state.get("routing") if isinstance(graph_state.get("routing"), dict) else {}
+    gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+
+    adapter = str(
+        gen_meta.get("final_adapter")
+        or gen_meta.get("adapter")
+        or gen_meta.get("provider_used")
+        or ""
+    ).strip()
+    provider = str(
+        gen_meta.get("provider")
+        or gen_meta.get("provider_used")
+        or routing.get("selected_provider")
+        or adapter
+        or ""
+    ).strip()
+    model = str(
+        gen_meta.get("model")
+        or gen_meta.get("model_name")
+        or routing.get("selected_model")
+        or ""
+    ).strip()
+    attempted = bool(generation.get("attempted") or adapter or provider or model)
+    if not attempted:
+        return None
+
+    usage_details = gen_meta.get("usage_details") if isinstance(gen_meta.get("usage_details"), dict) else {}
+    input_tokens = _coerce_non_negative_int(usage_details.get("input") or gen_meta.get("tokens_prompt"))
+    output_tokens = _coerce_non_negative_int(usage_details.get("output") or gen_meta.get("tokens_completion"))
+    total_tokens = _coerce_non_negative_int(usage_details.get("total") or gen_meta.get("tokens_total"))
+    if total_tokens <= 0 and (input_tokens > 0 or output_tokens > 0):
+        total_tokens = input_tokens + output_tokens
+
+    latency_ms_raw = gen_meta.get("generation_latency_ms") or gen_meta.get("latency_ms")
+    latency_ms = _coerce_non_negative_int(latency_ms_raw) if latency_ms_raw is not None else None
+    phase_extra = {
+        "adapter": adapter or None,
+        "usage_source": gen_meta.get("usage_source"),
+        "usage_available": bool(gen_meta.get("usage_available")) or total_tokens > 0,
+        "fallback_used": bool(generation.get("fallback_used")),
+        "response_id": gen_meta.get("response_id"),
+        "adapter_invocation_mode": gen_meta.get("adapter_invocation_mode"),
+    }
+
+    adapter_key = adapter.lower()
+    provider_key = provider.lower()
+    model_key = model.lower()
+    deterministic_adapters = {"ldss_fallback", "ldss_deterministic", "world_engine"}
+    mockish = (
+        adapter_key == "mock"
+        or provider_key == "mock"
+        or model_key == "mock"
+        or model_key == "mock-model"
+    )
+    deterministic = adapter_key in deterministic_adapters or provider_key in {"world_engine", "deterministic"}
+
+    if total_tokens > 0 and not mockish and not deterministic:
+        return build_provider_usage_phase_cost(
+            phase="model_generation",
+            provider=provider or adapter or "unknown",
+            model=model or "unknown",
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_ms=latency_ms,
+            **phase_extra,
+        )
+    if mockish:
+        return build_mock_phase_cost(
+            phase="model_generation",
+            provider=provider or "mock",
+            model=model or "mock",
+            latency_ms=latency_ms,
+            **phase_extra,
+        )
+    if deterministic:
+        return build_deterministic_phase_cost(
+            phase="model_generation",
+            provider=provider or "world_engine",
+            model=model or adapter or "world_engine_deterministic",
+            latency_ms=latency_ms,
+            **phase_extra,
+        )
+    return build_unavailable_phase_cost(
+        phase="model_generation",
+        provider=provider or adapter or "unknown",
+        model=model or "unknown",
+        reason="provider_usage_unavailable",
+        latency_ms=latency_ms,
+        **phase_extra,
+    )
+
+
+def _ensure_model_generation_phase_cost(graph_state: dict[str, Any]) -> None:
+    phase_cost = _build_model_generation_phase_cost(graph_state)
+    if not phase_cost:
+        return
+    graph_state.setdefault("phase_costs", {})["model_generation"] = phase_cost
 
 
 def _build_langfuse_path_summary(
@@ -10215,6 +10332,7 @@ class StoryRuntimeManager:
                         context_snapshot={"turn_number": commit_turn_number},
                     ))
 
+                _ensure_model_generation_phase_cost(graph_state)
                 cost_summary = aggregate_phase_costs(graph_state.get("phase_costs", {}))
 
                 diag_envelope = build_diagnostics_envelope(

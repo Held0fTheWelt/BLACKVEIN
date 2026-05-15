@@ -844,7 +844,7 @@ def test_tonal_consistency_failure_triggers_hard_live_retry_diagnostics() -> Non
     state["tonal_consistency_target"] = tonal["target"]
     state["generation"] = _generation(
         {
-            "narration_summary": "Quest debug fallback.",
+            "narration_summary": "The room registers the movement.",
             "action_lines": [],
             "spoken_lines": [],
         }
@@ -852,7 +852,7 @@ def test_tonal_consistency_failure_triggers_hard_live_retry_diagnostics() -> Non
     state["proposed_state_effects"] = [
         {
             "effect_type": "narrative_projection",
-            "description": "Quest debug fallback.",
+            "description": "The room registers the movement.",
         }
     ]
     captured_feedback: dict[str, Any] = {}

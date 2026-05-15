@@ -568,6 +568,21 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
         )
         return preserve_prefix + base_instruction + genre_awareness_feedback
 
+    tonal_consistency_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("tonal_consistency_")
+    ]
+    if tonal_consistency_issues:
+        tonal_feedback = (
+            " Tonal consistency repair: preserve actor lanes and committed facts, "
+            "but rewrite visible narration/dialogue so it realizes the selected tonal_consistency target "
+            "from the dramatic packet. Keep the required tone dimensions visible through concrete scene pressure, "
+            "stay in the allowed register, and remove forbidden marker classes, debug wording, quest framing, "
+            "or therapy framing. Do not satisfy this with self-attested labels."
+        )
+        return preserve_prefix + base_instruction + tonal_feedback
+
     expectation_variation_issues = [
         code
         for code in feedback_codes

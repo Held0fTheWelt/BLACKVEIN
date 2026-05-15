@@ -42,8 +42,8 @@ def test_fetch_operator_defaults_parses_site_settings_json(monkeypatch):
         def read(self):
             return json.dumps(
                 {
-                    "default_content_module_id": "mod_a",
-                    "default_experience_template_id": "tpl_b",
+                    "content_module_id": "mod_a",
+                    "default_runtime_template_id": "tpl_b",
                 }
             ).encode("utf-8")
 
@@ -80,3 +80,31 @@ def test_fetch_operator_defaults_returns_empty_on_bad_json(monkeypatch):
         "https://api.example.com"
     )
     assert mod == "" and tpl == ""
+
+
+@pytest.mark.unit
+def test_fetch_operator_defaults_accepts_legacy_site_settings_keys(monkeypatch):
+    from urllib.request import Request
+
+    admin_app = _load_admin_app_module()
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def read(self):
+            return json.dumps(
+                {
+                    "default_content_module_id": "legacy_mod",
+                    "default_experience_template_id": "legacy_tpl",
+                }
+            ).encode("utf-8")
+
+    monkeypatch.setattr(admin_app, "urlopen", lambda req, timeout=0: _Resp())
+    admin_app.reset_operator_defaults_remote_cache()
+    mod, tpl = admin_app._fetch_operator_defaults_from_backend_public_settings("https://api.example.com")
+    assert mod == "legacy_mod"
+    assert tpl == "legacy_tpl"

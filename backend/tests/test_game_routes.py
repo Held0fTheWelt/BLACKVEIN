@@ -696,6 +696,12 @@ def test_game_content_endpoints_seed_and_publish(client, moderator_headers):
     assert list_response.status_code == 200
     experiences = list_response.get_json()['experiences']
     assert experiences
+
+    pub_filter = client.get("/api/v1/game/content/experiences?status=published", headers=moderator_headers)
+    assert pub_filter.status_code == 200
+    pub_only = pub_filter.get_json()["experiences"]
+    assert pub_only
+    assert all(row.get("is_published") is True for row in pub_only)
     seed = experiences[0]
     assert seed['template_id'] == 'god_of_carnage_solo'
     assert seed['is_published'] is True

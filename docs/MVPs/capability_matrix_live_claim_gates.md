@@ -1,6 +1,6 @@
 # Capability Matrix live claim gates
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This document defines promotion evidence for Capability Matrix claims that depend on runtime, staging, Langfuse, MCP, or live-provider proof. The current matrix lives in [capability_matrix_status_and_adr_relations.md](capability_matrix_status_and_adr_relations.md). Dated command history lives in [capability_matrix_verification_log.md](capability_matrix_verification_log.md).
 
@@ -59,6 +59,9 @@ Future selector evidence must preserve these boundaries:
 
 - `off` means intentionally excluded for the turn; no successful runtime work should be inferred.
 - `observe` means diagnostic/local observation only; it must not block commit or promote a claim unless a later ADR explicitly changes that capability's role.
+- `observe` may be model-visible only through an explicitly documented
+  non-gating prompt envelope; that still is not live proof, commit authority,
+  readiness authority, or validator-gate promotion.
 - `enforce` means the capability may shape prompt/runtime/validation for the turn, but implementation and live/staging claims still require runtime wiring, validators, tests, RuntimeAspectLedger projection, and live-claim evidence.
 - `judge` means a heavier LLM-as-a-Judge or external evaluator was allowed for a scoped reason; judge output is not deterministic runtime truth by itself.
 
@@ -85,6 +88,8 @@ Allowed cross-reference examples:
 | Π27 | `relationship_state` / `relationship_state_machine` |
 | Π31 | `narrative_momentum` |
 | Π32 | `genre_awareness` |
+| Π33 | `symbolic_object_resonance` |
+| Π34 | `broad_nlu_listening` / `conversational_memory` / `prompt_authority` |
 | Π35 | `tonal_consistency` |
 
 Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.
@@ -97,16 +102,34 @@ Runtime behavior must be contract-driven, not string-driven. Pi / Π labels must
 
 Tests should distinguish forbidden Pi-number usage from valid semantic implementations. New capabilities must be added to `tests/gates/test_table_b_anti_hardcoding_gate.py` or explicitly documented as out of scope.
 
-`tonal_consistency` is currently a local/partial diagnostic contract. It has
-semantic ledger/MCP fields and ADR-0039 tests, but it must not be claimed as
-live tonal drift enforcement until the authoritative runtime path, promotion
-criteria, and anti-hardcoding coverage are updated together.
+`tonal_consistency` now has a bounded authoritative runtime hard loop: the
+LangGraph turn path derives the target, validates with an independent
+policy-marker classifier, retries through bounded self-correction, and converts
+exhausted failures into recoverable rejection/no healthy commit. It still must
+not be claimed as live/staging promoted until ADR-0009 evidence includes dated
+provider traces, Langfuse/MCP scores, evaluator baselines, and readiness
+coupling.
 
 `narrative_momentum` is a bounded runtime contract with state-machine policy,
 planner-truth rehydration, ledger projection, and MCP/Langfuse extraction
 fields. It must not be claimed as open-ended dramatic momentum optimization or
 live/staging proof until dated provider traces, replay evidence, and promotion
 metadata satisfy this document's live-claim gate.
+
+`symbolic_object_resonance` is a bounded runtime contract with canonical object
+selection, resonance roles, structured event validation, planner-truth
+rehydration, ledger projection, and MCP/Langfuse extraction fields. It must not
+be claimed as open-ended symbolic interpretation or live/staging proof until
+dated provider traces, replay evidence, and promotion metadata satisfy this
+document's live-claim gate.
+
+`broad_nlu_listening`, `conversational_memory`, and `prompt_authority` form the
+bounded Π34 active-listening envelope. They may reach LangGraph prompt/packet
+assembly and `RuntimeAspectLedger` as local structured evidence, but they must
+not be claimed as broad production NLU, unbounded conversational memory,
+production validator gating, commit/readiness authority, or live/staging proof
+until dated provider traces, Langfuse/MCP evidence, and promotion metadata
+satisfy this document's live-claim gate.
 
 ADR-0039 must also cover all Pi-labeled tests. Add new Pi / Π test files to `tests/gates/test_adr_0039_pi_scope.py` so the project can audit which legacy-labeled tests are governed by contract/runtime assertions rather than by example-shaped strings.
 

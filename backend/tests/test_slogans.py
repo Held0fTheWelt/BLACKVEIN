@@ -150,6 +150,8 @@ def test_site_settings_returns_rotation_fields(client):
     assert isinstance(data["default_experience_template_id"], str)
     assert data["default_content_module_id"] == "god_of_carnage"
     assert data["default_experience_template_id"] == "god_of_carnage_solo"
+    assert data["content_module_id"] == "god_of_carnage"
+    assert data["default_runtime_template_id"] == "god_of_carnage_solo"
 
 
 def test_slogans_list_requires_auth(client):

@@ -33,6 +33,7 @@ def test_runtime_projection_contains_validator_execution_plan() -> None:
         "thematic_tracking_diagnostic",
         "callback_web_diagnostic",
         "sensory_context_diagnostic",
+        "genre_awareness_diagnostic",
     ]
     assert plan["reason"] == "planned from ADR-0041 capability selection; not executed yet"
 
@@ -54,6 +55,9 @@ def test_runtime_projection_validator_plan_skips_excluded_capabilities() -> None
     plan = _opening_validator_plan()
 
     assert "npc_agency_contract" in plan["validators_skipped"]
+    assert "broad_nlu_listening_diagnostic" in plan["validators_skipped"]
+    assert "conversational_memory_diagnostic" in plan["validators_skipped"]
+    assert "prompt_authority_diagnostic" in plan["validators_skipped"]
     assert "player_intent_contract" in plan["validators_skipped"]
     assert "action_resolution_contract" in plan["validators_skipped"]
     assert "consequence_cascade_contract" in plan["validators_skipped"]

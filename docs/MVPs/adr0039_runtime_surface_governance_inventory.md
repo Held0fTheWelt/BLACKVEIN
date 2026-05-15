@@ -173,6 +173,29 @@ surfaces:
       - story_runtime_core/tests/test_player_input_semantics_de.py
       - story_runtime_core/tests/test_player_input_semantics_en.py
 
+  - surface_id: ai_stack_active_listening_envelope
+    primary_files:
+      - ai_stack/active_listening_contracts.py
+      - ai_stack/langgraph_runtime_executor.py
+      - ai_stack/runtime_aspect_ledger.py
+    symbols:
+      - derive_broad_nlu_listening
+      - derive_conversational_memory_context
+      - build_prompt_authority_packet
+    runtime_role: Bounded Π34 active-listening prompt envelope; derives structured discourse, committed-memory refs, and source-bound prompt authority for model-visible assembly and ledger diagnostics
+    authority_level: diagnostic
+    can_mutate_validation_outcome: false
+    can_mutate_commit: false
+    can_mutate_readiness: false
+    can_mutate_frontend_playability: false
+    allowed_feature_flags: none as commit or readiness authority
+    known_false_green_risks: Treating local prompt-envelope presence as broad NLU, unbounded conversational memory, production validator gating, live proof, or commit/readiness authority
+    module_specific_assumptions: none; consumes structured runtime state and bounded hierarchical-memory context
+    tests_gates:
+      - ai_stack/tests/test_active_listening_contracts.py
+      - ai_stack/tests/test_langgraph_runtime.py
+      - ai_stack/tests/test_runtime_aspect_ledger.py
+
   - surface_id: story_runtime_core_no_dead_end_recovery
     primary_files:
       - story_runtime_core/recovery/no_dead_end.py
@@ -228,11 +251,12 @@ surfaces:
     can_mutate_readiness: false
     can_mutate_frontend_playability: false
     allowed_feature_flags: deployment and auth configuration only
-    known_false_green_risks: Local dashboard or proxy response treated as canonical runtime or live health without backend/engine correlation
-    module_specific_assumptions: narrative and runtime health pages must mirror upstream contracts; no story truth invented in static JS
+    known_false_green_risks: Local dashboard or proxy response treated as canonical runtime or live health without backend/engine correlation; treating empty operator defaults as an implicit module/template (defaults must come from GET /api/v1/site/settings aliases content_module_id / default_runtime_template_id, env ADMIN_DEFAULT_*, or moderator-published game content — not from static HTML literals)
+    module_specific_assumptions: Narrative admin pages require configured content_module_id or they show an explicit configuration-missing panel; game content "new draft" starters clone from GET /game/content/experiences?status=published only; manage/base.html exposes data-content-module-id and data-default-template-id plus frontend_config.contentModuleId / defaultRuntimeTemplateId
     tests_gates:
       - administration-tool/tests/test_proxy_contract.py
       - administration-tool/tests/test_manage_world_engine_control_center.py
+      - administration-tool/tests/test_manage_operator_defaults_rendered.py
 
   - surface_id: observability_mcp_langfuse_projection
     primary_files:

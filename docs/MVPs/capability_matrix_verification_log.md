@@ -728,33 +728,86 @@ promotion remain future work.
 ## Local verification snapshot for Π35 / tonal consistency
 
 - Date: 2026-05-15
-- Scope: **local pytest/static-gate evidence only** - no live-provider, staging,
-  live Langfuse, MCP live proof, ADR-0009 promotion proof, or authoritative
-  LangGraph commit-enforcement claim.
-- `python -m py_compile ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- Git SHA at verification time: `ba2601c9` (dirty worktree; local follow-up
+  Pi35 hard-loop/documentation edits not committed at run time)
+- Scope: **local pytest/static-gate/runtime-path evidence only** - no
+  live-provider, staging, live Langfuse, MCP live proof, or ADR-0009 promotion
+  proof.
+- `python -m py_compile ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_classifier.py ai_stack/tonal_consistency_engine.py ai_stack/langgraph_runtime_executor.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_package_output_sections.py ai_stack/story_runtime_playability.py ai_stack/live_runtime_commit_semantics.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_runtime_authority_aspects.py::test_tonal_consistency_failure_triggers_hard_live_retry_diagnostics ai_stack/tests/test_story_runtime_playability.py tests/gates/test_adr_live_runtime_commit_semantics_gate.py tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_recommends_tonal_consistency_repair -q` -> 27 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py tests/test_capability_matrix_documentation_readiness.py -q` -> 30 passed
+- `python -m pytest ai_stack/tests/test_runtime_authority_aspects.py -q` -> 26 passed
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py tools/mcp_server/tests/test_langfuse_verify_tools.py -q` -> 59 passed
+- `python -m pytest ai_stack/tests/test_langgraph_runtime.py -q` -> 15 passed
+- `git diff --check -- ai_stack/story_runtime_playability.py ai_stack/tests/test_runtime_authority_aspects.py docs/technical/runtime/tonal_consistency_contract.md docs/MVPs/capability_matrix_status_and_adr_relations.md docs/MVPs/capability_matrix_live_claim_gates.md docs/technical/content/god_of_carnage_structured_content.md docs/ADR/adr-0009-evaluation-is-a-promotion-gate.md world-engine/app/story_runtime/manager.py` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
 - `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_tonal_consistency_aspect ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_recommends_tonal_consistency_repair -q --tb=short` -> 31 passed
 - `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 77 passed
 - `python -m pytest tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py tests/gates/test_table_b_anti_hardcoding_gate.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 25 passed
 - `git diff --check -- ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capability_selector.py ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tools/mcp_server/tests/test_langfuse_verify_tools.py content/modules/god_of_carnage/module.yaml docs/technical/runtime/tonal_consistency_contract.md docs/MVPs/capability_matrix_status_and_adr_relations.md` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
 
 Evidence summary: Π35 is now represented as the generic
-`tonal_consistency` local contract surface. GoC policy declares a bounded tone
-profile under `runtime_intelligence.tonal_consistency`; the engine derives a
-`tonal_consistency.v1` target, validates structured
-`tonal_consistency_classification` and policy-declared marker classes, projects
-`RuntimeAspectLedger.tonal_consistency`, and exposes MCP
-`tonal_consistency_*` matrix fields. The ADR-0041 selector correction in the
-same local pass preserves `enforce` over `judge` activation mode and maps
-recoverable runtime turn kinds to recovery.
+`tonal_consistency` runtime contract surface. GoC policy declares a bounded
+tone profile under `runtime_intelligence.tonal_consistency`; the runtime now
+derives a `tonal_consistency.v1` target in LangGraph after scene
+energy/pacing/social pressure, injects compact bounded context into the
+generation packet, validates visible output with the independent deterministic
+policy-marker classifier, projects `RuntimeAspectLedger.tonal_consistency`,
+emits Langfuse/MCP `tonal_consistency_*` fields, routes failures through
+bounded self-correction, and converts exhausted hard-loop failures into
+recoverable rejection/no healthy commit. ADR-0033 live-success evaluation also
+marks failed tonal consistency as not live-success.
 
 ADR-0039 discipline for this slice: production-facing keys use semantic
 `tonal_consistency` names only. Tests derive expectations from normalized
 policy, exported schema/failure-code constants, structured classification
-payloads, marker-class counts, ledger projection, and MCP row fields.
+payloads, independent classifier source, marker-class counts, ledger
+projection, and MCP row fields.
 Generated narration, copied dialogue examples, and LLM-as-a-Judge tone
 categories are not pass/fail oracles.
 
-Known limitations: no authoritative LangGraph derivation/validation node, no
-planner-truth rehydration, no live/staging traces, no provider evidence, no
-commit/readiness coupling, and no ADR-0009 promotion update. The row remains
-partial/local evidence, not a hard tonal drift loop.
+Known limitations: no live/staging traces, no provider evidence, no ADR-0009
+promotion package, and no readiness-consumer promotion. Runtime hard-loop
+enforcement is local/tested evidence, not live-proven promotion evidence.
+
+---
+
+## Local verification snapshot for Π34 / active listening envelope
+
+- Date: 2026-05-15
+- Git SHA at verification time: `ba2601c9` (dirty worktree; local Π34
+  active-listening/docs/test adjustments not committed at run time)
+- Scope: **local pytest/static-gate evidence only** - no live-provider,
+  staging, live Langfuse, MCP live proof, production validator-gating, broad
+  production NLU, or commit/readiness promotion claim.
+- `python -m pytest ai_stack/tests/test_active_listening_contracts.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_active_listening_authority_aspects ai_stack/tests/test_langgraph_runtime.py::test_runtime_turn_graph_delivers_director_context_to_model_prompt -q` -> 5 passed
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_validator_plan.py ai_stack/tests/test_capability_selector_runtime_projection.py ai_stack/tests/test_capability_validator_runtime_projection.py -q` -> 39 passed
+- `python -m pytest ai_stack/tests/test_active_listening_contracts.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_active_listening_authority_aspects ai_stack/tests/test_langgraph_runtime.py::test_runtime_turn_graph_delivers_director_context_to_model_prompt ai_stack/tests/test_capability_selector.py ai_stack/tests/test_capability_validator_registry_inventory.py ai_stack/tests/test_capability_validator_turn_class_coverage.py tests/test_capability_matrix_documentation_readiness.py tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_* tests/gates/test_adr_0039_* -q` -> 61 passed
+
+Evidence summary: Π34 now has a bounded local active-listening envelope. The
+runtime derives `broad_nlu_listening.v1` from structured interpreted input and
+semantic move evidence, derives `conversational_memory.v1` from bounded
+hierarchical-memory refs, builds `prompt_authority.v1` as a source-bound
+model-visible generation constraint packet, inserts those records into the
+dramatic generation packet / prompt, and projects all three through
+`RuntimeAspectLedger`.
+
+ADR-0039 discipline for this slice: production-facing keys use semantic names
+only. Tests assert schema constants, structured source refs, no raw
+input/prompt storage, no commit/readiness/validation mutation, selector/plan
+observer status, prompt-packet presence, and ledger projection. Generated
+dialogue understanding, copied example prose, and legacy Π labels are not
+pass/fail oracles.
+
+Known limitations: no live/staging traces, no provider proof, no MCP live
+proof, no production selected-validator gating, and no claim of unbounded
+conversational memory or broad production NLU. The row remains partial/local
+evidence.
+
+---
+
+## Local verification snapshot — administration-tool operator defaults (ADR-0039)
+
+- Date: 2026-05-15
+- Scope: local pytest + Table-B module literal gate; no live stack.
+- Commands (representative): `python -m pytest administration-tool/tests/test_manage_operator_defaults_rendered.py administration-tool/tests/test_context_processor.py administration-tool/tests/test_operator_site_defaults_fetch.py backend/tests/test_slogans.py::test_site_settings_returns_rotation_fields backend/tests/test_admin_security.py::TestSiteSettingsAPI backend/tests/test_game_routes.py::test_game_content_endpoints_seed_and_publish tests/gates/test_table_b_anti_hardcoding_gate.py::test_module_specific_literals_stay_inside_documented_compatibility_debt tests/gates/test_adr0039_runtime_surface_governance.py -q --tb=short`
+- Product rule: manage defaults come from `site_settings` via `GET /api/v1/site/settings` (`content_module_id` / `default_runtime_template_id`); game-content new drafts clone published experiences only (`GET /api/v1/game/content/experiences?status=published`).

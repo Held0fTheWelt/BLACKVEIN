@@ -156,13 +156,16 @@ primary pass/fail signal, and runtime profile serialization omits them.
 `module.yaml` declares `runtime_intelligence.tonal_consistency` for bounded
 turn-level tone evidence. This policy is separate from actor voice. It selects
 tone profiles, required tone-dimension ids, allowed registers, forbidden genre
-labels, and forbidden marker classes for the generic `tonal_consistency`
+labels, dimension marker classes, forbidden marker classes, live-loop mode,
+repair budget, and classifier source for the generic `tonal_consistency`
 runtime aspect.
 
-Current status is local/partial: policy normalization, target derivation,
-structured validation, `RuntimeAspectLedger.tonal_consistency`, and MCP
-`tonal_consistency_*` diagnostics exist, but the authoritative live LangGraph
-turn path does not yet enforce tonal drift before commit.
+Current runtime status: policy normalization, target derivation, independent
+policy-marker classification, hard-loop validation,
+`RuntimeAspectLedger.tonal_consistency`, Langfuse/MCP `tonal_consistency_*`
+diagnostics, and recoverable rejection on exhausted tonal drift failures are
+wired into the authoritative LangGraph turn path. This is runtime implementation
+evidence, not ADR-0009 live/staging promotion proof.
 
 ADR-0039 applies here in the same way as voice policy: tests use normalized
 policy fields, schema constants, structured `tonal_consistency_classification`,

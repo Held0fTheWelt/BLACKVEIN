@@ -1,6 +1,6 @@
 # Capability Selection Runtime Design
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This document is the implementation-readiness companion for
 [ADR-0041: Controlled Runtime Capability Authority](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md).
@@ -15,6 +15,17 @@ ADR-0041 **semantic capability selection** is an **elemental runtime building bl
 **Current phases** (dry-run, projection, opt-in plan-enforced sidecar, bridge, preview, handoff-candidate, scoped co-authority decision preview) are **safety scaffolding**, valid only as **intermediate** steps. They must not become the **final** architecture by inertia. **`run_validation_seam` stays canonical** for `validation_outcome`, commit, and readiness **until an explicit governance decision** changes that.
 
 When reading the Capability Map/matrix, separate **local implementation** from **runtime-path participation**, **shadow/preview** layers from **partial-transfer readiness**, and **real co-authority** from **live/staging verification**—see [capability_matrix_status_and_adr_relations.md](capability_matrix_status_and_adr_relations.md) § ADR-0041 runtime authority direction.
+
+## Administration operator defaults (ADR-0039 surface)
+
+The **administration-tool** manage UI does **not** treat any content module or experience template as an implicit browser default. Operator-visible defaults are injected server-side from:
+
+- **Backend** public `GET /api/v1/site/settings` fields `content_module_id` and `default_runtime_template_id` (stored in `site_settings`; legacy keys `default_content_module_id` / `default_experience_template_id` remain equivalent), merged when the operator host does not set `ADMIN_DEFAULT_*` env overrides, and
+- **Game content**: new draft starters use **`GET /api/v1/game/content/experiences?status=published`** (moderator JWT via proxy) — no silent placeholder template id in static JS.
+
+Narrative governance pages show an explicit **configuration required** JSON panel when `content_module_id` is missing.
+
+See `docs/MVPs/adr0039_runtime_surface_governance_inventory.md` surface `administration_tool_operator_ui_and_proxy`.
 
 ## Implementation Status
 
@@ -32,6 +43,16 @@ actor signal, `npc_decision_required=true` now means: keep
 the turn as `npc_turn`. Tests:
 `ai_stack/tests/test_capability_selector.py` and
 `ai_stack/tests/test_capability_selector_runtime_projection.py`.
+
+2026-05-16 active-listening envelope (historical Π34 context): normal player
+turns also observe `broad_nlu_listening`, `conversational_memory`, and
+`prompt_authority`. LangGraph derives those records from structured
+`interpreted_input`, `semantic_move_record`, `hierarchical_memory_context`, and
+capability-selection projection evidence, then inserts them into the dramatic
+generation packet / prompt and writes `RuntimeAspectLedger` aspect rows. This
+is bounded prompt-envelope evidence only: it stores no raw player input or raw
+prompt text in those aspect records and keeps `commit_gate_changed=false`,
+`readiness_gate_changed=false`, and `validation_outcome_changed=false`.
 
 The RuntimeAspectLedger runtime intelligence projection now exposes
 `runtime_intelligence_projection.capability_selection` as local-only evidence
@@ -94,7 +115,9 @@ invoke it. Evidence: ``world-engine/tests/test_adr0041_validator_dispatch_harnes
 
 Current boundaries:
 
-- Not wired into world-engine prompt assembly.
+- Only the bounded Π34 active-listening envelope is wired into LangGraph
+  prompt/packet assembly; broader selected-capability prompt authority remains
+  governed future work.
 - Not wired into commit/readiness gating.
 - Not wired into judge execution.
 - Not wired into Langfuse/MCP live or staging proof.
@@ -328,6 +351,9 @@ evidence. Abbreviated opening-scene example:
       "npc_agency",
       "player_intent_inference",
       "action_resolution",
+      "broad_nlu_listening",
+      "conversational_memory",
+      "prompt_authority",
       "consequence_cascade",
       "long_horizon_forecast",
       "silence_negative_space",
@@ -344,6 +370,9 @@ evidence. Abbreviated opening-scene example:
       "sensory_context": "observe",
       "genre_awareness": "observe",
       "npc_agency": "off",
+      "broad_nlu_listening": "off",
+      "conversational_memory": "off",
+      "prompt_authority": "off",
       "action_resolution": "off"
     },
     "budget": {
@@ -373,7 +402,7 @@ must remain semantic-name-only and preserve ADR-0039 boundaries.
 | Mode | Meaning | Runtime authority | Commit blocking |
 |------|---------|-------------------|-----------------|
 | `off` | Intentionally excluded for this turn | none | no |
-| `observe` | Cheap diagnostics or ledger observation | none | no, unless later ADR promotes it |
+| `observe` | Cheap diagnostics or ledger observation; may be model-visible only through an explicitly documented non-gating prompt envelope | no control-flow authority | no, unless later ADR promotes it |
 | `enforce` | Affects prompt/runtime/validation/readiness | yes | may block according to capability contract |
 | `judge` | Heavy LLM-as-a-Judge or external evaluator allowed | qualitative/evaluation only | not by itself; must tie to deterministic gate or promotion rule |
 
@@ -514,13 +543,20 @@ The current local projection uses semantic names:
     "observed_only": [
       "thematic_tracking",
       "callback_web",
-      "sensory_context"
+      "sensory_context",
+      "genre_awareness"
     ],
     "excluded": [
       "npc_agency",
+      "player_intent_inference",
       "action_resolution",
+      "broad_nlu_listening",
+      "conversational_memory",
+      "prompt_authority",
       "consequence_cascade",
-      "long_horizon_forecast"
+      "long_horizon_forecast",
+      "silence_negative_space",
+      "dramatic_irony"
     ],
     "budget": {
       "max_enforced": 5,
@@ -633,13 +669,15 @@ Implemented locally:
    `capability_selection`.
 5. ADR-0039-compliant tests over structured selector and ledger evidence,
    including the player-turn/NPC-agency boundary.
+6. Bounded Π34 active-listening prompt envelope and ledger projection for
+   `broad_nlu_listening`, `conversational_memory`, and `prompt_authority`.
 
 Still pending / governed:
 
 1. A declarative selector manifest, if the implementation moves beyond the
    current Python registry constants.
-2. World-engine prompt/runtime assembly authority from selected `enforce`
-   capabilities.
+2. Additional world-engine prompt/runtime assembly authority beyond the bounded
+   Π34 envelope.
 3. Production selected-validator gating beyond opt-in local plan-enforced
    sidecar behavior.
 4. LLM-as-a-Judge execution from budgeted judge metadata.

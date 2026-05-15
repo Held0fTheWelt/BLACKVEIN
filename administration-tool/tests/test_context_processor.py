@@ -89,8 +89,10 @@ class TestContextProcessorInjection:
         with app.test_request_context("/"):
             context = inject_config()
             fc = context["frontend_config"]
-            assert fc["adminDefaultContentModuleId"] == "test_module"
-            assert fc["adminDefaultExperienceTemplateId"] == "test_template"
+            assert fc["contentModuleId"] == "test_module"
+            assert fc["defaultRuntimeTemplateId"] == "test_template"
+            assert context["content_module_id"] == "test_module"
+            assert context["default_runtime_template_id"] == "test_template"
             assert context["admin_default_content_module_id"] == "test_module"
             assert context["admin_default_experience_template_id"] == "test_template"
 

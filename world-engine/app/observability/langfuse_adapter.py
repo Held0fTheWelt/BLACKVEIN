@@ -540,6 +540,120 @@ class LangfuseAdapter:
         logger.debug(f"[LANGFUSE] get_active_span: {span}")
         return span
 
+    def resolve_parent_observation_for_nested_span(self) -> Optional[Any]:
+        """Return the active Langfuse observation for best-effort nested spans.
+
+        Shared ai_stack helpers call this method from both backend and
+        world-engine contexts. World-engine keeps only the active observation in
+        a ContextVar, so there is no separate root-trace fallback here.
+        """
+        return self.get_active_span()
+
+    def record_wos_nested_span_observation(
+        self,
+        *,
+        name: str,
+        metadata: Optional[dict[str, Any]] = None,
+        input_data: Optional[dict[str, Any]] = None,
+        output_data: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Emit a nested local-only evidence span without affecting turn flow."""
+        out: dict[str, Any] = {
+            "emitted": False,
+            "observation_name": name,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "langfuse_trace_id": None,
+            "langfuse_observation_id": None,
+        }
+        if not self.is_enabled():
+            out["reason"] = "langfuse_disabled_or_not_ready"
+            return out
+
+        parent = self.resolve_parent_observation_for_nested_span()
+        if parent is None:
+            out["reason"] = "no_active_langfuse_parent_observation"
+            return out
+
+        try:
+            child = parent.start_observation(
+                as_type="span",
+                name=name,
+                input=_langfuse_sanitize_value(input_data or {}),
+                output=_langfuse_sanitize_value(output_data or {}),
+                metadata=self._metadata_with_active_session(metadata),
+            )
+            _span_context_registry[id(child)] = (
+                _active_langfuse_client.get(),
+                _active_langfuse_session_id.get(),
+            )
+            child.end()
+
+            trace_id = (
+                getattr(child, "trace_id", None)
+                or getattr(child, "traceId", None)
+                or getattr(parent, "trace_id", None)
+                or getattr(parent, "traceId", None)
+            )
+            observation_id = _lf_sdk_public_observation_id(child)
+            out["emitted"] = True
+            if trace_id is not None:
+                out["langfuse_trace_id"] = str(trace_id)
+            if observation_id is not None:
+                out["langfuse_observation_id"] = observation_id
+            return out
+        except Exception as exc:
+            logger.warning(
+                "[LANGFUSE] Failed to record nested evidence span %r: %s",
+                name,
+                _langfuse_sdk_exc_detail(exc),
+                exc_info=True,
+            )
+            out["reason"] = f"langfuse_error:{type(exc).__name__}"
+            return out
+
+    def record_adr0041_langfuse_scores(
+        self,
+        *,
+        scores: list[tuple[str, float]],
+        comment: str,
+    ) -> dict[str, Any]:
+        """Attach ADR-0041 local-only diagnostic scores to the active span."""
+        out: dict[str, Any] = {"emitted": False, "scores_attempted": len(scores)}
+        if not self.is_enabled():
+            out["reason"] = "langfuse_disabled_or_not_ready"
+            return out
+        if self.resolve_parent_observation_for_nested_span() is None:
+            out["reason"] = "no_active_langfuse_parent_observation"
+            return out
+
+        emitted = 0
+        for score_name, score_value in scores:
+            try:
+                self.add_score(
+                    name=score_name,
+                    value=float(score_value),
+                    comment=comment,
+                    metadata={
+                        "score_origin": "adr0041_runtime_intelligence",
+                        "proof_level": "local_only",
+                        "live_or_staging_evidence": False,
+                    },
+                )
+                emitted += 1
+            except Exception as exc:
+                logger.warning(
+                    "[LANGFUSE] Failed to record ADR-0041 score %r: %s",
+                    score_name,
+                    _langfuse_sdk_exc_detail(exc),
+                    exc_info=True,
+                )
+        out["emitted"] = emitted == len(scores)
+        out["scores_emitted"] = emitted
+        if emitted != len(scores):
+            out["reason"] = "score_emission_incomplete"
+        return out
+
     def set_active_span(self, span: Optional[Any]) -> None:
         """Set the currently active span for child operations (thread-safe via ContextVar)."""
         if span is None:

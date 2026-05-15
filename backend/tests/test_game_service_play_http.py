@@ -244,6 +244,55 @@ class TestGameServiceClient:
         assert capture["headers"].get("X-Play-Service-Key") == "k"
         assert capture["init_kwargs"]["timeout"] == 75.0
 
+    def test_create_story_session_checks_budget_before_engine_request(self, app, monkeypatch):
+        guard_calls: list[dict] = []
+        request_calls: list[tuple] = []
+        projection = {"routing": {"selected_provider": "openai_primary"}}
+
+        def fake_guard(**kwargs):
+            guard_calls.append(kwargs)
+
+        def fake_request(method, path, **kwargs):
+            request_calls.append((method, path))
+            return {"session_id": "we-1", "opening_turn": {"turn_number": 0}}
+
+        monkeypatch.setattr(game_service, "_enforce_story_runtime_budget_guards", fake_guard)
+        monkeypatch.setattr(game_service, "_request", fake_request)
+
+        with app.app_context():
+            app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
+            create_story_session(module_id="god_of_carnage", runtime_projection=projection)
+
+        assert guard_calls == [{"runtime_projection": projection}]
+        assert request_calls == [("POST", "/api/story/sessions")]
+
+    def test_execute_story_turn_blocks_on_budget_before_engine_request(self, app, monkeypatch):
+        request_called = False
+
+        def fake_guard(**kwargs):
+            assert kwargs == {"session_id": "story-1"}
+            raise GameServiceError(
+                "Runtime token budget is exhausted.",
+                status_code=409,
+                code="runtime_token_budget_exhausted",
+            )
+
+        def fake_request(*args, **kwargs):
+            nonlocal request_called
+            request_called = True
+            return {}
+
+        monkeypatch.setattr(game_service, "_enforce_story_runtime_budget_guards", fake_guard)
+        monkeypatch.setattr(game_service, "_request", fake_request)
+
+        with app.app_context():
+            with pytest.raises(GameServiceError, match="token budget") as exc:
+                execute_story_turn(session_id="story-1", player_input="Weiter.")
+
+        assert exc.value.status_code == 409
+        assert exc.value.code == "runtime_token_budget_exhausted"
+        assert request_called is False
+
     def test_request_wraps_transport_failures(self, app, monkeypatch):
         transport_error = httpx.RequestError("down", request=httpx.Request("GET", "https://play.example.com"))
         monkeypatch.setattr(

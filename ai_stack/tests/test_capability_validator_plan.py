@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from ai_stack.capability_selector import (
     CAP_ACTION_RESOLUTION,
+    CAP_BROAD_NLU_LISTENING,
     CAP_CALLBACK_WEB,
+    CAP_CONVERSATIONAL_MEMORY,
     CAP_CONSEQUENCE_CASCADE,
     CAP_DRAMATIC_IRONY,
     CAP_ENVIRONMENT_STATE,
+    CAP_GENRE_AWARENESS,
     CAP_INFORMATION_DISCLOSURE,
     CAP_LONG_HORIZON_FORECAST,
     CAP_NARRATOR_AUTHORITY,
     CAP_NPC_AGENCY,
     CAP_PLAYER_INTENT_INFERENCE,
+    CAP_PROMPT_AUTHORITY,
     CAP_SCENE_ENERGY,
     CAP_SENSORY_CONTEXT,
     CAP_SILENCE_NEGATIVE_SPACE,
@@ -86,6 +90,7 @@ def test_opening_validator_plan_observes_only_observed_capabilities() -> None:
         "thematic_tracking_diagnostic",
         "callback_web_diagnostic",
         "sensory_context_diagnostic",
+        "genre_awareness_diagnostic",
     ]
     diagnostic_entries = [
         entry for entry in plan.entries if entry.mode is ValidatorPlanMode.RUN_OBSERVER_DIAGNOSTIC
@@ -94,6 +99,7 @@ def test_opening_validator_plan_observes_only_observed_capabilities() -> None:
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
         CAP_SENSORY_CONTEXT,
+        CAP_GENRE_AWARENESS,
     ]
     assert all(entry.blocking is False for entry in diagnostic_entries)
 
@@ -102,6 +108,9 @@ def test_opening_validator_plan_skips_npc_action_cascade_forecast() -> None:
     plan = build_validator_execution_plan(_opening_selection())
 
     assert plan.validators_skipped == [
+        "broad_nlu_listening_diagnostic",
+        "conversational_memory_diagnostic",
+        "prompt_authority_diagnostic",
         "npc_agency_contract",
         "player_intent_contract",
         "action_resolution_contract",
@@ -116,6 +125,9 @@ def test_opening_validator_plan_skips_npc_action_cascade_forecast() -> None:
         if entry.mode is ValidatorPlanMode.SKIP_EXCLUDED
     }
     assert {
+        CAP_BROAD_NLU_LISTENING,
+        CAP_CONVERSATIONAL_MEMORY,
+        CAP_PROMPT_AUTHORITY,
         CAP_NPC_AGENCY,
         CAP_PLAYER_INTENT_INFERENCE,
         CAP_ACTION_RESOLUTION,

@@ -7,7 +7,21 @@
     }
 
     function getDefaultModuleId() {
-        return String(getFrontendConfig().adminDefaultContentModuleId || "").trim();
+        var cfg = getFrontendConfig();
+        var v = String(cfg.contentModuleId || "").trim();
+        if (v) return v;
+        if (typeof document !== "undefined" && document.body && document.body.dataset) {
+            v = String(document.body.dataset.contentModuleId || "").trim();
+        }
+        return v;
+    }
+
+    function missingContentModuleState() {
+        return {
+            error: "missing_content_module_id",
+            message: "No content module id is configured for this narrative admin view.",
+            remediation: "Set backend site_settings (PUT /api/v1/site/settings with content_module_id, admin JWT) or operator env ADMIN_DEFAULT_CONTENT_MODULE_ID.",
+        };
     }
 
     function getModuleId() {
@@ -64,9 +78,14 @@
     }
 
     function loadOverview() {
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            renderJson("narrative-overview-grid", "Configuration required", missingContentModuleState());
+            return;
+        }
         Promise.all([
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages"),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(getDefaultModuleId())),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(mid)),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/revision-conflicts"),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/notifications/feed")
         ]).then(function (results) {
@@ -95,9 +114,14 @@
     }
 
     function loadRuntimeHealth() {
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            renderJson("narrative-runtime-health-panel", "Configuration required", missingContentModuleState());
+            return;
+        }
         Promise.all([
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(getDefaultModuleId())),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/fallbacks?module_id=" + encodeURIComponent(getDefaultModuleId()))
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(mid)),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/fallbacks?module_id=" + encodeURIComponent(mid))
         ]).then(function (results) {
             renderJson("narrative-runtime-health-panel", "Runtime Health", {
                 summary: results[0].data,
@@ -122,9 +146,14 @@
     }
 
     function loadPackages() {
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            renderJson("narrative-packages-panel", "Configuration required", missingContentModuleState());
+            return;
+        }
         Promise.all([
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages"),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages/" + encodeURIComponent(getDefaultModuleId()) + "/previews")
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages/" + encodeURIComponent(mid) + "/previews")
         ]).then(function (results) {
             renderJson("narrative-packages-panel", "Packages", {
                 packages: results[0].data,
@@ -188,8 +217,13 @@
     }
 
     function loadFindings() {
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            renderJson("narrative-findings-panel", "Configuration required", missingContentModuleState());
+            return;
+        }
         Promise.all([
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/events?module_id=" + encodeURIComponent(getDefaultModuleId())),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/events?module_id=" + encodeURIComponent(mid)),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/revisions")
         ]).then(function (results) {
             renderJson("narrative-findings-panel", "Findings and Linked Revisions", {
@@ -244,7 +278,12 @@
     }
 
     function loadEvaluations() {
-        ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/evaluations?module_id=" + encodeURIComponent(getDefaultModuleId()))
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            renderJson("narrative-evaluations-panel", "Configuration required", missingContentModuleState());
+            return;
+        }
+        ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/evaluations?module_id=" + encodeURIComponent(mid))
             .then(function (result) {
                 renderJson("narrative-evaluations-panel", "Evaluations", result.data, function () {
                     return buildActions([

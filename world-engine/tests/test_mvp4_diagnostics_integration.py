@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 from story_runtime_core.model_registry import ModelRegistry
 from app.observability.trace import LANGFUSE_TRACE_ID, set_langfuse_trace_id
-from app.story_runtime.manager import StoryRuntimeManager
+from app.story_runtime.manager import StoryRuntimeManager, _build_model_generation_phase_cost
 
 
 def _mock_graph_state():
@@ -175,6 +175,59 @@ def test_diagnostics_cost_summary_matches_phase_cost_sum():
     assert cost_summary["input_tokens"] == sum(p["input_tokens"] for p in phases)
     assert cost_summary["output_tokens"] == sum(p["output_tokens"] for p in phases)
     assert cost_summary["cost_usd"] == pytest.approx(sum(p["cost_usd"] for p in phases))
+
+
+@pytest.mark.mvp4
+def test_provider_usage_metadata_builds_model_generation_phase_cost():
+    """Provider usage is cost truth; no token counts are guessed from text."""
+    state = _mock_graph_state()
+    state["generation"]["metadata"] = {
+        "adapter": "openai",
+        "model": "gpt-4-turbo",
+        "usage_available": True,
+        "usage_source": "provider_response",
+        "usage_details": {"input": 123, "output": 45, "total": 168},
+        "generation_latency_ms": 1200,
+    }
+    state["routing"]["selected_provider"] = "openai"
+    state["routing"]["selected_model"] = "gpt-4-turbo"
+
+    phase = _build_model_generation_phase_cost(state)
+
+    assert phase is not None
+    assert phase["phase"] == "model_generation"
+    assert phase["billing_mode"] == "provider_usage"
+    assert phase["token_source"] == "provider_usage"
+    assert phase["billable"] is True
+    assert phase["provider"] == "openai"
+    assert phase["model"] == "gpt-4-turbo"
+    assert phase["input_tokens"] == 123
+    assert phase["output_tokens"] == 45
+    assert phase["latency_ms"] == 1200
+
+
+@pytest.mark.mvp4
+def test_provider_generation_without_usage_is_marked_unavailable():
+    """Real provider calls without usage metadata stay explicit, not silent zero-cost usage."""
+    state = _mock_graph_state()
+    state["generation"]["metadata"] = {
+        "adapter": "openai",
+        "model": "gpt-4-turbo",
+        "usage_available": False,
+        "usage_source": "provider_response_missing_usage",
+    }
+    state["routing"]["selected_provider"] = "openai"
+    state["routing"]["selected_model"] = "gpt-4-turbo"
+
+    phase = _build_model_generation_phase_cost(state)
+
+    assert phase is not None
+    assert phase["billing_mode"] == "unavailable"
+    assert phase["token_source"] == "unavailable"
+    assert phase["billable"] is False
+    assert phase["input_tokens"] == 0
+    assert phase["output_tokens"] == 0
+    assert phase["reason"] == "provider_usage_unavailable"
 
 
 @pytest.mark.mvp4

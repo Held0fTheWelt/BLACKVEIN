@@ -15,8 +15,18 @@
   const refreshBtn = document.getElementById('game-content-refresh');
   const createBtn = document.getElementById('game-content-create-default');
   const idEl = document.getElementById('experience-id');
+  const templateSelect = document.getElementById('game-content-published-template');
 
   if (!listEl || !payloadEl || !formEl) return;
+
+  function operatorDefaultRuntimeTemplateId() {
+    let v = String(cfg.defaultRuntimeTemplateId || '').trim();
+    if (v) return v;
+    if (typeof document !== 'undefined' && document.body && document.body.dataset) {
+      v = String(document.body.dataset.defaultTemplateId || '').trim();
+    }
+    return v;
+  }
 
   function token() {
     return localStorage.getItem('access_token') || '';
@@ -38,28 +48,50 @@
     return data;
   }
 
-  function canonicalDefaultPayload() {
-    const tid = String(cfg.adminDefaultExperienceTemplateId || '').trim() || 'experience_template';
-    const slug = tid.indexOf('_') >= 0 ? tid.replace(/_/g, '-') : tid;
-    return {
-      id: tid,
-      slug: slug,
-      title: 'New authored experience',
-      kind: 'solo_story',
-      join_policy: 'owner_only',
-      summary: 'Placeholder experience draft for governance workflow testing.',
-      max_humans: 1,
-      min_humans_to_start: 1,
-      persistent: false,
-      initial_beat_id: 'opening',
-      roles: [],
-      rooms: [],
-      props: [],
-      actions: [],
-      beats: [],
-      tags: ['authored', 'single-adventure'],
-      style_profile: 'retro_pulp'
-    };
+  function clonePayload(obj) {
+    return JSON.parse(JSON.stringify(obj || {}));
+  }
+
+  function populatePublishedSelect(items) {
+    if (!templateSelect) return;
+    templateSelect.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = items.length
+      ? '— choose published template —'
+      : 'No published experiences (publish on backend first)';
+    templateSelect.appendChild(opt0);
+    items.forEach((ex) => {
+      const tid = String(ex.template_id || '').trim();
+      if (!tid) return;
+      const o = document.createElement('option');
+      o.value = tid;
+      o.textContent = (ex.title || '') + ' (' + tid + ')';
+      templateSelect.appendChild(o);
+    });
+    const want = operatorDefaultRuntimeTemplateId();
+    if (want) {
+      for (let i = 0; i < templateSelect.options.length; i++) {
+        if (templateSelect.options[i].value === want) {
+          templateSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  function pickPublishedExperience(items) {
+    const sel = templateSelect && templateSelect.value ? String(templateSelect.value).trim() : '';
+    if (sel) {
+      const hit = items.find((x) => String(x.template_id || '').trim() === sel);
+      if (hit) return hit;
+    }
+    const want = operatorDefaultRuntimeTemplateId();
+    if (want) {
+      const byDefault = items.find((x) => String(x.template_id || '').trim() === want);
+      if (byDefault) return byDefault;
+    }
+    return items[0] || null;
   }
 
   function originLabel(item) {
@@ -90,7 +122,8 @@
 
   function loadIntoEditor(item) {
     idEl.value = item.id || '';
-    payloadEl.value = JSON.stringify(item.payload || canonicalDefaultPayload(), null, 2);
+    const base = item.payload ? clonePayload(item.payload) : {};
+    payloadEl.value = JSON.stringify(base, null, 2);
     const lc = item.content_lifecycle || 'draft';
     const allow = item.publish_allowed ? 'publish_allowed' : 'publish_gated';
     statusEl.textContent =
@@ -99,6 +132,14 @@
 
   async function refresh() {
     const data = await api('/game/content/experiences');
+    let pubItems = [];
+    try {
+      const pubData = await api('/game/content/experiences?status=published');
+      pubItems = pubData.experiences || [];
+    } catch (_e) {
+      pubItems = [];
+    }
+    populatePublishedSelect(pubItems);
     renderList(data.experiences || []);
     if (!idEl.value && data.experiences && data.experiences[0]) {
       loadIntoEditor(data.experiences[0]);
@@ -223,11 +264,45 @@
     });
   }
 
-  createBtn.addEventListener('click', () => {
+  async function applyPublishedStarter() {
+    const pubData = await api('/game/content/experiences?status=published');
+    const items = pubData.experiences || [];
+    populatePublishedSelect(items);
+    const picked = pickPublishedExperience(items);
+    if (!picked || !picked.payload) {
+      statusEl.textContent =
+        'No published experience to use as a starter. Publish one on the backend, then refresh.';
+      return;
+    }
     idEl.value = '';
-    payloadEl.value = JSON.stringify(canonicalDefaultPayload(), null, 2);
-    statusEl.textContent = 'Loaded editor template. Fill roles, rooms, props, actions, and beats before saving.';
+    payloadEl.value = JSON.stringify(clonePayload(picked.payload), null, 2);
+    statusEl.textContent =
+      'Loaded new draft from published template "' + (picked.template_id || '') + '". Edit JSON, then save.';
+  }
+
+  createBtn.addEventListener('click', () => {
+    applyPublishedStarter().catch((err) => { statusEl.textContent = err.message; });
   });
+
+  if (templateSelect) {
+    templateSelect.addEventListener('change', () => {
+      const v = String(templateSelect.value || '').trim();
+      if (!v) return;
+      api('/game/content/experiences?status=published')
+        .then((pubData) => {
+          const items = pubData.experiences || [];
+          const picked = items.find((x) => String(x.template_id || '').trim() === v);
+          if (!picked || !picked.payload) {
+            statusEl.textContent = 'Selected template not found in published list; refresh.';
+            return;
+          }
+          idEl.value = '';
+          payloadEl.value = JSON.stringify(clonePayload(picked.payload), null, 2);
+          statusEl.textContent = 'Starter from published "' + v + '" (not saved until you submit Save draft).';
+        })
+        .catch((err) => { statusEl.textContent = err.message; });
+    });
+  }
 
   refreshBtn.addEventListener('click', () => refresh().catch((err) => { statusEl.textContent = err.message; }));
   refresh().catch((err) => { statusEl.textContent = err.message; });

@@ -12,8 +12,8 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="manage-body"
-      data-admin-default-content-module-id="{{ admin_default_content_module_id | default('') | e }}"
-      data-admin-default-experience-template-id="{{ admin_default_experience_template_id | default('') | e }}">
+      data-content-module-id="{{ content_module_id | default('') | e }}"
+      data-default-template-id="{{ default_runtime_template_id | default('') | e }}">
     <a class="skip-link" href="#main">Skip to main content</a>
     <div class="manage-shell" data-side-open="false">
         <button type="button" class="manage-shell-scrim" id="manage-shell-scrim" aria-hidden="true" tabindex="-1"></button>

@@ -6124,6 +6124,22 @@ paths:
       - GameBootstrap
       summary: GET /game/content/experiences
       operationId: get_api_v1_game_content_experiences
+      parameters:
+      - name: lifecycle
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional filter by `game_experience_templates.content_lifecycle` when the value is accepted by the backend.
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - published
+          - draft
+        description: Optional publication filter (`published` => `is_published=true`, `draft` => unpublished rows).
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).
@@ -8022,9 +8038,37 @@ paths:
       - SiteContent
       summary: GET /site/settings
       operationId: get_api_v1_site_settings
+      description: >-
+        Public read-only site settings. Includes slogan rotation and operator UI defaults.
+        Canonical operator keys are `content_module_id` and `default_runtime_template_id`;
+        legacy keys `default_content_module_id` and `default_experience_template_id` return the same values.
       responses:
         '200':
-          description: Success (see docs/api/REFERENCE.md for response shapes).
+          description: >-
+            JSON with `slogan_rotation_interval_seconds`, `slogan_rotation_enabled`,
+            `content_module_id`, `default_runtime_template_id`, and legacy `default_*` mirrors.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  slogan_rotation_interval_seconds:
+                    type: integer
+                  slogan_rotation_enabled:
+                    type: boolean
+                  content_module_id:
+                    type: string
+                    description: Default content module id for operator surfaces (site_settings).
+                  default_runtime_template_id:
+                    type: string
+                    description: Default experience template id for operator surfaces (site_settings).
+                  default_content_module_id:
+                    type: string
+                    description: Legacy alias of `content_module_id`.
+                  default_experience_template_id:
+                    type: string
+                    description: Legacy alias of `default_runtime_template_id`.
         '401':
           description: Unauthorized — missing or invalid JWT where required.
         '403':
@@ -8040,6 +8084,33 @@ paths:
       - SiteContent
       summary: PUT /site/settings
       operationId: put_api_v1_site_settings
+      description: >-
+        Admin JWT only. Updates slogan rotation and/or operator defaults.
+        Accepts canonical `content_module_id` / `default_runtime_template_id` or legacy `default_*` keys.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              properties:
+                slogan_rotation_interval_seconds:
+                  type: integer
+                slogan_rotation_enabled:
+                  type: boolean
+                content_module_id:
+                  type: string
+                  description: Upserts site_settings `default_content_module_id` when non-empty and valid.
+                default_runtime_template_id:
+                  type: string
+                  description: Upserts site_settings `default_experience_template_id` when non-empty and valid.
+                default_content_module_id:
+                  type: string
+                  description: Legacy alias for `content_module_id`.
+                default_experience_template_id:
+                  type: string
+                  description: Legacy alias for `default_runtime_template_id`.
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).

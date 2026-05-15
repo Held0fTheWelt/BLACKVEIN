@@ -119,8 +119,14 @@ def _fetch_operator_defaults_from_backend_public_settings(backend_base: str) -> 
         return "", ""
     if not isinstance(data, dict):
         return "", ""
-    mod = str(data.get("default_content_module_id") or "").strip()
-    tpl = str(data.get("default_experience_template_id") or "").strip()
+    mod = str(
+        data.get("content_module_id") or data.get("default_content_module_id") or ""
+    ).strip()
+    tpl = str(
+        data.get("default_runtime_template_id")
+        or data.get("default_experience_template_id")
+        or ""
+    ).strip()
     return mod, tpl
 
 
@@ -163,6 +169,8 @@ def inject_config():
                 admin_tpl = b_tpl
     return {
         "backend_api_url": current_app.config["BACKEND_API_URL"],
+        "content_module_id": admin_mod,
+        "default_runtime_template_id": admin_tpl,
         "admin_default_content_module_id": admin_mod,
         "admin_default_experience_template_id": admin_tpl,
         "frontend_config": {
@@ -172,8 +180,8 @@ def inject_config():
             "supportedLanguages": SUPPORTED_LANGUAGES,
             "defaultLanguage": DEFAULT_LANGUAGE,
             "currentLanguage": current_lang,
-            "adminDefaultContentModuleId": admin_mod,
-            "adminDefaultExperienceTemplateId": admin_tpl,
+            "contentModuleId": admin_mod,
+            "defaultRuntimeTemplateId": admin_tpl,
         },
         "current_lang": current_lang,
         "supported_languages": SUPPORTED_LANGUAGES,

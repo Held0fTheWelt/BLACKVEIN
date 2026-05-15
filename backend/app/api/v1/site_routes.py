@@ -37,11 +37,17 @@ def _public_site_settings():
     }
     interval = rows.get("slogan_rotation_interval_seconds")
     enabled = rows.get("slogan_rotation_enabled")
+    mod = _coerce_operator_identifier(rows.get("default_content_module_id"))
+    tpl = _coerce_operator_identifier(rows.get("default_experience_template_id"))
     return {
         "slogan_rotation_interval_seconds": int(interval) if interval is not None and str(interval).isdigit() else 60,
         "slogan_rotation_enabled": str(enabled).lower() not in ("0", "false", "no", "off") if enabled is not None else True,
-        "default_content_module_id": _coerce_operator_identifier(rows.get("default_content_module_id")),
-        "default_experience_template_id": _coerce_operator_identifier(rows.get("default_experience_template_id")),
+        # Canonical operator defaults (align with backend vocabulary).
+        "content_module_id": mod,
+        "default_runtime_template_id": tpl,
+        # Legacy keys (same values) — keep for older clients.
+        "default_content_module_id": mod,
+        "default_experience_template_id": tpl,
     }
 
 
@@ -124,13 +130,15 @@ def site_settings_put():
             en = parsed if parsed is not None else True
         _upsert_site_setting("slogan_rotation_enabled", "true" if en else "false")
 
-    if "default_content_module_id" in data:
-        mid = _coerce_operator_identifier(data.get("default_content_module_id"))
+    if "content_module_id" in data or "default_content_module_id" in data:
+        raw_mid = data.get("content_module_id", data.get("default_content_module_id"))
+        mid = _coerce_operator_identifier(raw_mid)
         if mid:
             _upsert_site_setting("default_content_module_id", mid)
 
-    if "default_experience_template_id" in data:
-        tid = _coerce_operator_identifier(data.get("default_experience_template_id"))
+    if "default_runtime_template_id" in data or "default_experience_template_id" in data:
+        raw_tid = data.get("default_runtime_template_id", data.get("default_experience_template_id"))
+        tid = _coerce_operator_identifier(raw_tid)
         if tid:
             _upsert_site_setting("default_experience_template_id", tid)
 

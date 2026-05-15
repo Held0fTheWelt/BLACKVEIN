@@ -40,7 +40,7 @@ ADR-0041 should be treated as **Controlled Runtime Capability Authority**, not a
 | World-engine ADR-0041 validator dispatch harness (tests only) | Implemented | `build_adr0041_validator_dispatch_harness_report()` in `ai_stack/runtime_aspect_ledger.py`; `world-engine/tests/test_adr0041_validator_dispatch_harness.py`. Requires explicit `harness_allow_plan_enforced_local_dispatch=True` and an explicit validator registry for plan-enforced execution; default `normalize_runtime_aspect_ledger` / ledger projection remains `dry_run` with `actually_executed=[]`. |
 | LangGraph validate_seam ADR-0041 sidecar (opt-in) | Implemented | When `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced`, `_validate_seam` attaches `ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY` (`_adr0041_runtime_graph_dispatch_context`) on the aspect ledger: local-only dispatch context + `validation_seam_summary` echo. **Not** commit truth or player-facing state; consumed during `normalize_runtime_aspect_ledger` to merge plan-enforced `validator_dispatch_report`. `run_validation_seam` remains canonical for `validation_outcome`. Tests: `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`. |
 | Production orchestration readiness (ADR-0041 dispatch → live runtime) | Partially implemented / still governed | Opt-in LangGraph sidecar + preview/drift + scoped co-authority decision preview + optional **readiness consumer** on the HTTP player-session bundle are implemented under explicit env flags; **Capability Matrix promotion, live/staging proof, and `validation_outcome` override** remain explicitly **not** implemented; **commit** and seam canonical `validation_outcome` are unchanged. Options map in `docs/MVPs/capability_selection_runtime_design.md` updated for current behavior. |
-| World-engine prompt/runtime assembly integration | Not implemented | Future phase; no prompt authority or runtime behavior changes in the first implementation. |
+| Bounded prompt/runtime assembly envelope | Implemented locally / observer-only | LangGraph now carries the Π34 active-listening envelope into model-visible assembly: `broad_nlu_listening.v1`, `conversational_memory.v1`, and `prompt_authority.v1` are derived from structured input, semantic move, hierarchical-memory, and capability-selection evidence, inserted into the dramatic generation packet / prompt, and recorded as ledger aspects. This does not mutate commit gates, readiness gates, `validation_outcome`, or production validator gating. |
 | Actual selected validator execution/gating integration | Not implemented | Future phase; production validator orchestration is not wired to plan-enforced dispatch yet; commit/readiness integration remains pending. |
 | LLM-as-a-Judge execution integration | Not implemented | Judge mode remains budget-gated metadata only; no judge execution is added. |
 | Langfuse/MCP live or staging verification | Not implemented | No live/staging evidence is produced by the local selector core, capability projection, or validator-plan projection. |
@@ -108,7 +108,9 @@ RuntimeAspectLedger projection, and Langfuse/MCP evidence requirements.
 The runtime must not process every Capability Matrix row or every runtime
 aspect on every turn. A capability being present in the matrix means it is part
 of the governed truth map. It does not mean the capability should be activated,
-validated, judged, or added to prompt authority for the current situation.
+validated, judged, or added to prompt authority for the current situation,
+except where a later bounded prompt-envelope contract explicitly documents a
+non-gating model-visible surface.
 
 Opening scenes make the problem concrete:
 
@@ -120,10 +122,12 @@ Opening scenes make the problem concrete:
 
 An opening scene may need `narrator_authority`, `scene_energy`,
 `environment_state`, `information_disclosure`, and `voice_consistency`. It may
-observe `thematic_tracking`, `callback_web`, and `sensory_context`. It should
-usually exclude `npc_agency`, `player_intent_inference`, `action_resolution`,
-`consequence_cascade`, `long_horizon_forecast`, `silence_negative_space`, and
-`dramatic_irony` unless the situation signals actually require them.
+observe `thematic_tracking`, `callback_web`, `sensory_context`, and
+`genre_awareness`. It should usually exclude `npc_agency`,
+`player_intent_inference`, `action_resolution`, `broad_nlu_listening`,
+`conversational_memory`, `prompt_authority`, `consequence_cascade`,
+`long_horizon_forecast`, `silence_negative_space`, and `dramatic_irony` unless
+the situation signals actually require them.
 
 Without a governed selector, the runtime risks over-validating ordinary turns,
 running expensive judges by default, hiding why a capability was used, and
@@ -200,7 +204,9 @@ Normative rules:
 - Not replacing `run_validation_seam` globally.
 - Not blocking commit from ADR-0041 local evidence.
 - Not overwriting `validation_outcome`.
-- Not making prompt assembly or generated story content depend on this decision.
+- Not making prompt assembly or generated story content depend on ADR-0041
+  selection except through explicitly documented bounded prompt envelopes that
+  preserve commit/readiness/validation authority.
 - Not making LLM-as-a-Judge mandatory for all turns.
 - Not creating live/staging proof or Capability Matrix promotion evidence.
 - Not making Pi / Π labels active runtime identifiers.
@@ -236,9 +242,13 @@ shape prompt authority, runtime control flow, validators, judges, or commit
 gates for that turn.
 
 `observe`: cheap diagnostics or ledger observation may run. The capability must
-not affect prompt authority, runtime control flow, or commit gates. Observed
-evidence is useful for drift analysis, but it must not block commit unless a
-later ADR explicitly promotes that behavior.
+not affect runtime control flow or commit gates. Observed evidence is useful for
+drift analysis, but it must not block commit unless a later ADR explicitly
+promotes that behavior. A documented prompt-envelope contract may expose
+observed evidence to model-visible assembly only when it also records source
+refs, forbids raw prompt/input storage where applicable, and proves
+`commit_gate_changed=false`, `readiness_gate_changed=false`, and
+`validation_outcome_changed=false`.
 
 `enforce`: the capability actively influences prompt assembly, runtime behavior,
 local validation, and/or commit-readiness rules. Enforced capabilities should be
@@ -321,20 +331,25 @@ observe:
   - thematic_tracking
   - callback_web
   - sensory_context
+  - genre_awareness
 off:
   - npc_agency
   - player_intent_inference
   - action_resolution
+  - broad_nlu_listening
+  - conversational_memory
+  - prompt_authority
   - consequence_cascade
   - long_horizon_forecast
   - silence_negative_space
   - dramatic_irony
 ```
 
-Opening-scene `sensory_context` must remain diagnostic/local-only unless or
-until it has owning ADR coverage, focused tests, world-engine projection
-evidence, and live/staging proof if promoted. Selecting or observing it for an
-opening scene is not a status promotion and not live/staging evidence.
+Opening-scene observer diagnostics must remain diagnostic/local-only unless or
+until each observed capability has owning ADR coverage, focused tests,
+world-engine projection evidence, and live/staging proof if promoted. Selecting
+or observing a capability for an opening scene is not a status promotion and not
+live/staging evidence.
 
 ## Validation and Judge Selection
 
@@ -385,6 +400,9 @@ Current opening-scene projection shape (abbreviated):
       "npc_agency",
       "player_intent_inference",
       "action_resolution",
+      "broad_nlu_listening",
+      "conversational_memory",
+      "prompt_authority",
       "consequence_cascade",
       "long_horizon_forecast",
       "silence_negative_space",
@@ -528,13 +546,17 @@ Implemented locally:
 4. Add ADR-0039-compliant tests that assert contracts and structured evidence,
    not generated prose, including the player-turn/NPC-agency authority
    boundary.
+5. Add the bounded Π34 active-listening prompt envelope:
+   `broad_nlu_listening.v1`, `conversational_memory.v1`, and
+   `prompt_authority.v1` reach LangGraph prompt/packet assembly and ledger
+   projection as local observer evidence only.
 
 Still future / governed:
 
 1. Add a declarative capability manifest using semantic names only, if the
    Python constants stop being sufficient.
-2. Wire selected `enforce` capabilities into prompt/runtime assembly without
-   changing matrix statuses.
+2. Wire additional selected `enforce` capabilities into prompt/runtime assembly
+   beyond the bounded Π34 envelope without changing matrix statuses.
 3. Gate production validators by selected `enforce` capabilities.
 4. Gate LLM-as-a-Judge usage by budget and risk.
 5. Expose live/staging MCP/Langfuse diagnostics.
@@ -565,8 +587,8 @@ Still future / governed:
 
 - Decide whether the selector should move from Python constants to a
   declarative semantic manifest.
-- Wire selected `enforce` capabilities into prompt/runtime assembly under
-  explicit governance.
+- Wire additional selected `enforce` capabilities into prompt/runtime assembly
+  under explicit governance.
 - Gate production validators and judges by activation mode.
 - Expose selector evidence to MCP/Langfuse with truthful local/live/staging
   scope.
@@ -657,7 +679,8 @@ Capability Matrix promotion or live/staging proof.
 Remaining future coverage should be added only when the corresponding governed
 implementation exists:
 
-- World-engine prompt/runtime assembly integration.
+- Additional world-engine prompt/runtime assembly integration beyond the
+  bounded Π34 active-listening envelope.
 - Production selected-validator orchestration and gating.
 - Judge execution integration.
 - MCP/Langfuse live or staging verification with environment metadata.

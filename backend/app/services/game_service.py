@@ -14,6 +14,9 @@ import httpx
 from flask import current_app
 
 
+STORY_TURN_WORKFLOW_SCOPE = "story_turn"
+
+
 # Keep module identity stable across ``app.services...`` and
 # ``backend.app.services...`` import paths so exception classes are shared.
 if __name__ == "app.services.game_service":
@@ -301,6 +304,96 @@ def _ingest_runtime_turn_cost(
         )
 
 
+def _first_non_empty_string(*values: Any) -> str | None:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return None
+
+
+def _runtime_budget_provider_id(runtime_projection: dict[str, Any] | None) -> str | None:
+    projection = runtime_projection if isinstance(runtime_projection, dict) else {}
+    nested_sources = [
+        projection,
+        projection.get("routing") if isinstance(projection.get("routing"), dict) else {},
+        projection.get("model_route") if isinstance(projection.get("model_route"), dict) else {},
+        projection.get("generation") if isinstance(projection.get("generation"), dict) else {},
+        projection.get("runtime_governance_surface")
+        if isinstance(projection.get("runtime_governance_surface"), dict)
+        else {},
+    ]
+    for source in nested_sources:
+        provider_id = _first_non_empty_string(
+            source.get("provider_id"),
+            source.get("selected_provider"),
+            source.get("provider"),
+            source.get("ai_provider"),
+        )
+        if provider_id:
+            return provider_id
+    return None
+
+
+def _enforce_governed_cost_budget_guard(*, provider_id: str | None, workflow_scope: str | None) -> None:
+    try:
+        from app.governance.errors import GovernanceError
+        from app.services.governance_runtime_service import enforce_budget_guard
+
+        enforce_budget_guard(provider_id, workflow_scope)
+    except GovernanceError as exc:
+        raise GameServiceError(
+            exc.message,
+            status_code=exc.status_code,
+            code=exc.code,
+            payload=exc.details,
+        ) from exc
+
+
+def _enforce_runtime_token_budget_guard(session_id: str | None) -> None:
+    clean_session_id = str(session_id or "").strip()
+    if not clean_session_id:
+        return
+    try:
+        from app.services.observability_governance_service import (
+            TokenBudgetService,
+            get_runtime_governance_storage,
+        )
+
+        status = TokenBudgetService(get_runtime_governance_storage()).get_budget_status(clean_session_id)
+    except Exception:
+        current_app.logger.exception(
+            "Failed to inspect runtime token budget before story turn",
+            extra={"session_id": clean_session_id},
+        )
+        return
+
+    total_budget = int(status.get("total_budget") or 0)
+    remaining_tokens = int(status.get("remaining_tokens") or 0)
+    degradation_level = str(status.get("degradation_level") or "").strip().lower()
+    if total_budget > 0 and (remaining_tokens <= 0 or degradation_level == "critical"):
+        raise GameServiceError(
+            "Runtime token budget is exhausted.",
+            status_code=409,
+            code="runtime_token_budget_exhausted",
+            payload={"budget_status": status},
+        )
+
+
+def _enforce_story_runtime_budget_guards(
+    *,
+    session_id: str | None = None,
+    runtime_projection: dict[str, Any] | None = None,
+) -> None:
+    provider_id = _runtime_budget_provider_id(runtime_projection)
+    _enforce_governed_cost_budget_guard(provider_id=provider_id, workflow_scope=None)
+    _enforce_governed_cost_budget_guard(
+        provider_id=provider_id,
+        workflow_scope=STORY_TURN_WORKFLOW_SCOPE,
+    )
+    _enforce_runtime_token_budget_guard(session_id)
+
+
 def get_play_service_ready(*, trace_id: str | None = None) -> dict:
     payload = _request("GET", "/api/health/ready", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict):
@@ -479,6 +572,7 @@ def create_story_session(
     }
     if user_id:
         json_payload["user_id"] = user_id
+    _enforce_story_runtime_budget_guards(runtime_projection=runtime_projection)
     payload = _request(
         "POST",
         "/api/story/sessions",
@@ -556,6 +650,7 @@ def execute_story_turn(
     runtime_mode: str | None = None,
     generation_mode: str | None = None,
 ) -> dict:
+    _enforce_story_runtime_budget_guards(session_id=session_id)
     payload = _request(
         "POST",
         f"/api/story/sessions/{session_id}/turns",

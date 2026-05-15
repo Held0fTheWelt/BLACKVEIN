@@ -38,6 +38,12 @@ A preview package is not promotable only because it exists. Promotion requires p
 
 Capability Matrix promotion follows the same principle: a row is not promotable only because source code, documentation, a test name, or a local PASS line exists. Runtime wiring, behavior tests, ADR relation, anti-hardcoding coverage, and any required live/staging/Langfuse/MCP evidence must be present before a capability is described as implemented or live-proven.
 
+For hard runtime drift loops such as `tonal_consistency`, local runtime
+enforcement and recoverable rejection are still not enough for a live/promoted
+claim. A failed hard-loop validation must block healthy commit/live-success,
+but promotion additionally requires dated provider traces, evaluator baselines,
+Langfuse/MCP evidence, and explicit readiness coupling.
+
 ## Consequences
 - quality becomes measurable
 - package changes can be compared to active baseline

@@ -6,7 +6,7 @@
         <div>
             <p class="mui-deck-eyebrow">Authoring · Game Content</p>
             <h1>Game Content</h1>
-            <p class="mui-deck-headline">Create, inspect, update, and publish authored experiences. God of Carnage is seeded as the first production-facing single adventure.</p>
+            <p class="mui-deck-headline">Create, inspect, update, and publish authored experiences. Defaults for new drafts come from published experiences on the backend (not from hardcoded HTML).</p>
         </div>
         <div class="mui-deck-actions">
             <button class="btn" id="game-content-refresh" type="button">Refresh</button>
@@ -20,6 +20,12 @@
                 <h2>Experiences</h2>
                 <p>Published and draft authored content managed by the backend.</p>
             </header>
+            <label class="mui-field" for="game-content-published-template" style="display:block;margin-bottom:0.5rem">
+                <span class="mui-field-label">Published template for new draft</span>
+                <select id="game-content-published-template" class="form-input">
+                    <option value="">— load published list —</option>
+                </select>
+            </label>
             <div id="game-content-list" class="stacked-list"></div>
         </section>
         <section class="panel">

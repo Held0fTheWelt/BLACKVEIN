@@ -4,14 +4,12 @@
 
     function getDefaultModuleId() {
         var cfg = (typeof window !== "undefined" && window.__FRONTEND_CONFIG__) || {};
-        return String(cfg.adminDefaultContentModuleId || "").trim();
-    }
-
-    function govSummaryPath() {
-        return (
-            "/api/v1/admin/narrative/runtime/gov-summary?module_id=" +
-            encodeURIComponent(getDefaultModuleId())
-        );
+        var v = String(cfg.contentModuleId || "").trim();
+        if (v) return v;
+        if (typeof document !== "undefined" && document.body && document.body.dataset) {
+            v = String(document.body.dataset.contentModuleId || "").trim();
+        }
+        return v;
     }
 
     var OK_STATUSES = [
@@ -251,13 +249,26 @@
 
     function loadRuntime() {
         clearError();
+        var mid = getDefaultModuleId();
+        if (!mid) {
+            setGovLoading(false);
+            var root0 = document.getElementById("mvp4-narrative-gov-summary");
+            if (root0) {
+                root0.innerHTML =
+                    '<p class="manage-dx-empty">Missing content module id. Configure site_settings (content_module_id) or ADMIN_DEFAULT_CONTENT_MODULE_ID.</p>';
+            }
+            showError("Missing content_module_id — cannot load narrative runtime evidence.");
+            return Promise.resolve();
+        }
         setGovLoading(true);
         return Promise.all([
-            ManageAuth.apiFetchWithAuth(govSummaryPath()),
+            ManageAuth.apiFetchWithAuth(
+                "/api/v1/admin/narrative/runtime/gov-summary?module_id=" + encodeURIComponent(mid)
+            ),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/config"),
             ManageAuth.apiFetchWithAuth(
                 "/api/v1/admin/narrative/runtime/diagnostics?module_id=" +
-                    encodeURIComponent(getDefaultModuleId())
+                    encodeURIComponent(mid)
             )
         ])
             .then(function (results) {
@@ -306,8 +317,13 @@
         var reloadBtn = document.getElementById("ng-runtime-reload-package");
         if (reloadBtn) {
             reloadBtn.addEventListener("click", function () {
+                var mid = getDefaultModuleId();
+                if (!mid) {
+                    window.alert("Missing content_module_id — configure site settings or env first.");
+                    return;
+                }
                 ManageAuth.apiFetchWithAuth(
-                    "/api/v1/admin/narrative/packages/" + encodeURIComponent(getDefaultModuleId()) + "/active"
+                    "/api/v1/admin/narrative/packages/" + encodeURIComponent(mid) + "/active"
                 )
                     .then(function (activeRes) {
                         var active = apiData(activeRes).active_version;
@@ -317,7 +333,7 @@
                         }
                         return postJson(
                             "/api/v1/admin/narrative/packages/" +
-                                encodeURIComponent(getDefaultModuleId()) +
+                                encodeURIComponent(mid) +
                                 "/rollback-to/" +
                                 encodeURIComponent(active),
                             {

@@ -1307,8 +1307,13 @@ def game_published_content_feed():
 def game_content_list():
     try:
         lifecycle = (request.args.get("lifecycle") or "").strip() or None
+        status = (request.args.get("status") or "").strip() or None
         return jsonify(
-            {"experiences": list_experiences(include_payload=True, lifecycle=lifecycle)}
+            {
+                "experiences": list_experiences(
+                    include_payload=True, lifecycle=lifecycle, status=status
+                )
+            }
         )
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
