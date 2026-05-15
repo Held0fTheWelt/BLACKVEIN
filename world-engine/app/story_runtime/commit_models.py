@@ -129,6 +129,9 @@ class PlannerTruth(BaseModel):
     pacing_rhythm_state: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_target: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_validation: dict[str, Any] = Field(default_factory=dict)
+    social_pressure_state: dict[str, Any] = Field(default_factory=dict)
+    social_pressure_target: dict[str, Any] = Field(default_factory=dict)
+    social_pressure_validation: dict[str, Any] = Field(default_factory=dict)
     spoken_line_count: int = 0
     action_line_count: int = 0
     initiative_summary: dict[str, Any] = Field(default_factory=dict)
@@ -773,6 +776,16 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_pacing_rhythm.get("target")
     )
     pacing_rhythm_validation = _as_dict(graph_state.get("pacing_rhythm_validation"))
+    dramatic_packet_social_pressure = _as_dict(dramatic_packet.get("social_pressure"))
+    social_pressure_state = _as_dict(
+        graph_state.get("social_pressure_state")
+        or dramatic_packet_social_pressure.get("state")
+    )
+    social_pressure_target = _as_dict(
+        graph_state.get("social_pressure_target")
+        or dramatic_packet_social_pressure.get("target")
+    )
+    social_pressure_validation = _as_dict(graph_state.get("social_pressure_validation"))
     npc_agency_simulation = _as_dict(
         dramatic_packet.get("npc_agency_simulation")
         or graph_state.get("npc_agency_simulation")
@@ -848,6 +861,9 @@ def _planner_truth_from_graph_state(
         pacing_rhythm_state=pacing_rhythm_state,
         pacing_rhythm_target=pacing_rhythm_target,
         pacing_rhythm_validation=pacing_rhythm_validation,
+        social_pressure_state=social_pressure_state,
+        social_pressure_target=social_pressure_target,
+        social_pressure_validation=social_pressure_validation,
         spoken_line_count=spoken_line_count,
         action_line_count=action_line_count,
         initiative_summary=initiative_summary,

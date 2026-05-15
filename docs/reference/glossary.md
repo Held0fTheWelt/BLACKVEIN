@@ -52,6 +52,9 @@ Durable, bounded story-session environment state for the GoC slice: current room
 **Callback web / Pi17**
 Bounded, deterministic continuity index over committed story-session records. It links earlier and later committed turns through structured evidence such as continuity classes, narrative threads, scene anchors, and selected branch replay events. It may support prompts and diagnostics, but it is non-authoritative and cannot mutate canon or replace memory.
 
+**Consequence cascade / Pi21**
+Bounded, deterministic consequence graph over committed story-session truth. It turns committed continuity impacts, pressure state, resolved pressures, narrative threads, and realized branch selections into consequence atoms and edges. It may support prompt context and diagnostics through `consequence_cascade_feedback.v1`, but it does not mutate canon, adopt inactive branch previews, or validate consequences from generated prose.
+
 **Subtext interpretation / Pi19**
 Bounded surface-vs-intent diagnostic carried as `SemanticMoveRecord.subtext`. It records policy-backed surface mode, hidden-intent hypothesis, subtext function, sincerity band, evidence codes, and policy provenance. It may shape planning and observability but does not commit story truth or use generated prose as an oracle.
 

@@ -22,6 +22,8 @@ ASPECT_ACTION_RESOLUTION = "action_resolution"
 ASPECT_BEAT = "beat"
 ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_PACING_RHYTHM = "pacing_rhythm"
+ASPECT_IMPROVISATIONAL_COHERENCE = "improvisational_coherence"
+ASPECT_SOCIAL_PRESSURE = "social_pressure"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
@@ -43,6 +45,8 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_BEAT,
     ASPECT_SCENE_ENERGY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_IMPROVISATIONAL_COHERENCE,
+    ASPECT_SOCIAL_PRESSURE,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
@@ -303,6 +307,16 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_PACING_RHYTHM), dict)
         else {}
     )
+    improvisational_rec = (
+        aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE)
+        if isinstance(aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE), dict)
+        else {}
+    )
+    social_pressure_rec = (
+        aspects.get(ASPECT_SOCIAL_PRESSURE)
+        if isinstance(aspects.get(ASPECT_SOCIAL_PRESSURE), dict)
+        else {}
+    )
     cap_rec = (
         aspects.get(ASPECT_CAPABILITY_SELECTION)
         if isinstance(aspects.get(ASPECT_CAPABILITY_SELECTION), dict)
@@ -378,6 +392,12 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     pacing_rhythm_expected = _record_block(pacing_rhythm_rec, "expected")
     pacing_rhythm_selected = _record_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _record_block(pacing_rhythm_rec, "actual")
+    improvisational_expected = _record_block(improvisational_rec, "expected")
+    improvisational_selected = _record_block(improvisational_rec, "selected")
+    improvisational_actual = _record_block(improvisational_rec, "actual")
+    social_pressure_expected = _record_block(social_pressure_rec, "expected")
+    social_pressure_selected = _record_block(social_pressure_rec, "selected")
+    social_pressure_actual = _record_block(social_pressure_rec, "actual")
     cap_expected = _record_block(cap_rec, "expected")
     cap_selected = _record_block(cap_rec, "selected")
     cap_actual = _record_block(cap_rec, "actual")
@@ -570,6 +590,102 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     else None
                 ),
                 "status": pacing_rhythm_rec.get("status"),
+            },
+            "improvisational_coherence": {
+                "schema_version": improvisational_expected.get("schema_version")
+                or improvisational_selected.get("schema_version")
+                or improvisational_actual.get("schema_version"),
+                "policy_present": bool(improvisational_expected.get("policy_present")),
+                "policy_enabled": bool(improvisational_expected.get("policy_enabled")),
+                "commit_impact": improvisational_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    improvisational_expected.get("require_structured_events")
+                ),
+                "contribution_id": improvisational_selected.get("contribution_id"),
+                "contribution_kind": improvisational_selected.get("contribution_kind"),
+                "acceptance_mode": improvisational_selected.get("acceptance_mode")
+                or improvisational_actual.get("acceptance_mode"),
+                "advance_class": improvisational_actual.get("advance_class"),
+                "selected_scene_function": improvisational_selected.get(
+                    "selected_scene_function"
+                ),
+                "visible_actor_ids": improvisational_selected.get("visible_actor_ids") or [],
+                "required_anchor_refs": improvisational_selected.get("required_anchor_refs")
+                or [],
+                "anchor_refs": improvisational_actual.get("anchor_refs") or [],
+                "anchor_sources": improvisational_actual.get("anchor_sources") or [],
+                "requires_playable_boundary_reason": bool(
+                    improvisational_selected.get("requires_playable_boundary_reason")
+                ),
+                "boundary_reason_code": improvisational_actual.get("boundary_reason_code")
+                or improvisational_selected.get("boundary_reason_code"),
+                "structured_events_present": bool(
+                    improvisational_actual.get("structured_events_present")
+                ),
+                "event_count": int(improvisational_actual.get("event_count") or 0),
+                "contribution_acknowledged": bool(
+                    improvisational_actual.get("contribution_acknowledged")
+                ),
+                "contract_pass": improvisational_actual.get("contract_pass"),
+                "failure_codes": improvisational_actual.get("failure_codes")
+                or _record_reasons(improvisational_rec),
+                "failure_reason": improvisational_rec.get("failure_reason")
+                or (
+                    _record_reasons(improvisational_rec)[0]
+                    if _record_reasons(improvisational_rec)
+                    else None
+                ),
+                "status": improvisational_rec.get("status"),
+            },
+            "social_pressure": {
+                "schema_version": social_pressure_expected.get("schema_version")
+                or social_pressure_selected.get("schema_version")
+                or social_pressure_actual.get("schema_version"),
+                "policy_present": bool(social_pressure_expected.get("policy_present")),
+                "policy_enabled": bool(social_pressure_expected.get("policy_enabled")),
+                "target_score": float(
+                    social_pressure_selected.get("target_score")
+                    or (
+                        social_pressure_selected.get("target", {}).get("target_score")
+                        if isinstance(social_pressure_selected.get("target"), dict)
+                        else 0.0
+                    )
+                    or 0.0
+                ),
+                "target_band": social_pressure_selected.get("target_band")
+                or (
+                    social_pressure_selected.get("target", {}).get("target_band")
+                    if isinstance(social_pressure_selected.get("target"), dict)
+                    else None
+                ),
+                "trend": social_pressure_selected.get("trend")
+                or (
+                    social_pressure_selected.get("target", {}).get("trend")
+                    if isinstance(social_pressure_selected.get("target"), dict)
+                    else None
+                )
+                or social_pressure_actual.get("trend"),
+                "current_score": float(social_pressure_actual.get("current_score") or 0.0),
+                "current_band": social_pressure_actual.get("current_band"),
+                "velocity": float(social_pressure_actual.get("velocity") or 0.0),
+                "requires_visible_pressure": bool(
+                    social_pressure_selected.get("requires_visible_pressure")
+                    or (
+                        social_pressure_selected.get("target", {}).get("requires_visible_pressure")
+                        if isinstance(social_pressure_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "contract_pass": social_pressure_actual.get("contract_pass"),
+                "failure_codes": social_pressure_actual.get("failure_codes")
+                or _record_reasons(social_pressure_rec),
+                "failure_reason": social_pressure_rec.get("failure_reason")
+                or (
+                    _record_reasons(social_pressure_rec)[0]
+                    if _record_reasons(social_pressure_rec)
+                    else None
+                ),
+                "status": social_pressure_rec.get("status"),
             },
             "capability": {
                 "selected_capabilities": selected_capabilities
@@ -1057,6 +1173,25 @@ def aspect_score_metadata(
         or transition.get("transition_intent"),
         "scene_energy_contract_pass": actual.get("contract_pass"),
         "scene_energy_failure_codes": actual.get("failure_codes"),
+        "improvisational_coherence_contribution_id": selected.get("contribution_id"),
+        "improvisational_coherence_contribution_kind": selected.get("contribution_kind"),
+        "improvisational_coherence_acceptance_mode": selected.get("acceptance_mode")
+        or actual.get("acceptance_mode"),
+        "improvisational_coherence_advance_class": actual.get("advance_class"),
+        "improvisational_coherence_acknowledged": actual.get("contribution_acknowledged"),
+        "improvisational_coherence_contract_pass": actual.get("contract_pass"),
+        "improvisational_coherence_failure_codes": actual.get("failure_codes"),
+        "social_pressure_target_score": selected.get("target_score")
+        or target.get("target_score"),
+        "social_pressure_target_band": selected.get("target_band")
+        or target.get("target_band"),
+        "social_pressure_current_score": actual.get("current_score"),
+        "social_pressure_current_band": actual.get("current_band"),
+        "social_pressure_trend": selected.get("trend")
+        or target.get("trend")
+        or actual.get("trend"),
+        "social_pressure_contract_pass": actual.get("contract_pass"),
+        "social_pressure_failure_codes": actual.get("failure_codes"),
         "information_disclosure_selected_unit_ids": selected.get("selected_unit_ids"),
         "information_disclosure_visible_unit_ids": actual.get("visible_unit_ids"),
         "information_disclosure_contract_pass": actual.get("contract_pass"),

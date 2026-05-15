@@ -98,6 +98,35 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "responder_asymmetry_code": "blame_on_host_spouse_axis",
                 "social_risk_band": "high",
             },
+            "social_pressure_state": {
+                "schema_version": "social_pressure.v1",
+                "current_score": 0.74,
+                "current_band": "high",
+                "prior_score": 0.52,
+                "prior_band": "moderate",
+                "trend": "rising",
+                "velocity": 0.22,
+                "active_source_count": 2,
+                "source_evidence": [],
+                "rationale_codes": ["social_pressure_social_risk_band"],
+            },
+            "social_pressure_target": {
+                "schema_version": "social_pressure.v1",
+                "target_score": 0.74,
+                "target_band": "high",
+                "trend": "rising",
+                "pressure_floor": 0.67,
+                "requires_visible_pressure": True,
+                "release_allowed": False,
+                "source_evidence": [],
+                "rationale_codes": ["social_pressure_social_risk_band"],
+            },
+            "social_pressure_validation": {
+                "schema_version": "social_pressure.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
             "character_mind_summary": {"annette": {"stance": "defensive"}},
             "continuity_impacts": [{"class": "tension_escalation"}],
         },
@@ -135,6 +164,9 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.social_state_summary["responder_asymmetry_code"] == "blame_on_host_spouse_axis"
     assert pt.social_state_summary["record"]["scene_pressure_state"] == "high_blame"
     assert pt.social_state_summary["fingerprint"]
+    assert pt.social_pressure_state["current_score"] == 0.74
+    assert pt.social_pressure_target["target_band"] == "high"
+    assert pt.social_pressure_validation["contract_pass"] is True
     assert pt.character_mind_summary == {"annette": {"stance": "defensive"}}
     assert pt.validation_status == "approved"
     assert pt.validation_reason == "scope_ok"
@@ -309,6 +341,38 @@ def test_prior_social_state_read_back_from_session_history() -> None:
     )
 
     assert _prior_social_state_record_from_session(s) == prior_record
+
+
+def test_prior_social_pressure_read_back_from_session_history() -> None:
+    from app.story_runtime.manager import (
+        StorySession,
+        _prior_social_pressure_state_from_session,
+    )
+
+    prior_state = {
+        "schema_version": "social_pressure.v1",
+        "current_score": 0.74,
+        "current_band": "high",
+        "trend": "rising",
+        "velocity": 0.2,
+    }
+    s = StorySession(
+        session_id="sess-social-pressure-test",
+        module_id="god_of_carnage",
+        runtime_projection={"scenes": [], "start_scene_id": "s1"},
+    )
+    s.history.append(
+        {
+            "turn_number": 1,
+            "narrative_commit": {
+                "planner_truth": {
+                    "social_pressure_state": prior_state,
+                }
+            },
+        }
+    )
+
+    assert _prior_social_pressure_state_from_session(s) == prior_state
 
 
 def test_runtime_config_status_exposes_live_truth_surface_without_governed_config() -> None:

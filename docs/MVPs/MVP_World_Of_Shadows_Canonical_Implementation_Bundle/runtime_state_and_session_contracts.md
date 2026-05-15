@@ -322,6 +322,22 @@ During validation, `InformationDisclosureValidation` reads structured `disclosur
 
 **ADR-0039 boundary:** Tests derive positive and negative cases from normalized policy structures and assert schema fields, failure codes, ledger projection, Langfuse/MCP score fields, and anti-hardcoding gate behavior. Generated narrative wording is never the pass/fail oracle.
 
+### Consequence Cascade / Pi21
+
+The consequence cascade is implemented as a bounded `consequence_cascade_record.v1` graph over committed session truth. It connects consequence atoms across committed turns through continuity classes, narrative threads, resolution markers, and realized branch selections.
+
+The consequence cascade is committed-state feedback and prompt support, not canonical truth. It does not mutate story state, replace narrative threads, create cross-session memory, or adopt simulated branch state. The authoritative technical contract is [`docs/technical/runtime/consequence_cascade_contract.md`](../../technical/runtime/consequence_cascade_contract.md).
+
+During a turn:
+
+- World-Engine rebuilds the cascade from `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
+- the latest history row receives `consequence_cascade_summary`, `consequence_cascade_feedback`, and `consequence_cascade_validation`;
+- the next LangGraph turn receives bounded `prior_consequence_cascade_state`;
+- `turn_aspect_ledger.consequence_cascade` records policy, selected consequence ids/classes/statuses, atom/edge counts, validation status, and failure codes;
+- internal operator endpoints expose the record, edge list, and rebuild operation.
+
+**ADR-0039 boundary:** Tests derive expectations from schema constants, edge kinds, status vocabularies, session/turn ids, branch lifecycle fields, normalized policy bounds, authority flags, and stable ids. Generated narration, branch preview prose, and authored example paragraphs are not valid pass/fail oracles.
+
 ### Environmental Story / Pi15
 
 Environmental story is implemented as durable, bounded `EnvironmentState`, not as

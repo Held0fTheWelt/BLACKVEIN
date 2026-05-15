@@ -35,6 +35,7 @@ Agency preservation is enforced at two levels:
 - Forwards `candidate_deltas` and `state_delta_boundary` into the commit seam. Protected-path rejections stay explicit in `committed_result.state_delta_rejection` and `turn_aspect_ledger.commit`.
 - Loads `ModuleRuntimePolicy.memory_policy`, writes bounded hierarchical memory only from canonical committed turns, and projects safe memory context into LangGraph. This is session-local runtime continuity, not a second source of truth.
 - Rebuilds the bounded callback web after commits, persists `callback_web_record.v1`, projects `callback_web_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.callback_web` without mutating canonical story state.
+- Rebuilds the bounded consequence cascade after commits, persists `consequence_cascade_record.v1`, projects `consequence_cascade_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.consequence_cascade` without using generated prose or branch previews as oracles.
 - Derives `pacing_rhythm_state` / `pacing_rhythm_target`, validates structured cadence realization, persists planner-truth rhythm feedback, and records `turn_aspect_ledger.pacing_rhythm` without using generated prose as an oracle.
 
 ## Session lifecycle (conceptual)
@@ -69,6 +70,7 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`player_input_interpretation_contract.md`](player_input_interpretation_contract.md) — structured interpretation contract
 - [`callback_web_contract.md`](callback_web_contract.md) — bounded Pi17 callback web index and operator evidence
 - [`pacing_rhythm_contract.md`](pacing_rhythm_contract.md) — bounded Pi18 pacing-rhythm cadence contract and structured validation
+- [`consequence_cascade_contract.md`](consequence_cascade_contract.md) — bounded Pi21 consequence cascade over committed truth and branch selections
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration
 - [`../ai/RAG.md`](../ai/RAG.md) — retrieval in the turn path

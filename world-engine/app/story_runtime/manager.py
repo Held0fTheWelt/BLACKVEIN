@@ -96,6 +96,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_HIERARCHICAL_MEMORY,
+    ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_NARRATIVE_ASPECT,
@@ -104,6 +105,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
+    ASPECT_SOCIAL_PRESSURE,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
@@ -3032,6 +3034,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("pacing_rhythm_validation"), dict)
             else {}
         ),
+        "social_pressure_state": (
+            graph_state.get("social_pressure_state")
+            if isinstance(graph_state.get("social_pressure_state"), dict)
+            else scene_plan_record.get("social_pressure_state")
+            if isinstance(scene_plan_record.get("social_pressure_state"), dict)
+            else {}
+        ),
+        "social_pressure_target": (
+            graph_state.get("social_pressure_target")
+            if isinstance(graph_state.get("social_pressure_target"), dict)
+            else scene_plan_record.get("social_pressure_target")
+            if isinstance(scene_plan_record.get("social_pressure_target"), dict)
+            else {}
+        ),
+        "social_pressure_validation": (
+            graph_state.get("social_pressure_validation")
+            if isinstance(graph_state.get("social_pressure_validation"), dict)
+            else {}
+        ),
         "legacy_keyword_scene_candidates_used": bool(
             multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
         ),
@@ -3839,6 +3860,10 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
     pacing_rhythm_selected = _selected(ASPECT_PACING_RHYTHM)
     pacing_rhythm_actual = _actual(ASPECT_PACING_RHYTHM)
+    social_pressure_selected = _selected(ASPECT_SOCIAL_PRESSURE)
+    social_pressure_actual = _actual(ASPECT_SOCIAL_PRESSURE)
+    improvisational_selected = _selected(ASPECT_IMPROVISATIONAL_COHERENCE)
+    improvisational_actual = _actual(ASPECT_IMPROVISATIONAL_COHERENCE)
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
     disclosure_selected = _selected(ASPECT_INFORMATION_DISCLOSURE)
     disclosure_actual = _actual(ASPECT_INFORMATION_DISCLOSURE)
@@ -3914,6 +3939,38 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": pacing_rhythm_actual,
                 "aspect_record": _rec(ASPECT_PACING_RHYTHM),
+            },
+        ),
+        (
+            "story.social_pressure.target",
+            ASPECT_SOCIAL_PRESSURE,
+            {
+                "selected": social_pressure_selected,
+                "aspect_record": _rec(ASPECT_SOCIAL_PRESSURE),
+            },
+        ),
+        (
+            "story.social_pressure.validate",
+            ASPECT_SOCIAL_PRESSURE,
+            {
+                "actual": social_pressure_actual,
+                "aspect_record": _rec(ASPECT_SOCIAL_PRESSURE),
+            },
+        ),
+        (
+            "story.improvisational_coherence.target",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            {
+                "selected": improvisational_selected,
+                "aspect_record": _rec(ASPECT_IMPROVISATIONAL_COHERENCE),
+            },
+        ),
+        (
+            "story.improvisational_coherence.validate",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            {
+                "actual": improvisational_actual,
+                "aspect_record": _rec(ASPECT_IMPROVISATIONAL_COHERENCE),
             },
         ),
         (
@@ -4022,6 +4079,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_BEAT,
                         ASPECT_SCENE_ENERGY,
                         ASPECT_PACING_RHYTHM,
+                        ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
@@ -4104,6 +4162,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    social_pressure_target = (
+        social_pressure_selected.get("target")
+        if isinstance(social_pressure_selected.get("target"), dict)
+        else social_pressure_selected
+    )
+    social_pressure_failure_codes = social_pressure_actual.get("failure_codes") or []
+    if not isinstance(social_pressure_failure_codes, list):
+        social_pressure_failure_codes = []
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
@@ -4239,6 +4305,25 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
                 and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
+            ),
+        ),
+        (
+            "social_pressure_target_present",
+            ASPECT_SOCIAL_PRESSURE,
+            _runtime_aspect_score_value(bool(social_pressure_target)),
+        ),
+        (
+            "social_pressure_contract_pass",
+            ASPECT_SOCIAL_PRESSURE,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_SOCIAL_PRESSURE).get("status") in {"passed", "not_applicable"}
+            ),
+        ),
+        (
+            "social_pressure_metric_bounded",
+            ASPECT_SOCIAL_PRESSURE,
+            _runtime_aspect_score_value(
+                "social_pressure_score_out_of_bounds" not in social_pressure_failure_codes
             ),
         ),
         (
@@ -6510,6 +6595,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "pacing_rhythm_state",
         "pacing_rhythm_target",
         "pacing_rhythm_validation",
+        "social_pressure_state",
+        "social_pressure_target",
+        "social_pressure_validation",
         "spoken_line_count",
         "action_line_count",
         "initiative_summary",
@@ -6567,6 +6655,23 @@ def _prior_pacing_rhythm_state_from_session(session: "StorySession") -> dict[str
         if not isinstance(planner, dict):
             continue
         state = planner.get("pacing_rhythm_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
+def _prior_social_pressure_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed social-pressure metric from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("social_pressure_state")
         if isinstance(state, dict) and state:
             return dict(state)
     return None
@@ -6721,6 +6826,19 @@ def _build_committed_dramatic_context_summary(
                     else base_pacing_rhythm.get("validation_status")
                 ),
             },
+            "social_pressure": {
+                "state": planner.get("social_pressure_state")
+                if isinstance(planner.get("social_pressure_state"), dict)
+                else {},
+                "target": planner.get("social_pressure_target")
+                if isinstance(planner.get("social_pressure_target"), dict)
+                else {},
+                "validation_status": (
+                    planner.get("social_pressure_validation", {}).get("status")
+                    if isinstance(planner.get("social_pressure_validation"), dict)
+                    else None
+                ),
+            },
             "scene_assessment": {
                 "pressure_state": scene_assessment.get("pressure_state")
                 or base_scene.get("pressure_state"),
@@ -6793,11 +6911,19 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
         if isinstance(dramatic_context.get("pacing_rhythm"), dict)
         else {}
     )
+    social_pressure = (
+        dramatic_context.get("social_pressure")
+        if isinstance(dramatic_context.get("social_pressure"), dict)
+        else {}
+    )
     scene_energy_target = (
         scene_energy.get("target") if isinstance(scene_energy.get("target"), dict) else {}
     )
     pacing_rhythm_target = (
         pacing_rhythm.get("target") if isinstance(pacing_rhythm.get("target"), dict) else {}
+    )
+    social_pressure_target = (
+        social_pressure.get("target") if isinstance(social_pressure.get("target"), dict) else {}
     )
     scene = dramatic_context.get("scene_assessment") if isinstance(dramatic_context.get("scene_assessment"), dict) else {}
     social = dramatic_context.get("social_state") if isinstance(dramatic_context.get("social_state"), dict) else {}
@@ -6815,6 +6941,9 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
         "pacing_mode": pacing.get("pacing_mode"),
         "pacing_rhythm_cadence": pacing_rhythm_target.get("cadence"),
         "pacing_rhythm_response_shape": pacing_rhythm_target.get("response_shape"),
+        "social_pressure_score": social_pressure_target.get("target_score"),
+        "social_pressure_band": social_pressure_target.get("target_band"),
+        "social_pressure_trend": social_pressure_target.get("trend"),
         "scene_energy_level": scene_energy_target.get("energy_level"),
         "scene_energy_transition": scene_energy_target.get("target_transition"),
         "pressure_state": scene.get("pressure_state"),
@@ -8330,6 +8459,12 @@ class StoryRuntimeManager:
             gov["pacing_rhythm_target"] = graph_state.get("pacing_rhythm_target")
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             gov["pacing_rhythm_validation"] = graph_state.get("pacing_rhythm_validation")
+        if isinstance(graph_state.get("social_pressure_state"), dict):
+            gov["social_pressure_state"] = graph_state.get("social_pressure_state")
+        if isinstance(graph_state.get("social_pressure_target"), dict):
+            gov["social_pressure_target"] = graph_state.get("social_pressure_target")
+        if isinstance(graph_state.get("social_pressure_validation"), dict):
+            gov["social_pressure_validation"] = graph_state.get("social_pressure_validation")
         if isinstance(session.environment_state, dict) and session.environment_state:
             gov["environment_state"] = session.environment_state
         # Story Runtime Experience packaging: re-pack the visible bundle
@@ -8480,6 +8615,9 @@ class StoryRuntimeManager:
             "scene_energy_target": graph_state.get("scene_energy_target"),
             "scene_energy_transition": graph_state.get("scene_energy_transition"),
             "scene_energy_validation": graph_state.get("scene_energy_validation"),
+            "social_pressure_state": graph_state.get("social_pressure_state"),
+            "social_pressure_target": graph_state.get("social_pressure_target"),
+            "social_pressure_validation": graph_state.get("social_pressure_validation"),
             "dramatic_irony_record": graph_state.get("dramatic_irony_record"),
             "dramatic_irony_validation": graph_state.get("dramatic_irony_validation"),
             "selected_responder_set": selected_responder_set,
@@ -9057,6 +9195,9 @@ class StoryRuntimeManager:
             "scene_energy_target": event.get("scene_energy_target"),
             "scene_energy_transition": event.get("scene_energy_transition"),
             "scene_energy_validation": event.get("scene_energy_validation"),
+            "social_pressure_state": event.get("social_pressure_state"),
+            "social_pressure_target": event.get("social_pressure_target"),
+            "social_pressure_validation": event.get("social_pressure_validation"),
             "human_input_attribution": event.get("human_input_attribution"),
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "committed_state_after": {
@@ -9105,6 +9246,7 @@ class StoryRuntimeManager:
         prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
         prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
+        prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
 
         try:
             graph_state = self.turn_graph.run(
@@ -9121,6 +9263,7 @@ class StoryRuntimeManager:
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
+                prior_social_pressure_state=prior_social_pressure_state,
                 turn_number=0,
                 turn_initiator_type="engine",
                 turn_input_class="opening",
@@ -10397,6 +10540,7 @@ class StoryRuntimeManager:
             prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
             prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
+            prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
                 runtime_profile_id=_runtime_profile_id_from_projection(
@@ -10426,6 +10570,7 @@ class StoryRuntimeManager:
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
+                prior_social_pressure_state=prior_social_pressure_state,
                 prior_planner_truth=prior_planner_truth,
                 hierarchical_memory_context=hierarchical_memory_context,
                 turn_number=commit_turn_number,
@@ -10636,6 +10781,12 @@ class StoryRuntimeManager:
             event.setdefault("pacing_rhythm_target", graph_state.get("pacing_rhythm_target"))
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             event.setdefault("pacing_rhythm_validation", graph_state.get("pacing_rhythm_validation"))
+        if isinstance(graph_state.get("social_pressure_state"), dict):
+            event.setdefault("social_pressure_state", graph_state.get("social_pressure_state"))
+        if isinstance(graph_state.get("social_pressure_target"), dict):
+            event.setdefault("social_pressure_target", graph_state.get("social_pressure_target"))
+        if isinstance(graph_state.get("social_pressure_validation"), dict):
+            event.setdefault("social_pressure_validation", graph_state.get("social_pressure_validation"))
         if selected_responder_set:
             event.setdefault("selected_responder_set", selected_responder_set)
         actor_survival_telemetry = (
@@ -10699,6 +10850,9 @@ class StoryRuntimeManager:
             "pacing_rhythm_state": event.get("pacing_rhythm_state"),
             "pacing_rhythm_target": event.get("pacing_rhythm_target"),
             "pacing_rhythm_validation": event.get("pacing_rhythm_validation"),
+            "social_pressure_state": event.get("social_pressure_state"),
+            "social_pressure_target": event.get("social_pressure_target"),
+            "social_pressure_validation": event.get("social_pressure_validation"),
             "human_input_attribution": human_att,
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,

@@ -825,6 +825,33 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "social_pressure": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": "social_pressure.v1",
+                            "policy_present": True,
+                            "policy_enabled": True,
+                        },
+                        "selected": {
+                            "target": {
+                                "schema_version": "social_pressure.v1",
+                                "target_score": 0.74,
+                                "target_band": "high",
+                                "trend": "rising",
+                                "pressure_floor": 0.67,
+                                "requires_visible_pressure": True,
+                                "release_allowed": False,
+                            }
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "current_score": 0.74,
+                            "current_band": "high",
+                            "trend": "rising",
+                            "velocity": 0.22,
+                            "failure_codes": [],
+                        },
+                    },
                     "dramatic_irony": {
                         "status": "passed",
                         "expected": {
@@ -932,6 +959,9 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "pacing_rhythm_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_density_respected", "value": 1.0},
             {"name": "pacing_rhythm_pause_respected", "value": 1.0},
+            {"name": "social_pressure_target_present", "value": 1.0},
+            {"name": "social_pressure_contract_pass", "value": 1.0},
+            {"name": "social_pressure_metric_bounded", "value": 1.0},
             {"name": "dramatic_irony_policy_present", "value": 1.0},
             {"name": "dramatic_irony_opportunity_present", "value": 1.0},
             {"name": "dramatic_irony_contract_pass", "value": 1.0},
@@ -986,6 +1016,12 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["pacing_rhythm_response_shape"] == "exchange"
     assert row["pacing_rhythm_density_respected"] is True
     assert row["pacing_rhythm_contract_pass"] is True
+    assert row["social_pressure_target_present"] is True
+    assert row["social_pressure_score"] == 0.74
+    assert row["social_pressure_band"] == "high"
+    assert row["social_pressure_trend"] == "rising"
+    assert row["social_pressure_metric_bounded"] is True
+    assert row["social_pressure_contract_pass"] is True
     assert row["dramatic_irony_policy_present"] is True
     assert row["dramatic_irony_opportunity_present"] is True
     assert row["dramatic_irony_selected_opportunities"] == ["opportunity_alpha"]

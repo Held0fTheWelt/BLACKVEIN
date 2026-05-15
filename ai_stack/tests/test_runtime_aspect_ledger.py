@@ -16,6 +16,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AGENCY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
+    ASPECT_SOCIAL_PRESSURE,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
     set_aspect_record,
@@ -316,6 +317,62 @@ def test_runtime_projection_exposes_pacing_rhythm_aspect() -> None:
     assert rhythm["visible_block_count"] == 5
     assert rhythm["failure_codes"] == [density_code]
     assert rhythm["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_social_pressure_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-pressure",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich bleibe am Tisch.",
+    )
+    target = {
+        "schema_version": "social_pressure.v1",
+        "target_score": 0.74,
+        "target_band": "high",
+        "trend": "rising",
+        "pressure_floor": 0.67,
+        "requires_visible_pressure": True,
+        "release_allowed": False,
+        "source_evidence": [],
+        "rationale_codes": [],
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_SOCIAL_PRESSURE,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": target["schema_version"],
+                "policy_present": True,
+                "policy_enabled": True,
+            },
+            "selected": {"target": target},
+            "actual": {
+                "current_score": 0.74,
+                "current_band": "high",
+                "trend": "rising",
+                "velocity": 0.22,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    pressure = projection[ASPECT_SOCIAL_PRESSURE]
+    assert pressure["schema_version"] == target["schema_version"]
+    assert pressure["target_score"] == target["target_score"]
+    assert pressure["target_band"] == target["target_band"]
+    assert pressure["current_score"] == 0.74
+    assert pressure["current_band"] == "high"
+    assert pressure["trend"] == "rising"
+    assert pressure["requires_visible_pressure"] is True
+    assert pressure["contract_pass"] is True
 
 
 def test_runtime_projection_exposes_consequence_cascade_aspect() -> None:

@@ -496,6 +496,9 @@ def _extract_normalized_wos_evidence(
         "pacing_rhythm_contract_pass",
         "pacing_rhythm_density_respected",
         "pacing_rhythm_pause_respected",
+        "social_pressure_target_present",
+        "social_pressure_contract_pass",
+        "social_pressure_metric_bounded",
         "information_disclosure_policy_present",
         "information_disclosure_target_selected",
         "information_disclosure_budget_pass",
@@ -593,6 +596,13 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "pacing_rhythm_density_respected",
     "pacing_rhythm_pause_respected",
     "pacing_rhythm_failure_codes",
+    "social_pressure_target_present",
+    "social_pressure_score",
+    "social_pressure_band",
+    "social_pressure_trend",
+    "social_pressure_contract_pass",
+    "social_pressure_metric_bounded",
+    "social_pressure_failure_codes",
     "information_disclosure_policy_present",
     "information_disclosure_target_selected",
     "information_disclosure_selected_units",
@@ -774,6 +784,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
+    social_pressure_rec = _aspect_record(ledger, "social_pressure")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     callback_rec = _aspect_record(ledger, "callback_web")
@@ -795,6 +806,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
     pacing_rhythm_selected = _aspect_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _aspect_block(pacing_rhythm_rec, "actual")
+    social_pressure_selected = _aspect_block(social_pressure_rec, "selected")
+    social_pressure_actual = _aspect_block(social_pressure_rec, "actual")
     disclosure_expected = _aspect_block(disclosure_rec, "expected")
     disclosure_selected = _aspect_block(disclosure_rec, "selected")
     disclosure_actual = _aspect_block(disclosure_rec, "actual")
@@ -889,6 +902,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    social_pressure_target = (
+        social_pressure_selected.get("target")
+        if isinstance(social_pressure_selected.get("target"), dict)
+        else social_pressure_selected
+    )
+    social_pressure_failure_codes = social_pressure_actual.get("failure_codes") or []
+    if not isinstance(social_pressure_failure_codes, list):
+        social_pressure_failure_codes = []
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
@@ -911,6 +932,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            social_pressure_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
@@ -928,6 +950,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            social_pressure_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
@@ -1000,6 +1023,31 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("pacing_rhythm_pause_respected")
         ),
         "pacing_rhythm_failure_codes": pacing_rhythm_failure_codes,
+        "social_pressure_target_present": (
+            bool(social_pressure_target)
+            if social_pressure_rec
+            else det_scores.get("social_pressure_target_present")
+        ),
+        "social_pressure_score": social_pressure_target.get("target_score")
+        if isinstance(social_pressure_target, dict)
+        else None,
+        "social_pressure_band": social_pressure_target.get("target_band")
+        if isinstance(social_pressure_target, dict)
+        else None,
+        "social_pressure_trend": social_pressure_target.get("trend")
+        if isinstance(social_pressure_target, dict)
+        else None,
+        "social_pressure_contract_pass": (
+            social_pressure_actual.get("contract_pass")
+            if "contract_pass" in social_pressure_actual
+            else det_scores.get("social_pressure_contract_pass")
+        ),
+        "social_pressure_metric_bounded": (
+            "social_pressure_score_out_of_bounds" not in social_pressure_failure_codes
+            if social_pressure_actual
+            else det_scores.get("social_pressure_metric_bounded")
+        ),
+        "social_pressure_failure_codes": social_pressure_failure_codes,
         "information_disclosure_policy_present": (
             disclosure_expected.get("policy_present")
             if "policy_present" in disclosure_expected

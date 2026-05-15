@@ -19,10 +19,14 @@ from ai_stack.consequence_cascade_contracts import normalize_consequence_cascade
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
+from ai_stack.improvisational_coherence_contracts import (
+    normalize_improvisational_coherence_policy,
+)
 from ai_stack.information_disclosure_contracts import normalize_information_disclosure_policy
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
+from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -189,6 +193,14 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
     pacing_rhythm = raw.get("pacing_rhythm")
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
+    improvisational_coherence = raw.get("improvisational_coherence")
+    improvisational_coherence = (
+        improvisational_coherence
+        if isinstance(improvisational_coherence, dict)
+        else {}
+    )
+    social_pressure = raw.get("social_pressure")
+    social_pressure = social_pressure if isinstance(social_pressure, dict) else {}
 
     return {
         "action_resolution_short_path": {
@@ -234,6 +246,10 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         },
         "scene_energy": normalize_scene_energy_policy(scene_energy),
         "pacing_rhythm": normalize_pacing_rhythm_policy(pacing_rhythm),
+        "improvisational_coherence": normalize_improvisational_coherence_policy(
+            improvisational_coherence
+        ),
+        "social_pressure": normalize_social_pressure_policy(social_pressure),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
         "callback_web": normalize_callback_web_policy(callback_web),
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
@@ -260,6 +276,7 @@ class ModuleRuntimePolicy:
     information_disclosure_policy: dict[str, Any] = field(default_factory=dict)
     memory_policy: dict[str, Any] = field(default_factory=dict)
     dramatic_irony_policy: dict[str, Any] = field(default_factory=dict)
+    improvisational_coherence_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
 
@@ -329,6 +346,14 @@ def load_module_runtime_policy(
     dramatic_irony_policy = normalize_dramatic_irony_policy(
         dramatic_irony_raw if dramatic_irony_raw else None
     )
+    improvisational_coherence_raw = (
+        runtime_intelligence.get("improvisational_coherence")
+        if isinstance(runtime_intelligence.get("improvisational_coherence"), dict)
+        else {}
+    )
+    improvisational_coherence_policy = normalize_improvisational_coherence_policy(
+        improvisational_coherence_raw if improvisational_coherence_raw else None
+    )
 
     sources = []
     for label, payload in (
@@ -353,6 +378,7 @@ def load_module_runtime_policy(
         ),
         ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
         ("dramatic_irony_policy", dramatic_irony_raw),
+        ("improvisational_coherence_policy", improvisational_coherence_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
     ):
         if payload:
@@ -392,6 +418,7 @@ def load_module_runtime_policy(
         information_disclosure_policy=information_disclosure_policy,
         memory_policy=memory_policy,
         dramatic_irony_policy=dramatic_irony_policy,
+        improvisational_coherence_policy=improvisational_coherence_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,
     )

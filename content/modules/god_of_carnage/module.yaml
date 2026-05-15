@@ -290,6 +290,80 @@ runtime_intelligence:
       containment:
         tempo_arc: compressed
         response_shape: exchange
+  social_pressure:
+    enabled: true
+    schema_version: social_pressure_policy.v1
+    default_score: 0.4
+    smoothing_alpha: 0.7
+    trend_deadband: 0.05
+    max_evidence_refs: 8
+    band_thresholds:
+      low_max: 0.33
+      high_min: 0.67
+    source_scores:
+      social_risk_band:
+        low: 0.2
+        moderate: 0.5
+        high: 0.78
+      scene_pressure_state:
+        moderate_tension: 0.52
+        stabilization_attempt: 0.56
+        high_blame: 0.86
+        thread_pressure_high: 0.82
+      thread_pressure_state:
+        thread_pressure_high: 0.82
+        high_unresolved_thread_pressure: 0.9
+      scene_energy_transition:
+        release: 0.38
+        deescalate: 0.36
+        hold: 0.48
+        pivot: 0.58
+        rise: 0.72
+        interrupt: 0.86
+      scene_energy_pressure_vector:
+        repair: 0.38
+        evasive: 0.52
+        social: 0.58
+        moral: 0.62
+        exposure: 0.68
+        rupture: 0.82
+      pacing_cadence:
+        breathe: 0.28
+        release: 0.36
+        hold: 0.48
+        pivot: 0.58
+        press: 0.72
+        interrupt: 0.84
+      pressure_shift:
+        de-escalated: 0.32
+        held: 0.48
+        shifted: 0.56
+        escalated: 0.78
+    increments:
+      per_active_thread: 0.04
+      prior_high_band: 0.08
+      thread_pressure_level: 0.04
+  improvisational_coherence:
+    enabled: true
+    schema_version: improvisational_coherence_policy.v1
+    allowed_acceptance_modes:
+      - accept
+      - accept_with_boundary
+      - redirect_with_acknowledgement
+      - reject_with_playable_reason
+    allowed_advance_classes:
+      - pressure_raise
+      - relationship_shift
+      - scene_reframe
+      - continuity_carry
+      - boundary_containment
+      - beat_deepen
+    require_structured_events: false
+    min_anchor_refs: 1
+    max_anchor_refs: 6
+    default_commit_impact: recover
+    model_context_visibility: bounded_structured_only
+    boundary_reason_required: true
   dramatic_irony:
     enabled: true
     schema_version: dramatic_irony.v1
