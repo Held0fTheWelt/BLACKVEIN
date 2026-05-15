@@ -42,6 +42,8 @@ ADR-0041 bridge partial-transfer readiness (`validation_authority_bridge.v3`, 20
 
 ADR-0041 authority handoff candidate + seam area mapping (2026-05-15): `validation_authority_bridge.v4` adds `seam_concern_coverage`, `seam_area_adr0041_relationship_buckets`, and `authority_handoff_candidate` (shadow-only; `run_validation_seam` still canonical). `PLANNED_ALL_DISPATCH_IDS` includes `SEAM_MIRROR_VALIDATOR_IDS` for inventory parity. Verification: `python -m pytest ai_stack/tests -q` (1868 passed, 1 skipped), gate + matrix docs tests, `cd world-engine && python -m pytest tests/test_adr0041_validator_dispatch_harness.py tests/test_story_runtime_aspect_ledger.py -q`; `live_or_staging_evidence=false`; no Capability Matrix promotion.
 
+ADR-0041 governance wording / Capability Map direction (2026-05-15): documentation-only update in `capability_matrix_status_and_adr_relations.md`, `adr-0041-*.md`, `capability_selection_runtime_design.md` — states ADR-0041 as a **controlled runtime-authority track** with sidecar/projection phases as **safety scaffolding** toward **bounded co-authority**; reiterates no commit/readiness/`validation_outcome` ownership, no live/matrix promotion from local-only proof, ADR-0039 guardrails unchanged.
+
 ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow map and insertion guidance in `docs/MVPs/capability_selection_runtime_design.md` (ADR-0041 Production Orchestration Readiness); **no production orchestration implemented**. Canonical dispatch field: **`actually_executed`** (repo-wide search: no `actually_detected`). World-engine pytest: prefer `cd world-engine && python -m pytest …` to avoid `ModuleNotFoundError: app` when running from repo root.
 
 ---

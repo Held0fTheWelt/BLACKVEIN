@@ -128,6 +128,20 @@ Future promotions use the evidence rules in [capability_matrix_live_claim_gates.
 
 If the project later adopts a `live_verified` status, this same live-claim rule becomes the `implemented` -> `live_verified` promotion gate.
 
+## ADR-0041 runtime authority direction
+
+ADR-0041 should be treated as a **controlled runtime-authority track**, not an observability-only sidecar. **Target role:** a central runtime mechanism that classifies the situation, selects semantic capabilities, routes only necessary validators, reduces validation cost, surfaces drift versus legacy seams (`run_validation_seam`), prepares **scoped** authority transfer, and — under explicit future governance — can support **controlled runtime co-authority** for bounded concerns.
+
+**Current status (implementation):** selector, validator execution plan, dispatch (default `dry_run`; opt-in `plan_enforced`), registry inventory, turn-class coverage, LangGraph sidecar local execution, authority bridge, partial-transfer readiness, and handoff-candidate policy exist **locally** with bounded, flag-gated behavior. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness **today**.
+
+**Safety phases (temporary):** dry-run projection, plan-enforced sidecar, bridge, preview, and handoff-candidate output are **safety scaffolding** on the path toward real runtime participation. They must not be mistaken for the **final** architecture.
+
+**Forward direction:** advance ADR-0041 toward **scoped runtime participation** and, when proven, **bounded co-authority** for well-specified concern slices — not open-ended “more local evidence” as an end state.
+
+**Guardrails:** no default behavior change without explicit flags/governance; no commit/readiness authority without a **later explicit decision**; no live/staging claims from local-only proof; no Capability Matrix promotion from local-only proof; no active Pi/Π runtime keys (per ADR-0039); unavailable validators must not pass; no LLM-as-a-Judge by default.
+
+**Capability Map / matrix interpretation:** distinguish at least: **local implementation** (code/tests); **runtime-path participation** (wired into canonical turn execution beyond projection-only); **shadow/preview authority** (non-commit diagnostics, drift, handoff signal); **partial-transfer readiness** (governed bounded scope); **real runtime co-authority** (future; explicit ADR/gate); **live/staging verification** (dated provider/Langfuse/MCP evidence per promotion rules). **“Sidecar present”** or **projection present** does **not** equal final capability maturity or co-authority.
+
 ## Capability Matrix vs Capability Selector
 
 [ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) defines the future Semantic Capability Selector boundary.

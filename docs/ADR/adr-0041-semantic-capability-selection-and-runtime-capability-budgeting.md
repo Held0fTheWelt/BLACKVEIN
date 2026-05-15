@@ -8,6 +8,14 @@ Proposed
 
 2026-05-15
 
+## Strategic direction (governance)
+
+ADR-0041 should be treated as a **controlled runtime-authority track**, not an observability-only sidecar. **Intended end state:** ADR-0041 becomes a **central runtime mechanism** that (1) classifies the current runtime situation, (2) selects relevant semantic capabilities, (3) routes only necessary validators/checks, (4) reduces unnecessary validation cost, (5) exposes drift against legacy seams, (6) prepares scoped authority transfer, and (7) under **explicit future governance**, supports **controlled runtime co-authority** for bounded, well-proven concerns.
+
+**Today:** projection, dry-run dispatch, opt-in plan-enforced sidecar, authority bridge, preview, and handoff-candidate policy are **temporary safety phases**; they are **not** the target end state. **`run_validation_seam` remains canonical** for `validation_outcome`, commit, and readiness until separate decisions say otherwise.
+
+**Guardrails:** feature-flag and governance discipline; no commit/readiness or `validation_outcome` ownership claims from ADR-0041 alone; no live/staging claims from local-only evidence; no Capability Matrix promotion from local proof; semantic names only (ADR-0039); no Pi/Π active runtime keys; judges not default-on; unavailable validators do not pass.
+
 ## Implementation status
 
 | Surface | Status | Evidence |

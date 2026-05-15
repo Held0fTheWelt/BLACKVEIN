@@ -8,6 +8,14 @@ It is implementation guidance for the local selector core and future runtime
 integration. It does not change world-engine runtime behavior, promote
 Capability Matrix status, or create live/staging proof.
 
+## Strategic direction: runtime authority (not sidecar-only)
+
+ADR-0041 **semantic capability selection** is an **elemental runtime building block** whose **target role** is **controlled runtime authority**—situation classification, capability selection, lean validator routing, seam drift visibility, scoped transfer preparation, and eventual **bounded co-authority** for proven concern slices.
+
+**Current phases** (dry-run, projection, opt-in plan-enforced sidecar, bridge, preview, handoff-candidate) are **safety scaffolding**, valid only as **intermediate** steps. They must not become the **final** architecture by inertia. **`run_validation_seam` stays canonical** for `validation_outcome`, commit, and readiness **until an explicit governance decision** changes that.
+
+When reading the Capability Map/matrix, separate **local implementation** from **runtime-path participation**, **shadow/preview** layers from **partial-transfer readiness**, and **real co-authority** from **live/staging verification**—see [capability_matrix_status_and_adr_relations.md](capability_matrix_status_and_adr_relations.md) § ADR-0041 runtime authority direction.
+
 ## Implementation Status
 
 The first local deterministic selector core now exists in
