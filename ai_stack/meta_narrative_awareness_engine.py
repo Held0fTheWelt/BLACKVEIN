@@ -6,13 +6,21 @@ from typing import Any
 
 from ai_stack.meta_narrative_awareness_contracts import (
     META_NARRATIVE_AWARENESS_SCHEMA_VERSION,
+    META_NARRATIVE_AWARENESS_SCHEMA_VERSION_V2,
+    META_NARRATIVE_AWARENESS_TIERS,
+    META_NARRATIVE_FAILURE_CONSENT_SCOPE_EXCEEDED,
+    META_NARRATIVE_FAILURE_CROSS_SESSION_MEMORY_UNVERIFIED,
     META_NARRATIVE_FAILURE_DIRECT_ADDRESS,
     META_NARRATIVE_FAILURE_EVENT_BUDGET_EXCEEDED,
+    META_NARRATIVE_FAILURE_FALSE_SELF_MEMORY,
     META_NARRATIVE_FAILURE_FORBIDDEN_MODE,
+    META_NARRATIVE_FAILURE_FOURTH_WALL_SCOPE,
     META_NARRATIVE_FAILURE_NOT_OPTED_IN,
+    META_NARRATIVE_FAILURE_PRIVACY_BOUNDARY,
     META_NARRATIVE_FAILURE_SYSTEM_DISCLOSURE,
     META_NARRATIVE_FAILURE_UNAUTHORIZED_ACTOR,
     META_NARRATIVE_FAILURE_UNBOUNDED_REWRITE,
+    META_NARRATIVE_FOURTH_WALL_LEVELS,
     META_NARRATIVE_INTENSITIES,
     META_NARRATIVE_TRIGGER_FREQUENCIES,
     MetaNarrativeAwarenessTarget,
@@ -75,6 +83,14 @@ def _choice(value: Any, allowed: frozenset[str], fallback: str) -> str:
     return text if text in allowed else fallback
 
 
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes", "on"}
+    return bool(value)
+
+
 def _selected_responder_ids(selected_responder_set: list[dict[str, Any]] | None) -> list[str]:
     out: list[str] = []
     for row in selected_responder_set or []:
@@ -101,7 +117,9 @@ def _source_evidence(
     selected_scene_function: str | None,
     social_pressure_target: dict[str, Any] | None,
     dramatic_irony_record: dict[str, Any] | None,
+    relationship_state_record: dict[str, Any] | None,
     semantic_move_record: dict[str, Any] | None,
+    memory_ref_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     evidence: list[dict[str, Any]] = []
     scene_id = _text(current_scene_id)
@@ -135,13 +153,127 @@ def _source_evidence(
                 "count": len(irony.get("selected_opportunity_ids") or []),
             }
         )
+    relationship = (
+        relationship_state_record if isinstance(relationship_state_record, dict) else {}
+    )
+    if relationship.get("pressure_band") or relationship.get("transition_events"):
+        evidence.append(
+            {
+                "source": "relationship_state_record",
+                "field": "pressure_band",
+                "value": relationship.get("pressure_band"),
+                "transition_event_count": len(relationship.get("transition_events") or []),
+            }
+        )
     semantic = semantic_move_record if isinstance(semantic_move_record, dict) else {}
     move_type = _text(semantic.get("move_type") or semantic.get("primary_move_type"))
     if move_type:
         evidence.append(
             {"source": "semantic_move_record", "field": "move_type", "value": move_type}
         )
+    if memory_ref_ids:
+        evidence.append(
+            {
+                "source": "hierarchical_memory_context",
+                "field": "memory_ref_ids",
+                "count": len(memory_ref_ids),
+            }
+        )
     return evidence
+
+
+def _tier_from_settings(settings: dict[str, Any], *, enabled: bool, intensity: str) -> str:
+    raw = _text(settings.get("meta_narrative_awareness_tier")).lower()
+    if raw in META_NARRATIVE_AWARENESS_TIERS:
+        return raw
+    if not enabled:
+        return "off"
+    if intensity == "full_fourth_wall":
+        return "full"
+    if intensity == "moderate":
+        return "adaptive"
+    return "subtle"
+
+
+def _collect_memory_ref_ids(hierarchical_memory_context: dict[str, Any] | None) -> list[str]:
+    ctx = hierarchical_memory_context if isinstance(hierarchical_memory_context, dict) else {}
+    refs: list[str] = []
+
+    def add(value: Any) -> None:
+        text = _text(value)
+        if text and text not in refs:
+            refs.append(text)
+
+    for key in (
+        "selected_memory_ref_ids",
+        "memory_ref_ids",
+        "memory_refs",
+        "reference_ids",
+        "item_ids",
+    ):
+        for item in _as_list(ctx.get(key)):
+            if isinstance(item, dict):
+                add(
+                    item.get("memory_id")
+                    or item.get("item_id")
+                    or item.get("id")
+                    or item.get("ref_id")
+                )
+            else:
+                add(item)
+    for key in ("items", "context_items", "memory_items", "projected_items"):
+        for item in _as_list(ctx.get(key)):
+            if isinstance(item, dict):
+                add(
+                    item.get("memory_id")
+                    or item.get("item_id")
+                    or item.get("id")
+                    or item.get("ref_id")
+                )
+    tiers = ctx.get("tiers")
+    if isinstance(tiers, dict):
+        for rows in tiers.values():
+            for item in _as_list(rows):
+                if isinstance(item, dict):
+                    add(
+                        item.get("memory_id")
+                        or item.get("item_id")
+                        or item.get("id")
+                        or item.get("ref_id")
+                    )
+    return refs
+
+
+def _adaptive_signal_codes(
+    *,
+    social_pressure_target: dict[str, Any] | None,
+    dramatic_irony_record: dict[str, Any] | None,
+    relationship_state_record: dict[str, Any] | None,
+    semantic_move_record: dict[str, Any] | None,
+    memory_ref_ids: list[str],
+) -> list[str]:
+    codes: list[str] = []
+    pressure = social_pressure_target if isinstance(social_pressure_target, dict) else {}
+    if _text(pressure.get("target_band")).lower() in {"high", "critical"}:
+        codes.append("meta_narrative_adaptive_social_pressure")
+    if _text(pressure.get("trend")).lower() in {"rising", "accelerating"}:
+        codes.append("meta_narrative_adaptive_pressure_trend")
+    irony = dramatic_irony_record if isinstance(dramatic_irony_record, dict) else {}
+    if irony.get("selected_opportunity_ids"):
+        codes.append("meta_narrative_adaptive_dramatic_irony")
+    relationship = (
+        relationship_state_record if isinstance(relationship_state_record, dict) else {}
+    )
+    if relationship.get("transition_events") or _text(
+        relationship.get("pressure_band")
+    ).lower() in {"high", "critical"}:
+        codes.append("meta_narrative_adaptive_relationship_state")
+    semantic = semantic_move_record if isinstance(semantic_move_record, dict) else {}
+    if _text(semantic.get("move_type") or semantic.get("primary_move_type")):
+        codes.append("meta_narrative_adaptive_player_move")
+    if memory_ref_ids:
+        codes.append("meta_narrative_adaptive_memory_context")
+    return codes
 
 
 def derive_meta_narrative_awareness(
@@ -155,7 +287,9 @@ def derive_meta_narrative_awareness(
     scene_plan_record: dict[str, Any] | None = None,
     social_pressure_target: dict[str, Any] | None = None,
     dramatic_irony_record: dict[str, Any] | None = None,
+    relationship_state_record: dict[str, Any] | None = None,
     semantic_move_record: dict[str, Any] | None = None,
+    hierarchical_memory_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Select a bounded meta-narrative awareness target for the current turn."""
     policy = _runtime_policy_meta_narrative_awareness(module_runtime_policy)
@@ -202,7 +336,68 @@ def derive_meta_narrative_awareness(
     )
     opt_in_enabled = bool(settings.get("meta_narrative_awareness_enabled"))
     policy_enabled = bool(policy.get("enabled"))
+    requested_tier = _tier_from_settings(
+        settings,
+        enabled=opt_in_enabled,
+        intensity=requested_intensity,
+    )
+    allowed_tiers = set(_clean_str_list(policy.get("allowed_awareness_tiers"), lower=True))
+    default_tier = _text(policy.get("default_awareness_tier")).lower() or "subtle"
+    awareness_tier = requested_tier if requested_tier in allowed_tiers else default_tier
     max_events = int(policy.get("max_events_per_turn") or 0)
+    max_direct_addresses = int(policy.get("max_direct_addresses_per_turn") or 0)
+    memory_ref_ids = _collect_memory_ref_ids(hierarchical_memory_context)
+    max_memory_refs = int(policy.get("max_cross_session_memory_refs") or 0)
+    direct_player_address_allowed = bool(
+        opt_in_enabled
+        and awareness_tier == "full"
+        and _as_bool(policy.get("allow_direct_player_address"))
+        and _as_bool(settings.get("meta_narrative_allow_direct_player_address"))
+        and max_direct_addresses > 0
+    )
+    narrator_negotiation_allowed = bool(
+        opt_in_enabled
+        and awareness_tier in {"adaptive", "full"}
+        and _as_bool(policy.get("allow_narrator_negotiation"))
+        and _as_bool(settings.get("meta_narrative_allow_narrator_negotiation"))
+    )
+    cross_session_memory_allowed = bool(
+        opt_in_enabled
+        and awareness_tier in {"adaptive", "full"}
+        and _as_bool(policy.get("allow_cross_session_memory"))
+        and _as_bool(settings.get("meta_narrative_allow_cross_session_memory"))
+        and max_memory_refs > 0
+        and memory_ref_ids
+    )
+    selected_memory_ref_ids = (
+        memory_ref_ids[:max_memory_refs] if cross_session_memory_allowed else []
+    )
+    allowed_modes = _clean_str_list(policy.get("allowed_awareness_modes"), lower=True)
+    if not direct_player_address_allowed:
+        allowed_modes = [
+            mode
+            for mode in allowed_modes
+            if mode not in {"direct_player_address", "fourth_wall_address"}
+        ]
+    if not narrator_negotiation_allowed:
+        allowed_modes = [
+            mode
+            for mode in allowed_modes
+            if mode not in {"narrator_negotiation", "story_form_negotiation"}
+        ]
+    if not cross_session_memory_allowed:
+        allowed_modes = [
+            mode
+            for mode in allowed_modes
+            if mode not in {"cross_session_memory_reference", "character_self_model"}
+        ]
+    adaptive_signal_codes = _adaptive_signal_codes(
+        social_pressure_target=social_pressure_target,
+        dramatic_irony_record=dramatic_irony_record,
+        relationship_state_record=relationship_state_record,
+        semantic_move_record=semantic_move_record,
+        memory_ref_ids=memory_ref_ids,
+    )
     rationale_codes: list[str] = []
     if not policy_enabled:
         rationale_codes.append("meta_narrative_policy_disabled")
@@ -212,34 +407,73 @@ def derive_meta_narrative_awareness(
         rationale_codes.append("meta_narrative_requested_intensity_clamped")
     if opt_in_enabled and requested_frequency != trigger_frequency:
         rationale_codes.append("meta_narrative_requested_frequency_clamped")
+    if opt_in_enabled and requested_tier != awareness_tier:
+        rationale_codes.append("meta_narrative_requested_tier_clamped")
     if opt_in_enabled and not configured_actor_ids:
         rationale_codes.append("meta_narrative_no_configured_actor")
     elif opt_in_enabled and not allowed_actor_ids:
         rationale_codes.append("meta_narrative_no_supported_configured_actor")
     if opt_in_enabled and allowed_actor_ids and not selected_actor_ids:
         rationale_codes.append("meta_narrative_no_selected_eligible_actor")
+    if (
+        opt_in_enabled
+        and _as_bool(settings.get("meta_narrative_allow_cross_session_memory"))
+        and not selected_memory_ref_ids
+    ):
+        rationale_codes.append("meta_narrative_no_verified_memory_refs")
     if max_events <= 0:
         rationale_codes.append("meta_narrative_event_budget_zero")
 
-    active = bool(policy_enabled and opt_in_enabled and selected_actor_ids and max_events > 0)
+    active = bool(
+        policy_enabled
+        and opt_in_enabled
+        and awareness_tier != "off"
+        and selected_actor_ids
+        and max_events > 0
+    )
     if active:
         rationale_codes.append("meta_narrative_opt_in_target_selected")
+    schema_version = (
+        META_NARRATIVE_AWARENESS_SCHEMA_VERSION_V2
+        if (
+            awareness_tier in {"adaptive", "full"}
+            or direct_player_address_allowed
+            or narrator_negotiation_allowed
+            or cross_session_memory_allowed
+        )
+        else META_NARRATIVE_AWARENESS_SCHEMA_VERSION
+    )
     target = MetaNarrativeAwarenessTarget(
+        schema_version=schema_version,
+        policy_version=str(policy.get("schema_version") or ""),
         policy_enabled=policy_enabled,
         opt_in_enabled=opt_in_enabled,
         active=active,
+        awareness_tier=awareness_tier,
         intensity=intensity,
         trigger_frequency=trigger_frequency,
         supported_actor_ids=supported_actor_ids,
         configured_actor_ids=configured_actor_ids,
         selected_actor_ids=selected_actor_ids,
-        allowed_awareness_modes=_clean_str_list(policy.get("allowed_awareness_modes"), lower=True),
+        allowed_awareness_modes=allowed_modes,
         forbidden_awareness_modes=_clean_str_list(
             policy.get("forbidden_awareness_modes"), lower=True
         ),
+        allowed_fourth_wall_levels=_clean_str_list(
+            policy.get("allowed_fourth_wall_levels"), lower=True
+        ),
         max_events_per_turn=max_events,
+        max_direct_addresses_per_turn=max_direct_addresses,
         requires_player_consent=bool(policy.get("requires_player_consent", True)),
         allow_player_toggle=bool(policy.get("allow_player_toggle", True)),
+        direct_player_address_allowed=direct_player_address_allowed,
+        narrator_negotiation_allowed=narrator_negotiation_allowed,
+        cross_session_memory_allowed=cross_session_memory_allowed,
+        memory_retention_scope=str(
+            policy.get("default_memory_retention_scope") or "session"
+        ),
+        selected_memory_ref_ids=selected_memory_ref_ids,
+        adaptive_signal_codes=adaptive_signal_codes,
         model_context_visibility=str(
             policy.get("model_context_visibility") or "bounded_structured_only"
         ),
@@ -250,7 +484,9 @@ def derive_meta_narrative_awareness(
             selected_scene_function=scene_function,
             social_pressure_target=social_pressure_target,
             dramatic_irony_record=dramatic_irony_record,
+            relationship_state_record=relationship_state_record,
             semantic_move_record=semantic_move_record,
+            memory_ref_ids=selected_memory_ref_ids,
         ),
     ).to_dict()
     return {"policy": policy, "target": target}
@@ -265,12 +501,24 @@ def compact_meta_narrative_awareness_context(
         return {}
     return {
         "schema_version": src.get("schema_version"),
+        "awareness_tier": src.get("awareness_tier"),
         "intensity": src.get("intensity"),
         "trigger_frequency": src.get("trigger_frequency"),
         "selected_actor_ids": src.get("selected_actor_ids") or [],
         "allowed_awareness_modes": src.get("allowed_awareness_modes") or [],
         "forbidden_awareness_modes": src.get("forbidden_awareness_modes") or [],
+        "allowed_fourth_wall_levels": src.get("allowed_fourth_wall_levels") or [],
         "max_events_per_turn": int(src.get("max_events_per_turn") or 0),
+        "max_direct_addresses_per_turn": int(
+            src.get("max_direct_addresses_per_turn") or 0
+        ),
+        "direct_player_address_allowed": bool(
+            src.get("direct_player_address_allowed")
+        ),
+        "narrator_negotiation_allowed": bool(src.get("narrator_negotiation_allowed")),
+        "cross_session_memory_allowed": bool(src.get("cross_session_memory_allowed")),
+        "selected_memory_ref_ids": src.get("selected_memory_ref_ids") or [],
+        "adaptive_signal_codes": src.get("adaptive_signal_codes") or [],
         "requires_player_consent": bool(src.get("requires_player_consent")),
         "model_context_visibility": src.get("model_context_visibility"),
         "structured_event_field": "meta_narrative_awareness_events",
@@ -324,11 +572,26 @@ def validate_meta_narrative_awareness_realization(
     forbidden_modes = set(
         _clean_str_list(target.get("forbidden_awareness_modes"), lower=True)
     )
+    allowed_fourth_wall_levels = set(
+        _clean_str_list(target.get("allowed_fourth_wall_levels"), lower=True)
+    ) or {"none", "subtle"}
+    selected_memory_ref_ids = set(
+        _clean_str_list(target.get("selected_memory_ref_ids"))
+    )
     max_events = max(0, int(target.get("max_events_per_turn") or 0))
+    max_direct_addresses = max(
+        0, int(target.get("max_direct_addresses_per_turn") or 0)
+    )
     intensity = _text(target.get("intensity")).lower()
+    direct_allowed = bool(target.get("direct_player_address_allowed"))
+    narrator_negotiation_allowed = bool(target.get("narrator_negotiation_allowed"))
+    cross_session_memory_allowed = bool(target.get("cross_session_memory_allowed"))
     failure_codes: list[str] = []
     realized_actor_ids: list[str] = []
     awareness_modes: list[str] = []
+    fourth_wall_levels: list[str] = []
+    realized_memory_ref_ids: list[str] = []
+    direct_address_count = 0
     if len(events) > max_events:
         failure_codes.append(META_NARRATIVE_FAILURE_EVENT_BUDGET_EXCEEDED)
     for row in events:
@@ -342,11 +605,14 @@ def validate_meta_narrative_awareness_realization(
             awareness_modes.append(mode)
         if not mode or mode not in allowed_modes or mode in forbidden_modes:
             failure_codes.append(META_NARRATIVE_FAILURE_FORBIDDEN_MODE)
+        if mode in {"narrator_negotiation", "story_form_negotiation"} and not narrator_negotiation_allowed:
+            failure_codes.append(META_NARRATIVE_FAILURE_CONSENT_SCOPE_EXCEEDED)
         if bool(
             row.get("discloses_system_prompt")
             or row.get("discloses_tool_or_model")
             or row.get("references_model_or_tools")
             or row.get("names_runtime_system")
+            or row.get("system_disclosure_absent") is False
         ):
             failure_codes.append(META_NARRATIVE_FAILURE_SYSTEM_DISCLOSURE)
         if bool(
@@ -354,14 +620,63 @@ def validate_meta_narrative_awareness_realization(
             or row.get("rewrites_player_intent")
             or row.get("unbounded_rewrite")
             or row.get("claims_player_control")
+            or row.get("player_agency_preserved") is False
         ):
             failure_codes.append(META_NARRATIVE_FAILURE_UNBOUNDED_REWRITE)
         fourth_wall_level = _text(row.get("fourth_wall_level")).lower()
+        if fourth_wall_level and fourth_wall_level not in fourth_wall_levels:
+            fourth_wall_levels.append(fourth_wall_level)
+        direct_address = bool(row.get("direct_player_address")) or mode in {
+            "direct_player_address",
+            "fourth_wall_address",
+        } or fourth_wall_level in {"direct", "full", "full_fourth_wall"}
+        if direct_address:
+            direct_address_count += 1
+            if not direct_allowed:
+                failure_codes.append(META_NARRATIVE_FAILURE_DIRECT_ADDRESS)
+        if fourth_wall_level and fourth_wall_level not in allowed_fourth_wall_levels:
+            failure_codes.append(META_NARRATIVE_FAILURE_FOURTH_WALL_SCOPE)
         if intensity == "subtle" and (
             bool(row.get("direct_player_address"))
             or fourth_wall_level in {"direct", "full", "full_fourth_wall"}
         ):
             failure_codes.append(META_NARRATIVE_FAILURE_DIRECT_ADDRESS)
+        memory_refs = _clean_str_list(
+            row.get("memory_ref_ids")
+            or row.get("memory_refs")
+            or row.get("cross_session_memory_ref_ids")
+        )
+        single_memory_ref = _text(row.get("memory_ref_id"))
+        if single_memory_ref and single_memory_ref not in memory_refs:
+            memory_refs.append(single_memory_ref)
+        if memory_refs:
+            if not cross_session_memory_allowed:
+                failure_codes.append(META_NARRATIVE_FAILURE_CONSENT_SCOPE_EXCEEDED)
+            for ref_id in memory_refs:
+                if ref_id not in realized_memory_ref_ids:
+                    realized_memory_ref_ids.append(ref_id)
+                if ref_id not in selected_memory_ref_ids:
+                    failure_codes.append(
+                        META_NARRATIVE_FAILURE_CROSS_SESSION_MEMORY_UNVERIFIED
+                    )
+        if mode == "cross_session_memory_reference" and not memory_refs:
+            failure_codes.append(META_NARRATIVE_FAILURE_CROSS_SESSION_MEMORY_UNVERIFIED)
+        if bool(
+            row.get("quotes_raw_player_input")
+            or row.get("raw_player_text_present")
+            or row.get("private_player_data_disclosed")
+            or row.get("reveals_private_player_data")
+        ):
+            failure_codes.append(META_NARRATIVE_FAILURE_PRIVACY_BOUNDARY)
+        if bool(
+            row.get("invented_memory")
+            or row.get("unverified_memory_claim")
+            or row.get("false_self_memory")
+        ):
+            failure_codes.append(META_NARRATIVE_FAILURE_FALSE_SELF_MEMORY)
+
+    if direct_address_count > max_direct_addresses:
+        failure_codes.append(META_NARRATIVE_FAILURE_FOURTH_WALL_SCOPE)
 
     deduped_failures = list(dict.fromkeys(failure_codes))
     actual = {
@@ -369,7 +684,12 @@ def validate_meta_narrative_awareness_realization(
         "event_count": len(events),
         "realized_actor_ids": realized_actor_ids,
         "awareness_modes": awareness_modes,
+        "fourth_wall_levels": fourth_wall_levels,
+        "direct_address_count": direct_address_count,
+        "realized_memory_ref_ids": realized_memory_ref_ids,
+        "cross_session_memory_ref_count": len(realized_memory_ref_ids),
         "max_events_per_turn": max_events,
+        "max_direct_addresses_per_turn": max_direct_addresses,
         "contract_pass": not deduped_failures,
         "failure_codes": deduped_failures,
     }
@@ -442,6 +762,8 @@ def build_meta_narrative_awareness_aspect_record(
             "opt_in_required": True,
             "commit_impact": target_dict.get("commit_impact")
             or policy_dict.get("default_commit_impact"),
+            "allowed_awareness_tiers": policy_dict.get("allowed_awareness_tiers")
+            or [],
             "allowed_intensities": policy_dict.get("allowed_intensities") or [],
             "allowed_trigger_frequencies": policy_dict.get("allowed_trigger_frequencies")
             or [],
@@ -451,16 +773,45 @@ def build_meta_narrative_awareness_aspect_record(
             "forbidden_awareness_modes": target_dict.get("forbidden_awareness_modes")
             or policy_dict.get("forbidden_awareness_modes")
             or [],
+            "allowed_fourth_wall_levels": target_dict.get("allowed_fourth_wall_levels")
+            or policy_dict.get("allowed_fourth_wall_levels")
+            or [],
+            "allow_direct_player_address": bool(
+                policy_dict.get("allow_direct_player_address")
+            ),
+            "allow_narrator_negotiation": bool(
+                policy_dict.get("allow_narrator_negotiation")
+            ),
+            "allow_cross_session_memory": bool(
+                policy_dict.get("allow_cross_session_memory")
+            ),
         },
         "selected": {
             "active": bool(target_dict.get("active")),
             "opt_in_enabled": bool(target_dict.get("opt_in_enabled")),
+            "awareness_tier": target_dict.get("awareness_tier"),
             "intensity": target_dict.get("intensity"),
             "trigger_frequency": target_dict.get("trigger_frequency"),
             "supported_actor_ids": target_dict.get("supported_actor_ids") or [],
             "configured_actor_ids": target_dict.get("configured_actor_ids") or [],
             "selected_actor_ids": target_dict.get("selected_actor_ids") or [],
             "max_events_per_turn": int(target_dict.get("max_events_per_turn") or 0),
+            "max_direct_addresses_per_turn": int(
+                target_dict.get("max_direct_addresses_per_turn") or 0
+            ),
+            "direct_player_address_allowed": bool(
+                target_dict.get("direct_player_address_allowed")
+            ),
+            "narrator_negotiation_allowed": bool(
+                target_dict.get("narrator_negotiation_allowed")
+            ),
+            "cross_session_memory_allowed": bool(
+                target_dict.get("cross_session_memory_allowed")
+            ),
+            "memory_retention_scope": target_dict.get("memory_retention_scope"),
+            "selected_memory_ref_ids": target_dict.get("selected_memory_ref_ids") or [],
+            "adaptive_signal_codes": target_dict.get("adaptive_signal_codes") or [],
+            "cooldown_applied": bool(target_dict.get("cooldown_applied")),
         },
         "actual": actual,
         "reasons": failure_codes

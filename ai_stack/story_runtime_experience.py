@@ -48,16 +48,29 @@ _META_NARRATIVE_INTENSITY: tuple[str, ...] = (
     "moderate",
     "full_fourth_wall",
 )
+_META_NARRATIVE_AWARENESS_TIER: tuple[str, ...] = (
+    "off",
+    "subtle",
+    "adaptive",
+    "full",
+)
 _META_NARRATIVE_TRIGGER_FREQUENCY: tuple[str, ...] = (
     "rare",
     "occasional",
     "frequent",
 )
+_META_NARRATIVE_MEMORY_SCOPE: tuple[str, ...] = (
+    "session",
+    "actor",
+    "module",
+    "long_term",
+    "cross_session",
+)
 
 
 # -- Contract / packaging versioning --------------------------------------
 
-STORY_RUNTIME_EXPERIENCE_CONFIG_VERSION: str = "1.1"
+STORY_RUNTIME_EXPERIENCE_CONFIG_VERSION: str = "1.2"
 STORY_RUNTIME_EXPERIENCE_PACKAGING_CONTRACT_VERSION: str = "1.0"
 
 
@@ -102,10 +115,16 @@ def canonical_defaults() -> dict[str, Any]:
         "goc_transcript_split_speech_stage_same_actor": False,
         "goc_map_action_lines_to_actor_line_lane": False,
         "meta_narrative_awareness_enabled": False,
+        "meta_narrative_awareness_tier": "off",
         "meta_narrative_awareness_intensity": "subtle",
         "meta_narrative_trigger_frequency": "rare",
         "meta_narrative_characters_with_awareness": [],
         "meta_narrative_allow_player_toggle": True,
+        "meta_narrative_allow_direct_player_address": False,
+        "meta_narrative_allow_narrator_negotiation": False,
+        "meta_narrative_allow_cross_session_memory": False,
+        "meta_narrative_memory_retention_scope": "session",
+        "meta_narrative_max_direct_addresses_per_turn": 0,
     }
 
 
@@ -246,6 +265,10 @@ def normalize_story_runtime_experience(payload: Any) -> dict[str, Any]:
         payload.get("meta_narrative_awareness_enabled"),
         bool(base.get("meta_narrative_awareness_enabled", False)),
     )
+    base["meta_narrative_awareness_tier"] = pick_choice(
+        "meta_narrative_awareness_tier",
+        _META_NARRATIVE_AWARENESS_TIER,
+    )
     base["meta_narrative_awareness_intensity"] = pick_choice(
         "meta_narrative_awareness_intensity",
         _META_NARRATIVE_INTENSITY,
@@ -260,6 +283,28 @@ def normalize_story_runtime_experience(payload: Any) -> dict[str, Any]:
     base["meta_narrative_allow_player_toggle"] = _coerce_bool(
         payload.get("meta_narrative_allow_player_toggle"),
         bool(base.get("meta_narrative_allow_player_toggle", True)),
+    )
+    base["meta_narrative_allow_direct_player_address"] = _coerce_bool(
+        payload.get("meta_narrative_allow_direct_player_address"),
+        bool(base.get("meta_narrative_allow_direct_player_address", False)),
+    )
+    base["meta_narrative_allow_narrator_negotiation"] = _coerce_bool(
+        payload.get("meta_narrative_allow_narrator_negotiation"),
+        bool(base.get("meta_narrative_allow_narrator_negotiation", False)),
+    )
+    base["meta_narrative_allow_cross_session_memory"] = _coerce_bool(
+        payload.get("meta_narrative_allow_cross_session_memory"),
+        bool(base.get("meta_narrative_allow_cross_session_memory", False)),
+    )
+    base["meta_narrative_memory_retention_scope"] = pick_choice(
+        "meta_narrative_memory_retention_scope",
+        _META_NARRATIVE_MEMORY_SCOPE,
+    )
+    base["meta_narrative_max_direct_addresses_per_turn"] = _coerce_int(
+        payload.get("meta_narrative_max_direct_addresses_per_turn"),
+        0,
+        3,
+        int(base.get("meta_narrative_max_direct_addresses_per_turn") or 0),
     )
     return base
 
@@ -381,8 +426,24 @@ class StoryRuntimeExperiencePolicy:
         return str(self.effective.get("meta_narrative_awareness_intensity") or "subtle")
 
     @property
+    def meta_narrative_awareness_tier(self) -> str:
+        return str(self.effective.get("meta_narrative_awareness_tier") or "off")
+
+    @property
     def meta_narrative_characters_with_awareness(self) -> list[str]:
         return _coerce_str_list(self.effective.get("meta_narrative_characters_with_awareness"))
+
+    @property
+    def meta_narrative_allow_direct_player_address(self) -> bool:
+        return bool(self.effective.get("meta_narrative_allow_direct_player_address"))
+
+    @property
+    def meta_narrative_allow_narrator_negotiation(self) -> bool:
+        return bool(self.effective.get("meta_narrative_allow_narrator_negotiation"))
+
+    @property
+    def meta_narrative_allow_cross_session_memory(self) -> bool:
+        return bool(self.effective.get("meta_narrative_allow_cross_session_memory"))
 
     def to_truth_surface(self) -> dict[str, Any]:
         return {

@@ -33,8 +33,11 @@ def test_canonical_defaults_are_recap_and_safe():
     assert defaults["allow_scene_progress_without_player_action"] is False
     assert defaults.get("npc_spoken_action_text_char_cap") == 1200
     assert defaults["meta_narrative_awareness_enabled"] is False
+    assert defaults["meta_narrative_awareness_tier"] == "off"
     assert defaults["meta_narrative_awareness_intensity"] == "subtle"
     assert defaults["meta_narrative_characters_with_awareness"] == []
+    assert defaults["meta_narrative_allow_direct_player_address"] is False
+    assert defaults["meta_narrative_allow_cross_session_memory"] is False
 
 
 def test_normalize_drops_unknown_keys_and_coerces():
@@ -61,22 +64,37 @@ def test_normalize_meta_narrative_awareness_opt_in_settings():
     normalized = normalize_story_runtime_experience(
         {
             "meta_narrative_awareness_enabled": "true",
+            "meta_narrative_awareness_tier": "FULL",
             "meta_narrative_awareness_intensity": "FULL_FOURTH_WALL",
             "meta_narrative_trigger_frequency": "OCCASIONAL",
             "meta_narrative_characters_with_awareness": ["veronique", "", "veronique"],
             "meta_narrative_allow_player_toggle": "false",
+            "meta_narrative_allow_direct_player_address": "true",
+            "meta_narrative_allow_narrator_negotiation": "true",
+            "meta_narrative_allow_cross_session_memory": "true",
+            "meta_narrative_memory_retention_scope": "CROSS_SESSION",
+            "meta_narrative_max_direct_addresses_per_turn": "2",
         }
     )
     policy = resolve_story_runtime_experience_policy(normalized)
 
     assert normalized["meta_narrative_awareness_enabled"] is True
+    assert normalized["meta_narrative_awareness_tier"] == "full"
     assert normalized["meta_narrative_awareness_intensity"] == "full_fourth_wall"
     assert normalized["meta_narrative_trigger_frequency"] == "occasional"
     assert normalized["meta_narrative_characters_with_awareness"] == ["veronique"]
     assert normalized["meta_narrative_allow_player_toggle"] is False
+    assert normalized["meta_narrative_allow_direct_player_address"] is True
+    assert normalized["meta_narrative_allow_narrator_negotiation"] is True
+    assert normalized["meta_narrative_allow_cross_session_memory"] is True
+    assert normalized["meta_narrative_memory_retention_scope"] == "cross_session"
+    assert normalized["meta_narrative_max_direct_addresses_per_turn"] == 2
     assert policy.meta_narrative_awareness_enabled is True
+    assert policy.meta_narrative_awareness_tier == "full"
     assert policy.meta_narrative_awareness_intensity == "full_fourth_wall"
     assert policy.meta_narrative_characters_with_awareness == ["veronique"]
+    assert policy.meta_narrative_allow_direct_player_address is True
+    assert policy.meta_narrative_allow_cross_session_memory is True
 
 
 def test_normalize_clamps_npc_spoken_action_text_char_cap():

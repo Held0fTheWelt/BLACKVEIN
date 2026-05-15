@@ -64,8 +64,10 @@ The first accepted production slice is deliberately narrow:
 - `RuntimeAspectLedger` owns the per-turn projection as
   `meta_narrative_awareness`.
 - Validation can reject and retry recoverable violations before commit.
-- Full adaptive fourth-wall dialogue, narrator negotiation, cross-session
-  self-awareness, or broad authoring cognition remain future target-state work.
+- Adaptive fourth-wall dialogue, narrator negotiation, and bounded
+  cross-session self-awareness are governed by ADR-0043 when the v2 policy and
+  Story Runtime Experience opt-in are active. Broad authoring cognition,
+  prompt/tool/model disclosure, and player-control claims remain out of scope.
 
 ## ADR-0039 Boundary
 

@@ -95,6 +95,7 @@ LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
     ForbiddenPattern("table_b.pi_24", re.compile(r"\bpi_24\b|Π24\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_25", re.compile(r"\bpi_25\b|Π25\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_26", re.compile(r"\bpi_26\b|Π26\b", re.IGNORECASE)),
+    ForbiddenPattern("table_b.pi_29", re.compile(r"\bpi_29\b|Π29\b", re.IGNORECASE)),
 )
 
 TABLE_B_CONTROL_PATTERNS = (
@@ -114,6 +115,10 @@ SCENE_ENERGY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.information_disclosure",
     re.compile(r"\binformation_disclosure\b", re.IGNORECASE),
+)
+EXPECTATION_VARIATION_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.expectation_variation",
+    re.compile(r"\bexpectation_variation\b", re.IGNORECASE),
 )
 PACING_RHYTHM_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.pacing_rhythm",
@@ -137,6 +142,7 @@ META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 )
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
+    "ai_stack/capability_selector.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
     "ai_stack/langgraph_runtime_package_output_sections.py",
@@ -153,6 +159,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
+    "ai_stack/capability_selector.py",
     "ai_stack/information_disclosure_contracts.py",
     "ai_stack/information_disclosure_engine.py",
     "ai_stack/langgraph_runtime_executor.py",
@@ -160,6 +167,19 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+EXPECTATION_VARIATION_CANONICAL_SURFACES = {
+    "ai_stack/expectation_variation_contracts.py",
+    "ai_stack/expectation_variation_engine.py",
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_playability.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
 }
 
@@ -179,6 +199,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
+    "ai_stack/capability_selector.py",
     "ai_stack/langchain_integration/bridges.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_state.py",
@@ -193,6 +214,7 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
 }
 
 CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
+    "ai_stack/capability_selector.py",
     "ai_stack/consequence_cascade_contracts.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_state.py",
@@ -372,6 +394,24 @@ def test_information_disclosure_runtime_aspect_is_limited_to_canonical_surfaces(
 
     assert not violations, (
         "information_disclosure appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_expectation_variation_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Expectation variation is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in EXPECTATION_VARIATION_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (EXPECTATION_VARIATION_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "expectation_variation appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

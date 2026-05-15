@@ -75,6 +75,17 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `information_disclosure_premature_reveal_absent`
 - `information_disclosure_contract_pass`
 - `information_disclosure_failure_codes`
+- `expectation_variation_policy_present`
+- `expectation_variation_target_selected`
+- `expectation_variation_selected_ids`
+- `expectation_variation_selected_types`
+- `expectation_variation_realized_ids`
+- `expectation_variation_realized_types`
+- `expectation_variation_budget_used`
+- `expectation_variation_budget_pass`
+- `expectation_variation_setup_supported`
+- `expectation_variation_contract_pass`
+- `expectation_variation_failure_codes`
 - `sensory_context_target_present`
 - `sensory_context_intensity`
 - `sensory_context_location_id`
@@ -97,4 +108,4 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `memory_context_bounded`
 - `hierarchical_memory_contract_pass`
 
-For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, sensory-layer realization, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.
+For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, expectation-variation support, sensory-layer realization, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.

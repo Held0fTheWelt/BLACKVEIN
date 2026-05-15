@@ -130,6 +130,32 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "contract_pass": True,
                 "failure_codes": [],
             },
+            "expectation_variation_state": {
+                "schema_version": "expectation_variation.v1",
+                "recent_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+                "cooldown_blocked_ids": [],
+                "selected_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+                "budget_remaining": 0,
+            },
+            "expectation_variation_target": {
+                "schema_version": "expectation_variation.v1",
+                "policy_enabled": True,
+                "selected_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+                "selected_variation_types": ["bounded_reveal"],
+                "required_setup_refs": [
+                    {
+                        "source": "information_disclosure_target",
+                        "field": "selected_unit_ids",
+                        "value": "unit_alpha",
+                    }
+                ],
+            },
+            "expectation_variation_validation": {
+                "schema_version": "expectation_variation.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
             "relationship_state_record": {
                 "schema_version": "relationship_state_machine.v1",
                 "turn_number": 4,
@@ -223,6 +249,11 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.social_pressure_state["current_score"] == 0.74
     assert pt.social_pressure_target["target_band"] == "high"
     assert pt.social_pressure_validation["contract_pass"] is True
+    assert pt.expectation_variation_state["selected_variation_ids"] == [
+        "expectation_variation:bounded_reveal:unit_alpha"
+    ]
+    assert pt.expectation_variation_target["selected_variation_types"] == ["bounded_reveal"]
+    assert pt.expectation_variation_validation["contract_pass"] is True
     assert pt.relationship_state_record["schema_version"] == "relationship_state_machine.v1"
     assert pt.relationship_dynamics_target["requires_visible_relationship_beat"] is True
     assert pt.relationship_state_validation["contract_pass"] is True
@@ -432,6 +463,38 @@ def test_prior_social_pressure_read_back_from_session_history() -> None:
     )
 
     assert _prior_social_pressure_state_from_session(s) == prior_state
+
+
+def test_prior_expectation_variation_read_back_from_session_history() -> None:
+    from app.story_runtime.manager import (
+        StorySession,
+        _prior_expectation_variation_state_from_session,
+    )
+
+    prior_state = {
+        "schema_version": "expectation_variation.v1",
+        "recent_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+        "selected_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+        "cooldown_blocked_ids": [],
+        "budget_remaining": 0,
+    }
+    s = StorySession(
+        session_id="sess-expectation-variation-test",
+        module_id="god_of_carnage",
+        runtime_projection={"scenes": [], "start_scene_id": "s1"},
+    )
+    s.history.append(
+        {
+            "turn_number": 1,
+            "narrative_commit": {
+                "planner_truth": {
+                    "expectation_variation_state": prior_state,
+                }
+            },
+        }
+    )
+
+    assert _prior_expectation_variation_state_from_session(s) == prior_state
 
 
 def test_runtime_config_status_exposes_live_truth_surface_without_governed_config() -> None:

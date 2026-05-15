@@ -37,6 +37,7 @@ Agency preservation is enforced at two levels:
 - Rebuilds the bounded callback web after commits, persists `callback_web_record.v1`, projects `callback_web_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.callback_web` without mutating canonical story state.
 - Rebuilds the bounded consequence cascade after commits, persists `consequence_cascade_record.v1`, projects `consequence_cascade_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.consequence_cascade` without using generated prose or branch previews as oracles.
 - Derives `pacing_rhythm_state` / `pacing_rhythm_target`, validates structured cadence realization, persists planner-truth rhythm feedback, and records `turn_aspect_ledger.pacing_rhythm` without using generated prose as an oracle.
+- Derives `expectation_variation_state` / `expectation_variation_target`, validates structured expectation-variation events against selected ids, setup refs, budget, and cooldown, persists planner-truth feedback, and records `turn_aspect_ledger.expectation_variation` without using generated surprise prose as an oracle.
 
 ## Session lifecycle (conceptual)
 
@@ -73,7 +74,8 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`consequence_cascade_contract.md`](consequence_cascade_contract.md) — bounded Pi21 consequence cascade over committed truth and branch selections
 - [`sensory_context_contract.md`](sensory_context_contract.md) — bounded Pi26 sensory-context layer selection and structured validation
 - [`improvisational_coherence_contract.md`](improvisational_coherence_contract.md) — bounded Pi24 structured acceptance contract and runtime-aspect diagnostics
-- [`meta_narrative_awareness_contract.md`](meta_narrative_awareness_contract.md) — bounded Pi25 opt-in meta-narrative awareness contract and structured validation
+- [`expectation_variation_contract.md`](expectation_variation_contract.md) — bounded Pi29 surprise-budget contract through selected expectation variation, setup refs, cooldown, and structured validation
+- [`meta_narrative_awareness_contract.md`](meta_narrative_awareness_contract.md) — bounded Pi25 opt-in meta-narrative awareness v1/v2 contract, fourth-wall scope, selected-memory-ref validation, and structured validation
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration
 - [`../ai/RAG.md`](../ai/RAG.md) — retrieval in the turn path

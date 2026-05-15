@@ -110,7 +110,7 @@ flowchart LR
   PN --> V --> C --> RV --> P
 ```
 
-**What this clarifies:** Model invocation sits **between** routing and seams on the story-play path. Runtime aspects are derived before context synthesis and prompt assembly. The opt-in `meta_narrative_awareness` aspect lives on the story-play path after relationship-state derivation; it is separate from Meta/OOC control input. Fallback is an **explicit** branch, not a silent retry inside validation. Meta/OOC control input is also explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
+**What this clarifies:** Model invocation sits **between** routing and seams on the story-play path. Runtime aspects are derived before context synthesis and prompt assembly. The opt-in `meta_narrative_awareness` aspect lives on the story-play path after relationship-state derivation; v2 may use bounded relationship/memory signals for adaptive, direct fourth-wall, and selected-memory-ref awareness when policy and Story Runtime Experience opt in. It is separate from Meta/OOC control input. Fallback is an **explicit** branch, not a silent retry inside validation. Meta/OOC control input is also explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
 
 ---
 

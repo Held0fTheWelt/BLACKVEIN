@@ -4,8 +4,23 @@ Last updated: 2026-05-15
 
 This document is the implementation-readiness companion for
 [ADR-0041: Semantic Capability Selection and Runtime Capability Budgeting](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md).
-It is design guidance only. It does not implement a selector, change runtime
-behavior, promote Capability Matrix status, or create live/staging proof.
+It is implementation guidance for the local selector core and future runtime
+integration. It does not change world-engine runtime behavior, promote
+Capability Matrix status, or create live/staging proof.
+
+## Implementation Status
+
+The first local deterministic selector core now exists in
+`ai_stack/capability_selector.py`, with focused tests in
+`ai_stack/tests/test_capability_selector.py`.
+
+Current boundaries:
+
+- Not wired into world-engine prompt assembly.
+- Not wired into selected validator execution.
+- Not wired into judge execution.
+- Not wired into Langfuse/MCP live or staging proof.
+- Not Capability Matrix promotion evidence.
 
 ## Problem Solved
 

@@ -59,6 +59,7 @@ ADR0039_PI_TEST_SCOPE = {
     "ai_stack/tests/test_npc_agency_contracts.py": "Pi7 shared-contract assertions cover schema constants, bounded adapters, and structured fields.",
     "ai_stack/tests/test_npc_agency_long_horizon_claim_readiness.py": "Pi7 readiness assertions separate local bounded evidence from full claim promotion.",
     "ai_stack/tests/test_npc_agency_planner.py": "Pi7 planning assertions cover deterministic contract fields and policy-derived planner output.",
+    "ai_stack/tests/test_capability_selector.py": "ADR-0041 selector tests assert legacy Pi-style keys are rejected while semantic capability names drive selection.",
     "ai_stack/tests/test_pi14_silence_negative_space.py": "Π14 contract tests assert schema versions, reason codes, vocabularies, and routing flags.",
     "ai_stack/tests/test_relationship_state_machine.py": "Π27 relationship-state assertions cover schema constants, policy-derived axes, ledger projection, and structured transition fields.",
     "ai_stack/tests/test_semantic_planner_golden_cases.py": "Π14 director-path regression asserts semantic runtime fields and contract constants.",

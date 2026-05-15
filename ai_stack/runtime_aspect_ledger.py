@@ -737,6 +737,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "opt_in_required": bool(meta_narrative_expected.get("opt_in_required")),
                 "opt_in_enabled": bool(meta_narrative_selected.get("opt_in_enabled")),
                 "active": bool(meta_narrative_selected.get("active")),
+                "awareness_tier": meta_narrative_selected.get("awareness_tier"),
                 "intensity": meta_narrative_selected.get("intensity"),
                 "trigger_frequency": meta_narrative_selected.get("trigger_frequency"),
                 "supported_actor_ids": meta_narrative_selected.get("supported_actor_ids")
@@ -753,9 +754,33 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     "forbidden_awareness_modes"
                 )
                 or [],
+                "allowed_fourth_wall_levels": meta_narrative_expected.get(
+                    "allowed_fourth_wall_levels"
+                )
+                or [],
                 "max_events_per_turn": int(
                     meta_narrative_selected.get("max_events_per_turn") or 0
                 ),
+                "max_direct_addresses_per_turn": int(
+                    meta_narrative_selected.get("max_direct_addresses_per_turn") or 0
+                ),
+                "direct_player_address_allowed": bool(
+                    meta_narrative_selected.get("direct_player_address_allowed")
+                ),
+                "narrator_negotiation_allowed": bool(
+                    meta_narrative_selected.get("narrator_negotiation_allowed")
+                ),
+                "cross_session_memory_allowed": bool(
+                    meta_narrative_selected.get("cross_session_memory_allowed")
+                ),
+                "selected_memory_ref_ids": meta_narrative_selected.get(
+                    "selected_memory_ref_ids"
+                )
+                or [],
+                "adaptive_signal_codes": meta_narrative_selected.get(
+                    "adaptive_signal_codes"
+                )
+                or [],
                 "structured_events_present": bool(
                     meta_narrative_actual.get("structured_events_present")
                 ),
@@ -763,6 +788,18 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "realized_actor_ids": meta_narrative_actual.get("realized_actor_ids")
                 or [],
                 "awareness_modes": meta_narrative_actual.get("awareness_modes") or [],
+                "fourth_wall_levels": meta_narrative_actual.get("fourth_wall_levels")
+                or [],
+                "direct_address_count": int(
+                    meta_narrative_actual.get("direct_address_count") or 0
+                ),
+                "realized_memory_ref_ids": meta_narrative_actual.get(
+                    "realized_memory_ref_ids"
+                )
+                or [],
+                "cross_session_memory_ref_count": int(
+                    meta_narrative_actual.get("cross_session_memory_ref_count") or 0
+                ),
                 "contract_pass": meta_narrative_actual.get("contract_pass"),
                 "failure_codes": meta_narrative_actual.get("failure_codes")
                 or _record_reasons(meta_narrative_rec),
@@ -1442,10 +1479,29 @@ def aspect_score_metadata(
         "improvisational_coherence_contract_pass": actual.get("contract_pass"),
         "improvisational_coherence_failure_codes": actual.get("failure_codes"),
         "meta_narrative_awareness_active": selected.get("active"),
+        "meta_narrative_awareness_tier": selected.get("awareness_tier"),
         "meta_narrative_awareness_intensity": selected.get("intensity"),
         "meta_narrative_awareness_trigger_frequency": selected.get("trigger_frequency"),
         "meta_narrative_awareness_selected_actor_ids": selected.get("selected_actor_ids"),
+        "meta_narrative_awareness_direct_address_allowed": selected.get(
+            "direct_player_address_allowed"
+        ),
+        "meta_narrative_awareness_cross_session_memory_allowed": selected.get(
+            "cross_session_memory_allowed"
+        ),
+        "meta_narrative_awareness_selected_memory_ref_ids": selected.get(
+            "selected_memory_ref_ids"
+        ),
+        "meta_narrative_awareness_adaptive_signal_codes": selected.get(
+            "adaptive_signal_codes"
+        ),
         "meta_narrative_awareness_event_count": actual.get("event_count"),
+        "meta_narrative_awareness_direct_address_count": actual.get(
+            "direct_address_count"
+        ),
+        "meta_narrative_awareness_realized_memory_ref_ids": actual.get(
+            "realized_memory_ref_ids"
+        ),
         "meta_narrative_awareness_contract_pass": actual.get("contract_pass"),
         "meta_narrative_awareness_failure_codes": actual.get("failure_codes"),
         "social_pressure_target_score": selected.get("target_score")

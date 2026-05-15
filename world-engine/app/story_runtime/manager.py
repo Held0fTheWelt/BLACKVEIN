@@ -7087,6 +7087,19 @@ def _build_committed_dramatic_context_summary(
                     else None
                 ),
             },
+            "expectation_variation": {
+                "state": planner.get("expectation_variation_state")
+                if isinstance(planner.get("expectation_variation_state"), dict)
+                else {},
+                "target": planner.get("expectation_variation_target")
+                if isinstance(planner.get("expectation_variation_target"), dict)
+                else {},
+                "validation_status": (
+                    planner.get("expectation_variation_validation", {}).get("status")
+                    if isinstance(planner.get("expectation_variation_validation"), dict)
+                    else None
+                ),
+            },
             "scene_assessment": {
                 "pressure_state": scene_assessment.get("pressure_state")
                 or base_scene.get("pressure_state"),
@@ -8878,6 +8891,9 @@ class StoryRuntimeManager:
             "social_pressure_state": graph_state.get("social_pressure_state"),
             "social_pressure_target": graph_state.get("social_pressure_target"),
             "social_pressure_validation": graph_state.get("social_pressure_validation"),
+            "expectation_variation_state": graph_state.get("expectation_variation_state"),
+            "expectation_variation_target": graph_state.get("expectation_variation_target"),
+            "expectation_variation_validation": graph_state.get("expectation_variation_validation"),
             "dramatic_irony_record": graph_state.get("dramatic_irony_record"),
             "dramatic_irony_validation": graph_state.get("dramatic_irony_validation"),
             "selected_responder_set": selected_responder_set,
@@ -9458,6 +9474,9 @@ class StoryRuntimeManager:
             "social_pressure_state": event.get("social_pressure_state"),
             "social_pressure_target": event.get("social_pressure_target"),
             "social_pressure_validation": event.get("social_pressure_validation"),
+            "expectation_variation_state": event.get("expectation_variation_state"),
+            "expectation_variation_target": event.get("expectation_variation_target"),
+            "expectation_variation_validation": event.get("expectation_variation_validation"),
             "human_input_attribution": event.get("human_input_attribution"),
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "committed_state_after": {
@@ -9507,6 +9526,7 @@ class StoryRuntimeManager:
         prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
         prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
+        prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
         prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
 
         try:
@@ -9523,6 +9543,7 @@ class StoryRuntimeManager:
                 prior_continuity_impacts=prior_ci if prior_ci else None,
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_expectation_variation_state=prior_expectation_variation_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
                 prior_relationship_state_record=prior_relationship_state_record,
@@ -10803,6 +10824,7 @@ class StoryRuntimeManager:
             prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
+            prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
             prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
@@ -10832,6 +10854,7 @@ class StoryRuntimeManager:
                 prior_narrative_thread_state=prior_narrative_thread_state,
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_expectation_variation_state=prior_expectation_variation_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
                 prior_relationship_state_record=prior_relationship_state_record,
@@ -11057,6 +11080,12 @@ class StoryRuntimeManager:
             event.setdefault("social_pressure_target", graph_state.get("social_pressure_target"))
         if isinstance(graph_state.get("social_pressure_validation"), dict):
             event.setdefault("social_pressure_validation", graph_state.get("social_pressure_validation"))
+        if isinstance(graph_state.get("expectation_variation_state"), dict):
+            event.setdefault("expectation_variation_state", graph_state.get("expectation_variation_state"))
+        if isinstance(graph_state.get("expectation_variation_target"), dict):
+            event.setdefault("expectation_variation_target", graph_state.get("expectation_variation_target"))
+        if isinstance(graph_state.get("expectation_variation_validation"), dict):
+            event.setdefault("expectation_variation_validation", graph_state.get("expectation_variation_validation"))
         if selected_responder_set:
             event.setdefault("selected_responder_set", selected_responder_set)
         actor_survival_telemetry = (
@@ -11126,6 +11155,9 @@ class StoryRuntimeManager:
             "social_pressure_state": event.get("social_pressure_state"),
             "social_pressure_target": event.get("social_pressure_target"),
             "social_pressure_validation": event.get("social_pressure_validation"),
+            "expectation_variation_state": event.get("expectation_variation_state"),
+            "expectation_variation_target": event.get("expectation_variation_target"),
+            "expectation_variation_validation": event.get("expectation_variation_validation"),
             "human_input_attribution": human_att,
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,

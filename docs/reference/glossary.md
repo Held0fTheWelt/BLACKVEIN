@@ -44,7 +44,7 @@ String identifier for a content module (for GoC, `god_of_carnage` is the slice b
 Model output is **non-authoritative** until validated and **committed** by runtime rules. The graph may produce proposals; committed state follows validation and commit seams (see `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` for normative detail).
 
 **Runtime aspect ledger**  
-Backend/world-engine-owned per-turn evidence record for runtime intelligence contracts such as beat, capability, authority, voice consistency, information disclosure, dramatic irony, visible projection, validation, commit, and memory. It is diagnostics/authority evidence; the player shell may display provided data but must not infer correctness from prose.
+Backend/world-engine-owned per-turn evidence record for runtime intelligence contracts such as beat, capability, authority, voice consistency, information disclosure, expectation variation, dramatic irony, visible projection, validation, commit, and memory. It is diagnostics/authority evidence; the player shell may display provided data but must not infer correctness from prose.
 
 **EnvironmentState / environmental story**
 Durable, bounded story-session environment state for the GoC slice: current room, actor locations, prop states, visible rooms, salient objects, and recent environment events. It is initialized from canonical module content and mutates only through committed/admitted actions; narration and RAG do not create persistent environment truth.
@@ -64,6 +64,9 @@ Bounded Π16 runtime contract for selected NPC private-plan asymmetry. The runti
 **Information disclosure runtime aspect**  
 Generic runtime aspect implementing bounded reveal control for mystery-rationing behavior. Content policy selects which disclosure units may be visible in a turn, validation checks structured `disclosure_events` and budget/failure codes, and tests use policy/schema/ledger fields rather than story prose as oracles.
 
+**Expectation variation runtime aspect**  
+Generic runtime aspect implementing bounded surprise-budget behavior. Module policy selects at most a small number of expectation-variation events from structured setup evidence; validation checks selected ids, variation types, setup refs, budget, cooldown, and failure codes rather than treating surprising prose as an oracle.
+
 **Preview (experiment preview)**  
 Diagnostics or non-committed views of model or graph output used for review; must not be treated as committed player truth. Operational docs should point engineers to seam and contract docs for exact behavior.
 
@@ -77,7 +80,13 @@ Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag.py
 Out-of-world or out-of-character player input represented as `kind=meta`, `player_input_kind=meta`, and `selected_handling_path=meta`. It is a deterministic non-story control path for diagnostics/UI acknowledgement, not in-world self-awareness, adaptive meta-dialogue, or committed story prose.
 
 **Meta-narrative awareness**
-A separate story-play runtime aspect named `meta_narrative_awareness`. It is full opt-in through Story Runtime Experience settings, bounded by module policy, actor-lane-gated, and validated through `meta_narrative_awareness_events`. It is not the Meta/OOC control branch and not full fourth-wall play.
+A separate story-play runtime aspect named `meta_narrative_awareness`. It is full opt-in through Story Runtime Experience settings, bounded by module policy, actor-lane-gated, and validated through `meta_narrative_awareness_events`. It is not the Meta/OOC control branch, and full fourth-wall play is allowed only through the v2 full opt-in tier.
+
+v2 can allow adaptive in-world meta-awareness, direct fourth-wall address,
+narrator negotiation, and bounded cross-session self-awareness when policy,
+consent scope, selected actor lanes, direct-address budgets, and selected
+memory reference ids all permit it. It still may not disclose prompts, tools,
+models, runtime machinery, private player data, or invented memories.
 
 **LangChain**  
 Adapter invocation bridge for structured runtime output under `ai_stack/langchain_integration/`.

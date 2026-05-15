@@ -5,11 +5,12 @@ from pathlib import Path
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
 from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
+from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_POLICY_VERSION
 from ai_stack.improvisational_coherence_contracts import (
     IMPROVISATIONAL_COHERENCE_POLICY_VERSION,
 )
 from ai_stack.meta_narrative_awareness_contracts import (
-    META_NARRATIVE_AWARENESS_POLICY_VERSION,
+    META_NARRATIVE_AWARENESS_POLICY_VERSION_V2,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
@@ -74,11 +75,21 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["improvisational_coherence"]["enabled"] is True
     assert policy["runtime_governance_policy"]["improvisational_coherence"]["min_anchor_refs"] >= 1
     assert (
+        policy["runtime_governance_policy"]["expectation_variation"]["schema_version"]
+        == EXPECTATION_VARIATION_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["expectation_variation"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["expectation_variation"]["max_variation_units_per_turn"] == 1
+    assert policy["runtime_governance_policy"]["expectation_variation"]["allowed_variation_types"]
+    assert (
         policy["runtime_governance_policy"]["meta_narrative_awareness"]["schema_version"]
-        == META_NARRATIVE_AWARENESS_POLICY_VERSION
+        == META_NARRATIVE_AWARENESS_POLICY_VERSION_V2
     )
     assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["enabled"] is True
-    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["allowed_intensities"] == ["subtle"]
+    assert "full_fourth_wall" in policy["runtime_governance_policy"]["meta_narrative_awareness"]["allowed_intensities"]
+    assert "full" in policy["runtime_governance_policy"]["meta_narrative_awareness"]["allowed_awareness_tiers"]
+    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["allow_direct_player_address"] is True
+    assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["allow_cross_session_memory"] is True
     assert policy["runtime_governance_policy"]["meta_narrative_awareness"]["characters_with_awareness"]
     assert policy["runtime_governance_policy"]["social_pressure"]["schema_version"] == SOCIAL_PRESSURE_POLICY_VERSION
     assert policy["runtime_governance_policy"]["social_pressure"]["enabled"] is True
@@ -96,6 +107,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert "information_disclosure_policy" in policy["content_sources"]
     assert "memory_policy" in policy["content_sources"]
     assert "dramatic_irony_policy" in policy["content_sources"]
+    assert "expectation_variation_policy" in policy["content_sources"]
     assert "meta_narrative_awareness_policy" in policy["content_sources"]
     assert "runtime_intelligence" in policy["content_sources"]
 
@@ -335,6 +347,8 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         repo / "ai_stack" / "dramatic_capability_contracts.py",
         repo / "ai_stack" / "visible_origin_contracts.py",
         repo / "ai_stack" / "module_runtime_policy.py",
+        repo / "ai_stack" / "expectation_variation_contracts.py",
+        repo / "ai_stack" / "expectation_variation_engine.py",
         repo / "ai_stack" / "information_disclosure_contracts.py",
         repo / "ai_stack" / "information_disclosure_engine.py",
         repo / "ai_stack" / "improvisational_coherence_contracts.py",

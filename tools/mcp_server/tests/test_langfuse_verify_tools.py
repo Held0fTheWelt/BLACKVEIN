@@ -5,6 +5,10 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from ai_stack.expectation_variation_contracts import (
+    EXPECTATION_VARIATION_BOUNDED_REVEAL,
+    EXPECTATION_VARIATION_SCHEMA_VERSION,
+)
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
 from tools.mcp_server.tools_registry import create_default_registry
@@ -40,6 +44,13 @@ def test_runtime_aspect_matrix_recommends_improvisational_repair():
     assert (
         _runtime_aspect_recommended_repair("improv_scene_anchor_missing")
         == "repair_improvisational_coherence_structured_acceptance"
+    )
+
+
+def test_runtime_aspect_matrix_recommends_expectation_variation_repair():
+    assert (
+        _runtime_aspect_recommended_repair("expectation_variation_unselected_event")
+        == "repair_expectation_variation_structured_selection"
     )
 
 
@@ -830,6 +841,37 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "expectation_variation": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": EXPECTATION_VARIATION_SCHEMA_VERSION,
+                            "policy_present": True,
+                            "policy_enabled": True,
+                            "commit_impact": "recover",
+                            "require_structured_events": True,
+                            "max_variation_units_per_turn": 1,
+                        },
+                        "selected": {
+                            "selected_variation_ids": ["variation_alpha"],
+                            "selected_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+                            "required_setup_refs": [
+                                {
+                                    "source": "information_disclosure_target",
+                                    "field": "selected_unit_ids",
+                                    "value": "unit_alpha",
+                                }
+                            ],
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "structured_events_present": True,
+                            "event_count": 1,
+                            "budget_used": 1,
+                            "realized_variation_ids": ["variation_alpha"],
+                            "realized_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+                            "failure_codes": [],
+                        },
+                    },
                     "pacing_rhythm": {
                         "status": "passed",
                         "expected": {
@@ -1063,6 +1105,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "information_disclosure_budget_pass", "value": 1.0},
             {"name": "information_disclosure_premature_reveal_absent", "value": 1.0},
             {"name": "information_disclosure_contract_pass", "value": 1.0},
+            {"name": "expectation_variation_policy_present", "value": 1.0},
+            {"name": "expectation_variation_target_selected", "value": 1.0},
+            {"name": "expectation_variation_budget_pass", "value": 1.0},
+            {"name": "expectation_variation_setup_supported", "value": 1.0},
+            {"name": "expectation_variation_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_target_present", "value": 1.0},
             {"name": "pacing_rhythm_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_density_respected", "value": 1.0},
@@ -1128,6 +1175,17 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["information_disclosure_withheld_units"] == ["unit_beta"]
     assert row["information_disclosure_budget_pass"] is True
     assert row["information_disclosure_contract_pass"] == 1.0
+    assert row["expectation_variation_policy_present"] is True
+    assert row["expectation_variation_target_selected"] is True
+    assert row["expectation_variation_selected_ids"] == ["variation_alpha"]
+    assert row["expectation_variation_selected_types"] == [EXPECTATION_VARIATION_BOUNDED_REVEAL]
+    assert row["expectation_variation_realized_ids"] == ["variation_alpha"]
+    assert row["expectation_variation_realized_types"] == [EXPECTATION_VARIATION_BOUNDED_REVEAL]
+    assert row["expectation_variation_budget_used"] == 1
+    assert row["expectation_variation_budget_pass"] is True
+    assert row["expectation_variation_setup_supported"] is True
+    assert row["expectation_variation_contract_pass"] is True
+    assert row["expectation_variation_failure_codes"] == []
     assert row["pacing_rhythm_target_present"] is True
     assert row["pacing_rhythm_cadence"] == "press"
     assert row["pacing_rhythm_response_shape"] == "exchange"

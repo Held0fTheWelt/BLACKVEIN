@@ -135,6 +135,9 @@ class PlannerTruth(BaseModel):
     social_pressure_state: dict[str, Any] = Field(default_factory=dict)
     social_pressure_target: dict[str, Any] = Field(default_factory=dict)
     social_pressure_validation: dict[str, Any] = Field(default_factory=dict)
+    expectation_variation_state: dict[str, Any] = Field(default_factory=dict)
+    expectation_variation_target: dict[str, Any] = Field(default_factory=dict)
+    expectation_variation_validation: dict[str, Any] = Field(default_factory=dict)
     relationship_state_record: dict[str, Any] = Field(default_factory=dict)
     relationship_dynamics_target: dict[str, Any] = Field(default_factory=dict)
     relationship_state_validation: dict[str, Any] = Field(default_factory=dict)
@@ -805,6 +808,20 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_social_pressure.get("target")
     )
     social_pressure_validation = _as_dict(graph_state.get("social_pressure_validation"))
+    dramatic_packet_expectation_variation = _as_dict(
+        dramatic_packet.get("expectation_variation")
+    )
+    expectation_variation_state = _as_dict(
+        graph_state.get("expectation_variation_state")
+        or dramatic_packet_expectation_variation.get("state")
+    )
+    expectation_variation_target = _as_dict(
+        graph_state.get("expectation_variation_target")
+        or dramatic_packet_expectation_variation.get("target")
+    )
+    expectation_variation_validation = _as_dict(
+        graph_state.get("expectation_variation_validation")
+    )
     dramatic_packet_relationship_state = _as_dict(dramatic_packet.get("relationship_state"))
     relationship_state_record = _as_dict(
         graph_state.get("relationship_state_record")
@@ -896,6 +913,9 @@ def _planner_truth_from_graph_state(
         social_pressure_state=social_pressure_state,
         social_pressure_target=social_pressure_target,
         social_pressure_validation=social_pressure_validation,
+        expectation_variation_state=expectation_variation_state,
+        expectation_variation_target=expectation_variation_target,
+        expectation_variation_validation=expectation_variation_validation,
         relationship_state_record=relationship_state_record,
         relationship_dynamics_target=relationship_dynamics_target,
         relationship_state_validation=relationship_state_validation,

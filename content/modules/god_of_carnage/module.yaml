@@ -481,26 +481,63 @@ runtime_intelligence:
     hidden_fact_echo_check: true
   meta_narrative_awareness:
     enabled: true
-    schema_version: meta_narrative_awareness_policy.v1
+    schema_version: meta_narrative_awareness_policy.v2
+    allowed_awareness_tiers:
+      - subtle
+      - adaptive
+      - full
+    default_awareness_tier: subtle
     allowed_intensities:
       - subtle
+      - moderate
+      - full_fourth_wall
     default_intensity: subtle
     allowed_trigger_frequencies:
       - rare
+      - occasional
+      - frequent
     default_trigger_frequency: rare
     characters_with_awareness:
       - veronique
     allowed_awareness_modes:
       - dramatic_pattern_sense
       - narrative_pressure_sense
+      - adaptive_pattern_recognition
+      - character_self_model
+      - cross_session_memory_reference
+      - narrator_negotiation
+      - story_form_negotiation
+      - direct_player_address
+      - fourth_wall_address
     forbidden_awareness_modes:
       - system_prompt_disclosure
       - tool_or_model_disclosure
       - player_control_claim
       - unbounded_rewrite
       - unauthorized_fourth_wall_break
-    max_events_per_turn: 1
+      - private_player_data_disclosure
+      - false_cross_session_memory
+    allowed_fourth_wall_levels:
+      - none
+      - subtle
+      - direct
+      - full_fourth_wall
+    max_events_per_turn: 2
+    max_direct_addresses_per_turn: 1
     requires_player_consent: true
     allow_player_toggle: true
+    allow_direct_player_address: true
+    allow_narrator_negotiation: true
+    allow_cross_session_memory: true
+    allowed_memory_scopes:
+      - session
+      - actor
+      - module
+      - long_term
+      - cross_session
+    default_memory_retention_scope: cross_session
+    max_cross_session_memory_refs: 2
+    require_verified_memory_refs: true
+    privacy_safe_memory_only: true
     model_context_visibility: bounded_structured_only
     default_commit_impact: recover

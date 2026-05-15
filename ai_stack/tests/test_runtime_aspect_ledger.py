@@ -7,6 +7,10 @@ from ai_stack.dramatic_irony_contracts import (
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
     DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
 )
+from ai_stack.expectation_variation_contracts import (
+    EXPECTATION_VARIATION_BOUNDED_REVEAL,
+    EXPECTATION_VARIATION_SCHEMA_VERSION,
+)
 from ai_stack.improvisational_coherence_contracts import (
     IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
     IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
@@ -15,9 +19,11 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
+    ASPECT_EXPECTATION_VARIATION,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INPUT,
     ASPECT_KEYS,
+    ASPECT_META_NARRATIVE_AWARENESS,
     ASPECT_NPC_AGENCY,
     ASPECT_PACING_RHYTHM,
     ASPECT_RELATIONSHIP_STATE,
@@ -480,6 +486,68 @@ def test_runtime_projection_exposes_improvisational_coherence_aspect() -> None:
     assert improv["failure_codes"] == [IMPROV_FAILURE_SCENE_ANCHOR_MISSING]
 
 
+def test_runtime_projection_exposes_expectation_variation_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-expectation",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    setup_ref = {
+        "source": "information_disclosure_target",
+        "field": "selected_unit_ids",
+        "value": "unit_alpha",
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_EXPECTATION_VARIATION,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": EXPECTATION_VARIATION_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+                "max_variation_units_per_turn": 1,
+                "cooldown_turns": 1,
+                "allowed_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+            },
+            "selected": {
+                "selected_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+                "selected_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+                "withheld_variation_ids": [],
+                "required_setup_refs": [setup_ref],
+                "budget_remaining": 0,
+            },
+            "actual": {
+                "structured_events_present": True,
+                "event_count": 1,
+                "realized_variation_ids": ["expectation_variation:bounded_reveal:unit_alpha"],
+                "realized_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+                "budget_used": 1,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    variation = projection[ASPECT_EXPECTATION_VARIATION]
+    assert variation["schema_version"] == EXPECTATION_VARIATION_SCHEMA_VERSION
+    assert variation["policy_present"] is True
+    assert variation["selected_variation_types"] == [EXPECTATION_VARIATION_BOUNDED_REVEAL]
+    assert variation["required_setup_refs"] == [setup_ref]
+    assert variation["realized_variation_ids"] == ["expectation_variation:bounded_reveal:unit_alpha"]
+    assert variation["budget_used"] == 1
+    assert variation["contract_pass"] is True
+    assert variation["failure_codes"] == []
+
+
 def test_runtime_projection_exposes_social_pressure_aspect() -> None:
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-pressure",
@@ -587,6 +655,70 @@ def test_runtime_projection_exposes_relationship_state_aspect() -> None:
     assert relationship["requires_visible_relationship_beat"] is True
     assert relationship["pair_count"] == 1
     assert relationship["contract_pass"] is True
+
+
+def test_runtime_projection_exposes_meta_narrative_awareness_v2_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-meta-v2",
+        module_id="example_module",
+        turn_number=4,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_META_NARRATIVE_AWARENESS,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": "meta_narrative_awareness.v2",
+                "policy_present": True,
+                "policy_enabled": True,
+                "opt_in_required": True,
+                "allowed_awareness_modes": ["direct_player_address"],
+                "allowed_fourth_wall_levels": ["full_fourth_wall"],
+            },
+            "selected": {
+                "active": True,
+                "opt_in_enabled": True,
+                "awareness_tier": "full",
+                "intensity": "full_fourth_wall",
+                "trigger_frequency": "frequent",
+                "selected_actor_ids": ["veronique"],
+                "max_events_per_turn": 2,
+                "max_direct_addresses_per_turn": 1,
+                "direct_player_address_allowed": True,
+                "cross_session_memory_allowed": True,
+                "selected_memory_ref_ids": ["mem_return_1"],
+                "adaptive_signal_codes": ["meta_narrative_adaptive_memory_context"],
+            },
+            "actual": {
+                "structured_events_present": True,
+                "event_count": 1,
+                "direct_address_count": 1,
+                "realized_actor_ids": ["veronique"],
+                "awareness_modes": ["direct_player_address"],
+                "fourth_wall_levels": ["full_fourth_wall"],
+                "realized_memory_ref_ids": ["mem_return_1"],
+                "cross_session_memory_ref_count": 1,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    meta = projection[ASPECT_META_NARRATIVE_AWARENESS]
+    assert meta["schema_version"] == "meta_narrative_awareness.v2"
+    assert meta["awareness_tier"] == "full"
+    assert meta["direct_player_address_allowed"] is True
+    assert meta["selected_memory_ref_ids"] == ["mem_return_1"]
+    assert meta["direct_address_count"] == 1
+    assert meta["realized_memory_ref_ids"] == ["mem_return_1"]
+    assert meta["contract_pass"] is True
 
 
 def test_runtime_projection_exposes_consequence_cascade_aspect() -> None:

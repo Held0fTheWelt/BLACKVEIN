@@ -12,7 +12,7 @@ Clients should treat `opening_turn` as **committed narration** (same envelope sh
 
 `POST …/sessions/{id}/turns` executes the LangGraph runtime turn graph. Story-play input follows interpretation, action resolution, retrieval, routing, model invoke (LangChain-structured primary for capable adapters), optional graph-managed fallback, proposal normalisation, validation seam, commit seam, visible render, and package output.
 
-Meta/OOC input is a deterministic control turn: interpretation routes `player_input_kind=meta` to `meta_control_turn`, which records structured `control_events`, marks generation as not required, sets `commit_not_applicable=true`, and packages diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`. This is the bounded Π25 control surface; the separate story-play `meta_narrative_awareness` aspect is opt-in, module-policy-backed, and validated through structured events.
+Meta/OOC input is a deterministic control turn: interpretation routes `player_input_kind=meta` to `meta_control_turn`, which records structured `control_events`, marks generation as not required, sets `commit_not_applicable=true`, and packages diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`. This is the bounded Π25 control surface; the separate story-play `meta_narrative_awareness` aspect is opt-in, module-policy-backed, and validated through structured events, including v2 fourth-wall scope and selected-memory-ref checks when fully enabled.
 
 ### Self-correction
 

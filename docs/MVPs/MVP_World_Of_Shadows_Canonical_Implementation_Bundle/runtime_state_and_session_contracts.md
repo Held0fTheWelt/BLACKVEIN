@@ -329,6 +329,42 @@ source fields such as `thread_pressure_state`, `social_risk_band`, and
 `thread_pressure_level`. Generated narration, copied dialogue, frontend card
 shape, and judge labels are never the pass/fail oracle.
 
+### Expectation Variation / Pi29
+
+Expectation variation is implemented as the generic `expectation_variation`
+runtime aspect. It is the bounded surprise-budget contract for a turn: selected
+variation ids, variation types, required setup refs, per-turn budget, cooldown
+state, and structured realization evidence. It consumes selected setup evidence
+from adjacent runtime aspects such as information disclosure, dramatic irony,
+social pressure, relationship state, sensory context, callback web, consequence
+cascade, and prior committed expectation-variation state. It does not replace
+committed truth, hidden-fact safety, relationship state, or visible narration,
+and it must not become a prose surprise judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.expectation_variation` into `runtime_governance_policy.expectation_variation`;
+- LangGraph derives `expectation_variation_state` and `expectation_variation_target` before relationship-state derivation;
+- the dramatic generation packet receives only selected variation ids, selected variation types, budget, and setup refs;
+- structured output may emit `expectation_variation_events` with `variation_id`, `variation_type`, and `source_refs`;
+- validation checks selected ids, allowed types, setup-ref support, budget, cooldown, and required-event presence;
+- recoverable failures feed self-correction with bounded `expectation_variation_*` failure codes;
+- `turn_aspect_ledger.expectation_variation` records policy presence, selected/realized ids and types, budget, contract pass, and failure codes;
+- World-Engine persists `expectation_variation_state`, `expectation_variation_target`, and `expectation_variation_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_expectation_variation_state`;
+- Langfuse and MCP expose policy, target, selected ids/types, realized ids/types, budget, setup support, pass/fail, and failure-code evidence.
+
+The committed expectation-variation state is bounded planner feedback, not a
+second canon store. It may shape the next turn and operator diagnostics, but it
+does not mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, structured setup refs,
+planner-truth rehydration, ledger/MCP fields, and structured
+`expectation_variation_events`. Generated narration, copied dialogue, frontend
+card shape, judge labels, and hand-written surprise beats are never the
+pass/fail oracle.
+
 ### Relationship State / Pi27
 
 Relationship state is implemented as the generic `relationship_state` runtime

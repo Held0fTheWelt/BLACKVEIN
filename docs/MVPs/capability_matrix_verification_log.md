@@ -10,6 +10,22 @@ If a future run records ADR-0041 capability-selection evidence, mark it as selec
 
 Historical entries may include machine-local absolute paths because they preserve the command transcript from that workstation. Treat those paths as local environment evidence only, not as portable instructions or live/staging proof. New entries should prefer repo-relative commands, `REPO_ROOT`, or `$PWD`-relative invocation notes whenever practical.
 
+## Local verification snapshot for ADR-0041 / semantic capability selector core
+
+Latest local verification for the first deterministic selector core:
+
+- `python -m pytest ai_stack/tests/test_capability_selector.py -q` -> 12 passed.
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py -q` -> 7 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q` -> 11 passed.
+
+Scope: local unit/governance verification only. `live_or_staging_evidence=false`.
+
+Evidence summary: `ai_stack/capability_selector.py` implements ADR-0041 local semantic selection, budget caps, activation modes, and RuntimeAspectLedger-compatible local evidence projection. It is not wired into world-engine prompt assembly, selected validator execution, judge execution, Langfuse/MCP live proof, or Capability Matrix promotion.
+
+ADR-0039 discipline: selector code uses semantic capability names only; focused tests assert legacy Pi-style selector keys are rejected and that projection evidence is local-only, not implementation or live/staging proof.
+
+---
+
 ## Local verification snapshot for Π27 / relationship state machine
 
 Latest local verification recorded for the bounded durable relationship-state implementation:
@@ -301,6 +317,36 @@ Latest local verification recorded for bounded Meta/OOC input handling:
 Evidence summary: Meta/OOC input now resolves to `player_input_kind=meta` and routes through LangGraph `meta_control_turn` to `package_output`. The path records `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, `generation_required=false`, and `commit_not_applicable=true`; it skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`.
 
 ADR-0039 discipline for this slice: tests assert shared intent-contract flags, graph node execution/exclusion, adapter invocation mode, repro metadata, and commit applicability fields. Literal input strings are stimuli only; no generated acknowledgement text or story prose is a pass/fail oracle.
+
+---
+
+## Local verification snapshot for Π25 / adaptive meta-narrative awareness v2
+
+Latest local verification recorded for adaptive in-world meta-awareness,
+direct fourth-wall scope, and selected-memory-ref self-awareness:
+
+- Date: 2026-05-15.
+- Environment scope: local py_compile/pytest/docs check; no live-provider,
+  staging, durable long-term-memory-store, or live Langfuse claim.
+- `PYTHONPATH=. python -m py_compile ai_stack/meta_narrative_awareness_contracts.py ai_stack/meta_narrative_awareness_engine.py ai_stack/story_runtime_experience.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_executor.py ai_stack/tests/test_meta_narrative_awareness_engine.py ai_stack/tests/test_runtime_aspect_ledger.py tests/integration/test_story_runtime_experience.py ai_stack/tests/test_module_runtime_policy.py` -> passed.
+- `PYTHONPATH=. pytest ai_stack/tests/test_meta_narrative_awareness_engine.py ai_stack/tests/test_runtime_aspect_ledger.py tests/integration/test_story_runtime_experience.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_langgraph_runtime.py -q --tb=short` -> 59 passed.
+- `PYTHONPATH=. pytest tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 4 passed.
+- `PYTHONPATH=. pytest tests/gates/test_adr_0039_pi_scope.py -q --tb=short` -> 7 passed.
+- `PYTHONPATH=. pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 12 passed.
+
+Evidence summary: `meta_narrative_awareness` now has a v2 contract surface for
+`adaptive` and `full` tiers. The GoC policy defaults to subtle behavior but can
+allow full fourth-wall play, narrator negotiation, and cross-session
+self-awareness when Story Runtime Experience settings explicitly opt in. The
+target includes adaptive signal codes, direct-address budget, allowed
+fourth-wall levels, and selected memory ref ids. Validation rejects direct
+address outside scope, unverified memory refs, private player data disclosure,
+fabricated memory, prompt/tool/model disclosure, and player-control claims.
+
+ADR-0039 discipline for this slice: tests assert schema/policy fields,
+structured event contracts, selected memory ref ids, direct-address counts,
+failure codes, and ledger projection. Generated fourth-wall prose remains
+non-oracular.
 
 ---
 
