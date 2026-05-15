@@ -7,11 +7,20 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INPUT,
     ASPECT_KEYS,
     ASPECT_NPC_AGENCY,
+    ASPECT_SCENE_ENERGY,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
     set_aspect_record,
     stable_ledger_json,
 )
+from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+
+
+def _scene_energy_missing_pressure_code() -> str:
+    for code in SCENE_ENERGY_FAILURE_CODES:
+        if code.endswith("missing_required_pressure"):
+            return code
+    raise AssertionError("scene_energy_contract_missing_pressure_failure_code")
 
 
 def test_runtime_aspect_ledger_serializes_stably() -> None:
@@ -105,3 +114,74 @@ def test_runtime_projection_exposes_npc_agency_aspect() -> None:
     assert npc_agency["private_plan_resolution_present"] is True
     assert npc_agency["private_plan_visibility_respected"] is True
     assert npc_agency["selected_private_plan_ids"] == expected_actual["selected_private_plan_ids"]
+
+
+def test_runtime_projection_exposes_scene_energy_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s1",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich bleibe am Tisch.",
+    )
+    target = {
+        "schema_version": "scene_energy.v1",
+        "energy_level": "rising",
+        "pressure_vector": "social",
+        "tempo": "accelerating",
+        "density": "layered",
+        "volatility": "unstable",
+        "target_transition": "rise",
+        "minimum_actor_response_count": 2,
+        "maximum_visible_density_count": 8,
+        "forbidden_transitions": [],
+        "source_evidence": [],
+        "rationale_codes": [],
+    }
+    missing_pressure_code = _scene_energy_missing_pressure_code()
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_SCENE_ENERGY,
+        {
+            "applicable": True,
+            "status": "failed",
+            "expected": {
+                "schema_version": target["schema_version"],
+                "policy_present": True,
+                "policy_enabled": True,
+            },
+            "selected": {
+                "target": target,
+                "transition": {
+                    "schema_version": "scene_energy.v1",
+                    "from_energy_level": None,
+                    "to_energy_level": target["energy_level"],
+                    "transition_intent": target["target_transition"],
+                    "allowed": True,
+                    "reason_codes": [],
+                },
+            },
+            "actual": {
+                "actual_actor_response_count": 1,
+                "visible_density_count": 2,
+                "transition_allowed": True,
+                "contract_pass": False,
+                "failure_codes": [missing_pressure_code],
+            },
+            "reasons": [missing_pressure_code],
+            "failure_class": "recoverable_dramatic_failure",
+            "failure_reason": missing_pressure_code,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    scene_energy = projection[ASPECT_SCENE_ENERGY]
+    assert scene_energy["schema_version"] == target["schema_version"]
+    assert scene_energy["energy_level"] == target["energy_level"]
+    assert scene_energy["pressure_vector"] == target["pressure_vector"]
+    assert scene_energy["target_transition"] == target["target_transition"]
+    assert scene_energy["minimum_actor_response_count"] == target["minimum_actor_response_count"]
+    assert scene_energy["actual_actor_response_count"] == 1
+    assert scene_energy["failure_codes"] == [missing_pressure_code]
+    assert scene_energy["contract_pass"] is False

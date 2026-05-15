@@ -1472,7 +1472,10 @@ def _build_runtime_aspect_validation(
             "recoverable_rejection": True,
             "npc_agency_failure": npc_agency_failure,
         }
-    elif scene_energy_failure is not None:
+    elif (
+        scene_energy_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
         failure_reason = str(scene_energy_failure.get("failure_reason") or "scene_energy_validation_failed")
         next_outcome = {
             **next_outcome,
