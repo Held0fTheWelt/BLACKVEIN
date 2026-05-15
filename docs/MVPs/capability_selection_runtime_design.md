@@ -75,16 +75,24 @@ Current boundaries:
 
 ## ADR-0041 Production Orchestration Readiness (audit 2026-05-15)
 
-**Verdict:** Production wiring for plan-aware dispatch is **not** ready; **do not**
-enable `plan_enforced` in live LangGraph/world-engine paths until an explicit ADR
-slice defines gate policy, registry sourcing, and rollback. **Do not begin implementation yet**
-— use only the patch map below.
+**Verdict:** Plan-enforced dispatch is **opt-in only** (`ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced`).
+**Do not** treat ADR-0041 local results as commit/readiness truth; **`run_validation_seam`**
+remains canonical for `validation_outcome`. Broader production rollout (registry sourcing,
+operational policy, rollback) still needs an explicit governance slice.
 
 ### Current state
 
 - **Default path:** `normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` →
   `build_semantic_validator_dispatch_report_projection` → **always `dry_run`**,
   `actually_executed=[]`, `commit_gate_changed=false`, local-only proof flags.
+  Top-level `validation_authority_preview` is **absent** on this path.
+- **Opt-in LangGraph path:** When `plan_enforced` is set, `validate_seam` attaches
+  `_adr0041_runtime_graph_dispatch_context` (dispatch context + seam summary **echo** only).
+  Ledger normalization then merges a **plan-enforced** `validator_dispatch_report` (turn-class
+  registry) and sets `runtime_intelligence_projection.validation_authority_preview` plus
+  `validation_authority_bridge` and **top-level** `authority_handoff_candidate` (duplicate of the bridge field)
+  with explicit `affects_commit=false` / `affects_readiness=false` and drift classification vs the seam
+  summary — **preview / routing observability**, not gate authority.
 - **Harness path:** `build_adr0041_validator_dispatch_harness_report` — tests only; **not** invoked from ledger normalization.
 - **Semantic naming / Pi:** Validator IDs remain semantic contract names; **no `actually_detected`** symbol exists in the repo (canonical field is **`actually_executed`**).
 
@@ -94,7 +102,7 @@ slice defines gate policy, registry sourcing, and rollback. **Do not begin imple
 |------|-------------------|--------------|------|------------------------|-------------------|-----------|----------------|
 | GoC validation seam | `ai_stack/goc_turn_seams.py::run_validation_seam` | Proposal validation (`validation_outcome`): actor lane, dramatic-effect gate, GoC rules | After generation proposal, before commit | **Blocking** for rejected outcomes | **Drives** retry/degraded path via executor + aspect ledger | No judge by default in seam | **must_not_be_plan_routed** (canonical commitment seam — ADR-0041 dispatch must not replace this without governance) |
 | LangGraph validation node | `ai_stack/langgraph_runtime_executor.py` — `_run_validation` closure calling `run_validation_seam`; `_build_runtime_aspect_validation`; retry loop `decide_playability_recovery` | Packages seam outcome into `validation_outcome`, aspect ledger aspects, per-contract validation dicts on graph state | During graph execution on turn | **Blocking** / degraded leniency | **Indirectly** affects commit via `validation_outcome` + ledger | Optional provider generation upstream; seam local | **must_not_be_plan_routed** without separate ADR |
-| Aspect ledger normalization | `ai_stack/runtime_aspect_ledger.py::normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` | Adds **`runtime_intelligence_projection`** (capability selection, validator plan, **dry-run** dispatch report) | On ledger normalize | **Non-blocking** for gameplay (projection) | **Does not** change commit/readiness | No | **dry_run_projection_only** + **safe_candidate_for_future_plan_enforced** (attach *additional* evidence only) |
+| Aspect ledger normalization | `ai_stack/runtime_aspect_ledger.py::normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` | Adds **`runtime_intelligence_projection`** (capability selection, validator plan, **dry-run** dispatch report by default; optional **plan-enforced** dispatch + `validation_authority_preview` when graph bundle + env) | On ledger normalize | **Non-blocking** for gameplay (projection) | **Does not** change commit/readiness | No | **dry_run_projection_only** default; **plan_enforced_sidecar** = local routing preview + drift only |
 | ADR-0041 harness | `ai_stack/runtime_aspect_ledger.py::build_adr0041_validator_dispatch_harness_report` | Optional plan-enforced execution in tests | Explicit test call only | Test-scoped | No | No | **dry_run_projection_only** (production) / harness-only execution |
 | Commit narrative capture | `world-engine/app/story_runtime/commit_models.py` — `resolve_narrative_commit` family | Snapshots validator layers / validation blobs into commit record | Commit persistence | N/A | **Yes** (record shape) | N/A | **requires_commit_policy_decision** if ADR-0041 results ever feed this |
 | Recoverable / blocking ledger | `world-engine/app/story_runtime/manager.py` — `_recoverable_runtime_aspect_ledger`, `_runtime_aspect_commit_blocking_failure` | Marks validation/commit aspects failed/partial; detects blocking failures | Recoverable error paths | Can block “clean” commit path | **Yes** | No | **must_not_be_plan_routed** blindly |

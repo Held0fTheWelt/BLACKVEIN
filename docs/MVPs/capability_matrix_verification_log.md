@@ -34,6 +34,14 @@ ADR-0041 world-engine harness (2026-05-15): `build_adr0041_validator_dispatch_ha
 
 ADR-0041 opt-in plan projection sibling (2026-05-15): `ADR0041_PLAN_PROJECTION_ENABLED` adds `runtime_intelligence_projection.adr0041_plan_projection` only; `validator_dispatch_report` stays default `dry_run` with `actually_executed=[]`; evidence remains projection-only (no `run_validation_seam` / validation_outcome changes). Tests: `ai_stack/tests/test_adr0041_plan_projection_evidence.py`, `world-engine/tests/test_adr0041_validator_dispatch_harness.py::test_world_engine_plan_projection_sibling_opt_in`.
 
+ADR-0041 validation authority preview + drift (2026-05-15): with `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` and LangGraph sidecar bundle, `runtime_intelligence_projection.validation_authority_preview` exposes non-commit routing/drift vs seam summary; evidence remains `local_only`; tests `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`.
+
+ADR-0041 validation authority bridge + seam mirrors (2026-05-15): local pytest `ai_stack/tests/test_validation_authority_bridge.py`, `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`, `tests/test_capability_matrix_documentation_readiness.py`; `live_or_staging_evidence=false`; docs touch: ADR-0041 seam-mirror / bridge coverage note + this log line only — no runtime, commit/readiness gate, Capability Matrix promotion, or live/staging claim changes in that step.
+
+ADR-0041 bridge partial-transfer readiness (`validation_authority_bridge.v3`, 2026-05-15): bounded `dramatic_effect_gate` / `hard_forbidden_runtime` scopes per turn class; `partial_transfer_ready` requires aligned plan_enforced execution + no `dramatic_effect_mirror_fidelity=partial_defaults` on evidence; `live_or_staging_evidence=false`.
+
+ADR-0041 authority handoff candidate + seam area mapping (2026-05-15): `validation_authority_bridge.v4` adds `seam_concern_coverage`, `seam_area_adr0041_relationship_buckets`, and `authority_handoff_candidate` (shadow-only; `run_validation_seam` still canonical). `PLANNED_ALL_DISPATCH_IDS` includes `SEAM_MIRROR_VALIDATOR_IDS` for inventory parity. Verification: `python -m pytest ai_stack/tests -q` (1868 passed, 1 skipped), gate + matrix docs tests, `cd world-engine && python -m pytest tests/test_adr0041_validator_dispatch_harness.py tests/test_story_runtime_aspect_ledger.py -q`; `live_or_staging_evidence=false`; no Capability Matrix promotion.
+
 ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow map and insertion guidance in `docs/MVPs/capability_selection_runtime_design.md` (ADR-0041 Production Orchestration Readiness); **no production orchestration implemented**. Canonical dispatch field: **`actually_executed`** (repo-wide search: no `actually_detected`). World-engine pytest: prefer `cd world-engine && python -m pytest …` to avoid `ModuleNotFoundError: app` when running from repo root.
 
 ---

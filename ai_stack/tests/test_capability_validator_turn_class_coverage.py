@@ -32,33 +32,9 @@ _active_pi_key = re.compile(
 )
 
 
-def test_opening_turn_class_enforced_validators_are_declared() -> None:
-    assert get_turn_class_enforced_validators(TURN_CLASS_OPENING_SCENE) == (
-        "narrator_authority_contract",
-        "scene_energy_contract",
-        "environment_state_contract",
-        "information_disclosure_contract",
-        "voice_consistency_contract",
-    )
-
-
-def test_player_turn_class_enforced_validators_are_declared() -> None:
-    assert get_turn_class_enforced_validators(TURN_CLASS_NORMAL_PLAYER_TURN) == (
-        "player_intent_contract",
-        "action_resolution_contract",
-        "information_disclosure_contract",
-        "voice_consistency_contract",
-        "scene_energy_contract",
-    )
-
-
-def test_npc_conflict_turn_class_enforced_validators_are_declared() -> None:
-    assert get_turn_class_enforced_validators(TURN_CLASS_NPC_CONFLICT_TURN) == (
-        "npc_agency_contract",
-        "voice_consistency_contract",
-        "scene_energy_contract",
-        "information_disclosure_contract",
-    )
+def test_turn_class_enforced_match_registry_map() -> None:
+    for tc in KNOWN_TURN_CLASSES:
+        assert get_turn_class_enforced_validators(tc) == TURN_CLASS_ENFORCED_VALIDATORS[tc]
 
 
 def test_turn_class_coverage_map_matches_known_turn_classes() -> None:

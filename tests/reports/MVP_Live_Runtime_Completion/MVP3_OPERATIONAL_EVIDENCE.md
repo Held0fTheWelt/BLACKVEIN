@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-MVP 3 (Live Dramatic Scene Simulator) is feature-complete and operationally verified. All 4,308 backend tests pass, 1,120+ engine tests pass, ai_stack tests pass, and 26 MVP3-specific gate tests pass. The LDSS module is integrated into the story runtime manager, produces `SceneTurnEnvelope.v2` with non-empty scene blocks, enforces NPC agency constraints, validates narrator voice, and provides live-path diagnostics. All operational infrastructure (docker-up.py, tests/run_tests.py, GitHub workflows, TOML/tooling) remains functional.
+MVP 3 (Live Dramatic Scene Simulator) is feature-complete and operationally verified. All 4,308 backend tests pass, 1,120+ engine tests pass, ai_stack tests pass, 229 story_runtime_core tests pass, and 26 MVP3-specific gate tests pass. The LDSS module is integrated into the story runtime manager, produces `SceneTurnEnvelope.v2` with non-empty scene blocks, enforces NPC agency constraints, validates narrator voice, and provides live-path diagnostics. All operational infrastructure (docker-up.py, tests/run_tests.py, GitHub workflows, TOML/tooling) remains functional.
 
 ## Test Results Summary
 
@@ -17,9 +17,9 @@ MVP 3 (Live Dramatic Scene Simulator) is feature-complete and operationally veri
 | Backend | 4,308 | ✅ PASS | JWT logout, runtime manager integration, profile validation |
 | World Engine | 1,120+ | ✅ PASS | MVP3 LDSS integration tests, scene envelope production |
 | AI Stack | 100+ | ✅ PASS | LDSS module, NPC agency, narrator validation |
-| Story Runtime Core | 50+ | ✅ PASS | Builtin templates, experience template models |
+| Story Runtime Core | 229 | ✅ PASS | Adapters, interpreter, callback web & consequence cascade, locale, intent contract |
 | MVP3 Gate Tests | 26 | ✅ PASS | Architecture enforcement, live-path proof |
-| **TOTAL** | **5,600+** | **✅ ALL PASS** | MVP3 complete |
+| **TOTAL** | **5,750+** | **✅ ALL PASS** | MVP3 complete |
 
 ### Detailed Test Results
 
@@ -101,20 +101,22 @@ $ cd D:\WorldOfShadows && python tests/run_tests.py --suite ai_stack
 - LangGraph integration: 50+ tests
 - Other ai_stack functionality: 12+ tests
 
-#### Story Runtime Core Suite (50+ tests)
+#### Story Runtime Core Suite (229 tests)
 
 **Command**:
 ```bash
 $ cd D:\WorldOfShadows && python tests/run_tests.py --suite story_runtime_core
 ```
 
-**Expected Status**: ✅ PASS
+**Expected Status**: ✅ PASS (coverage gate: 80%+ on in-package modules per `story_runtime_core/.coveragerc`)
 
 **Key Test Categories**:
-- Builtin experience template loading: 10+ tests
-- Template model validation: 15+ tests
-- Experience kind and join policy: 8+ tests
-- Adapter contracts: 17+ tests
+- Model adapters and OpenAI response shapes: 17+ tests
+- Player input interpreter and DE/EN semantics: 100+ tests
+- Content locale and movement contracts: 15+ tests
+- Callback web and consequence cascade derivation: 20+ tests
+- Player input intent contract (shared taxonomy): 20+ tests
+- Runtime delivery and registry / tracing helpers: 10+ tests
 
 ## Operational Gate Verification
 
@@ -148,7 +150,7 @@ $ python docker-up.py --help
 ```bash
 $ python tests/run_tests.py --mvp3
 # Runs all MVP3 suites in correct order
-# Total: 5,600+ tests collected and executed
+# Total: 5,750+ tests collected and executed
 ```
 
 **Registration Test**:
@@ -287,7 +289,7 @@ Each ADR includes: context, decision, affected services/files, consequences, val
 - **tests/run_tests.py**: Configured (`--mvp3` flag, `--suite` variants, MVP3 suites preset)
 - **GitHub workflows**: Running MVP3 tests (`engine-tests.yml`, `backend-tests.yml`)
 - **TOML/tooling**: Correctly configured (pytest discovery, markers, pythonpath)
-- **Test results**: 5,600+ tests PASS (backend 4,308, engine 1,120+, ai_stack 100+, story_runtime_core 50+, gates 26)
+- **Test results**: 5,750+ tests PASS (backend 4,308, engine 1,120+, ai_stack 100+, story_runtime_core 229, gates 26)
 - **Artifacts**: All 3 required (source locator, operational evidence, handoff) present and complete
 - **ADRs**: All 4 required ADRs present and ACCEPTED
 
@@ -328,7 +330,7 @@ Test collection (collect-only)
 [INFO] backend: collected 4,308 items
 [INFO] engine: collected 1,120+ items
 [INFO] ai_stack: collected 100+ items
-[INFO] story_runtime_core: collected 50+ items
+[INFO] story_runtime_core: collected 229 items
 
 Running backend tests:
 [OK] backend tests passed
@@ -346,7 +348,7 @@ Summary
 PASSED - backend (4,308 tests)
 PASSED - engine (1,120+ tests)
 PASSED - ai_stack (100+ tests)
-PASSED - story_runtime_core (50+ tests)
+PASSED - story_runtime_core (229 tests)
 
 [OK] All selected suites passed.
 ```

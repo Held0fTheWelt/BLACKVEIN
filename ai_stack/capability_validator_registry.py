@@ -30,6 +30,7 @@ from ai_stack.capability_selector import (
 )
 from ai_stack.capability_validator_dispatch import LocalValidatorCallable
 from ai_stack.capability_validator_plan import (
+    GOC_SEAM_MIRROR_SUITE_CAPABILITY,
     JUDGE_VALIDATORS,
     LOCAL_VALIDATORS,
     OBSERVER_DIAGNOSTICS,
@@ -38,6 +39,17 @@ from ai_stack.capability_validator_plan import (
 from ai_stack.character_voice_validation import validate_voice_consistency
 from ai_stack.dramatic_irony_runtime import validate_dramatic_irony_realization
 from ai_stack.environment_state_contracts import evaluate_environment_state_contract
+from ai_stack.goc_seam_mirror_validator_adapters import (
+    ACTOR_LANE_FORBIDDEN_CONTRACT,
+    DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
+    HARD_FORBIDDEN_RUNTIME_CONTRACT,
+    MODEL_GENERATION_PRECHECK_CONTRACT,
+    NPC_TRANSCRIPT_SHELL_CONTRACT,
+    OPENING_EVENT_COVERAGE_CONTRACT,
+    PROPOSED_EFFECTS_SHAPE_CONTRACT,
+    SEAM_MIRROR_VALIDATOR_IDS,
+    seam_mirror_registry_map,
+)
 from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
 from ai_stack.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
@@ -74,10 +86,12 @@ STATUS_DEPRECATED_OR_STALE = "deprecated_or_stale"
 
 PLANNED_LOCAL_VALIDATOR_IDS: tuple[str, ...] = tuple(LOCAL_VALIDATORS.values())
 PLANNED_OBSERVER_DIAGNOSTIC_IDS: tuple[str, ...] = tuple(OBSERVER_DIAGNOSTICS.values())
+PLANNED_SEAM_MIRROR_VALIDATOR_IDS: tuple[str, ...] = SEAM_MIRROR_VALIDATOR_IDS
 PLANNED_JUDGE_IDS: tuple[str, ...] = tuple(JUDGE_VALIDATORS.values())
 PLANNED_ALL_DISPATCH_IDS: tuple[str, ...] = (
     *PLANNED_LOCAL_VALIDATOR_IDS,
     *PLANNED_OBSERVER_DIAGNOSTIC_IDS,
+    *PLANNED_SEAM_MIRROR_VALIDATOR_IDS,
     *PLANNED_JUDGE_IDS,
 )
 
@@ -265,8 +279,101 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         judge_required=False,
         notes="Callable exists but ADR-0041 plans it as non-blocking observer diagnostic.",
     ),
+    ValidatorRegistryInventoryRow(
+        validator_id=ACTOR_LANE_FORBIDDEN_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_actor_lane_forbidden_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of goc_turn_seams._check_human_actor_violations; plan_enforced sidecar only.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=NPC_TRANSCRIPT_SHELL_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_npc_transcript_shell_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of goc_turn_seams._check_npc_spoken_action_lane_blob_cap.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=PROPOSED_EFFECTS_SHAPE_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_proposed_effects_shape_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of run_validation_seam proposed_state_effects shape checks.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=MODEL_GENERATION_PRECHECK_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_model_generation_precheck_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of run_validation_seam generation success/error short-circuit.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=HARD_FORBIDDEN_RUNTIME_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_hard_forbidden_runtime_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of goc_knowledge_runtime_gates.detect_hard_forbidden_runtime.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=OPENING_EVENT_COVERAGE_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_opening_event_coverage_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes="Deterministic mirror of evaluate_opening_event_coverage when turn_input_class is opening.",
+    ),
+    ValidatorRegistryInventoryRow(
+        validator_id=DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
+        capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol=(
+            "ai_stack/goc_seam_mirror_validator_adapters.py::adapter_dramatic_effect_gate_mirror_contract"
+        ),
+        adapter_needed=True,
+        safe_for_local_plan_enforced=True,
+        blocking_or_non_blocking="blocking",
+        judge_required=False,
+        notes=(
+            "Best-effort mirror of evaluate_dramatic_effect_gate; may use defaulted evaluation context "
+            "when graph dispatch context omits seam fields."
+        ),
+    ),
 )
-
 
 def inventory_rows_by_validator_id() -> dict[str, ValidatorRegistryInventoryRow]:
     return {row.validator_id: row for row in VALIDATOR_REGISTRY_INVENTORY}
@@ -566,7 +673,16 @@ def _adapter_sensory_context_diagnostic(entry: ValidatorPlanEntry, ctx: dict[str
     return result
 
 
-_OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+_GOC_SEAM_MIRROR_CORE: tuple[str, ...] = (
+    ACTOR_LANE_FORBIDDEN_CONTRACT,
+    NPC_TRANSCRIPT_SHELL_CONTRACT,
+    PROPOSED_EFFECTS_SHAPE_CONTRACT,
+    MODEL_GENERATION_PRECHECK_CONTRACT,
+    HARD_FORBIDDEN_RUNTIME_CONTRACT,
+    DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
+)
+
+_OPENING_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "narrator_authority_contract",
     "scene_energy_contract",
     "environment_state_contract",
@@ -574,7 +690,7 @@ _OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "voice_consistency_contract",
 )
 
-_PLAYER_TURN_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+_PLAYER_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "player_intent_contract",
     "action_resolution_contract",
     "information_disclosure_contract",
@@ -582,11 +698,31 @@ _PLAYER_TURN_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "scene_energy_contract",
 )
 
-_NPC_CONFLICT_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+_NPC_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "npc_agency_contract",
     "voice_consistency_contract",
     "scene_energy_contract",
     "information_disclosure_contract",
+)
+
+_OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    OPENING_EVENT_COVERAGE_CONTRACT,
+    *_OPENING_CAPABILITY_ENFORCED_VALIDATOR_IDS,
+)
+
+# Capability-selection plan only (no seam-mirror prepend). Graph sidecar prepends mirrors atop this.
+OPENING_SCENE_CAPABILITY_PLAN_VALIDATOR_IDS: tuple[str, ...] = _OPENING_CAPABILITY_ENFORCED_VALIDATOR_IDS
+NORMAL_PLAYER_TURN_CAPABILITY_PLAN_VALIDATOR_IDS: tuple[str, ...] = _PLAYER_CAPABILITY_ENFORCED_VALIDATOR_IDS
+
+_PLAYER_TURN_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    *_PLAYER_CAPABILITY_ENFORCED_VALIDATOR_IDS,
+)
+
+_NPC_CONFLICT_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    *_NPC_CAPABILITY_ENFORCED_VALIDATOR_IDS,
 )
 
 KNOWN_TURN_CLASSES: tuple[str, ...] = (
@@ -631,6 +767,7 @@ _AVAILABLE_ADAPTER_REGISTRY: dict[str, LocalValidatorCallable] = {
     "npc_agency_contract": _adapter_npc_agency,
     "dramatic_irony_contract": _adapter_dramatic_irony,
     "sensory_context_diagnostic": _adapter_sensory_context_diagnostic,
+    **seam_mirror_registry_map(),
 }
 
 
@@ -694,6 +831,14 @@ def get_turn_class_enforced_validators(turn_class: str) -> tuple[str, ...]:
     if key not in TURN_CLASS_ENFORCED_VALIDATORS:
         raise ValueError(f"Unknown ADR-0041 turn class: {turn_class!r}")
     return TURN_CLASS_ENFORCED_VALIDATORS[key]
+
+
+def goc_seam_mirror_plan_validator_ids_for_turn_class(turn_class: str) -> tuple[str, ...]:
+    """Seam-mirror validators prepended before capability-derived plan entries (graph plan_enforced)."""
+    key = normalize_turn_class_key(turn_class)
+    if key == TURN_CLASS_OPENING_SCENE:
+        return _GOC_SEAM_MIRROR_CORE + (OPENING_EVENT_COVERAGE_CONTRACT,)
+    return _GOC_SEAM_MIRROR_CORE
 
 
 def get_typical_observer_diagnostic_ids_for_turn_class(turn_class: str) -> tuple[str, ...]:

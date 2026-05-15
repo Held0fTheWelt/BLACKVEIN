@@ -1007,6 +1007,9 @@ def _build_adr0041_runtime_graph_dispatch_bundle(
         "actor_lane_context": state.get("actor_lane_context")
         if isinstance(state.get("actor_lane_context"), dict)
         else None,
+        "actor_lane_summary": state.get("actor_lane_summary")
+        if isinstance(state.get("actor_lane_summary"), dict)
+        else None,
         "scene_energy_target": state.get("scene_energy_target")
         if isinstance(state.get("scene_energy_target"), dict)
         else None,
@@ -1025,6 +1028,20 @@ def _build_adr0041_runtime_graph_dispatch_bundle(
         "dramatic_irony_record": state.get("dramatic_irony_record")
         if isinstance(state.get("dramatic_irony_record"), dict)
         else None,
+        "story_runtime_experience": sre,
+        "opening_scene_sequence": state.get("opening_scene_sequence")
+        if isinstance(state.get("opening_scene_sequence"), dict)
+        else None,
+        "hard_forbidden_rules": state.get("hard_forbidden_rules")
+        if isinstance(state.get("hard_forbidden_rules"), dict)
+        else None,
+        "turn_input_class": state.get("turn_input_class"),
+        "current_scene_id": state.get("current_scene_id"),
+        "silence_brevity_decision": state.get("silence_brevity_decision")
+        if isinstance(state.get("silence_brevity_decision"), dict)
+        else None,
+        "selected_scene_function": state.get("selected_scene_function"),
+        "pacing_mode": state.get("pacing_mode"),
     }
     outcome = validation_seam_outcome if isinstance(validation_seam_outcome, dict) else {}
     return {

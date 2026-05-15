@@ -9,52 +9,26 @@ from __future__ import annotations
 
 from ai_stack.capability_validator_dispatch import ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode
 from ai_stack.capability_validator_plan import JUDGE_VALIDATORS
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_aspect_ledger import (
+    ADR0041_DRIFT_ADR_STRICTER,
+    ADR0041_DRIFT_ALIGNED,
+    ADR0041_DRIFT_MISSING_CONTEXT,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ASPECT_NPC_AGENCY,
     initialize_runtime_aspect_ledger,
     normalize_runtime_aspect_ledger,
 )
-from ai_stack.tests.test_capability_validator_dispatch_plan_enforced import OPENING_ENFORCED_VALIDATORS
+from ai_stack.capability_validator_registry import (
+    TURN_CLASS_NPC_CONFLICT_TURN,
+    TURN_CLASS_NORMAL_PLAYER_TURN,
+    TURN_CLASS_OPENING_SCENE,
+    get_turn_class_enforced_validators,
+)
 from ai_stack.tests.test_capability_validator_registry import (
-    PLAYER_TURN_ENFORCED_VALIDATORS,
+    _npc_dispatch_context,
     _opening_dispatch_context,
     _player_dispatch_context,
 )
-
-
-def _npc_dispatch_context() -> dict:
-    actors = {
-        "primary": "veronique_vallon",
-        "secondary": "michel_longstreet",
-    }
-    plan = normalize_npc_agency_plan(
-        {
-            "primary_responder_id": actors["primary"],
-            "secondary_responder_ids": [actors["secondary"]],
-            "npc_initiatives": [
-                {"actor_id": actors["primary"], "target_actor_id": actors["secondary"], "required": True},
-                {"actor_id": actors["secondary"], "target_actor_id": actors["primary"], "required": True},
-            ],
-        }
-    )
-    structured_output = {
-        "spoken_lines": [
-            {"speaker_id": row["actor_id"], "text": "Visible beat."}
-            for row in plan["npc_initiatives"]
-        ],
-        "action_lines": [],
-    }
-    return {
-        "module_id": "god_of_carnage",
-        "turn_number": 2,
-        "npc_agency_plan": plan,
-        "structured_output": structured_output,
-        "scene_energy_target": {"minimum_actor_response_count": 1, "energy_level": "medium"},
-        "information_disclosure_target": {"policy_enabled": False},
-        "voice_profiles": [],
-    }
 
 
 def _assert_sidecar_local_only(report: dict) -> None:
@@ -79,10 +53,12 @@ def test_runtime_graph_bundle_ignored_without_plan_enforced_env(monkeypatch) -> 
         "validation_seam_summary": {"status": "approved", "reason": "fixture"},
     }
     out = normalize_runtime_aspect_ledger(ledger)
-    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    projection = out["runtime_intelligence_projection"]
+    report = projection["validator_dispatch_report"]
     assert report["mode"] == "dry_run"
     assert report["actually_executed"] == []
     assert report["execution_changed"] is False
+    assert "validation_authority_preview" not in projection
 
 
 def test_plan_enforced_graph_bundle_runs_opening_validators(monkeypatch) -> None:
@@ -99,12 +75,29 @@ def test_plan_enforced_graph_bundle_runs_opening_validators(monkeypatch) -> None
         "validation_seam_summary": {"status": "approved", "reason": "fixture"},
     }
     out = normalize_runtime_aspect_ledger(ledger)
-    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    projection = out["runtime_intelligence_projection"]
+    report = projection["validator_dispatch_report"]
     assert report["mode"] == "plan_enforced"
-    assert set(report["actually_executed"]) == set(OPENING_ENFORCED_VALIDATORS)
+    assert set(report["actually_executed"]) == set(get_turn_class_enforced_validators(TURN_CLASS_OPENING_SCENE))
     assert report["execution_changed"] is True
     assert report["adr0041_selected_turn_class"] == "opening_scene"
     assert report["seam_vs_adr0041_sidecar_drift_visibility"]["validation_seam_status"] == "approved"
+    preview = projection["validation_authority_preview"]
+    assert preview["affects_commit"] is False
+    assert preview["affects_readiness"] is False
+    assert preview["proof_level"] == "local_only"
+    assert preview["live_or_staging_evidence"] is False
+    drift = preview["drift_vs_validation_seam"]["classification"]
+    failed = preview["pass_fail_summary"]["failed_validator_ids"]
+    bridge = projection["validation_authority_bridge"]
+    assert bridge["recommended_authority"] == "seam_canonical"
+    assert bridge["migration_readiness"] != "not_engaged"
+    assert bridge["schema_version"].startswith("validation_authority_bridge.")
+    if failed:
+        assert drift == ADR0041_DRIFT_ADR_STRICTER
+    else:
+        assert drift == ADR0041_DRIFT_ALIGNED
+    assert preview == report["adr0041_authority_preview"]
     _assert_sidecar_local_only(report)
     for vid in (
         "npc_agency_contract",
@@ -132,7 +125,7 @@ def test_plan_enforced_graph_bundle_runs_player_turn_validators(monkeypatch) -> 
     out = normalize_runtime_aspect_ledger(ledger)
     report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
     assert report["mode"] == "plan_enforced"
-    assert set(report["actually_executed"]) == set(PLAYER_TURN_ENFORCED_VALIDATORS)
+    assert set(report["actually_executed"]) == set(get_turn_class_enforced_validators(TURN_CLASS_NORMAL_PLAYER_TURN))
     assert report["adr0041_selected_turn_class"] == "normal_player_turn"
     _assert_sidecar_local_only(report)
     assert "narrator_authority_contract" not in report["actually_executed"]
@@ -161,13 +154,7 @@ def test_plan_enforced_graph_bundle_runs_npc_conflict_validators(monkeypatch) ->
     }
     out = normalize_runtime_aspect_ledger(ledger)
     report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
-    expected = {
-        "npc_agency_contract",
-        "voice_consistency_contract",
-        "scene_energy_contract",
-        "information_disclosure_contract",
-    }
-    assert set(report["actually_executed"]) == expected
+    assert set(report["actually_executed"]) == set(get_turn_class_enforced_validators(TURN_CLASS_NPC_CONFLICT_TURN))
     assert report["adr0041_selected_turn_class"] == "npc_conflict_turn"
     _assert_sidecar_local_only(report)
 
@@ -186,7 +173,10 @@ def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
         "validation_seam_summary": {"status": "approved"},
     }
     out = normalize_runtime_aspect_ledger(ledger)
-    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    projection = out["runtime_intelligence_projection"]
+    report = projection["validator_dispatch_report"]
     assert report["mode"] == "plan_enforced"
     assert report["actually_executed"] == []
-    assert set(report["validators_unavailable"]) == set(OPENING_ENFORCED_VALIDATORS)
+    assert set(report["validators_unavailable"]) == set(get_turn_class_enforced_validators(TURN_CLASS_OPENING_SCENE))
+    preview = projection["validation_authority_preview"]
+    assert preview["drift_vs_validation_seam"]["classification"] == ADR0041_DRIFT_MISSING_CONTEXT

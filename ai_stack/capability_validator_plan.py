@@ -39,6 +39,8 @@ from ai_stack.capability_selector import (
 VALIDATOR_EXECUTION_PLAN_SCHEMA_VERSION = "validator_execution_plan.v1"
 VALIDATOR_PLAN_REASON = "planned from ADR-0041 capability selection; not executed yet"
 
+GOC_SEAM_MIRROR_SUITE_CAPABILITY = "goc_seam_mirror_suite"
+
 
 class ValidatorPlanMode(str, Enum):
     """Planning mode for a validator, diagnostic, or judge ID."""
@@ -333,4 +335,35 @@ def build_validator_execution_plan(
         selection_result=selection_result,
         entries=tuple(entries),
         warnings=selection_result.warnings,
+    )
+
+
+def prepend_goc_seam_mirror_plan_entries(
+    plan: ValidatorExecutionPlan,
+    *,
+    seam_mirror_validator_ids: tuple[str, ...],
+) -> ValidatorExecutionPlan:
+    """Prepend deterministic GOC seam-mirror validators (plan_enforced graph path only)."""
+    if not seam_mirror_validator_ids:
+        return plan
+    extra: list[ValidatorPlanEntry] = []
+    for validator_id in seam_mirror_validator_ids:
+        vid = validate_semantic_capability_name(str(validator_id))
+        extra.append(
+            ValidatorPlanEntry(
+                capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
+                mode=ValidatorPlanMode.RUN_LOCAL_VALIDATOR,
+                plan_id=vid,
+                validator_id=vid,
+                blocking=True,
+                reason=(
+                    "ADR-0041 GOC seam mirror: deterministic local check shared with "
+                    "run_validation_seam helpers; non-commit."
+                ),
+            )
+        )
+    return ValidatorExecutionPlan(
+        selection_result=plan.selection_result,
+        entries=tuple(extra) + plan.entries,
+        warnings=plan.warnings,
     )

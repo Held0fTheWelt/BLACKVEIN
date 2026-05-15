@@ -135,6 +135,53 @@ def _would_execute_for_entry(entry: ValidatorPlanEntry) -> bool:
     }
 
 
+def _sanitize_local_execution_evidence(
+    *,
+    validator_id: str,
+    raw: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Normalize local validator returns into a bounded, JSON-safe authority evidence row."""
+    vid = validate_semantic_capability_name(str(validator_id or "").strip() or "unknown")
+    if not isinstance(raw, dict):
+        return {
+            "validator_id": vid,
+            "passed": False,
+            "status": "unknown",
+            "blocking": True,
+            "available": False,
+            "proof_level": LOCAL_SELECTION_PROOF_LEVEL,
+            "live_or_staging_evidence": False,
+        }
+    status = str(raw.get("status") or "").strip().lower()
+    passed_raw = raw.get("passed")
+    if passed_raw is None:
+        passed = status in {"approved", "passed", "local_stub_executed", "local_executed"} and status not in {
+            "rejected",
+            "failed",
+            "error",
+            "unavailable",
+        }
+    else:
+        passed = bool(passed_raw)
+    failure_codes = raw.get("failure_codes") or []
+    codes = (
+        [str(x) for x in failure_codes[:16] if str(x).strip()]
+        if isinstance(failure_codes, list)
+        else []
+    )
+    return {
+        "validator_id": vid,
+        "passed": bool(passed),
+        "status": status or ("approved" if passed else "rejected"),
+        "blocking": bool(raw.get("blocking", True)),
+        "available": raw.get("available") is not False,
+        "proof_level": LOCAL_SELECTION_PROOF_LEVEL,
+        "live_or_staging_evidence": False,
+        "reason": raw.get("reason"),
+        "failure_codes": codes,
+    }
+
+
 @dataclass(frozen=True)
 class ValidatorDispatchDecision:
     """Dispatch decision for one planned validator, diagnostic, or judge entry."""
@@ -147,6 +194,7 @@ class ValidatorDispatchDecision:
     actually_executed: bool = False
     unavailable: bool = False
     reason: str = DISPATCH_REPORT_REASON
+    local_execution_evidence: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -172,6 +220,14 @@ class ValidatorDispatchDecision:
         object.__setattr__(self, "would_execute", bool(self.would_execute))
         object.__setattr__(self, "actually_executed", bool(self.actually_executed))
         object.__setattr__(self, "unavailable", bool(self.unavailable))
+        evidence = self.local_execution_evidence
+        if evidence is not None and not isinstance(evidence, dict):
+            raise TypeError("local_execution_evidence must be a dict or None")
+        object.__setattr__(
+            self,
+            "local_execution_evidence",
+            dict(evidence) if isinstance(evidence, dict) else None,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -192,6 +248,7 @@ class ValidatorDispatchEntry:
     actually_executed: bool = False
     unavailable: bool = False
     reason: str = DISPATCH_REPORT_REASON
+    local_execution_evidence: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         decision = ValidatorDispatchDecision(
@@ -203,6 +260,7 @@ class ValidatorDispatchEntry:
             actually_executed=self.actually_executed,
             unavailable=self.unavailable,
             reason=self.reason,
+            local_execution_evidence=self.local_execution_evidence,
         )
         object.__setattr__(self, "capability", decision.capability)
         object.__setattr__(self, "planned_mode", decision.planned_mode)
@@ -212,6 +270,7 @@ class ValidatorDispatchEntry:
         object.__setattr__(self, "actually_executed", decision.actually_executed)
         object.__setattr__(self, "unavailable", decision.unavailable)
         object.__setattr__(self, "reason", decision.reason)
+        object.__setattr__(self, "local_execution_evidence", decision.local_execution_evidence)
 
     def to_dict(self) -> dict[str, Any]:
         return ValidatorDispatchDecision(
@@ -223,6 +282,7 @@ class ValidatorDispatchEntry:
             actually_executed=self.actually_executed,
             unavailable=self.unavailable,
             reason=self.reason,
+            local_execution_evidence=self.local_execution_evidence,
         ).to_dict()
 
 
@@ -353,24 +413,76 @@ def _invoke_registered_local_validator(
     entry: ValidatorPlanEntry,
     registry: dict[str, LocalValidatorCallable],
     dispatch_context: dict[str, Any],
-) -> tuple[bool, bool, str]:
-    """Return (executed, unavailable, reason)."""
-    callable_obj = registry.get(validator_id)
+) -> tuple[bool, bool, str, dict[str, Any] | None]:
+    """Return (executed, unavailable, reason, local_execution_evidence)."""
+    vid = validate_semantic_capability_name(str(validator_id or "").strip())
+    callable_obj = registry.get(vid)
     if callable_obj is None:
-        return False, True, f"{validator_id} is not registered for local plan-enforced dispatch."
+        msg = f"{vid} is not registered for local plan-enforced dispatch."
+        return (
+            False,
+            True,
+            msg,
+            _sanitize_local_execution_evidence(
+                validator_id=vid,
+                raw={"status": "unavailable", "passed": False, "available": False, "reason": msg},
+            ),
+        )
     try:
         result = callable_obj(entry, dispatch_context)
     except Exception as exc:  # noqa: BLE001 - surface local stub failures without false-green pass
-        return False, True, f"{validator_id} local dispatch failed: {exc}"
+        msg = f"{vid} local dispatch failed: {exc}"
+        return (
+            False,
+            True,
+            msg,
+            _sanitize_local_execution_evidence(
+                validator_id=vid,
+                raw={"status": "error", "passed": False, "available": False, "reason": msg},
+            ),
+        )
     if not isinstance(result, dict):
-        return False, True, f"{validator_id} local dispatch returned non-dict evidence."
+        msg = f"{vid} local dispatch returned non-dict evidence."
+        return (
+            False,
+            True,
+            msg,
+            _sanitize_local_execution_evidence(
+                validator_id=vid,
+                raw={"status": "error", "passed": False, "available": False, "reason": msg},
+            ),
+        )
     if result.get("available") is False:
         reason = str(result.get("reason") or "validator_not_registered").strip()
-        return False, True, f"{validator_id} unavailable: {reason}."
+        msg = f"{vid} unavailable: {reason}."
+        return (
+            False,
+            True,
+            msg,
+            _sanitize_local_execution_evidence(
+                validator_id=vid,
+                raw={"status": "unavailable", "passed": False, "available": False, "reason": reason},
+            ),
+        )
     status = str(result.get("status") or "").strip().lower()
     if status in {"unavailable", "failed", "error"}:
-        return False, True, f"{validator_id} reported status={status or 'unknown'}."
-    return True, False, f"{validator_id} executed via registered local validator."
+        msg = f"{vid} reported status={status or 'unknown'}."
+        return (
+            False,
+            True,
+            msg,
+            _sanitize_local_execution_evidence(
+                validator_id=vid,
+                raw={
+                    "status": status or "unavailable",
+                    "passed": False,
+                    "available": True,
+                    "reason": msg,
+                },
+            ),
+        )
+    evidence = _sanitize_local_execution_evidence(validator_id=vid, raw=result)
+    return True, False, f"{vid} executed via registered local validator.", evidence
 
 
 def build_validator_dispatch_report(
@@ -406,12 +518,13 @@ def build_validator_dispatch_report(
         executed = False
         unavailable = False
         reason = decision.reason
+        local_evidence: dict[str, Any] | None = None
 
         if decision.dispatch_action is ValidatorDispatchAction.RUN and decision.would_execute:
             if target_id:
                 validators_would_run.append(target_id)
             if dispatch_mode is ValidatorDispatchMode.PLAN_ENFORCED and target_id:
-                executed, unavailable, reason = _invoke_registered_local_validator(
+                executed, unavailable, reason, local_evidence = _invoke_registered_local_validator(
                     validator_id=target_id,
                     entry=entry,
                     registry=registry,
@@ -443,6 +556,7 @@ def build_validator_dispatch_report(
                 actually_executed=executed,
                 unavailable=unavailable,
                 reason=reason,
+                local_execution_evidence=local_evidence,
             )
         )
 
@@ -470,6 +584,7 @@ def build_validator_dispatch_report(
             actually_executed=decision.actually_executed,
             unavailable=decision.unavailable,
             reason=decision.reason,
+            local_execution_evidence=decision.local_execution_evidence,
         )
         for decision in decisions
     )

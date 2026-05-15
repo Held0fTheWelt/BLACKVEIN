@@ -19,6 +19,7 @@ from ai_stack.capability_selector import (
     TurnSituation,
     derive_turn_situation_from_runtime_context,
     select_capabilities,
+    validate_semantic_capability_name,
 )
 from ai_stack.capability_validator_dispatch import (
     ValidatorDispatchMode,
@@ -29,6 +30,7 @@ from ai_stack.capability_validator_dispatch import (
 from ai_stack.capability_validator_plan import (
     ValidatorExecutionPlan,
     build_validator_execution_plan,
+    prepend_goc_seam_mirror_plan_entries,
 )
 from ai_stack.capability_validator_registry import (
     VALIDATOR_REGISTRY_INVENTORY,
@@ -39,7 +41,9 @@ from ai_stack.capability_validator_registry import (
     build_npc_conflict_enforced_semantic_validator_registry,
     build_opening_enforced_semantic_validator_registry,
     build_player_turn_enforced_semantic_validator_registry,
+    goc_seam_mirror_plan_validator_ids_for_turn_class,
 )
+from ai_stack.validation_authority_bridge import build_validation_authority_bridge
 
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
@@ -57,6 +61,16 @@ ADR0041_PLAN_PROJECTION_SCHEMA_VERSION = "adr0041_plan_projection.v1"
 # ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
 # repeated ``normalize_runtime_aspect_ledger`` calls recompute the same sidecar.
 ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY = "_adr0041_runtime_graph_dispatch_context"
+# Dispatch bundle is runtime-only: not canonical commit truth, not player-facing gameplay state.
+# Consumed when building ``runtime_intelligence_projection`` (local-only, diagnostics / Langfuse / MCP).
+
+ADR0041_VALIDATION_AUTHORITY_PREVIEW_SCHEMA_VERSION = "adr0041_validation_authority_preview.v1"
+ADR0041_DRIFT_ALIGNED = "aligned"
+ADR0041_DRIFT_ADR_STRICTER = "adr0041_stricter"
+ADR0041_DRIFT_SEAM_STRICTER = "seam_stricter"
+ADR0041_DRIFT_MISSING_CONTEXT = "missing_context"
+ADR0041_DRIFT_UNAVAILABLE_VALIDATOR = "unavailable_validator"
+ADR0041_DRIFT_CONFLICTING_RESULT = "conflicting_result"
 
 ASPECT_INPUT = "input"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
@@ -484,6 +498,133 @@ def adr0041_validator_registry_for_turn_class(turn_class_key: str) -> dict[str, 
     return {}
 
 
+def classify_adr0041_validation_authority_drift(
+    *,
+    validator_dispatch_report: dict[str, Any],
+    validation_seam_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Classify disagreement between ``run_validation_seam`` and ADR-0041 local enforcement."""
+    would_run_raw = list(validator_dispatch_report.get("validators_would_run") or [])
+    would_run: list[str] = []
+    for item in would_run_raw:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        would_run.append(validate_semantic_capability_name(text))
+    would_run_set = frozenset(would_run)
+
+    unavailable_raw = list(validator_dispatch_report.get("validators_unavailable") or [])
+    unavailable: set[str] = set()
+    for item in unavailable_raw:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        unavailable.add(validate_semantic_capability_name(text))
+
+    seam = validation_seam_summary if isinstance(validation_seam_summary, dict) else {}
+    seam_ok = str(seam.get("status") or "").strip().lower() == "approved"
+
+    entries = validator_dispatch_report.get("entries") or []
+    evidences: list[dict[str, Any]] = []
+    for ent in entries:
+        if not isinstance(ent, dict):
+            continue
+        if not ent.get("actually_executed") or ent.get("unavailable"):
+            continue
+        ev = ent.get("local_execution_evidence")
+        if isinstance(ev, dict):
+            evidences.append(ev)
+
+    planned_unavailable = would_run_set & unavailable
+    notes: list[str] = []
+    classification: str
+
+    if would_run_set and planned_unavailable == would_run_set:
+        classification = ADR0041_DRIFT_MISSING_CONTEXT
+        notes.append("all_planned_enforced_validators_unavailable")
+    elif planned_unavailable and planned_unavailable != would_run_set:
+        classification = ADR0041_DRIFT_UNAVAILABLE_VALIDATOR
+        notes.append("partial_planned_enforced_unavailable")
+    elif not evidences:
+        classification = ADR0041_DRIFT_ALIGNED
+        notes.append("no_local_execution_evidence_rows")
+    else:
+        any_fail = any(not bool(e.get("passed")) for e in evidences)
+        all_pass = all(bool(e.get("passed")) for e in evidences)
+
+        if seam_ok and any_fail:
+            classification = ADR0041_DRIFT_ADR_STRICTER
+        elif not seam_ok and all_pass:
+            classification = ADR0041_DRIFT_SEAM_STRICTER
+        elif not seam_ok and any_fail:
+            classification = ADR0041_DRIFT_CONFLICTING_RESULT
+            notes.append("seam_rejected_and_adr_local_failures_present")
+        else:
+            classification = ADR0041_DRIFT_ALIGNED
+
+    return {
+        "classification": classification,
+        "notes": notes,
+        "validation_seam_status": seam.get("status"),
+        "validation_seam_reason": seam.get("reason"),
+        "planned_enforced_count": len(would_run_set),
+        "unavailable_planned_count": len(planned_unavailable),
+        "executed_evidence_count": len(evidences),
+    }
+
+
+def build_adr0041_validation_authority_preview(
+    *,
+    validator_dispatch_report: dict[str, Any],
+    validation_seam_summary: dict[str, Any] | None,
+    selected_turn_class: str,
+) -> dict[str, Any]:
+    """Structured preview: ADR-0041 routing/evidence vs seam (never commit/readiness authority)."""
+    seam_dict = validation_seam_summary if isinstance(validation_seam_summary, dict) else {}
+    drift = classify_adr0041_validation_authority_drift(
+        validator_dispatch_report=validator_dispatch_report,
+        validation_seam_summary=seam_dict,
+    )
+    executed_ids = list(validator_dispatch_report.get("actually_executed") or [])
+    unavailable = list(validator_dispatch_report.get("validators_unavailable") or [])
+    would_run = list(validator_dispatch_report.get("validators_would_run") or [])
+
+    entries = validator_dispatch_report.get("entries") or []
+    evidences: list[dict[str, Any]] = []
+    for ent in entries:
+        if not isinstance(ent, dict):
+            continue
+        if not ent.get("actually_executed") or ent.get("unavailable"):
+            continue
+        ev = ent.get("local_execution_evidence")
+        if isinstance(ev, dict):
+            evidences.append(ev)
+    failed_ids = sorted({str(e.get("validator_id") or "") for e in evidences if not e.get("passed")} - {""})
+    passed_ids = sorted({str(e.get("validator_id") or "") for e in evidences if e.get("passed")} - {""})
+
+    return _json_safe(
+        {
+            "schema_version": ADR0041_VALIDATION_AUTHORITY_PREVIEW_SCHEMA_VERSION,
+            "authority_mode": "plan_enforced_local_routing_preview",
+            "selected_turn_class": str(selected_turn_class or "").strip(),
+            "enforced_validators_planned": would_run,
+            "executed_validators": executed_ids,
+            "unavailable_validators": unavailable,
+            "pass_fail_summary": {
+                "all_executed_passed": bool(evidences) and not failed_ids,
+                "failed_validator_ids": failed_ids,
+                "passed_validator_ids": passed_ids,
+            },
+            "drift_vs_validation_seam": drift,
+            "canonical_commitment_seam": "ai_stack.goc_turn_seams.run_validation_seam",
+            "affects_commit": False,
+            "affects_readiness": False,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+        }
+    )
+
+
 def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     *,
     capability_context: dict[str, Any],
@@ -494,9 +635,13 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     selection_for_sidecar, sidecar_deriv_warnings = _select_semantic_capabilities_from_runtime_context(
         **capability_context
     )
-    execution_plan_sidecar = build_validator_execution_plan(selection_for_sidecar)
     turn_class_key, turn_class_hints = _infer_adr0041_turn_class_from_situation(
         selection_for_sidecar.situation
+    )
+    execution_plan_sidecar = build_validator_execution_plan(selection_for_sidecar)
+    execution_plan_sidecar = prepend_goc_seam_mirror_plan_entries(
+        execution_plan_sidecar,
+        seam_mirror_validator_ids=goc_seam_mirror_plan_validator_ids_for_turn_class(turn_class_key),
     )
     registry_sidecar = adr0041_validator_registry_for_turn_class(turn_class_key)
     dispatch_ctx_raw = graph_bundle.get("dispatch_context")
@@ -519,8 +664,9 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
             "ai_stack.runtime_aspect_ledger / ADR-0041 plan_enforced local validators"
         ),
         "relationship_note": (
-            "run_validation_seam drives validation_outcome and commitment; ADR-0041 sidecar "
-            "runs additional registered local validators for observability only."
+            "run_validation_seam remains the canonical commitment seam for validation_outcome; "
+            "ADR-0041 performs plan-enforced local validator routing by turn class; "
+            "see adr0041_authority_preview / validation_authority_preview (projection) for drift classification."
         ),
         "validation_seam_status": seam_summary.get("status") if isinstance(seam_summary, dict) else None,
         "validation_seam_reason": seam_summary.get("reason") if isinstance(seam_summary, dict) else None,
@@ -540,6 +686,19 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     semantic_validator_dispatch_report["seam_vs_adr0041_sidecar_drift_visibility"] = _json_safe(
         visibility
     )
+    preview = build_adr0041_validation_authority_preview(
+        validator_dispatch_report=semantic_validator_dispatch_report,
+        validation_seam_summary=seam_summary if isinstance(seam_summary, dict) else {},
+        selected_turn_class=turn_class_key,
+    )
+    semantic_validator_dispatch_report["adr0041_authority_preview"] = preview
+    bridge = build_validation_authority_bridge(
+        validation_seam_summary=seam_summary if isinstance(seam_summary, dict) else {},
+        validator_dispatch_report=semantic_validator_dispatch_report,
+        validation_authority_preview=preview,
+        selected_turn_class=turn_class_key,
+    )
+    semantic_validator_dispatch_report["validation_authority_bridge"] = _json_safe(bridge)
     extra_warnings = [*dispatch_mode_warnings, *sidecar_deriv_warnings]
     existing_warnings = semantic_validator_dispatch_report.get("warnings")
     merged: list[str] = list(existing_warnings) if isinstance(existing_warnings, list) else []
@@ -1994,6 +2153,15 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
             flag_warnings=fp_warnings,
             derivation_warnings=sibling_deriv,
         )
+    auth_preview = semantic_validator_dispatch_report.get("adr0041_authority_preview")
+    if isinstance(auth_preview, dict):
+        projection_payload["validation_authority_preview"] = auth_preview
+    bridge_obj = semantic_validator_dispatch_report.get("validation_authority_bridge")
+    if isinstance(bridge_obj, dict):
+        projection_payload["validation_authority_bridge"] = bridge_obj
+        ho = bridge_obj.get("authority_handoff_candidate")
+        if isinstance(ho, dict):
+            projection_payload["authority_handoff_candidate"] = ho
     return _json_safe(projection_payload)
 
 

@@ -12,6 +12,7 @@ from ai_stack.capability_validator_registry import (
     VALIDATOR_REGISTRY_INVENTORY,
     inventory_rows_by_validator_id,
 )
+from ai_stack.goc_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
 
 
 def test_registry_inventory_matches_planned_local_validator_ids() -> None:
@@ -28,10 +29,12 @@ def test_registry_inventory_matches_planned_local_validator_ids() -> None:
 
 def test_registry_inventory_covers_all_planned_dispatch_ids_except_judges() -> None:
     by_id = inventory_rows_by_validator_id()
-    local_and_observer = set(LOCAL_VALIDATORS.values()) | set(OBSERVER_DIAGNOSTICS.values())
+    local_observer_seam = (
+        set(LOCAL_VALIDATORS.values()) | set(OBSERVER_DIAGNOSTICS.values()) | set(SEAM_MIRROR_VALIDATOR_IDS)
+    )
 
-    assert set(by_id) == local_and_observer
-    assert set(PLANNED_ALL_DISPATCH_IDS) == local_and_observer | set(JUDGE_VALIDATORS.values())
+    assert set(by_id) == local_observer_seam
+    assert set(PLANNED_ALL_DISPATCH_IDS) == local_observer_seam | set(JUDGE_VALIDATORS.values())
 
 
 def test_observer_diagnostics_marked_non_blocking() -> None:

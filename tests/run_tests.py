@@ -259,7 +259,7 @@ WRITERS_ROOM_COV_FAIL_UNDER = "50"  # Realistic: only 3 modules tested out of ~3
 IMPROVEMENT_COV_FAIL_UNDER = "50"   # Realistic: only 3 modules tested out of ~30+ in app
 # story_runtime_core has adapters and utilities tested locally; builtin templates and branching modules
 # are tested indirectly through world-engine and backend. Local-only gate is modest.
-STORY_RUNTIME_CORE_COV_FAIL_UNDER = "50"  # Realistic: core adapters/utilities tested; builtins integration-tested elsewhere
+STORY_RUNTIME_CORE_COV_FAIL_UNDER = "80"  # Callback web + consequence cascade + intent contract covered in-package
 
 # administration-tool: use ``--cov=.`` + ``administration-tool/.coveragerc`` (single source
 # trace) — do not list multiple ``--cov=module`` names; Coverage 7.x warns on import order.

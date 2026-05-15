@@ -13,6 +13,8 @@ from pathlib import Path
 from ai_stack.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
 from ai_stack.capability_validator_plan import build_validator_execution_plan
 from ai_stack.capability_validator_registry import (
+    NORMAL_PLAYER_TURN_CAPABILITY_PLAN_VALIDATOR_IDS,
+    OPENING_SCENE_CAPABILITY_PLAN_VALIDATOR_IDS,
     PLANNED_ALL_DISPATCH_IDS,
     PLANNED_JUDGE_IDS,
     build_available_semantic_validator_registry,
@@ -20,6 +22,7 @@ from ai_stack.capability_validator_registry import (
     build_opening_enforced_semantic_validator_registry,
     build_player_turn_enforced_semantic_validator_registry,
     build_semantic_validator_registry,
+    get_turn_class_enforced_validators,
     unavailable_validator_result,
 )
 from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
@@ -29,18 +32,84 @@ from ai_stack.player_turn_validator_evaluation import (
     evaluate_action_resolution_contract,
     evaluate_player_intent_contract,
 )
-from ai_stack.tests.test_capability_validator_dispatch_plan_enforced import (
-    OPENING_ENFORCED_VALIDATORS,
-    _opening_plan,
-)
+from ai_stack.goc_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
+from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.tests.test_capability_validator_dispatch_plan_enforced import _opening_plan
 
-PLAYER_TURN_ENFORCED_VALIDATORS = (
-    "player_intent_contract",
-    "action_resolution_contract",
-    "information_disclosure_contract",
-    "voice_consistency_contract",
-    "scene_energy_contract",
-)
+
+def _scene_energy_target_contained(*, minimum_actor_response_count: int = 1) -> dict:
+    return {
+        "energy_level": "contained",
+        "pressure_vector": "social",
+        "tempo": "standard",
+        "density": "focused",
+        "volatility": "stable",
+        "target_transition": "hold",
+        "minimum_actor_response_count": minimum_actor_response_count,
+    }
+
+
+def _scene_energy_transition_for(target: dict) -> dict:
+    return {
+        "to_energy_level": target["energy_level"],
+        "transition_intent": target["target_transition"],
+        "allowed": True,
+    }
+
+
+def _npc_dispatch_context() -> dict:
+    actors = {
+        "primary": "veronique_vallon",
+        "secondary": "michel_longstreet",
+    }
+    plan = normalize_npc_agency_plan(
+        {
+            "primary_responder_id": actors["primary"],
+            "secondary_responder_ids": [actors["secondary"]],
+            "npc_initiatives": [
+                {"actor_id": actors["primary"], "target_actor_id": actors["secondary"], "required": True},
+                {"actor_id": actors["secondary"], "target_actor_id": actors["primary"], "required": True},
+            ],
+        }
+    )
+    structured_output = {
+        "narration_summary": (
+            "Die Konfrontation zwischen Veronique und Michel spitzt sich zu; "
+            "ein sichtbarer Machtwechsel liegt in der Luft."
+        ),
+        "spoken_lines": [
+            {"speaker_id": row["actor_id"], "text": "Visible beat."}
+            for row in plan["npc_initiatives"]
+        ],
+        "action_lines": [],
+    }
+    proposed_state_effects = [
+        {
+            "effect_type": "narrative_projection",
+            "description": (
+                "Veronique und Michel tauschen scharfe Worte; die Konfrontation "
+                "zieht sich wie ein Strick um den Abend."
+            ),
+        }
+    ]
+    se = _scene_energy_target_contained()
+    return {
+        "module_id": "god_of_carnage",
+        "turn_number": 2,
+        "npc_agency_plan": plan,
+        "structured_output": structured_output,
+        "scene_energy_target": se,
+        "scene_energy_transition": _scene_energy_transition_for(se),
+        "information_disclosure_target": {"policy_enabled": False},
+        "voice_profiles": [],
+        "voice_validation_mode": "schema_only",
+        "generation": {"success": True, "metadata": {"structured_output": structured_output}},
+        "proposed_state_effects": proposed_state_effects,
+        "actor_lane_context": {
+            "human_actor_id": "annette_reille",
+            "ai_forbidden_actor_ids": ["annette_reille"],
+        },
+    }
 
 
 def test_default_registry_does_not_register_unavailable_validators_as_success() -> None:
@@ -105,12 +174,14 @@ def test_plan_enforced_with_available_registry_does_not_false_green_missing_cont
 
 def test_plan_enforced_with_populated_context_can_execute_scene_energy() -> None:
     registry = build_available_semantic_validator_registry()
+    se = _scene_energy_target_contained()
     report = build_validator_dispatch_report(
         _opening_plan(),
         mode=ValidatorDispatchMode.PLAN_ENFORCED,
         validator_registry=registry,
         dispatch_context={
-            "scene_energy_target": {"minimum_actor_response_count": 1, "energy_level": "medium"},
+            "scene_energy_target": se,
+            "scene_energy_transition": _scene_energy_transition_for(se),
             "structured_output": {"spoken_lines": [{"speaker_id": "narrator", "text": "A door opens."}]},
         },
         feature_flag_enabled=True,
@@ -127,14 +198,14 @@ def test_build_semantic_validator_registry_include_flag() -> None:
 
 
 def test_opening_enforced_ids_subset_of_planned_local_validators() -> None:
-    for validator_id in OPENING_ENFORCED_VALIDATORS:
-        assert validator_id in PLANNED_ALL_DISPATCH_IDS
+    for validator_id in get_turn_class_enforced_validators("opening_scene"):
+        assert validator_id in PLANNED_ALL_DISPATCH_IDS or validator_id in SEAM_MIRROR_VALIDATOR_IDS
 
 
 def test_opening_registry_contains_safe_opening_enforced_adapters() -> None:
     opening_registry = build_opening_enforced_semantic_validator_registry()
 
-    assert set(opening_registry) == set(OPENING_ENFORCED_VALIDATORS)
+    assert set(opening_registry) == set(get_turn_class_enforced_validators("opening_scene"))
 
 
 def test_narrator_authority_adapter_requires_context() -> None:
@@ -190,19 +261,30 @@ def _opening_dispatch_context() -> dict:
         environment_model=model,
         turn_number=0,
     )
+    structured = {
+        "narration_summary": "The foyer waits in brittle calm.",
+        "spoken_lines": [{"speaker_id": "narrator", "text": "The light stays low."}],
+    }
+    proposed = [{"effect_type": "narrative_projection", "description": "The foyer waits in brittle calm."}]
+    scene_energy_target = _scene_energy_target_contained()
     return {
         "module_id": module_id,
         "turn_number": 0,
         "narrator_required": True,
-        "structured_output": {
-            "narration_summary": "The foyer waits in brittle calm.",
-            "spoken_lines": [{"speaker_id": "narrator", "text": "The light stays low."}],
-        },
+        "turn_input_class": "opening",
+        "structured_output": structured,
+        "generation": {"success": True, "metadata": {"structured_output": structured}},
+        "proposed_state_effects": proposed,
         "environment_state": environment_state,
         "environment_model": model,
-        "scene_energy_target": {"minimum_actor_response_count": 1, "energy_level": "medium"},
+        "scene_energy_target": scene_energy_target,
+        "scene_energy_transition": _scene_energy_transition_for(scene_energy_target),
         "information_disclosure_target": {"policy_enabled": False},
         "voice_profiles": [],
+        "actor_lane_context": {
+            "human_actor_id": "annette_reille",
+            "ai_forbidden_actor_ids": ["annette_reille"],
+        },
     }
 
 
@@ -215,7 +297,7 @@ def test_opening_plan_enforced_executes_all_available_opening_enforced_validator
         feature_flag_enabled=True,
     )
 
-    assert set(report.actually_executed) == set(OPENING_ENFORCED_VALIDATORS)
+    assert set(report.actually_executed) == set(OPENING_SCENE_CAPABILITY_PLAN_VALIDATOR_IDS)
     assert report.execution_changed is True
 
 
@@ -264,7 +346,7 @@ def test_unavailable_still_does_not_false_green() -> None:
     )
 
     assert report.actually_executed == ()
-    assert set(report.validators_unavailable) == set(OPENING_ENFORCED_VALIDATORS)
+    assert set(report.validators_unavailable) == set(OPENING_SCENE_CAPABILITY_PLAN_VALIDATOR_IDS)
 
 
 def _player_plan():
@@ -299,6 +381,20 @@ def _runtime_projection() -> dict:
 
 
 def _player_dispatch_context() -> dict:
+    se_target = _scene_energy_target_contained()
+    structured = {
+        "narration_summary": "Die Spannung im Raum liegt wie Staub über dem Tisch.",
+        "spoken_lines": [{"speaker_id": "narrator", "text": "Der Raum bleibt schwer."}],
+    }
+    proposed = [
+        {
+            "effect_type": "narrative_projection",
+            "description": (
+                "Die Flurhaustür fällt ins Schloss; der Weg ins Bad bleibt unausgesprochen "
+                "zwischen den vier Erwachsenen."
+            ),
+        }
+    ]
     return {
         "module_id": "god_of_carnage",
         "turn_number": 1,
@@ -312,17 +408,24 @@ def _player_dispatch_context() -> dict:
         },
         "runtime_projection": _runtime_projection(),
         "content_modules_root": _content_root(),
-        "scene_energy_target": {"minimum_actor_response_count": 1, "energy_level": "medium"},
+        "scene_energy_target": se_target,
+        "scene_energy_transition": _scene_energy_transition_for(se_target),
         "information_disclosure_target": {"policy_enabled": False},
         "voice_profiles": [],
-        "structured_output": {"spoken_lines": []},
+        "structured_output": structured,
+        "generation": {"success": True, "metadata": {"structured_output": structured}},
+        "proposed_state_effects": proposed,
+        "actor_lane_context": {
+            "human_actor_id": "annette_reille",
+            "ai_forbidden_actor_ids": ["annette_reille"],
+        },
     }
 
 
 def test_player_turn_registry_contains_safe_player_turn_enforced_adapters() -> None:
     player_registry = build_player_turn_enforced_semantic_validator_registry()
 
-    assert set(player_registry) == set(PLAYER_TURN_ENFORCED_VALIDATORS)
+    assert set(player_registry) == set(get_turn_class_enforced_validators("normal_player_turn"))
 
 
 def test_player_intent_adapter_requires_context() -> None:
@@ -392,7 +495,7 @@ def test_player_turn_plan_enforced_executes_available_player_turn_validators() -
         feature_flag_enabled=True,
     )
 
-    assert set(report.actually_executed) == set(PLAYER_TURN_ENFORCED_VALIDATORS)
+    assert set(report.actually_executed) == set(NORMAL_PLAYER_TURN_CAPABILITY_PLAN_VALIDATOR_IDS)
     assert report.execution_changed is True
 
 
