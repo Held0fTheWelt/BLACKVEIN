@@ -68,6 +68,10 @@ def _turn_with_rip(*, aggregated: str) -> dict:
     return {
         "turn_kind": "opening",
         "turn_number": 0,
+        "retrieval": {
+            "retrieval_authority": {"authority_level": "retrieved_unverified"},
+            "boundary_guard": {"blocked_as_authority_truth": False},
+        },
         "turn_aspect_ledger": {
             "runtime_intelligence_projection": {
                 "readiness_aggregation_decision": {
@@ -125,3 +129,37 @@ def test_bundle_veto_when_consumer_and_prereqs_on(monkeypatch: pytest.MonkeyPatc
     assert diag["consumer_path_active"] is True
     assert diag["source"] == "adr0041_scoped_consumer"
     assert echo["readiness_aggregation_decision"]["aggregated_readiness"] == "block"
+    retrieval_diag = bundle["governance"]["retrieval_diagnostic_context"]
+    assert retrieval_diag["diagnostic_only"] is True
+    assert retrieval_diag["not_readiness_authority"] is True
+    assert retrieval_diag["retrieval_authority"]["authority_level"] == "retrieved_unverified"
+
+
+def test_bundle_blocks_ready_state_when_turn_is_degraded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, "true")
+
+    turn = _turn_with_rip(aggregated="allow")
+    turn["runtime_governance_surface"] = {
+        "quality_class": "degraded",
+        "degradation_signals": ["fallback"],
+    }
+
+    bundle = _player_session_bundle(
+        run_id="r-consumer-degraded",
+        template_id="god_of_carnage_solo",
+        module_id="god_of_carnage",
+        runtime_session_id="we-3",
+        state=_ready_story_state(),
+        created=_ready_created(),
+        turn=turn,
+    )
+    assert bundle["runtime_session_ready"] is False
+    assert bundle["can_execute"] is False
+    diag = bundle["governance"]["adr0041_runtime_readiness_consumer"]
+    assert diag["reason"] == "adr0041_degradation_veto_over_legacy_allow"
+    assert diag["degradation_blocking_signal"] is True

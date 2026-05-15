@@ -23,9 +23,12 @@ from ai_stack.runtime_aspect_ledger import (
     normalize_runtime_aspect_ledger,
 )
 from ai_stack.capability_validator_registry import (
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
     TURN_CLASS_NPC_CONFLICT_TURN,
     TURN_CLASS_NORMAL_PLAYER_TURN,
     TURN_CLASS_OPENING_SCENE,
+    TURN_CLASS_RECOVERY_TURN,
+    TURN_CLASS_SYSTEM_TRANSITION,
     get_turn_class_enforced_validators,
 )
 from ai_stack.tests.test_capability_validator_registry import (
@@ -309,3 +312,69 @@ def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
     assert agg["aggregated_readiness"] == "block"
     assert agg["adr0041_veto_applied"] is True
     assert agg["seam_readiness"] == "allow"
+
+
+def test_plan_enforced_graph_bundle_runs_recovery_turn_validators(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-grecovery",
+        module_id="god_of_carnage",
+        turn_number=3,
+        turn_kind="recovery_turn",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    assert set(report["actually_executed"]) == set(get_turn_class_enforced_validators(TURN_CLASS_RECOVERY_TURN))
+    assert report["adr0041_selected_turn_class"] == TURN_CLASS_RECOVERY_TURN
+    _assert_sidecar_local_only(report)
+
+
+def test_plan_enforced_graph_bundle_runs_system_transition_validators(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-gsystem",
+        module_id="god_of_carnage",
+        turn_number=4,
+        turn_kind="system_transition",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    executed = set(report["actually_executed"])
+    planned = set(report["validators_would_run"])
+    assert executed.issubset(planned)
+    assert "information_disclosure_contract" in executed
+    assert report["adr0041_selected_turn_class"] == TURN_CLASS_SYSTEM_TRANSITION
+    _assert_sidecar_local_only(report)
+
+
+def test_plan_enforced_graph_bundle_runs_degraded_fallback_validators(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-gdegraded",
+        module_id="god_of_carnage",
+        turn_number=5,
+        turn_kind="degraded_or_fallback_turn",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    report = out["runtime_intelligence_projection"]["validator_dispatch_report"]
+    executed = set(report["actually_executed"])
+    planned = set(report["validators_would_run"])
+    assert executed.issubset(planned)
+    assert "information_disclosure_contract" in executed
+    assert report["adr0041_selected_turn_class"] == TURN_CLASS_DEGRADED_OR_FALLBACK_TURN
+    _assert_sidecar_local_only(report)

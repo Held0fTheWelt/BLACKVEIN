@@ -518,6 +518,12 @@ def _player_session_bundle(
         opening_generation_status=str(opening_readiness.get("opening_generation_status") or ""),
         runtime_intelligence_projection=rip,
         degradation_signals=deg,
+        retrieval_payload=latest_turn.get("retrieval") if isinstance(latest_turn, dict) else None,
+    )
+    retrieval_diag = (
+        latest_turn.get("retrieval")
+        if isinstance(latest_turn, dict) and isinstance(latest_turn.get("retrieval"), dict)
+        else {}
     )
 
     return {
@@ -552,6 +558,18 @@ def _player_session_bundle(
             "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,
             "adr0041_readiness_projection_echo": build_adr0041_readiness_projection_echo(rip),
             "adr0041_runtime_readiness_consumer": readiness_overlay,
+            "retrieval_diagnostic_context": {
+                "source": "latest_turn.retrieval",
+                "present": bool(retrieval_diag),
+                "diagnostic_only": True,
+                "not_readiness_authority": True,
+                "retrieval_authority": retrieval_diag.get("retrieval_authority")
+                if isinstance(retrieval_diag.get("retrieval_authority"), dict)
+                else {},
+                "boundary_guard": retrieval_diag.get("boundary_guard")
+                if isinstance(retrieval_diag.get("boundary_guard"), dict)
+                else {},
+            },
             "content_publication_gate": "published_game_content_required_for_template_module_binding",
             "player_path_governed_by": [
                 "game content publication lifecycle",

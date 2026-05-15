@@ -58,6 +58,24 @@ class GoodCommitAdapter(BaseModelAdapter):
             ),
             "proposed_scene_id": None,
             "intent_summary": "closure_good",
+            "narrative_momentum_events": [
+                {
+                    "event_type": "advance",
+                    "momentum_state": "driving",
+                    "source_refs": [
+                        {
+                            "source": "scene_energy_transition",
+                            "field": "target_transition",
+                            "value": "rise",
+                        }
+                    ],
+                }
+            ],
+            "tonal_consistency_classification": {
+                "realized_dimension_ids": ["high_tension", "social_friction"],
+                "register_label": "dramatic_confessional",
+                "genre_label": "social_drama",
+            },
         }
         return ModelCallResult(
             content=json.dumps(payload),
@@ -104,7 +122,7 @@ def test_build_operator_canonical_turn_record_shape(tmp_path: Path) -> None:
     assert isinstance(rec["graph_diagnostics_summary"].get("nodes_executed"), list)
 
 
-def test_non_preview_productive_path_experiment_preview_false_when_validation_approved(tmp_path: Path) -> None:
+def test_non_preview_productive_path_rejects_when_required_runtime_events_missing(tmp_path: Path) -> None:
     graph = _executor(tmp_path)
     result = graph.run(
         session_id="s-closure-preview",
@@ -115,11 +133,10 @@ def test_non_preview_productive_path_experiment_preview_false_when_validation_ap
         host_experience_template=HOST_OK,
     )
     vo = result.get("validation_outcome") or {}
-    assert vo.get("status") == "approved"
-    assert vo.get("validator_lane") == "goc_rule_engine_v1"
-    assert result.get("experiment_preview") is False
-    cr = result.get("committed_result") or {}
-    assert cr.get("commit_lane") == "goc_commit_seam_v1"
+    assert vo.get("status") == "rejected"
+    assert vo.get("validator_lane") == "narrative_momentum_validation_v1"
+    assert vo.get("reason") == "narrative_momentum_event_missing"
+    assert result.get("experiment_preview") is True
 
 
 def test_validation_reject_records_failure_marker_and_preview(tmp_path: Path) -> None:

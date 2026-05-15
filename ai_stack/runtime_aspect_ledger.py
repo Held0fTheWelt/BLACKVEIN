@@ -15,6 +15,7 @@ from typing import Any
 
 from ai_stack.capability_selector import (
     CapabilitySelectionResult,
+    LastTurnQuality,
     TurnKind,
     TurnSituation,
     derive_turn_situation_from_runtime_context,
@@ -34,13 +35,19 @@ from ai_stack.capability_validator_plan import (
 )
 from ai_stack.capability_validator_registry import (
     VALIDATOR_REGISTRY_INVENTORY,
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
     TURN_CLASS_NPC_CONFLICT_TURN,
     TURN_CLASS_NORMAL_PLAYER_TURN,
     TURN_CLASS_OPENING_SCENE,
+    TURN_CLASS_RECOVERY_TURN,
+    TURN_CLASS_SYSTEM_TRANSITION,
     build_available_semantic_validator_registry,
+    build_degraded_or_fallback_enforced_semantic_validator_registry,
     build_npc_conflict_enforced_semantic_validator_registry,
     build_opening_enforced_semantic_validator_registry,
     build_player_turn_enforced_semantic_validator_registry,
+    build_recovery_turn_enforced_semantic_validator_registry,
+    build_system_transition_enforced_semantic_validator_registry,
     goc_seam_mirror_plan_validator_ids_for_turn_class,
 )
 from ai_stack.validation_authority_bridge import (
@@ -530,6 +537,12 @@ def adr0041_validator_registry_for_turn_class(turn_class_key: str) -> dict[str, 
         return dict(build_player_turn_enforced_semantic_validator_registry())
     if key == TURN_CLASS_NPC_CONFLICT_TURN:
         return dict(build_npc_conflict_enforced_semantic_validator_registry())
+    if key == TURN_CLASS_RECOVERY_TURN:
+        return dict(build_recovery_turn_enforced_semantic_validator_registry())
+    if key == TURN_CLASS_SYSTEM_TRANSITION:
+        return dict(build_system_transition_enforced_semantic_validator_registry())
+    if key == TURN_CLASS_DEGRADED_OR_FALLBACK_TURN:
+        return dict(build_degraded_or_fallback_enforced_semantic_validator_registry())
     return {}
 
 
@@ -1098,6 +1111,11 @@ def _infer_adr0041_turn_class_from_situation(situation: TurnSituation) -> tuple[
         "situation_turn_kind": tk_val,
         "npc_decision_required": bool(situation.npc_decision_required),
         "player_input_present": bool(situation.player_input_present),
+        "last_turn_quality": (
+            situation.last_turn_quality.value
+            if isinstance(situation.last_turn_quality, LastTurnQuality)
+            else str(situation.last_turn_quality)
+        ),
     }
     if tk is TurnKind.OPENING:
         return TURN_CLASS_OPENING_SCENE, hints
@@ -1105,7 +1123,15 @@ def _infer_adr0041_turn_class_from_situation(situation: TurnSituation) -> tuple[
         return TURN_CLASS_NPC_CONFLICT_TURN, hints
     if tk is TurnKind.PLAYER_INPUT:
         return TURN_CLASS_NORMAL_PLAYER_TURN, hints
-    return "other_turn_profile", hints
+    if tk is TurnKind.RECOVERY:
+        if situation.last_turn_quality is LastTurnQuality.FALLBACK:
+            return TURN_CLASS_DEGRADED_OR_FALLBACK_TURN, hints
+        return TURN_CLASS_RECOVERY_TURN, hints
+    if tk is TurnKind.SYSTEM_TRANSITION:
+        return TURN_CLASS_SYSTEM_TRANSITION, hints
+    if situation.last_turn_quality is LastTurnQuality.FALLBACK:
+        return TURN_CLASS_DEGRADED_OR_FALLBACK_TURN, hints
+    return TURN_CLASS_SYSTEM_TRANSITION, hints
 
 
 def _build_adr0041_plan_projection_sibling(

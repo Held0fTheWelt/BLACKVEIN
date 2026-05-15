@@ -40,6 +40,7 @@ from ai_stack.rag_constants import (
 )
 from ai_stack.rag_types import RetrievalDomainError
 from ai_stack.semantic_embedding import EMBEDDING_INDEX_VERSION
+from ai_stack.retrieval_runtime_planner import build_retrieval_authority_metadata
 
 from ai_stack.rag_corpus import InMemoryRetrievalCorpus, _ScoredCandidate
 from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
@@ -202,6 +203,7 @@ class ContextRetriever:
         *,
         profile_name: str,
         published_canonical_in_pool: bool,
+        audience_scope: str,
     ) -> list[RetrievalHit]:
         """Map reranked/scored candidates to ``RetrievalHit`` rows
         (governance + policy notes).
@@ -250,6 +252,9 @@ class ContextRetriever:
                     source_visibility_class=gov.visibility_class.value,
                     policy_note=policy_note,
                     profile_policy_influence=rule,
+                    authority_level="retrieved_unverified",
+                    provenance_scope="retrieval_hit",
+                    audience_scope=audience_scope or "",
                 )
             )
         return hits
@@ -331,6 +336,7 @@ class ContextRetriever:
             selected_tuples,
             profile_name=qpc.profile_name,
             published_canonical_in_pool=published_canonical_in_pool,
+            audience_scope=request.audience_scope or "",
         )
 
         emb_codes_fallback = query_enc_codes if query_encode_failed else c.rag_dense_load_reason_codes
@@ -375,6 +381,22 @@ class ContextRetriever:
                 embedding_index_version=emb_idx_ver,
                 embedding_cache_dir_identity=emb_cache_id,
             )
+        result.retrieval_authority = build_retrieval_authority_metadata(
+            plan=type(
+                "_P",
+                (),
+                {
+                    "authority_scope": "runtime_generation",
+                    "audience_scope": request.audience_scope or "runtime",
+                    "turn_class": request.turn_class or "unknown",
+                    "active_actor": "unknown",
+                    "selected_capabilities": tuple(request.selected_capabilities or ()),
+                },
+            )(),
+            retrieval_policy_version=RETRIEVAL_POLICY_VERSION,
+            corpus_fingerprint=result.corpus_fingerprint,
+            authority_level="retrieved_unverified",
+        )
         self.last_retrieval_route = result.retrieval_route
         self.last_embedding_model_id = result.embedding_model_id
         self.last_retrieval_corpus_fingerprint = result.corpus_fingerprint

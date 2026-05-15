@@ -20,18 +20,19 @@ LOCAL_SELECTION_PROOF_LEVEL = "local_only"
 _NON_LEXICAL_INPUT_KINDS = frozenset({"non_lexical", "silence", "gesture"})
 _OPENING_TURN_KINDS = frozenset({"opening", "engine_opening"})
 _NPC_TURN_KINDS = frozenset({"npc", "npc_turn"})
-_RECOVERY_TURN_KINDS = frozenset(
+_RECOVERY_TURN_KINDS = frozenset({"recovery", "recovery_turn"})
+_DEGRADED_OR_FALLBACK_TURN_KINDS = frozenset(
     {
-        "recovery",
         "fallback",
         "fallback_recovery",
+        "degraded_or_fallback_turn",
         "rejected_recoverable",
         "player_rejected_recoverable",
         "player_graph_exception_playable",
         "graph_exception_playable",
     }
 )
-_SYSTEM_TURN_KINDS = frozenset({"system_transition"})
+_SYSTEM_TURN_KINDS = frozenset({"system_transition", "system_transition_turn"})
 
 
 class CapabilityMode(str, Enum):
@@ -418,7 +419,7 @@ def derive_turn_situation_from_runtime_context(
             tuple(warnings),
         )
 
-    if kind_text in _RECOVERY_TURN_KINDS:
+    if kind_text in _DEGRADED_OR_FALLBACK_TURN_KINDS:
         return (
             TurnSituation(
                 turn_kind=TurnKind.RECOVERY,
@@ -429,6 +430,24 @@ def derive_turn_situation_from_runtime_context(
                 visible_projection_required=visibility,
                 scene_phase=ScenePhase.RECOVERY,
                 last_turn_quality=LastTurnQuality.FALLBACK,
+                non_lexical_input_present=non_lexical,
+                knowledge_gap_present=bool(knowledge_gap_present),
+                world_state_change_requested=False,
+            ),
+            tuple(warnings),
+        )
+
+    if kind_text in _RECOVERY_TURN_KINDS:
+        return (
+            TurnSituation(
+                turn_kind=TurnKind.RECOVERY,
+                active_actor=ActiveActor.SYSTEM,
+                player_input_present=player_input_present,
+                npc_decision_required=False,
+                action_resolution_required=False,
+                visible_projection_required=visibility,
+                scene_phase=ScenePhase.RECOVERY,
+                last_turn_quality=LastTurnQuality.DEGRADED,
                 non_lexical_input_present=non_lexical,
                 knowledge_gap_present=bool(knowledge_gap_present),
                 world_state_change_requested=False,

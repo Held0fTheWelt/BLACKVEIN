@@ -40,6 +40,10 @@ class RuntimeTurnState(TypedDict, total=False):
     selected_provider: str
     selected_timeout: float
     retrieval: dict[str, Any]
+    retrieval_plan: dict[str, Any]
+    runtime_memory_indexes: dict[str, Any]
+    narrator_context_bundle: dict[str, Any]
+    npc_context_bundle: dict[str, Any]
     context_text: str
     context_synthesis_bundle: dict[str, Any]
     context_synthesis_diagnostics: dict[str, Any]

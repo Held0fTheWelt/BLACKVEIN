@@ -1288,6 +1288,7 @@ def build_validation_authority_bridge(
     validator_dispatch_report: dict[str, Any],
     validation_authority_preview: dict[str, Any],
     selected_turn_class: str,
+    retrieval_observation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build structured bridge payload (JSON-safe dict)."""
     seam = validation_seam_summary if isinstance(validation_seam_summary, dict) else {}
@@ -1366,6 +1367,18 @@ def build_validation_authority_bridge(
         ac = str(spec.get("authority_classification") or "")
         if ac in buckets:
             buckets[ac].append(cid)
+    retrieval_auth = (
+        retrieval_observation.get("retrieval_authority")
+        if isinstance(retrieval_observation, dict)
+        and isinstance(retrieval_observation.get("retrieval_authority"), dict)
+        else {}
+    )
+    retrieval_authority_level = str(retrieval_auth.get("authority_level") or "").strip().lower()
+    retrieval_observation_only = retrieval_authority_level in {
+        "",
+        "retrieved_unverified",
+        "diagnostic_only",
+    }
 
     return {
         "schema_version": VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION,
@@ -1391,6 +1404,9 @@ def build_validation_authority_bridge(
         "seam_area_adr0041_relationship": seam_area_relationship,
         "seam_area_adr0041_relationship_buckets": _invert_seam_area_buckets(seam_area_relationship),
         "authority_handoff_candidate": handoff,
+        "retrieval_observation_only": retrieval_observation_only,
+        "retrieval_authority_level": retrieval_authority_level or "unknown",
+        "authority_critical_consumers_require_canonical_provenance": True,
         "affects_commit": False,
         "affects_readiness": False,
         "proof_level": "local_only",

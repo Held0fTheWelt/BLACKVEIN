@@ -92,6 +92,9 @@ class RetrievalRequest:
     scene_id: str | None = None
     max_chunks: int = 4
     use_sparse_only: bool = False
+    audience_scope: str | None = None
+    turn_class: str | None = None
+    selected_capabilities: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(slots=True)
@@ -112,6 +115,9 @@ class RetrievalHit:
     source_visibility_class: str = ""
     policy_note: str = ""
     profile_policy_influence: str = ""
+    authority_level: str = "retrieved_unverified"
+    provenance_scope: str = "retrieval_hit"
+    audience_scope: str = ""
 
 
 @dataclass(slots=True)
@@ -135,6 +141,7 @@ class RetrievalResult:
     embedding_reason_codes: tuple[str, ...] = field(default_factory=tuple)
     embedding_index_version: str = ""
     embedding_cache_dir_identity: str | None = None
+    retrieval_authority: dict[str, Any] = field(default_factory=dict)
 
 
 def filter_retrieval_result_by_min_score(
@@ -181,3 +188,4 @@ class ContextPack:
     embedding_reason_codes: tuple[str, ...] = field(default_factory=tuple)
     embedding_index_version: str = ""
     embedding_cache_dir_identity: str | None = None
+    retrieval_authority: dict[str, Any] = field(default_factory=dict)

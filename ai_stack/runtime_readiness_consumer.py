@@ -36,6 +36,19 @@ ADR0041_READINESS_PROJECTION_ECHO_SCHEMA_VERSION = "adr0041_readiness_projection
 ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH = (
     "backend.app.api.v1.game_routes._player_session_bundle"
 )
+_BLOCKING_DEGRADATION_TOKENS: frozenset[str] = frozenset(
+    {
+        "fallback",
+        "degraded",
+        "empty_output",
+        "empty_visible_output",
+        "missing_visible_output",
+        "graph_execution_exception",
+        "recoverable_graph_exception",
+        "validation_rejected",
+        "hard_boundary_failure",
+    }
+)
 
 
 def adr0041_readiness_consumer_upstream_prerequisites_met() -> tuple[bool, tuple[str, ...]]:
@@ -65,6 +78,7 @@ def resolve_runtime_readiness_with_adr0041(
     opening_generation_status: str,
     runtime_intelligence_projection: dict[str, Any] | None,
     degradation_signals: list[Any] | None = None,
+    retrieval_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Combine legacy session readiness with ADR-0041 aggregation (veto-only).
 
@@ -94,6 +108,22 @@ def resolve_runtime_readiness_with_adr0041(
 
     deg = degradation_signals if isinstance(degradation_signals, list) else []
     degradation_active = bool(deg)
+    degradation_tokens = {
+        str(signal).strip().lower()
+        for signal in deg
+        if str(signal).strip()
+    }
+    degradation_blockers = sorted(
+        token for token in degradation_tokens if token in _BLOCKING_DEGRADATION_TOKENS
+    )
+    degradation_blocking_signal = bool(degradation_blockers)
+    retrieval_auth = (
+        retrieval_payload.get("retrieval_authority")
+        if isinstance(retrieval_payload, dict) and isinstance(retrieval_payload.get("retrieval_authority"), dict)
+        else {}
+    )
+    retrieval_authority_level = str(retrieval_auth.get("authority_level") or "").strip().lower()
+    retrieval_unverified = retrieval_authority_level in {"", "retrieved_unverified", "diagnostic_only"}
 
     if legacy_runtime_session_ready and legacy_can_execute:
         base_readiness = "allow"
@@ -147,6 +177,10 @@ def resolve_runtime_readiness_with_adr0041(
             final_ce = bool(legacy_can_execute) and aggregated != "block"
             if aggregated == "block":
                 reason = "adr0041_veto_over_legacy_allow"
+            elif degradation_blocking_signal:
+                final_rs = False
+                final_ce = False
+                reason = "adr0041_degradation_veto_over_legacy_allow"
             elif aggregated == "allow":
                 reason = "legacy_allow_adr0041_allow"
             else:
@@ -169,7 +203,11 @@ def resolve_runtime_readiness_with_adr0041(
         "consumer_path_active": consumer_path_active,
         "upstream_prerequisites_met": bool(upstream_ok),
         "degradation_active": degradation_active,
+        "degradation_blocking_signal": degradation_blocking_signal,
+        "degradation_blockers": degradation_blockers,
         "opening_generation_status": str(opening_generation_status or "").strip() or None,
+        "retrieval_authority_level": retrieval_authority_level or "unknown",
+        "retrieval_unverified": retrieval_unverified,
         "validation_outcome_changed": False,
         "commit_gate_changed": False,
         "proof_level": "local_only",

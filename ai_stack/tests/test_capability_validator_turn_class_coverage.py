@@ -8,17 +8,23 @@ from ai_stack.capability_selector import validate_semantic_capability_name
 from ai_stack.capability_validator_registry import (
     CANONICAL_OBSERVER_DIAGNOSTIC_IDS,
     KNOWN_TURN_CLASSES,
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
     TURN_CLASS_ENFORCED_VALIDATORS,
     TURN_CLASS_NPC_CONFLICT_TURN,
     TURN_CLASS_NORMAL_PLAYER_TURN,
     TURN_CLASS_OPENING_SCENE,
+    TURN_CLASS_RECOVERY_TURN,
+    TURN_CLASS_SYSTEM_TRANSITION,
     TurnClassRegistryCoverage,
     assert_turn_class_registry_coverage,
     build_available_semantic_validator_registry,
+    build_degraded_or_fallback_enforced_semantic_validator_registry,
     build_default_semantic_validator_registry,
     build_npc_conflict_enforced_semantic_validator_registry,
     build_opening_enforced_semantic_validator_registry,
     build_player_turn_enforced_semantic_validator_registry,
+    build_recovery_turn_enforced_semantic_validator_registry,
+    build_system_transition_enforced_semantic_validator_registry,
     get_registry_coverage_for_turn_class,
     get_turn_class_enforced_validators,
     get_typical_observer_diagnostic_ids_for_turn_class,
@@ -63,6 +69,33 @@ def test_npc_conflict_registry_covers_all_npc_conflict_enforced_validators() -> 
     cov = assert_turn_class_registry_coverage(
         TURN_CLASS_NPC_CONFLICT_TURN,
         build_npc_conflict_enforced_semantic_validator_registry(),
+    )
+    assert cov.coverage_complete
+    assert set(cov.validator_ids_registered) == set(cov.required_enforced_validator_ids)
+
+
+def test_recovery_turn_registry_covers_all_recovery_turn_enforced_validators() -> None:
+    cov = assert_turn_class_registry_coverage(
+        TURN_CLASS_RECOVERY_TURN,
+        build_recovery_turn_enforced_semantic_validator_registry(),
+    )
+    assert cov.coverage_complete
+    assert set(cov.validator_ids_registered) == set(cov.required_enforced_validator_ids)
+
+
+def test_system_transition_registry_covers_all_system_transition_enforced_validators() -> None:
+    cov = assert_turn_class_registry_coverage(
+        TURN_CLASS_SYSTEM_TRANSITION,
+        build_system_transition_enforced_semantic_validator_registry(),
+    )
+    assert cov.coverage_complete
+    assert set(cov.validator_ids_registered) == set(cov.required_enforced_validator_ids)
+
+
+def test_degraded_fallback_registry_covers_all_degraded_turn_enforced_validators() -> None:
+    cov = assert_turn_class_registry_coverage(
+        TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
+        build_degraded_or_fallback_enforced_semantic_validator_registry(),
     )
     assert cov.coverage_complete
     assert set(cov.validator_ids_registered) == set(cov.required_enforced_validator_ids)

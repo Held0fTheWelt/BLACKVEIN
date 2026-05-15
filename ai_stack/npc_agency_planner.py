@@ -366,6 +366,7 @@ def build_npc_agency_simulation(
     preferred_reaction_order_ids: list[str] | None = None,
     npc_actor_ids: list[Any] | None = None,
     npc_response_expected: bool | None = None,
+    npc_context_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     responders = _ordered_responder_rows(
         selected_responder_set,
@@ -403,6 +404,14 @@ def build_npc_agency_simulation(
         social_state_record=social_state_record,
         prior_planner_truth=prior_planner_truth,
     )
+    if isinstance(npc_context_bundle, dict):
+        lane_notes = {
+            "source": "npc_context_bundle",
+            "field": "retrieval_lanes",
+            "allowed_memory_lanes": list(npc_context_bundle.get("retrieval_plan", {}).get("allowed_memory_lanes") or []),
+            "blocked_memory_lanes": list(npc_context_bundle.get("retrieval_plan", {}).get("blocked_memory_lanes") or []),
+        }
+        evidence.append(lane_notes)
 
     scored: list[tuple[int, int, int, str, list[str]]] = []
     for index, actor_id in enumerate(candidate_actor_ids):
@@ -603,6 +612,7 @@ def build_npc_agency_plan(
     prior_planner_truth: dict[str, Any] | None = None,
     actor_lane_context: dict[str, Any] | None = None,
     preferred_reaction_order_ids: list[str] | None = None,
+    npc_context_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     responders = _ordered_responder_rows(
         selected_responder_set,
@@ -633,6 +643,19 @@ def build_npc_agency_plan(
         social_state_record=social_state_record,
         prior_planner_truth=prior_planner_truth,
     )
+    if isinstance(npc_context_bundle, dict):
+        evidence.append(
+            {
+                "source": "npc_context_bundle",
+                "field": "retrieval_lanes",
+                "allowed_memory_lanes": list(
+                    npc_context_bundle.get("retrieval_plan", {}).get("allowed_memory_lanes") or []
+                ),
+                "blocked_memory_lanes": list(
+                    npc_context_bundle.get("retrieval_plan", {}).get("blocked_memory_lanes") or []
+                ),
+            }
+        )
 
     initiatives: list[dict[str, Any]] = []
     for actor_id in responder_ids:

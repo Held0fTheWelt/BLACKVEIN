@@ -34,6 +34,7 @@ def test_runtime_projection_contains_validator_dispatch_report() -> None:
         "thematic_tracking_diagnostic",
         "callback_web_diagnostic",
         "sensory_context_diagnostic",
+        "genre_awareness_diagnostic",
     ]
     assert report["reason"].startswith("ADR-0041 dry-run dispatch projection only")
 

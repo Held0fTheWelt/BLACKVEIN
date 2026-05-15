@@ -77,6 +77,7 @@ def test_opening_dispatch_reports_observer_diagnostics() -> None:
         "thematic_tracking_diagnostic",
         "callback_web_diagnostic",
         "sensory_context_diagnostic",
+        "genre_awareness_diagnostic",
     )
 
 

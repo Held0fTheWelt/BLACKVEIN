@@ -105,6 +105,9 @@ def build_compact_lines_and_sources(
                 "source_visibility_class": hit.source_visibility_class,
                 "policy_note": hit.policy_note,
                 "profile_policy_influence": hit.profile_policy_influence,
+                "authority_level": hit.authority_level,
+                "provenance_scope": hit.provenance_scope,
+                "audience_scope": hit.audience_scope,
             }
         )
     return lines, sources

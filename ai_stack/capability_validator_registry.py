@@ -70,6 +70,9 @@ LOCAL_PROOF_LEVEL = "local_only"
 TURN_CLASS_OPENING_SCENE = "opening_scene"
 TURN_CLASS_NORMAL_PLAYER_TURN = "normal_player_turn"
 TURN_CLASS_NPC_CONFLICT_TURN = "npc_conflict_turn"
+TURN_CLASS_RECOVERY_TURN = "recovery_turn"
+TURN_CLASS_SYSTEM_TRANSITION = "system_transition"
+TURN_CLASS_DEGRADED_OR_FALLBACK_TURN = "degraded_or_fallback_turn"
 
 # Observer diagnostic IDs referenced by validator plans when a capability is observed (non-blocking).
 # Includes `environment_state_diagnostic` (fallback from `_observer_diagnostic_id` — not listed in OBSERVER_DIAGNOSTICS).
@@ -741,6 +744,25 @@ _NPC_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     "information_disclosure_contract",
 )
 
+_RECOVERY_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "narrator_authority_contract",
+    "voice_consistency_contract",
+    "information_disclosure_contract",
+)
+
+_SYSTEM_TRANSITION_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "narrator_authority_contract",
+    "environment_state_contract",
+    "information_disclosure_contract",
+)
+
+_DEGRADED_OR_FALLBACK_CAPABILITY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "narrator_authority_contract",
+    "voice_consistency_contract",
+    "scene_energy_contract",
+    "information_disclosure_contract",
+)
+
 _OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     *_GOC_SEAM_MIRROR_CORE,
     OPENING_EVENT_COVERAGE_CONTRACT,
@@ -761,16 +783,37 @@ _NPC_CONFLICT_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
     *_NPC_CAPABILITY_ENFORCED_VALIDATOR_IDS,
 )
 
+_RECOVERY_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    *_RECOVERY_CAPABILITY_ENFORCED_VALIDATOR_IDS,
+)
+
+_SYSTEM_TRANSITION_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    *_SYSTEM_TRANSITION_CAPABILITY_ENFORCED_VALIDATOR_IDS,
+)
+
+_DEGRADED_OR_FALLBACK_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    *_GOC_SEAM_MIRROR_CORE,
+    *_DEGRADED_OR_FALLBACK_CAPABILITY_ENFORCED_VALIDATOR_IDS,
+)
+
 KNOWN_TURN_CLASSES: tuple[str, ...] = (
     TURN_CLASS_OPENING_SCENE,
     TURN_CLASS_NORMAL_PLAYER_TURN,
     TURN_CLASS_NPC_CONFLICT_TURN,
+    TURN_CLASS_RECOVERY_TURN,
+    TURN_CLASS_SYSTEM_TRANSITION,
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
 )
 
 TURN_CLASS_ENFORCED_VALIDATORS: dict[str, tuple[str, ...]] = {
     TURN_CLASS_OPENING_SCENE: _OPENING_ENFORCED_VALIDATOR_IDS,
     TURN_CLASS_NORMAL_PLAYER_TURN: _PLAYER_TURN_ENFORCED_VALIDATOR_IDS,
     TURN_CLASS_NPC_CONFLICT_TURN: _NPC_CONFLICT_ENFORCED_VALIDATOR_IDS,
+    TURN_CLASS_RECOVERY_TURN: _RECOVERY_ENFORCED_VALIDATOR_IDS,
+    TURN_CLASS_SYSTEM_TRANSITION: _SYSTEM_TRANSITION_ENFORCED_VALIDATOR_IDS,
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN: _DEGRADED_OR_FALLBACK_ENFORCED_VALIDATOR_IDS,
 }
 
 # Typical observer diagnostics for each turn class (selector-driven; always non-blocking in plans).
@@ -790,6 +833,21 @@ TURN_CLASS_TYPICAL_OBSERVER_DIAGNOSTIC_IDS: dict[str, tuple[str, ...]] = {
     ),
     TURN_CLASS_NPC_CONFLICT_TURN: (
         "thematic_tracking_diagnostic",
+        "callback_web_diagnostic",
+    ),
+    TURN_CLASS_RECOVERY_TURN: (
+        "environment_state_diagnostic",
+        "conversational_memory_diagnostic",
+        "thematic_tracking_diagnostic",
+    ),
+    TURN_CLASS_SYSTEM_TRANSITION: (
+        "environment_state_diagnostic",
+        "conversational_memory_diagnostic",
+        "prompt_authority_diagnostic",
+    ),
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN: (
+        "environment_state_diagnostic",
+        "conversational_memory_diagnostic",
         "callback_web_diagnostic",
     ),
 }
@@ -855,6 +913,36 @@ def build_npc_conflict_enforced_semantic_validator_registry() -> dict[str, Local
     return {
         validator_id: available[validator_id]
         for validator_id in _NPC_CONFLICT_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
+    }
+
+
+def build_recovery_turn_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return recovery-turn enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _RECOVERY_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
+    }
+
+
+def build_system_transition_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return system-transition enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _SYSTEM_TRANSITION_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
+    }
+
+
+def build_degraded_or_fallback_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return degraded/fallback enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _DEGRADED_OR_FALLBACK_ENFORCED_VALIDATOR_IDS
         if validator_id in available
     }
 

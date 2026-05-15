@@ -41,6 +41,16 @@ from ai_stack.rag_retrieval_dtos import (
     filter_retrieval_result_by_min_score,
 )
 from ai_stack.rag_types import RetrievalDomain
+from ai_stack.retrieval_context_bundles import (
+    build_narrator_context_bundle,
+    build_npc_context_bundle,
+)
+from ai_stack.retrieval_runtime_planner import (
+    apply_authority_boundary_guard,
+    build_retrieval_authority_metadata,
+    build_runtime_retrieval_plan,
+)
+from ai_stack.runtime_memory_indexes import build_runtime_memory_indexes_from_state
 from ai_stack.retrieval_governance_summary import attach_retrieval_governance_summary
 from ai_stack.context_synthesis_engine import (
     build_context_synthesis_bundle,
@@ -3853,6 +3863,9 @@ def _build_npc_agency_plan_projection(
         preferred_reaction_order_ids=responder_ids,
         npc_actor_ids=npc_actor_ids,
         npc_response_expected=npc_response_expected,
+        npc_context_bundle=state.get("npc_context_bundle")
+        if isinstance(state.get("npc_context_bundle"), dict)
+        else None,
     )
     plan = (
         simulation.get("npc_agency_plan")
@@ -3878,6 +3891,9 @@ def _build_npc_agency_plan_projection(
             if isinstance(state.get("actor_lane_context"), dict)
             else None,
             preferred_reaction_order_ids=responder_ids,
+            npc_context_bundle=state.get("npc_context_bundle")
+            if isinstance(state.get("npc_context_bundle"), dict)
+            else None,
         )
     if not plan:
         return None, None, None
@@ -5213,6 +5229,13 @@ class RuntimeTurnGraphExecutor:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
         rc = self.retrieval_config or RuntimeRetrievalConfig()
+        retrieval_plan = build_runtime_retrieval_plan(
+            state=state,
+            retrieval_config=rc,
+            authority_scope="runtime_generation",
+        )
+        retrieval_plan_dict = retrieval_plan.to_dict()
+        memory_indexes = build_runtime_memory_indexes_from_state(state)
         query_context, query_signal = _retrieval_continuity_query_context(state)
         query_str = f"{state['player_input']}\nscene:{state['current_scene_id']}\nmodule:{state['module_id']}"
         if query_context:
@@ -5233,19 +5256,28 @@ class RuntimeTurnGraphExecutor:
                 "storage_path": "",
                 "embedding_model_id": "",
                 "top_hit_score": "",
+                "retrieval_authority": build_retrieval_authority_metadata(
+                    plan=retrieval_plan,
+                    retrieval_policy_version="disabled_by_config",
+                    corpus_fingerprint="",
+                ),
+                "retrieval_plan": retrieval_plan_dict,
             }
             attach_retrieval_governance_summary(retrieval)
             context_text = ""
         else:
             payload = {
                 "domain": RetrievalDomain.RUNTIME.value,
-                "profile": rc.retrieval_profile,
+                "profile": retrieval_plan.profile,
                 "query": query_str,
                 "module_id": state["module_id"],
                 "scene_id": state["current_scene_id"],
-                "max_chunks": rc.max_chunks,
+                "max_chunks": retrieval_plan.max_chunks,
                 "use_sparse_only": rc.use_sparse_only,
                 "retrieval_min_score": rc.retrieval_min_score,
+                "audience_scope": retrieval_plan.audience_scope,
+                "turn_class": retrieval_plan.turn_class,
+                "selected_capabilities": list(retrieval_plan.selected_capabilities),
             }
             if self.capability_registry is not None:
                 result = self.capability_registry.invoke(
@@ -5262,12 +5294,15 @@ class RuntimeTurnGraphExecutor:
             else:
                 request = RetrievalRequest(
                     domain=RetrievalDomain.RUNTIME,
-                    profile=rc.retrieval_profile,
+                    profile=retrieval_plan.profile,
                     query=query_str,
                     module_id=state["module_id"],
                     scene_id=state["current_scene_id"],
-                    max_chunks=rc.max_chunks,
+                    max_chunks=retrieval_plan.max_chunks,
                     use_sparse_only=rc.use_sparse_only,
+                    audience_scope=retrieval_plan.audience_scope,
+                    turn_class=retrieval_plan.turn_class,
+                    selected_capabilities=tuple(retrieval_plan.selected_capabilities),
                 )
                 retrieval_result = self.retriever.retrieve(request)
                 retrieval_result, _removed_count = filter_retrieval_result_by_min_score(
@@ -5291,11 +5326,45 @@ class RuntimeTurnGraphExecutor:
                     "retrieval_route": pack.retrieval_route,
                     "embedding_model_id": pack.embedding_model_id,
                     "top_hit_score": top_score,
+                    "retrieval_authority": dict(pack.retrieval_authority or {}),
+                    "retrieval_plan": retrieval_plan_dict,
                 }
                 attach_retrieval_governance_summary(retrieval)
                 context_text = pack.compact_context
         if isinstance(retrieval, dict):
+            if not isinstance(retrieval.get("retrieval_authority"), dict):
+                retrieval["retrieval_authority"] = build_retrieval_authority_metadata(
+                    plan=retrieval_plan,
+                    retrieval_policy_version=str(
+                        retrieval.get("retrieval_policy_version")
+                        or (retrieval.get("governance_summary") or {}).get("retrieval_policy_version")
+                        or "unknown"
+                    ),
+                    corpus_fingerprint=str(retrieval.get("corpus_fingerprint") or ""),
+                )
+            retrieval["retrieval_plan"] = retrieval_plan_dict
+            retrieval = apply_authority_boundary_guard(
+                retrieval_payload=retrieval,
+                consumer="runtime_turn_graph.retrieve_context",
+                authority_critical=False,
+            )
             _attach_retrieval_continuity_signal(retrieval, query_signal)
+        narrator_context_bundle = build_narrator_context_bundle(
+            state=state,
+            context_text=context_text,
+            retrieval_plan=retrieval_plan_dict,
+            memory_indexes=memory_indexes,
+        )
+        npc_context_bundle = build_npc_context_bundle(
+            actor_id=(
+                str(((state.get("selected_responder_set") or [{}])[0] or {}).get("responder_id") or "")
+                if isinstance(state.get("selected_responder_set"), list) and state.get("selected_responder_set")
+                else ""
+            ),
+            state=state,
+            retrieval_plan=retrieval_plan_dict,
+            memory_indexes=memory_indexes,
+        )
         interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
         interpretation_block = (
             "Runtime interpretation (structured):\n"
@@ -5447,6 +5516,10 @@ class RuntimeTurnGraphExecutor:
             prompt = f"{prompt}\n\n" + "\n".join(lines)
         update = _track(state, node_name="retrieve_context")
         update["retrieval"] = retrieval
+        update["retrieval_plan"] = retrieval_plan_dict
+        update["runtime_memory_indexes"] = memory_indexes
+        update["narrator_context_bundle"] = narrator_context_bundle
+        update["npc_context_bundle"] = npc_context_bundle
         update["context_text"] = context_text
         update["model_prompt"] = prompt
         if capability_audit:

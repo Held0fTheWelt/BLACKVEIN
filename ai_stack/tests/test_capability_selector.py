@@ -319,6 +319,29 @@ def test_recoverable_runtime_turn_kinds_derive_recovery_situation() -> None:
         assert warnings == ()
 
 
+def test_explicit_recovery_turn_derives_non_fallback_recovery_situation() -> None:
+    situation, warnings = derive_turn_situation_from_runtime_context(
+        turn_kind="recovery_turn",
+        turn_number=3,
+        raw_player_input="",
+    )
+    assert situation.turn_kind.value == "recovery"
+    assert situation.active_actor.value == "system"
+    assert situation.last_turn_quality.value == "degraded"
+    assert warnings == ()
+
+
+def test_system_transition_turn_kind_derives_system_transition_situation() -> None:
+    situation, warnings = derive_turn_situation_from_runtime_context(
+        turn_kind="system_transition",
+        turn_number=4,
+        raw_player_input="",
+    )
+    assert situation.turn_kind.value == "system_transition"
+    assert situation.active_actor.value == "system"
+    assert warnings == ()
+
+
 def test_selection_projection_does_not_claim_live_or_staging_evidence() -> None:
     result = select_capabilities(_opening())
     payload = result.to_ledger_payload()["capability_selection"]

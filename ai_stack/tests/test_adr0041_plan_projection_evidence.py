@@ -114,3 +114,51 @@ def test_plan_projection_npc_conflict_turn_class(monkeypatch) -> None:
     sibling = ledger["runtime_intelligence_projection"]["adr0041_plan_projection"]
     assert sibling["selected_turn_class"] == "npc_conflict_turn"
     assert "npc_agency_contract" in sibling["planned_local_validator_ids"]
+
+
+def test_plan_projection_recovery_turn_class(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_PLAN_PROJECTION_ENABLED_ENV, "on")
+    ledger = normalize_runtime_aspect_ledger(
+        initialize_runtime_aspect_ledger(
+            session_id="s-plan-recovery",
+            module_id="god_of_carnage",
+            turn_number=6,
+            turn_kind="recovery_turn",
+            raw_player_input="",
+        )
+    )
+    sibling = ledger["runtime_intelligence_projection"]["adr0041_plan_projection"]
+    assert sibling["selected_turn_class"] == "recovery_turn"
+    assert "narrator_authority_contract" in sibling["planned_local_validator_ids"]
+
+
+def test_plan_projection_system_transition_turn_class(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_PLAN_PROJECTION_ENABLED_ENV, "on")
+    ledger = normalize_runtime_aspect_ledger(
+        initialize_runtime_aspect_ledger(
+            session_id="s-plan-system",
+            module_id="god_of_carnage",
+            turn_number=7,
+            turn_kind="system_transition",
+            raw_player_input="",
+        )
+    )
+    sibling = ledger["runtime_intelligence_projection"]["adr0041_plan_projection"]
+    assert sibling["selected_turn_class"] == "system_transition"
+    assert "scene_energy_contract" in sibling["planned_local_validator_ids"]
+
+
+def test_plan_projection_degraded_fallback_turn_class(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_PLAN_PROJECTION_ENABLED_ENV, "on")
+    ledger = normalize_runtime_aspect_ledger(
+        initialize_runtime_aspect_ledger(
+            session_id="s-plan-degraded",
+            module_id="god_of_carnage",
+            turn_number=8,
+            turn_kind="degraded_or_fallback_turn",
+            raw_player_input="",
+        )
+    )
+    sibling = ledger["runtime_intelligence_projection"]["adr0041_plan_projection"]
+    assert sibling["selected_turn_class"] == "degraded_or_fallback_turn"
+    assert "narrator_authority_contract" in sibling["planned_local_validator_ids"]

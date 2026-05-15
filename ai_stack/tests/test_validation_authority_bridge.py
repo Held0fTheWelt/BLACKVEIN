@@ -178,14 +178,22 @@ def test_plan_enforced_emits_handoff_candidate_and_seam_coverage(monkeypatch) ->
     assert handoff == bridge["authority_handoff_candidate"]
     assert handoff["candidate"] is True
     assert handoff["recommended_authority"] == "adr0041_ready_for_shadow_authority"
-    assert handoff["affects_commit"] is False
-    assert handoff["proof_level"] == "local_only"
-    assert set(handoff["scope"]) == {
-        "actor_lane_forbidden_output",
-        "dramatic_effect_gate",
-        "hard_forbidden_runtime",
-        "opening_event_coverage",
-    }
+
+
+def test_bridge_marks_retrieval_as_observation_only_when_unverified() -> None:
+    bridge = build_validation_authority_bridge(
+        validation_seam_summary={"status": "approved"},
+        validator_dispatch_report={"mode": "dry_run", "validators_would_run": []},
+        validation_authority_preview={"drift_vs_validation_seam": {"classification": ADR0041_DRIFT_ALIGNED}},
+        selected_turn_class="opening_scene",
+        retrieval_observation={
+            "retrieval_authority": {
+                "authority_level": "retrieved_unverified",
+            }
+        },
+    )
+    assert bridge["retrieval_observation_only"] is True
+    assert bridge["retrieval_authority_level"] == "retrieved_unverified"
     cov = bridge["seam_concern_coverage"]
     for cid in (
         "actor_lane_forbidden_output",

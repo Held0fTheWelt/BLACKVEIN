@@ -77,6 +77,7 @@ def build_context_pack_handler(
                 "embedding_index_version": context_pack.embedding_index_version,
                 "embedding_cache_dir_identity": context_pack.embedding_cache_dir_identity,
                 "retrieval_policy_version": RETRIEVAL_POLICY_VERSION,
+                "retrieval_authority": dict(context_pack.retrieval_authority or {}),
             },
             "context_text": context_pack.compact_context,
         }

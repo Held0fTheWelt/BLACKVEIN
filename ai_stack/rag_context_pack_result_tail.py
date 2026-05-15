@@ -48,6 +48,7 @@ def context_pack_tail_fields(result: RetrievalResult, trace: tuple[str, str, str
         "embedding_reason_codes": result.embedding_reason_codes,
         "embedding_index_version": result.embedding_index_version,
         "embedding_cache_dir_identity": result.embedding_cache_dir_identity,
+        "retrieval_authority": dict(result.retrieval_authority or {}),
     }
 
 
