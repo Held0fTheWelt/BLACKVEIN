@@ -266,6 +266,37 @@ During a turn:
 
 **ADR-0039 boundary:** Tests derive expectations from schema constants, edge kinds, session/turn ids, branch lifecycle fields, normalized policy bounds, and stable ids. Generated narration, branch preview prose, and authored example paragraphs are not valid pass/fail oracles.
 
+### Pacing Rhythm / Pi18
+
+Pacing rhythm is implemented as the generic `pacing_rhythm` runtime aspect. It
+is the cadence contract for a turn: selected cadence, tempo arc, response
+shape, visible-block bounds, actor-turn expectations, pause obligations, and
+forced-speech protection. It consumes `pacing_mode`,
+`silence_brevity_decision`, `scene_energy_target`, prior rhythm feedback,
+narrative-thread pressure, and callback-web feedback. It does not replace scene
+energy and must not become a prose rhythm judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.pacing_rhythm` into `runtime_governance_policy.pacing_rhythm`;
+- LangGraph derives `pacing_rhythm_state` and `pacing_rhythm_target` after scene energy;
+- the dramatic generation packet receives the bounded target as structural guidance;
+- validation checks structured output counts and writes `pacing_rhythm_validation`;
+- recoverable failures feed self-correction with bounded pacing-rhythm failure codes;
+- `turn_aspect_ledger.pacing_rhythm` records policy presence, selected target, actual counts, contract pass, and failure codes;
+- World-Engine persists `pacing_rhythm_state`, `pacing_rhythm_target`, and `pacing_rhythm_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_pacing_rhythm_state`;
+- Langfuse and MCP expose target/pass/density/pause evidence.
+
+The committed rhythm state is bounded planner feedback, not a second canon
+store. It may shape the next turn and operator diagnostics, but it does not
+mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, ledger/MCP fields, and structured
+visible-block or actor-turn counts. Generated narration, copied dialogue,
+frontend card shape, and judge labels are never the pass/fail oracle.
+
 ### Subtext Interpretation / Pi19
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.

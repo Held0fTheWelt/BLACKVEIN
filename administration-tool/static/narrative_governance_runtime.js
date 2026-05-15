@@ -49,28 +49,49 @@
         return "manage-dx-badge manage-dx-badge--init";
     }
 
-    function metaRow(label, value) {
+    function metaRow(label, value, emptyLabel, opts) {
+        opts = opts || {};
+        var ddClass = opts.mono ? " ng-runtime-kv-mono" : "";
+        if (opts.id) ddClass += " ng-runtime-kv-id";
         return (
-            "<dt>" +
+            '<div class="ng-runtime-kv">' +
+            '<span class="ng-runtime-kv-label">' +
             escapeHtml(label) +
-            "</dt><dd>" +
-            escapeHtml(displayValue(value)) +
-            "</dd>"
+            "</span>" +
+            '<span class="ng-runtime-kv-value' +
+            ddClass +
+            '">' +
+            escapeHtml(displayValue(value, emptyLabel)) +
+            "</span></div>"
         );
     }
 
-    function renderPanel(title, eyebrow, rowsHtml) {
+    function statusRow(label, status) {
+        var text = displayValue(status, "unknown");
         return (
-            '<article class="mui-card ng-runtime-panel">' +
-            '<p class="mui-card-meta">' +
-            escapeHtml(eyebrow) +
-            "</p>" +
-            "<h4>" +
+            '<div class="ng-runtime-kv ng-runtime-kv--status">' +
+            '<span class="ng-runtime-kv-label">' +
+            escapeHtml(label) +
+            "</span>" +
+            '<span class="ng-runtime-kv-value"><span class="' +
+            badgeClass(status) +
+            ' ng-runtime-status-badge">' +
+            escapeHtml(text) +
+            "</span></span></div>"
+        );
+    }
+
+    function renderPanel(title, panelKey, rowsHtml) {
+        return (
+            '<article class="mui-card ng-runtime-panel" data-panel="' +
+            escapeHtml(panelKey) +
+            '">' +
+            '<header class="ng-runtime-panel-head"><h4>' +
             escapeHtml(title) +
-            "</h4>" +
-            '<dl class="manage-dx-meta-grid">' +
+            "</h4></header>" +
+            '<div class="ng-runtime-kv-list">' +
             rowsHtml +
-            "</dl></article>"
+            "</div></article>"
         );
     }
 
@@ -82,40 +103,28 @@
         html += renderPanel(
             "Content module",
             "content_module_health",
-            metaRow("Module", cm.content_module_id || d.content_module_id) +
-                '<dt>Status</dt><dd><span class="' +
-                badgeClass(cm.status) +
-                '">' +
-                escapeHtml(displayValue(cm.status, "unknown")) +
-                "</span></dd>" +
+            statusRow("Status", cm.status) +
+                metaRow("Module", cm.content_module_id || d.content_module_id, null, { mono: true }) +
                 metaRow("Story truth present", cm.story_truth_present) +
-                metaRow("Source", cm.source)
+                metaRow("Source", cm.source, null, { mono: true })
         );
 
         var rp = d.runtime_profile_health || {};
         html += renderPanel(
             "Runtime profile",
             "runtime_profile_health",
-            metaRow("Profile", rp.runtime_profile_id || d.runtime_profile_id) +
-                '<dt>Status</dt><dd><span class="' +
-                badgeClass(rp.status) +
-                '">' +
-                escapeHtml(displayValue(rp.status, "unknown")) +
-                "</span></dd>" +
+            statusRow("Status", rp.status) +
+                metaRow("Profile", rp.runtime_profile_id || d.runtime_profile_id, null, { mono: true }) +
                 metaRow("Story truth present", rp.story_truth_present) +
-                metaRow("Source", rp.source)
+                metaRow("Source", rp.source, null, { mono: true })
         );
 
         var rm = d.runtime_module_health || {};
         html += renderPanel(
             "Runtime module",
             "runtime_module_health",
-            metaRow("Module", rm.runtime_module_id || d.runtime_module_id) +
-                '<dt>Status</dt><dd><span class="' +
-                badgeClass(rm.status) +
-                '">' +
-                escapeHtml(displayValue(rm.status, "unknown")) +
-                "</span></dd>" +
+            statusRow("Status", rm.status) +
+                metaRow("Module", rm.runtime_module_id || d.runtime_module_id, null, { mono: true }) +
                 metaRow("Story truth present", rm.story_truth_present)
         );
 
@@ -123,13 +132,12 @@
         html += renderPanel(
             "LDSS",
             "ldss_health",
-            '<dt>Status</dt><dd><span class="' +
-                badgeClass(ldss.status) +
-                '">' +
-                escapeHtml(displayValue(ldss.status, "not_invoked")) +
-                "</span></dd>" +
-                metaRow("Last trace", ldss.last_trace_id || d.last_trace_id, "none") +
-                metaRow("Last session", ldss.last_session_id || d.last_story_session_id, "none") +
+            statusRow("Status", ldss.status) +
+                metaRow("Last trace", ldss.last_trace_id || d.last_trace_id, "none", { mono: true, id: true }) +
+                metaRow("Last session", ldss.last_session_id || d.last_story_session_id, "none", {
+                    mono: true,
+                    id: true
+                }) +
                 metaRow(
                     "Last turn",
                     ldss.last_turn_number != null ? ldss.last_turn_number : d.last_turn_number,
@@ -153,11 +161,7 @@
         html += renderPanel(
             "Frontend render contract",
             "frontend_render_contract_health",
-            '<dt>Status</dt><dd><span class="' +
-                badgeClass(fc.status) +
-                '">' +
-                escapeHtml(displayValue(fc.status, "unknown")) +
-                "</span></dd>" +
+            statusRow("Status", fc.status) +
                 metaRow("Scene blocks", fc.scene_block_count) +
                 metaRow("Legacy blob used", fc.legacy_blob_used)
         );
@@ -167,11 +171,7 @@
         html += renderPanel(
             "Degradation",
             "degradation_health",
-            '<dt>Quality</dt><dd><span class="' +
-                badgeClass(dg.status || dg.quality_class) +
-                '">' +
-                escapeHtml(displayValue(dg.status || dg.quality_class, "unknown")) +
-                "</span></dd>" +
+            statusRow("Posture", dg.status || dg.quality_class) +
                 metaRow("Quality class", dg.quality_class) +
                 metaRow("Signals", sigs.length ? sigs.join(", ") : null, "none") +
                 metaRow("Last reason", dg.last_degradation_reason, "none")
@@ -185,14 +185,14 @@
         if (!el) return;
         var d = summary || {};
         var rows =
-            metaRow("Contract", d.contract) +
-            metaRow("Content module", d.content_module_id) +
-            metaRow("Runtime profile", d.runtime_profile_id) +
-            metaRow("Runtime module", d.runtime_module_id) +
-            metaRow("Last session", d.last_story_session_id, "no live session yet") +
+            metaRow("Contract", d.contract, null, { mono: true }) +
+            metaRow("Content module", d.content_module_id, null, { mono: true }) +
+            metaRow("Runtime profile", d.runtime_profile_id, null, { mono: true }) +
+            metaRow("Runtime module", d.runtime_module_id, null, { mono: true }) +
+            metaRow("Last session", d.last_story_session_id, "no live session yet", { mono: true, id: true }) +
             metaRow("Last turn", d.last_turn_number, "0") +
-            metaRow("Last trace", d.last_trace_id, "none");
-        el.innerHTML = '<dl class="manage-dx-meta-grid">' + rows + "</dl>";
+            metaRow("Last trace", d.last_trace_id, "none", { mono: true, id: true });
+        el.innerHTML = '<div class="ng-runtime-kv-list ng-runtime-kv-list--session">' + rows + "</div>";
     }
 
     function renderTechnicalDetails(config, diagnostics) {

@@ -15,6 +15,7 @@ import yaml
 
 from ai_stack.authority_contracts import default_authority_policy
 from ai_stack.callback_web_contracts import normalize_callback_web_policy
+from ai_stack.consequence_cascade_contracts import normalize_consequence_cascade_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
@@ -184,6 +185,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     dramatic_irony = dramatic_irony if isinstance(dramatic_irony, dict) else {}
     callback_web = raw.get("callback_web")
     callback_web = callback_web if isinstance(callback_web, dict) else {}
+    consequence_cascade = raw.get("consequence_cascade")
+    consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
     pacing_rhythm = raw.get("pacing_rhythm")
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
 
@@ -233,6 +236,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "pacing_rhythm": normalize_pacing_rhythm_policy(pacing_rhythm),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
         "callback_web": normalize_callback_web_policy(callback_web),
+        "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
     }
 
 

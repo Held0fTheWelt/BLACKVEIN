@@ -32,6 +32,7 @@ ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_INFORMATION_DISCLOSURE = "information_disclosure"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
 ASPECT_CALLBACK_WEB = "callback_web"
+ASPECT_CONSEQUENCE_CASCADE = "consequence_cascade"
 ASPECT_VALIDATION = "validation"
 ASPECT_COMMIT = "commit"
 ASPECT_VISIBLE_PROJECTION = "visible_projection"
@@ -52,6 +53,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_CALLBACK_WEB,
+    ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_VALIDATION,
     ASPECT_COMMIT,
     ASPECT_VISIBLE_PROJECTION,
@@ -347,6 +349,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_CALLBACK_WEB), dict)
         else {}
     )
+    cascade_rec = (
+        aspects.get(ASPECT_CONSEQUENCE_CASCADE)
+        if isinstance(aspects.get(ASPECT_CONSEQUENCE_CASCADE), dict)
+        else {}
+    )
     validation_rec = (
         aspects.get(ASPECT_VALIDATION)
         if isinstance(aspects.get(ASPECT_VALIDATION), dict)
@@ -398,6 +405,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     callback_expected = _record_block(callback_rec, "expected")
     callback_selected = _record_block(callback_rec, "selected")
     callback_actual = _record_block(callback_rec, "actual")
+    cascade_expected = _record_block(cascade_rec, "expected")
+    cascade_selected = _record_block(cascade_rec, "selected")
+    cascade_actual = _record_block(cascade_rec, "actual")
     visible_actual = _record_block(visible_rec, "actual")
     commit_actual = _record_block(commit_rec, "actual")
 
@@ -807,6 +817,30 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or (_record_reasons(callback_rec)[0] if _record_reasons(callback_rec) else None),
                 "status": callback_rec.get("status"),
             },
+            "consequence_cascade": {
+                "policy_present": bool(cascade_expected.get("policy_present")),
+                "policy_enabled": bool(cascade_expected.get("policy_enabled")),
+                "cascade_id": cascade_actual.get("cascade_id"),
+                "selected_consequence_ids": cascade_selected.get("selected_consequence_ids")
+                or [],
+                "selected_edge_ids": cascade_selected.get("selected_edge_ids") or [],
+                "selected_continuity_classes": cascade_selected.get("selected_continuity_classes")
+                or [],
+                "selected_statuses": cascade_selected.get("selected_statuses") or [],
+                "atom_count": int(cascade_actual.get("atom_count") or 0),
+                "edge_count": int(cascade_actual.get("edge_count") or 0),
+                "active_atom_count": int(cascade_actual.get("active_atom_count") or 0),
+                "graph_item_count": int(cascade_actual.get("graph_item_count") or 0),
+                "status_counts": cascade_actual.get("status_counts") or {},
+                "edge_kind_counts": cascade_actual.get("edge_kind_counts") or {},
+                "continuity_classes": cascade_actual.get("continuity_classes") or [],
+                "contract_pass": cascade_actual.get("contract_pass"),
+                "failure_codes": cascade_actual.get("failure_codes")
+                or _record_reasons(cascade_rec),
+                "failure_reason": cascade_rec.get("failure_reason")
+                or (_record_reasons(cascade_rec)[0] if _record_reasons(cascade_rec) else None),
+                "status": cascade_rec.get("status"),
+            },
             "hierarchical_memory": {
                 "policy_present": bool(memory_expected.get("policy_present")),
                 "policy_enabled": bool(memory_expected.get("policy_enabled")),
@@ -1027,6 +1061,16 @@ def aspect_score_metadata(
         "information_disclosure_visible_unit_ids": actual.get("visible_unit_ids"),
         "information_disclosure_contract_pass": actual.get("contract_pass"),
         "information_disclosure_failure_codes": actual.get("failure_codes"),
+        "consequence_cascade_selected_consequence_ids": selected.get("selected_consequence_ids"),
+        "consequence_cascade_selected_edge_ids": selected.get("selected_edge_ids"),
+        "consequence_cascade_selected_continuity_classes": selected.get(
+            "selected_continuity_classes"
+        ),
+        "consequence_cascade_selected_statuses": selected.get("selected_statuses"),
+        "consequence_cascade_atom_count": actual.get("atom_count"),
+        "consequence_cascade_edge_count": actual.get("edge_count"),
+        "consequence_cascade_contract_pass": actual.get("contract_pass"),
+        "consequence_cascade_failure_codes": actual.get("failure_codes"),
         "dramatic_irony_selected_opportunity_ids": selected.get("selected_opportunity_ids"),
         "dramatic_irony_selected_fact_ids": selected.get("selected_fact_ids"),
         "dramatic_irony_realization_status": actual.get("realization_status"),

@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from ai_stack.dramatic_effect_contract import (
+    ContinuitySupportPosture,
     DramaticEffectEvaluationContext,
     DramaticEffectGateResult,
     EmptyFluencyRisk,
 )
 from ai_stack.dramatic_effect_gate import evaluate_dramatic_effect_gate
+from ai_stack.dramatic_effect_gate_evaluate_branch_outcomes import (
+    continuity_posture_for_social,
+)
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.social_state_contract import SocialStateRecord
 
 
 def _ctx(
@@ -84,6 +89,26 @@ def test_surface_variant_escalation_stable_accepted() -> None:
     assert ob.gate_result == DramaticEffectGateResult.accepted
     assert oa.legacy_fallback_used is False
     assert ob.legacy_fallback_used is False
+
+
+def test_high_blame_social_band_counts_as_continuity_pressure() -> None:
+    soc = SocialStateRecord(
+        prior_continuity_classes=["blame_pressure"],
+        scene_pressure_state="high_blame",
+        active_thread_count=1,
+        thread_pressure_summary_present=True,
+        responder_asymmetry_code="blame_on_host_spouse_axis",
+        social_risk_band="high",
+    )
+
+    assert (
+        continuity_posture_for_social(soc, tags_ok=True)
+        == ContinuitySupportPosture.strong
+    )
+    assert (
+        continuity_posture_for_social(soc, tags_ok=False)
+        == ContinuitySupportPosture.weak
+    )
 
 
 def test_repair_weak_signal_approved_not_hard_rejected() -> None:

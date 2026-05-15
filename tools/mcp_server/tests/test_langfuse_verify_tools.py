@@ -798,6 +798,33 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "pacing_rhythm": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": "pacing_rhythm.v1",
+                            "policy_present": True,
+                            "policy_enabled": True,
+                        },
+                        "selected": {
+                            "target": {
+                                "schema_version": "pacing_rhythm.v1",
+                                "cadence": "press",
+                                "tempo_arc": "accelerating",
+                                "response_shape": "exchange",
+                                "turn_change_policy": "prefer_actor_turn_change",
+                                "min_visible_blocks": 1,
+                                "max_visible_blocks": 5,
+                                "requires_pause": False,
+                                "blocks_forced_speech": False,
+                            }
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "visible_block_count": 2,
+                            "actor_turn_count": 1,
+                            "failure_codes": [],
+                        },
+                    },
                     "dramatic_irony": {
                         "status": "passed",
                         "expected": {
@@ -901,6 +928,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "information_disclosure_budget_pass", "value": 1.0},
             {"name": "information_disclosure_premature_reveal_absent", "value": 1.0},
             {"name": "information_disclosure_contract_pass", "value": 1.0},
+            {"name": "pacing_rhythm_target_present", "value": 1.0},
+            {"name": "pacing_rhythm_contract_pass", "value": 1.0},
+            {"name": "pacing_rhythm_density_respected", "value": 1.0},
+            {"name": "pacing_rhythm_pause_respected", "value": 1.0},
             {"name": "dramatic_irony_policy_present", "value": 1.0},
             {"name": "dramatic_irony_opportunity_present", "value": 1.0},
             {"name": "dramatic_irony_contract_pass", "value": 1.0},
@@ -950,6 +981,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["information_disclosure_withheld_units"] == ["unit_beta"]
     assert row["information_disclosure_budget_pass"] is True
     assert row["information_disclosure_contract_pass"] == 1.0
+    assert row["pacing_rhythm_target_present"] is True
+    assert row["pacing_rhythm_cadence"] == "press"
+    assert row["pacing_rhythm_response_shape"] == "exchange"
+    assert row["pacing_rhythm_density_respected"] is True
+    assert row["pacing_rhythm_contract_pass"] is True
     assert row["dramatic_irony_policy_present"] is True
     assert row["dramatic_irony_opportunity_present"] is True
     assert row["dramatic_irony_selected_opportunities"] == ["opportunity_alpha"]

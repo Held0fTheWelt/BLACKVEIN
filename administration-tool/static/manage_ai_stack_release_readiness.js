@@ -1,12 +1,15 @@
 /**
- * AI Stack Release Readiness — Gate management dashboard.
- *
- * Displays canonical readiness gates with filtering, search, and detail view.
- * Each gate shows: status, owner service, evidence, and remediation guidance.
+ * AI Stack Release Readiness — gate dashboard (ManageAuth + diagnosis sync on refresh).
  */
-(function() {
+(function () {
+    "use strict";
+
     var gates = [];
     var filteredGates = [];
+
+    function $(id) {
+        return document.getElementById(id);
+    }
 
     function escapeHtml(s) {
         if (s == null) return "";
@@ -17,91 +20,124 @@
             .replace(/"/g, "&quot;");
     }
 
+    function apiData(res) {
+        if (res && res.data !== undefined && Object.prototype.hasOwnProperty.call(res, "ok")) {
+            return res.data || {};
+        }
+        return res || {};
+    }
+
     function statusBadgeClass(status) {
-        var base = "readiness-status-badge";
-        if (status === "closed") return base + " readiness-status-badge--closed";
-        if (status === "partial") return base + " readiness-status-badge--partial";
-        if (status === "open") return base + " readiness-status-badge--open";
+        var base = "readiness-status-badge manage-dx-badge";
+        if (status === "closed") return base + " manage-dx-badge--ok readiness-status-badge--closed";
+        if (status === "partial") return base + " manage-dx-badge--init readiness-status-badge--partial";
+        if (status === "open") return base + " manage-dx-badge--fail readiness-status-badge--open";
         return base;
     }
 
     function showBanner(msg, isError) {
-        var el = document.getElementById(isError ? "readiness-banner" : "readiness-success");
-        if (!el) return;
-        el.textContent = msg;
-        el.style.display = "block";
-        if (!isError) {
-            setTimeout(function() {
-                el.style.display = "none";
+        var errEl = $("readiness-banner");
+        var okEl = $("readiness-success");
+        if (errEl) {
+            errEl.hidden = !isError;
+            errEl.style.display = isError ? "" : "none";
+            if (isError) errEl.textContent = msg;
+        }
+        if (okEl && !isError) {
+            okEl.hidden = false;
+            okEl.style.display = "";
+            okEl.textContent = msg;
+            setTimeout(function () {
+                okEl.hidden = true;
+                okEl.style.display = "none";
+            }, 4000);
+        }
+        var headerResult = $("readiness-header-result");
+        if (headerResult && !isError) {
+            headerResult.hidden = false;
+            headerResult.textContent = msg;
+            setTimeout(function () {
+                headerResult.hidden = true;
+                headerResult.textContent = "";
             }, 4000);
         }
     }
 
-    function loadGates() {
-        var btn = document.getElementById("readiness-refresh-btn");
+    function applyUrlFilters() {
+        var params = new URLSearchParams(window.location.search);
+        var status = params.get("status");
+        var statusEl = $("readiness-filter-status");
+        if (status && statusEl) statusEl.value = status;
+    }
+
+    function syncGatesFromDiagnosis() {
+        if (!window.ManageAuth) {
+            return Promise.reject({ message: "ManageAuth is not loaded." });
+        }
+        return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/system-diagnosis?refresh=1");
+    }
+
+    function fetchGates() {
+        if (!window.ManageAuth) {
+            return Promise.reject({ message: "ManageAuth is not loaded." });
+        }
+        return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai-stack/release-readiness/gates").then(apiData);
+    }
+
+    function loadGates(runDiagnosisSync) {
+        var btn = $("readiness-refresh-btn");
         if (btn) btn.disabled = true;
 
-        // Load gates
-        fetch("/api/v1/admin/ai-stack/release-readiness/gates", {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-        })
-            .then(function(r) {
-                if (!r.ok) throw new Error("HTTP " + r.status);
-                return r.json();
-            })
-            .then(function(resp) {
-                if (resp.success && resp.data && resp.data.gates) {
-                    gates = resp.data.gates;
-                    showBanner("Gates loaded: " + gates.length, false);
-                    applyFilters();
-                    renderSummary(resp.data.summary);
-                } else {
-                    showBanner("No gates returned", true);
-                }
-            })
-            .catch(function(err) {
-                showBanner("Failed to load gates: " + err.message, true);
-            })
-            .finally(function() {
-                if (btn) btn.disabled = false;
-            });
+        var chain = runDiagnosisSync ? syncGatesFromDiagnosis() : Promise.resolve();
 
-        // Load closure cockpit (optional, doesn't fail if unavailable)
-        loadClosureCockpit();
+        return chain
+            .then(fetchGates)
+            .then(function (data) {
+                gates = data.gates || [];
+                renderSummary(data.summary);
+                applyFilters();
+                showBanner(
+                    runDiagnosisSync
+                        ? "Gates synced from system diagnosis (" + gates.length + " gates)."
+                        : "Gates loaded: " + gates.length,
+                    false
+                );
+            })
+            .catch(function (err) {
+                showBanner(
+                    "Failed to load gates: " + (err && err.message ? err.message : "Unknown error"),
+                    true
+                );
+            })
+            .finally(function () {
+                if (btn) btn.disabled = false;
+                loadClosureCockpit();
+            });
     }
 
     function loadClosureCockpit() {
-        fetch("/api/v1/admin/ai-stack/closure-cockpit", {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-        })
-            .then(function(r) {
-                if (!r.ok) return null;
-                return r.json();
+        if (!window.ManageAuth) return;
+        window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai-stack/closure-cockpit")
+            .then(function (resp) {
+                var data = apiData(resp);
+                if (!data || (!data.gate_stack && !data.closure_items)) return;
+                renderClosureCockpit(data);
             })
-            .then(function(resp) {
-                if (resp && resp.data) {
-                    renderClosureCockpit(resp.data);
-                }
-            })
-            .catch(function(err) {
-                // Silent fail - closure cockpit is optional
+            .catch(function () {
+                /* optional section */
             });
     }
 
     function renderClosureCockpit(data) {
-        var sectionEl = document.getElementById("readiness-closure-section");
-        var contentEl = document.getElementById("readiness-closure-content");
-
+        var sectionEl = $("readiness-closure-section");
+        var contentEl = $("readiness-closure-content");
         if (!sectionEl || !contentEl) return;
 
         var html = "";
-
-        // Render closure items
-        if (data.closure_items && Array.isArray(data.closure_items)) {
-            for (var i = 0; i < data.closure_items.length; i++) {
-                var item = data.closure_items[i];
+        var items = data.closure_items;
+        if (items && Array.isArray(items)) {
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
                 var statusClass = "readiness-closure-item";
                 if (item.status === "closed") statusClass += " closed";
                 else if (item.status === "partial") statusClass += " partial";
@@ -117,59 +153,62 @@
                 }
                 html += "</div>";
             }
+        } else if (data.gate_stack && Array.isArray(data.gate_stack)) {
+            for (var j = 0; j < data.gate_stack.length; j++) {
+                var row = data.gate_stack[j];
+                html += "<div class=\"readiness-closure-item\">";
+                html += "<p class=\"readiness-closure-title\"><strong>" + escapeHtml(row.gate_id || row.id || "Gate") + "</strong>";
+                if (row.status) html += " <span class=\"readiness-closure-status\">(" + escapeHtml(row.status) + ")</span>";
+                html += "</p>";
+                if (row.reason || row.message) {
+                    html += "<p class=\"readiness-closure-message\">" + escapeHtml(row.reason || row.message) + "</p>";
+                }
+                html += "</div>";
+            }
         }
 
-        if (html) {
-            contentEl.innerHTML = html;
-            sectionEl.style.display = "block";
-        } else {
-            sectionEl.style.display = "none";
+        var hasContent = Boolean(html);
+        if (hasContent) contentEl.innerHTML = html;
+        if (window.ManageReadinessDeck && window.ManageReadinessDeck.setClosureVisible) {
+            window.ManageReadinessDeck.setClosureVisible(hasContent);
+        } else if (sectionEl) {
+            sectionEl.hidden = !hasContent;
         }
     }
 
     function renderSummary(summary) {
-        if (!summary) {
-            summary = {
-                total_gates: 0,
-                closed_gates: 0,
-                partial_gates: 0,
-                open_gates: 0,
-                closure_percent: 0
-            };
+        summary = summary || {
+            total_gates: 0,
+            closed_gates: 0,
+            partial_gates: 0,
+            open_gates: 0,
+            closure_percent: 0
+        };
+
+        if (window.ManageReadinessDeck && window.ManageReadinessDeck.syncSummary) {
+            window.ManageReadinessDeck.syncSummary(summary);
         }
 
-        var closureEl = document.getElementById("readiness-closure-percent");
-        var closedEl = document.getElementById("readiness-closed-count");
-        var partialEl = document.getElementById("readiness-partial-count");
-        var openEl = document.getElementById("readiness-open-count");
-        var totalEl = document.getElementById("readiness-total-count");
-        var progressEl = document.getElementById("readiness-progress-fill");
-        var lastCheckedEl = document.getElementById("readiness-last-checked");
-
-        if (closureEl) closureEl.textContent = summary.closure_percent + "%";
-        if (closedEl) closedEl.textContent = summary.closed_gates;
-        if (partialEl) partialEl.textContent = summary.partial_gates;
-        if (openEl) openEl.textContent = summary.open_gates;
-        if (totalEl) totalEl.textContent = summary.total_gates;
+        var progressEl = $("readiness-progress-fill");
+        var lastCheckedEl = $("readiness-last-checked");
         if (progressEl) progressEl.style.width = summary.closure_percent + "%";
-
-        var now = new Date();
         if (lastCheckedEl) {
-            lastCheckedEl.textContent = "Last checked: " + now.toLocaleString();
+            lastCheckedEl.textContent = "Last checked: " + new Date().toLocaleString();
         }
     }
 
     function applyFilters() {
-        var statusFilter = (document.getElementById("readiness-filter-status") || {}).value || "";
-        var serviceFilter = (document.getElementById("readiness-filter-service") || {}).value || "";
-        var searchTerm = ((document.getElementById("readiness-search") || {}).value || "").toLowerCase();
+        var statusFilter = ($("readiness-filter-status") || {}).value || "";
+        var serviceFilter = ($("readiness-filter-service") || {}).value || "";
+        var searchTerm = (($("readiness-search") || {}).value || "").toLowerCase();
 
-        filteredGates = gates.filter(function(gate) {
+        filteredGates = gates.filter(function (gate) {
             var statusMatch = !statusFilter || gate.status === statusFilter;
             var serviceMatch = !serviceFilter || gate.owner_service === serviceFilter;
-            var searchMatch = !searchTerm ||
-                gate.gate_id.toLowerCase().indexOf(searchTerm) >= 0 ||
-                gate.gate_name.toLowerCase().indexOf(searchTerm) >= 0;
+            var searchMatch =
+                !searchTerm ||
+                String(gate.gate_id || "").toLowerCase().indexOf(searchTerm) >= 0 ||
+                String(gate.gate_name || "").toLowerCase().indexOf(searchTerm) >= 0;
             return statusMatch && serviceMatch && searchMatch;
         });
 
@@ -177,34 +216,32 @@
     }
 
     function renderGatesList() {
-        var listEl = document.getElementById("readiness-gates-list");
-        var countEl = document.getElementById("readiness-gate-count-display");
-
+        var listEl = $("readiness-gates-list");
+        var countEl = $("readiness-gate-count-display");
         if (!listEl) return;
 
         var html = "";
         if (filteredGates.length === 0) {
-            html = "<p class=\"muted\">No gates match the current filters.</p>";
+            html = "<p class=\"manage-dx-empty\">No gates match the current filters.</p>";
         } else {
             for (var i = 0; i < filteredGates.length; i++) {
-                var gate = filteredGates[i];
-                html += renderGateItem(gate);
+                html += renderGateItem(filteredGates[i]);
             }
         }
 
         listEl.innerHTML = html;
-
         if (countEl) {
             countEl.textContent = "Showing " + filteredGates.length + " of " + gates.length + " gates";
         }
 
-        // Attach click handlers
         var items = listEl.querySelectorAll(".readiness-gate-item");
         for (var j = 0; j < items.length; j++) {
-            (function(item) {
-                item.addEventListener("click", function() {
+            (function (item) {
+                item.addEventListener("click", function () {
                     var gateId = item.dataset.gateId;
-                    var gate = gates.find(function(g) { return g.gate_id === gateId; });
+                    var gate = gates.find(function (g) {
+                        return g.gate_id === gateId;
+                    });
                     if (gate) showGateDetail(gate);
                 });
             })(items[j]);
@@ -213,84 +250,72 @@
 
     function renderGateItem(gate) {
         return (
-            "<div class=\"readiness-gate-item\" data-gate-id=\"" + escapeHtml(gate.gate_id) + "\">" +
-            "<span class=\"" + statusBadgeClass(gate.status) + "\">" + escapeHtml(gate.status) + "</span>" +
+            "<div class=\"readiness-gate-item mui-card\" data-gate-id=\"" +
+            escapeHtml(gate.gate_id) +
+            "\">" +
+            "<span class=\"" +
+            statusBadgeClass(gate.status) +
+            "\">" +
+            escapeHtml(gate.status) +
+            "</span>" +
             "<div class=\"readiness-gate-info\">" +
-            "<p class=\"readiness-gate-name\">" + escapeHtml(gate.gate_name) + "</p>" +
+            "<p class=\"readiness-gate-name\">" +
+            escapeHtml(gate.gate_name) +
+            "</p>" +
             "<p class=\"readiness-gate-meta\">" +
             escapeHtml(gate.gate_id) +
-            "<span class=\"readiness-gate-owner\">" + escapeHtml(gate.owner_service) + "</span>" +
+            "<span class=\"readiness-gate-owner\">" +
+            escapeHtml(gate.owner_service) +
+            "</span>" +
             "</p>" +
             "</div>" +
-            "<div style=\"text-align: right; font-size: 0.875rem; color: var(--text-muted, #666);\">" +
-            "Click to view details →" +
-            "</div>" +
+            "<p class=\"readiness-gate-hint muted\">Click for details</p>" +
             "</div>"
         );
     }
 
     function showGateDetail(gate) {
-        var modal = document.getElementById("readiness-detail-modal");
+        var modal = $("readiness-detail-modal");
         if (!modal) return;
 
-        // Populate detail fields
-        var nameEl = document.getElementById("readiness-detail-name");
-        var statusBadgeEl = document.getElementById("readiness-detail-status-badge");
-        var gateIdEl = document.getElementById("readiness-detail-gate-id");
-        var ownerEl = document.getElementById("readiness-detail-owner");
-        var statusEl = document.getElementById("readiness-detail-status");
-        var truthSourceEl = document.getElementById("readiness-detail-truth-source");
-        var lastCheckedEl = document.getElementById("readiness-detail-last-checked");
-        var checkedByEl = document.getElementById("readiness-detail-checked-by");
-        var expectedEl = document.getElementById("readiness-detail-expected");
-        var actualEl = document.getElementById("readiness-detail-actual");
-        var evidencePathEl = document.getElementById("readiness-detail-evidence-path");
-        var reasonEl = document.getElementById("readiness-detail-reason");
-        var reasonSectionEl = document.getElementById("readiness-detail-reason-section");
-        var remediationEl = document.getElementById("readiness-detail-remediation");
-        var remediationSectionEl = document.getElementById("readiness-detail-remediation-section");
-        var stepsEl = document.getElementById("readiness-detail-steps");
-        var diagnosisSectionEl = document.getElementById("readiness-detail-diagnosis-section");
-        var diagnosisCheckEl = document.getElementById("readiness-detail-diagnosis-check");
-        var diagnosisLinkEl = document.getElementById("readiness-detail-diagnosis-link");
-
-        if (nameEl) nameEl.textContent = gate.gate_name || "";
+        $("readiness-detail-name").textContent = gate.gate_name || "";
+        var statusBadgeEl = $("readiness-detail-status-badge");
         if (statusBadgeEl) {
             statusBadgeEl.className = statusBadgeClass(gate.status);
             statusBadgeEl.textContent = gate.status;
         }
-        if (gateIdEl) gateIdEl.textContent = gate.gate_id;
-        if (ownerEl) ownerEl.textContent = gate.owner_service;
-        if (statusEl) statusEl.textContent = gate.status;
-        if (truthSourceEl) truthSourceEl.textContent = gate.truth_source || "unknown";
-        if (lastCheckedEl) lastCheckedEl.textContent = gate.last_checked_at ? new Date(gate.last_checked_at).toLocaleString() : "Never";
-        if (checkedByEl) checkedByEl.textContent = gate.checked_by || "system";
-
-        if (expectedEl) expectedEl.textContent = gate.expected_evidence || "(Not specified)";
-        if (actualEl) actualEl.textContent = gate.actual_evidence || "(No evidence collected)";
+        $("readiness-detail-gate-id").textContent = gate.gate_id;
+        $("readiness-detail-owner").textContent = gate.owner_service;
+        $("readiness-detail-status").textContent = gate.status;
+        $("readiness-detail-truth-source").textContent = gate.truth_source || "unknown";
+        $("readiness-detail-last-checked").textContent = gate.last_checked_at
+            ? new Date(gate.last_checked_at).toLocaleString()
+            : "Never";
+        $("readiness-detail-checked-by").textContent = gate.checked_by || "system";
+        $("readiness-detail-expected").textContent = gate.expected_evidence || "(Not specified)";
+        $("readiness-detail-actual").textContent = gate.actual_evidence || "(No evidence collected)";
+        var evidencePathEl = $("readiness-detail-evidence-path");
         if (evidencePathEl) {
-            if (gate.evidence_path) {
-                evidencePathEl.innerHTML = "<code>" + escapeHtml(gate.evidence_path) + "</code>";
-            } else {
-                evidencePathEl.textContent = "(Not available)";
-            }
+            evidencePathEl.innerHTML = gate.evidence_path
+                ? "<code>" + escapeHtml(gate.evidence_path) + "</code>"
+                : "(Not available)";
         }
 
-        // Show reason if present and non-empty
+        var reasonSectionEl = $("readiness-detail-reason-section");
+        var reasonEl = $("readiness-detail-reason");
         if (reasonSectionEl && reasonEl) {
-            if (gate.reason && gate.reason.trim()) {
-                reasonEl.textContent = gate.reason;
-                reasonSectionEl.style.display = "block";
-            } else {
-                reasonSectionEl.style.display = "none";
-            }
+            var hasReason = gate.reason && String(gate.reason).trim();
+            if (hasReason) reasonEl.textContent = gate.reason;
+            reasonSectionEl.hidden = !hasReason;
         }
 
-        // Show remediation if present and non-empty
+        var remediationSectionEl = $("readiness-detail-remediation-section");
+        var remediationEl = $("readiness-detail-remediation");
+        var stepsEl = $("readiness-detail-steps");
         if (remediationSectionEl && remediationEl && stepsEl) {
-            if (gate.remediation && gate.remediation.trim()) {
+            var hasRemediation = gate.remediation && String(gate.remediation).trim();
+            if (hasRemediation) {
                 remediationEl.textContent = gate.remediation;
-
                 var stepsHtml = "";
                 if (gate.remediation_steps && gate.remediation_steps.length > 0) {
                     stepsHtml = "<ol class=\"readiness-detail-steps\">";
@@ -300,44 +325,47 @@
                     stepsHtml += "</ol>";
                 }
                 stepsEl.innerHTML = stepsHtml;
-                remediationSectionEl.style.display = "block";
             } else {
-                remediationSectionEl.style.display = "none";
+                stepsEl.innerHTML = "";
             }
+            remediationSectionEl.hidden = !hasRemediation;
         }
 
-        // Show diagnosis link if available
+        var diagnosisSectionEl = $("readiness-detail-diagnosis-section");
+        var diagnosisCheckEl = $("readiness-detail-diagnosis-check");
+        var diagnosisLinkEl = $("readiness-detail-diagnosis-link");
         if (diagnosisSectionEl && diagnosisCheckEl && diagnosisLinkEl) {
-            if (gate.diagnosis_check_id) {
+            var hasDiagnosis = Boolean(gate.diagnosis_check_id);
+            if (hasDiagnosis) {
                 diagnosisCheckEl.textContent = gate.diagnosis_check_id;
-                if (gate.diagnosis_link) {
-                    diagnosisLinkEl.href = gate.diagnosis_link;
-                }
-                diagnosisSectionEl.style.display = "block";
-            } else {
-                diagnosisSectionEl.style.display = "none";
+                diagnosisLinkEl.href = gate.diagnosis_link || "/manage/diagnosis";
             }
+            diagnosisSectionEl.hidden = !hasDiagnosis;
         }
 
-        modal.style.display = "flex";
+        modal.hidden = false;
     }
 
     function hideGateDetail() {
-        var modal = document.getElementById("readiness-detail-modal");
-        if (modal) modal.style.display = "none";
+        var modal = $("readiness-detail-modal");
+        if (modal) modal.hidden = true;
     }
 
     function setupEventListeners() {
-        var refreshBtn = document.getElementById("readiness-refresh-btn");
-        var statusFilter = document.getElementById("readiness-filter-status");
-        var serviceFilter = document.getElementById("readiness-filter-service");
-        var searchInput = document.getElementById("readiness-search");
-        var closeModalBtn = document.getElementById("readiness-detail-close");
-        var closeDetailBtn = document.getElementById("readiness-detail-close-btn");
+        var refreshBtn = $("readiness-refresh-btn");
+        var statusFilter = $("readiness-filter-status");
+        var serviceFilter = $("readiness-filter-service");
+        var searchInput = $("readiness-search");
+        var closeModalBtn = $("readiness-detail-close");
+        var closeDetailBtn = $("readiness-detail-close-btn");
         var backdrop = document.querySelector(".readiness-detail-backdrop");
-        var modal = document.getElementById("readiness-detail-modal");
+        var modal = $("readiness-detail-modal");
 
-        if (refreshBtn) refreshBtn.addEventListener("click", loadGates);
+        if (refreshBtn) {
+            refreshBtn.addEventListener("click", function () {
+                loadGates(true);
+            });
+        }
         if (statusFilter) statusFilter.addEventListener("change", applyFilters);
         if (serviceFilter) serviceFilter.addEventListener("change", applyFilters);
         if (searchInput) searchInput.addEventListener("input", applyFilters);
@@ -345,14 +373,28 @@
         if (closeDetailBtn) closeDetailBtn.addEventListener("click", hideGateDetail);
         if (backdrop) backdrop.addEventListener("click", hideGateDetail);
         if (modal) {
-            modal.addEventListener("click", function(e) {
+            modal.addEventListener("click", function (e) {
                 if (e.target === modal) hideGateDetail();
             });
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
+        applyUrlFilters();
         setupEventListeners();
-        loadGates();
+        if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+            window.ManageUI.scan(document.querySelector(".manage-readiness-page") || document);
+        }
+        if (!window.ManageAuth) {
+            showBanner("ManageAuth is not loaded — cannot fetch gates.", true);
+            return;
+        }
+        window.ManageAuth.ensureAuth()
+            .then(function () {
+                return loadGates(true);
+            })
+            .catch(function (err) {
+                showBanner(err && err.message ? err.message : "Authentication required.", true);
+            });
     });
 })();

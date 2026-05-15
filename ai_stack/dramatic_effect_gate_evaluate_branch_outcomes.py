@@ -349,7 +349,12 @@ def continuity_posture_for_social(
             Returns a value of type ``ContinuitySupportPosture``; see the function body for structure, error paths, and sentinels.
     """
     cont_posture = ContinuitySupportPosture.adequate
-    if soc and getattr(soc, "scene_pressure_state", None) in ("high_tension", "high"):
+    pressure_state = str(getattr(soc, "scene_pressure_state", "") or "")
+    risk_band = str(getattr(soc, "social_risk_band", "") or "")
+    if soc and (
+        pressure_state in {"high_tension", "high", "high_blame", "thread_pressure_high"}
+        or risk_band == "high"
+    ):
         cont_posture = ContinuitySupportPosture.strong if tags_ok else ContinuitySupportPosture.weak
     return cont_posture
 

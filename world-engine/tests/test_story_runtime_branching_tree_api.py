@@ -13,6 +13,10 @@ from story_runtime_core.callbacks import (
     CALLBACK_EDGE_KIND_REPEATED_CONTINUITY_CLASS,
     CALLBACK_WEB_RECORD_SCHEMA_VERSION,
 )
+from story_runtime_core.consequences import (
+    CONSEQUENCE_CASCADE_RECORD_SCHEMA_VERSION,
+    CONSEQUENCE_EDGE_KIND_CARRY_FORWARD,
+)
 
 
 def _headers(internal_api_key: str) -> dict[str, str]:
@@ -112,6 +116,29 @@ class _BranchingTreeApiStub:
         callback_web["rebuilt"] = True
         return callback_web
 
+    def get_consequence_cascade(self, *, session_id: str) -> dict[str, Any]:
+        return {
+            "schema_version": CONSEQUENCE_CASCADE_RECORD_SCHEMA_VERSION,
+            "cascade_id": "consequence_cascade_api",
+            "story_session_id": session_id,
+            "edges": [
+                {
+                    "edge_kind": CONSEQUENCE_EDGE_KIND_CARRY_FORWARD,
+                    "source_consequence_id": "cons-1",
+                    "target_consequence_id": "cons-2",
+                }
+            ],
+            "snapshot": {"atom_count": 2, "edge_count": 1},
+        }
+
+    def list_consequence_cascade_edges(self, *, session_id: str) -> list[dict[str, Any]]:
+        return self.get_consequence_cascade(session_id=session_id)["edges"]
+
+    def rebuild_consequence_cascade(self, *, session_id: str) -> dict[str, Any]:
+        cascade = self.get_consequence_cascade(session_id=session_id)
+        cascade["rebuilt"] = True
+        return cascade
+
 
 def test_branching_tree_internal_api_surface(client, internal_api_key) -> None:
     stub = _BranchingTreeApiStub()
@@ -163,6 +190,18 @@ def test_branching_tree_internal_api_surface(client, internal_api_key) -> None:
     rebuilt_callback_web = client.post("/api/story/sessions/session-api/callback-web/rebuild", headers=headers)
     assert rebuilt_callback_web.status_code == 200
     assert rebuilt_callback_web.json()["callback_web"]["rebuilt"] is True
+
+    cascade = client.get("/api/story/sessions/session-api/consequence-cascade", headers=headers)
+    assert cascade.status_code == 200
+    assert cascade.json()["consequence_cascade"]["schema_version"] == CONSEQUENCE_CASCADE_RECORD_SCHEMA_VERSION
+
+    cascade_edges = client.get("/api/story/sessions/session-api/consequence-cascade/edges", headers=headers)
+    assert cascade_edges.status_code == 200
+    assert cascade_edges.json()["consequence_cascade_edges"][0]["edge_kind"] == CONSEQUENCE_EDGE_KIND_CARRY_FORWARD
+
+    rebuilt_cascade = client.post("/api/story/sessions/session-api/consequence-cascade/rebuild", headers=headers)
+    assert rebuilt_cascade.status_code == 200
+    assert rebuilt_cascade.json()["consequence_cascade"]["rebuilt"] is True
 
     fetched = client.get(
         "/api/story/sessions/session-api/branching/trees/branch_tree_api",

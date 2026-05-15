@@ -124,6 +124,24 @@ runtime_intelligence:
       - blame_pressure
       - repair_attempt
       - silent_carry
+  consequence_cascade:
+    enabled: true
+    schema_version: consequence_cascade_policy.v1
+    max_atoms: 80
+    max_edges: 120
+    max_graph_items: 5
+    max_evidence_refs_per_consequence: 8
+    decay_after_turns: 4
+    allowed_continuity_classes:
+      - situational_pressure
+      - dignity_injury
+      - alliance_shift
+      - revealed_fact
+      - refused_cooperation
+      - blame_pressure
+      - repair_attempt
+      - silent_carry
+      - tension_escalation
   scene_energy:
     enabled: true
     schema_version: scene_energy_policy.v1

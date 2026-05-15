@@ -238,7 +238,10 @@ def derive_pacing_rhythm(
     prior_cadence = prior_cads[-1] if prior_cads else None
     repeated_count = 1
     if prior_cadence == cadence:
-        repeated_count += sum(1 for item in reversed(prior_cads[:-1]) if item == cadence)
+        for item in reversed(prior_cads):
+            if item != cadence:
+                break
+            repeated_count += 1
     max_repeated = int(policy.get("max_repeated_cadence_count") or 2)
     release_due = cadence in {"press", "interrupt"} and repeated_count >= max_repeated
     if release_due and _clean_text(target_energy.get("target_transition")) not in {"rise", "interrupt"}:
@@ -378,6 +381,20 @@ def _visible_block_count(structured_output: dict[str, Any] | None) -> int:
     return count
 
 
+def _forced_speech_detected(structured_output: dict[str, Any] | None) -> bool:
+    structured = structured_output if isinstance(structured_output, dict) else {}
+    for key in ("spoken_lines", "action_lines"):
+        for row in _structured_rows(structured.get(key)):
+            if not isinstance(row, dict):
+                continue
+            if bool(row.get("forced_player_speech") or row.get("forced_speech_detected")):
+                return True
+            owner = _clean_text(row.get("owner_kind") or row.get("actor_owner")).lower()
+            if owner in {"human", "player"} and bool(row.get("forced") or row.get("coerced")):
+                return True
+    return False
+
+
 def validate_pacing_rhythm_realization(
     *,
     pacing_rhythm_target: dict[str, Any] | None,
@@ -417,7 +434,7 @@ def validate_pacing_rhythm_realization(
         failure_codes.append("pacing_rhythm_required_turn_change_missing")
     if target.requires_pause and visible_count > target.max_visible_blocks:
         failure_codes.append("pacing_rhythm_pause_obligation_lost")
-    if target.blocks_forced_speech and spoken_count > 0:
+    if target.blocks_forced_speech and _forced_speech_detected(structured_output):
         failure_codes.append("pacing_rhythm_forced_speech_violation")
     state = pacing_rhythm_state if isinstance(pacing_rhythm_state, dict) else {}
     repeated_count = _bounded_int(state.get("repeated_cadence_count"), 0, minimum=0, maximum=6)

@@ -44,6 +44,7 @@ def build_social_state_record(
     tsum = (thread_pressure_summary or "").strip()
     sa = scene_assessment if isinstance(scene_assessment, dict) else {}
     pressure = str(sa.get("pressure_state") or "moderate_tension")
+    thread_pressure_state = str(sa.get("thread_pressure_state") or "")
     phase = sa.get("guidance_phase_key")
     phase_s = str(phase) if phase else None
 
@@ -56,7 +57,11 @@ def build_social_state_record(
         asym = "alliance_reposition_active"
 
     risk = "moderate"
-    if pressure in {"high_blame", "thread_pressure_high"} or "blame_pressure" in prior_classes:
+    if (
+        pressure in {"high_blame", "thread_pressure_high"}
+        or thread_pressure_state == "high_unresolved_thread_pressure"
+        or "blame_pressure" in prior_classes
+    ):
         risk = "high"
     elif not prior_classes and n == 0:
         risk = "low"
@@ -115,6 +120,7 @@ def social_state_fingerprint(record: SocialStateRecord) -> str:
             str(record.thread_pressure_summary_present),
             record.guidance_phase_key or "",
             record.responder_asymmetry_code,
+            record.social_risk_band,
         ]
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]

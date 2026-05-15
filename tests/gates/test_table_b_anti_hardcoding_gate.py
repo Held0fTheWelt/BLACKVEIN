@@ -89,6 +89,7 @@ LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
     )
     for index in REAUDITED_TABLE_B_CONTROL_IDS
 ) + (
+    ForbiddenPattern("table_b.pi_21", re.compile(r"\bpi_21\b|Π21\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22\b", re.IGNORECASE)),
 )
 
@@ -108,6 +109,14 @@ SCENE_ENERGY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.information_disclosure",
     re.compile(r"\binformation_disclosure\b", re.IGNORECASE),
+)
+PACING_RHYTHM_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.pacing_rhythm",
+    re.compile(r"\bpacing_rhythm\b", re.IGNORECASE),
+)
+CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.consequence_cascade",
+    re.compile(r"\bconsequence_cascade\b", re.IGNORECASE),
 )
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
@@ -134,6 +143,37 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+PACING_RHYTHM_CANONICAL_SURFACES = {
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
+    "ai_stack/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/pacing_rhythm_contracts.py",
+    "ai_stack/pacing_rhythm_engine.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_playability.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
+    "ai_stack/consequence_cascade_contracts.py",
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "story_runtime_core/consequences/__init__.py",
+    "story_runtime_core/consequences/consequence_cascade.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/api/http.py",
+    "world-engine/app/config.py",
+    "world-engine/app/main.py",
+    "world-engine/app/story_runtime/consequence_cascade_store.py",
     "world-engine/app/story_runtime/manager.py",
 }
 
@@ -280,6 +320,42 @@ def test_information_disclosure_runtime_aspect_is_limited_to_canonical_surfaces(
 
     assert not violations, (
         "information_disclosure appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_pacing_rhythm_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Pacing rhythm is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in PACING_RHYTHM_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (PACING_RHYTHM_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "pacing_rhythm appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_consequence_cascade_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Consequence cascade is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in CONSEQUENCE_CASCADE_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "consequence_cascade appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

@@ -1,12 +1,13 @@
 {% extends "manage/base.html" %}
 {% block title %}AI Stack Release Readiness{% endblock %}
 {% block content %}
-<section class="manage-section" data-page="ai-stack-release-readiness">
+<section class="manage-section manage-readiness-page" data-page="ai-stack-release-readiness">
     <header class="mui-deck-header">
         <div>
             <p class="mui-deck-eyebrow">AI Stack · Release Readiness</p>
             <h1>Release Readiness Gates</h1>
-            <p class="mui-deck-headline">Canonical gate status for AI Stack release readiness. Each gate tracks whether a specific capability is ready (<strong>closed</strong>), partially ready (<strong>partial</strong>), or not ready (<strong>open</strong>).</p>
+            <p class="mui-deck-headline">Canonical gate status for AI Stack release readiness. Each gate is <strong>closed</strong> (ready), <strong>partial</strong>, or <strong>open</strong>. Refresh syncs from <a href="/manage/diagnosis">System Diagnosis</a>.</p>
+            <div id="readiness-pills" class="mui-pillrow"></div>
         </div>
         <div class="mui-deck-actions">
             <button type="button" class="btn btn-primary" id="readiness-refresh-btn">Refresh gates</button>
@@ -14,88 +15,109 @@
         </div>
     </header>
 
-    <p id="readiness-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="readiness-banner" class="form-error mui-legacy-hidden" hidden role="alert" aria-live="polite"></p>
     <p id="readiness-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
 
-    <!-- Closure Summary -->
-    <section class="panel readiness-summary-panel" style="margin-bottom:1rem;">
-        <header class="panel-header"><h2>Closure Summary</h2></header>
-        <div class="readiness-summary-row">
-            <div class="readiness-closure-stat">
-                <div class="readiness-stat-value" id="readiness-closure-percent">—</div>
-                <div class="readiness-stat-label">Closure</div>
-            </div>
-            <div class="readiness-closure-stat">
-                <div class="readiness-stat-value" id="readiness-closed-count">—</div>
-                <div class="readiness-stat-label">Closed</div>
-            </div>
-            <div class="readiness-closure-stat">
-                <div class="readiness-stat-value" id="readiness-partial-count">—</div>
-                <div class="readiness-stat-label">Partial</div>
-            </div>
-            <div class="readiness-closure-stat">
-                <div class="readiness-stat-value" id="readiness-open-count">—</div>
-                <div class="readiness-stat-label">Open</div>
-            </div>
-            <div class="readiness-closure-stat">
-                <div class="readiness-stat-value" id="readiness-total-count">—</div>
-                <div class="readiness-stat-label">Total Gates</div>
-            </div>
-        </div>
-        <div class="readiness-progress-bar" style="margin-top:1rem;">
-            <div id="readiness-progress-fill" class="readiness-progress-fill" style="width:0%;"></div>
-        </div>
-        <p id="readiness-last-checked" class="muted" style="margin-top:0.5rem;"></p>
-    </section>
+    <div class="mui-deck" data-mui-deck>
+        <aside class="mui-deck-rail" aria-label="Release readiness sections">
+            <a href="#summary" class="mui-rail-btn is-active" data-deck-target="summary">
+                <span class="mui-rail-badge mui-rail-badge--ok" id="readiness-rail-summary-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Overview</span>
+                    <span class="mui-rail-secondary" id="readiness-rail-summary-sub">closure &amp; progress</span>
+                </span>
+            </a>
+            <a href="#gates" class="mui-rail-btn" data-deck-target="gates">
+                <span class="mui-rail-badge mui-rail-badge--warn" id="readiness-rail-gates-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Gates</span>
+                    <span class="mui-rail-secondary" id="readiness-rail-gates-sub">filter &amp; inspect</span>
+                </span>
+            </a>
+            <a href="#closure" class="mui-rail-btn" data-deck-target="closure" id="readiness-rail-closure" hidden>
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Closure cockpit</span>
+                    <span class="mui-rail-secondary">audit artifacts</span>
+                </span>
+            </a>
+        </aside>
 
-    <!-- Closure Cockpit Summary -->
-    <section class="panel readiness-closure-panel" style="margin-bottom:1rem;" id="readiness-closure-section" style="display:none;">
-        <header class="panel-header"><h2>Closure Cockpit</h2></header>
-        <p class="muted" style="margin-top:0;">AI Stack closure status from canonical audit artifacts.</p>
-        <div id="readiness-closure-content" class="readiness-closure-content">
-            <!-- Populated by JavaScript -->
-        </div>
-    </section>
+        <main class="mui-deck-main">
 
-    <!-- Filters -->
-    <section class="panel readiness-filters-panel" style="margin-bottom:1rem;">
-        <header class="panel-header"><h2>Filters</h2></header>
-        <div class="manage-grid two-col">
-            <label class="form-label">Gate Status
-                <select id="readiness-filter-status" class="form-input">
-                    <option value="">All statuses</option>
-                    <option value="closed">Closed</option>
-                    <option value="partial">Partial</option>
-                    <option value="open">Open</option>
-                </select>
-            </label>
-            <label class="form-label">Owner Service
-                <select id="readiness-filter-service" class="form-input">
-                    <option value="">All services</option>
-                    <option value="backend">Backend</option>
-                    <option value="play-service">Play Service</option>
-                    <option value="ai-stack">AI Stack</option>
-                </select>
-            </label>
-        </div>
-        <label class="form-label">Search gates
-            <input type="text" id="readiness-search" class="form-input" placeholder="Gate name or ID" />
-        </label>
-    </section>
+            <section class="mui-deck-section is-active" data-deck-section="summary">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Summary</span>
+                        <h2>Closure overview</h2>
+                        <p class="mui-inspector-summary">Aggregate gate closure from the canonical readiness schema. Use Refresh gates to sync live diagnosis checks.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div id="readiness-metrics" class="mui-card-grid manage-readiness-metrics-grid"></div>
+                        <div class="manage-readiness-progress-wrap">
+                            <div class="readiness-progress-bar" aria-hidden="true">
+                                <div id="readiness-progress-fill" class="readiness-progress-fill" style="width:0%;"></div>
+                            </div>
+                            <p id="readiness-last-checked" class="manage-dx-meta-line muted"></p>
+                        </div>
+                    </div>
+                </article>
+            </section>
 
-    <!-- Gates List -->
-    <section class="panel readiness-gates-panel">
-        <header class="panel-header"><h2>Gates</h2></header>
-        <p id="readiness-gate-count-display" class="muted" style="margin-top:0;"></p>
-        <div id="readiness-gates-list" class="readiness-gates-list">
-            <!-- Gates populated by JavaScript -->
-        </div>
-    </section>
+            <section class="mui-deck-section" data-deck-section="gates">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Gates</span>
+                        <h2>Canonical gates</h2>
+                        <p class="mui-inspector-summary">Filter by status or owner service. Click a gate for evidence, remediation, and linked diagnosis check.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="manage-readiness-toolbar manage-grid two-col">
+                            <label class="form-label">Gate status
+                                <select id="readiness-filter-status" class="form-input">
+                                    <option value="">All statuses</option>
+                                    <option value="closed">Closed</option>
+                                    <option value="partial">Partial</option>
+                                    <option value="open">Open</option>
+                                </select>
+                            </label>
+                            <label class="form-label">Owner service
+                                <select id="readiness-filter-service" class="form-input">
+                                    <option value="">All services</option>
+                                    <option value="backend">Backend</option>
+                                    <option value="play-service">Play Service</option>
+                                    <option value="ai-stack">AI Stack</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="form-label">Search gates
+                            <input type="search" id="readiness-search" class="form-input" placeholder="Gate name or ID" autocomplete="off" />
+                        </label>
+                        <p id="readiness-gate-count-display" class="manage-dx-meta-line muted"></p>
+                        <div id="readiness-gates-list" class="readiness-gates-list"></div>
+                    </div>
+                </article>
+            </section>
 
-    <!-- Gate Detail Modal (hidden by default) -->
-    <div id="readiness-detail-modal" class="readiness-detail-modal" style="display:none;">
+            <section class="mui-deck-section" data-deck-section="closure" id="readiness-closure-section" hidden>
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Closure</span>
+                        <h2>Closure cockpit</h2>
+                        <p class="mui-inspector-summary">AI Stack closure status from canonical audit artifacts.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div id="readiness-closure-content" class="readiness-closure-content"></div>
+                    </div>
+                </article>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="readiness-detail-modal" class="readiness-detail-modal" hidden>
         <div class="readiness-detail-backdrop"></div>
-        <div class="readiness-detail-content">
+        <div class="readiness-detail-content mui-card">
             <button type="button" class="readiness-detail-close" id="readiness-detail-close" aria-label="Close detail"></button>
             <div class="readiness-detail-scroll">
                 <header class="readiness-detail-header">
@@ -105,59 +127,62 @@
 
                 <section class="readiness-detail-section">
                     <h3>Details</h3>
-                    <dl class="readiness-detail-dl">
+                    <dl class="readiness-detail-dl manage-readiness-kv">
                         <dt>Gate ID</dt>
                         <dd id="readiness-detail-gate-id"></dd>
-                        <dt>Owner Service</dt>
+                        <dt>Owner service</dt>
                         <dd id="readiness-detail-owner"></dd>
                         <dt>Status</dt>
                         <dd id="readiness-detail-status"></dd>
-                        <dt>Truth Source</dt>
+                        <dt>Truth source</dt>
                         <dd id="readiness-detail-truth-source"></dd>
-                        <dt>Last Checked</dt>
+                        <dt>Last checked</dt>
                         <dd id="readiness-detail-last-checked"></dd>
-                        <dt>Checked By</dt>
+                        <dt>Checked by</dt>
                         <dd id="readiness-detail-checked-by"></dd>
                     </dl>
                 </section>
 
                 <section class="readiness-detail-section">
                     <h3>Evidence</h3>
-                    <dl class="readiness-detail-dl">
-                        <dt>Expected Evidence</dt>
+                    <dl class="readiness-detail-dl manage-readiness-kv">
+                        <dt>Expected</dt>
                         <dd id="readiness-detail-expected"></dd>
-                        <dt>Actual Evidence</dt>
+                        <dt>Actual</dt>
                         <dd id="readiness-detail-actual"></dd>
-                        <dt>Evidence Path</dt>
+                        <dt>Path</dt>
                         <dd id="readiness-detail-evidence-path"></dd>
                     </dl>
                 </section>
 
-                <section class="readiness-detail-section" id="readiness-detail-reason-section" style="display:none;">
+                <section class="readiness-detail-section" id="readiness-detail-reason-section" hidden>
                     <h3>Reason</h3>
                     <p id="readiness-detail-reason" class="muted"></p>
                 </section>
 
-                <section class="readiness-detail-section" id="readiness-detail-remediation-section" style="display:none;">
+                <section class="readiness-detail-section" id="readiness-detail-remediation-section" hidden>
                     <h3>Remediation</h3>
                     <p id="readiness-detail-remediation" class="muted"></p>
-                    <div id="readiness-detail-steps" style="margin-top:0.5rem;">
-                        <!-- Steps populated by JavaScript -->
-                    </div>
+                    <div id="readiness-detail-steps"></div>
                 </section>
 
-                <section class="readiness-detail-section" id="readiness-detail-diagnosis-section" style="display:none;">
-                    <h3>Linked Diagnosis Check</h3>
+                <section class="readiness-detail-section" id="readiness-detail-diagnosis-section" hidden>
+                    <h3>Linked diagnosis check</h3>
                     <p id="readiness-detail-diagnosis-check" class="muted"></p>
-                    <a id="readiness-detail-diagnosis-link" href="#" class="btn" style="margin-top:0.5rem;">View in System Diagnosis</a>
+                    <a id="readiness-detail-diagnosis-link" href="/manage/diagnosis" class="btn btn-secondary manage-readiness-diagnosis-link">View in System Diagnosis</a>
                 </section>
 
-                <section class="readiness-detail-actions" style="margin-top:1.5rem;">
+                <section class="readiness-detail-actions">
                     <button type="button" class="btn" id="readiness-detail-close-btn">Close</button>
                 </section>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
 
+{% block extra_scripts %}
+<link rel="stylesheet" href="{{ url_for('static', filename='manage_ai_stack_release_readiness.css') }}">
 <script src="{{ url_for('static', filename='manage_ai_stack_release_readiness.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_ai_stack_release_readiness_deck.js') }}"></script>
+{% endblock %}

@@ -414,6 +414,9 @@ class TestW32ThinEdgeTensionUpgrade:
 
         # Should not force probe_motive for non-silence_withdrawal moves
         # Even with tension present
+        assert "probe_motive" not in candidates
+        assert implied.get("probe_motive") != "tension_carry_forward_probe"
+        assert not any("prior_tension->probe_motive_upgrade" in item for item in trace)
 
 
 # W3.3 Tests: Initiative Carry-Forward

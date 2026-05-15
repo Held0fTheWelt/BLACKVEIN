@@ -16,6 +16,46 @@
             .replace(/"/g, "&quot;");
     }
 
+    function reportStatusBadge(status) {
+        var s = String(status || "").toLowerCase();
+        var cls = "manage-dx-badge";
+        if (s === "open" || s === "escalated") cls += " manage-dx-badge--fail";
+        else if (s === "resolved" || s === "dismissed") cls += " manage-dx-badge--ok";
+        else cls += " manage-dx-badge--init";
+        return '<span class="' + cls + ' ng-runtime-status-badge">' + escapeHtml(status || "") + "</span>";
+    }
+
+    function renderMetrics(m) {
+        var el = $("manage-forum-metrics");
+        if (!el) return;
+        var defs = [
+            { key: "open_reports", label: "Open reports", warn: true },
+            { key: "hidden_posts", label: "Hidden posts", warn: true },
+            { key: "locked_threads", label: "Locked threads", warn: false },
+            { key: "pinned_threads", label: "Pinned threads", warn: false }
+        ];
+        var html = "";
+        defs.forEach(function (d) {
+            var val = m[d.key] || 0;
+            var warnClass = d.warn && val > 0 ? " manage-forum-metric--warn" : "";
+            html +=
+                '<article class="mui-card manage-forum-metric' +
+                warnClass +
+                '">' +
+                '<p class="mui-card-meta">Live</p>' +
+                '<p class="manage-forum-metric-value">' +
+                escapeHtml(String(val)) +
+                "</p>" +
+                '<p class="manage-forum-metric-label">' +
+                escapeHtml(d.label) +
+                "</p></article>";
+        });
+        el.innerHTML = html;
+        if (window.ManageForumDeck && typeof window.ManageForumDeck.syncMetrics === "function") {
+            window.ManageForumDeck.syncMetrics(m);
+        }
+    }
+
     function api() {
         return window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
     }
@@ -99,7 +139,7 @@
 
         if (empty) empty.hidden = true;
         if (form) form.hidden = false;
-        if (editorTitle) editorTitle.textContent = "// CATEGORY " + (cat.slug || "");
+        if (editorTitle) editorTitle.textContent = cat.title || cat.slug || "Category";
 
         var tbody = $("manage-forum-categories-tbody");
         if (tbody) {
@@ -134,7 +174,7 @@
         if (err) { err.textContent = ""; err.hidden = true; }
         if (form) form.hidden = false;
         if (empty) empty.hidden = true;
-        if (editorTitle) editorTitle.textContent = "// CATEGORY";
+        if (editorTitle) editorTitle.textContent = "New category";
     }
 
     function initCategories() {
@@ -303,7 +343,7 @@
                                 "<td>" + target + "</td>" +
                                 "<td>" + escapeHtml(r.reason || "") + "</td>" +
                                 "<td class=\"mono\" style=\"font-size:0.85em;\">" + noteSnippet + "</td>" +
-                                "<td>" + (r.status || "") + "</td>" +
+                                "<td>" + reportStatusBadge(r.status) + "</td>" +
                                 "<td>" + created + "</td>" +
                                 "<td>" +
                                 "<button type=\"button\" class=\"btn btn-sm btn-outline\" data-status=\"open\">Open</button> " +
@@ -401,6 +441,9 @@
         var card = $("manage-forum-dashboard-card");
         if (!card) return;
         card.hidden = false;
+        if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+            window.ManageUI.scan(card);
+        }
 
         var loading = $("manage-forum-dashboard-loading");
         var errorEl = $("manage-forum-dashboard-error");
@@ -414,14 +457,7 @@
         function loadMetrics() {
             apiRef("/api/v1/forum/moderation/metrics")
                 .then(function(m) {
-                    var el = $("manage-forum-metrics");
-                    if (el) {
-                        el.innerHTML =
-                            "<span class=\"manage-metric\">Open reports: <strong>" + (m.open_reports || 0) + "</strong></span> " +
-                            "<span class=\"manage-metric\">Hidden posts: <strong>" + (m.hidden_posts || 0) + "</strong></span> " +
-                            "<span class=\"manage-metric\">Locked threads: <strong>" + (m.locked_threads || 0) + "</strong></span> " +
-                            "<span class=\"manage-metric\">Pinned threads: <strong>" + (m.pinned_threads || 0) + "</strong></span>";
-                    }
+                    renderMetrics(m || {});
                 })
                 .catch(function() {});
         }
@@ -870,9 +906,12 @@
             var categoriesCard = $("manage-forum-categories-card");
             var categoryEditor = $("manage-forum-category-editor");
             var tagsCard = $("manage-forum-tags-card");
+            var railCategories = $("manage-forum-rail-categories");
+            var railTags = $("manage-forum-rail-tags");
             if (!isAdmin) {
                 if (categoriesCard) categoriesCard.style.display = "none";
                 if (categoryEditor) categoryEditor.style.display = "none";
+                if (railCategories) railCategories.style.display = "none";
             } else {
                 if (categoriesCard) categoriesCard.style.display = "";
                 if (categoryEditor) categoryEditor.style.display = "";
@@ -883,11 +922,15 @@
                 if (tagsCard) tagsCard.style.display = "";
             } else {
                 if (tagsCard) tagsCard.style.display = "none";
+                if (railTags) railTags.style.display = "none";
             }
             initReports();
             if (isModeratorOrAdmin) {
                 initModerationDashboard();
                 initModerationLog();
+            }
+            if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+                window.ManageUI.scan(document.querySelector(".manage-forum-page") || document);
             }
         }).catch(function() {});
     }

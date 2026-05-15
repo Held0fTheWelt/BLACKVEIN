@@ -2,286 +2,358 @@
 {% block title %}Forum – Manage{% endblock %}
 
 {% block content %}
-<section class="manage-section">
+<section class="manage-section manage-forum-page" data-page="forum">
     <header class="mui-deck-header">
         <div>
             <p class="mui-deck-eyebrow">Community · Forum</p>
             <h1>Forum</h1>
-            <p class="mui-deck-headline">Moderation, categories, tags, reports, and the moderation log.</p>
+            <p class="mui-deck-headline">Moderation dashboard, categories, tags, reports, and the moderation log.</p>
+            <div id="manage-forum-pills" class="mui-pillrow"></div>
+        </div>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn btn-primary" id="manage-forum-dashboard-refresh">Refresh dashboard</button>
         </div>
     </header>
 
-    <div id="manage-forum-dashboard-card" class="manage-card" hidden>
-        <div class="manage-card-header">
-            <h2 class="manage-card-title mono">// MODERATION DASHBOARD</h2>
-            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-dashboard-refresh">Refresh</button>
-        </div>
-        <div class="manage-card-body">
-            <p class="manage-state" id="manage-forum-dashboard-loading" role="status">Loading…</p>
-            <p class="manage-state manage-state-error" id="manage-forum-dashboard-error" role="alert" hidden></p>
-            <div id="manage-forum-dashboard-content" hidden>
-                <div class="manage-forum-metrics" id="manage-forum-metrics"></div>
-                <div class="manage-grid-2" style="margin-top:1rem;">
-                    <div>
-                        <h3 class="mono" style="margin-bottom:0.5rem;">Open reports</h3>
-                        <p class="manage-state" id="manage-forum-open-reports-loading">Loading…</p>
-                        <p class="manage-state" id="manage-forum-open-reports-empty" hidden>No open reports.</p>
-                        <div id="manage-forum-open-reports-wrap" class="table-wrap" hidden></div>
-                    </div>
-                    <div>
-                        <h3 class="mono" style="margin-bottom:0.5rem;">Recently handled</h3>
-                        <p class="manage-state" id="manage-forum-handled-loading">Loading…</p>
-                        <p class="manage-state" id="manage-forum-handled-empty" hidden>No recently handled reports.</p>
-                        <div id="manage-forum-handled-wrap" class="table-wrap" hidden></div>
-                    </div>
-                </div>
-                <details class="manage-forum-details" style="margin-top:1rem;">
-                    <summary class="mono">Locked threads</summary>
-                    <div id="manage-forum-locked-bulk-bar" class="manage-bulk-bar" hidden>
-                        <label><input type="checkbox" id="manage-forum-locked-select-all"> Select all</label>
-                        <button type="button" class="btn btn-primary btn-sm" id="manage-forum-locked-bulk-unlock">Bulk unlock</button>
-                    </div>
-                    <p class="manage-state" id="manage-forum-locked-loading">Loading…</p>
-                    <p class="manage-state" id="manage-forum-locked-empty" hidden>None.</p>
-                    <div id="manage-forum-locked-wrap" class="table-wrap" hidden></div>
-                </details>
-                <details class="manage-forum-details" style="margin-top:0.5rem;">
-                    <summary class="mono">Pinned threads</summary>
-                    <p class="manage-state" id="manage-forum-pinned-loading">Loading…</p>
-                    <p class="manage-state" id="manage-forum-pinned-empty" hidden>None.</p>
-                    <div id="manage-forum-pinned-wrap" class="table-wrap" hidden></div>
-                </details>
-                <details class="manage-forum-details" style="margin-top:0.5rem;">
-                    <summary class="mono">Hidden posts</summary>
-                    <div id="manage-forum-hidden-bulk-bar" class="manage-bulk-bar" hidden>
-                        <label><input type="checkbox" id="manage-forum-hidden-select-all"> Select all</label>
-                        <button type="button" class="btn btn-primary btn-sm" id="manage-forum-hidden-bulk-unhide">Bulk unhide</button>
-                    </div>
-                    <p class="manage-state" id="manage-forum-hidden-loading">Loading…</p>
-                    <p class="manage-state" id="manage-forum-hidden-empty" hidden>None.</p>
-                    <div id="manage-forum-hidden-wrap" class="table-wrap" hidden></div>
-                </details>
-            </div>
-        </div>
-    </div>
+    <p id="manage-forum-global-error" class="form-error mui-legacy-hidden" hidden role="alert" aria-live="polite"></p>
 
-    <div class="manage-grid-2">
-        <div class="manage-card" id="manage-forum-categories-card">
-            <div class="manage-card-header">
-                <h2 class="manage-card-title mono">// CATEGORIES</h2>
-                <button type="button" class="btn btn-primary btn-sm" id="manage-forum-category-new">New category</button>
-            </div>
-            <div class="manage-card-body">
-                <p class="manage-state" id="manage-forum-categories-loading" role="status">Loading…</p>
-                <p class="manage-state manage-state-error" id="manage-forum-categories-error" role="alert" hidden></p>
-                <p class="manage-state" id="manage-forum-categories-empty" hidden>No categories found.</p>
-                <div class="table-wrap" id="manage-forum-categories-table-wrap" hidden>
-                    <table class="data-table">
-                        <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Slug</th>
-                            <th>Sort</th>
-                            <th>Active</th>
-                            <th>Private</th>
-                            <th>Required role</th>
-                        </tr>
-                        </thead>
-                        <tbody id="manage-forum-categories-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="manage-card-footer" id="manage-forum-categories-footer" hidden>
-                <span id="manage-forum-categories-count" class="mono">0 categories</span>
-            </div>
-        </div>
+    <div class="mui-deck" data-mui-deck>
 
-        <div class="manage-card" id="manage-forum-category-editor">
-            <div class="manage-card-header">
-                <h2 class="manage-card-title mono" id="manage-forum-category-editor-title">// CATEGORY</h2>
-            </div>
-            <div class="manage-card-body">
-                <p id="manage-forum-category-editor-empty" class="muted">Select a category on the left or create a new one.</p>
-                <form id="manage-forum-category-form" class="manage-form" hidden>
-                    <input type="hidden" id="manage-forum-category-id">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="manage-forum-category-title">Title</label>
-                            <input type="text" id="manage-forum-category-title" class="form-input" required maxlength="255">
-                        </div>
-                        <div class="form-group">
-                            <label for="manage-forum-category-slug">Slug</label>
-                            <input type="text" id="manage-forum-category-slug" class="form-input" required maxlength="128">
-                            <p class="field-hint mono">Slug is set on create and cannot be changed later in this UI.</p>
+        <aside class="mui-deck-rail" aria-label="Forum sections">
+            <a href="#dashboard" class="mui-rail-btn is-active" data-deck-target="dashboard">
+                <span class="mui-rail-badge mui-rail-badge--warn" id="manage-forum-rail-dashboard-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Moderation</span>
+                    <span class="mui-rail-secondary" id="manage-forum-rail-dashboard-sub">overview &amp; queue</span>
+                </span>
+            </a>
+            <a href="#categories" class="mui-rail-btn" data-deck-target="categories" id="manage-forum-rail-categories">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Categories</span>
+                    <span class="mui-rail-secondary">structure &amp; access</span>
+                </span>
+            </a>
+            <a href="#tags" class="mui-rail-btn" data-deck-target="tags" id="manage-forum-rail-tags">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Tags</span>
+                    <span class="mui-rail-secondary">search &amp; cleanup</span>
+                </span>
+            </a>
+            <a href="#reports" class="mui-rail-btn" data-deck-target="reports">
+                <span class="mui-rail-badge mui-rail-badge--warn" id="manage-forum-rail-reports-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Reports</span>
+                    <span class="mui-rail-secondary" id="manage-forum-rail-reports-sub">full queue</span>
+                </span>
+            </a>
+            <a href="#modlog" class="mui-rail-btn" data-deck-target="modlog">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Moderation log</span>
+                    <span class="mui-rail-secondary">audit trail</span>
+                </span>
+            </a>
+        </aside>
+
+        <main class="mui-deck-main">
+
+            <section class="mui-deck-section is-active" data-deck-section="dashboard">
+                <article class="mui-inspector" id="manage-forum-dashboard-card" hidden>
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Overview</span>
+                        <h2>Moderation dashboard</h2>
+                        <p class="mui-inspector-summary">Live counts from the forum API — open reports, hidden posts, locked and pinned threads.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <p class="manage-dx-empty" id="manage-forum-dashboard-loading" role="status">Loading…</p>
+                        <p class="manage-state manage-state-error" id="manage-forum-dashboard-error" role="alert" hidden></p>
+                        <div id="manage-forum-dashboard-content" hidden>
+                            <div id="manage-forum-metrics" class="mui-card-grid manage-forum-metrics-grid"></div>
+                            <div class="mui-card-grid manage-forum-dash-panels">
+                                <article class="mui-card manage-forum-dash-panel">
+                                    <h4>Open reports</h4>
+                                    <p class="manage-dx-empty" id="manage-forum-open-reports-loading">Loading…</p>
+                                    <p class="manage-dx-empty" id="manage-forum-open-reports-empty" hidden>No open reports.</p>
+                                    <div id="manage-forum-open-reports-wrap" class="table-wrap manage-forum-table-wrap" hidden></div>
+                                </article>
+                                <article class="mui-card manage-forum-dash-panel">
+                                    <h4>Recently handled</h4>
+                                    <p class="manage-dx-empty" id="manage-forum-handled-loading">Loading…</p>
+                                    <p class="manage-dx-empty" id="manage-forum-handled-empty" hidden>No recently handled reports.</p>
+                                    <div id="manage-forum-handled-wrap" class="table-wrap manage-forum-table-wrap" hidden></div>
+                                </article>
+                            </div>
+                            <details class="manage-dx-check-details manage-forum-details">
+                                <summary>Locked threads</summary>
+                                <div id="manage-forum-locked-bulk-bar" class="manage-forum-toolbar" hidden>
+                                    <label class="manage-forum-check"><input type="checkbox" id="manage-forum-locked-select-all"> Select all</label>
+                                    <button type="button" class="btn btn-primary btn-sm" id="manage-forum-locked-bulk-unlock">Bulk unlock</button>
+                                </div>
+                                <p class="manage-dx-empty" id="manage-forum-locked-loading">Loading…</p>
+                                <p class="manage-dx-empty" id="manage-forum-locked-empty" hidden>None.</p>
+                                <div id="manage-forum-locked-wrap" class="table-wrap manage-forum-table-wrap" hidden></div>
+                            </details>
+                            <details class="manage-dx-check-details manage-forum-details">
+                                <summary>Pinned threads</summary>
+                                <p class="manage-dx-empty" id="manage-forum-pinned-loading">Loading…</p>
+                                <p class="manage-dx-empty" id="manage-forum-pinned-empty" hidden>None.</p>
+                                <div id="manage-forum-pinned-wrap" class="table-wrap manage-forum-table-wrap" hidden></div>
+                            </details>
+                            <details class="manage-dx-check-details manage-forum-details">
+                                <summary>Hidden posts</summary>
+                                <div id="manage-forum-hidden-bulk-bar" class="manage-forum-toolbar" hidden>
+                                    <label class="manage-forum-check"><input type="checkbox" id="manage-forum-hidden-select-all"> Select all</label>
+                                    <button type="button" class="btn btn-primary btn-sm" id="manage-forum-hidden-bulk-unhide">Bulk unhide</button>
+                                </div>
+                                <p class="manage-dx-empty" id="manage-forum-hidden-loading">Loading…</p>
+                                <p class="manage-dx-empty" id="manage-forum-hidden-empty" hidden>None.</p>
+                                <div id="manage-forum-hidden-wrap" class="table-wrap manage-forum-table-wrap" hidden></div>
+                            </details>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="manage-forum-category-description">Description</label>
-                        <textarea id="manage-forum-category-description" class="form-textarea" rows="3"></textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="manage-forum-category-sort">Sort order</label>
-                            <input type="number" id="manage-forum-category-sort" class="form-input" value="0">
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="categories">
+                <div class="mui-card-grid manage-forum-split">
+                    <article class="mui-inspector manage-forum-panel" id="manage-forum-categories-card">
+                        <header class="mui-inspector-head manage-forum-panel-head">
+                            <div>
+                                <span class="mui-inspector-eyebrow">Structure</span>
+                                <h2>Categories</h2>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" id="manage-forum-category-new">New category</button>
+                        </header>
+                        <div class="mui-inspector-body">
+                            <p class="manage-dx-empty" id="manage-forum-categories-loading" role="status">Loading…</p>
+                            <p class="manage-state manage-state-error" id="manage-forum-categories-error" role="alert" hidden></p>
+                            <p class="manage-dx-empty" id="manage-forum-categories-empty" hidden>No categories found.</p>
+                            <div class="table-wrap manage-forum-table-wrap" id="manage-forum-categories-table-wrap" hidden>
+                                <table class="data-table manage-forum-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Slug</th>
+                                        <th>Sort</th>
+                                        <th>Active</th>
+                                        <th>Private</th>
+                                        <th>Required role</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="manage-forum-categories-tbody"></tbody>
+                                </table>
+                            </div>
+                            <p class="manage-forum-footnote mono" id="manage-forum-categories-footer" hidden>
+                                <span id="manage-forum-categories-count">0 categories</span>
+                            </p>
                         </div>
-                        <div class="form-group">
-                            <label for="manage-forum-category-required-role">Required role (optional)</label>
-                            <select id="manage-forum-category-required-role" class="form-select">
-                                <option value="">Any</option>
-                                <option value="user">user</option>
-                                <option value="qa">qa</option>
-                                <option value="moderator">moderator</option>
-                                <option value="admin">admin</option>
+                    </article>
+
+                    <article class="mui-inspector manage-forum-panel" id="manage-forum-category-editor">
+                        <header class="mui-inspector-head">
+                            <span class="mui-inspector-eyebrow">Editor</span>
+                            <h2 id="manage-forum-category-editor-title">Category</h2>
+                        </header>
+                        <div class="mui-inspector-body">
+                            <p id="manage-forum-category-editor-empty" class="manage-dx-empty">Select a category on the left or create a new one.</p>
+                            <form id="manage-forum-category-form" class="manage-form mui-field-grid" hidden>
+                                <input type="hidden" id="manage-forum-category-id">
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Title</span>
+                                    <input type="text" id="manage-forum-category-title" class="form-input" required maxlength="255">
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Slug</span>
+                                    <input type="text" id="manage-forum-category-slug" class="form-input" required maxlength="128">
+                                    <span class="field-hint">Set on create only; cannot be changed later.</span>
+                                </label>
+                                <label class="mui-field mui-field-full">
+                                    <span class="mui-field-label">Description</span>
+                                    <textarea id="manage-forum-category-description" class="form-textarea" rows="3"></textarea>
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Sort order</span>
+                                    <input type="number" id="manage-forum-category-sort" class="form-input" value="0">
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Required role</span>
+                                    <select id="manage-forum-category-required-role" class="form-select">
+                                        <option value="">Any</option>
+                                        <option value="user">user</option>
+                                        <option value="qa">qa</option>
+                                        <option value="moderator">moderator</option>
+                                        <option value="admin">admin</option>
+                                    </select>
+                                </label>
+                                <label class="mui-field-check">
+                                    <input type="checkbox" id="manage-forum-category-active" checked>
+                                    <span>Active</span>
+                                </label>
+                                <label class="mui-field-check">
+                                    <input type="checkbox" id="manage-forum-category-private">
+                                    <span>Private / staff only</span>
+                                </label>
+                                <p id="manage-forum-category-form-error" class="manage-form-error mui-field-full" role="alert" hidden></p>
+                                <div class="manage-form-actions mui-field-full">
+                                    <button type="submit" class="btn btn-primary" id="manage-forum-category-save">Save</button>
+                                    <button type="button" class="btn btn-ghost" id="manage-forum-category-reset">Reset</button>
+                                    <button type="button" class="btn btn-outline" id="manage-forum-category-delete">Delete</button>
+                                </div>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="tags">
+                <article class="mui-inspector manage-forum-panel" id="manage-forum-tags-card">
+                    <header class="mui-inspector-head manage-forum-panel-head">
+                        <div>
+                            <span class="mui-inspector-eyebrow">Taxonomy</span>
+                            <h2>Tags</h2>
+                        </div>
+                        <div class="manage-forum-toolbar">
+                            <label for="manage-forum-tags-search" class="visually-hidden">Search tags</label>
+                            <input type="text" id="manage-forum-tags-search" class="form-input manage-forum-filter-input" placeholder="Search tags…">
+                            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-tags-refresh">Refresh</button>
+                        </div>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <p class="manage-dx-empty" id="manage-forum-tags-loading" role="status">Loading…</p>
+                        <p class="manage-state manage-state-error" id="manage-forum-tags-error" role="alert" hidden></p>
+                        <p class="manage-dx-empty" id="manage-forum-tags-empty" hidden>No tags found.</p>
+                        <div class="table-wrap manage-forum-table-wrap" id="manage-forum-tags-table-wrap" hidden>
+                            <table class="data-table manage-forum-table">
+                                <thead>
+                                <tr>
+                                    <th>Slug</th>
+                                    <th>Label</th>
+                                    <th>Threads</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="manage-forum-tags-tbody"></tbody>
+                            </table>
+                        </div>
+                        <p class="manage-forum-footnote mono" id="manage-forum-tags-footer" hidden>
+                            <span id="manage-forum-tags-count">0 tags</span>
+                        </p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="reports">
+                <article class="mui-inspector manage-forum-panel" id="manage-forum-reports-card">
+                    <header class="mui-inspector-head manage-forum-panel-head">
+                        <div>
+                            <span class="mui-inspector-eyebrow">Queue</span>
+                            <h2>Reports</h2>
+                        </div>
+                        <div class="manage-forum-toolbar">
+                            <label for="manage-forum-report-status" class="visually-hidden">Status</label>
+                            <select id="manage-forum-report-status" class="form-select manage-forum-filter-select">
+                                <option value="">All statuses</option>
+                                <option value="open">Open</option>
+                                <option value="reviewed">Reviewed</option>
+                                <option value="escalated">Escalated</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="dismissed">Dismissed</option>
                             </select>
+                            <label for="manage-forum-report-target-type" class="visually-hidden">Target type</label>
+                            <select id="manage-forum-report-target-type" class="form-select manage-forum-filter-select">
+                                <option value="">All types</option>
+                                <option value="thread">Thread</option>
+                                <option value="post">Post</option>
+                            </select>
+                            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-report-refresh">Refresh</button>
+                        </div>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <p class="manage-dx-empty" id="manage-forum-reports-loading" role="status">Loading…</p>
+                        <p class="manage-state manage-state-error" id="manage-forum-reports-error" role="alert" hidden></p>
+                        <p class="manage-dx-empty" id="manage-forum-reports-empty" hidden>No reports.</p>
+                        <div id="manage-forum-reports-bulk-bar" class="manage-forum-toolbar manage-forum-bulk-bar" hidden>
+                            <label class="manage-forum-check"><input type="checkbox" id="manage-forum-reports-select-all"> Select all</label>
+                            <select id="manage-forum-reports-bulk-action" class="form-select manage-forum-filter-select">
+                                <option value="">Bulk action…</option>
+                                <option value="reviewed">Mark reviewed</option>
+                                <option value="escalated">Escalate</option>
+                                <option value="resolved">Resolve</option>
+                                <option value="dismissed">Dismiss</option>
+                            </select>
+                            <input type="text" id="manage-forum-reports-bulk-note" class="form-input manage-forum-bulk-note" placeholder="Resolution note (optional)">
+                            <button type="button" class="btn btn-primary btn-sm" id="manage-forum-reports-bulk-apply">Apply</button>
+                        </div>
+                        <div class="table-wrap manage-forum-table-wrap" id="manage-forum-reports-table-wrap" hidden>
+                            <table class="data-table manage-forum-table">
+                                <thead>
+                                <tr>
+                                    <th class="manage-forum-col-check"><input type="checkbox" id="manage-forum-reports-thead-check"></th>
+                                    <th>ID</th>
+                                    <th>Target</th>
+                                    <th>Reason</th>
+                                    <th>Note</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="manage-forum-reports-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="manage-forum-footnote manage-forum-footnote-row" id="manage-forum-reports-footer" hidden>
+                            <span id="manage-forum-reports-count" class="mono">0 reports</span>
+                            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-reports-load-more" hidden>Load more</button>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group checkbox-group">
-                            <label><input type="checkbox" id="manage-forum-category-active" checked> Active</label>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="modlog">
+                <article class="mui-inspector manage-forum-panel" id="manage-forum-modlog-card" hidden>
+                    <header class="mui-inspector-head manage-forum-panel-head">
+                        <div>
+                            <span class="mui-inspector-eyebrow">Audit</span>
+                            <h2>Moderation log</h2>
                         </div>
-                        <div class="form-group checkbox-group">
-                            <label><input type="checkbox" id="manage-forum-category-private"> Private / staff only</label>
+                        <button type="button" class="btn btn-outline btn-sm" id="manage-forum-modlog-refresh">Refresh</button>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <p class="manage-dx-empty" id="manage-forum-modlog-loading" role="status">Loading…</p>
+                        <p class="manage-state manage-state-error" id="manage-forum-modlog-error" role="alert" hidden></p>
+                        <p class="manage-dx-empty" id="manage-forum-modlog-empty" hidden>No log entries.</p>
+                        <div class="table-wrap manage-forum-table-wrap" id="manage-forum-modlog-table-wrap" hidden>
+                            <table class="data-table manage-forum-table">
+                                <thead>
+                                <tr>
+                                    <th>Actor</th>
+                                    <th>Action</th>
+                                    <th>Target</th>
+                                    <th>Message</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                                </thead>
+                                <tbody id="manage-forum-modlog-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="manage-forum-footnote manage-forum-footnote-row" id="manage-forum-modlog-footer" hidden>
+                            <span id="manage-forum-modlog-count" class="mono">0 entries</span>
+                            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-modlog-load-more" hidden>Load more</button>
                         </div>
                     </div>
-                    <p id="manage-forum-category-form-error" class="manage-form-error" role="alert" hidden></p>
-                    <div class="manage-form-actions">
-                        <button type="submit" class="btn btn-primary" id="manage-forum-category-save">Save</button>
-                        <button type="button" class="btn btn-ghost" id="manage-forum-category-reset">Reset</button>
-                        <button type="button" class="btn btn-outline" id="manage-forum-category-delete">Delete</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                </article>
+            </section>
 
-    <div class="manage-card" id="manage-forum-tags-card">
-        <div class="manage-card-header">
-            <h2 class="manage-card-title mono">// TAGS</h2>
-            <div class="table-filters">
-                <label for="manage-forum-tags-search" class="visually-hidden">Search tags</label>
-                <input type="text" id="manage-forum-tags-search" class="filter-input" placeholder="Search tags...">
-                <button type="button" class="btn btn-outline btn-sm" id="manage-forum-tags-refresh">Refresh</button>
-            </div>
-        </div>
-        <div class="manage-card-body">
-            <p class="manage-state" id="manage-forum-tags-loading" role="status">Loading...</p>
-            <p class="manage-state manage-state-error" id="manage-forum-tags-error" role="alert" hidden></p>
-            <p class="manage-state" id="manage-forum-tags-empty" hidden>No tags found.</p>
-            <div class="table-wrap" id="manage-forum-tags-table-wrap" hidden>
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>Slug</th>
-                        <th>Label</th>
-                        <th>Threads</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody id="manage-forum-tags-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="manage-card-footer" id="manage-forum-tags-footer" hidden>
-            <span id="manage-forum-tags-count" class="mono">0 tags</span>
-        </div>
-    </div>
-
-    <div class="manage-card" id="manage-forum-reports-card">
-        <div class="manage-card-header">
-            <h2 class="manage-card-title mono">// REPORTS</h2>
-            <div class="table-filters">
-                <label for="manage-forum-report-status" class="visually-hidden">Status</label>
-                <select id="manage-forum-report-status" class="filter-select">
-                    <option value="">All statuses</option>
-                    <option value="open">Open</option>
-                    <option value="reviewed">Reviewed</option>
-                    <option value="escalated">Escalated</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="dismissed">Dismissed</option>
-                </select>
-                <label for="manage-forum-report-target-type" class="visually-hidden">Target type</label>
-                <select id="manage-forum-report-target-type" class="filter-select">
-                    <option value="">All types</option>
-                    <option value="thread">Thread</option>
-                    <option value="post">Post</option>
-                </select>
-                <button type="button" class="btn btn-outline btn-sm" id="manage-forum-report-refresh">Refresh</button>
-            </div>
-        </div>
-        <div class="manage-card-body">
-            <p class="manage-state" id="manage-forum-reports-loading" role="status">Loading…</p>
-            <p class="manage-state manage-state-error" id="manage-forum-reports-error" role="alert" hidden></p>
-            <p class="manage-state" id="manage-forum-reports-empty" hidden>No reports.</p>
-            <div id="manage-forum-reports-bulk-bar" class="manage-bulk-bar" hidden>
-                <label><input type="checkbox" id="manage-forum-reports-select-all"> Select all</label>
-                <select id="manage-forum-reports-bulk-action" class="filter-select">
-                    <option value="">Bulk action…</option>
-                    <option value="reviewed">Mark reviewed</option>
-                    <option value="escalated">Escalate</option>
-                    <option value="resolved">Resolve</option>
-                    <option value="dismissed">Dismiss</option>
-                </select>
-                <input type="text" id="manage-forum-reports-bulk-note" class="form-input" placeholder="Resolution note (optional)" style="max-width:250px;">
-                <button type="button" class="btn btn-primary btn-sm" id="manage-forum-reports-bulk-apply">Apply</button>
-            </div>
-            <div class="table-wrap" id="manage-forum-reports-table-wrap" hidden>
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th style="width:2rem;"><input type="checkbox" id="manage-forum-reports-thead-check"></th>
-                        <th>ID</th>
-                        <th>Target</th>
-                        <th>Reason</th>
-                        <th>Note</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody id="manage-forum-reports-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="manage-card-footer" id="manage-forum-reports-footer" hidden>
-            <span id="manage-forum-reports-count" class="mono">0 reports</span>
-            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-reports-load-more" hidden>Load more</button>
-        </div>
-    </div>
-
-    <div class="manage-card" id="manage-forum-modlog-card" hidden>
-        <div class="manage-card-header">
-            <h2 class="manage-card-title mono">// MODERATION LOG</h2>
-            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-modlog-refresh">Refresh</button>
-        </div>
-        <div class="manage-card-body">
-            <p class="manage-state" id="manage-forum-modlog-loading" role="status">Loading…</p>
-            <p class="manage-state manage-state-error" id="manage-forum-modlog-error" role="alert" hidden></p>
-            <p class="manage-state" id="manage-forum-modlog-empty" hidden>No log entries.</p>
-            <div class="table-wrap" id="manage-forum-modlog-table-wrap" hidden>
-                <table class="data-table">
-                    <thead>
-                    <tr>
-                        <th>Actor</th>
-                        <th>Action</th>
-                        <th>Target</th>
-                        <th>Message</th>
-                        <th>Timestamp</th>
-                    </tr>
-                    </thead>
-                    <tbody id="manage-forum-modlog-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="manage-card-footer" id="manage-forum-modlog-footer" hidden>
-            <span id="manage-forum-modlog-count" class="mono">0 entries</span>
-            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-modlog-load-more" hidden>Load more</button>
-        </div>
+        </main>
     </div>
 </section>
 {% endblock %}
 
 {% block extra_scripts %}
+<link rel="stylesheet" href="{{ url_for('static', filename='manage_forum.css') }}">
 <script src="{{ url_for('static', filename='manage_forum.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_forum_deck.js') }}"></script>
 {% endblock %}
-

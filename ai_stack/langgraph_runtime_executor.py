@@ -2411,6 +2411,31 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
     add_line("narrative_thread_precedents", "prior_callback_web_state", callback_values)
     add_line("continuity_pressure_context", "prior_callback_web_state", callback_values)
 
+    prior_cascade = state.get("prior_consequence_cascade_state")
+    if not isinstance(prior_cascade, dict):
+        prior_cascade = {}
+    cascade_items = (
+        prior_cascade.get("items") if isinstance(prior_cascade.get("items"), list) else []
+    )
+    cascade_values: list[Any] = [
+        prior_cascade.get("selected_consequence_ids"),
+        prior_cascade.get("selected_continuity_classes"),
+        prior_cascade.get("selected_statuses"),
+    ]
+    for item in cascade_items[:5]:
+        if not isinstance(item, dict):
+            continue
+        cascade_values.extend(
+            [
+                item.get("consequence_id"),
+                item.get("continuity_class"),
+                item.get("status"),
+                item.get("thread_ids"),
+            ]
+        )
+    add_line("narrative_thread_precedents", "prior_consequence_cascade_state", cascade_values)
+    add_line("continuity_pressure_context", "prior_consequence_cascade_state", cascade_values)
+
     memory_context = state.get("hierarchical_memory_context")
     if isinstance(memory_context, dict):
         tiers = memory_context.get("tiers") if isinstance(memory_context.get("tiers"), dict) else {}
@@ -2756,6 +2781,23 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("dramatic_irony_record"), dict)
         else None
     )
+    prior_cascade = (
+        state.get("prior_consequence_cascade_state")
+        if isinstance(state.get("prior_consequence_cascade_state"), dict)
+        else {}
+    )
+    cascade_items = prior_cascade.get("items") if isinstance(prior_cascade.get("items"), list) else []
+    compact_cascade_items = [
+        {
+            "consequence_id": item.get("consequence_id"),
+            "source_turn_number": item.get("source_turn_number"),
+            "continuity_class": item.get("continuity_class"),
+            "status": item.get("status"),
+            "thread_ids": list(item.get("thread_ids") or [])[:4],
+        }
+        for item in cascade_items[:5]
+        if isinstance(item, dict)
+    ]
 
     prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
     continuity_constraints: list[dict[str, str]] = []
@@ -2858,6 +2900,16 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "Emit disclosure_events only for selected_unit_ids when relevant. "
                 "Do not reveal forbidden_unit_ids; withheld units may be implied only as pressure, not confirmed truth."
             ),
+        },
+        "consequence_cascade_context": {
+            "feedback_contract": prior_cascade.get("feedback_contract"),
+            "cascade_id": prior_cascade.get("cascade_id"),
+            "atom_count": int(prior_cascade.get("atom_count") or 0),
+            "edge_count": int(prior_cascade.get("edge_count") or 0),
+            "selected_consequence_ids": prior_cascade.get("selected_consequence_ids") or [],
+            "selected_continuity_classes": prior_cascade.get("selected_continuity_classes") or [],
+            "selected_statuses": prior_cascade.get("selected_statuses") or [],
+            "items": compact_cascade_items,
         },
         "semantic_interpretation": {
             "primary_move_type": semantic.get("move_type"),
@@ -3104,6 +3156,8 @@ class RuntimeTurnGraphExecutor:
         prior_social_state_record: dict[str, Any] | None = None,
         prior_narrative_thread_state: dict[str, Any] | None = None,
         prior_callback_web_state: dict[str, Any] | None = None,
+        prior_consequence_cascade_state: dict[str, Any] | None = None,
+        prior_pacing_rhythm_state: dict[str, Any] | None = None,
         prior_planner_truth: dict[str, Any] | None = None,
         hierarchical_memory_context: dict[str, Any] | None = None,
         turn_number: int | None = None,
@@ -3145,6 +3199,10 @@ class RuntimeTurnGraphExecutor:
             prior_narrative_thread_state: committed narrative-thread continuity
                 snapshot rehydrated from the story session.
             prior_callback_web_state: bounded committed callback-web feedback
+                snapshot rehydrated from the story session.
+            prior_consequence_cascade_state: bounded committed consequence
+                cascade feedback snapshot rehydrated from the story session.
+            prior_pacing_rhythm_state: bounded committed rhythm feedback
                 snapshot rehydrated from the story session.
             prior_planner_truth: bounded committed planner-truth snapshot used
                 to bias retrieval toward continuity-relevant precedents.
@@ -3258,6 +3316,12 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_narrative_thread_state"] = dict(prior_narrative_thread_state)
         if prior_callback_web_state:
             initial_state["prior_callback_web_state"] = dict(prior_callback_web_state)
+        if prior_consequence_cascade_state:
+            initial_state["prior_consequence_cascade_state"] = dict(
+                prior_consequence_cascade_state
+            )
+        if prior_pacing_rhythm_state:
+            initial_state["prior_pacing_rhythm_state"] = dict(prior_pacing_rhythm_state)
         if prior_planner_truth:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
         if hierarchical_memory_context:
@@ -3646,6 +3710,39 @@ class RuntimeTurnGraphExecutor:
                             f"target={edge.get('target_turn_number')}",
                             f"continuity_classes={list(edge.get('continuity_classes') or [])[:4]}",
                             f"thread_ids={list(edge.get('thread_ids') or [])[:4]}",
+                        ]
+                    )
+                )
+            prompt = f"{prompt}\n\n" + "\n".join(lines)
+
+        cascade_state = state.get("prior_consequence_cascade_state")
+        if isinstance(cascade_state, dict) and cascade_state:
+            items = cascade_state.get("items") if isinstance(cascade_state.get("items"), list) else []
+            lines = ["Prior consequence cascade (bounded committed state):"]
+            selected_classes = cascade_state.get("selected_continuity_classes")
+            selected_statuses = cascade_state.get("selected_statuses")
+            selected_ids = cascade_state.get("selected_consequence_ids")
+            if selected_classes or selected_statuses or selected_ids:
+                lines.append(
+                    " ".join(
+                        [
+                            f"selected_consequence_ids={list(selected_ids or [])[:5]}",
+                            f"selected_continuity_classes={list(selected_classes or [])[:5]}",
+                            f"selected_statuses={list(selected_statuses or [])[:5]}",
+                        ]
+                    )
+                )
+            for item in items[:5]:
+                if not isinstance(item, dict):
+                    continue
+                lines.append(
+                    " ".join(
+                        [
+                            f"- id={item.get('consequence_id')}",
+                            f"source={item.get('source_turn_number')}",
+                            f"class={item.get('continuity_class')}",
+                            f"status={item.get('status')}",
+                            f"thread_ids={list(item.get('thread_ids') or [])[:4]}",
                         ]
                     )
                 )
@@ -4257,6 +4354,21 @@ class RuntimeTurnGraphExecutor:
                 "selected_continuity_classes": callback_state.get("selected_continuity_classes")
                 or [],
                 "selected_thread_ids": callback_state.get("selected_thread_ids") or [],
+            }
+        cascade_state = (
+            state.get("prior_consequence_cascade_state")
+            if isinstance(state.get("prior_consequence_cascade_state"), dict)
+            else {}
+        )
+        if cascade_state:
+            base_sa["consequence_cascade_feedback"] = {
+                "feedback_contract": cascade_state.get("feedback_contract"),
+                "atom_count": int(cascade_state.get("atom_count") or 0),
+                "edge_count": int(cascade_state.get("edge_count") or 0),
+                "selected_consequence_ids": cascade_state.get("selected_consequence_ids") or [],
+                "selected_continuity_classes": cascade_state.get("selected_continuity_classes")
+                or [],
+                "selected_statuses": cascade_state.get("selected_statuses") or [],
             }
         pc = prior_continuity_classes(prior)
         sem_model = interpret_goc_semantic_move(
@@ -5207,6 +5319,33 @@ class RuntimeTurnGraphExecutor:
                     desc = str(impact.get("description") or impact.get("summary") or impact.get("note") or "")
                     lines.append(f"- {cls}: {desc[:180]}")
 
+        cascade_context = (
+            dramatic_packet.get("consequence_cascade_context")
+            if isinstance(dramatic_packet.get("consequence_cascade_context"), dict)
+            else {}
+        )
+        cascade_items = (
+            cascade_context.get("items") if isinstance(cascade_context.get("items"), list) else []
+        )
+        if cascade_items:
+            lines.append("Consequence Cascade Context (bounded committed state):")
+            selected_classes = cascade_context.get("selected_continuity_classes") or []
+            selected_statuses = cascade_context.get("selected_statuses") or []
+            lines.append(
+                f"- selected_continuity_classes: {list(selected_classes)[:6]} "
+                f"selected_statuses: {list(selected_statuses)[:6]}"
+            )
+            for item in cascade_items[:5]:
+                if not isinstance(item, dict):
+                    continue
+                lines.append(
+                    "- "
+                    f"id={str(item.get('consequence_id') or '')[:80]}, "
+                    f"class={str(item.get('continuity_class') or '')[:80]}, "
+                    f"status={str(item.get('status') or '')[:40]}, "
+                    f"source_turn={item.get('source_turn_number')}"
+                )
+
         dramatic_irony_context = (
             dramatic_packet.get("dramatic_irony_context")
             if isinstance(dramatic_packet.get("dramatic_irony_context"), dict)
@@ -5281,7 +5420,7 @@ class RuntimeTurnGraphExecutor:
         lines.append(
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
-            "the information_disclosure target, and bounded dramatic_irony_context."
+            "the information_disclosure target, bounded dramatic_irony_context, and consequence_cascade_context."
         )
 
         update = _track(state, node_name="assemble_model_context")

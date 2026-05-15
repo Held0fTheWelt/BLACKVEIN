@@ -73,6 +73,11 @@ from story_runtime_core.callbacks import (
     build_callback_web_record,
     stable_callback_web_id,
 )
+from story_runtime_core.consequences import (
+    build_consequence_cascade_record,
+    build_graph_consequence_cascade_export,
+    stable_consequence_cascade_id,
+)
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -88,6 +93,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_CALLBACK_WEB,
     ASPECT_COMMIT,
+    ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_INFORMATION_DISCLOSURE,
@@ -114,6 +120,13 @@ from ai_stack.callback_web_contracts import (
     callback_web_policy_from_module_runtime,
     normalize_callback_web_policy,
     validate_callback_web_record,
+)
+from ai_stack.consequence_cascade_contracts import (
+    consequence_cascade_aspect_blocks,
+    consequence_cascade_bounds_from_policy,
+    consequence_cascade_policy_from_module_runtime,
+    normalize_consequence_cascade_policy,
+    validate_consequence_cascade_record,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.environment_state_contracts import (
@@ -224,6 +237,7 @@ from app.story_runtime.canonical_turn_lifecycle import TurnLifecycleChain
 from app.story_runtime.branch_timeline_store import JsonBranchTimelineStore
 from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 from app.story_runtime.callback_web_store import JsonCallbackWebStore
+from app.story_runtime.consequence_cascade_store import JsonConsequenceCascadeStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
@@ -1330,6 +1344,21 @@ def _load_module_callback_web_policy(
     return callback_web_policy_from_module_runtime(runtime_policy)
 
 
+def _load_module_consequence_cascade_policy(
+    *,
+    module_id: str,
+    runtime_profile_id: str | None,
+) -> dict[str, Any]:
+    try:
+        runtime_policy = load_module_runtime_policy(
+            module_id=module_id,
+            runtime_profile_id=runtime_profile_id,
+        ).to_dict()
+    except Exception:
+        return normalize_consequence_cascade_policy(None)
+    return consequence_cascade_policy_from_module_runtime(runtime_policy)
+
+
 def _record_hierarchical_memory_aspect(
     *,
     session: StorySession,
@@ -1526,6 +1555,67 @@ def _record_callback_web_aspect(
     graph_state["turn_aspect_ledger"] = ledger
 
 
+def _record_consequence_cascade_aspect(
+    *,
+    session: StorySession,
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+    record: dict[str, Any] | None,
+    graph_export: dict[str, Any] | None,
+    validation: dict[str, Any],
+    policy: dict[str, Any],
+) -> None:
+    runtime_profile_id = _runtime_profile_id_from_projection(
+        session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+    )
+    blocks = consequence_cascade_aspect_blocks(
+        record=record,
+        graph_export=graph_export,
+        validation=validation,
+        policy=policy,
+    )
+    status = str(validation.get("status") or "missing")
+    failure_codes = [
+        str(code)
+        for code in (validation.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    ledger = (
+        event.get("turn_aspect_ledger")
+        if isinstance(event.get("turn_aspect_ledger"), dict)
+        else graph_state.get("turn_aspect_ledger")
+        if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+        else None
+    )
+    ledger = ensure_runtime_aspect_ledger(
+        ledger,
+        session_id=session.session_id,
+        module_id=session.module_id,
+        turn_number=event.get("turn_number"),
+        turn_kind=str(event.get("turn_kind") or "player"),
+        raw_player_input=event.get("raw_input"),
+        trace_id=event.get("trace_id"),
+        runtime_profile_id=runtime_profile_id,
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_CONSEQUENCE_CASCADE,
+        make_aspect_record(
+            applicable=bool(policy.get("enabled")),
+            status=status,
+            expected=blocks.get("expected") if isinstance(blocks.get("expected"), dict) else {},
+            selected=blocks.get("selected") if isinstance(blocks.get("selected"), dict) else {},
+            actual=blocks.get("actual") if isinstance(blocks.get("actual"), dict) else {},
+            reasons=failure_codes,
+            source="commit",
+            failure_class="observability_gap" if failure_codes else None,
+            failure_reason=failure_codes[0] if failure_codes else None,
+        ),
+    )
+    event["turn_aspect_ledger"] = ledger
+    graph_state["turn_aspect_ledger"] = ledger
+
+
 def _module_scope_truth(module_id: str | None = None) -> dict[str, Any]:
     requested = str(module_id or "").strip() or None
     supported = (
@@ -1544,6 +1634,7 @@ def _module_scope_truth(module_id: str | None = None) -> dict[str, Any]:
             "goc_prior_continuity_for_graph",
             "goc_append_continuity_impacts",
             "callback_web",
+            "consequence_cascade",
         ],
         "unsupported_module_policy": (
             "non_goc_modules_are_not_advertised_as_full_live_story_support"
@@ -6464,6 +6555,23 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
     return None
 
 
+def _prior_pacing_rhythm_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed pacing-rhythm state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("pacing_rhythm_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
 def _prior_narrative_thread_state_from_session(
     session: "StorySession",
     *,
@@ -6552,6 +6660,11 @@ def _build_committed_dramatic_context_summary(
         if isinstance(base.get("scene_energy"), dict)
         else {}
     )
+    base_pacing_rhythm = (
+        base.get("pacing_rhythm")
+        if isinstance(base.get("pacing_rhythm"), dict)
+        else {}
+    )
     base_scene = (
         base.get("scene_assessment")
         if isinstance(base.get("scene_assessment"), dict)
@@ -6593,6 +6706,19 @@ def _build_committed_dramatic_context_summary(
                     planner.get("scene_energy_validation", {}).get("status")
                     if isinstance(planner.get("scene_energy_validation"), dict)
                     else base_scene_energy.get("validation_status")
+                ),
+            },
+            "pacing_rhythm": {
+                "state": planner.get("pacing_rhythm_state")
+                if isinstance(planner.get("pacing_rhythm_state"), dict)
+                else base_pacing_rhythm.get("state") or {},
+                "target": planner.get("pacing_rhythm_target")
+                if isinstance(planner.get("pacing_rhythm_target"), dict)
+                else base_pacing_rhythm.get("target") or {},
+                "validation_status": (
+                    planner.get("pacing_rhythm_validation", {}).get("status")
+                    if isinstance(planner.get("pacing_rhythm_validation"), dict)
+                    else base_pacing_rhythm.get("validation_status")
                 ),
             },
             "scene_assessment": {
@@ -6662,8 +6788,16 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
         if isinstance(dramatic_context.get("scene_energy"), dict)
         else {}
     )
+    pacing_rhythm = (
+        dramatic_context.get("pacing_rhythm")
+        if isinstance(dramatic_context.get("pacing_rhythm"), dict)
+        else {}
+    )
     scene_energy_target = (
         scene_energy.get("target") if isinstance(scene_energy.get("target"), dict) else {}
+    )
+    pacing_rhythm_target = (
+        pacing_rhythm.get("target") if isinstance(pacing_rhythm.get("target"), dict) else {}
     )
     scene = dramatic_context.get("scene_assessment") if isinstance(dramatic_context.get("scene_assessment"), dict) else {}
     social = dramatic_context.get("social_state") if isinstance(dramatic_context.get("social_state"), dict) else {}
@@ -6679,6 +6813,8 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
             responder.get("secondary_responder_ids"), limit=4
         ),
         "pacing_mode": pacing.get("pacing_mode"),
+        "pacing_rhythm_cadence": pacing_rhythm_target.get("cadence"),
+        "pacing_rhythm_response_shape": pacing_rhythm_target.get("response_shape"),
         "scene_energy_level": scene_energy_target.get("energy_level"),
         "scene_energy_transition": scene_energy_target.get("target_transition"),
         "pressure_state": scene.get("pressure_state"),
@@ -6715,6 +6851,7 @@ def _player_shell_context_from_dramatic_context(
                 "responder_id": story_context.get("responder_id"),
                 "secondary_responder_ids": story_context.get("secondary_responder_ids") or [],
                 "pacing_mode": story_context.get("pacing_mode"),
+                "pacing_rhythm_cadence": story_context.get("pacing_rhythm_cadence"),
                 "pressure_state": story_context.get("pressure_state"),
                 "thread_pressure_state": story_context.get("thread_pressure_state"),
                 "social_risk_band": story_context.get("social_risk_band"),
@@ -6940,6 +7077,7 @@ class StoryRuntimeManager:
         branching_tree_store: JsonBranchingTreeStore | None = None,
         branch_timeline_store: JsonBranchTimelineStore | None = None,
         callback_web_store: JsonCallbackWebStore | None = None,
+        consequence_cascade_store: JsonConsequenceCascadeStore | None = None,
         governed_runtime_config: dict[str, Any] | None = None,
         metrics: StoryRuntimeMetrics | None = None,
     ) -> None:
@@ -6948,9 +7086,11 @@ class StoryRuntimeManager:
         self._branching_tree_store = branching_tree_store
         self._branch_timeline_store = branch_timeline_store
         self._callback_web_store = callback_web_store
+        self._consequence_cascade_store = consequence_cascade_store
         self._branching_trees: dict[str, dict[str, Any]] = {}
         self._branch_timelines: dict[str, dict[str, Any]] = {}
         self._callback_webs: dict[str, dict[str, Any]] = {}
+        self._consequence_cascades: dict[str, dict[str, Any]] = {}
         self._branching_simulation_session_ids: set[str] = set()
         self._session_turn_locks: dict[str, threading.Lock] = {}
         self._session_locks_guard = threading.Lock()
@@ -7085,6 +7225,10 @@ class StoryRuntimeManager:
             for callback_web_id, raw in self._callback_web_store.load_all_raw().items():
                 if isinstance(raw, dict):
                     self._callback_webs[callback_web_id] = raw
+        if self._consequence_cascade_store is not None:
+            for cascade_id, raw in self._consequence_cascade_store.load_all_raw().items():
+                if isinstance(raw, dict):
+                    self._consequence_cascades[cascade_id] = raw
 
     def _session_turn_lock(self, session_id: str) -> threading.Lock:
         with self._session_locks_guard:
@@ -7122,6 +7266,18 @@ class StoryRuntimeManager:
         self._callback_webs[callback_web_id] = copy.deepcopy(record)
         if self._callback_web_store is not None:
             self._callback_web_store.save(callback_web_id, record)
+        return copy.deepcopy(record)
+
+    def _persist_consequence_cascade_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        cascade_id = str(record.get("cascade_id") or "").strip()
+        if not cascade_id:
+            raise ValueError("consequence_cascade_missing_id")
+        self._consequence_cascades[cascade_id] = copy.deepcopy(record)
+        sid = str(record.get("story_session_id") or "").strip()
+        if sid in self._branching_simulation_session_ids:
+            return copy.deepcopy(record)
+        if self._consequence_cascade_store is not None:
+            self._consequence_cascade_store.save(cascade_id, record)
         return copy.deepcopy(record)
 
     # MVP3: Narrative agent configuration and input queue management
@@ -8168,6 +8324,12 @@ class StoryRuntimeManager:
             gov["scene_energy_transition"] = graph_state.get("scene_energy_transition")
         if isinstance(graph_state.get("scene_energy_validation"), dict):
             gov["scene_energy_validation"] = graph_state.get("scene_energy_validation")
+        if isinstance(graph_state.get("pacing_rhythm_state"), dict):
+            gov["pacing_rhythm_state"] = graph_state.get("pacing_rhythm_state")
+        if isinstance(graph_state.get("pacing_rhythm_target"), dict):
+            gov["pacing_rhythm_target"] = graph_state.get("pacing_rhythm_target")
+        if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
+            gov["pacing_rhythm_validation"] = graph_state.get("pacing_rhythm_validation")
         if isinstance(session.environment_state, dict) and session.environment_state:
             gov["environment_state"] = session.environment_state
         # Story Runtime Experience packaging: re-pack the visible bundle
@@ -8916,6 +9078,11 @@ class StoryRuntimeManager:
             event=event,
             graph_state=graph_state,
         )
+        self._refresh_consequence_cascade_after_commit(
+            session=session,
+            event=event,
+            graph_state=graph_state,
+        )
         self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
         session.diagnostics.append(event)
         turn_lc.advance("observed")
@@ -8936,6 +9103,8 @@ class StoryRuntimeManager:
         prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
         actor_lane_ctx = self._extract_actor_lane_context(session)
         prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
+        prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
+        prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
 
         try:
             graph_state = self.turn_graph.run(
@@ -8950,6 +9119,8 @@ class StoryRuntimeManager:
                 host_experience_template=host_experience_template,
                 prior_continuity_impacts=prior_ci if prior_ci else None,
                 prior_callback_web_state=prior_callback_web_state,
+                prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 turn_number=0,
                 turn_initiator_type="engine",
                 turn_input_class="opening",
@@ -9465,6 +9636,138 @@ class StoryRuntimeManager:
             session.history[-1]["callback_web_summary"] = snapshot
             session.history[-1]["callback_web_feedback"] = graph_export
             session.history[-1]["callback_web_validation"] = validation
+            if isinstance(event.get("turn_aspect_ledger"), dict):
+                session.history[-1]["turn_aspect_ledger"] = event["turn_aspect_ledger"]
+        return record
+
+    def get_consequence_cascade(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        cascade_id = stable_consequence_cascade_id(story_session_id=session.session_id)
+        existing = self._consequence_cascades.get(cascade_id)
+        if isinstance(existing, dict):
+            return copy.deepcopy(existing)
+        return self.rebuild_consequence_cascade(session_id=session_id)
+
+    def list_consequence_cascade_edges(self, *, session_id: str) -> list[dict[str, Any]]:
+        record = self.get_consequence_cascade(session_id=session_id)
+        edges = record.get("edges") if isinstance(record.get("edges"), list) else []
+        return [copy.deepcopy(edge) for edge in edges if isinstance(edge, dict)]
+
+    def rebuild_consequence_cascade(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        branch_timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+        )
+        existing = self._consequence_cascades.get(
+            stable_consequence_cascade_id(story_session_id=session.session_id)
+        )
+        runtime_profile_id = _runtime_profile_id_from_projection(
+            session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+        )
+        cascade_policy = _load_module_consequence_cascade_policy(
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+        callback_web: dict[str, Any] | None = None
+        try:
+            callback_web = self.get_callback_web(session_id=session.session_id)
+        except Exception:
+            callback_web = None
+        record = build_consequence_cascade_record(
+            story_session_id=session.session_id,
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+            history=[dict(row) for row in session.history if isinstance(row, dict)],
+            narrative_threads=session.narrative_threads.model_dump(mode="json")
+            if hasattr(session.narrative_threads, "model_dump")
+            else session.narrative_threads,
+            branch_timeline=branch_timeline,
+            callback_web=callback_web,
+            bounds=consequence_cascade_bounds_from_policy(cascade_policy),
+            created_at=existing.get("created_at") if isinstance(existing, dict) else None,
+        )
+        return self._persist_consequence_cascade_record(record)
+
+    def _prior_consequence_cascade_state_for_graph(self, session: StorySession) -> dict[str, Any] | None:
+        policy = _load_module_consequence_cascade_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        if not policy.get("enabled"):
+            return None
+        try:
+            record = self.get_consequence_cascade(session_id=session.session_id)
+        except Exception:
+            return None
+        return build_graph_consequence_cascade_export(
+            record,
+            max_items=int(policy.get("max_graph_items") or 5),
+        )
+
+    def _refresh_consequence_cascade_after_commit(
+        self,
+        *,
+        session: StorySession,
+        event: dict[str, Any],
+        graph_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        gs = graph_state if isinstance(graph_state, dict) else {}
+        policy = _load_module_consequence_cascade_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        try:
+            record = self.rebuild_consequence_cascade(session_id=session.session_id)
+        except Exception:
+            logger.debug("Consequence cascade refresh failed", exc_info=True)
+            return None
+        snapshot = copy.deepcopy(record.get("snapshot") if isinstance(record.get("snapshot"), dict) else {})
+        event["consequence_cascade"] = snapshot
+        graph_export = build_graph_consequence_cascade_export(
+            record,
+            max_items=int(policy.get("max_graph_items") or 5),
+        )
+        validation = validate_consequence_cascade_record(record, policy=policy)
+        event["consequence_cascade_feedback"] = graph_export
+        event["consequence_cascade_validation"] = validation
+        gov = event.get("runtime_governance_surface")
+        if isinstance(gov, dict):
+            gov["consequence_cascade"] = {
+                "status": validation.get("status"),
+                "contract_pass": validation.get("contract_pass"),
+                "failure_codes": validation.get("failure_codes") or [],
+                "atom_count": snapshot.get("atom_count"),
+                "edge_count": snapshot.get("edge_count"),
+                "active_atom_count": snapshot.get("active_atom_count"),
+                "selected_continuity_classes": (
+                    graph_export.get("selected_continuity_classes")
+                    if isinstance(graph_export, dict)
+                    else []
+                ),
+            }
+        if gs:
+            _record_consequence_cascade_aspect(
+                session=session,
+                graph_state=gs,
+                event=event,
+                record=record,
+                graph_export=graph_export,
+                validation=validation,
+                policy=policy,
+            )
+        if isinstance(event.get("diagnostics"), dict):
+            event["diagnostics"]["turn_aspect_ledger"] = event.get("turn_aspect_ledger")
+            event["diagnostics"]["consequence_cascade"] = snapshot
+            event["diagnostics"]["consequence_cascade_validation"] = validation
+        if session.history and isinstance(session.history[-1], dict):
+            session.history[-1]["consequence_cascade_summary"] = snapshot
+            session.history[-1]["consequence_cascade_feedback"] = graph_export
+            session.history[-1]["consequence_cascade_validation"] = validation
             if isinstance(event.get("turn_aspect_ledger"), dict):
                 session.history[-1]["turn_aspect_ledger"] = event["turn_aspect_ledger"]
         return record
@@ -10092,6 +10395,8 @@ class StoryRuntimeManager:
                 graph_summary=graph_summary,
             )
             prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
+            prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
+            prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
                 runtime_profile_id=_runtime_profile_id_from_projection(
@@ -10119,6 +10424,8 @@ class StoryRuntimeManager:
                 prior_social_state_record=prior_social_state_record,
                 prior_narrative_thread_state=prior_narrative_thread_state,
                 prior_callback_web_state=prior_callback_web_state,
+                prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_planner_truth=prior_planner_truth,
                 hierarchical_memory_context=hierarchical_memory_context,
                 turn_number=commit_turn_number,
@@ -10323,6 +10630,12 @@ class StoryRuntimeManager:
             event.setdefault("scene_energy_transition", graph_state.get("scene_energy_transition"))
         if isinstance(graph_state.get("scene_energy_validation"), dict):
             event.setdefault("scene_energy_validation", graph_state.get("scene_energy_validation"))
+        if isinstance(graph_state.get("pacing_rhythm_state"), dict):
+            event.setdefault("pacing_rhythm_state", graph_state.get("pacing_rhythm_state"))
+        if isinstance(graph_state.get("pacing_rhythm_target"), dict):
+            event.setdefault("pacing_rhythm_target", graph_state.get("pacing_rhythm_target"))
+        if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
+            event.setdefault("pacing_rhythm_validation", graph_state.get("pacing_rhythm_validation"))
         if selected_responder_set:
             event.setdefault("selected_responder_set", selected_responder_set)
         actor_survival_telemetry = (
@@ -10383,6 +10696,9 @@ class StoryRuntimeManager:
             "scene_energy_target": event.get("scene_energy_target"),
             "scene_energy_transition": event.get("scene_energy_transition"),
             "scene_energy_validation": event.get("scene_energy_validation"),
+            "pacing_rhythm_state": event.get("pacing_rhythm_state"),
+            "pacing_rhythm_target": event.get("pacing_rhythm_target"),
+            "pacing_rhythm_validation": event.get("pacing_rhythm_validation"),
             "human_input_attribution": human_att,
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,
@@ -10399,6 +10715,11 @@ class StoryRuntimeManager:
         event["lifecycle_state"] = "observed"
         session.history.append(canonical_record)
         self._refresh_callback_web_after_commit(
+            session=session,
+            event=event,
+            graph_state=graph_state,
+        )
+        self._refresh_consequence_cascade_after_commit(
             session=session,
             event=event,
             graph_state=graph_state,
@@ -10643,6 +10964,13 @@ class StoryRuntimeManager:
             callback_web_snapshot = copy.deepcopy(snapshot)
         except Exception:
             callback_web_snapshot = None
+        consequence_cascade_snapshot: dict[str, Any] | None = None
+        try:
+            cascade = self.get_consequence_cascade(session_id=session.session_id)
+            snapshot = cascade.get("snapshot") if isinstance(cascade.get("snapshot"), dict) else {}
+            consequence_cascade_snapshot = copy.deepcopy(snapshot)
+        except Exception:
+            consequence_cascade_snapshot = None
 
         return {
             "session_id": session.session_id,
@@ -10671,6 +10999,7 @@ class StoryRuntimeManager:
                 "last_branching_forecast": last_branching_forecast,
                 "callback_web": callback_web_snapshot,
                 "callback_web_continuity": callback_web_snapshot,
+                "consequence_cascade": consequence_cascade_snapshot,
                 "last_actor_outcome_summary": (
                     last_actor_turn_summary.get("last_actor_outcome_summary")
                     if isinstance(last_actor_turn_summary, dict)
@@ -10702,6 +11031,7 @@ class StoryRuntimeManager:
             "player_shell_context": player_shell_context,
             "branching_forecast": last_branching_forecast,
             "callback_web": callback_web_snapshot,
+            "consequence_cascade": consequence_cascade_snapshot,
             "story_window": {
                 "contract": "authoritative_story_window_v1",
                 "source": "world_engine_story_runtime",
@@ -10732,6 +11062,13 @@ class StoryRuntimeManager:
                 callback_web_snapshot = copy.deepcopy(callback_web["snapshot"])
         except Exception:
             callback_web_snapshot = None
+        consequence_cascade_snapshot: dict[str, Any] | None = None
+        try:
+            cascade = self.get_consequence_cascade(session_id=session.session_id)
+            if isinstance(cascade.get("snapshot"), dict):
+                consequence_cascade_snapshot = copy.deepcopy(cascade["snapshot"])
+        except Exception:
+            consequence_cascade_snapshot = None
 
         return {
             "session_id": session.session_id,
@@ -10741,6 +11078,7 @@ class StoryRuntimeManager:
             "diagnostics": session.diagnostics[-20:],
             "hierarchical_memory": session.hierarchical_memory,
             "callback_web": callback_web_snapshot,
+            "consequence_cascade": consequence_cascade_snapshot,
             "envelope_kind": "full_turn_orchestration_includes_graph_retrieval_and_interpreted_input",
             "committed_truth_vs_diagnostics": (
                 "Each diagnostics[] entry is a full orchestration envelope (graph, retrieval, model_route, "
@@ -10749,7 +11087,9 @@ class StoryRuntimeManager:
                 "Narrative thread continuity lives in session.narrative_threads and get_state committed_state "
                 "narrative_thread_continuity. Callback-web continuity is derived from committed history, "
                 "narrative threads, and branch timelines; callback_web is bounded operator evidence, not a "
-                "canonical-state mutation. Narrative_thread_diagnostics.last_update_trace is bounded operator "
+                "canonical-state mutation. Consequence-cascade continuity is also derived from committed history "
+                "and branch timelines; consequence_cascade is bounded feedback, not a canonical-state mutation. "
+                "Narrative_thread_diagnostics.last_update_trace is bounded operator "
                 "reasoning only and is not an authority source."
             ),
             "authoritative_history_tail": session.history[-5:] if session.history else [],

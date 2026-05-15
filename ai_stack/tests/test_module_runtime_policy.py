@@ -4,7 +4,9 @@ from pathlib import Path
 
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
+from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
 from ai_stack.module_runtime_policy import load_module_runtime_policy
+from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
@@ -43,6 +45,16 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["callback_web"]["enabled"] is True
     assert policy["runtime_governance_policy"]["callback_web"]["max_graph_edges"] == 4
     assert policy["runtime_governance_policy"]["callback_web"]["allowed_continuity_classes"]
+    assert (
+        policy["runtime_governance_policy"]["consequence_cascade"]["schema_version"]
+        == CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
+    )
+    assert policy["runtime_governance_policy"]["consequence_cascade"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["consequence_cascade"]["max_graph_items"] == 5
+    assert policy["runtime_governance_policy"]["consequence_cascade"]["allowed_continuity_classes"]
+    assert policy["runtime_governance_policy"]["pacing_rhythm"]["schema_version"] == PACING_RHYTHM_POLICY_VERSION
+    assert policy["runtime_governance_policy"]["pacing_rhythm"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["pacing_rhythm"]["cadence_profiles"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]

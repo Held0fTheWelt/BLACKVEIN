@@ -48,6 +48,7 @@ from app.services.governance_runtime_service import (
     write_provider_credential,
 )
 from app.services.diagnosis_gates_mapping_service import (
+    ensure_all_gates_exist,
     get_check_id_for_gate,
     get_gate_id_for_check,
 )
@@ -642,10 +643,20 @@ def admin_readiness_gates_list():
         elif service_filter:
             gates = get_gates_by_service(service_filter)
         else:
+            ensure_all_gates_exist()
             gates = get_all_gates()
 
+        enriched_gates = []
+        for gate in gates:
+            row = dict(gate)
+            check_id = get_check_id_for_gate(row.get("gate_id", ""))
+            if check_id:
+                row["diagnosis_check_id"] = check_id
+                row["diagnosis_link"] = f"/manage/diagnosis#{check_id}"
+            enriched_gates.append(row)
+
         summary = get_summary()
-        return ok({"gates": gates, "summary": summary})
+        return ok({"gates": enriched_gates, "summary": summary})
     except GovernanceError as err:
         return fail_from_error(err)
     except Exception as exc:

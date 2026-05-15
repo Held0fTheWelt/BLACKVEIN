@@ -492,6 +492,10 @@ def _extract_normalized_wos_evidence(
         "scene_energy_contract_pass",
         "scene_energy_transition_allowed",
         "scene_energy_pressure_realized",
+        "pacing_rhythm_target_present",
+        "pacing_rhythm_contract_pass",
+        "pacing_rhythm_density_respected",
+        "pacing_rhythm_pause_respected",
         "information_disclosure_policy_present",
         "information_disclosure_target_selected",
         "information_disclosure_budget_pass",
@@ -499,6 +503,8 @@ def _extract_normalized_wos_evidence(
         "information_disclosure_contract_pass",
         "dramatic_irony_opportunity_present",
         "dramatic_irony_contract_pass",
+        "consequence_cascade_policy_present",
+        "consequence_cascade_contract_pass",
         "narrator_required_when_expected",
         "npc_takeover_absent",
         "npc_agency_plan_present",
@@ -580,6 +586,13 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "scene_energy_transition_allowed",
     "scene_energy_pressure_realized",
     "scene_energy_failure_codes",
+    "pacing_rhythm_target_present",
+    "pacing_rhythm_cadence",
+    "pacing_rhythm_response_shape",
+    "pacing_rhythm_contract_pass",
+    "pacing_rhythm_density_respected",
+    "pacing_rhythm_pause_respected",
+    "pacing_rhythm_failure_codes",
     "information_disclosure_policy_present",
     "information_disclosure_target_selected",
     "information_disclosure_selected_units",
@@ -605,9 +618,19 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "callback_web_selected_continuity_classes",
     "callback_web_edge_count",
     "callback_web_observation_count",
-    "callback_web_graph_edge_count",
-    "callback_web_contract_pass",
-    "callback_web_failure_codes",
+        "callback_web_graph_edge_count",
+        "callback_web_contract_pass",
+        "callback_web_failure_codes",
+    "consequence_cascade_policy_present",
+    "consequence_cascade_selected",
+    "consequence_cascade_selected_consequence_ids",
+    "consequence_cascade_selected_continuity_classes",
+    "consequence_cascade_selected_statuses",
+    "consequence_cascade_atom_count",
+    "consequence_cascade_edge_count",
+    "consequence_cascade_active_atom_count",
+    "consequence_cascade_contract_pass",
+    "consequence_cascade_failure_codes",
     "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
@@ -731,6 +754,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_voice_consistency_follow_character_profiles"
     if failure.startswith("callback_"):
         return "repair_callback_web_bounded_committed_evidence"
+    if failure.startswith("consequence_cascade_"):
+        return "repair_consequence_cascade_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
     if "beat" in failure:
@@ -748,9 +773,11 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     action_rec = _aspect_record(ledger, "action_resolution")
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
+    pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     callback_rec = _aspect_record(ledger, "callback_web")
+    cascade_rec = _aspect_record(ledger, "consequence_cascade")
     narr_rec = _aspect_record(ledger, "narrator_authority")
     npc_rec = _aspect_record(ledger, "npc_authority")
     npc_agency_rec = _aspect_record(ledger, "npc_agency")
@@ -766,6 +793,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_actual = _aspect_block(beat_rec, "actual")
     scene_energy_selected = _aspect_block(scene_energy_rec, "selected")
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
+    pacing_rhythm_selected = _aspect_block(pacing_rhythm_rec, "selected")
+    pacing_rhythm_actual = _aspect_block(pacing_rhythm_rec, "actual")
     disclosure_expected = _aspect_block(disclosure_rec, "expected")
     disclosure_selected = _aspect_block(disclosure_rec, "selected")
     disclosure_actual = _aspect_block(disclosure_rec, "actual")
@@ -775,6 +804,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     callback_expected = _aspect_block(callback_rec, "expected")
     callback_selected = _aspect_block(callback_rec, "selected")
     callback_actual = _aspect_block(callback_rec, "actual")
+    cascade_expected = _aspect_block(cascade_rec, "expected")
+    cascade_selected = _aspect_block(cascade_rec, "selected")
+    cascade_actual = _aspect_block(cascade_rec, "actual")
     narr_expected = _aspect_block(narr_rec, "expected")
     narr_actual = _aspect_block(narr_rec, "actual")
     npc_expected = _aspect_block(npc_rec, "expected")
@@ -849,6 +881,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
     if not isinstance(scene_energy_failure_codes, list):
         scene_energy_failure_codes = []
+    pacing_rhythm_target = (
+        pacing_rhythm_selected.get("target")
+        if isinstance(pacing_rhythm_selected.get("target"), dict)
+        else pacing_rhythm_selected
+    )
+    pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
+    if not isinstance(pacing_rhythm_failure_codes, list):
+        pacing_rhythm_failure_codes = []
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
@@ -858,6 +898,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     callback_failure_codes = callback_actual.get("failure_codes") or []
     if not isinstance(callback_failure_codes, list):
         callback_failure_codes = []
+    cascade_failure_codes = cascade_actual.get("failure_codes") or []
+    if not isinstance(cascade_failure_codes, list):
+        cascade_failure_codes = []
     failed_records = [
         r
         for r in (
@@ -867,9 +910,11 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             cap_rec,
             beat_rec,
             scene_energy_rec,
+            pacing_rhythm_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
+            cascade_rec,
             vis_rec,
             narrative_rec,
             voice_rec,
@@ -882,9 +927,11 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         for r in (
             beat_rec,
             scene_energy_rec,
+            pacing_rhythm_rec,
             disclosure_rec,
             dramatic_irony_rec,
             callback_rec,
+            cascade_rec,
             npc_agency_rec,
             cap_rec,
             vis_rec,
@@ -929,6 +976,30 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("scene_energy_pressure_realized")
         ),
         "scene_energy_failure_codes": scene_energy_failure_codes,
+        "pacing_rhythm_target_present": (
+            bool(pacing_rhythm_target)
+            if pacing_rhythm_rec
+            else det_scores.get("pacing_rhythm_target_present")
+        ),
+        "pacing_rhythm_cadence": pacing_rhythm_target.get("cadence"),
+        "pacing_rhythm_response_shape": pacing_rhythm_target.get("response_shape"),
+        "pacing_rhythm_contract_pass": (
+            pacing_rhythm_actual.get("contract_pass")
+            if "contract_pass" in pacing_rhythm_actual
+            else det_scores.get("pacing_rhythm_contract_pass")
+        ),
+        "pacing_rhythm_density_respected": (
+            "pacing_rhythm_visible_density_exceeded" not in pacing_rhythm_failure_codes
+            if pacing_rhythm_actual
+            else det_scores.get("pacing_rhythm_density_respected")
+        ),
+        "pacing_rhythm_pause_respected": (
+            "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
+            and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
+            if pacing_rhythm_actual
+            else det_scores.get("pacing_rhythm_pause_respected")
+        ),
+        "pacing_rhythm_failure_codes": pacing_rhythm_failure_codes,
         "information_disclosure_policy_present": (
             disclosure_expected.get("policy_present")
             if "policy_present" in disclosure_expected
@@ -1003,6 +1074,33 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("callback_web_contract_pass")
         ),
         "callback_web_failure_codes": callback_failure_codes,
+        "consequence_cascade_policy_present": (
+            cascade_expected.get("policy_present")
+            if "policy_present" in cascade_expected
+            else det_scores.get("consequence_cascade_policy_present")
+        ),
+        "consequence_cascade_selected": bool(
+            cascade_selected.get("selected_consequence_ids")
+            or cascade_selected.get("selected_continuity_classes")
+        ),
+        "consequence_cascade_selected_consequence_ids": cascade_selected.get(
+            "selected_consequence_ids"
+        )
+        or [],
+        "consequence_cascade_selected_continuity_classes": cascade_selected.get(
+            "selected_continuity_classes"
+        )
+        or [],
+        "consequence_cascade_selected_statuses": cascade_selected.get("selected_statuses") or [],
+        "consequence_cascade_atom_count": cascade_actual.get("atom_count"),
+        "consequence_cascade_edge_count": cascade_actual.get("edge_count"),
+        "consequence_cascade_active_atom_count": cascade_actual.get("active_atom_count"),
+        "consequence_cascade_contract_pass": (
+            cascade_actual.get("contract_pass")
+            if "contract_pass" in cascade_actual
+            else det_scores.get("consequence_cascade_contract_pass")
+        ),
+        "consequence_cascade_failure_codes": cascade_failure_codes,
         "narrator_required_when_expected": det_scores.get("narrator_required_when_expected"),
         "narrator_required": narr_expected.get("required"),
         "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),

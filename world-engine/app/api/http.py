@@ -1166,6 +1166,42 @@ def rebuild_story_callback_web(
     return {"session_id": session_id, "callback_web": callback_web}
 
 
+@router.get("/story/sessions/{session_id}/consequence-cascade", dependencies=[Depends(_require_internal_api_key)])
+def get_story_consequence_cascade(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        cascade = manager.get_consequence_cascade(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "consequence_cascade": cascade}
+
+
+@router.get("/story/sessions/{session_id}/consequence-cascade/edges", dependencies=[Depends(_require_internal_api_key)])
+def list_story_consequence_cascade_edges(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        edges = manager.list_consequence_cascade_edges(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "consequence_cascade_edges": edges}
+
+
+@router.post("/story/sessions/{session_id}/consequence-cascade/rebuild", dependencies=[Depends(_require_internal_api_key)])
+def rebuild_story_consequence_cascade(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        cascade = manager.rebuild_consequence_cascade(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "consequence_cascade": cascade}
+
+
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])
 def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
     """Return the last DiagnosticsEnvelope (MVP4) for a story session."""

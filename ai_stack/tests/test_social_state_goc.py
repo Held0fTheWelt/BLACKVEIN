@@ -58,3 +58,38 @@ def test_social_state_treats_thread_pressure_as_high_risk() -> None:
     )
 
     assert record.social_risk_band == "high"
+
+
+def test_social_state_thread_pressure_high_overrides_moderate_continuity_band() -> None:
+    assessment = build_scene_assessment(
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        canonical_yaml=None,
+        prior_continuity_impacts=[{"class": "repair_attempt"}],
+        prior_narrative_thread_state={
+            "thread_count": 2,
+            "thread_pressure_level": 4,
+            "thread_pressure_summary": "blocked",
+        },
+    )
+
+    record = build_social_state_record(
+        prior_continuity_impacts=[{"class": "repair_attempt"}],
+        active_narrative_threads=[{"thread_id": "t1"}, {"thread_id": "t2"}],
+        thread_pressure_summary="blocked",
+        scene_assessment=assessment,
+    )
+
+    assert assessment["pressure_state"] == "stabilization_attempt"
+    assert assessment["thread_pressure_state"] == "high_unresolved_thread_pressure"
+    assert record.social_risk_band == "high"
+
+    moderate_record = build_social_state_record(
+        prior_continuity_impacts=[{"class": "repair_attempt"}],
+        active_narrative_threads=[{"thread_id": "t1"}, {"thread_id": "t2"}],
+        thread_pressure_summary="blocked",
+        scene_assessment={"pressure_state": "stabilization_attempt"},
+    )
+
+    assert moderate_record.social_risk_band == "moderate"
+    assert social_state_fingerprint(record) != social_state_fingerprint(moderate_record)

@@ -9,10 +9,12 @@ from ai_stack.dramatic_irony_contracts import (
 )
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
+    ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_INPUT,
     ASPECT_KEYS,
     ASPECT_NPC_AGENCY,
+    ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
@@ -20,6 +22,7 @@ from ai_stack.runtime_aspect_ledger import (
     stable_ledger_json,
 )
 from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
 
 
 def _scene_energy_missing_pressure_code() -> str:
@@ -27,6 +30,13 @@ def _scene_energy_missing_pressure_code() -> str:
         if code.endswith("missing_required_pressure"):
             return code
     raise AssertionError("scene_energy_contract_missing_pressure_failure_code")
+
+
+def _pacing_rhythm_density_code() -> str:
+    for code in PACING_RHYTHM_FAILURE_CODES:
+        if code.endswith("visible_density_exceeded"):
+            return code
+    raise AssertionError("pacing_rhythm_contract_missing_density_failure_code")
 
 
 def test_runtime_aspect_ledger_serializes_stably() -> None:
@@ -246,3 +256,120 @@ def test_runtime_projection_exposes_scene_energy_aspect() -> None:
     assert scene_energy["actual_actor_response_count"] == 1
     assert scene_energy["failure_codes"] == [missing_pressure_code]
     assert scene_energy["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_pacing_rhythm_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-rhythm",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich bleibe am Tisch.",
+    )
+    target = {
+        "schema_version": "pacing_rhythm.v1",
+        "cadence": "press",
+        "tempo_arc": "accelerating",
+        "response_shape": "exchange",
+        "turn_change_policy": "prefer_actor_turn_change",
+        "min_visible_blocks": 1,
+        "max_visible_blocks": 3,
+        "min_actor_turns": 1,
+        "max_actor_turns": 3,
+        "requires_pause": False,
+        "blocks_forced_speech": False,
+        "source_evidence": [],
+        "rationale_codes": [],
+    }
+    density_code = _pacing_rhythm_density_code()
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_PACING_RHYTHM,
+        {
+            "applicable": True,
+            "status": "failed",
+            "expected": {
+                "schema_version": target["schema_version"],
+                "policy_present": True,
+                "policy_enabled": True,
+            },
+            "selected": {"target": target},
+            "actual": {
+                "visible_block_count": 5,
+                "actor_turn_count": 1,
+                "contract_pass": False,
+                "failure_codes": [density_code],
+            },
+            "reasons": [density_code],
+            "failure_class": "recoverable_dramatic_failure",
+            "failure_reason": density_code,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    rhythm = projection[ASPECT_PACING_RHYTHM]
+    assert rhythm["schema_version"] == target["schema_version"]
+    assert rhythm["cadence"] == target["cadence"]
+    assert rhythm["response_shape"] == target["response_shape"]
+    assert rhythm["max_visible_blocks"] == target["max_visible_blocks"]
+    assert rhythm["visible_block_count"] == 5
+    assert rhythm["failure_codes"] == [density_code]
+    assert rhythm["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_consequence_cascade_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-cascade",
+        module_id="god_of_carnage",
+        turn_number=3,
+        turn_kind="player",
+        raw_player_input="Ich widerspreche.",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_CONSEQUENCE_CASCADE,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "policy_present": True,
+                "policy_enabled": True,
+                "max_atoms": 8,
+                "max_edges": 8,
+                "derived_from_committed_truth": True,
+                "mutates_canonical_state": False,
+            },
+            "selected": {
+                "selected_consequence_ids": ["cons_alpha"],
+                "selected_edge_ids": ["cascade_edge_alpha"],
+                "selected_continuity_classes": ["pressure_alpha"],
+                "selected_statuses": ["active"],
+            },
+            "actual": {
+                "cascade_id": "consequence_cascade_alpha",
+                "atom_count": 2,
+                "edge_count": 1,
+                "active_atom_count": 2,
+                "graph_item_count": 1,
+                "status_counts": {"active": 2},
+                "edge_kind_counts": {"carry_forward": 1},
+                "continuity_classes": ["pressure_alpha"],
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "commit",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    cascade = projection[ASPECT_CONSEQUENCE_CASCADE]
+    assert cascade["policy_present"] is True
+    assert cascade["cascade_id"] == "consequence_cascade_alpha"
+    assert cascade["selected_consequence_ids"] == ["cons_alpha"]
+    assert cascade["selected_edge_ids"] == ["cascade_edge_alpha"]
+    assert cascade["selected_continuity_classes"] == ["pressure_alpha"]
+    assert cascade["atom_count"] == 2
+    assert cascade["edge_count"] == 1
+    assert cascade["contract_pass"] is True
