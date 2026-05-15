@@ -30,6 +30,8 @@ ADR-0041 plan-enforced dispatch (2026-05-15): local tests only (`test_capability
 
 ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_validator_registry_inventory.md`, `ai_stack/capability_validator_registry.py`; default registry empty; `live_or_staging_evidence=false`; no Capability Matrix promotion.
 
+ADR-0041 opening-scene registry adapters (2026-05-15): `narrator_authority_contract` and `environment_state_contract` opt-in adapters via `evaluate_narrator_authority_contract` / `evaluate_environment_state_contract`; `build_opening_enforced_semantic_validator_registry()` covers full opening enforced set with context; default_mode=dry_run.
+
 ---
 
 ## Local verification snapshot for Π28 / temporal-control runtime aspect

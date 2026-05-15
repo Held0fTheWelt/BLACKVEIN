@@ -563,3 +563,90 @@ def build_environment_render_context(
         "player_visible": False,
         **generation_context,
     }
+
+
+def evaluate_environment_state_contract(
+    *,
+    environment_state: dict[str, Any] | None,
+    module_id: str | None = None,
+    environment_model: dict[str, Any] | None = None,
+    runtime_projection: dict[str, Any] | None = None,
+    actor_lane_context: dict[str, Any] | None = None,
+    turn_number: int | None = None,
+) -> dict[str, Any]:
+    """Evaluate environment-state contract using local normalization only."""
+    state_src = _as_dict(environment_state)
+    mid = _clean_id(module_id) or _clean_id(state_src.get("module_id"))
+    if not mid:
+        return {
+            "validator_id": "environment_state_contract",
+            "available": False,
+            "passed": False,
+            "blocking": True,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "status": "unavailable",
+            "reason": "missing_required_context",
+        }
+
+    model = environment_model if isinstance(environment_model, dict) else None
+    if model is None and not state_src:
+        return {
+            "validator_id": "environment_state_contract",
+            "available": False,
+            "passed": False,
+            "blocking": True,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "status": "unavailable",
+            "reason": "missing_environment_state",
+        }
+
+    try:
+        normalized = normalize_environment_state(
+            state_src or None,
+            module_id=mid,
+            environment_model=model,
+            runtime_projection=runtime_projection,
+            actor_lane_context=actor_lane_context,
+            turn_number=turn_number,
+        )
+    except Exception as exc:
+        return {
+            "validator_id": "environment_state_contract",
+            "available": False,
+            "passed": False,
+            "blocking": True,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "status": "unavailable",
+            "reason": f"environment_state_normalization_failed: {exc}",
+        }
+
+    current_room = _clean_id(normalized.get("current_room_id"))
+    if not current_room:
+        return {
+            "validator_id": "environment_state_contract",
+            "available": True,
+            "passed": False,
+            "blocking": True,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "status": "rejected",
+            "contract_pass": False,
+            "reason": "environment_current_room_missing",
+            "failure_codes": ["environment_current_room_missing"],
+        }
+
+    return {
+        "validator_id": "environment_state_contract",
+        "available": True,
+        "passed": True,
+        "blocking": True,
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
+        "status": "approved",
+        "contract_pass": True,
+        "current_room_id": current_room,
+        "schema_version": normalized.get("schema_version"),
+    }

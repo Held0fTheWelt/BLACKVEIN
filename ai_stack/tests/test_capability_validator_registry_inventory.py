@@ -60,7 +60,8 @@ def test_safe_for_plan_enforced_subset_is_conservative() -> None:
     safe_ids = {row.validator_id for row in VALIDATOR_REGISTRY_INVENTORY if row.safe_for_local_plan_enforced}
 
     assert "scene_energy_contract" in safe_ids
-    assert "narrator_authority_contract" not in safe_ids
+    assert "narrator_authority_contract" in safe_ids
+    assert "environment_state_contract" in safe_ids
     assert "forecast_contract" not in safe_ids
     for diagnostic_id in OBSERVER_DIAGNOSTICS.values():
         row = inventory_rows_by_validator_id()[diagnostic_id]

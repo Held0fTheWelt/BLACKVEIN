@@ -38,7 +38,9 @@ from ai_stack.capability_validator_plan import (
 )
 from ai_stack.character_voice_validation import validate_voice_consistency
 from ai_stack.dramatic_irony_runtime import validate_dramatic_irony_realization
+from ai_stack.environment_state_contracts import evaluate_environment_state_contract
 from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
+from ai_stack.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.scene_energy_engine import validate_scene_energy_realization
 from ai_stack.sensory_context_engine import validate_sensory_context_realization
@@ -85,13 +87,13 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
     ValidatorRegistryInventoryRow(
         validator_id="narrator_authority_contract",
         capability=CAP_NARRATOR_AUTHORITY,
-        current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/langgraph_runtime_executor.py::_build_authority_aspect_records",
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol="ai_stack/narrator_authority_validation.py::evaluate_narrator_authority_contract",
         adapter_needed=True,
-        safe_for_local_plan_enforced=False,
+        safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Authority checks are embedded in runtime executor aspect assembly; no standalone validate_* entry point.",
+        notes="Thin adapter over deterministic narrator required/present rules extracted from runtime authority assembly.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id="scene_energy_contract",
@@ -107,13 +109,13 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
     ValidatorRegistryInventoryRow(
         validator_id="environment_state_contract",
         capability=CAP_ENVIRONMENT_STATE,
-        current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/environment_state_contracts.py::normalize_environment_state",
+        current_status=STATUS_IMPLEMENTED_CALLABLE,
+        source_file_or_symbol="ai_stack/environment_state_contracts.py::evaluate_environment_state_contract",
         adapter_needed=True,
-        safe_for_local_plan_enforced=False,
+        safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="State mutation helpers exist; no validate_environment_state_realization surface yet.",
+        notes="Thin adapter over normalize_environment_state; requires module_id and environment_state or environment_model.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id="information_disclosure_contract",
@@ -307,6 +309,47 @@ def _structured_output(ctx: dict[str, Any]) -> dict[str, Any]:
     return structured if isinstance(structured, dict) else {}
 
 
+def _adapter_narrator_authority(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
+    structured = ctx.get("structured_output")
+    if not isinstance(structured, dict) and not isinstance(ctx.get("proposed_state_effects"), list):
+        return unavailable_validator_result(
+            "narrator_authority_contract",
+            reason="missing_required_context",
+        )
+    raw = evaluate_narrator_authority_contract(
+        structured_output=structured if isinstance(structured, dict) else None,
+        turn_number=int(ctx.get("turn_number") or 0),
+        narrator_required=ctx.get("narrator_required"),
+        player_input_kind=ctx.get("player_input_kind") or ctx.get("input_kind"),
+        affordance_requires_narrator=ctx.get("affordance_requires_narrator"),
+        narrator_response_expected=ctx.get("narrator_response_expected"),
+        proposed_state_effects=ctx.get("proposed_state_effects")
+        if isinstance(ctx.get("proposed_state_effects"), list)
+        else None,
+    )
+    return normalize_validator_dispatch_result("narrator_authority_contract", raw, blocking=True)
+
+
+def _adapter_environment_state(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
+    raw = evaluate_environment_state_contract(
+        environment_state=ctx.get("environment_state")
+        if isinstance(ctx.get("environment_state"), dict)
+        else None,
+        module_id=str(ctx.get("module_id") or "").strip() or None,
+        environment_model=ctx.get("environment_model")
+        if isinstance(ctx.get("environment_model"), dict)
+        else None,
+        runtime_projection=ctx.get("runtime_projection")
+        if isinstance(ctx.get("runtime_projection"), dict)
+        else None,
+        actor_lane_context=ctx.get("actor_lane_context")
+        if isinstance(ctx.get("actor_lane_context"), dict)
+        else None,
+        turn_number=int(ctx.get("turn_number") or 0),
+    )
+    return normalize_validator_dispatch_result("environment_state_contract", raw, blocking=True)
+
+
 def _adapter_scene_energy(entry: ValidatorPlanEntry, ctx: dict[str, Any]) -> dict[str, Any]:
     target = ctx.get("scene_energy_target")
     if not isinstance(target, dict):
@@ -444,7 +487,18 @@ def _adapter_sensory_context_diagnostic(entry: ValidatorPlanEntry, ctx: dict[str
     return result
 
 
+_OPENING_ENFORCED_VALIDATOR_IDS: tuple[str, ...] = (
+    "narrator_authority_contract",
+    "scene_energy_contract",
+    "environment_state_contract",
+    "information_disclosure_contract",
+    "voice_consistency_contract",
+)
+
+
 _AVAILABLE_ADAPTER_REGISTRY: dict[str, LocalValidatorCallable] = {
+    "narrator_authority_contract": _adapter_narrator_authority,
+    "environment_state_contract": _adapter_environment_state,
     "scene_energy_contract": _adapter_scene_energy,
     "information_disclosure_contract": _adapter_information_disclosure,
     "voice_consistency_contract": _adapter_voice_consistency,
@@ -470,6 +524,16 @@ def build_available_semantic_validator_registry() -> dict[str, LocalValidatorCal
         validator_id: _AVAILABLE_ADAPTER_REGISTRY[validator_id]
         for validator_id in allowed
         if validator_id in _AVAILABLE_ADAPTER_REGISTRY
+    }
+
+
+def build_opening_enforced_semantic_validator_registry() -> dict[str, LocalValidatorCallable]:
+    """Return opening-scene enforced validators that have safe local adapters."""
+    available = build_available_semantic_validator_registry()
+    return {
+        validator_id: available[validator_id]
+        for validator_id in _OPENING_ENFORCED_VALIDATOR_IDS
+        if validator_id in available
     }
 
 

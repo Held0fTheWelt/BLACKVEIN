@@ -11,8 +11,8 @@ Canonical machine-readable rows: `ai_stack/capability_validator_registry.py::VAL
 
 | Status | Local validators | Observer diagnostics | Judges |
 |--------|------------------|----------------------|--------|
-| `implemented_callable` | 5 | 1 (sensory) | 0 |
-| `implemented_but_needs_adapter` | 6 | 2 | 0 |
+| `implemented_callable` | 7 | 1 (sensory) | 0 |
+| `implemented_but_needs_adapter` | 4 | 2 | 0 |
 | `planned_only` | 1 | 0 | 0 |
 | `observer_only` (planned) | 0 | 2 | 0 |
 | `judge_only` | 0 | 0 | all `{capability}_judge` IDs |
@@ -24,9 +24,9 @@ Opt-in adapters: `build_semantic_validator_registry(include_available_adapters=T
 
 | validator_id | capability | current_status | source | adapter_needed | safe_for_plan_enforced | blocking |
 |--------------|------------|----------------|--------|----------------|------------------------|----------|
-| narrator_authority_contract | narrator_authority | implemented_but_needs_adapter | `langgraph_runtime_executor::_build_authority_aspect_records` | yes | no | blocking |
+| narrator_authority_contract | narrator_authority | implemented_callable | `narrator_authority_validation::evaluate_narrator_authority_contract` | yes | yes | blocking |
 | scene_energy_contract | scene_energy | implemented_callable | `scene_energy_engine::validate_scene_energy_realization` | yes | yes | blocking |
-| environment_state_contract | environment_state | implemented_but_needs_adapter | `environment_state_contracts::normalize_environment_state` | yes | no | blocking |
+| environment_state_contract | environment_state | implemented_callable | `environment_state_contracts::evaluate_environment_state_contract` | yes | yes | blocking |
 | information_disclosure_contract | information_disclosure | implemented_callable | `information_disclosure_engine::validate_information_disclosure_realization` | yes | yes | blocking |
 | voice_consistency_contract | voice_consistency | implemented_callable | `character_voice_validation::validate_voice_consistency` | yes | yes | blocking |
 | npc_agency_contract | npc_agency | implemented_callable | `npc_agency_realization::validate_npc_initiative_realization` | yes | yes | blocking |
