@@ -17,6 +17,7 @@ from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
 from ai_stack.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_POLICY_VERSION
 from ai_stack.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
+from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_POLICY_VERSION
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
@@ -65,6 +66,12 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["schema_version"] == PACING_RHYTHM_POLICY_VERSION
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["enabled"] is True
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["cadence_profiles"]
+    assert (
+        policy["runtime_governance_policy"]["temporal_control"]["schema_version"]
+        == TEMPORAL_CONTROL_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["temporal_control"]["enabled"] is True
+    assert "recall_committed_past" in policy["runtime_governance_policy"]["temporal_control"]["allowed_operations"]
     assert policy["runtime_governance_policy"]["sensory_context"]["schema_version"] == SENSORY_CONTEXT_POLICY_VERSION
     assert policy["runtime_governance_policy"]["sensory_context"]["enabled"] is True
     assert policy["runtime_governance_policy"]["sensory_context"]["require_structured_events"] is True

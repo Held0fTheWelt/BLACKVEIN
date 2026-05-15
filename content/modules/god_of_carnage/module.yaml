@@ -142,6 +142,20 @@ runtime_intelligence:
       - repair_attempt
       - silent_carry
       - tension_escalation
+  temporal_control:
+    enabled: true
+    schema_version: temporal_control_policy.v1
+    allowed_operations:
+      - hold_current_moment
+      - advance_elapsed_time
+      - recall_committed_past
+      - summarize_gap
+      - resume_present
+    require_structured_events: false
+    max_recalled_turns: 3
+    max_elapsed_turns: 4
+    default_commit_impact: recover
+    model_context_visibility: bounded_committed_time_refs
   scene_energy:
     enabled: true
     schema_version: scene_energy_policy.v1

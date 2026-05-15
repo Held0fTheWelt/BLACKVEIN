@@ -2881,6 +2881,25 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/admin/narrative/runtime/gov-summary:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/gov-summary
+      operationId: get_api_v1_admin_narrative_runtime_gov_summary
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/narrative/runtime/health:
     get:
       tags:

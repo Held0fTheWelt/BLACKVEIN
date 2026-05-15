@@ -297,6 +297,42 @@ exported contract constants, schema versions, ledger/MCP fields, and structured
 visible-block or actor-turn counts. Generated narration, copied dialogue,
 frontend card shape, and judge labels are never the pass/fail oracle.
 
+### Temporal Control / Pi28
+
+Temporal control is implemented as the generic `temporal_control` runtime
+aspect. It is the bounded time-operation contract for a turn: selected
+operation, committed source turn refs, committed consequence refs, elapsed-turn
+bounds, structured realization evidence, and history-safety checks. It consumes
+`scene_plan_record`, `scene_energy_target`, `pacing_rhythm_target`,
+`semantic_move_record`, callback-web feedback, consequence-cascade feedback,
+prior temporal-control state, and normalized module policy. It does not replace
+branching, memory, canonical commit, or visible narration, and it must not
+become a prose chronology judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.temporal_control` into `runtime_governance_policy.temporal_control`;
+- LangGraph derives `temporal_control_state` and `temporal_control_target` after pacing rhythm;
+- the dramatic generation packet receives only the selected operation, bounds, and committed refs;
+- structured output may emit `temporal_control_events` with `operation`, `source_turn_ids`, `source_consequence_ids`, and `elapsed_turns`;
+- validation checks selected operation, allowed operations, committed source refs, elapsed-turn bounds, history-rewrite flags, branch-state adoption flags, and required-event presence;
+- recoverable failures feed self-correction with bounded `temporal_control_*` failure codes;
+- `turn_aspect_ledger.temporal_control` records policy presence, selected operation, selected/realized refs, event count, contract pass, and failure codes;
+- World-Engine persists `temporal_control_state`, `temporal_control_target`, and `temporal_control_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_temporal_control_state`;
+- Langfuse and MCP expose policy, target, operation, selected refs, event count, source-bounds, history-rewrite absence, pass/fail, and failure-code evidence.
+
+The committed temporal-control state is bounded planner feedback, not a second
+canon store. It may shape the next turn and operator diagnostics, but it does
+not mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, structured committed refs,
+planner-truth rehydration, ledger/MCP fields, and structured
+`temporal_control_events`. Generated narration, copied dialogue, branch preview
+text, frontend card shape, judge labels, and hand-written flashback examples are
+never the pass/fail oracle.
+
 ### Social Pressure / Pi22
 
 Social pressure is implemented as the generic `social_pressure` runtime aspect.

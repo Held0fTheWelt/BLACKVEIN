@@ -108,6 +108,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_TEMPORAL_CONTROL,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
@@ -3036,6 +3037,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("pacing_rhythm_validation"), dict)
             else {}
         ),
+        "temporal_control_state": (
+            graph_state.get("temporal_control_state")
+            if isinstance(graph_state.get("temporal_control_state"), dict)
+            else scene_plan_record.get("temporal_control_state")
+            if isinstance(scene_plan_record.get("temporal_control_state"), dict)
+            else {}
+        ),
+        "temporal_control_target": (
+            graph_state.get("temporal_control_target")
+            if isinstance(graph_state.get("temporal_control_target"), dict)
+            else scene_plan_record.get("temporal_control_target")
+            if isinstance(scene_plan_record.get("temporal_control_target"), dict)
+            else {}
+        ),
+        "temporal_control_validation": (
+            graph_state.get("temporal_control_validation")
+            if isinstance(graph_state.get("temporal_control_validation"), dict)
+            else {}
+        ),
         "sensory_context_state": (
             graph_state.get("sensory_context_state")
             if isinstance(graph_state.get("sensory_context_state"), dict)
@@ -3900,6 +3920,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
     pacing_rhythm_selected = _selected(ASPECT_PACING_RHYTHM)
     pacing_rhythm_actual = _actual(ASPECT_PACING_RHYTHM)
+    temporal_control_selected = _selected(ASPECT_TEMPORAL_CONTROL)
+    temporal_control_actual = _actual(ASPECT_TEMPORAL_CONTROL)
     sensory_context_selected = _selected(ASPECT_SENSORY_CONTEXT)
     sensory_context_actual = _actual(ASPECT_SENSORY_CONTEXT)
     social_pressure_selected = _selected(ASPECT_SOCIAL_PRESSURE)
@@ -3983,6 +4005,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": pacing_rhythm_actual,
                 "aspect_record": _rec(ASPECT_PACING_RHYTHM),
+            },
+        ),
+        (
+            "story.temporal_control.target",
+            ASPECT_TEMPORAL_CONTROL,
+            {
+                "selected": temporal_control_selected,
+                "aspect_record": _rec(ASPECT_TEMPORAL_CONTROL),
+            },
+        ),
+        (
+            "story.temporal_control.validate",
+            ASPECT_TEMPORAL_CONTROL,
+            {
+                "actual": temporal_control_actual,
+                "aspect_record": _rec(ASPECT_TEMPORAL_CONTROL),
             },
         ),
         (
@@ -4155,6 +4193,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_BEAT,
                         ASPECT_SCENE_ENERGY,
                         ASPECT_PACING_RHYTHM,
+                        ASPECT_TEMPORAL_CONTROL,
                         ASPECT_SENSORY_CONTEXT,
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
@@ -4240,6 +4279,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    temporal_control_target = (
+        temporal_control_selected.get("target")
+        if isinstance(temporal_control_selected.get("target"), dict)
+        else temporal_control_selected
+    )
+    temporal_control_failure_codes = temporal_control_actual.get("failure_codes") or []
+    if not isinstance(temporal_control_failure_codes, list):
+        temporal_control_failure_codes = []
     sensory_context_target = (
         sensory_context_selected.get("target")
         if isinstance(sensory_context_selected.get("target"), dict)
@@ -4399,6 +4446,56 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
                 and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
+            ),
+        ),
+        (
+            "temporal_control_policy_present",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_TEMPORAL_CONTROL).get("policy_present"))
+            ),
+        ),
+        (
+            "temporal_control_target_selected",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(bool(temporal_control_target.get("operation"))),
+        ),
+        (
+            "temporal_control_operation_allowed",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(
+                "temporal_control_operation_not_allowed"
+                not in temporal_control_failure_codes
+            ),
+        ),
+        (
+            "temporal_control_committed_sources_bounded",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(
+                "temporal_control_uncommitted_source"
+                not in temporal_control_failure_codes
+                and "temporal_control_unbounded_jump"
+                not in temporal_control_failure_codes
+            ),
+        ),
+        (
+            "temporal_control_history_rewrite_absent",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(
+                "temporal_control_history_rewrite_attempt"
+                not in temporal_control_failure_codes
+                and "temporal_control_branch_state_adoption"
+                not in temporal_control_failure_codes
+            ),
+        ),
+        (
+            "temporal_control_contract_pass",
+            ASPECT_TEMPORAL_CONTROL,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_TEMPORAL_CONTROL).get("status")
+                in {"passed", "not_applicable"}
+                and temporal_control_actual.get("contract_pass") is not False
+                and not temporal_control_failure_codes
             ),
         ),
         (
@@ -6803,6 +6900,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "pacing_rhythm_state",
         "pacing_rhythm_target",
         "pacing_rhythm_validation",
+        "temporal_control_state",
+        "temporal_control_target",
+        "temporal_control_validation",
         "sensory_context_state",
         "sensory_context_target",
         "sensory_context_validation",
@@ -6869,6 +6969,23 @@ def _prior_pacing_rhythm_state_from_session(session: "StorySession") -> dict[str
         if not isinstance(planner, dict):
             continue
         state = planner.get("pacing_rhythm_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
+def _prior_temporal_control_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed temporal-control state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("temporal_control_state")
         if isinstance(state, dict) and state:
             return dict(state)
     return None
@@ -7018,6 +7135,11 @@ def _build_committed_dramatic_context_summary(
         if isinstance(base.get("pacing_rhythm"), dict)
         else {}
     )
+    base_temporal_control = (
+        base.get("temporal_control")
+        if isinstance(base.get("temporal_control"), dict)
+        else {}
+    )
     base_scene = (
         base.get("scene_assessment")
         if isinstance(base.get("scene_assessment"), dict)
@@ -7072,6 +7194,19 @@ def _build_committed_dramatic_context_summary(
                     planner.get("pacing_rhythm_validation", {}).get("status")
                     if isinstance(planner.get("pacing_rhythm_validation"), dict)
                     else base_pacing_rhythm.get("validation_status")
+                ),
+            },
+            "temporal_control": {
+                "state": planner.get("temporal_control_state")
+                if isinstance(planner.get("temporal_control_state"), dict)
+                else base_temporal_control.get("state") or {},
+                "target": planner.get("temporal_control_target")
+                if isinstance(planner.get("temporal_control_target"), dict)
+                else base_temporal_control.get("target") or {},
+                "validation_status": (
+                    planner.get("temporal_control_validation", {}).get("status")
+                    if isinstance(planner.get("temporal_control_validation"), dict)
+                    else base_temporal_control.get("validation_status")
                 ),
             },
             "social_pressure": {
@@ -8720,6 +8855,12 @@ class StoryRuntimeManager:
             gov["pacing_rhythm_target"] = graph_state.get("pacing_rhythm_target")
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             gov["pacing_rhythm_validation"] = graph_state.get("pacing_rhythm_validation")
+        if isinstance(graph_state.get("temporal_control_state"), dict):
+            gov["temporal_control_state"] = graph_state.get("temporal_control_state")
+        if isinstance(graph_state.get("temporal_control_target"), dict):
+            gov["temporal_control_target"] = graph_state.get("temporal_control_target")
+        if isinstance(graph_state.get("temporal_control_validation"), dict):
+            gov["temporal_control_validation"] = graph_state.get("temporal_control_validation")
         if isinstance(graph_state.get("sensory_context_state"), dict):
             gov["sensory_context_state"] = graph_state.get("sensory_context_state")
         if isinstance(graph_state.get("sensory_context_target"), dict):
@@ -8888,6 +9029,9 @@ class StoryRuntimeManager:
             "scene_energy_target": graph_state.get("scene_energy_target"),
             "scene_energy_transition": graph_state.get("scene_energy_transition"),
             "scene_energy_validation": graph_state.get("scene_energy_validation"),
+            "temporal_control_state": graph_state.get("temporal_control_state"),
+            "temporal_control_target": graph_state.get("temporal_control_target"),
+            "temporal_control_validation": graph_state.get("temporal_control_validation"),
             "social_pressure_state": graph_state.get("social_pressure_state"),
             "social_pressure_target": graph_state.get("social_pressure_target"),
             "social_pressure_validation": graph_state.get("social_pressure_validation"),
@@ -9471,6 +9615,9 @@ class StoryRuntimeManager:
             "scene_energy_target": event.get("scene_energy_target"),
             "scene_energy_transition": event.get("scene_energy_transition"),
             "scene_energy_validation": event.get("scene_energy_validation"),
+            "temporal_control_state": event.get("temporal_control_state"),
+            "temporal_control_target": event.get("temporal_control_target"),
+            "temporal_control_validation": event.get("temporal_control_validation"),
             "social_pressure_state": event.get("social_pressure_state"),
             "social_pressure_target": event.get("social_pressure_target"),
             "social_pressure_validation": event.get("social_pressure_validation"),
@@ -9524,6 +9671,7 @@ class StoryRuntimeManager:
         actor_lane_ctx = self._extract_actor_lane_context(session)
         prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
         prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
+        prior_temporal_control_state = _prior_temporal_control_state_from_session(session)
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
         prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
         prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
@@ -9543,6 +9691,7 @@ class StoryRuntimeManager:
                 prior_continuity_impacts=prior_ci if prior_ci else None,
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
@@ -10822,6 +10971,7 @@ class StoryRuntimeManager:
             )
             prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
             prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
+            prior_temporal_control_state = _prior_temporal_control_state_from_session(session)
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
             prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
@@ -10854,6 +11004,7 @@ class StoryRuntimeManager:
                 prior_narrative_thread_state=prior_narrative_thread_state,
                 prior_callback_web_state=prior_callback_web_state,
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
+                prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
@@ -11068,6 +11219,12 @@ class StoryRuntimeManager:
             event.setdefault("pacing_rhythm_target", graph_state.get("pacing_rhythm_target"))
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             event.setdefault("pacing_rhythm_validation", graph_state.get("pacing_rhythm_validation"))
+        if isinstance(graph_state.get("temporal_control_state"), dict):
+            event.setdefault("temporal_control_state", graph_state.get("temporal_control_state"))
+        if isinstance(graph_state.get("temporal_control_target"), dict):
+            event.setdefault("temporal_control_target", graph_state.get("temporal_control_target"))
+        if isinstance(graph_state.get("temporal_control_validation"), dict):
+            event.setdefault("temporal_control_validation", graph_state.get("temporal_control_validation"))
         if isinstance(graph_state.get("sensory_context_state"), dict):
             event.setdefault("sensory_context_state", graph_state.get("sensory_context_state"))
         if isinstance(graph_state.get("sensory_context_target"), dict):
@@ -11149,6 +11306,9 @@ class StoryRuntimeManager:
             "pacing_rhythm_state": event.get("pacing_rhythm_state"),
             "pacing_rhythm_target": event.get("pacing_rhythm_target"),
             "pacing_rhythm_validation": event.get("pacing_rhythm_validation"),
+            "temporal_control_state": event.get("temporal_control_state"),
+            "temporal_control_target": event.get("temporal_control_target"),
+            "temporal_control_validation": event.get("temporal_control_validation"),
             "sensory_context_state": event.get("sensory_context_state"),
             "sensory_context_target": event.get("sensory_context_target"),
             "sensory_context_validation": event.get("sensory_context_validation"),

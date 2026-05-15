@@ -79,6 +79,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_TEMPORAL_CONTROL,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
@@ -167,6 +168,12 @@ from ai_stack.meta_narrative_awareness_engine import (
 from ai_stack.pacing_rhythm_engine import (
     derive_pacing_rhythm,
     validate_pacing_rhythm_realization,
+)
+from ai_stack.temporal_control_engine import (
+    build_temporal_control_aspect_record,
+    compact_temporal_control_context,
+    derive_temporal_control,
+    validate_temporal_control_realization,
 )
 from ai_stack.social_pressure_engine import (
     derive_social_pressure,
@@ -1646,6 +1653,33 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "pacing_rhythm_validation": pacing_rhythm_validation,
     }
+    temporal_control_validation = validate_temporal_control_realization(
+        temporal_control_target=state.get("temporal_control_target")
+        if isinstance(state.get("temporal_control_target"), dict)
+        else None,
+        temporal_control_state=state.get("temporal_control_state")
+        if isinstance(state.get("temporal_control_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_TEMPORAL_CONTROL,
+        build_temporal_control_aspect_record(
+            target=state.get("temporal_control_target")
+            if isinstance(state.get("temporal_control_target"), dict)
+            else None,
+            state=state.get("temporal_control_state")
+            if isinstance(state.get("temporal_control_state"), dict)
+            else None,
+            validation=temporal_control_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "temporal_control_validation": temporal_control_validation,
+    }
     improvisational_validation = validate_improvisational_coherence_realization(
         improvisational_coherence_target=state.get("improvisational_coherence_target")
         if isinstance(state.get("improvisational_coherence_target"), dict)
@@ -2001,6 +2035,29 @@ def _build_runtime_aspect_validation(
                 or (rhythm_codes[0] if rhythm_codes else "pacing_rhythm_validation_failed")
             ),
             "failure_codes": rhythm_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    temporal_control_failure = None
+    if (
+        isinstance(temporal_control_validation, dict)
+        and str(temporal_control_validation.get("status") or "").strip().lower()
+        == "rejected"
+    ):
+        temporal_codes = [
+            str(code)
+            for code in (temporal_control_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        temporal_control_failure = {
+            "failure_reason": str(
+                temporal_control_validation.get("feedback_code")
+                or (
+                    temporal_codes[0]
+                    if temporal_codes
+                    else "temporal_control_validation_failed"
+                )
+            ),
+            "failure_codes": temporal_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
     improvisational_failure = None
@@ -2361,6 +2418,26 @@ def _build_runtime_aspect_validation(
             "pacing_rhythm_failure": pacing_rhythm_failure,
         }
     elif (
+        temporal_control_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            temporal_control_failure.get("failure_reason")
+            or "temporal_control_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "temporal_control_validation_v1",
+            "temporal_control_contract_violation": True,
+            "failure_class": temporal_control_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "temporal_control_failure": temporal_control_failure,
+        }
+    elif (
         improvisational_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -2497,6 +2574,14 @@ def _build_runtime_aspect_validation(
                 "pacing_rhythm_contract_violation": bool(
                     next_outcome.get("pacing_rhythm_contract_violation")
                 ),
+                "temporal_control_validation_status": (
+                    temporal_control_validation.get("status")
+                    if isinstance(temporal_control_validation, dict)
+                    else None
+                ),
+                "temporal_control_contract_violation": bool(
+                    next_outcome.get("temporal_control_contract_violation")
+                ),
                 "improvisational_coherence_validation_status": (
                     improvisational_validation.get("status")
                     if isinstance(improvisational_validation, dict)
@@ -2613,6 +2698,7 @@ def _build_runtime_aspect_validation(
         "voice_consistency_validation": voice_validation,
         "scene_energy_validation": scene_energy_validation,
         "pacing_rhythm_validation": pacing_rhythm_validation,
+        "temporal_control_validation": temporal_control_validation,
         "improvisational_coherence_validation": improvisational_validation,
         "social_pressure_validation": social_pressure_validation,
         "relationship_state_validation": relationship_state_validation,
@@ -2625,6 +2711,7 @@ def _build_runtime_aspect_validation(
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
         "scene_energy_failure": scene_energy_failure,
+        "temporal_control_failure": temporal_control_failure,
         "improvisational_coherence_failure": improvisational_failure,
         "social_pressure_failure": social_pressure_failure,
         "relationship_state_failure": relationship_state_failure,
@@ -3527,6 +3614,11 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("improvisational_coherence_target"), dict)
         else None
     )
+    temporal_control_context = compact_temporal_control_context(
+        state.get("temporal_control_target")
+        if isinstance(state.get("temporal_control_target"), dict)
+        else None
+    )
     expectation_variation_context = compact_expectation_variation_context(
         state.get("expectation_variation_target")
         if isinstance(state.get("expectation_variation_target"), dict)
@@ -3646,6 +3738,18 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "Use selected expectation_variation ids only when they help the turn. "
                 "When realizing one, emit expectation_variation_events with variation_id, variation_type, and source_refs. "
                 "Do not invent setup, exceed max_variation_units_per_turn, or realize withheld variation ids."
+            ),
+        },
+        "temporal_control": {
+            "state": state.get("temporal_control_state")
+            if isinstance(state.get("temporal_control_state"), dict)
+            else {},
+            "target": temporal_control_context,
+            "instruction": (
+                "Use the selected temporal_control operation only as bounded turn structure. "
+                "When realizing it explicitly, emit temporal_control_events with operation, source_turn_ids, "
+                "source_consequence_ids, and elapsed_turns. Do not rewrite committed history, adopt inactive "
+                "branch state, or cite unselected prior turns."
             ),
         },
         "pacing_mode": state.get("pacing_mode"),
@@ -3916,6 +4020,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
         graph.add_node("derive_scene_energy", self._derive_scene_energy)
         graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
+        graph.add_node("derive_temporal_control", self._derive_temporal_control)
         graph.add_node("derive_social_pressure", self._derive_social_pressure)
         graph.add_node("derive_relationship_state", self._derive_relationship_state)
         graph.add_node("derive_sensory_context", self._derive_sensory_context)
@@ -3958,7 +4063,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
         graph.add_edge("director_select_dramatic_parameters", "derive_scene_energy")
         graph.add_edge("derive_scene_energy", "derive_pacing_rhythm")
-        graph.add_edge("derive_pacing_rhythm", "derive_social_pressure")
+        graph.add_edge("derive_pacing_rhythm", "derive_temporal_control")
+        graph.add_edge("derive_temporal_control", "derive_social_pressure")
         graph.add_edge("derive_social_pressure", "derive_sensory_context")
         graph.add_edge("derive_sensory_context", "derive_improvisational_coherence")
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
@@ -4008,6 +4114,7 @@ class RuntimeTurnGraphExecutor:
         prior_narrative_thread_state: dict[str, Any] | None = None,
         prior_callback_web_state: dict[str, Any] | None = None,
         prior_consequence_cascade_state: dict[str, Any] | None = None,
+        prior_temporal_control_state: dict[str, Any] | None = None,
         prior_expectation_variation_state: dict[str, Any] | None = None,
         prior_pacing_rhythm_state: dict[str, Any] | None = None,
         prior_social_pressure_state: dict[str, Any] | None = None,
@@ -4056,6 +4163,8 @@ class RuntimeTurnGraphExecutor:
                 snapshot rehydrated from the story session.
             prior_consequence_cascade_state: bounded committed consequence
                 cascade feedback snapshot rehydrated from the story session.
+            prior_temporal_control_state: bounded committed temporal-control
+                feedback snapshot rehydrated from the story session.
             prior_expectation_variation_state: bounded committed variation
                 feedback snapshot rehydrated from the story session.
             prior_pacing_rhythm_state: bounded committed rhythm feedback
@@ -4179,6 +4288,10 @@ class RuntimeTurnGraphExecutor:
         if prior_consequence_cascade_state:
             initial_state["prior_consequence_cascade_state"] = dict(
                 prior_consequence_cascade_state
+            )
+        if prior_temporal_control_state:
+            initial_state["prior_temporal_control_state"] = dict(
+                prior_temporal_control_state
             )
         if prior_expectation_variation_state:
             initial_state["prior_expectation_variation_state"] = dict(
@@ -5831,6 +5944,66 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_temporal_control(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_temporal_control")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_temporal_control(
+            scene_plan_record=scene_plan,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            pacing_rhythm_target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            prior_consequence_cascade_state=state.get("prior_consequence_cascade_state")
+            if isinstance(state.get("prior_consequence_cascade_state"), dict)
+            else None,
+            prior_callback_web_state=state.get("prior_callback_web_state")
+            if isinstance(state.get("prior_callback_web_state"), dict)
+            else None,
+            prior_temporal_control_state=state.get("prior_temporal_control_state")
+            if isinstance(state.get("prior_temporal_control_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            turn_id=state.get("turn_id") if isinstance(state.get("turn_id"), str) else None,
+            turn_number=state.get("turn_number")
+            if isinstance(state.get("turn_number"), int)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        temporal_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if temporal_state:
+            scene_plan["temporal_control_state"] = temporal_state
+        if target:
+            scene_plan["temporal_control_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["temporal_control_state"] = temporal_state
+        update["temporal_control_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {},
+            ASPECT_TEMPORAL_CONTROL,
+            build_temporal_control_aspect_record(
+                state=temporal_state,
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
     def _derive_social_pressure(self, state: RuntimeTurnState) -> RuntimeTurnState:
         update = _track(state, node_name="derive_social_pressure")
         scene_plan = (
@@ -6517,6 +6690,34 @@ class RuntimeTurnGraphExecutor:
             }
             lines.append(f"Pacing Rhythm Target: {json.dumps(compact_rhythm, sort_keys=True)[:320]}")
 
+        temporal_control = (
+            dramatic_packet.get("temporal_control")
+            if isinstance(dramatic_packet.get("temporal_control"), dict)
+            else {}
+        )
+        temporal_target = (
+            temporal_control.get("target")
+            if isinstance(temporal_control.get("target"), dict)
+            else {}
+        )
+        if temporal_target:
+            compact_temporal = {
+                key: temporal_target.get(key)
+                for key in (
+                    "operation",
+                    "anchor_turn_id",
+                    "anchor_turn_number",
+                    "recalled_turn_ids",
+                    "recalled_consequence_ids",
+                    "max_elapsed_turns",
+                    "require_structured_events",
+                )
+                if temporal_target.get(key) not in (None, [], {})
+            }
+            lines.append(
+                f"Temporal Control Target: {json.dumps(compact_temporal, sort_keys=True)[:360]}"
+            )
+
         memory_context = state.get("hierarchical_memory_context") if isinstance(state.get("hierarchical_memory_context"), dict) else {}
         memory_lines = memory_context.get("context_lines") if isinstance(memory_context.get("context_lines"), list) else []
         if memory_lines:
@@ -6738,6 +6939,18 @@ class RuntimeTurnGraphExecutor:
                 "and source_refs from required_setup_refs; do not realize withheld variation ids."
             )
 
+        if temporal_target:
+            lines.append("Temporal Control Context (bounded committed refs):")
+            lines.append(
+                f"- operation: {temporal_target.get('operation')} "
+                f"recalled_turn_ids: {list(temporal_target.get('recalled_turn_ids') or [])[:3]} "
+                f"recalled_consequence_ids: {list(temporal_target.get('recalled_consequence_ids') or [])[:3]}"
+            )
+            lines.append(
+                "- rule: emit temporal_control_events only for the selected operation and selected committed refs; "
+                "do not rewrite history or adopt inactive branch state."
+            )
+
         meta_narrative_context = (
             (dramatic_packet.get("meta_narrative_awareness") or {}).get("target")
             if isinstance(dramatic_packet.get("meta_narrative_awareness"), dict)
@@ -6806,7 +7019,7 @@ class RuntimeTurnGraphExecutor:
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
             "the sensory_context target, improvisational_coherence target, information_disclosure target, "
-            "bounded expectation_variation target, durable relationship_state, bounded relationship_dynamics_context, "
+            "bounded expectation_variation target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
             "bounded dramatic_irony_context, opt-in meta_narrative_awareness, and consequence_cascade_context."
         )
 
@@ -7655,6 +7868,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "scene_energy"
             elif isinstance(outcome.get("pacing_rhythm_failure"), dict):
                 trigger_source = "pacing_rhythm"
+            elif isinstance(outcome.get("temporal_control_failure"), dict):
+                trigger_source = "temporal_control"
             elif isinstance(outcome.get("improvisational_coherence_failure"), dict):
                 trigger_source = "improvisational_coherence"
             elif isinstance(outcome.get("sensory_context_failure"), dict):
@@ -7685,6 +7900,11 @@ class RuntimeTurnGraphExecutor:
             pacing_rhythm_failure_before_retry = (
                 dict(outcome.get("pacing_rhythm_failure"))
                 if isinstance(outcome.get("pacing_rhythm_failure"), dict)
+                else None
+            )
+            temporal_control_failure_before_retry = (
+                dict(outcome.get("temporal_control_failure"))
+                if isinstance(outcome.get("temporal_control_failure"), dict)
                 else None
             )
             improvisational_failure_before_retry = (
@@ -7727,6 +7947,7 @@ class RuntimeTurnGraphExecutor:
                 "capability_failure_before_retry": capability_failure_before_retry,
                 "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                 "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
+                "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                 "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                 "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
@@ -7773,6 +7994,7 @@ class RuntimeTurnGraphExecutor:
                     "capability_failure_before_retry": capability_failure_before_retry,
                     "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                     "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
+                    "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                     "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                     "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
@@ -7861,6 +8083,10 @@ class RuntimeTurnGraphExecutor:
             update["scene_energy_validation"] = validation_eval["scene_energy_validation"]
         if isinstance(validation_eval.get("pacing_rhythm_validation"), dict):
             update["pacing_rhythm_validation"] = validation_eval["pacing_rhythm_validation"]
+        if isinstance(validation_eval.get("temporal_control_validation"), dict):
+            update["temporal_control_validation"] = validation_eval[
+                "temporal_control_validation"
+            ]
         if isinstance(validation_eval.get("improvisational_coherence_validation"), dict):
             update["improvisational_coherence_validation"] = validation_eval[
                 "improvisational_coherence_validation"

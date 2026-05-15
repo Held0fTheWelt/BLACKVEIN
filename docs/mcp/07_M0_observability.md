@@ -86,6 +86,16 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `expectation_variation_setup_supported`
 - `expectation_variation_contract_pass`
 - `expectation_variation_failure_codes`
+- `temporal_control_policy_present`
+- `temporal_control_target_selected`
+- `temporal_control_operation`
+- `temporal_control_recalled_turn_ids`
+- `temporal_control_recalled_consequence_ids`
+- `temporal_control_event_count`
+- `temporal_control_committed_sources_bounded`
+- `temporal_control_history_rewrite_absent`
+- `temporal_control_contract_pass`
+- `temporal_control_failure_codes`
 - `sensory_context_target_present`
 - `sensory_context_intensity`
 - `sensory_context_location_id`
@@ -108,4 +118,4 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `memory_context_bounded`
 - `hierarchical_memory_contract_pass`
 
-For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, expectation-variation support, sensory-layer realization, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.
+For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, expectation-variation support, temporal-control correctness, sensory-layer realization, dramatic-irony realization or private-plan leak safety, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.

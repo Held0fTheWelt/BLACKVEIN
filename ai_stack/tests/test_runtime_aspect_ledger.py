@@ -30,6 +30,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_TEMPORAL_CONTROL,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
     set_aspect_record,
@@ -41,6 +42,7 @@ from ai_stack.sensory_context_contracts import (
     SENSORY_CONTEXT_FAILURE_CODES,
     SENSORY_CONTEXT_SCHEMA_VERSION,
 )
+from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_SCHEMA_VERSION
 
 
 def _scene_energy_missing_pressure_code() -> str:
@@ -546,6 +548,66 @@ def test_runtime_projection_exposes_expectation_variation_aspect() -> None:
     assert variation["budget_used"] == 1
     assert variation["contract_pass"] is True
     assert variation["failure_codes"] == []
+
+
+def test_runtime_projection_exposes_temporal_control_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-temporal",
+        module_id="example_module",
+        turn_number=3,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_TEMPORAL_CONTROL,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": TEMPORAL_CONTROL_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+                "allowed_operations": ["recall_committed_past", "resume_present"],
+                "max_recalled_turns": 2,
+                "max_elapsed_turns": 4,
+            },
+            "selected": {
+                "operation": "recall_committed_past",
+                "anchor_turn_id": "turn-current",
+                "anchor_turn_number": 3,
+                "recalled_turn_ids": ["turn-alpha"],
+                "recalled_consequence_ids": ["cons-alpha"],
+                "elapsed_turns": 0,
+            },
+            "actual": {
+                "structured_events_present": True,
+                "event_count": 1,
+                "operation": "recall_committed_past",
+                "realized_operations": ["recall_committed_past"],
+                "realized_turn_ids": ["turn-alpha"],
+                "realized_consequence_ids": ["cons-alpha"],
+                "elapsed_turns": 0,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    temporal = projection[ASPECT_TEMPORAL_CONTROL]
+    assert temporal["schema_version"] == TEMPORAL_CONTROL_SCHEMA_VERSION
+    assert temporal["policy_present"] is True
+    assert temporal["operation"] == "recall_committed_past"
+    assert temporal["recalled_turn_ids"] == ["turn-alpha"]
+    assert temporal["recalled_consequence_ids"] == ["cons-alpha"]
+    assert temporal["realized_operations"] == ["recall_committed_past"]
+    assert temporal["contract_pass"] is True
+    assert temporal["failure_codes"] == []
 
 
 def test_runtime_projection_exposes_social_pressure_aspect() -> None:

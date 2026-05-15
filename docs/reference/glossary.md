@@ -67,6 +67,9 @@ Generic runtime aspect implementing bounded reveal control for mystery-rationing
 **Expectation variation runtime aspect**  
 Generic runtime aspect implementing bounded surprise-budget behavior. Module policy selects at most a small number of expectation-variation events from structured setup evidence; validation checks selected ids, variation types, setup refs, budget, cooldown, and failure codes rather than treating surprising prose as an oracle.
 
+**Temporal control runtime aspect**
+Generic runtime aspect implementing bounded Π28 time manipulation. Module policy selects one operation such as `hold_current_moment`, `recall_committed_past`, or `summarize_gap` from structured runtime evidence; validation checks `temporal_control_events` against selected committed refs, elapsed-turn bounds, history-rewrite flags, branch-state adoption flags, and failure codes rather than treating flashback or time-skip prose as an oracle.
+
 **Preview (experiment preview)**  
 Diagnostics or non-committed views of model or graph output used for review; must not be treated as committed player truth. Operational docs should point engineers to seam and contract docs for exact behavior.
 

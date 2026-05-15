@@ -496,6 +496,12 @@ def _extract_normalized_wos_evidence(
         "pacing_rhythm_contract_pass",
         "pacing_rhythm_density_respected",
         "pacing_rhythm_pause_respected",
+        "temporal_control_policy_present",
+        "temporal_control_target_selected",
+        "temporal_control_operation_allowed",
+        "temporal_control_committed_sources_bounded",
+        "temporal_control_history_rewrite_absent",
+        "temporal_control_contract_pass",
         "sensory_context_target_present",
         "sensory_context_contract_pass",
         "sensory_context_required_layers_realized",
@@ -612,6 +618,16 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "pacing_rhythm_density_respected",
     "pacing_rhythm_pause_respected",
     "pacing_rhythm_failure_codes",
+    "temporal_control_policy_present",
+    "temporal_control_target_selected",
+    "temporal_control_operation",
+    "temporal_control_recalled_turn_ids",
+    "temporal_control_recalled_consequence_ids",
+    "temporal_control_event_count",
+    "temporal_control_committed_sources_bounded",
+    "temporal_control_history_rewrite_absent",
+    "temporal_control_contract_pass",
+    "temporal_control_failure_codes",
     "sensory_context_target_present",
     "sensory_context_intensity",
     "sensory_context_location_id",
@@ -820,6 +836,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_consequence_cascade_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
+    if failure.startswith("temporal_control_"):
+        return "repair_temporal_control_bounded_committed_refs"
     if failure.startswith("improv_") or failure.startswith("improvisational_coherence_"):
         return "repair_improvisational_coherence_structured_acceptance"
     if failure.startswith("expectation_variation_"):
@@ -840,6 +858,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
+    temporal_control_rec = _aspect_record(ledger, "temporal_control")
     sensory_context_rec = _aspect_record(ledger, "sensory_context")
     improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
@@ -866,6 +885,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
     pacing_rhythm_selected = _aspect_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _aspect_block(pacing_rhythm_rec, "actual")
+    temporal_control_expected = _aspect_block(temporal_control_rec, "expected")
+    temporal_control_selected = _aspect_block(temporal_control_rec, "selected")
+    temporal_control_actual = _aspect_block(temporal_control_rec, "actual")
     sensory_context_selected = _aspect_block(sensory_context_rec, "selected")
     sensory_context_actual = _aspect_block(sensory_context_rec, "actual")
     improvisational_expected = _aspect_block(improvisational_rec, "expected")
@@ -972,6 +994,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    temporal_control_target = (
+        temporal_control_selected.get("target")
+        if isinstance(temporal_control_selected.get("target"), dict)
+        else temporal_control_selected
+    )
+    temporal_control_failure_codes = temporal_control_actual.get("failure_codes") or []
+    if not isinstance(temporal_control_failure_codes, list):
+        temporal_control_failure_codes = []
     sensory_context_target = (
         sensory_context_selected.get("target")
         if isinstance(sensory_context_selected.get("target"), dict)
@@ -1026,6 +1056,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            temporal_control_rec,
             sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
@@ -1048,6 +1079,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            temporal_control_rec,
             sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
@@ -1125,6 +1157,52 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("pacing_rhythm_pause_respected")
         ),
         "pacing_rhythm_failure_codes": pacing_rhythm_failure_codes,
+        "temporal_control_policy_present": (
+            temporal_control_expected.get("policy_present")
+            if "policy_present" in temporal_control_expected
+            else det_scores.get("temporal_control_policy_present")
+        ),
+        "temporal_control_target_selected": (
+            bool(temporal_control_target.get("operation"))
+            if temporal_control_selected
+            else det_scores.get("temporal_control_target_selected")
+        ),
+        "temporal_control_operation": temporal_control_target.get("operation")
+        if isinstance(temporal_control_target, dict)
+        else None,
+        "temporal_control_recalled_turn_ids": temporal_control_target.get(
+            "recalled_turn_ids"
+        )
+        if isinstance(temporal_control_target, dict)
+        else [],
+        "temporal_control_recalled_consequence_ids": temporal_control_target.get(
+            "recalled_consequence_ids"
+        )
+        if isinstance(temporal_control_target, dict)
+        else [],
+        "temporal_control_event_count": int(
+            temporal_control_actual.get("event_count") or 0
+        ),
+        "temporal_control_committed_sources_bounded": (
+            "temporal_control_uncommitted_source" not in temporal_control_failure_codes
+            and "temporal_control_unbounded_jump" not in temporal_control_failure_codes
+            if temporal_control_actual
+            else det_scores.get("temporal_control_committed_sources_bounded")
+        ),
+        "temporal_control_history_rewrite_absent": (
+            "temporal_control_history_rewrite_attempt"
+            not in temporal_control_failure_codes
+            and "temporal_control_branch_state_adoption"
+            not in temporal_control_failure_codes
+            if temporal_control_actual
+            else det_scores.get("temporal_control_history_rewrite_absent")
+        ),
+        "temporal_control_contract_pass": (
+            temporal_control_actual.get("contract_pass")
+            if "contract_pass" in temporal_control_actual
+            else det_scores.get("temporal_control_contract_pass")
+        ),
+        "temporal_control_failure_codes": temporal_control_failure_codes,
         "sensory_context_target_present": (
             bool(sensory_context_target)
             if sensory_context_rec

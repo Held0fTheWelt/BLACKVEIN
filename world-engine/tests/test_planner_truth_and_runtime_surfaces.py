@@ -497,6 +497,40 @@ def test_prior_expectation_variation_read_back_from_session_history() -> None:
     assert _prior_expectation_variation_state_from_session(s) == prior_state
 
 
+def test_prior_temporal_control_read_back_from_session_history() -> None:
+    from app.story_runtime.manager import (
+        StorySession,
+        _prior_temporal_control_state_from_session,
+    )
+
+    prior_state = {
+        "schema_version": "temporal_control.v1",
+        "current_operation": "recall_committed_past",
+        "anchor_turn_id": "turn-current",
+        "anchor_turn_number": 3,
+        "elapsed_turns": 0,
+        "recalled_turn_ids": ["turn-alpha"],
+        "recalled_consequence_ids": ["cons-alpha"],
+    }
+    s = StorySession(
+        session_id="sess-temporal-control-test",
+        module_id="god_of_carnage",
+        runtime_projection={"scenes": [], "start_scene_id": "s1"},
+    )
+    s.history.append(
+        {
+            "turn_number": 1,
+            "narrative_commit": {
+                "planner_truth": {
+                    "temporal_control_state": prior_state,
+                }
+            },
+        }
+    )
+
+    assert _prior_temporal_control_state_from_session(s) == prior_state
+
+
 def test_runtime_config_status_exposes_live_truth_surface_without_governed_config() -> None:
     mgr = StoryRuntimeManager(governed_runtime_config=None)
     status = mgr.runtime_config_status()

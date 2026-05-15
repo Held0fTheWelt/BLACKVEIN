@@ -95,6 +95,7 @@ LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
     ForbiddenPattern("table_b.pi_24", re.compile(r"\bpi_24\b|Π24\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_25", re.compile(r"\bpi_25\b|Π25\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_26", re.compile(r"\bpi_26\b|Π26\b", re.IGNORECASE)),
+    ForbiddenPattern("table_b.pi_28", re.compile(r"\bpi_28\b|Π28\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_29", re.compile(r"\bpi_29\b|Π29\b", re.IGNORECASE)),
 )
 
@@ -131,6 +132,10 @@ SENSORY_CONTEXT_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.consequence_cascade",
     re.compile(r"\bconsequence_cascade\b", re.IGNORECASE),
+)
+TEMPORAL_CONTROL_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.temporal_control",
+    re.compile(r"\btemporal_control\b", re.IGNORECASE),
 )
 IMPROVISATIONAL_COHERENCE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.improvisational_coherence",
@@ -227,6 +232,19 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "world-engine/app/config.py",
     "world-engine/app/main.py",
     "world-engine/app/story_runtime/consequence_cascade_store.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+TEMPORAL_CONTROL_CANONICAL_SURFACES = {
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_playability.py",
+    "ai_stack/temporal_control_contracts.py",
+    "ai_stack/temporal_control_engine.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
 }
 
@@ -466,6 +484,24 @@ def test_consequence_cascade_runtime_aspect_is_limited_to_canonical_surfaces() -
 
     assert not violations, (
         "consequence_cascade appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_temporal_control_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Temporal control is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in TEMPORAL_CONTROL_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (TEMPORAL_CONTROL_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "temporal_control appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

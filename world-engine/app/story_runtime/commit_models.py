@@ -129,6 +129,9 @@ class PlannerTruth(BaseModel):
     pacing_rhythm_state: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_target: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_validation: dict[str, Any] = Field(default_factory=dict)
+    temporal_control_state: dict[str, Any] = Field(default_factory=dict)
+    temporal_control_target: dict[str, Any] = Field(default_factory=dict)
+    temporal_control_validation: dict[str, Any] = Field(default_factory=dict)
     sensory_context_state: dict[str, Any] = Field(default_factory=dict)
     sensory_context_target: dict[str, Any] = Field(default_factory=dict)
     sensory_context_validation: dict[str, Any] = Field(default_factory=dict)
@@ -788,6 +791,16 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_pacing_rhythm.get("target")
     )
     pacing_rhythm_validation = _as_dict(graph_state.get("pacing_rhythm_validation"))
+    dramatic_packet_temporal_control = _as_dict(dramatic_packet.get("temporal_control"))
+    temporal_control_state = _as_dict(
+        graph_state.get("temporal_control_state")
+        or dramatic_packet_temporal_control.get("state")
+    )
+    temporal_control_target = _as_dict(
+        graph_state.get("temporal_control_target")
+        or dramatic_packet_temporal_control.get("target")
+    )
+    temporal_control_validation = _as_dict(graph_state.get("temporal_control_validation"))
     dramatic_packet_sensory_context = _as_dict(dramatic_packet.get("sensory_context"))
     sensory_context_state = _as_dict(
         graph_state.get("sensory_context_state")
@@ -907,6 +920,9 @@ def _planner_truth_from_graph_state(
         pacing_rhythm_state=pacing_rhythm_state,
         pacing_rhythm_target=pacing_rhythm_target,
         pacing_rhythm_validation=pacing_rhythm_validation,
+        temporal_control_state=temporal_control_state,
+        temporal_control_target=temporal_control_target,
+        temporal_control_validation=temporal_control_validation,
         sensory_context_state=sensory_context_state,
         sensory_context_target=sensory_context_target,
         sensory_context_validation=sensory_context_validation,

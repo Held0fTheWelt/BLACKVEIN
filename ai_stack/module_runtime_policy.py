@@ -33,6 +33,7 @@ from ai_stack.relationship_state_contracts import normalize_relationship_state_p
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
 from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
+from ai_stack.temporal_control_contracts import normalize_temporal_control_policy
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -197,6 +198,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     callback_web = callback_web if isinstance(callback_web, dict) else {}
     consequence_cascade = raw.get("consequence_cascade")
     consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
+    temporal_control = raw.get("temporal_control")
+    temporal_control = temporal_control if isinstance(temporal_control, dict) else {}
     expectation_variation = raw.get("expectation_variation")
     expectation_variation = (
         expectation_variation if isinstance(expectation_variation, dict) else {}
@@ -287,6 +290,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         ),
         "callback_web": normalize_callback_web_policy(callback_web),
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
+        "temporal_control": normalize_temporal_control_policy(temporal_control),
     }
 
 

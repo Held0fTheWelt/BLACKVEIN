@@ -235,6 +235,14 @@ def collect_playability_feedback_codes(
             code_text = str(code or "").strip()
             if code_text:
                 feedback.append(code_text)
+    temporal_control_validation = (
+        outcome.get("temporal_control_validation") if isinstance(outcome, dict) else None
+    )
+    if isinstance(temporal_control_validation, dict):
+        for code in temporal_control_validation.get("failure_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
     sensory_context_validation = outcome.get("sensory_context_validation") if isinstance(outcome, dict) else None
     if isinstance(sensory_context_validation, dict):
         for code in sensory_context_validation.get("failure_codes") or []:

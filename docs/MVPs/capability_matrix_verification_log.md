@@ -26,6 +26,40 @@ ADR-0039 discipline: selector code uses semantic capability names only; focused 
 
 ---
 
+## Local verification snapshot for Π28 / temporal-control runtime aspect
+
+- Date: 2026-05-15
+- Git SHA at verification time: `5b58ec64` (dirty worktree; local temporal-control implementation not committed at run time)
+- Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, or MCP live proof claim.
+- `python -m py_compile ai_stack/temporal_control_contracts.py ai_stack/temporal_control_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py ai_stack/story_runtime_playability.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tests/gates/test_table_b_anti_hardcoding_gate.py` -> passed
+- `python -m pytest ai_stack/tests/test_temporal_control_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py tests/gates/test_table_b_anti_hardcoding_gate.py -q` -> 39 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest tests/test_planner_truth_and_runtime_surfaces.py -q` from `world-engine/` -> 10 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q` -> 32 passed
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q` -> 4 passed
+- `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: Π28 is implemented as the generic `temporal_control` runtime
+aspect. The runtime normalizes module policy, derives bounded temporal state
+and a selected operation from structured scene/runtime evidence, passes only
+bounded committed refs into the dramatic generation packet, validates structured
+`temporal_control_events`, records `turn_aspect_ledger.temporal_control`,
+persists planner-truth fields, rehydrates the latest committed state, and
+exposes semantic Langfuse/MCP matrix fields.
+
+ADR-0039 discipline for this slice: tests derive expectations from exported
+schema constants, normalized module policy, structured committed turn and
+consequence refs, validation failure codes, planner-truth rehydration,
+runtime-aspect ledger fields, MCP extraction fields, and the Table-B
+anti-hardcoding allowlist. Generated flashback/time-skip prose, branch preview
+text, judge chronology labels, and Pi-number score names are not pass/fail
+oracles.
+
+Known limitations: this is local implementation and fixture/static verification
+only. Fresh staging traces, provider evidence, and end-to-end player-visible
+replay remain outside this snapshot.
+
+---
+
 ## Local verification snapshot for Π27 / relationship state machine
 
 Latest local verification recorded for the bounded durable relationship-state implementation:
