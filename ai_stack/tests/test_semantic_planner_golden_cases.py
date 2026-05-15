@@ -94,18 +94,19 @@ def test_indirect_provocation_without_blame_keyword(tmp_path: Path) -> None:
 
 
 def test_pi14_no_lexical_silence_reaches_director_pipeline(tmp_path: Path) -> None:
+    """ADR-0039 coverage: legacy Pi label is historical; runtime fields are semantic."""
     g = _graph(tmp_path)
     result = g.run(
-        session_id="pi14-silence",
+        session_id="silence-negative-space",
         module_id="god_of_carnage",
         current_scene_id="living_room",
         player_input="...",
-        trace_id="tg-pi14",
+        trace_id="tg-silence-negative-space",
     )
 
     interpreted = result.get("interpreted_input") or {}
-    assert interpreted.get("pi14_silence_signal") is True
-    assert interpreted.get("pi14_silence_signal_source") == "non_lexical_input"
+    assert interpreted.get("silence_negative_space_signal") is True
+    assert interpreted.get("silence_negative_space_signal_source") == "non_lexical_input"
 
     sm = result.get("semantic_move_record") or {}
     assert sm.get("move_type") == "silence_withdrawal"

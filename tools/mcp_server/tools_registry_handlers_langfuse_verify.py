@@ -601,6 +601,14 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "pacing_rhythm_density_respected",
     "pacing_rhythm_pause_respected",
     "pacing_rhythm_failure_codes",
+    "sensory_context_target_present",
+    "sensory_context_intensity",
+    "sensory_context_location_id",
+    "sensory_context_object_id",
+    "sensory_context_contract_pass",
+    "sensory_context_required_layers_realized",
+    "sensory_context_source_refs_valid",
+    "sensory_context_failure_codes",
     "improvisational_coherence_policy_present",
     "improvisational_coherence_target_selected",
     "improvisational_coherence_contribution_id",
@@ -802,6 +810,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
+    sensory_context_rec = _aspect_record(ledger, "sensory_context")
     improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
@@ -825,6 +834,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
     pacing_rhythm_selected = _aspect_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _aspect_block(pacing_rhythm_rec, "actual")
+    sensory_context_selected = _aspect_block(sensory_context_rec, "selected")
+    sensory_context_actual = _aspect_block(sensory_context_rec, "actual")
     improvisational_expected = _aspect_block(improvisational_rec, "expected")
     improvisational_selected = _aspect_block(improvisational_rec, "selected")
     improvisational_actual = _aspect_block(improvisational_rec, "actual")
@@ -924,6 +935,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    sensory_context_target = (
+        sensory_context_selected.get("target")
+        if isinstance(sensory_context_selected.get("target"), dict)
+        else sensory_context_selected
+    )
+    sensory_context_failure_codes = sensory_context_actual.get("failure_codes") or []
+    if not isinstance(sensory_context_failure_codes, list):
+        sensory_context_failure_codes = []
     improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
     if not isinstance(improvisational_failure_codes, list):
         improvisational_failure_codes = []
@@ -957,6 +976,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
             disclosure_rec,
@@ -976,6 +996,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            sensory_context_rec,
             improvisational_rec,
             social_pressure_rec,
             disclosure_rec,
@@ -1050,6 +1071,32 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("pacing_rhythm_pause_respected")
         ),
         "pacing_rhythm_failure_codes": pacing_rhythm_failure_codes,
+        "sensory_context_target_present": (
+            bool(sensory_context_target)
+            if sensory_context_rec
+            else det_scores.get("sensory_context_target_present")
+        ),
+        "sensory_context_intensity": sensory_context_target.get("intensity"),
+        "sensory_context_location_id": sensory_context_target.get("location_id"),
+        "sensory_context_object_id": sensory_context_target.get("object_id"),
+        "sensory_context_contract_pass": (
+            sensory_context_actual.get("contract_pass")
+            if "contract_pass" in sensory_context_actual
+            else det_scores.get("sensory_context_contract_pass")
+        ),
+        "sensory_context_required_layers_realized": (
+            "sensory_context_missing_required_layer" not in sensory_context_failure_codes
+            and "sensory_context_structured_event_missing" not in sensory_context_failure_codes
+            if sensory_context_actual
+            else det_scores.get("sensory_context_required_layers_realized")
+        ),
+        "sensory_context_source_refs_valid": (
+            "sensory_context_source_ref_mismatch" not in sensory_context_failure_codes
+            and "sensory_context_unselected_layer" not in sensory_context_failure_codes
+            if sensory_context_actual
+            else det_scores.get("sensory_context_source_refs_valid")
+        ),
+        "sensory_context_failure_codes": sensory_context_failure_codes,
         "improvisational_coherence_policy_present": (
             improvisational_expected.get("policy_present")
             if "policy_present" in improvisational_expected
@@ -1631,6 +1678,12 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         extra_pytest_args: list[str] = []
         if arguments.get("extra_pytest_args") and isinstance(arguments["extra_pytest_args"], list):
             extra_pytest_args = [str(x) for x in arguments["extra_pytest_args"] if str(x).strip()]
+        evidence_metadata = {
+            "evidence_scope": "local_pytest",
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "governance_adr": "ADR-0039",
+        }
 
         def _tail(raw: str) -> str:
             return "\n".join((raw or "").splitlines()[-40:])
@@ -1656,6 +1709,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 check=False,
             )
             return {
+                **evidence_metadata,
                 "ok": proc.returncode == 0,
                 "returncode": proc.returncode,
                 "command": cmd,
@@ -1691,6 +1745,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         )
         if preflight.returncode != 0:
             world_engine_result = {
+                **evidence_metadata,
                 "ok": False,
                 "returncode": preflight.returncode,
                 "command": preflight_cmd,
@@ -1700,6 +1755,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 "stderr_tail": _tail(preflight.stderr),
             }
             ai_stack_result = {
+                **evidence_metadata,
                 "ok": False,
                 "returncode": None,
                 "command": [
@@ -1716,6 +1772,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 "stderr_tail": "skipped_due_to_world_engine_preflight_failure",
             }
             return {
+                **evidence_metadata,
                 "ok": False,
                 "world_engine": world_engine_result,
                 "ai_stack": ai_stack_result,
@@ -1746,6 +1803,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             pythonpath_parts=[str(repo_root)],
         )
         return {
+            **evidence_metadata,
             "ok": bool(world_engine_result["ok"] and ai_stack_result["ok"]),
             "world_engine": world_engine_result,
             "ai_stack": ai_stack_result,

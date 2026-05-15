@@ -109,6 +109,80 @@ def _unresolved_actor_ids_from_prior(prior_planner_truth: dict[str, Any] | None)
     return dedupe_strings(actor_ids)
 
 
+def _social_pressure_signal(social_state_record: dict[str, Any] | None) -> dict[str, Any]:
+    social = social_state_record if isinstance(social_state_record, dict) else {}
+    if not social:
+        return {"present": False, "reason_codes": []}
+
+    relationship_codes = dedupe_strings(
+        social.get("relationship_pressure_codes")
+        if isinstance(social.get("relationship_pressure_codes"), list)
+        else []
+    )
+    legacy_shift = clean_text(social.get("social_pressure_shift") or social.get("pressure_shift"))
+    risk_band = clean_text(social.get("social_risk_band"))
+    asymmetry = clean_text(social.get("responder_asymmetry_code"))
+    pressure_state = clean_text(social.get("scene_pressure_state"))
+    continuity_status = clean_text(social.get("social_continuity_status"))
+
+    reason_codes: list[str] = list(relationship_codes)
+    if legacy_shift:
+        reason_codes.append("legacy_social_pressure_shift")
+    if risk_band == "high":
+        reason_codes.append("risk:high")
+    if asymmetry and asymmetry != "neutral":
+        reason_codes.append(f"asymmetry:{asymmetry}")
+    if pressure_state in {"high_blame", "thread_pressure_high"}:
+        reason_codes.append(f"scene_pressure:{pressure_state}")
+    if continuity_status == "social_state_shifted":
+        reason_codes.append("continuity:social_state_shifted")
+    reason_codes = dedupe_strings(reason_codes)
+
+    if legacy_shift:
+        return {
+            "present": True,
+            "field": "social_pressure_shift",
+            "value": legacy_shift,
+            "reason_codes": reason_codes,
+        }
+    if relationship_codes:
+        return {
+            "present": True,
+            "field": "relationship_pressure_codes",
+            "value": ",".join(relationship_codes[:4]),
+            "reason_codes": reason_codes,
+        }
+    if risk_band == "high":
+        return {
+            "present": True,
+            "field": "social_risk_band",
+            "value": risk_band,
+            "reason_codes": reason_codes,
+        }
+    if asymmetry and asymmetry != "neutral":
+        return {
+            "present": True,
+            "field": "responder_asymmetry_code",
+            "value": asymmetry,
+            "reason_codes": reason_codes,
+        }
+    if pressure_state in {"high_blame", "thread_pressure_high"}:
+        return {
+            "present": True,
+            "field": "scene_pressure_state",
+            "value": pressure_state,
+            "reason_codes": reason_codes,
+        }
+    if continuity_status == "social_state_shifted":
+        return {
+            "present": True,
+            "field": "social_continuity_status",
+            "value": continuity_status,
+            "reason_codes": reason_codes,
+        }
+    return {"present": False, "reason_codes": reason_codes}
+
+
 def _source_evidence(
     *,
     selected_scene_function: str | None,
@@ -126,10 +200,16 @@ def _source_evidence(
     if move_type:
         evidence.append({"source": "semantic_move_record", "field": "move_type", "value": move_type})
 
-    social = social_state_record if isinstance(social_state_record, dict) else {}
-    social_shift = clean_text(social.get("social_pressure_shift") or social.get("pressure_shift"))
-    if social_shift:
-        evidence.append({"source": "social_state_record", "field": "social_pressure_shift", "value": social_shift})
+    social_signal = _social_pressure_signal(social_state_record)
+    if social_signal.get("present"):
+        evidence.append(
+            {
+                "source": "social_state_record",
+                "field": social_signal.get("field"),
+                "value": social_signal.get("value"),
+                "reason_codes": list(social_signal.get("reason_codes") or [])[:6],
+            }
+        )
 
     prior = prior_planner_truth if isinstance(prior_planner_truth, dict) else {}
     carry_forward = clean_text(prior.get("carry_forward_tension_notes"))
@@ -155,9 +235,7 @@ def _rationale_codes(
         semantic_move_record.get("move_type") or semantic_move_record.get("primary_move_type")
     ):
         codes.append("semantic_move_guided")
-    if isinstance(social_state_record, dict) and clean_text(
-        social_state_record.get("social_pressure_shift") or social_state_record.get("pressure_shift")
-    ):
+    if _social_pressure_signal(social_state_record).get("present"):
         codes.append("social_pressure_guided")
     if unresolved_actor_ids:
         codes.append("unresolved_npc_initiative_carried_forward")
@@ -184,9 +262,7 @@ def _simulation_rationale_codes(
         semantic_move_record.get("move_type") or semantic_move_record.get("primary_move_type")
     ):
         codes.append("semantic_move_guided")
-    if isinstance(social_state_record, dict) and clean_text(
-        social_state_record.get("social_pressure_shift") or social_state_record.get("pressure_shift")
-    ):
+    if _social_pressure_signal(social_state_record).get("present"):
         codes.append("social_pressure_guided")
     if unresolved_actor_ids:
         codes.append("unresolved_npc_initiative_carried_forward")
@@ -268,8 +344,7 @@ def _candidate_priority_score(
     if clean_text(semantic.get("move_type") or semantic.get("primary_move_type")):
         score += 5
         reasons.append("semantic_move_pressure")
-    social = social_state_record if isinstance(social_state_record, dict) else {}
-    if clean_text(social.get("social_pressure_shift") or social.get("pressure_shift")):
+    if _social_pressure_signal(social_state_record).get("present"):
         score += 5
         reasons.append("social_state_pressure")
     if clean_text(mind.get("tactical_posture")) or clean_text(mind.get("pressure_response_bias")):

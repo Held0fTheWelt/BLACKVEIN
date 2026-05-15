@@ -27,6 +27,7 @@ from ai_stack.langgraph_synthetic_action_resolution import (
 )
 from story_runtime_core.content_locale import (
     clear_content_locale_caches,
+    resolve_string,
     resolve_content_modules_root,
 )
 
@@ -59,6 +60,34 @@ def _frame(verb: str, target_id: str = "", alias: str = "", action_kind: str = "
 
 def _aff(status: str, policy: str = "commit") -> dict:
     return {"affordance_status": status, "action_commit_policy": policy}
+
+
+def _location_detail(location_id: str, lang: str) -> str:
+    scene_affordances = _SCENE_AFFORDANCE_MODEL.get("scene_affordances") or {}
+    for row in scene_affordances.get("locations") or []:
+        if isinstance(row, dict) and row.get("id") == location_id:
+            detail = row.get("entry_sensory_detail") or {}
+            return str(detail.get(lang) or detail.get("de") or detail.get("en") or "")
+    raise AssertionError(f"missing canonical location detail: {location_id}")
+
+
+def _object_detail(object_id: str, lang: str) -> str:
+    scene_affordances = _SCENE_AFFORDANCE_MODEL.get("scene_affordances") or {}
+    for row in scene_affordances.get("objects") or []:
+        if isinstance(row, dict) and row.get("id") == object_id:
+            detail = row.get("perception_detail") or {}
+            return str(detail.get(lang) or detail.get("de") or detail.get("en") or "")
+    raise AssertionError(f"missing canonical object detail: {object_id}")
+
+
+def _module_string(key: str, lang: str, **kwargs: str) -> str:
+    return resolve_string(
+        MODULE,
+        key,
+        lang,
+        content_modules_root=_root(),
+        **kwargs,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -176,7 +205,7 @@ def test_consequence_bathroom_en_uses_authored_text():
         local_context_transition=lct,
     )
     assert ncp["consequence_text"] is not None
-    assert "quiet" in ncp["consequence_text"] or "distance" in ncp["consequence_text"]
+    assert ncp["consequence_text"] == _location_detail("bathroom", "en")
     assert ncp["source"] == "scene_affordance_detail"
     assert ncp["consequence_type"] == "area_transition"
     assert ncp["local_context_updated"] is True
@@ -197,7 +226,7 @@ def test_consequence_bathroom_de_uses_authored_german_text():
         local_context_transition=lct,
     )
     assert ncp["consequence_text"] is not None
-    assert "Stille" in ncp["consequence_text"] or "Abstand" in ncp["consequence_text"]
+    assert ncp["consequence_text"] == _location_detail("bathroom", "de")
     assert ncp["source"] == "scene_affordance_detail"
 
 
@@ -216,7 +245,7 @@ def test_consequence_window_perception_en():
         local_context_transition=lct,
     )
     assert ncp["consequence_text"] is not None
-    assert "window" in ncp["consequence_text"].lower() or "street" in ncp["consequence_text"]
+    assert ncp["consequence_text"] == _object_detail("window", "en")
     assert ncp["consequence_type"] == "perception_result"
     assert ncp["source"] == "scene_affordance_detail"
 
@@ -236,7 +265,7 @@ def test_consequence_window_perception_de():
         local_context_transition=lct,
     )
     assert ncp["consequence_text"] is not None
-    assert "Fenster" in ncp["consequence_text"] or "Straße" in ncp["consequence_text"]
+    assert ncp["consequence_text"] == _object_detail("window", "de")
     assert ncp["source"] == "scene_affordance_detail"
 
 
@@ -424,9 +453,7 @@ def test_synthetic_gen_uses_authored_text_for_bathroom():
     )
     assert gen["success"] is True
     narr = gen["content"]
-    assert "bathroom" in narr.lower() or "quiet" in narr or "distance" in narr, (
-        f"Narrator text did not use authored entry detail: {narr!r}"
-    )
+    assert narr == _location_detail("bathroom", "en")
     meta = gen["metadata"]
     assert meta.get("local_context_transition") is not None
     assert meta.get("narrator_consequence_plan") is not None
@@ -447,9 +474,7 @@ def test_synthetic_gen_uses_authored_text_for_window_perception():
         content_modules_root=_root(),
     )
     narr = gen["content"]
-    assert "window" in narr.lower() or "street" in narr, (
-        f"Narrator text did not use authored perception detail: {narr!r}"
-    )
+    assert narr == _object_detail("window", "en")
     assert gen["metadata"]["narrator_consequence_plan"]["consequence_type"] == "perception_result"
 
 
@@ -486,9 +511,7 @@ def test_synthetic_gen_de_locale_bathroom():
         content_modules_root=_root(),
     )
     narr = gen["content"]
-    assert "Stille" in narr or "Abstand" in narr or "Badezimmer" in narr, (
-        f"German narrator text did not use authored DE entry detail: {narr!r}"
-    )
+    assert narr == _location_detail("bathroom", "de")
 
 
 def test_synthetic_gen_narr_not_action_restatement_for_bathroom():
@@ -505,13 +528,12 @@ def test_synthetic_gen_narr_not_action_restatement_for_bathroom():
         content_modules_root=_root(),
     )
     narr = gen["content"]
-    # Must NOT be the thin template that only restates the action
-    assert "tension remains audible" not in narr, (
-        f"Narrator still using thin move_offscreen template: {narr!r}"
+    fallback_template = _module_string(
+        "action_resolution.narrator.move_offscreen",
+        "en",
+        target_label="bathroom",
     )
-    assert "step aside toward" not in narr, (
-        f"Narrator still using thin move_offscreen template: {narr!r}"
-    )
+    assert narr != fallback_template
 
 
 def test_synthetic_gen_perception_not_action_restatement_for_window():
@@ -528,9 +550,12 @@ def test_synthetic_gen_perception_not_action_restatement_for_window():
         content_modules_root=_root(),
     )
     narr = gen["content"]
-    assert "focus your attention" not in narr, (
-        f"Narrator still using thin perception_object template: {narr!r}"
+    fallback_template = _module_string(
+        "action_resolution.narrator.perception_object",
+        "en",
+        target_label="window",
     )
+    assert narr != fallback_template
 
 
 # ---------------------------------------------------------------------------

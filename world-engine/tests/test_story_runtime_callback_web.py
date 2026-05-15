@@ -1,4 +1,8 @@
-"""Tests for Π17 callback-web continuity evidence."""
+"""Tests for Π17 callback-web continuity evidence.
+
+ADR-0039 scope: assertions use policy-derived bounds, schema constants, graph
+export fields, and RuntimeAspectLedger projection, not example callback prose.
+"""
 
 from __future__ import annotations
 

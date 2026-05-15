@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
@@ -61,8 +62,14 @@ def test_run_projection_tests_returns_structured_result():
         out = tool.handler({})
     assert run_mock.call_count == 3
     assert out["ok"] is True
+    assert out["evidence_scope"] == "local_pytest"
+    assert out["proof_level"] == "local_only"
+    assert out["live_or_staging_evidence"] is False
+    assert out["governance_adr"] == "ADR-0039"
     assert out["world_engine"]["ok"] is True
     assert out["ai_stack"]["ok"] is True
+    assert out["world_engine"]["evidence_scope"] == "local_pytest"
+    assert out["ai_stack"]["live_or_staging_evidence"] is False
     assert out["world_engine"]["returncode"] == 0
     assert out["ai_stack"]["returncode"] == 0
     assert out["world_engine"]["command"][0] == sys.executable
@@ -100,6 +107,9 @@ def test_run_projection_tests_returns_preflight_diagnostics_on_import_error():
         out = tool.handler({})
     assert run_mock.call_count == 1
     assert out["ok"] is False
+    assert out["evidence_scope"] == "local_pytest"
+    assert out["proof_level"] == "local_only"
+    assert out["live_or_staging_evidence"] is False
     assert out["world_engine"]["ok"] is False
     assert out["world_engine"]["command"][0] == sys.executable
     assert out["world_engine"]["cwd"].replace("\\", "/").endswith("/WorldOfShadows/world-engine")
@@ -108,6 +118,17 @@ def test_run_projection_tests_returns_preflight_diagnostics_on_import_error():
     assert out["ai_stack"]["ok"] is False
     assert out["ai_stack"]["returncode"] is None
     assert "skipped_due_to_world_engine_preflight_failure" in out["ai_stack"]["stderr_tail"]
+    assert out["ai_stack"]["proof_level"] == "local_only"
+
+
+def test_run_projection_tests_handler_has_no_machine_absolute_repo_paths():
+    source_path = Path(__file__).resolve().parents[3] / "tools/mcp_server/tools_registry_handlers_langfuse_verify.py"
+    source = source_path.read_text(encoding="utf-8")
+
+    assert "/mnt/" not in source
+    assert "D:\\\\" not in source
+    assert "C:\\\\" not in source
+    assert "Path(config.repo_root)" in source
 
 
 def test_assert_live_opening_contract_reports_missing_field():

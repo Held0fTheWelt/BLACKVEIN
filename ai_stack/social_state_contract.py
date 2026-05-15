@@ -37,6 +37,18 @@ class SocialStateRecord(BaseModel):
         default="initial_social_state",
         description="initial_social_state|stable_prior_social_state|social_state_shifted",
     )
+    relationship_pressure_codes: list[str] = Field(
+        default_factory=list,
+        description="Bounded relationship-pressure codes derived from social state and canonical axes.",
+    )
+    active_relationship_axis_ids: list[str] = Field(
+        default_factory=list,
+        description="Canonical relationship axis ids currently implicated by the social-state projection.",
+    )
+    dominant_relationship_axis_id: str | None = Field(
+        default=None,
+        description="First active relationship axis id, when any canonical axis is implicated.",
+    )
 
     def to_runtime_dict(self) -> dict:
         """``to_runtime_dict`` — see implementation for behaviour and contracts.

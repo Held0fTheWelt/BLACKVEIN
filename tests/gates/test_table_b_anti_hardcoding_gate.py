@@ -89,9 +89,11 @@ LEGACY_TABLE_B_CONTROL_ID_PATTERNS = tuple(
     )
     for index in REAUDITED_TABLE_B_CONTROL_IDS
 ) + (
+    ForbiddenPattern("table_b.pi14_compact", re.compile(r"\bpi0?14(?:_[A-Za-z0-9_]+)?\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_21", re.compile(r"\bpi_21\b|Π21\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_24", re.compile(r"\bpi_24\b|Π24\b", re.IGNORECASE)),
+    ForbiddenPattern("table_b.pi_26", re.compile(r"\bpi_26\b|Π26\b", re.IGNORECASE)),
 )
 
 TABLE_B_CONTROL_PATTERNS = (
@@ -101,6 +103,7 @@ TABLE_B_CONTROL_PATTERNS = (
     ForbiddenPattern("table_b.symbolic_resonance", re.compile(r"\bsymbolic_resonance\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.mystery_rationing", re.compile(r"\bmystery_rationing\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.surprise_budget", re.compile(r"\bsurprise_budget\b", re.IGNORECASE)),
+    ForbiddenPattern("table_b.sensory_layering", re.compile(r"\bsensory_layering\b", re.IGNORECASE)),
 )
 
 SCENE_ENERGY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
@@ -114,6 +117,10 @@ INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 PACING_RHYTHM_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.pacing_rhythm",
     re.compile(r"\bpacing_rhythm\b", re.IGNORECASE),
+)
+SENSORY_CONTEXT_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.sensory_context",
+    re.compile(r"\bsensory_context\b", re.IGNORECASE),
 )
 CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.consequence_cascade",
@@ -160,6 +167,20 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/pacing_rhythm_contracts.py",
     "ai_stack/pacing_rhythm_engine.py",
     "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_playability.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+SENSORY_CONTEXT_CANONICAL_SURFACES = {
+    "ai_stack/langchain_integration/bridges.py",
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/sensory_context_contracts.py",
+    "ai_stack/sensory_context_engine.py",
     "ai_stack/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -354,6 +375,24 @@ def test_pacing_rhythm_runtime_aspect_is_limited_to_canonical_surfaces() -> None
 
     assert not violations, (
         "pacing_rhythm appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_sensory_context_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Sensory context is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in SENSORY_CONTEXT_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (SENSORY_CONTEXT_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "sensory_context appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

@@ -21,6 +21,7 @@ from ai_stack.npc_agency_realization import (
     build_npc_agency_closure,
     validate_npc_initiative_realization,
 )
+from ai_stack.social_state_goc import build_social_state_record
 
 
 def _planner_fixture() -> dict:
@@ -160,6 +161,39 @@ def test_planner_records_structural_source_evidence_without_story_text_oracles()
     }
     assert expected_sources.issubset(source_names)
     assert source_names == initiative_source_names
+
+
+def test_simulation_uses_current_social_state_fields_as_pressure_evidence() -> None:
+    fixture = _planner_fixture()
+    social_state = build_social_state_record(
+        prior_continuity_impacts=[{"class": "blame_pressure"}],
+        active_narrative_threads=[{"thread_id": "thread-1"}],
+        thread_pressure_summary="blocked",
+        scene_assessment={"pressure_state": "high_blame"},
+    ).to_runtime_dict()
+
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=fixture["responders"][:2],
+        turn_number=3,
+        character_mind_records=fixture["minds"],
+        social_state_record=social_state,
+        actor_lane_context=fixture["actor_lane_context"],
+    )
+
+    assert simulation is not None
+    assert "social_pressure_guided" in simulation["planner_rationale_codes"]
+    social_sources = [
+        row for row in simulation["source_evidence"] if row["source"] == "social_state_record"
+    ]
+    assert social_sources
+    assert social_sources[0]["field"] in social_state
+    assert set(social_sources[0]["reason_codes"]).intersection(
+        set(social_state["relationship_pressure_codes"])
+    )
+    assert any(
+        "social_state_pressure" in row["pressure_reason_codes"]
+        for row in simulation["npc_intent_proposals"]
+    )
 
 
 def test_simulation_uses_actor_lane_roster_as_current_contract() -> None:

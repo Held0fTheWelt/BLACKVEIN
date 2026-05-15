@@ -129,6 +129,9 @@ class PlannerTruth(BaseModel):
     pacing_rhythm_state: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_target: dict[str, Any] = Field(default_factory=dict)
     pacing_rhythm_validation: dict[str, Any] = Field(default_factory=dict)
+    sensory_context_state: dict[str, Any] = Field(default_factory=dict)
+    sensory_context_target: dict[str, Any] = Field(default_factory=dict)
+    sensory_context_validation: dict[str, Any] = Field(default_factory=dict)
     social_pressure_state: dict[str, Any] = Field(default_factory=dict)
     social_pressure_target: dict[str, Any] = Field(default_factory=dict)
     social_pressure_validation: dict[str, Any] = Field(default_factory=dict)
@@ -459,6 +462,9 @@ def _social_state_summary_from_graph_state(graph_state: dict[str, Any]) -> dict[
         "prior_social_state_fingerprint",
         "prior_social_risk_band",
         "social_continuity_status",
+        "relationship_pressure_codes",
+        "active_relationship_axis_ids",
+        "dominant_relationship_axis_id",
     ):
         if key in record:
             summary.setdefault(key, record.get(key))
@@ -776,6 +782,16 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_pacing_rhythm.get("target")
     )
     pacing_rhythm_validation = _as_dict(graph_state.get("pacing_rhythm_validation"))
+    dramatic_packet_sensory_context = _as_dict(dramatic_packet.get("sensory_context"))
+    sensory_context_state = _as_dict(
+        graph_state.get("sensory_context_state")
+        or dramatic_packet_sensory_context.get("state")
+    )
+    sensory_context_target = _as_dict(
+        graph_state.get("sensory_context_target")
+        or dramatic_packet_sensory_context.get("target")
+    )
+    sensory_context_validation = _as_dict(graph_state.get("sensory_context_validation"))
     dramatic_packet_social_pressure = _as_dict(dramatic_packet.get("social_pressure"))
     social_pressure_state = _as_dict(
         graph_state.get("social_pressure_state")
@@ -861,6 +877,9 @@ def _planner_truth_from_graph_state(
         pacing_rhythm_state=pacing_rhythm_state,
         pacing_rhythm_target=pacing_rhythm_target,
         pacing_rhythm_validation=pacing_rhythm_validation,
+        sensory_context_state=sensory_context_state,
+        sensory_context_target=sensory_context_target,
+        sensory_context_validation=sensory_context_validation,
         social_pressure_state=social_pressure_state,
         social_pressure_target=social_pressure_target,
         social_pressure_validation=social_pressure_validation,

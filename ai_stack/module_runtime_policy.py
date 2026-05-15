@@ -26,6 +26,7 @@ from ai_stack.information_disclosure_contracts import normalize_information_disc
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
+from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
 from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
 
 
@@ -193,6 +194,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
     pacing_rhythm = raw.get("pacing_rhythm")
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
+    sensory_context = raw.get("sensory_context")
+    sensory_context = sensory_context if isinstance(sensory_context, dict) else {}
     improvisational_coherence = raw.get("improvisational_coherence")
     improvisational_coherence = (
         improvisational_coherence
@@ -246,6 +249,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         },
         "scene_energy": normalize_scene_energy_policy(scene_energy),
         "pacing_rhythm": normalize_pacing_rhythm_policy(pacing_rhythm),
+        "sensory_context": normalize_sensory_context_policy(sensory_context),
         "improvisational_coherence": normalize_improvisational_coherence_policy(
             improvisational_coherence
         ),

@@ -127,6 +127,8 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
         return False
     if reason.startswith("pacing_rhythm_"):
         return False
+    if reason.startswith("sensory_context_"):
+        return False
     if reason.startswith(HARD_BOUNDARY_REASON_PREFIXES):
         return True
     geo = outcome.get("dramatic_effect_gate_outcome") if isinstance(outcome, dict) else None
@@ -135,6 +137,7 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
         return any(
             not code.startswith("scene_energy_")
             and not code.startswith("pacing_rhythm_")
+            and not code.startswith("sensory_context_")
             and code.startswith(HARD_BOUNDARY_REASON_PREFIXES)
             for code in codes
         )
@@ -224,6 +227,12 @@ def collect_playability_feedback_codes(
     pacing_rhythm_validation = outcome.get("pacing_rhythm_validation") if isinstance(outcome, dict) else None
     if isinstance(pacing_rhythm_validation, dict):
         for code in pacing_rhythm_validation.get("failure_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
+    sensory_context_validation = outcome.get("sensory_context_validation") if isinstance(outcome, dict) else None
+    if isinstance(sensory_context_validation, dict):
+        for code in sensory_context_validation.get("failure_codes") or []:
             code_text = str(code or "").strip()
             if code_text:
                 feedback.append(code_text)
@@ -483,6 +492,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "and any forced-speech block from the silence decision."
         )
         return preserve_prefix + base_instruction + pacing_rhythm_feedback
+
+    sensory_context_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("sensory_context_")
+    ]
+    if sensory_context_issues:
+        sensory_context_feedback = (
+            " Sensory context repair: preserve actor lanes and committed facts, "
+            "but realize the selected sensory_context target through structured sensory_context_events. "
+            "Use only selected layer_id/source_ref pairs from the dramatic packet, respect layer budget, "
+            "and keep sensory texture tied to authored locations, objects, and mood layers."
+        )
+        return preserve_prefix + base_instruction + sensory_context_feedback
 
     return preserve_prefix + base_instruction
 

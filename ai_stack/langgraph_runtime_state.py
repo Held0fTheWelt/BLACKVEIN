@@ -94,6 +94,9 @@ class RuntimeTurnState(TypedDict, total=False):
     pacing_rhythm_state: dict[str, Any]
     pacing_rhythm_target: dict[str, Any]
     pacing_rhythm_validation: dict[str, Any]
+    sensory_context_state: dict[str, Any]
+    sensory_context_target: dict[str, Any]
+    sensory_context_validation: dict[str, Any]
     improvisational_coherence_target: dict[str, Any]
     improvisational_coherence_validation: dict[str, Any]
     social_pressure_state: dict[str, Any]
@@ -123,6 +126,7 @@ class RuntimeTurnState(TypedDict, total=False):
     turn_input_class: str
     turn_execution_mode: str
     live_player_truth_surface: bool
+    session_output_language: str
     # MVP2 actor-lane enforcement context: human_actor_id + ai_forbidden_actor_ids.
     # Populated by the host at turn start; consumed by validate_seam before commit.
     actor_lane_context: dict[str, Any]

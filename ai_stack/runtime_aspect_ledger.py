@@ -22,6 +22,7 @@ ASPECT_ACTION_RESOLUTION = "action_resolution"
 ASPECT_BEAT = "beat"
 ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_PACING_RHYTHM = "pacing_rhythm"
+ASPECT_SENSORY_CONTEXT = "sensory_context"
 ASPECT_IMPROVISATIONAL_COHERENCE = "improvisational_coherence"
 ASPECT_SOCIAL_PRESSURE = "social_pressure"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
@@ -45,6 +46,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_BEAT,
     ASPECT_SCENE_ENERGY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_SENSORY_CONTEXT,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_CAPABILITY_SELECTION,
@@ -307,6 +309,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_PACING_RHYTHM), dict)
         else {}
     )
+    sensory_context_rec = (
+        aspects.get(ASPECT_SENSORY_CONTEXT)
+        if isinstance(aspects.get(ASPECT_SENSORY_CONTEXT), dict)
+        else {}
+    )
     improvisational_rec = (
         aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE)
         if isinstance(aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE), dict)
@@ -392,6 +399,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     pacing_rhythm_expected = _record_block(pacing_rhythm_rec, "expected")
     pacing_rhythm_selected = _record_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _record_block(pacing_rhythm_rec, "actual")
+    sensory_context_expected = _record_block(sensory_context_rec, "expected")
+    sensory_context_selected = _record_block(sensory_context_rec, "selected")
+    sensory_context_actual = _record_block(sensory_context_rec, "actual")
     improvisational_expected = _record_block(improvisational_rec, "expected")
     improvisational_selected = _record_block(improvisational_rec, "selected")
     improvisational_actual = _record_block(improvisational_rec, "actual")
@@ -590,6 +600,52 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     else None
                 ),
                 "status": pacing_rhythm_rec.get("status"),
+            },
+            "sensory_context": {
+                "schema_version": sensory_context_expected.get("schema_version")
+                or sensory_context_selected.get("schema_version")
+                or sensory_context_actual.get("schema_version"),
+                "policy_present": bool(sensory_context_expected.get("policy_present")),
+                "policy_enabled": bool(sensory_context_expected.get("policy_enabled")),
+                "intensity": _record_nested_value(
+                    sensory_context_selected, "intensity", "target"
+                ),
+                "location_id": _record_nested_value(
+                    sensory_context_selected, "location_id", "target"
+                ),
+                "object_id": _record_nested_value(
+                    sensory_context_selected, "object_id", "target"
+                ),
+                "mood_key": _record_nested_value(
+                    sensory_context_selected, "mood_key", "target"
+                ),
+                "selected_layer_ids": sensory_context_selected.get("selected_layer_ids")
+                or (
+                    sensory_context_selected.get("target", {}).get("selected_layer_ids")
+                    if isinstance(sensory_context_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "required_layer_ids": sensory_context_selected.get("required_layer_ids")
+                or (
+                    sensory_context_selected.get("target", {}).get("required_layer_ids")
+                    if isinstance(sensory_context_selected.get("target"), dict)
+                    else []
+                )
+                or sensory_context_actual.get("required_layer_ids")
+                or [],
+                "event_count": int(sensory_context_actual.get("event_count") or 0),
+                "realized_layer_ids": sensory_context_actual.get("realized_layer_ids") or [],
+                "contract_pass": sensory_context_actual.get("contract_pass"),
+                "failure_codes": sensory_context_actual.get("failure_codes")
+                or _record_reasons(sensory_context_rec),
+                "failure_reason": sensory_context_rec.get("failure_reason")
+                or (
+                    _record_reasons(sensory_context_rec)[0]
+                    if _record_reasons(sensory_context_rec)
+                    else None
+                ),
+                "status": sensory_context_rec.get("status"),
             },
             "improvisational_coherence": {
                 "schema_version": improvisational_expected.get("schema_version")
@@ -1178,6 +1234,14 @@ def aspect_score_metadata(
         or transition.get("transition_intent"),
         "scene_energy_contract_pass": actual.get("contract_pass"),
         "scene_energy_failure_codes": actual.get("failure_codes"),
+        "sensory_context_intensity": selected.get("intensity") or target.get("intensity"),
+        "sensory_context_location_id": selected.get("location_id") or target.get("location_id"),
+        "sensory_context_object_id": selected.get("object_id") or target.get("object_id"),
+        "sensory_context_selected_layer_ids": selected.get("selected_layer_ids")
+        or target.get("selected_layer_ids"),
+        "sensory_context_realized_layer_ids": actual.get("realized_layer_ids"),
+        "sensory_context_contract_pass": actual.get("contract_pass"),
+        "sensory_context_failure_codes": actual.get("failure_codes"),
         "improvisational_coherence_contribution_id": selected.get("contribution_id"),
         "improvisational_coherence_contribution_kind": selected.get("contribution_kind"),
         "improvisational_coherence_acceptance_mode": selected.get("acceptance_mode")

@@ -328,6 +328,13 @@ class RuntimeTurnStructuredOutput(BaseModel):
     )
     initiative_events: list[RuntimeInitiativeEvent] = Field(default_factory=list, description="Semantics of who seized or lost the turn.")
     state_effects: list[RuntimeStateEffect] = Field(default_factory=list, description="World-state changes this turn produces.")
+    sensory_context_events: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Structured evidence for selected sensory_context layers. Each row should carry layer_id and "
+            "source_ref from the dramatic generation packet; prose wording is not the contract."
+        ),
+    )
     responder_actor_ids: list[str] = Field(default_factory=list)
 
     responder_id: str | None = None

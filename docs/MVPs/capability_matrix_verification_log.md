@@ -6,6 +6,8 @@ This log preserves dated local verification history for the Capability Matrix. I
 
 When adding a verification run, include the command, Git SHA or branch if available, environment scope, notable limitations, and whether the evidence is local-only, staging, live-provider, Langfuse, MCP, or mixed. Do not paste secrets. Do not treat local PASS output as live-provider proof.
 
+Historical entries may include machine-local absolute paths because they preserve the command transcript from that workstation. Treat those paths as local environment evidence only, not as portable instructions or live/staging proof. New entries should prefer repo-relative commands, `REPO_ROOT`, or `$PWD`-relative invocation notes whenever practical.
+
 ## Local verification snapshot for Π1-Π13 / ADR-0039 re-audit
 
 Latest local re-audit for the implemented/partial Π1-Π13 rows:
@@ -280,5 +282,22 @@ Latest local verification recorded for bounded Meta/OOC input handling:
 Evidence summary: Meta/OOC input now resolves to `player_input_kind=meta` and routes through LangGraph `meta_control_turn` to `package_output`. The path records `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, `generation_required=false`, and `commit_not_applicable=true`; it skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`.
 
 ADR-0039 discipline for this slice: tests assert shared intent-contract flags, graph node execution/exclusion, adapter invocation mode, repro metadata, and commit applicability fields. Literal input strings are stimuli only; no generated acknowledgement text or story prose is a pass/fail oracle.
+
+---
+
+## Local verification snapshot for ADR-0039 / Pi-test coverage and MCP evidence scope
+
+Latest local verification recorded for ADR-0039 as an active Capability Matrix governance source:
+
+- Git SHA at verification time: `118b2c6c` on `master` (dirty worktree).
+- Environment scope: local pytest/static-gate evidence only; no live-provider, staging, or live Langfuse claim.
+- `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q` -> 31 passed.
+- `python -m pytest tests/gates/test_adr0039_* -q` -> 1 passed.
+- `python -m pytest tests/gates/test_adr_0039_* -q` -> 7 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 9 passed.
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 4 passed.
+- `python -m pytest ai_stack/tests/test_pi14_silence_negative_space.py ai_stack/tests/test_semantic_planner_golden_cases.py::test_pi14_no_lexical_silence_reaches_director_pipeline -q` -> 7 passed.
+
+ADR-0039 discipline for this slice: the new ADR gate discovers every Pi / Π-labeled test file and requires an explicit coverage rationale. The Π14 silence runtime path now uses semantic `silence_negative_space_signal` fields instead of active `pi14_*` runtime keys, and `run_projection_tests` reports `evidence_scope=local_pytest`, `proof_level=local_only`, and `live_or_staging_evidence=false` so MCP verification cannot be mistaken for staging/live proof.
 
 ---

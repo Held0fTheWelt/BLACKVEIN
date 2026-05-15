@@ -105,6 +105,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
+    ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
@@ -3034,6 +3035,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("pacing_rhythm_validation"), dict)
             else {}
         ),
+        "sensory_context_state": (
+            graph_state.get("sensory_context_state")
+            if isinstance(graph_state.get("sensory_context_state"), dict)
+            else scene_plan_record.get("sensory_context_state")
+            if isinstance(scene_plan_record.get("sensory_context_state"), dict)
+            else {}
+        ),
+        "sensory_context_target": (
+            graph_state.get("sensory_context_target")
+            if isinstance(graph_state.get("sensory_context_target"), dict)
+            else scene_plan_record.get("sensory_context_target")
+            if isinstance(scene_plan_record.get("sensory_context_target"), dict)
+            else {}
+        ),
+        "sensory_context_validation": (
+            graph_state.get("sensory_context_validation")
+            if isinstance(graph_state.get("sensory_context_validation"), dict)
+            else {}
+        ),
         "social_pressure_state": (
             graph_state.get("social_pressure_state")
             if isinstance(graph_state.get("social_pressure_state"), dict)
@@ -3860,6 +3880,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
     pacing_rhythm_selected = _selected(ASPECT_PACING_RHYTHM)
     pacing_rhythm_actual = _actual(ASPECT_PACING_RHYTHM)
+    sensory_context_selected = _selected(ASPECT_SENSORY_CONTEXT)
+    sensory_context_actual = _actual(ASPECT_SENSORY_CONTEXT)
     social_pressure_selected = _selected(ASPECT_SOCIAL_PRESSURE)
     social_pressure_actual = _actual(ASPECT_SOCIAL_PRESSURE)
     improvisational_selected = _selected(ASPECT_IMPROVISATIONAL_COHERENCE)
@@ -3939,6 +3961,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": pacing_rhythm_actual,
                 "aspect_record": _rec(ASPECT_PACING_RHYTHM),
+            },
+        ),
+        (
+            "story.sensory_context.target",
+            ASPECT_SENSORY_CONTEXT,
+            {
+                "selected": sensory_context_selected,
+                "aspect_record": _rec(ASPECT_SENSORY_CONTEXT),
+            },
+        ),
+        (
+            "story.sensory_context.validate",
+            ASPECT_SENSORY_CONTEXT,
+            {
+                "actual": sensory_context_actual,
+                "aspect_record": _rec(ASPECT_SENSORY_CONTEXT),
             },
         ),
         (
@@ -4079,6 +4117,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_BEAT,
                         ASPECT_SCENE_ENERGY,
                         ASPECT_PACING_RHYTHM,
+                        ASPECT_SENSORY_CONTEXT,
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_CAPABILITY_SELECTION,
@@ -4162,6 +4201,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    sensory_context_target = (
+        sensory_context_selected.get("target")
+        if isinstance(sensory_context_selected.get("target"), dict)
+        else sensory_context_selected
+    )
+    sensory_context_failure_codes = sensory_context_actual.get("failure_codes") or []
+    if not isinstance(sensory_context_failure_codes, list):
+        sensory_context_failure_codes = []
     improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
     if not isinstance(improvisational_failure_codes, list):
         improvisational_failure_codes = []
@@ -4308,6 +4355,34 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
                 and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
+            ),
+        ),
+        (
+            "sensory_context_target_present",
+            ASPECT_SENSORY_CONTEXT,
+            _runtime_aspect_score_value(bool(sensory_context_target)),
+        ),
+        (
+            "sensory_context_contract_pass",
+            ASPECT_SENSORY_CONTEXT,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_SENSORY_CONTEXT).get("status") in {"passed", "not_applicable"}
+            ),
+        ),
+        (
+            "sensory_context_required_layers_realized",
+            ASPECT_SENSORY_CONTEXT,
+            _runtime_aspect_score_value(
+                "sensory_context_missing_required_layer" not in sensory_context_failure_codes
+                and "sensory_context_structured_event_missing" not in sensory_context_failure_codes
+            ),
+        ),
+        (
+            "sensory_context_source_refs_valid",
+            ASPECT_SENSORY_CONTEXT,
+            _runtime_aspect_score_value(
+                "sensory_context_source_ref_mismatch" not in sensory_context_failure_codes
+                and "sensory_context_unselected_layer" not in sensory_context_failure_codes
             ),
         ),
         (
@@ -6642,6 +6717,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "pacing_rhythm_state",
         "pacing_rhythm_target",
         "pacing_rhythm_validation",
+        "sensory_context_state",
+        "sensory_context_target",
+        "sensory_context_validation",
         "social_pressure_state",
         "social_pressure_target",
         "social_pressure_validation",
@@ -8506,6 +8584,12 @@ class StoryRuntimeManager:
             gov["pacing_rhythm_target"] = graph_state.get("pacing_rhythm_target")
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             gov["pacing_rhythm_validation"] = graph_state.get("pacing_rhythm_validation")
+        if isinstance(graph_state.get("sensory_context_state"), dict):
+            gov["sensory_context_state"] = graph_state.get("sensory_context_state")
+        if isinstance(graph_state.get("sensory_context_target"), dict):
+            gov["sensory_context_target"] = graph_state.get("sensory_context_target")
+        if isinstance(graph_state.get("sensory_context_validation"), dict):
+            gov["sensory_context_validation"] = graph_state.get("sensory_context_validation")
         if isinstance(graph_state.get("social_pressure_state"), dict):
             gov["social_pressure_state"] = graph_state.get("social_pressure_state")
         if isinstance(graph_state.get("social_pressure_target"), dict):
@@ -10828,6 +10912,12 @@ class StoryRuntimeManager:
             event.setdefault("pacing_rhythm_target", graph_state.get("pacing_rhythm_target"))
         if isinstance(graph_state.get("pacing_rhythm_validation"), dict):
             event.setdefault("pacing_rhythm_validation", graph_state.get("pacing_rhythm_validation"))
+        if isinstance(graph_state.get("sensory_context_state"), dict):
+            event.setdefault("sensory_context_state", graph_state.get("sensory_context_state"))
+        if isinstance(graph_state.get("sensory_context_target"), dict):
+            event.setdefault("sensory_context_target", graph_state.get("sensory_context_target"))
+        if isinstance(graph_state.get("sensory_context_validation"), dict):
+            event.setdefault("sensory_context_validation", graph_state.get("sensory_context_validation"))
         if isinstance(graph_state.get("social_pressure_state"), dict):
             event.setdefault("social_pressure_state", graph_state.get("social_pressure_state"))
         if isinstance(graph_state.get("social_pressure_target"), dict):
@@ -10897,6 +10987,9 @@ class StoryRuntimeManager:
             "pacing_rhythm_state": event.get("pacing_rhythm_state"),
             "pacing_rhythm_target": event.get("pacing_rhythm_target"),
             "pacing_rhythm_validation": event.get("pacing_rhythm_validation"),
+            "sensory_context_state": event.get("sensory_context_state"),
+            "sensory_context_target": event.get("sensory_context_target"),
+            "sensory_context_validation": event.get("sensory_context_validation"),
             "social_pressure_state": event.get("social_pressure_state"),
             "social_pressure_target": event.get("social_pressure_target"),
             "social_pressure_validation": event.get("social_pressure_validation"),

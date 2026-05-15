@@ -97,6 +97,9 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "guidance_phase_key": "phase_2_moral_negotiation",
                 "responder_asymmetry_code": "blame_on_host_spouse_axis",
                 "social_risk_band": "high",
+                "relationship_pressure_codes": ["asymmetry:blame_on_host_spouse_axis", "risk:high"],
+                "active_relationship_axis_ids": ["axis_1"],
+                "dominant_relationship_axis_id": "axis_1",
             },
             "social_pressure_state": {
                 "schema_version": "social_pressure.v1",
@@ -162,6 +165,8 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.social_state_summary["validated"] is True
     assert pt.social_state_summary["social_risk_band"] == "high"
     assert pt.social_state_summary["responder_asymmetry_code"] == "blame_on_host_spouse_axis"
+    assert pt.social_state_summary["relationship_pressure_codes"]
+    assert pt.social_state_summary["dominant_relationship_axis_id"] in pt.social_state_summary["active_relationship_axis_ids"]
     assert pt.social_state_summary["record"]["scene_pressure_state"] == "high_blame"
     assert pt.social_state_summary["fingerprint"]
     assert pt.social_pressure_state["current_score"] == 0.74

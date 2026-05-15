@@ -290,6 +290,33 @@ runtime_intelligence:
       containment:
         tempo_arc: compressed
         response_shape: exchange
+  sensory_context:
+    enabled: true
+    schema_version: sensory_context_policy.v1
+    min_layers_per_turn: 1
+    max_layers_per_turn: 3
+    require_structured_events: true
+    model_context_visibility: bounded_authored_layers
+    intensity_by_pressure_band:
+      low: low
+      medium: medium
+      moderate: medium
+      high: high
+    mood_by_scene_energy:
+      low: opening
+      contained: mid_tension
+      rising: mid_tension
+      volatile: late_breakdown
+      collapsed: late_breakdown
+    mood_by_scene_function:
+      establish_pressure: opening
+      withhold_or_evade: mid_tension
+      repair_or_stabilize: mid_tension
+      escalate_conflict: late_breakdown
+      redirect_blame: mid_tension
+      probe_motive: mid_tension
+      reveal_surface: mid_tension
+      scene_pivot: mid_tension
   social_pressure:
     enabled: true
     schema_version: social_pressure_policy.v1

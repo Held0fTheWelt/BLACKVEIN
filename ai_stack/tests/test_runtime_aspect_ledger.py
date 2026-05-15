@@ -21,6 +21,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AGENCY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
+    ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
@@ -29,6 +30,10 @@ from ai_stack.runtime_aspect_ledger import (
 )
 from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
+from ai_stack.sensory_context_contracts import (
+    SENSORY_CONTEXT_FAILURE_CODES,
+    SENSORY_CONTEXT_SCHEMA_VERSION,
+)
 
 
 def _scene_energy_missing_pressure_code() -> str:
@@ -43,6 +48,13 @@ def _pacing_rhythm_density_code() -> str:
         if code.endswith("visible_density_exceeded"):
             return code
     raise AssertionError("pacing_rhythm_contract_missing_density_failure_code")
+
+
+def _sensory_context_missing_layer_code() -> str:
+    for code in SENSORY_CONTEXT_FAILURE_CODES:
+        if code.endswith("missing_required_layer"):
+            return code
+    raise AssertionError("sensory_context_contract_missing_layer_failure_code")
 
 
 def test_runtime_aspect_ledger_serializes_stably() -> None:
@@ -322,6 +334,84 @@ def test_runtime_projection_exposes_pacing_rhythm_aspect() -> None:
     assert rhythm["visible_block_count"] == 5
     assert rhythm["failure_codes"] == [density_code]
     assert rhythm["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_sensory_context_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-sensory",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich sehe zum Fenster.",
+    )
+    layer = {
+        "layer_id": "object:window:perception",
+        "layer_kind": "object_perception",
+        "source": "scene_affordances",
+        "source_field": "objects.window.perception_detail.de",
+        "source_ref": "scene_affordances.objects.window.perception_detail",
+        "locale": "de",
+        "text": "canonical text loaded by sensory context target",
+        "required": True,
+    }
+    target = {
+        "schema_version": SENSORY_CONTEXT_SCHEMA_VERSION,
+        "intensity": "medium",
+        "location_id": "vallon_living_room",
+        "object_id": "window",
+        "mood_key": "mid_tension",
+        "selected_layers": [layer],
+        "required_layer_ids": [layer["layer_id"]],
+        "min_layers_per_turn": 1,
+        "max_layers_per_turn": 3,
+        "require_structured_events": True,
+        "source_evidence": [],
+        "rationale_codes": [],
+    }
+    missing_code = _sensory_context_missing_layer_code()
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_SENSORY_CONTEXT,
+        {
+            "applicable": True,
+            "status": "failed",
+            "expected": {
+                "schema_version": SENSORY_CONTEXT_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+            },
+            "selected": {
+                "target": target,
+                "selected_layer_ids": [layer["layer_id"]],
+                "required_layer_ids": [layer["layer_id"]],
+                "intensity": target["intensity"],
+                "location_id": target["location_id"],
+                "object_id": target["object_id"],
+            },
+            "actual": {
+                "event_count": 0,
+                "realized_layer_ids": [],
+                "required_layer_ids": [layer["layer_id"]],
+                "contract_pass": False,
+                "failure_codes": [missing_code],
+            },
+            "reasons": [missing_code],
+            "failure_class": "recoverable_dramatic_failure",
+            "failure_reason": missing_code,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    sensory = projection[ASPECT_SENSORY_CONTEXT]
+    assert sensory["schema_version"] == SENSORY_CONTEXT_SCHEMA_VERSION
+    assert sensory["intensity"] == target["intensity"]
+    assert sensory["location_id"] == target["location_id"]
+    assert sensory["object_id"] == target["object_id"]
+    assert sensory["selected_layer_ids"] == [layer["layer_id"]]
+    assert sensory["event_count"] == 0
+    assert sensory["failure_codes"] == [missing_code]
+    assert sensory["contract_pass"] is False
 
 
 def test_runtime_projection_exposes_improvisational_coherence_aspect() -> None:

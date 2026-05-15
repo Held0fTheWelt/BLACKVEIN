@@ -1,3 +1,9 @@
+"""Narrative-aspect contract tests.
+
+ADR-0039 scope: `table_b_refs` values are legacy fixture metadata only; pass/fail
+assertions use policy-derived semantic profiles and structured contract fields.
+"""
+
 from __future__ import annotations
 
 from ai_stack.narrative_aspect_contracts import (

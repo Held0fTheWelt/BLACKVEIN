@@ -234,6 +234,48 @@ class TestW31ResponderSetStrengthening:
         assert secondary["required"] is True
         assert secondary["tactical_posture"] == mind_by_actor[expected_secondary_ids[0]]["tactical_posture"]
 
+    def test_dramatic_packet_includes_bounded_relationship_dynamics_context(self):
+        """Verify Pi27 reaches generation as bounded structural context."""
+        from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
+        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.social_state_goc import build_social_state_record
+
+        yaml_slice = load_goc_yaml_slice_bundle()
+        social_state = build_social_state_record(
+            prior_continuity_impacts=[{"class": "blame_pressure"}],
+            active_narrative_threads=[{"thread_id": "thread-1"}],
+            thread_pressure_summary="blocked",
+            scene_assessment={"pressure_state": "high_blame"},
+            yaml_slice=yaml_slice,
+        ).to_runtime_dict()
+        state = {
+            "turn_number": 12,
+            "module_id": "god_of_carnage",
+            "goc_yaml_slice": yaml_slice,
+            "selected_scene_function": "escalate_conflict",
+            "selected_responder_set": [
+                {"actor_id": "veronique_vallon", "role": "primary_responder", "preferred_reaction_order": 0},
+                {"actor_id": "michel_longstreet", "role": "secondary_reactor", "preferred_reaction_order": 1},
+            ],
+            "social_state_record": social_state,
+            "pacing_mode": "standard",
+            "silence_brevity_decision": {},
+        }
+
+        packet = _build_dramatic_generation_packet(state)
+        context = packet["relationship_dynamics_context"]
+        selected_actor_ids = {row["actor_id"] for row in state["selected_responder_set"]}
+
+        assert context["contract"] == "relationship_dynamics_context.v1"
+        assert context["relationship_pressure_codes"] == social_state["relationship_pressure_codes"]
+        assert set(context["active_relationship_axis_ids"]).issubset(set(yaml_slice["relationship_axes"]))
+        assert context["relationship_axes"]
+        assert context["npc_interaction_edges"]
+        assert all(
+            edge["source_actor_id"] in selected_actor_ids and edge["target_actor_id"] in selected_actor_ids
+            for edge in context["npc_interaction_edges"]
+        )
+
     def test_dramatic_packet_secondary_directive_absent_when_no_secondaries(self):
         """Verify secondary_responder_directive is None when only primary."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet

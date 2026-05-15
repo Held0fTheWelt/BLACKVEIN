@@ -6,6 +6,8 @@ This document defines promotion evidence for Capability Matrix claims that depen
 
 The Capability Matrix is not a wishlist and not a historical idea list. It is a governed truth map connecting runtime capabilities, stable semantic implementation names, Pi / Π legacy labels, ADR ownership, implementation maturity, runtime contracts, tests, Langfuse/MCP/staging evidence where required, and known blockers. A capability is only implemented when the code, tests, runtime wiring, and required evidence support that claim.
 
+[ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) is an active governance source for these gates. It governs hardcoded-oracle prevention, Pi / Π vocabulary boundaries, MCP/Langfuse verification quality, repository-root portability, local-vs-live evidence separation, and false-green prevention.
+
 ## Promotion Rules
 
 Use the repository's current statuses (`target_state`, `partially_proven` / `partial`, `implemented`). The project does not currently use `live_verified` as a matrix status; instead, live proof is a separate claim gate. If a future ADR adds `live_verified`, the same evidence below becomes the promotion rule for `implemented` -> `live_verified`.
@@ -60,7 +62,7 @@ Allowed cross-reference examples:
 | Π22 | `social_pressure` |
 | Π24 | `improvisational_coherence` |
 
-Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, and Capability Matrix cross-reference tables.
+Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.
 
 Pi / Π references are forbidden in runtime branch keys, Langfuse score names, MCP payload keys, schema field names, product-facing API fields, and frontend control logic.
 
@@ -69,6 +71,8 @@ Pi / Π references are forbidden in runtime branch keys, Langfuse score names, M
 Runtime behavior must be contract-driven, not string-driven. Pi / Π labels must not become special-case production logic. Semantic capability names are allowed when they are backed by contracts, validators, ledger projection, or documented MCP/Langfuse mappings.
 
 Tests should distinguish forbidden Pi-number usage from valid semantic implementations. New capabilities must be added to `tests/gates/test_table_b_anti_hardcoding_gate.py` or explicitly documented as out of scope.
+
+ADR-0039 must also cover all Pi-labeled tests. Add new Pi / Π test files to `tests/gates/test_adr_0039_pi_scope.py` so the project can audit which legacy-labeled tests are governed by contract/runtime assertions rather than by example-shaped strings.
 
 When adding a new capability:
 

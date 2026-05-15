@@ -74,6 +74,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
+    ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
@@ -157,6 +158,10 @@ from ai_stack.social_pressure_engine import (
     validate_social_pressure_metric,
 )
 from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
+from ai_stack.sensory_context_engine import (
+    derive_sensory_context,
+    validate_sensory_context_realization,
+)
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
@@ -1144,6 +1149,87 @@ def _pacing_rhythm_aspect_record(
     )
 
 
+def _sensory_context_aspect_record(
+    *,
+    state_record: dict[str, Any] | None,
+    target: dict[str, Any] | None,
+    validation: dict[str, Any] | None = None,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    state_dict = state_record if isinstance(state_record, dict) else {}
+    target_dict = target if isinstance(target, dict) else {}
+    validation_dict = validation if isinstance(validation, dict) else {}
+    failure_codes = [
+        str(code)
+        for code in (validation_dict.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    validation_status = str(validation_dict.get("status") or "").strip().lower()
+    applicable = bool(target_dict)
+    if not validation_dict:
+        aspect_status = "partial" if applicable else "not_applicable"
+    elif validation_status == "approved":
+        aspect_status = "passed"
+    elif validation_status == "not_applicable":
+        aspect_status = "not_applicable"
+        applicable = False
+    elif validation_status == "degraded":
+        aspect_status = "partial"
+    else:
+        aspect_status = "failed"
+    selected_layers = [
+        row
+        for row in (target_dict.get("selected_layers") or [])
+        if isinstance(row, dict)
+    ]
+    selected_layer_ids = [
+        str(row.get("layer_id") or "").strip()
+        for row in selected_layers
+        if str(row.get("layer_id") or "").strip()
+    ]
+    actual = (
+        dict(validation_dict.get("actual"))
+        if isinstance(validation_dict.get("actual"), dict)
+        else {}
+    )
+    actual.update(
+        {
+            "validation_status": validation_status or None,
+            "contract_pass": validation_dict.get("contract_pass"),
+            "failure_codes": failure_codes,
+        }
+    )
+    selected = {
+        "state": state_dict,
+        "target": target_dict,
+        "intensity": target_dict.get("intensity"),
+        "location_id": target_dict.get("location_id"),
+        "object_id": target_dict.get("object_id"),
+        "mood_key": target_dict.get("mood_key"),
+        "selected_layer_ids": selected_layer_ids,
+        "required_layer_ids": target_dict.get("required_layer_ids") or [],
+        "selected_layers": selected_layers,
+    }
+    return make_aspect_record(
+        applicable=applicable,
+        status=aspect_status,
+        expected={
+            "schema_version": target_dict.get("schema_version"),
+            "policy_present": bool(policy),
+            "policy_enabled": bool((policy or {}).get("enabled")),
+            "require_structured_events": bool(target_dict.get("require_structured_events")),
+            "min_layers_per_turn": int(target_dict.get("min_layers_per_turn") or 0),
+            "max_layers_per_turn": int(target_dict.get("max_layers_per_turn") or 0),
+        },
+        selected=selected,
+        actual=actual,
+        reasons=failure_codes or (["sensory_context_target_selected"] if target_dict and not validation_dict else []),
+        source="runtime" if not validation_dict else "validator",
+        failure_class="recoverable_dramatic_failure" if failure_codes else None,
+        failure_reason=failure_codes[0] if failure_codes else None,
+    )
+
+
 def _social_pressure_aspect_record(
     *,
     state_record: dict[str, Any] | None,
@@ -1589,6 +1675,32 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "social_pressure_validation": social_pressure_validation,
     }
+    sensory_context_validation = validate_sensory_context_realization(
+        sensory_context_target=state.get("sensory_context_target")
+        if isinstance(state.get("sensory_context_target"), dict)
+        else None,
+        sensory_context_state=state.get("sensory_context_state")
+        if isinstance(state.get("sensory_context_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_SENSORY_CONTEXT,
+        _sensory_context_aspect_record(
+            state_record=state.get("sensory_context_state")
+            if isinstance(state.get("sensory_context_state"), dict)
+            else None,
+            target=state.get("sensory_context_target")
+            if isinstance(state.get("sensory_context_target"), dict)
+            else None,
+            validation=sensory_context_validation,
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "sensory_context_validation": sensory_context_validation,
+    }
     information_disclosure_validation = validate_information_disclosure_realization(
         information_disclosure_target=state.get("information_disclosure_target")
         if isinstance(state.get("information_disclosure_target"), dict)
@@ -1831,6 +1943,24 @@ def _build_runtime_aspect_validation(
             "failure_codes": pressure_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
+    sensory_context_failure = None
+    if (
+        isinstance(sensory_context_validation, dict)
+        and str(sensory_context_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        sensory_codes = [
+            str(code)
+            for code in (sensory_context_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        sensory_context_failure = {
+            "failure_reason": str(
+                sensory_context_validation.get("feedback_code")
+                or (sensory_codes[0] if sensory_codes else "sensory_context_validation_failed")
+            ),
+            "failure_codes": sensory_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     information_disclosure_failure = None
     if (
         isinstance(information_disclosure_validation, dict)
@@ -2070,6 +2200,26 @@ def _build_runtime_aspect_validation(
             "social_pressure_failure": social_pressure_failure,
         }
     elif (
+        sensory_context_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            sensory_context_failure.get("failure_reason")
+            or "sensory_context_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "sensory_context_validation_v1",
+            "sensory_context_contract_violation": True,
+            "failure_class": sensory_context_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "sensory_context_failure": sensory_context_failure,
+        }
+    elif (
         information_disclosure_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -2142,6 +2292,14 @@ def _build_runtime_aspect_validation(
                 "social_pressure_contract_violation": bool(
                     next_outcome.get("social_pressure_contract_violation")
                 ),
+                "sensory_context_validation_status": (
+                    sensory_context_validation.get("status")
+                    if isinstance(sensory_context_validation, dict)
+                    else None
+                ),
+                "sensory_context_contract_violation": bool(
+                    next_outcome.get("sensory_context_contract_violation")
+                ),
                 "information_disclosure_validation_status": (
                     information_disclosure_validation.get("status")
                     if isinstance(information_disclosure_validation, dict)
@@ -2212,6 +2370,7 @@ def _build_runtime_aspect_validation(
         "pacing_rhythm_validation": pacing_rhythm_validation,
         "improvisational_coherence_validation": improvisational_validation,
         "social_pressure_validation": social_pressure_validation,
+        "sensory_context_validation": sensory_context_validation,
         "information_disclosure_validation": information_disclosure_validation,
         "dramatic_irony_validation": dramatic_irony_validation,
         "npc_initiative_validation": npc_initiative_validation,
@@ -2220,6 +2379,7 @@ def _build_runtime_aspect_validation(
         "scene_energy_failure": scene_energy_failure,
         "improvisational_coherence_failure": improvisational_failure,
         "social_pressure_failure": social_pressure_failure,
+        "sensory_context_failure": sensory_context_failure,
         "information_disclosure_failure": information_disclosure_failure,
         "dramatic_irony_failure": dramatic_irony_failure,
         "npc_agency_failure": npc_agency_failure,
@@ -2951,6 +3111,97 @@ def _build_npc_agency_plan_projection(
     return plan, directives, simulation
 
 
+def _packet_strings(values: Any, *, limit: int) -> list[str]:
+    rows = values if isinstance(values, list) else []
+    out: list[str] = []
+    for raw in rows:
+        value = str(raw or "").strip()
+        if value and value not in out:
+            out.append(value)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _compact_relationship_dynamics_context(
+    *,
+    state: RuntimeTurnState,
+    npc_agency_simulation: dict[str, Any] | None,
+) -> dict[str, Any]:
+    social = state.get("social_state_record") if isinstance(state.get("social_state_record"), dict) else {}
+    yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else {}
+    canonical_axes = yslice.get("relationship_axes") if isinstance(yslice.get("relationship_axes"), dict) else {}
+    pressure_codes = _packet_strings(social.get("relationship_pressure_codes"), limit=8)
+    active_axis_ids = _packet_strings(social.get("active_relationship_axis_ids"), limit=4)
+    dominant_axis_id = str(social.get("dominant_relationship_axis_id") or "").strip() or None
+    if dominant_axis_id and dominant_axis_id not in active_axis_ids:
+        active_axis_ids = _packet_strings([dominant_axis_id, *active_axis_ids], limit=4)
+
+    relationship_axes: list[dict[str, Any]] = []
+    for axis_id in active_axis_ids:
+        axis = canonical_axes.get(axis_id) if isinstance(canonical_axes, dict) else None
+        if not isinstance(axis, dict):
+            continue
+        rel_ids = _packet_strings(axis.get("relationships"), limit=8)
+        relationship_axes.append(
+            {
+                "axis_id": axis_id,
+                "name": axis.get("name"),
+                "relationship_count": len(rel_ids),
+                "relationship_ids": rel_ids,
+            }
+        )
+
+    simulation = npc_agency_simulation if isinstance(npc_agency_simulation, dict) else {}
+    graph = simulation.get("npc_interaction_graph") if isinstance(simulation.get("npc_interaction_graph"), dict) else {}
+    graph_edges = graph.get("edges") if isinstance(graph.get("edges"), list) else []
+    npc_edges: list[dict[str, Any]] = []
+    for edge in graph_edges:
+        if not isinstance(edge, dict):
+            continue
+        source_actor_id = str(edge.get("source_actor_id") or "").strip()
+        target_actor_id = str(edge.get("target_actor_id") or "").strip()
+        if not source_actor_id or not target_actor_id or source_actor_id == target_actor_id:
+            continue
+        npc_edges.append(
+            {
+                "source_actor_id": source_actor_id,
+                "target_actor_id": target_actor_id,
+                "edge_type": str(edge.get("edge_type") or "initiative_pressure").strip(),
+            }
+        )
+        if len(npc_edges) >= 6:
+            break
+
+    social_state = {
+        key: social.get(key)
+        for key in (
+            "scene_pressure_state",
+            "social_risk_band",
+            "responder_asymmetry_code",
+            "social_continuity_status",
+        )
+        if social.get(key) is not None
+    }
+    if not (social_state or pressure_codes or relationship_axes or npc_edges):
+        return {}
+    return {
+        "contract": "relationship_dynamics_context.v1",
+        "relationship_pressure_codes": pressure_codes,
+        "active_relationship_axis_ids": active_axis_ids,
+        "dominant_relationship_axis_id": dominant_axis_id,
+        "relationship_axes": relationship_axes,
+        "npc_interaction_edges": npc_edges,
+        "social_state": social_state,
+        "source_contracts": [
+            "social_state_record",
+            "canonical_relationship_axes",
+            "npc_agency_simulation",
+        ],
+        "scope": "bounded_pressure_context_not_durable_relationship_state",
+    }
+
+
 def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]:
     """Build the authoritative dramatic packet consumed by generation."""
     responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
@@ -3010,6 +3261,10 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         responder_ids=responder_ids,
         npc_actor_ids=allowed_actor_ids,
         compact_minds=compact_minds,
+    )
+    relationship_dynamics_context = _compact_relationship_dynamics_context(
+        state=state,
+        npc_agency_simulation=npc_agency_simulation,
     )
     dramatic_irony_context = compact_dramatic_irony_context(
         state.get("dramatic_irony_record")
@@ -3107,6 +3362,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "npc_agency_simulation": npc_agency_simulation,
         "npc_agency_plan": npc_agency_plan,
         "npc_initiative_directives": npc_initiative_directives,
+        "relationship_dynamics_context": relationship_dynamics_context,
         "dramatic_irony_context": dramatic_irony_context,
         "pacing_mode": state.get("pacing_mode"),
         "silence_brevity_decision": state.get("silence_brevity_decision")
@@ -3142,6 +3398,19 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "instruction": (
                 "Treat social_pressure as bounded structural pressure guidance. "
                 "Use approved actors and structured visible beats; do not invent hidden facts or resolve pressure outside validation."
+            ),
+        },
+        "sensory_context": {
+            "state": state.get("sensory_context_state")
+            if isinstance(state.get("sensory_context_state"), dict)
+            else {},
+            "target": state.get("sensory_context_target")
+            if isinstance(state.get("sensory_context_target"), dict)
+            else {},
+            "instruction": (
+                "Use selected sensory_context layers as authored scene texture. "
+                "When realizing them, emit sensory_context_events with layer_id and source_ref; "
+                "do not invent new locations, objects, or hidden facts to satisfy sensory texture."
             ),
         },
         "information_disclosure": {
@@ -3354,6 +3623,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("derive_scene_energy", self._derive_scene_energy)
         graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
         graph.add_node("derive_social_pressure", self._derive_social_pressure)
+        graph.add_node("derive_sensory_context", self._derive_sensory_context)
         graph.add_node("derive_improvisational_coherence", self._derive_improvisational_coherence)
         graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
         graph.add_node("derive_dramatic_irony", self._derive_dramatic_irony)
@@ -3392,7 +3662,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("director_select_dramatic_parameters", "derive_scene_energy")
         graph.add_edge("derive_scene_energy", "derive_pacing_rhythm")
         graph.add_edge("derive_pacing_rhythm", "derive_social_pressure")
-        graph.add_edge("derive_social_pressure", "derive_improvisational_coherence")
+        graph.add_edge("derive_social_pressure", "derive_sensory_context")
+        graph.add_edge("derive_sensory_context", "derive_improvisational_coherence")
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
         graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
         graph.add_edge("derive_dramatic_irony", "synthesize_context")
@@ -4791,6 +5062,7 @@ class RuntimeTurnGraphExecutor:
             prior_social_state_record=state.get("prior_social_state_record")
             if isinstance(state.get("prior_social_state_record"), dict)
             else None,
+            yaml_slice=yslice,
         )
         soc_dict = soc_model.to_runtime_dict()
         base_sa["semantic_move_fingerprint"] = semantic_move_fingerprint(sem_model)
@@ -5294,6 +5566,79 @@ class RuntimeTurnGraphExecutor:
             ASPECT_SOCIAL_PRESSURE,
             _social_pressure_aspect_record(
                 state_record=pressure_state,
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
+    def _derive_sensory_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_sensory_context")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        action_actual = {}
+        turn_ledger = state.get("turn_aspect_ledger")
+        if isinstance(turn_ledger, dict):
+            aspects = turn_ledger.get("turn_aspect_ledger")
+            if isinstance(aspects, dict):
+                action_rec = aspects.get(ASPECT_ACTION_RESOLUTION)
+                if isinstance(action_rec, dict) and isinstance(action_rec.get("actual"), dict):
+                    action_actual = action_rec["actual"]
+        result = derive_sensory_context(
+            scene_plan_record=scene_plan,
+            current_scene_id=state.get("current_scene_id")
+            if isinstance(state.get("current_scene_id"), str)
+            else None,
+            player_action_frame=state.get("player_action_frame")
+            if isinstance(state.get("player_action_frame"), dict)
+            else action_actual.get("player_action_frame")
+            if isinstance(action_actual.get("player_action_frame"), dict)
+            else None,
+            local_context_transition=action_actual.get("local_context_transition")
+            if isinstance(action_actual.get("local_context_transition"), dict)
+            else None,
+            narrator_sensory_palette=state.get("narrator_sensory_palette")
+            if isinstance(state.get("narrator_sensory_palette"), dict)
+            else None,
+            scene_affordances=state.get("scene_affordances")
+            if isinstance(state.get("scene_affordances"), dict)
+            else None,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            pacing_rhythm_target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            session_output_language=state.get("session_output_language")
+            if isinstance(state.get("session_output_language"), str)
+            else None,
+        )
+        sensory_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if sensory_state:
+            scene_plan["sensory_context_state"] = sensory_state
+        if target:
+            scene_plan["sensory_context_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["sensory_context_state"] = sensory_state
+        update["sensory_context_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_SENSORY_CONTEXT,
+            _sensory_context_aspect_record(
+                state_record=sensory_state,
                 target=target,
                 policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
             ),
@@ -5923,8 +6268,8 @@ class RuntimeTurnGraphExecutor:
         lines.append(
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
-            "the improvisational_coherence target, information_disclosure target, bounded dramatic_irony_context, "
-            "and consequence_cascade_context."
+            "the sensory_context target, improvisational_coherence target, information_disclosure target, "
+            "bounded relationship_dynamics_context, bounded dramatic_irony_context, and consequence_cascade_context."
         )
 
         update = _track(state, node_name="assemble_model_context")
@@ -6774,6 +7119,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "pacing_rhythm"
             elif isinstance(outcome.get("improvisational_coherence_failure"), dict):
                 trigger_source = "improvisational_coherence"
+            elif isinstance(outcome.get("sensory_context_failure"), dict):
+                trigger_source = "sensory_context"
             elif isinstance(outcome.get("information_disclosure_failure"), dict):
                 trigger_source = "information_disclosure"
             elif isinstance(outcome.get("dramatic_irony_failure"), dict):
@@ -6803,6 +7150,11 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("improvisational_coherence_failure"), dict)
                 else None
             )
+            sensory_context_failure_before_retry = (
+                dict(outcome.get("sensory_context_failure"))
+                if isinstance(outcome.get("sensory_context_failure"), dict)
+                else None
+            )
             information_disclosure_failure_before_retry = (
                 dict(outcome.get("information_disclosure_failure"))
                 if isinstance(outcome.get("information_disclosure_failure"), dict)
@@ -6824,6 +7176,7 @@ class RuntimeTurnGraphExecutor:
                 "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                 "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                 "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
+                "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
@@ -6867,6 +7220,7 @@ class RuntimeTurnGraphExecutor:
                     "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                     "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                     "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
+                    "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
@@ -6957,6 +7311,8 @@ class RuntimeTurnGraphExecutor:
             ]
         if isinstance(validation_eval.get("social_pressure_validation"), dict):
             update["social_pressure_validation"] = validation_eval["social_pressure_validation"]
+        if isinstance(validation_eval.get("sensory_context_validation"), dict):
+            update["sensory_context_validation"] = validation_eval["sensory_context_validation"]
         if isinstance(validation_eval.get("information_disclosure_validation"), dict):
             update["information_disclosure_validation"] = validation_eval[
                 "information_disclosure_validation"

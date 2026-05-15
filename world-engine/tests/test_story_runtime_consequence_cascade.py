@@ -1,4 +1,8 @@
-"""Tests for Π21 consequence-cascade continuity evidence."""
+"""Tests for Π21 consequence-cascade continuity evidence.
+
+ADR-0039 scope: assertions use policy-derived bounds, schema constants, graph
+export fields, and RuntimeAspectLedger projection, not example consequence prose.
+"""
 
 from __future__ import annotations
 
