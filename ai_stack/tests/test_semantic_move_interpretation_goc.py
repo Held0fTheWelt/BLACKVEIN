@@ -6,6 +6,12 @@ import pytest
 
 from ai_stack.goc_actor_aliases import GOC_ACTOR_ALIASES
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_subtext_policy import rule_spec_for_subtext, subtext_policy_values
+from ai_stack.semantic_move_contract import (
+    SUBTEXT_FUNCTIONS,
+    SUBTEXT_HIDDEN_INTENT_HYPOTHESES,
+    SUBTEXT_SURFACE_MODES,
+)
 from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move
 from story_runtime_core.player_input_intent_contract import (
     FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES,
@@ -58,6 +64,11 @@ def test_repair_attempt_vs_competing_repair_reveal() -> None:
         prior_continuity_classes=[],
     )
     assert m.move_type == "competing_repair_and_reveal"
+    policy_rule = rule_spec_for_subtext(m.subtext.policy_rule_id if m.subtext else "")
+    assert m.subtext is not None
+    assert m.subtext.surface_mode == policy_rule["surface_mode"]
+    assert m.subtext.hidden_intent_hypothesis == policy_rule["hidden_intent_hypothesis"]
+    assert m.subtext.subtext_function == policy_rule["subtext_function"]
 
 
 def test_silence_withdrawal() -> None:
@@ -154,3 +165,32 @@ def test_actor_target_aliases_are_accent_folded_from_canonical_alias_map() -> No
         prior_continuity_classes=[],
     )
     assert rec.target_actor_hint == actor_id
+
+
+def test_subtext_policy_values_match_contract_sets() -> None:
+    assert subtext_policy_values("surface_modes") == SUBTEXT_SURFACE_MODES
+    assert subtext_policy_values("hidden_intent_hypotheses") == SUBTEXT_HIDDEN_INTENT_HYPOTHESES
+    assert subtext_policy_values("subtext_functions") == SUBTEXT_FUNCTIONS
+
+
+def test_interpreter_emits_bounded_subtext_record_from_policy() -> None:
+    rec = interpret_goc_semantic_move(
+        module_id=GOC_MODULE_ID,
+        player_input="I avoid the question and change the subject.",
+        interpreted_input={
+            **_base_interp(),
+            "player_input_kind": "speech",
+            "player_action_committed": False,
+            "player_speech_committed": True,
+            "narrator_response_expected": False,
+            "npc_response_expected": True,
+        },
+        interpreted_move={"player_intent": "deflect", "move_class": "dialogue"},
+        prior_continuity_classes=[],
+    )
+    assert rec.subtext is not None
+    policy_rule = rule_spec_for_subtext(rec.subtext.policy_rule_id)
+    assert rec.subtext.surface_mode == policy_rule["surface_mode"]
+    assert rec.subtext.subtext_function == policy_rule["subtext_function"]
+    assert rec.subtext.policy_source.endswith("subtext_policy.yaml")
+    assert rec.subtext.evidence_codes

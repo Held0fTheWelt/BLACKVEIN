@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import pytest
+
 from ai_stack.character_mind_contract import CharacterMindRecord, FieldProvenance
 from ai_stack.scene_plan_contract import ScenePlanRecord
 from ai_stack.semantic_move_contract import (
     InterpretationTraceItem,
     RankedMoveCandidate,
     SemanticMoveRecord,
+    SubtextRecord,
+    SUBTEXT_FUNCTIONS,
+    SUBTEXT_HIDDEN_INTENT_HYPOTHESES,
+    SUBTEXT_SURFACE_MODES,
 )
 from ai_stack.social_state_contract import SocialStateRecord
 
@@ -39,11 +45,51 @@ def test_semantic_move_record_roundtrip_json() -> None:
         ],
         secondary_move_type=None,
         secondary_dramatic_features=["carry_forward_blame_pressure"],
+        subtext=SubtextRecord(
+            surface_mode="accusation",
+            explicit_intent="accuse",
+            hidden_intent_hypothesis="force_accountability",
+            subtext_function="force_accountability",
+            sincerity_band="high",
+            evidence_codes=["rule:accusation_synset"],
+            policy_rule_id="direct_accusation",
+        ),
     )
     d = r.to_runtime_dict()
     r2 = SemanticMoveRecord.model_validate(d)
     assert r2.move_type == "direct_accusation"
     assert r2.ranked_move_candidates
+    assert r2.subtext is not None
+    assert r2.subtext.subtext_function in SUBTEXT_FUNCTIONS
+
+
+def test_subtext_record_roundtrip_and_contract_sets() -> None:
+    surface_mode = sorted(SUBTEXT_SURFACE_MODES)[0]
+    hidden_intent = sorted(SUBTEXT_HIDDEN_INTENT_HYPOTHESES)[0]
+    subtext_function = sorted(SUBTEXT_FUNCTIONS)[0]
+    record = SubtextRecord(
+        surface_mode=surface_mode,
+        explicit_intent="contract_probe",
+        hidden_intent_hypothesis=hidden_intent,
+        subtext_function=subtext_function,
+        sincerity_band="unknown",
+        evidence_codes=["contract:set_member"],
+    )
+    roundtrip = SubtextRecord.model_validate(record.model_dump(mode="json"))
+    assert roundtrip.surface_mode == surface_mode
+    assert roundtrip.hidden_intent_hypothesis == hidden_intent
+    assert roundtrip.subtext_function == subtext_function
+
+
+def test_semantic_move_record_rejects_unknown_move_type() -> None:
+    invalid_move_type = f"invalid_{sorted(SUBTEXT_FUNCTIONS)[0]}"
+    with pytest.raises(ValueError):
+        SemanticMoveRecord(
+            move_type=invalid_move_type,
+            social_move_family="neutral",
+            directness="ambiguous",
+            scene_risk_band="low",
+        )
 
 
 def test_social_state_record_roundtrip() -> None:

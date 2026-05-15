@@ -19,6 +19,7 @@ from ai_stack.goc_semantic_priority_rules import (
     rank_goc_move_candidates,
     resolve_goc_move_from_rules,
 )
+from ai_stack.goc_subtext_policy import build_subtext_record_from_policy
 from ai_stack.semantic_move_contract import (
     SEMANTIC_MOVE_TYPES,
     InterpretationTraceItem,
@@ -274,6 +275,12 @@ def interpret_goc_semantic_move(
             ],
             secondary_move_type=None,
             secondary_dramatic_features=[],
+            subtext=build_subtext_record_from_policy(
+                move_type="establish_situational_pressure",
+                explicit_intent=None,
+                trace_detail="rule:non_goc_default",
+                evidence_codes=["rule:non_goc_default", "move_type:establish_situational_pressure"],
+            ),
         )
         return rec
 
@@ -392,6 +399,29 @@ def interpret_goc_semantic_move(
         candidate.rank = idx
     secondary_move_type = ranked_candidates[1].move_type if len(ranked_candidates) > 1 else None
     secondary_features = _secondary_dramatic_features(features=features, ranked_rows=ranked_rows)
+    winning_trace_detail = next(
+        (
+            item.detail_code
+            for item in trace
+            if item.step_id == "apply_priority_rules" and item.detail_code
+        ),
+        None,
+    )
+    evidence_codes = [
+        winning_trace_detail or "rule:unknown",
+        f"move_type:{move_type}",
+        f"directness:{direct}",
+        f"risk:{risk}",
+    ]
+    for key, value in sorted(features.items()):
+        if isinstance(value, bool) and value:
+            evidence_codes.append(f"feature:{key}")
+    subtext = build_subtext_record_from_policy(
+        move_type=move_type,
+        explicit_intent=intent_s,
+        trace_detail=winning_trace_detail,
+        evidence_codes=evidence_codes,
+    )
 
     return SemanticMoveRecord(
         move_type=move_type,
@@ -406,6 +436,7 @@ def interpret_goc_semantic_move(
         ranked_move_candidates=ranked_candidates,
         secondary_move_type=secondary_move_type,
         secondary_dramatic_features=secondary_features,
+        subtext=subtext,
     )
 
 

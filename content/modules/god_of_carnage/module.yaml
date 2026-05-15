@@ -108,6 +108,22 @@ runtime_intelligence:
   continuity:
     hooks:
       - module_continuity_impacts_on_commit_v1
+  callback_web:
+    enabled: true
+    schema_version: callback_web_policy.v1
+    max_edges: 80
+    max_observations: 60
+    max_graph_edges: 4
+    max_evidence_refs_per_candidate: 8
+    allowed_continuity_classes:
+      - situational_pressure
+      - dignity_injury
+      - alliance_shift
+      - revealed_fact
+      - refused_cooperation
+      - blame_pressure
+      - repair_attempt
+      - silent_carry
   scene_energy:
     enabled: true
     schema_version: scene_energy_policy.v1

@@ -9,6 +9,10 @@ from story_runtime_core.branching import (
     BRANCHING_TIMELINE_STATUS_ARCHIVED,
     BRANCHING_TREE_RECORD_SCHEMA_VERSION,
 )
+from story_runtime_core.callbacks import (
+    CALLBACK_EDGE_KIND_REPEATED_CONTINUITY_CLASS,
+    CALLBACK_WEB_RECORD_SCHEMA_VERSION,
+)
 
 
 def _headers(internal_api_key: str) -> dict[str, str]:
@@ -85,6 +89,29 @@ class _BranchingTreeApiStub:
         timeline["archive_reason"] = reason
         return timeline
 
+    def get_callback_web(self, *, session_id: str) -> dict[str, Any]:
+        return {
+            "schema_version": CALLBACK_WEB_RECORD_SCHEMA_VERSION,
+            "callback_web_id": "callback_web_api",
+            "story_session_id": session_id,
+            "edges": [
+                {
+                    "callback_kind": CALLBACK_EDGE_KIND_REPEATED_CONTINUITY_CLASS,
+                    "source_turn_id": "turn-1",
+                    "target_turn_id": "turn-2",
+                }
+            ],
+            "snapshot": {"edge_count": 1},
+        }
+
+    def list_callback_web_edges(self, *, session_id: str) -> list[dict[str, Any]]:
+        return self.get_callback_web(session_id=session_id)["edges"]
+
+    def rebuild_callback_web(self, *, session_id: str) -> dict[str, Any]:
+        callback_web = self.get_callback_web(session_id=session_id)
+        callback_web["rebuilt"] = True
+        return callback_web
+
 
 def test_branching_tree_internal_api_surface(client, internal_api_key) -> None:
     stub = _BranchingTreeApiStub()
@@ -124,6 +151,18 @@ def test_branching_tree_internal_api_surface(client, internal_api_key) -> None:
     )
     assert archived.status_code == 200
     assert archived.json()["branch_timeline"]["status"] == BRANCHING_TIMELINE_STATUS_ARCHIVED
+
+    callback_web = client.get("/api/story/sessions/session-api/callback-web", headers=headers)
+    assert callback_web.status_code == 200
+    assert callback_web.json()["callback_web"]["schema_version"] == CALLBACK_WEB_RECORD_SCHEMA_VERSION
+
+    callback_edges = client.get("/api/story/sessions/session-api/callback-web/edges", headers=headers)
+    assert callback_edges.status_code == 200
+    assert callback_edges.json()["callback_web_edges"][0]["callback_kind"] == CALLBACK_EDGE_KIND_REPEATED_CONTINUITY_CLASS
+
+    rebuilt_callback_web = client.post("/api/story/sessions/session-api/callback-web/rebuild", headers=headers)
+    assert rebuilt_callback_web.status_code == 200
+    assert rebuilt_callback_web.json()["callback_web"]["rebuilt"] is True
 
     fetched = client.get(
         "/api/story/sessions/session-api/branching/trees/branch_tree_api",

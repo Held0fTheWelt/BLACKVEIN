@@ -298,6 +298,14 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
             "narrator_response_expected": path_summary.get("narrator_response_expected"),
             "npc_response_expected": path_summary.get("npc_response_expected"),
             "semantic_move_kind": path_summary.get("semantic_move_kind"),
+            "subtext_surface_mode": path_summary.get("subtext_surface_mode"),
+            "subtext_hidden_intent_hypothesis": path_summary.get(
+                "subtext_hidden_intent_hypothesis"
+            ),
+            "subtext_function": path_summary.get("subtext_function"),
+            "subtext_sincerity_band": path_summary.get("subtext_sincerity_band"),
+            "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
+            "subtext_contract_pass": path_summary.get("subtext_contract_pass"),
             "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
             "planner_rationale_codes": path_summary.get("planner_rationale_codes")
             if isinstance(path_summary.get("planner_rationale_codes"), list)

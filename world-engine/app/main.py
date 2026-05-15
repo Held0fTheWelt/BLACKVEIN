@@ -33,6 +33,7 @@ from app.config import (
     BACKEND_RUNTIME_CONFIG_URL,
     BRANCH_TIMELINE_STORE_DIR,
     BRANCHING_TREE_STORE_DIR,
+    CALLBACK_WEB_STORE_DIR,
     INTERNAL_RUNTIME_CONFIG_TOKEN,
     RUN_STORE_DIR,
     RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
@@ -51,6 +52,7 @@ from app.runtime.runtime_config_client import (
 from app.story_runtime import StoryRuntimeManager
 from app.story_runtime.branch_timeline_store import JsonBranchTimelineStore
 from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
+from app.story_runtime.callback_web_store import JsonCallbackWebStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -92,6 +94,7 @@ async def lifespan(app: FastAPI):
         session_store=JsonStorySessionStore(STORY_SESSION_STORE_DIR),
         branching_tree_store=JsonBranchingTreeStore(BRANCHING_TREE_STORE_DIR),
         branch_timeline_store=JsonBranchTimelineStore(BRANCH_TIMELINE_STORE_DIR),
+        callback_web_store=JsonCallbackWebStore(CALLBACK_WEB_STORE_DIR),
         governed_runtime_config=resolved_runtime_config,
     )
     app.state.ticket_manager = TicketManager()

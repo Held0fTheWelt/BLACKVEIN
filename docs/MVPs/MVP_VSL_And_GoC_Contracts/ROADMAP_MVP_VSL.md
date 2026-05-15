@@ -256,6 +256,8 @@ Pressure and escalation must be perceptible and reconstructable.
 ### 11.4 Subtext capacity
 Responses must be capable of pressure, evasion, accusation, concealment, tactical implication, and socially meaningful ambiguity.
 
+Current GoC runtime note: Pi19 subtext is now represented as `semantic_move_record.subtext` with policy-backed `surface_mode`, `hidden_intent_hypothesis`, `subtext_function`, and `sincerity_band`. See `docs/technical/runtime/subtext_interpretation_contract.md`.
+
 ### 11.5 Repair capacity
 The runtime must support repair or partial stabilization without resetting the scene.
 

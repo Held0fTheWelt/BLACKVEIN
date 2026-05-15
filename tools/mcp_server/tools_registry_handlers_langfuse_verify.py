@@ -598,6 +598,16 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "dramatic_irony_leak_blocked",
     "dramatic_irony_contract_pass",
     "dramatic_irony_violation_codes",
+    "callback_web_policy_present",
+    "callback_web_selected",
+    "callback_web_selected_edge_id",
+    "callback_web_selected_kind",
+    "callback_web_selected_continuity_classes",
+    "callback_web_edge_count",
+    "callback_web_observation_count",
+    "callback_web_graph_edge_count",
+    "callback_web_contract_pass",
+    "callback_web_failure_codes",
     "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
@@ -719,6 +729,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_capability_selection_block_forbidden_realization"
     if "voice" in failure or "cross_actor_voice" in failure:
         return "repair_voice_consistency_follow_character_profiles"
+    if failure.startswith("callback_"):
+        return "repair_callback_web_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
     if "beat" in failure:
@@ -738,6 +750,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
+    callback_rec = _aspect_record(ledger, "callback_web")
     narr_rec = _aspect_record(ledger, "narrator_authority")
     npc_rec = _aspect_record(ledger, "npc_authority")
     npc_agency_rec = _aspect_record(ledger, "npc_agency")
@@ -759,6 +772,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     dramatic_irony_expected = _aspect_block(dramatic_irony_rec, "expected")
     dramatic_irony_selected = _aspect_block(dramatic_irony_rec, "selected")
     dramatic_irony_actual = _aspect_block(dramatic_irony_rec, "actual")
+    callback_expected = _aspect_block(callback_rec, "expected")
+    callback_selected = _aspect_block(callback_rec, "selected")
+    callback_actual = _aspect_block(callback_rec, "actual")
     narr_expected = _aspect_block(narr_rec, "expected")
     narr_actual = _aspect_block(narr_rec, "actual")
     npc_expected = _aspect_block(npc_rec, "expected")
@@ -839,6 +855,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
     if not isinstance(dramatic_irony_violation_codes, list):
         dramatic_irony_violation_codes = []
+    callback_failure_codes = callback_actual.get("failure_codes") or []
+    if not isinstance(callback_failure_codes, list):
+        callback_failure_codes = []
     failed_records = [
         r
         for r in (
@@ -850,6 +869,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             scene_energy_rec,
             disclosure_rec,
             dramatic_irony_rec,
+            callback_rec,
             vis_rec,
             narrative_rec,
             voice_rec,
@@ -864,6 +884,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             scene_energy_rec,
             disclosure_rec,
             dramatic_irony_rec,
+            callback_rec,
             npc_agency_rec,
             cap_rec,
             vis_rec,
@@ -960,6 +981,28 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("dramatic_irony_contract_pass")
         ),
         "dramatic_irony_violation_codes": dramatic_irony_violation_codes,
+        "callback_web_policy_present": (
+            callback_expected.get("policy_present")
+            if "policy_present" in callback_expected
+            else det_scores.get("callback_web_policy_present")
+        ),
+        "callback_web_selected": bool(
+            callback_selected.get("selected_callback_edge_id")
+            or callback_selected.get("selected_callback_kind")
+        ),
+        "callback_web_selected_edge_id": callback_selected.get("selected_callback_edge_id"),
+        "callback_web_selected_kind": callback_selected.get("selected_callback_kind"),
+        "callback_web_selected_continuity_classes": callback_selected.get("selected_continuity_classes")
+        or [],
+        "callback_web_edge_count": callback_actual.get("edge_count"),
+        "callback_web_observation_count": callback_actual.get("observation_count"),
+        "callback_web_graph_edge_count": callback_actual.get("graph_edge_count"),
+        "callback_web_contract_pass": (
+            callback_actual.get("contract_pass")
+            if "contract_pass" in callback_actual
+            else det_scores.get("callback_web_contract_pass")
+        ),
+        "callback_web_failure_codes": callback_failure_codes,
         "narrator_required_when_expected": det_scores.get("narrator_required_when_expected"),
         "narrator_required": narr_expected.get("required"),
         "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),

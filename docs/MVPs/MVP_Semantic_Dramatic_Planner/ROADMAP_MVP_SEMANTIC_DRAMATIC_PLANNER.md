@@ -1,15 +1,17 @@
 # ROADMAP MVP — Semantic Dramatic Planner
 
-**Status:** Proposed MVP architecture and migration roadmap for the next GoC runtime maturity step  
+**Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph_runtime.py`, `ai_stack/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph_runtime_executor.py`, `ai_stack/semantic_move_contract.py`, `ai_stack/semantic_move_interpretation_goc.py`, `ai_stack/goc_subtext_policy.py`, `ai_stack/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
 ## 1. Purpose
 
 This document defines the next concrete MVP architecture for evolving the current God of Carnage runtime from a deterministic heuristic scene-director implementation into a **bounded semantic dramatic planner**.
+
+Implementation note, 2026-05-15: the roadmap is no longer purely aspirational. The GoC runtime now has a policy-backed Pi19 subtext slice nested under `SemanticMoveRecord.subtext`; it flows through semantic interpretation, director selection, dramatic generation packets, Langfuse/path-summary observability, and backend operator projections. The broader semantic planner remains incremental, but the subtext layer should be treated as active contract surface.
 
 The intended upgrade is **not** greater model freedom. The intended upgrade is **more semantic intelligence inside the same truth and validation contracts that already exist**.
 
@@ -221,9 +223,9 @@ This layer may inform semantic planning, but it may not decide truth. It supplie
 
 **Owns:** bounded interpretation of the player turn as a dramatic-social move.
 
-**Current status:** missing as a first-class canonical layer.
+**Current status:** implemented for the GoC path as `SemanticMoveRecord`, with the Pi19 `SubtextRecord` nested under `semantic_move_record.subtext`.
 
-This layer must become explicit.
+This layer is now explicit enough for runtime handoff, diagnostics, and contract tests. It still evolves conservatively: semantic records are advisory and do not mutate committed story truth.
 
 It should answer questions such as:
 
@@ -382,25 +384,75 @@ This remains a derived diagnostic projection, never a second runtime authority s
 
 ## 7.2 Semantic Move Contract
 
-Introduce a canonical `SemanticMoveRecord`.
+The runtime now carries a canonical `SemanticMoveRecord`.
 
 This record should be schema-first, serializable, and bounded. It should describe the interpreted dramatic-social move without inventing open-ended world truth.
 
-Suggested fields:
+Current runtime fields:
 
 - `move_type`
+- `social_move_family`
+- `target_actor_hint`
+- `directness`
+- `pressure_tactic`
+- `scene_risk_band`
+- `interpretation_trace`
+- `interpreter_kind`
+- `feature_snapshot`
+- `ranked_move_candidates`
+- `secondary_move_type`
+- `secondary_dramatic_features`
+- `subtext`
+
+The `subtext` field is the implemented Pi19 surface. It is a `SubtextRecord`, not a free-form motive paragraph.
+
+Current `SubtextRecord` fields:
+
+- `contract`
 - `surface_mode`
-- `target_character_ids`
 - `explicit_intent`
 - `hidden_intent_hypothesis`
-- `pressure_tactic`
-- `repair_vs_attack`
-- `directness`
-- `sincerity_estimate`
-- `scene_risk`
-- `confidence`
+- `subtext_function`
+- `sincerity_band`
+- `evidence_codes`
+- `policy_source`
+- `policy_rule_id`
 
-This record becomes the semantic replacement for overly shallow move classification.
+The policy source is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Tests must load expected surface modes, hidden-intent hypotheses, subtext functions, and sincerity bands from that policy or from exported contract constants; they must not duplicate those labels as a separate prose oracle.
+
+This record replaces shallow move classification for director handoff while staying bounded. It tells the runtime what kind of dramatic-social move was inferred, which policy rule produced the subtext projection, and which evidence codes explain the decision.
+
+---
+
+## 7.2.1 Pi19 Subtext Contract
+
+Pi19 is implemented as a bounded surface-vs-intent diagnostic contract:
+
+- `surface_mode` describes what the move appears to be doing socially;
+- `hidden_intent_hypothesis` is a small policy label, not psychological truth;
+- `subtext_function` is the director-facing scene-pressure function;
+- `sincerity_band` keeps repair, attack, and double-edged moves legible;
+- `evidence_codes` preserve bounded provenance for operator traces and tests.
+
+Runtime integration:
+
+- the semantic interpreter builds the record from `goc_subtext_policy.py`;
+- the director reads it for resolution metadata and pacing pressure;
+- the generation packet exposes `subtext_interpretation`;
+- path summaries and Langfuse scores expose `subtext_contract_pass`;
+- backend inspector and operator history project the same fields.
+
+Normative detail lives in `docs/technical/runtime/subtext_interpretation_contract.md`.
+
+Former target ideas map as follows:
+
+- `surface_mode` remains in `SubtextRecord.surface_mode`;
+- `target_character_ids` is represented today as `target_actor_hint` until multi-target semantics are promoted;
+- `hidden_intent_hypothesis` remains bounded by policy;
+- `directness` remains in `SemanticMoveRecord.directness`;
+- `sincerity_estimate` is represented as `sincerity_band`;
+- `scene_risk` is represented as `scene_risk_band`;
+- candidate confidence remains on `ranked_move_candidates`.
 
 ---
 
@@ -603,6 +655,8 @@ This phase should change structure more than behavior.
 ## Phase 1 — Semantic move interpretation
 
 **Goal:** replace shallow surface-driven move interpretation with bounded dramatic-social move inference.
+
+**Current implementation note:** GoC now emits `SemanticMoveRecord` plus policy-backed `SubtextRecord` for Pi19. Remaining Phase 1 work should improve coverage and reduce phrase brittleness without changing the authority rule.
 
 **Expected gain:**
 

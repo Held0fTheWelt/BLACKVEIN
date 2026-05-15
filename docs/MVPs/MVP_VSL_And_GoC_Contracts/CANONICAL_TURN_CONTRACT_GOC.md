@@ -103,6 +103,35 @@ Runtime rules:
 - Prior unresolved tension may upgrade the visible mode from `withheld` to `brief`, but the payload must keep `blocks_forced_speech=true` and a reason such as `silence_withdrawal_upgraded_by_prior_tension`.
 - Tests for this field must comply with ADR-0039: assert contract version, vocabulary, reason codes, and flags; do not assert generated narrative wording as the primary oracle.
 
+### 3.4.2 Π19 subtext interpretation (binding diagnostic)
+
+`semantic_move_record.subtext` is the canonical Pi19 surface for bounded surface-vs-intent interpretation. It is diagnostic and director-facing: it may shape responder selection, pacing, model-packet context, traces, and operator diagnostics, but it does not commit facts or reveal hidden truth.
+
+Required shape:
+
+```json
+{
+  "contract": "subtext_interpretation.v1",
+  "surface_mode": "accusation|apology|alliance_bid|courtesy|deflection|escalation|exposure|neutral|off_scope|question|reveal|silence",
+  "explicit_intent": "string|null",
+  "hidden_intent_hypothesis": "avoid_accountability|force_accountability|force_admission|humiliate_or_expose|preserve_relationship|raise_pressure|seek_alliance|seek_repair|slice_boundary|test_boundary|test_motive|unknown",
+  "subtext_function": "contain_off_scope|deflect_accountability|expose_truth|force_accountability|preserve_dignity|preserve_relationship|probe_motive|raise_pressure|reveal_under_repair|shift_alliance|test_boundary|unset",
+  "sincerity_band": "high|low|mixed|unknown",
+  "evidence_codes": ["bounded_rule_or_feature_code"],
+  "policy_source": "content/modules/god_of_carnage/direction/subtext_policy.yaml",
+  "policy_rule_id": "string"
+}
+```
+
+Runtime rules:
+
+- The allowed value sets and rule mappings come from `content/modules/god_of_carnage/direction/subtext_policy.yaml`.
+- The semantic interpreter builds `SubtextRecord`; model output must not invent or overwrite it.
+- The director may use `subtext_function` for pressure/pacing decisions, but committed story state still comes only from validation and commit.
+- `hidden_intent_hypothesis` is a bounded dramatic hypothesis, not psychological truth and not canonical hidden NPC state.
+- Path summaries, Langfuse spans/scores, and backend inspector projections must report the same subtext fields when a semantic move record exists.
+- Tests for this field must comply with ADR-0039: derive expected labels from the policy or contract constants and assert structured fields/provenance, not generated narrative wording.
+
 ### 3.5 Single `selected_scene_function` under multiple intentions (binding)
 
 When `interpreted_move` and `scene_assessment` support **more than one** plausible scene function (including when `pacing_mode` is `multi_pressure`), the runtime **must** emit exactly one `selected_scene_function` using this **priority rule**:
@@ -119,6 +148,7 @@ The proposal model may **elaborate dramatic expression** (dialogue, beats, propo
 - `selected_responder_set`
 - `pacing_mode`
 - `silence_brevity_decision`
+- `semantic_move_record` and its `subtext` payload
 
 Changing any of these after director selection requires a **new explicit decision step** (another named graph node or validator-owned transition) that **re-documents** the change in `diagnostics_refs` or structured markers. **Silent overwrite from raw model output is forbidden.**
 

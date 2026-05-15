@@ -53,6 +53,23 @@ Canonical handling:
 
 This path is still deterministic interpretation. It does not authorize committed facts, does not force the player character to speak, and does not let generated silence prose become a test oracle.
 
+## Semantic move and subtext handoff
+
+After input interpretation, the GoC semantic move layer may emit `semantic_move_record`. This record is bounded and advisory. It carries the social move classification, ranked candidates, feature provenance, and the Pi19 subtext payload.
+
+`semantic_move_record.subtext` must be built from `content/modules/god_of_carnage/direction/subtext_policy.yaml` through the policy loader. It may include:
+
+- `surface_mode`
+- `explicit_intent`
+- `hidden_intent_hypothesis`
+- `subtext_function`
+- `sincerity_band`
+- `evidence_codes`
+- `policy_source`
+- `policy_rule_id`
+
+This subtext handoff may shape scene-director response and pacing, but it does not authorize facts, player actions, or hidden NPC truth. The full contract is maintained in `docs/technical/runtime/subtext_interpretation_contract.md`.
+
 ## Canonical `player_input_kind` taxonomy
 
 The runtime's fine-grained `player_input_kind` taxonomy is defined in
@@ -83,6 +100,8 @@ scene-director response policy, and Langfuse deterministic scores.
   and `Veronique` as the same canonical target.
 - `intent_surface_contract_pass` and `semantic_move_alignment_pass` must use
   the same shared taxonomy as the interpreter and semantic-move pipeline.
+- `subtext_contract_pass` must reflect the bounded subtext field contract when
+  subtext fields are present in path summaries or traces.
 - Π14 silence signals must remain visible as structured fields through the
   runtime path; action-resolution shortcuts must not consume them before the
   scene director can select negative space.

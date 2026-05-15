@@ -12,6 +12,7 @@
 | [`runtime_authority_decision.md`](../../archive/architecture-legacy/runtime_authority_decision.md) | Archived original decision text (Milestones 0–5); prefer technical page for navigation |
 | [`ai-stack-overview.md`](../../technical/ai/ai-stack-overview.md) | Current AI stack — cross-check with vertical slice for implemented graph |
 | [`player_input_interpretation_contract.md`](../../technical/runtime/player_input_interpretation_contract.md) | Interpretation pipeline expectations |
+| [`subtext_interpretation_contract.md`](../../technical/runtime/subtext_interpretation_contract.md) | Bounded Pi19 surface-vs-intent contract, policy source, runtime propagation, and ADR-0039 oracle boundary |
 
 ## God of Carnage (MVP vertical slice)
 

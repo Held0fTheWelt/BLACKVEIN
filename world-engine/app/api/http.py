@@ -1130,6 +1130,42 @@ def expire_story_branching_tree(
     return {"session_id": session_id, "branching_tree": tree, "branch_timeline": timeline}
 
 
+@router.get("/story/sessions/{session_id}/callback-web", dependencies=[Depends(_require_internal_api_key)])
+def get_story_callback_web(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        callback_web = manager.get_callback_web(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "callback_web": callback_web}
+
+
+@router.get("/story/sessions/{session_id}/callback-web/edges", dependencies=[Depends(_require_internal_api_key)])
+def list_story_callback_web_edges(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        edges = manager.list_callback_web_edges(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "callback_web_edges": edges}
+
+
+@router.post("/story/sessions/{session_id}/callback-web/rebuild", dependencies=[Depends(_require_internal_api_key)])
+def rebuild_story_callback_web(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        callback_web = manager.rebuild_callback_web(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "callback_web": callback_web}
+
+
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])
 def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
     """Return the last DiagnosticsEnvelope (MVP4) for a story session."""

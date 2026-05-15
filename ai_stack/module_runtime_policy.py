@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from ai_stack.authority_contracts import default_authority_policy
+from ai_stack.callback_web_contracts import normalize_callback_web_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
@@ -180,6 +181,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     scene_energy = scene_energy if isinstance(scene_energy, dict) else {}
     dramatic_irony = raw.get("dramatic_irony")
     dramatic_irony = dramatic_irony if isinstance(dramatic_irony, dict) else {}
+    callback_web = raw.get("callback_web")
+    callback_web = callback_web if isinstance(callback_web, dict) else {}
 
     return {
         "action_resolution_short_path": {
@@ -225,6 +228,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         },
         "scene_energy": normalize_scene_energy_policy(scene_energy),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
+        "callback_web": normalize_callback_web_policy(callback_web),
     }
 
 

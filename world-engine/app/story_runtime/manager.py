@@ -68,6 +68,11 @@ from story_runtime_core.branching import (
     make_branch_timeline_record,
     stable_branch_timeline_id,
 )
+from story_runtime_core.callbacks import (
+    build_graph_callback_web_export,
+    build_callback_web_record,
+    stable_callback_web_id,
+)
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -81,6 +86,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
+    ASPECT_CALLBACK_WEB,
     ASPECT_COMMIT,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_HIERARCHICAL_MEMORY,
@@ -100,6 +106,13 @@ from ai_stack.runtime_aspect_ledger import (
     make_aspect_record,
     normalize_runtime_aspect_ledger,
     set_aspect_record,
+)
+from ai_stack.callback_web_contracts import (
+    callback_web_aspect_blocks,
+    callback_web_bounds_from_policy,
+    callback_web_policy_from_module_runtime,
+    normalize_callback_web_policy,
+    validate_callback_web_record,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.environment_state_contracts import (
@@ -179,6 +192,7 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_knowledge_path_summary,
     build_narrator_packet,
 )
+from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.visible_narrative_contract import (
     _goc_visible_lane_text_fold,
@@ -208,6 +222,7 @@ from app.story_runtime.commit_models import (
 from app.story_runtime.canonical_turn_lifecycle import TurnLifecycleChain
 from app.story_runtime.branch_timeline_store import JsonBranchTimelineStore
 from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
+from app.story_runtime.callback_web_store import JsonCallbackWebStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
@@ -1299,6 +1314,21 @@ def _load_module_memory_policy(
     return runtime_policy, memory_policy
 
 
+def _load_module_callback_web_policy(
+    *,
+    module_id: str,
+    runtime_profile_id: str | None,
+) -> dict[str, Any]:
+    try:
+        runtime_policy = load_module_runtime_policy(
+            module_id=module_id,
+            runtime_profile_id=runtime_profile_id,
+        ).to_dict()
+    except Exception:
+        return normalize_callback_web_policy(None)
+    return callback_web_policy_from_module_runtime(runtime_policy)
+
+
 def _record_hierarchical_memory_aspect(
     *,
     session: StorySession,
@@ -1434,6 +1464,67 @@ def _record_hierarchical_memory_aspect(
     return memory_surface
 
 
+def _record_callback_web_aspect(
+    *,
+    session: StorySession,
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+    record: dict[str, Any] | None,
+    graph_export: dict[str, Any] | None,
+    validation: dict[str, Any],
+    policy: dict[str, Any],
+) -> None:
+    runtime_profile_id = _runtime_profile_id_from_projection(
+        session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+    )
+    blocks = callback_web_aspect_blocks(
+        record=record,
+        graph_export=graph_export,
+        validation=validation,
+        policy=policy,
+    )
+    status = str(validation.get("status") or "missing")
+    failure_codes = [
+        str(code)
+        for code in (validation.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    ledger = (
+        event.get("turn_aspect_ledger")
+        if isinstance(event.get("turn_aspect_ledger"), dict)
+        else graph_state.get("turn_aspect_ledger")
+        if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+        else None
+    )
+    ledger = ensure_runtime_aspect_ledger(
+        ledger,
+        session_id=session.session_id,
+        module_id=session.module_id,
+        turn_number=event.get("turn_number"),
+        turn_kind=str(event.get("turn_kind") or "player"),
+        raw_player_input=event.get("raw_input"),
+        trace_id=event.get("trace_id"),
+        runtime_profile_id=runtime_profile_id,
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_CALLBACK_WEB,
+        make_aspect_record(
+            applicable=bool(policy.get("enabled")),
+            status=status,
+            expected=blocks.get("expected") if isinstance(blocks.get("expected"), dict) else {},
+            selected=blocks.get("selected") if isinstance(blocks.get("selected"), dict) else {},
+            actual=blocks.get("actual") if isinstance(blocks.get("actual"), dict) else {},
+            reasons=failure_codes,
+            source="commit",
+            failure_class="observability_gap" if failure_codes else None,
+            failure_reason=failure_codes[0] if failure_codes else None,
+        ),
+    )
+    event["turn_aspect_ledger"] = ledger
+    graph_state["turn_aspect_ledger"] = ledger
+
+
 def _module_scope_truth(module_id: str | None = None) -> dict[str, Any]:
     requested = str(module_id or "").strip() or None
     supported = (
@@ -1451,6 +1542,7 @@ def _module_scope_truth(module_id: str | None = None) -> dict[str, Any]:
             "goc_host_experience_template",
             "goc_prior_continuity_for_graph",
             "goc_append_continuity_impacts",
+            "callback_web",
         ],
         "unsupported_module_policy": (
             "non_goc_modules_are_not_advertised_as_full_live_story_support"
@@ -2479,6 +2571,20 @@ def _build_langfuse_path_summary(
     )
     _player_input_kind = str(interpreted_input.get("player_input_kind") or "").strip().lower()
     _semantic_move_kind = str(semantic_move_record.get("move_type") or "").strip()
+    _subtext_record = (
+        semantic_move_record.get("subtext")
+        if isinstance(semantic_move_record.get("subtext"), dict)
+        else {}
+    )
+    _subtext_contract_pass = True
+    if semantic_move_record:
+        _subtext_contract_pass = (
+            (not _semantic_move_kind or _semantic_move_kind in SEMANTIC_MOVE_TYPES)
+            and bool(str(_subtext_record.get("surface_mode") or "").strip())
+            and bool(str(_subtext_record.get("hidden_intent_hypothesis") or "").strip())
+            and bool(str(_subtext_record.get("subtext_function") or "").strip())
+            and bool(str(_subtext_record.get("sincerity_band") or "").strip())
+        )
     _intent_surface_contract_pass = True
     if _player_input_kind:
         _intent_surface_contract_pass = (
@@ -2777,6 +2883,17 @@ def _build_langfuse_path_summary(
             else bool("invoke_model" in nodes or "fallback_model" in nodes)
         ),
         "semantic_move_kind": str(semantic_move_record.get("move_type") or "").strip() or None,
+        "subtext_surface_mode": str(_subtext_record.get("surface_mode") or "").strip() or None,
+        "subtext_hidden_intent_hypothesis": (
+            str(_subtext_record.get("hidden_intent_hypothesis") or "").strip() or None
+        ),
+        "subtext_function": str(_subtext_record.get("subtext_function") or "").strip() or None,
+        "subtext_sincerity_band": str(_subtext_record.get("sincerity_band") or "").strip() or None,
+        "subtext_policy_source": str(_subtext_record.get("policy_source") or "").strip() or None,
+        "subtext_policy_rule_id": str(_subtext_record.get("policy_rule_id") or "").strip() or None,
+        "subtext_evidence_codes": list(_subtext_record.get("evidence_codes") or [])
+        if isinstance(_subtext_record.get("evidence_codes"), list)
+        else [],
         "scene_director_selection_source": (
             str(multi_pressure_resolution.get("selection_source") or "").strip()
             or str(scene_plan_record.get("selection_source") or "").strip()
@@ -2810,6 +2927,7 @@ def _build_langfuse_path_summary(
         "intent_surface_contract_pass": 1 if _intent_surface_contract_pass else 0,
         "player_input_attribution_pass": 1 if _player_input_attribution_pass else 0,
         "semantic_move_alignment_pass": 1 if _semantic_move_alignment_pass else 0,
+        "subtext_contract_pass": 1 if _subtext_contract_pass else 0,
         "npc_action_narration_boundary_pass": 1 if _npc_action_narration_boundary_pass else 0,
         "quality_class": governance.get("quality_class") or graph_state.get("quality_class"),
         "degradation_signals": list(governance.get("degradation_signals") or graph_state.get("degradation_signals") or []),
@@ -3164,6 +3282,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "generation_mode": path_summary.get("generation_mode"),
         "player_input_kind": path_summary.get("player_input_kind"),
         "semantic_move_kind": path_summary.get("semantic_move_kind"),
+        "subtext_function": path_summary.get("subtext_function"),
         "canonical_turn_id": path_summary.get("canonical_turn_id"),
     }
 
@@ -3200,6 +3319,13 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "raw_player_input": path_summary.get("raw_player_input"),
                 "player_input_kind": path_summary.get("player_input_kind"),
                 "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "subtext_surface_mode": path_summary.get("subtext_surface_mode"),
+                "subtext_hidden_intent_hypothesis": path_summary.get(
+                    "subtext_hidden_intent_hypothesis"
+                ),
+                "subtext_function": path_summary.get("subtext_function"),
+                "subtext_sincerity_band": path_summary.get("subtext_sincerity_band"),
+                "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
                 "legacy_keyword_scene_candidates_used": path_summary.get(
@@ -3208,6 +3334,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
                 "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
                 "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+                "subtext_contract_pass": path_summary.get("subtext_contract_pass"),
                 "npc_action_narration_boundary_pass": path_summary.get(
                     "npc_action_narration_boundary_pass"
                 ),
@@ -3232,6 +3359,12 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "narrator_response_expected": path_summary.get("narrator_response_expected"),
                 "npc_response_expected": path_summary.get("npc_response_expected"),
                 "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "subtext_surface_mode": path_summary.get("subtext_surface_mode"),
+                "subtext_hidden_intent_hypothesis": path_summary.get(
+                    "subtext_hidden_intent_hypothesis"
+                ),
+                "subtext_function": path_summary.get("subtext_function"),
+                "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
                 "legacy_keyword_scene_candidates_used": path_summary.get(
@@ -3366,6 +3499,12 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "narrator_response_expected": path_summary.get("narrator_response_expected"),
                 "npc_response_expected": path_summary.get("npc_response_expected"),
                 "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "subtext_surface_mode": path_summary.get("subtext_surface_mode"),
+                "subtext_hidden_intent_hypothesis": path_summary.get(
+                    "subtext_hidden_intent_hypothesis"
+                ),
+                "subtext_function": path_summary.get("subtext_function"),
+                "subtext_contract_pass": path_summary.get("subtext_contract_pass"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
                 "legacy_keyword_scene_candidates_used": path_summary.get(
@@ -3405,6 +3544,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "failure_markers": path_summary.get("failure_markers"),
                 "player_input_kind": path_summary.get("player_input_kind"),
                 "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "subtext_function": path_summary.get("subtext_function"),
+                "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
                 "legacy_keyword_scene_candidates_used": path_summary.get(
@@ -4642,6 +4783,31 @@ def _emit_langfuse_evidence_observations(
     deterministic_scores["intent_surface_contract_pass"] = 1.0 if intent_surface_contract_pass else 0.0
     deterministic_scores["player_input_attribution_pass"] = 1.0 if player_input_attribution_pass else 0.0
     deterministic_scores["semantic_move_alignment_pass"] = 1.0 if semantic_alignment_pass else 0.0
+    subtext_contract_raw = path_summary.get("subtext_contract_pass")
+    if subtext_contract_raw is None:
+        subtext_fields_present = any(
+            path_summary.get(key)
+            for key in (
+                "subtext_surface_mode",
+                "subtext_hidden_intent_hypothesis",
+                "subtext_function",
+                "subtext_sincerity_band",
+            )
+        )
+        subtext_contract_pass = True
+        if subtext_fields_present:
+            subtext_contract_pass = all(
+                bool(str(path_summary.get(key) or "").strip())
+                for key in (
+                    "subtext_surface_mode",
+                    "subtext_hidden_intent_hypothesis",
+                    "subtext_function",
+                    "subtext_sincerity_band",
+                )
+            )
+    else:
+        subtext_contract_pass = bool(subtext_contract_raw)
+    deterministic_scores["subtext_contract_pass"] = 1.0 if subtext_contract_pass else 0.0
     deterministic_scores["npc_action_narration_boundary_pass"] = (
         1.0 if npc_action_narration_boundary_pass else 0.0
     )
@@ -4875,6 +5041,15 @@ def _emit_langfuse_evidence_observations(
         "npc_response_expected": path_summary.get("npc_response_expected"),
         "p0_action_resolution_evidence": path_summary.get("p0_action_resolution_evidence"),
         "semantic_move_kind": path_summary.get("semantic_move_kind"),
+        "subtext_surface_mode": path_summary.get("subtext_surface_mode"),
+        "subtext_hidden_intent_hypothesis": path_summary.get(
+            "subtext_hidden_intent_hypothesis"
+        ),
+        "subtext_function": path_summary.get("subtext_function"),
+        "subtext_sincerity_band": path_summary.get("subtext_sincerity_band"),
+        "subtext_policy_source": path_summary.get("subtext_policy_source"),
+        "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
+        "subtext_evidence_codes": path_summary.get("subtext_evidence_codes"),
         "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
         "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
         "legacy_keyword_scene_candidates_used": path_summary.get(
@@ -4886,6 +5061,7 @@ def _emit_langfuse_evidence_observations(
         "intent_surface_contract_pass": deterministic_scores.get("intent_surface_contract_pass"),
         "player_input_attribution_pass": deterministic_scores.get("player_input_attribution_pass"),
         "semantic_move_alignment_pass": deterministic_scores.get("semantic_move_alignment_pass"),
+        "subtext_contract_pass": deterministic_scores.get("subtext_contract_pass"),
         "npc_action_narration_boundary_pass": deterministic_scores.get(
             "npc_action_narration_boundary_pass"
         ),
@@ -6686,6 +6862,7 @@ class StoryRuntimeManager:
         session_store: JsonStorySessionStore | None = None,
         branching_tree_store: JsonBranchingTreeStore | None = None,
         branch_timeline_store: JsonBranchTimelineStore | None = None,
+        callback_web_store: JsonCallbackWebStore | None = None,
         governed_runtime_config: dict[str, Any] | None = None,
         metrics: StoryRuntimeMetrics | None = None,
     ) -> None:
@@ -6693,8 +6870,10 @@ class StoryRuntimeManager:
         self._session_store = session_store
         self._branching_tree_store = branching_tree_store
         self._branch_timeline_store = branch_timeline_store
+        self._callback_web_store = callback_web_store
         self._branching_trees: dict[str, dict[str, Any]] = {}
         self._branch_timelines: dict[str, dict[str, Any]] = {}
+        self._callback_webs: dict[str, dict[str, Any]] = {}
         self._branching_simulation_session_ids: set[str] = set()
         self._session_turn_locks: dict[str, threading.Lock] = {}
         self._session_locks_guard = threading.Lock()
@@ -6825,6 +7004,10 @@ class StoryRuntimeManager:
             for timeline_id, raw in self._branch_timeline_store.load_all_raw().items():
                 if isinstance(raw, dict):
                     self._branch_timelines[timeline_id] = raw
+        if self._callback_web_store is not None:
+            for callback_web_id, raw in self._callback_web_store.load_all_raw().items():
+                if isinstance(raw, dict):
+                    self._callback_webs[callback_web_id] = raw
 
     def _session_turn_lock(self, session_id: str) -> threading.Lock:
         with self._session_locks_guard:
@@ -6853,6 +7036,15 @@ class StoryRuntimeManager:
         self._branch_timelines[timeline_id] = copy.deepcopy(record)
         if self._branch_timeline_store is not None:
             self._branch_timeline_store.save(timeline_id, record)
+        return copy.deepcopy(record)
+
+    def _persist_callback_web_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        callback_web_id = str(record.get("callback_web_id") or "").strip()
+        if not callback_web_id:
+            raise ValueError("callback_web_missing_id")
+        self._callback_webs[callback_web_id] = copy.deepcopy(record)
+        if self._callback_web_store is not None:
+            self._callback_web_store.save(callback_web_id, record)
         return copy.deepcopy(record)
 
     # MVP3: Narrative agent configuration and input queue management
@@ -8608,8 +8800,6 @@ class StoryRuntimeManager:
             committed_turn=memory_source_turn,
             allow_write=True,
         )
-        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
-
         turn_lc.advance("projected")
 
         committed_record = {
@@ -8644,6 +8834,12 @@ class StoryRuntimeManager:
         committed_record["lifecycle_state"] = "observed"
         event["lifecycle_state"] = "observed"
         session.history.append(committed_record)
+        self._refresh_callback_web_after_commit(
+            session=session,
+            event=event,
+            graph_state=graph_state,
+        )
+        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
         session.diagnostics.append(event)
         turn_lc.advance("observed")
         self._persist_session(session)
@@ -8662,6 +8858,7 @@ class StoryRuntimeManager:
         )
         prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
         actor_lane_ctx = self._extract_actor_lane_context(session)
+        prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
 
         try:
             graph_state = self.turn_graph.run(
@@ -8675,6 +8872,7 @@ class StoryRuntimeManager:
                 thread_pressure_summary=graph_summary,
                 host_experience_template=host_experience_template,
                 prior_continuity_impacts=prior_ci if prior_ci else None,
+                prior_callback_web_state=prior_callback_web_state,
                 turn_number=0,
                 turn_initiator_type="engine",
                 turn_input_class="opening",
@@ -9069,6 +9267,131 @@ class StoryRuntimeManager:
         archived = archive_branch_timeline(timeline, reason=reason)
         return self._persist_branch_timeline_record(archived)
 
+    def get_callback_web(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        callback_web_id = stable_callback_web_id(story_session_id=session.session_id)
+        existing = self._callback_webs.get(callback_web_id)
+        if isinstance(existing, dict):
+            return copy.deepcopy(existing)
+        return self.rebuild_callback_web(session_id=session_id)
+
+    def list_callback_web_edges(self, *, session_id: str) -> list[dict[str, Any]]:
+        record = self.get_callback_web(session_id=session_id)
+        edges = record.get("edges") if isinstance(record.get("edges"), list) else []
+        return [copy.deepcopy(edge) for edge in edges if isinstance(edge, dict)]
+
+    def rebuild_callback_web(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        branch_timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+        )
+        existing = self._callback_webs.get(stable_callback_web_id(story_session_id=session.session_id))
+        callback_policy = _load_module_callback_web_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        record = build_callback_web_record(
+            story_session_id=session.session_id,
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+            history=[dict(row) for row in session.history if isinstance(row, dict)],
+            narrative_threads=session.narrative_threads.model_dump(mode="json")
+            if hasattr(session.narrative_threads, "model_dump")
+            else session.narrative_threads,
+            branch_timeline=branch_timeline,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+            bounds=callback_web_bounds_from_policy(callback_policy),
+            created_at=existing.get("created_at") if isinstance(existing, dict) else None,
+        )
+        return self._persist_callback_web_record(record)
+
+    def _prior_callback_web_state_for_graph(self, session: StorySession) -> dict[str, Any] | None:
+        policy = _load_module_callback_web_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        if not policy.get("enabled"):
+            return None
+        try:
+            record = self.get_callback_web(session_id=session.session_id)
+        except Exception:
+            return None
+        return build_graph_callback_web_export(
+            record,
+            max_edges=int(policy.get("max_graph_edges") or 4),
+        )
+
+    def _refresh_callback_web_after_commit(
+        self,
+        *,
+        session: StorySession,
+        event: dict[str, Any],
+        graph_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        gs = graph_state if isinstance(graph_state, dict) else {}
+        policy = _load_module_callback_web_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        try:
+            record = self.rebuild_callback_web(session_id=session.session_id)
+        except Exception:
+            logger.debug("Callback web refresh failed", exc_info=True)
+            return None
+        snapshot = copy.deepcopy(record.get("snapshot") if isinstance(record.get("snapshot"), dict) else {})
+        event["callback_web"] = snapshot
+        graph_export = build_graph_callback_web_export(
+            record,
+            max_edges=int(policy.get("max_graph_edges") or 4),
+        )
+        validation = validate_callback_web_record(record, policy=policy)
+        event["callback_web_feedback"] = graph_export
+        event["callback_web_validation"] = validation
+        gov = event.get("runtime_governance_surface")
+        if isinstance(gov, dict):
+            gov["callback_web"] = {
+                "status": validation.get("status"),
+                "contract_pass": validation.get("contract_pass"),
+                "failure_codes": validation.get("failure_codes") or [],
+                "edge_count": snapshot.get("edge_count"),
+                "observation_count": snapshot.get("observation_count"),
+                "selected_callback_kind": (
+                    graph_export.get("selected_callback_kind")
+                    if isinstance(graph_export, dict)
+                    else None
+                ),
+            }
+        if gs:
+            _record_callback_web_aspect(
+                session=session,
+                graph_state=gs,
+                event=event,
+                record=record,
+                graph_export=graph_export,
+                validation=validation,
+                policy=policy,
+            )
+        if isinstance(event.get("diagnostics"), dict):
+            event["diagnostics"]["turn_aspect_ledger"] = event.get("turn_aspect_ledger")
+            event["diagnostics"]["callback_web"] = snapshot
+            event["diagnostics"]["callback_web_validation"] = validation
+        if session.history and isinstance(session.history[-1], dict):
+            session.history[-1]["callback_web_summary"] = snapshot
+            session.history[-1]["callback_web_feedback"] = graph_export
+            session.history[-1]["callback_web_validation"] = validation
+            if isinstance(event.get("turn_aspect_ledger"), dict):
+                session.history[-1]["turn_aspect_ledger"] = event["turn_aspect_ledger"]
+        return record
+
     def select_branching_tree_node(
         self,
         *,
@@ -9147,34 +9470,59 @@ class StoryRuntimeManager:
             replayed_turns: list[dict[str, Any]] = []
             committed_events: list[dict[str, Any]] = []
             replay_conflicts: list[dict[str, Any]] = []
-            for path_node in path_nodes:
-                simulated_input = str(path_node.get("simulated_input") or "").strip()
-                if not simulated_input:
-                    raise ValueError("branching_node_missing_simulated_input")
-                event = self._execute_turn_locked(
-                    session_id=session_id,
-                    player_input=simulated_input,
-                    trace_id=selection_trace_id,
+            try:
+                for path_node in path_nodes:
+                    simulated_input = str(path_node.get("simulated_input") or "").strip()
+                    if not simulated_input:
+                        raise ValueError("branching_node_missing_simulated_input")
+                    event = self._execute_turn_locked(
+                        session_id=session_id,
+                        player_input=simulated_input,
+                        trace_id=selection_trace_id,
+                    )
+                    committed_events.append(copy.deepcopy(event))
+                    matched, mismatch_fields = self._branching_replay_matches_node(
+                        event=event,
+                        simulation_node=path_node,
+                    )
+                    replay_row = {
+                        "node_id": path_node.get("node_id"),
+                        "path_option_ids": list(path_node.get("path_option_ids") or []),
+                        "simulated_turn_id": path_node.get("simulated_turn_id"),
+                        "committed_canonical_turn_id": event.get("canonical_turn_id"),
+                        "committed_turn_number": event.get("turn_number"),
+                        "simulated_input": simulated_input,
+                        "matched_simulation_preview": matched,
+                        "mismatch_fields": mismatch_fields,
+                    }
+                    replayed_turns.append(replay_row)
+                    if not matched:
+                        replay_conflicts.append(replay_row)
+                        break
+            except Exception as exc:
+                failure_fingerprint = self._branching_session_fingerprint(session)
+                self._append_branch_timeline_event(
+                    session=session,
+                    event_type=BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_CONFLICT,
+                    tree_id=tree_id,
+                    node_id=node_id,
+                    canonical_turn_id=(
+                        str(committed_events[-1].get("canonical_turn_id"))
+                        if committed_events and isinstance(committed_events[-1], dict)
+                        else None
+                    ),
+                    session_fingerprint=failure_fingerprint,
+                    details={
+                        "selection_status": "branch_replay_exception",
+                        "replayed_turn_count": len(replayed_turns),
+                        "replay_conflict_count": len(replay_conflicts),
+                        "exception_type": type(exc).__name__,
+                        "exception_message": str(exc)[:240],
+                        "uses_normal_commit_path": True,
+                        "adopts_simulated_snapshot": False,
+                    },
                 )
-                committed_events.append(copy.deepcopy(event))
-                matched, mismatch_fields = self._branching_replay_matches_node(
-                    event=event,
-                    simulation_node=path_node,
-                )
-                replay_row = {
-                    "node_id": path_node.get("node_id"),
-                    "path_option_ids": list(path_node.get("path_option_ids") or []),
-                    "simulated_turn_id": path_node.get("simulated_turn_id"),
-                    "committed_canonical_turn_id": event.get("canonical_turn_id"),
-                    "committed_turn_number": event.get("turn_number"),
-                    "simulated_input": simulated_input,
-                    "matched_simulation_preview": matched,
-                    "mismatch_fields": mismatch_fields,
-                }
-                replayed_turns.append(replay_row)
-                if not matched:
-                    replay_conflicts.append(replay_row)
-                    break
+                raise
 
             after_fingerprint = self._branching_session_fingerprint(session)
             selection_status = "branch_replay_conflict" if replay_conflicts else "committed"
@@ -9666,6 +10014,7 @@ class StoryRuntimeManager:
                 graph_threads=graph_threads,
                 graph_summary=graph_summary,
             )
+            prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
                 runtime_profile_id=_runtime_profile_id_from_projection(
@@ -9692,6 +10041,7 @@ class StoryRuntimeManager:
                 prior_dramatic_signature=prior_signature,
                 prior_social_state_record=prior_social_state_record,
                 prior_narrative_thread_state=prior_narrative_thread_state,
+                prior_callback_web_state=prior_callback_web_state,
                 prior_planner_truth=prior_planner_truth,
                 hierarchical_memory_context=hierarchical_memory_context,
                 turn_number=commit_turn_number,
@@ -9938,7 +10288,6 @@ class StoryRuntimeManager:
         turn_lc.advance("generated_or_resolved")
         turn_lc.advance("validated")
         turn_lc.advance("committed")
-        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
         turn_lc.advance("projected")
 
         canonical_record = {
@@ -9972,6 +10321,12 @@ class StoryRuntimeManager:
         canonical_record["lifecycle_state"] = "observed"
         event["lifecycle_state"] = "observed"
         session.history.append(canonical_record)
+        self._refresh_callback_web_after_commit(
+            session=session,
+            event=event,
+            graph_state=graph_state,
+        )
+        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
         session.diagnostics.append(event)
         turn_lc.advance("observed")
         session.updated_at = datetime.now(timezone.utc)
@@ -10204,6 +10559,13 @@ class StoryRuntimeManager:
         if isinstance(last_hist, dict):
             lid = str(last_hist.get("canonical_turn_id") or "").strip()
             latest_canonical_turn_id = lid or None
+        callback_web_snapshot: dict[str, Any] | None = None
+        try:
+            callback_web = self.get_callback_web(session_id=session.session_id)
+            snapshot = callback_web.get("snapshot") if isinstance(callback_web.get("snapshot"), dict) else {}
+            callback_web_snapshot = copy.deepcopy(snapshot)
+        except Exception:
+            callback_web_snapshot = None
 
         return {
             "session_id": session.session_id,
@@ -10230,6 +10592,8 @@ class StoryRuntimeManager:
                 "last_dramatic_context_summary": last_dramatic_context_summary,
                 "last_actor_turn_summary": last_actor_turn_summary,
                 "last_branching_forecast": last_branching_forecast,
+                "callback_web": callback_web_snapshot,
+                "callback_web_continuity": callback_web_snapshot,
                 "last_actor_outcome_summary": (
                     last_actor_turn_summary.get("last_actor_outcome_summary")
                     if isinstance(last_actor_turn_summary, dict)
@@ -10260,6 +10624,7 @@ class StoryRuntimeManager:
             "module_scope_truth": module_scope_truth,
             "player_shell_context": player_shell_context,
             "branching_forecast": last_branching_forecast,
+            "callback_web": callback_web_snapshot,
             "story_window": {
                 "contract": "authoritative_story_window_v1",
                 "source": "world_engine_story_runtime",
@@ -10283,6 +10648,13 @@ class StoryRuntimeManager:
         trace_payload: dict[str, Any] | None = None
         if session.last_thread_update_trace is not None:
             trace_payload = session.last_thread_update_trace.model_dump(mode="json")
+        callback_web_snapshot: dict[str, Any] | None = None
+        try:
+            callback_web = self.get_callback_web(session_id=session.session_id)
+            if isinstance(callback_web.get("snapshot"), dict):
+                callback_web_snapshot = copy.deepcopy(callback_web["snapshot"])
+        except Exception:
+            callback_web_snapshot = None
 
         return {
             "session_id": session.session_id,
@@ -10291,13 +10663,16 @@ class StoryRuntimeManager:
             "committed_state": committed_state,
             "diagnostics": session.diagnostics[-20:],
             "hierarchical_memory": session.hierarchical_memory,
+            "callback_web": callback_web_snapshot,
             "envelope_kind": "full_turn_orchestration_includes_graph_retrieval_and_interpreted_input",
             "committed_truth_vs_diagnostics": (
                 "Each diagnostics[] entry is a full orchestration envelope (graph, retrieval, model_route, "
                 "interpreted_input). Authoritative committed story-runtime truth is session fields, "
                 "history, and the bounded narrative_commit object (also embedded in each envelope for correlation). "
                 "Narrative thread continuity lives in session.narrative_threads and get_state committed_state "
-                "narrative_thread_continuity; narrative_thread_diagnostics.last_update_trace is bounded operator "
+                "narrative_thread_continuity. Callback-web continuity is derived from committed history, "
+                "narrative threads, and branch timelines; callback_web is bounded operator evidence, not a "
+                "canonical-state mutation. Narrative_thread_diagnostics.last_update_trace is bounded operator "
                 "reasoning only and is not an authority source."
             ),
             "authoritative_history_tail": session.history[-5:] if session.history else [],

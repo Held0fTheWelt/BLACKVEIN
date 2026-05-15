@@ -224,6 +224,14 @@ def build_decision_trace_data(
         "narrator_response_expected": observability_path_summary.get("narrator_response_expected"),
         "npc_response_expected": observability_path_summary.get("npc_response_expected"),
         "semantic_move_kind": observability_path_summary.get("semantic_move_kind"),
+        "subtext_surface_mode": observability_path_summary.get("subtext_surface_mode"),
+        "subtext_hidden_intent_hypothesis": observability_path_summary.get(
+            "subtext_hidden_intent_hypothesis"
+        ),
+        "subtext_function": observability_path_summary.get("subtext_function"),
+        "subtext_sincerity_band": observability_path_summary.get("subtext_sincerity_band"),
+        "subtext_policy_rule_id": observability_path_summary.get("subtext_policy_rule_id"),
+        "subtext_contract_pass": observability_path_summary.get("subtext_contract_pass"),
         "scene_director_selection_source": observability_path_summary.get(
             "scene_director_selection_source"
         ),
@@ -314,6 +322,18 @@ def build_validation_projection_data(
         or bool(intent_surface.get("npc_response_expected")),
         "semantic_move_kind": canonical_record.get("semantic_move_kind")
         or path_summary.get("semantic_move_kind"),
+        "subtext_surface_mode": canonical_record.get("subtext_surface_mode")
+        or path_summary.get("subtext_surface_mode"),
+        "subtext_hidden_intent_hypothesis": canonical_record.get(
+            "subtext_hidden_intent_hypothesis"
+        )
+        or path_summary.get("subtext_hidden_intent_hypothesis"),
+        "subtext_function": canonical_record.get("subtext_function")
+        or path_summary.get("subtext_function"),
+        "subtext_sincerity_band": canonical_record.get("subtext_sincerity_band")
+        or path_summary.get("subtext_sincerity_band"),
+        "subtext_policy_rule_id": canonical_record.get("subtext_policy_rule_id")
+        or path_summary.get("subtext_policy_rule_id"),
         "scene_director_selection_source": canonical_record.get("scene_director_selection_source")
         or path_summary.get("scene_director_selection_source"),
         "planner_rationale_codes": planner_rationale,
@@ -325,6 +345,7 @@ def build_validation_projection_data(
         "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
         "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
         "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+        "subtext_contract_pass": path_summary.get("subtext_contract_pass"),
         "npc_action_narration_boundary_pass": path_summary.get(
             "npc_action_narration_boundary_pass"
         ),

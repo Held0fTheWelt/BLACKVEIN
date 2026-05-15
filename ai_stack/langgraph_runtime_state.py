@@ -76,6 +76,7 @@ class RuntimeTurnState(TypedDict, total=False):
     prior_dramatic_signature: dict[str, str]
     prior_social_state_record: dict[str, Any]
     prior_narrative_thread_state: dict[str, Any]
+    prior_callback_web_state: dict[str, Any]
     prior_planner_truth: dict[str, Any]
     # Bounded hierarchical memory context derived from canonical committed turns.
     hierarchical_memory_context: dict[str, Any]

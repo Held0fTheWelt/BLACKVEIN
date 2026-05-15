@@ -1,0 +1,125 @@
+contract: goc_subtext_policy.v1
+description: >
+  Bounded subtext policy for God of Carnage. Values in this file are the
+  canonical oracle for Pi19 subtext interpretation tests; runtime code may
+  derive only these labels and must not invent free-form hidden intent.
+
+surface_modes:
+  - accusation
+  - apology
+  - alliance_bid
+  - courtesy
+  - deflection
+  - escalation
+  - exposure
+  - neutral
+  - off_scope
+  - question
+  - reveal
+  - silence
+
+hidden_intent_hypotheses:
+  - avoid_accountability
+  - force_accountability
+  - force_admission
+  - humiliate_or_expose
+  - preserve_relationship
+  - raise_pressure
+  - seek_alliance
+  - seek_repair
+  - slice_boundary
+  - test_boundary
+  - test_motive
+  - unknown
+
+subtext_functions:
+  - contain_off_scope
+  - deflect_accountability
+  - expose_truth
+  - force_accountability
+  - preserve_dignity
+  - preserve_relationship
+  - probe_motive
+  - raise_pressure
+  - reveal_under_repair
+  - shift_alliance
+  - test_boundary
+  - unset
+
+sincerity_bands:
+  - high
+  - low
+  - mixed
+  - unknown
+
+rules:
+  off_scope_containment:
+    surface_mode: off_scope
+    hidden_intent_hypothesis: slice_boundary
+    subtext_function: contain_off_scope
+    sincerity_band: unknown
+  silence_withdrawal:
+    surface_mode: silence
+    hidden_intent_hypothesis: test_boundary
+    subtext_function: test_boundary
+    sincerity_band: unknown
+  alliance_reposition:
+    surface_mode: alliance_bid
+    hidden_intent_hypothesis: seek_alliance
+    subtext_function: shift_alliance
+    sincerity_band: mixed
+  humiliating_exposure:
+    surface_mode: exposure
+    hidden_intent_hypothesis: humiliate_or_expose
+    subtext_function: preserve_dignity
+    sincerity_band: low
+  competing_repair_and_reveal:
+    surface_mode: apology
+    hidden_intent_hypothesis: force_admission
+    subtext_function: reveal_under_repair
+    sincerity_band: mixed
+  repair_attempt_probe:
+    surface_mode: apology
+    hidden_intent_hypothesis: test_motive
+    subtext_function: probe_motive
+    sincerity_band: mixed
+  repair_attempt:
+    surface_mode: apology
+    hidden_intent_hypothesis: seek_repair
+    subtext_function: preserve_relationship
+    sincerity_band: high
+  evasive_deflection:
+    surface_mode: deflection
+    hidden_intent_hypothesis: avoid_accountability
+    subtext_function: deflect_accountability
+    sincerity_band: low
+  direct_accusation:
+    surface_mode: accusation
+    hidden_intent_hypothesis: force_accountability
+    subtext_function: force_accountability
+    sincerity_band: high
+  reveal_surface:
+    surface_mode: reveal
+    hidden_intent_hypothesis: force_admission
+    subtext_function: expose_truth
+    sincerity_band: high
+  escalation_threat:
+    surface_mode: escalation
+    hidden_intent_hypothesis: raise_pressure
+    subtext_function: raise_pressure
+    sincerity_band: low
+  probe_inquiry:
+    surface_mode: question
+    hidden_intent_hypothesis: test_motive
+    subtext_function: probe_motive
+    sincerity_band: mixed
+  indirect_provocation:
+    surface_mode: courtesy
+    hidden_intent_hypothesis: raise_pressure
+    subtext_function: raise_pressure
+    sincerity_band: low
+  establish_situational_pressure:
+    surface_mode: neutral
+    hidden_intent_hypothesis: unknown
+    subtext_function: unset
+    sincerity_band: unknown

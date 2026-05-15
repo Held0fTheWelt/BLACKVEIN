@@ -2200,6 +2200,30 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
         thread_pressure_label,
     )
 
+    prior_callback = state.get("prior_callback_web_state")
+    if not isinstance(prior_callback, dict):
+        prior_callback = {}
+    callback_edges = (
+        prior_callback.get("edges") if isinstance(prior_callback.get("edges"), list) else []
+    )
+    callback_values: list[Any] = [
+        prior_callback.get("selected_callback_kind"),
+        prior_callback.get("selected_continuity_classes"),
+        prior_callback.get("selected_thread_ids"),
+    ]
+    for edge in callback_edges[:4]:
+        if not isinstance(edge, dict):
+            continue
+        callback_values.extend(
+            [
+                edge.get("callback_kind"),
+                edge.get("continuity_classes"),
+                edge.get("thread_ids"),
+            ]
+        )
+    add_line("narrative_thread_precedents", "prior_callback_web_state", callback_values)
+    add_line("continuity_pressure_context", "prior_callback_web_state", callback_values)
+
     memory_context = state.get("hierarchical_memory_context")
     if isinstance(memory_context, dict):
         tiers = memory_context.get("tiers") if isinstance(memory_context.get("tiers"), dict) else {}
@@ -2561,6 +2585,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
     scene_assessment = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
     interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
     semantic = state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else {}
+    subtext = semantic.get("subtext") if isinstance(semantic.get("subtext"), dict) else {}
     ranked_semantic = semantic.get("ranked_move_candidates") if isinstance(semantic.get("ranked_move_candidates"), list) else []
     ranked_semantic_compact: list[dict[str, Any]] = []
     for row in ranked_semantic[:3]:
@@ -2642,6 +2667,18 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             if isinstance(semantic.get("secondary_dramatic_features"), list)
             else [],
             "ranked_move_candidates": ranked_semantic_compact,
+        },
+        "subtext_interpretation": {
+            "surface_mode": subtext.get("surface_mode"),
+            "explicit_intent": subtext.get("explicit_intent"),
+            "hidden_intent_hypothesis": subtext.get("hidden_intent_hypothesis"),
+            "subtext_function": subtext.get("subtext_function"),
+            "sincerity_band": subtext.get("sincerity_band"),
+            "evidence_codes": subtext.get("evidence_codes")
+            if isinstance(subtext.get("evidence_codes"), list)
+            else [],
+            "policy_source": subtext.get("policy_source"),
+            "policy_rule_id": subtext.get("policy_rule_id"),
         },
         "player_intent_surface": {
             "player_input_kind": interpreted_input.get("player_input_kind"),
@@ -2865,6 +2902,7 @@ class RuntimeTurnGraphExecutor:
         prior_dramatic_signature: dict[str, str] | None = None,
         prior_social_state_record: dict[str, Any] | None = None,
         prior_narrative_thread_state: dict[str, Any] | None = None,
+        prior_callback_web_state: dict[str, Any] | None = None,
         prior_planner_truth: dict[str, Any] | None = None,
         hierarchical_memory_context: dict[str, Any] | None = None,
         turn_number: int | None = None,
@@ -2904,6 +2942,8 @@ class RuntimeTurnGraphExecutor:
             prior_social_state_record: previously committed social-state record
                 rehydrated from planner truth.
             prior_narrative_thread_state: committed narrative-thread continuity
+                snapshot rehydrated from the story session.
+            prior_callback_web_state: bounded committed callback-web feedback
                 snapshot rehydrated from the story session.
             prior_planner_truth: bounded committed planner-truth snapshot used
                 to bias retrieval toward continuity-relevant precedents.
@@ -3015,6 +3055,8 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_social_state_record"] = dict(prior_social_state_record)
         if prior_narrative_thread_state:
             initial_state["prior_narrative_thread_state"] = dict(prior_narrative_thread_state)
+        if prior_callback_web_state:
+            initial_state["prior_callback_web_state"] = dict(prior_callback_web_state)
         if prior_planner_truth:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
         if hierarchical_memory_context:
@@ -3379,6 +3421,33 @@ class RuntimeTurnGraphExecutor:
             tsum = state.get("thread_pressure_summary")
             if isinstance(tsum, str) and tsum.strip():
                 lines.append(f"thread_pressure_summary: {tsum.strip()[:128]}")
+            prompt = f"{prompt}\n\n" + "\n".join(lines)
+
+        callback_state = state.get("prior_callback_web_state")
+        if isinstance(callback_state, dict) and callback_state:
+            edges = callback_state.get("edges") if isinstance(callback_state.get("edges"), list) else []
+            lines = ["Prior callback web (bounded committed index, not authoritative diagnostics):"]
+            selected_kind = callback_state.get("selected_callback_kind")
+            selected_classes = callback_state.get("selected_continuity_classes")
+            if selected_kind or selected_classes:
+                lines.append(
+                    f"selected_kind={selected_kind} selected_continuity_classes={selected_classes or []}"
+                )
+            for edge in edges[:4]:
+                if not isinstance(edge, dict):
+                    continue
+                lines.append(
+                    " ".join(
+                        [
+                            f"- id={edge.get('edge_id')}",
+                            f"kind={edge.get('callback_kind')}",
+                            f"source={edge.get('source_turn_number')}",
+                            f"target={edge.get('target_turn_number')}",
+                            f"continuity_classes={list(edge.get('continuity_classes') or [])[:4]}",
+                            f"thread_ids={list(edge.get('thread_ids') or [])[:4]}",
+                        ]
+                    )
+                )
             prompt = f"{prompt}\n\n" + "\n".join(lines)
         update = _track(state, node_name="retrieve_context")
         update["retrieval"] = retrieval
@@ -3972,6 +4041,22 @@ class RuntimeTurnGraphExecutor:
             if isinstance(state.get("prior_narrative_thread_state"), dict)
             else None,
         )
+        callback_state = (
+            state.get("prior_callback_web_state")
+            if isinstance(state.get("prior_callback_web_state"), dict)
+            else {}
+        )
+        if callback_state:
+            base_sa["callback_web_feedback"] = {
+                "feedback_contract": callback_state.get("feedback_contract"),
+                "edge_count": int(callback_state.get("edge_count") or 0),
+                "observation_count": int(callback_state.get("observation_count") or 0),
+                "selected_callback_edge_id": callback_state.get("selected_callback_edge_id"),
+                "selected_callback_kind": callback_state.get("selected_callback_kind"),
+                "selected_continuity_classes": callback_state.get("selected_continuity_classes")
+                or [],
+                "selected_thread_ids": callback_state.get("selected_thread_ids") or [],
+            }
         pc = prior_continuity_classes(prior)
         sem_model = interpret_goc_semantic_move(
             module_id=module_id,
@@ -4157,6 +4242,14 @@ class RuntimeTurnGraphExecutor:
         ]
         if bool(resolution.get("legacy_keyword_scene_candidates_used")):
             rationale_codes.append("legacy_keyword_scene_candidates_used")
+        if isinstance(sem_rec, dict) and isinstance(sem_rec.get("subtext"), dict):
+            subtext = sem_rec["subtext"]
+            subtext_function = str(subtext.get("subtext_function") or "").strip()
+            if subtext_function:
+                rationale_codes.append(f"subtext_function:{subtext_function}")
+            policy_rule_id = str(subtext.get("policy_rule_id") or "").strip()
+            if policy_rule_id:
+                rationale_codes.append(f"subtext_policy_rule:{policy_rule_id}")
         pik = str(
             (
                 state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}

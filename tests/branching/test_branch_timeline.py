@@ -96,6 +96,38 @@ def test_branch_timeline_compaction_preserves_bounds_and_contract_events() -> No
     assert set(event_types).issubset(set(BRANCHING_TIMELINE_EVENT_TYPES))
 
 
+def test_branch_timeline_compaction_keeps_protected_replay_events() -> None:
+    bounds = default_branch_timeline_bounds()
+    bounds["max_events"] = 8
+    timeline = make_branch_timeline_record(
+        story_session_id="session-timeline",
+        root_session_fingerprint=_fingerprint(),
+        bounds=bounds,
+    )
+    protected = _event(
+        timeline,
+        BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED,
+        tree_id="tree-protected",
+        index=0,
+    )
+    timeline = append_branch_timeline_event(timeline, protected)
+
+    for index in range(1, bounds["max_events"] + 8):
+        timeline = append_branch_timeline_event(
+            timeline,
+            _event(
+                timeline,
+                BRANCHING_TIMELINE_EVENT_TREE_CREATED,
+                tree_id=f"tree-{index}",
+                index=index,
+            ),
+        )
+
+    event_ids = {event["event_id"] for event in timeline["events"]}
+    assert protected["event_id"] in event_ids
+    assert len(timeline["events"]) <= timeline["bounds"]["max_events"]
+
+
 def test_branch_timeline_archive_is_visible_in_snapshot() -> None:
     timeline = make_branch_timeline_record(
         story_session_id="session-timeline",

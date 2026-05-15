@@ -1,6 +1,6 @@
 """
 Canonical serializable contract for bounded semantic move interpretation
-(GoC planner).
+(planner-facing).
 """
 
 from __future__ import annotations
@@ -52,6 +52,103 @@ Directness = Literal["direct", "indirect", "ambiguous"]
 
 SceneRiskBand = Literal["low", "moderate", "high"]
 
+SUBTEXT_SURFACE_MODES: frozenset[str] = frozenset(
+    {
+        "accusation",
+        "apology",
+        "alliance_bid",
+        "courtesy",
+        "deflection",
+        "escalation",
+        "exposure",
+        "neutral",
+        "off_scope",
+        "question",
+        "reveal",
+        "silence",
+    }
+)
+
+SUBTEXT_HIDDEN_INTENT_HYPOTHESES: frozenset[str] = frozenset(
+    {
+        "avoid_accountability",
+        "force_accountability",
+        "force_admission",
+        "humiliate_or_expose",
+        "preserve_relationship",
+        "raise_pressure",
+        "seek_alliance",
+        "seek_repair",
+        "slice_boundary",
+        "test_boundary",
+        "test_motive",
+        "unknown",
+    }
+)
+
+SUBTEXT_FUNCTIONS: frozenset[str] = frozenset(
+    {
+        "contain_off_scope",
+        "deflect_accountability",
+        "expose_truth",
+        "force_accountability",
+        "preserve_dignity",
+        "preserve_relationship",
+        "probe_motive",
+        "raise_pressure",
+        "reveal_under_repair",
+        "shift_alliance",
+        "test_boundary",
+        "unset",
+    }
+)
+
+SincerityBand = Literal["high", "low", "mixed", "unknown"]
+
+
+def _require_member(value: str, allowed: frozenset[str], field_name: str) -> str:
+    if value not in allowed:
+        raise ValueError(f"{field_name} must be one of {sorted(allowed)}")
+    return value
+
+
+class SubtextRecord(BaseModel):
+    """Bounded Pi19 surface-vs-intent projection; diagnostic, not truth."""
+
+    model_config = {"extra": "forbid"}
+
+    contract: str = "subtext_interpretation.v1"
+    surface_mode: str
+    explicit_intent: str | None = None
+    hidden_intent_hypothesis: str
+    subtext_function: str
+    sincerity_band: SincerityBand = "unknown"
+    evidence_codes: list[str] = Field(
+        default_factory=list,
+        description="Bounded rule/feature codes; no prose oracle.",
+    )
+    policy_source: str = ""
+    policy_rule_id: str = ""
+
+    @field_validator("surface_mode")
+    @classmethod
+    def _surface_mode_in_contract(cls, value: str) -> str:
+        return _require_member(value, SUBTEXT_SURFACE_MODES, "surface_mode")
+
+    @field_validator("hidden_intent_hypothesis")
+    @classmethod
+    def _hidden_intent_in_contract(cls, value: str) -> str:
+        return _require_member(
+            value,
+            SUBTEXT_HIDDEN_INTENT_HYPOTHESES,
+            "hidden_intent_hypothesis",
+        )
+
+    @field_validator("subtext_function")
+    @classmethod
+    def _subtext_function_in_contract(cls, value: str) -> str:
+        return _require_member(value, SUBTEXT_FUNCTIONS, "subtext_function")
+
 
 class InterpretationTraceItem(BaseModel):
     """Structured trace step — no free-form narrative truth."""
@@ -89,13 +186,11 @@ class RankedMoveCandidate(BaseModel):
 
 
 class SemanticMoveRecord(BaseModel):
-    """Planner-facing semantic move — deterministic for fixed inputs on the GoC
-    path.
-    """
+    """Planner-facing semantic move — deterministic for fixed module inputs."""
 
     model_config = {"extra": "forbid"}
 
-    move_type: str = Field(..., description="Semantic move label; must be in SEMANTIC_MOVE_TYPES for GoC.")
+    move_type: str = Field(..., description="Semantic move label; must be in SEMANTIC_MOVE_TYPES.")
     social_move_family: SocialMoveFamily
     target_actor_hint: str | None = Field(
         default=None,
@@ -124,6 +219,10 @@ class SemanticMoveRecord(BaseModel):
     secondary_dramatic_features: list[str] = Field(
         default_factory=list,
         description="Bounded secondary dramatic feature labels derived from sparse/evasive/provocation signals.",
+    )
+    subtext: SubtextRecord | None = Field(
+        default=None,
+        description="Bounded surface-vs-intent diagnostic projection for Pi19.",
     )
 
     @field_validator("move_type")

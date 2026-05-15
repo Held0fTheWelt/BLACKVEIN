@@ -937,11 +937,33 @@ class TestBuildResponderAndFunction:
         )
         assert resolution["semantic_move_trace_ref"] != ""
 
+    def test_responder_function_rejects_unknown_semantic_move_contract(self):
+        """Unknown move types must not masquerade as semantic_pipeline_v1."""
+        semantic_record = {
+            "move_type": "not_declared_by_semantic_move_contract",
+        }
+        _responders, scene_fn, _implied, resolution = build_responder_and_function(
+            player_input="continue",
+            interpreted_move={},
+            pacing_mode="standard",
+            semantic_move_record=semantic_record,
+        )
+        assert scene_fn == "establish_pressure"
+        assert resolution["selection_source"] == "invalid_semantic_move"
+        assert resolution["semantic_move_contract_valid"] is False
+
     def test_responder_function_with_target_actor_hint(self):
         """Target actor hint used (lines 552-553)."""
         semantic_record = {
             "move_type": "direct_accusation",
             "target_actor_hint": "annette_reille",
+            "subtext": {
+                "surface_mode": "accusation",
+                "hidden_intent_hypothesis": "force_accountability",
+                "subtext_function": "force_accountability",
+                "sincerity_band": "high",
+                "policy_rule_id": "direct_accusation",
+            },
         }
         responders, scene_fn, implied, resolution = build_responder_and_function(
             player_input="annette you are wrong",
@@ -951,6 +973,7 @@ class TestBuildResponderAndFunction:
         )
         # Responder should use the hint
         assert any("annette" in r.get("actor_id", "") for r in responders)
+        assert resolution["subtext_function"] == semantic_record["subtext"]["subtext_function"]
 
     def test_responder_function_social_state_asymmetry(self):
         """Social state asymmetry tracked (lines 546-548)."""

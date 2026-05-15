@@ -49,6 +49,9 @@ Backend/world-engine-owned per-turn evidence record for runtime intelligence con
 **EnvironmentState / environmental story**
 Durable, bounded story-session environment state for the GoC slice: current room, actor locations, prop states, visible rooms, salient objects, and recent environment events. It is initialized from canonical module content and mutates only through committed/admitted actions; narration and RAG do not create persistent environment truth.
 
+**Subtext interpretation / Pi19**
+Bounded surface-vs-intent diagnostic carried as `SemanticMoveRecord.subtext`. It records policy-backed surface mode, hidden-intent hypothesis, subtext function, sincerity band, evidence codes, and policy provenance. It may shape planning and observability but does not commit story truth or use generated prose as an oracle.
+
 **Dramatic irony runtime aspect**
 Bounded Π16 runtime contract for selected NPC private-plan asymmetry. The runtime may pass only surface-safe opportunity ids and allowed surface modes into model context; validation rejects direct hidden-intent/private-plan echoes and records leak, realization, and violation evidence in the runtime aspect ledger. Tests derive expectations from policy, schema, selected private-plan records, and violation codes rather than generated prose.
 

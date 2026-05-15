@@ -250,6 +250,21 @@ Characters must maintain consistent:
 
 **ADR-0039 boundary:** `dialogue_examples` in `character_voice.yaml` are authoring examples, not validation or test oracles. Runtime profiles omit them, and tests assert structured validator/aspect outcomes derived from the policy block and canonical profile dimensions rather than copied narrative prose.
 
+### Subtext Interpretation / Pi19
+
+Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.
+
+The authoritative value source for GoC is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Runtime code builds records through `ai_stack/goc_subtext_policy.py` and validates labels against the contract constants in `ai_stack/semantic_move_contract.py`.
+
+During a turn:
+
+- semantic interpretation emits `surface_mode`, `hidden_intent_hypothesis`, `subtext_function`, `sincerity_band`, evidence codes, and policy provenance;
+- the scene director can use `subtext_function` for responder/pacing pressure while preserving commit authority;
+- the dramatic generation packet includes `subtext_interpretation`;
+- path summaries, Langfuse spans/scores, inspector projections, and operator history expose the same fields, including `subtext_contract_pass`.
+
+**ADR-0039 boundary:** Tests derive expected subtext labels from `subtext_policy.yaml` or exported contract sets. Generated narration, copied dialogue, and free-form motive prose are never the pass/fail oracle.
+
 ### Information Disclosure / Mystery Rationing
 
 Mystery rationing is implemented as the generic `information_disclosure` runtime aspect. Content modules declare bounded disclosure units in `information_disclosure_policy.yaml`; runtime code does not branch on `pi_20`, Table-B labels, or module-specific prose.

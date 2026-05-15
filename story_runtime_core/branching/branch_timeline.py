@@ -241,11 +241,20 @@ def compact_branch_timeline(timeline: dict[str, Any], *, max_events: int | None 
 
     available = event_limit - 1
     tail_start = max(0, len(events) - available)
-    selected_indexes = set(range(tail_start, len(events)))
+    tail_indexes = set(range(tail_start, len(events)))
+    protected_indexes: set[int] = set()
     for idx, event in enumerate(events):
         if str(event.get("event_type") or "") in BRANCHING_TIMELINE_COMPACTION_PROTECTED_EVENT_TYPES:
-            selected_indexes.add(idx)
-    selected = sorted(selected_indexes)[-available:]
+            protected_indexes.add(idx)
+    selected_indexes = set(protected_indexes)
+    remaining_slots = max(0, available - len(selected_indexes))
+    selected_indexes.update(sorted(tail_indexes - selected_indexes)[-remaining_slots:])
+    if len(selected_indexes) > available:
+        protected_tail = sorted(idx for idx in selected_indexes if idx >= tail_start)
+        protected_old = sorted(idx for idx in selected_indexes if idx < tail_start)
+        selected_indexes = set(protected_old[:available])
+        selected_indexes.update(protected_tail[-max(0, available - len(selected_indexes)) :])
+    selected = sorted(selected_indexes)
     kept_events = [events[idx] for idx in selected]
     removed_count = len(events) - len(kept_events)
 

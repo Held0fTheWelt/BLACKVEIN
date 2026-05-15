@@ -23,6 +23,7 @@ from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label
 from ai_stack.scene_director_goc_legacy_keyword_candidates import (
     legacy_keyword_scene_candidates as _legacy_keyword_scene_candidates,
 )
+from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.silence_negative_space_contract import (
     build_silence_negative_space_decision,
     coerce_silence_negative_space_decision,
@@ -782,14 +783,20 @@ def build_responder_and_function(
     selection_source = "semantic_pipeline_v1"
     if semantic_move_record and isinstance(semantic_move_record, dict) and semantic_move_record.get("move_type"):
         move_type = str(semantic_move_record["move_type"])
-        candidates, implied, heuristic_trace = semantic_move_to_scene_candidates(
-            move_type=move_type,
-            pacing_mode=pacing_mode,
-            prior_classes=prior_classes,
-            player_input=player_input,
-            interpreted_move=interpreted_move,
-            prior_planner_truth=prior_planner_truth,
-        )
+        if move_type not in SEMANTIC_MOVE_TYPES:
+            selection_source = "invalid_semantic_move"
+            candidates = ["establish_pressure"]
+            implied = {"establish_pressure": "situational_pressure"}
+            heuristic_trace = [f"semantic:invalid_move_type={move_type[:80]}->establish_pressure"]
+        else:
+            candidates, implied, heuristic_trace = semantic_move_to_scene_candidates(
+                move_type=move_type,
+                pacing_mode=pacing_mode,
+                prior_classes=prior_classes,
+                player_input=player_input,
+                interpreted_move=interpreted_move,
+                prior_planner_truth=prior_planner_truth,
+            )
     else:
         selection_source = "legacy_fallback"
         candidates, implied, heuristic_trace = _legacy_keyword_scene_candidates(
@@ -832,6 +839,12 @@ def build_responder_and_function(
         tr = semantic_move_record["interpretation_trace"]
         if tr and isinstance(tr[0], dict) and tr[0].get("detail_code"):
             semantic_trace_ref = str(tr[0].get("detail_code"))[:120]
+    subtext_record = (
+        semantic_move_record.get("subtext")
+        if isinstance(semantic_move_record, dict)
+        and isinstance(semantic_move_record.get("subtext"), dict)
+        else {}
+    )
 
     resolution: dict[str, Any] = {
         "candidates": list(candidates),
@@ -844,10 +857,15 @@ def build_responder_and_function(
         "heuristic_trace": heuristic_trace[:16],
         "selection_source": selection_source,
         "legacy_keyword_scene_candidates_used": selection_source == "legacy_fallback",
+        "semantic_move_contract_valid": selection_source != "invalid_semantic_move",
         "player_input_kind": player_input_kind or None,
         "narrator_response_expected": narrator_expected,
         "npc_response_expected": npc_expected,
         "semantic_move_trace_ref": semantic_trace_ref,
+        "subtext_surface_mode": subtext_record.get("surface_mode"),
+        "subtext_hidden_intent_hypothesis": subtext_record.get("hidden_intent_hypothesis"),
+        "subtext_function": subtext_record.get("subtext_function"),
+        "subtext_policy_rule_id": subtext_record.get("policy_rule_id"),
         "semantic_secondary_move_type": (
             str(semantic_move_record.get("secondary_move_type") or "").strip()
             if isinstance(semantic_move_record, dict)
@@ -1165,6 +1183,8 @@ def build_pacing_and_silence(
 
     sem = semantic_move_record if isinstance(semantic_move_record, dict) else {}
     sem_move_type = str(sem.get("move_type") or "").strip()
+    subtext = sem.get("subtext") if isinstance(sem.get("subtext"), dict) else {}
+    subtext_function = str(subtext.get("subtext_function") or "").strip()
     if sparse_tone in {"refusal_pressure", "provocation_pressure"} or (
         sem_move_type in {"direct_accusation", "indirect_provocation", "escalation_threat"} and thin_fragment
     ):
@@ -1173,6 +1193,22 @@ def build_pacing_and_silence(
             {
                 "mode": assert_silence_brevity_mode("normal"),
                 "reason": "sparse_fragment_refusal_or_provocation_pressure",
+            },
+        )
+    if subtext_function in {"force_accountability", "raise_pressure", "reveal_under_repair"}:
+        return _finalize_pacing_silence(
+            assert_pacing_mode("multi_pressure"),
+            {
+                "mode": assert_silence_brevity_mode("normal"),
+                "reason": "subtext_pressure_function",
+            },
+        )
+    if subtext_function in {"probe_motive", "test_boundary"} and thin_fragment:
+        return _finalize_pacing_silence(
+            assert_pacing_mode("thin_edge"),
+            {
+                "mode": assert_silence_brevity_mode("brief"),
+                "reason": "subtext_thin_edge_probe_or_boundary",
             },
         )
     if sparse_tone in {"defensive_pause", "discomfort_pause"}:

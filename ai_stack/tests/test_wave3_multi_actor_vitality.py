@@ -125,6 +125,43 @@ class TestW31ResponderSetStrengthening:
         assert packet.get("preferred_reaction_order_instruction")
         assert expected_order[0] in packet["preferred_reaction_order_instruction"]
 
+    def test_dramatic_packet_includes_policy_backed_subtext_interpretation(self):
+        """Verify Pi19 subtext reaches the generation packet as a bounded policy surface."""
+        from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+
+        policy_rule_id = "direct_accusation"
+        rule = rule_spec_for_subtext(policy_rule_id)
+        state = {
+            "module_id": "god_of_carnage",
+            "selected_scene_function": "redirect_blame",
+            "selected_responder_set": [
+                {"actor_id": "annette_reille", "role": "primary_responder"},
+            ],
+            "pacing_mode": "standard",
+            "silence_brevity_decision": {},
+            "semantic_move_record": {
+                "move_type": policy_rule_id,
+                "subtext": {
+                    **rule,
+                    "contract": "subtext_interpretation.v1",
+                    "explicit_intent": "accuse",
+                    "evidence_codes": ["rule:accusation_synset"],
+                    "policy_source": "content/modules/god_of_carnage/direction/subtext_policy.yaml",
+                    "policy_rule_id": policy_rule_id,
+                },
+            },
+        }
+
+        packet = _build_dramatic_generation_packet(state)
+        subtext = packet["subtext_interpretation"]
+
+        assert subtext["surface_mode"] == rule["surface_mode"]
+        assert subtext["hidden_intent_hypothesis"] == rule["hidden_intent_hypothesis"]
+        assert subtext["subtext_function"] == rule["subtext_function"]
+        assert subtext["sincerity_band"] == rule["sincerity_band"]
+        assert subtext["policy_rule_id"] == policy_rule_id
+
     def test_dramatic_packet_includes_current_npc_agency_simulation(self):
         """Verify Pi7 emits the current simulation contract as the primary surface."""
         from ai_stack.npc_agency_contracts import (

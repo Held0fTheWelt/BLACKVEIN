@@ -3689,9 +3689,12 @@ def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session()
 
 
 def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch):
+    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
     monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    rule = rule_spec_for_subtext("direct_accusation")
     path_summary = {
         "session_id": "session-intent-001",
         "module_id": "god_of_carnage",
@@ -3712,7 +3715,13 @@ def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch
         "player_speech_committed": False,
         "narrator_response_expected": True,
         "npc_response_expected": False,
-        "semantic_move_kind": "move_to_room",
+        "semantic_move_kind": "direct_accusation",
+        "subtext_surface_mode": rule["surface_mode"],
+        "subtext_hidden_intent_hypothesis": rule["hidden_intent_hypothesis"],
+        "subtext_function": rule["subtext_function"],
+        "subtext_sincerity_band": rule["sincerity_band"],
+        "subtext_policy_rule_id": "direct_accusation",
+        "subtext_contract_pass": 1,
         "scene_director_selection_source": "intent_surface",
         "planner_rationale_codes": ["player_action_requires_spatial_consequence"],
         "legacy_keyword_scene_candidates_used": False,
@@ -3728,16 +3737,23 @@ def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch
     assert "story.phase.intent_interpretation" in created_child_names
     validation_output = _last_span_output_for(adapter, "story.phase.validation")
     assert validation_output["player_input_kind"] == "action"
-    assert validation_output["semantic_move_kind"] == "move_to_room"
+    assert validation_output["semantic_move_kind"] == "direct_accusation"
+    assert validation_output["subtext_surface_mode"] == rule["surface_mode"]
+    assert validation_output["subtext_hidden_intent_hypothesis"] == rule["hidden_intent_hypothesis"]
+    assert validation_output["subtext_function"] == rule["subtext_function"]
+    assert validation_output["subtext_contract_pass"] == 1
     assert validation_output["scene_director_selection_source"] == "intent_surface"
     assert validation_output["planner_rationale_codes"] == ["player_action_requires_spatial_consequence"]
     assert validation_output["npc_narrated_player_action_violation"] is False
 
 
 def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
+    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
     monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    rule = rule_spec_for_subtext("probe_inquiry")
     path_summary = _healthy_path_summary_turn(1)
     path_summary.update(
         {
@@ -3747,6 +3763,11 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
             "narrator_response_expected": True,
             "npc_response_expected": False,
             "semantic_move_kind": "observe",
+            "subtext_surface_mode": rule["surface_mode"],
+            "subtext_hidden_intent_hypothesis": rule["hidden_intent_hypothesis"],
+            "subtext_function": rule["subtext_function"],
+            "subtext_sincerity_band": rule["sincerity_band"],
+            "subtext_policy_rule_id": "probe_inquiry",
             "scene_director_selection_source": "semantic_move",
             "planner_rationale_codes": ["player_perception_requires_environmental_feedback"],
             "legacy_keyword_scene_candidates_used": False,
@@ -3766,22 +3787,30 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
     assert score_values["intent_surface_contract_pass"] == 1.0
     assert score_values["player_input_attribution_pass"] == 1.0
     assert score_values["semantic_move_alignment_pass"] == 1.0
+    assert score_values["subtext_contract_pass"] == 1.0
     assert score_values["npc_action_narration_boundary_pass"] == 1.0
 
     metadata = _last_score_metadata_for(adapter, "intent_surface_contract_pass")
     assert metadata["player_input_kind"] == "perception"
     assert metadata["semantic_move_kind"] == "observe"
+    assert metadata["subtext_surface_mode"] == rule["surface_mode"]
+    assert metadata["subtext_hidden_intent_hypothesis"] == rule["hidden_intent_hypothesis"]
+    assert metadata["subtext_function"] == rule["subtext_function"]
+    assert metadata["subtext_sincerity_band"] == rule["sincerity_band"]
     assert metadata["scene_director_selection_source"] == "semantic_move"
     assert metadata["planner_rationale_codes"] == ["player_perception_requires_environmental_feedback"]
 
 
 def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
+    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
     monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
 
     intent_kind = "object_interaction"
     assert intent_kind in PLAYER_INPUT_KINDS
+    rule = rule_spec_for_subtext("establish_situational_pressure")
     path_summary = _healthy_path_summary_turn(1)
     path_summary.update(
         {
@@ -3790,6 +3819,11 @@ def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
             "intent_contract_version": INTENT_CONTRACT_VERSION,
             **default_commit_flags_for_player_input_kind(intent_kind),
             "semantic_move_kind": "establish_situational_pressure",
+            "subtext_surface_mode": rule["surface_mode"],
+            "subtext_hidden_intent_hypothesis": rule["hidden_intent_hypothesis"],
+            "subtext_function": rule["subtext_function"],
+            "subtext_sincerity_band": rule["sincerity_band"],
+            "subtext_policy_rule_id": "establish_situational_pressure",
             "scene_director_selection_source": "semantic_move",
             "planner_rationale_codes": [],
             "legacy_keyword_scene_candidates_used": False,
@@ -3808,10 +3842,12 @@ def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
     score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
     assert score_values["intent_surface_contract_pass"] == 1.0
     assert score_values["semantic_move_alignment_pass"] == 1.0
+    assert score_values["subtext_contract_pass"] == 1.0
 
     metadata = _last_score_metadata_for(adapter, "intent_surface_contract_pass")
     assert metadata["player_input_kind_family"] == player_input_kind_family(intent_kind)
     assert metadata["intent_contract_version"] == INTENT_CONTRACT_VERSION
+    assert metadata["subtext_function"] == rule["subtext_function"]
 
 
 def test_langfuse_scores_reject_guarded_action_probe_alignment(monkeypatch):

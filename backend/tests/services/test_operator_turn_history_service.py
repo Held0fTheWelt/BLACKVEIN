@@ -124,6 +124,9 @@ def test_operator_surface_exposes_top_passivity_factors_and_actions():
 
 
 def test_turn_history_row_surfaces_intent_surface_evidence_from_path_summary():
+    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+
+    rule = rule_spec_for_subtext("direct_accusation")
     summary = build_turn_history_summary_for_session(
         [
             _event(
@@ -139,7 +142,13 @@ def test_turn_history_row_surfaces_intent_surface_evidence_from_path_summary():
                     "semantic_move_kind": "move_to_room",
                     "scene_director_selection_source": "intent_surface",
                     "planner_rationale_codes": ["player_action_requires_spatial_consequence"],
+                    "subtext_surface_mode": rule["surface_mode"],
+                    "subtext_hidden_intent_hypothesis": rule["hidden_intent_hypothesis"],
+                    "subtext_function": rule["subtext_function"],
+                    "subtext_sincerity_band": rule["sincerity_band"],
+                    "subtext_policy_rule_id": "direct_accusation",
                     "intent_surface_contract_pass": 1,
+                    "subtext_contract_pass": 1,
                     "player_input_attribution_pass": 1,
                     "semantic_move_alignment_pass": 1,
                     "npc_action_narration_boundary_pass": 1,
@@ -153,4 +162,10 @@ def test_turn_history_row_surfaces_intent_surface_evidence_from_path_summary():
     assert intent["semantic_move_kind"] == "move_to_room"
     assert intent["scene_director_selection_source"] == "intent_surface"
     assert intent["planner_rationale_codes"] == ["player_action_requires_spatial_consequence"]
+    assert intent["subtext_surface_mode"] == rule["surface_mode"]
+    assert intent["subtext_hidden_intent_hypothesis"] == rule["hidden_intent_hypothesis"]
+    assert intent["subtext_function"] == rule["subtext_function"]
+    assert intent["subtext_sincerity_band"] == rule["sincerity_band"]
+    assert intent["subtext_policy_rule_id"] == "direct_accusation"
     assert intent["intent_surface_contract_pass"] == 1
+    assert intent["subtext_contract_pass"] == 1

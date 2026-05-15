@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
+from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
@@ -38,6 +39,10 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["dramatic_irony_policy"]["require_structured_realization"] is True
     assert policy["runtime_governance_policy"]["dramatic_irony"]["enabled"] is True
     assert policy["runtime_governance_policy"]["dramatic_irony"]["hidden_fact_echo_check"] is True
+    assert policy["runtime_governance_policy"]["callback_web"]["schema_version"] == CALLBACK_WEB_POLICY_SCHEMA_VERSION
+    assert policy["runtime_governance_policy"]["callback_web"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["callback_web"]["max_graph_edges"] == 4
+    assert policy["runtime_governance_policy"]["callback_web"]["allowed_continuity_classes"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]
