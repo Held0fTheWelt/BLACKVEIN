@@ -2,13 +2,20 @@
 (function () {
     "use strict";
 
-    var DEFAULT_MODULE_ID = "god_of_carnage";
+    function getFrontendConfig() {
+        return (typeof window !== "undefined" && window.__FRONTEND_CONFIG__) || {};
+    }
+
+    function getDefaultModuleId() {
+        return String(getFrontendConfig().adminDefaultContentModuleId || "").trim();
+    }
 
     function getModuleId() {
-        var raw = window.prompt("Module ID", DEFAULT_MODULE_ID);
+        var def = getDefaultModuleId();
+        var raw = window.prompt("Module ID", def);
         if (raw === null) return null;
         var trimmed = String(raw || "").trim();
-        return trimmed || DEFAULT_MODULE_ID;
+        return trimmed || def || null;
     }
 
     function renderJson(targetId, title, data, actionsBuilder) {
@@ -59,7 +66,7 @@
     function loadOverview() {
         Promise.all([
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages"),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID)),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(getDefaultModuleId())),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/revision-conflicts"),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/notifications/feed")
         ]).then(function (results) {
@@ -89,8 +96,8 @@
 
     function loadRuntimeHealth() {
         Promise.all([
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID)),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/fallbacks?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID))
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(getDefaultModuleId())),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/fallbacks?module_id=" + encodeURIComponent(getDefaultModuleId()))
         ]).then(function (results) {
             renderJson("narrative-runtime-health-panel", "Runtime Health", {
                 summary: results[0].data,
@@ -117,7 +124,7 @@
     function loadPackages() {
         Promise.all([
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages"),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages/" + encodeURIComponent(DEFAULT_MODULE_ID) + "/previews")
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages/" + encodeURIComponent(getDefaultModuleId()) + "/previews")
         ]).then(function (results) {
             renderJson("narrative-packages-panel", "Packages", {
                 packages: results[0].data,
@@ -182,7 +189,7 @@
 
     function loadFindings() {
         Promise.all([
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/events?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID)),
+            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health/events?module_id=" + encodeURIComponent(getDefaultModuleId())),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/revisions")
         ]).then(function (results) {
             renderJson("narrative-findings-panel", "Findings and Linked Revisions", {
@@ -237,7 +244,7 @@
     }
 
     function loadEvaluations() {
-        ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/evaluations?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID))
+        ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/evaluations?module_id=" + encodeURIComponent(getDefaultModuleId()))
             .then(function (result) {
                 renderJson("narrative-evaluations-panel", "Evaluations", result.data, function () {
                     return buildActions([

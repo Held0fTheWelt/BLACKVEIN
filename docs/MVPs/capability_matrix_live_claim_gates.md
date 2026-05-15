@@ -83,6 +83,7 @@ Allowed cross-reference examples:
 | Π25 | `meta_narrative_awareness` |
 | Π26 | `sensory_context` |
 | Π27 | `relationship_state` / `relationship_state_machine` |
+| Π31 | `narrative_momentum` |
 | Π32 | `genre_awareness` |
 | Π35 | `tonal_consistency` |
 
@@ -100,6 +101,12 @@ Tests should distinguish forbidden Pi-number usage from valid semantic implement
 semantic ledger/MCP fields and ADR-0039 tests, but it must not be claimed as
 live tonal drift enforcement until the authoritative runtime path, promotion
 criteria, and anti-hardcoding coverage are updated together.
+
+`narrative_momentum` is a bounded runtime contract with state-machine policy,
+planner-truth rehydration, ledger projection, and MCP/Langfuse extraction
+fields. It must not be claimed as open-ended dramatic momentum optimization or
+live/staging proof until dated provider traces, replay evidence, and promotion
+metadata satisfy this document's live-claim gate.
 
 ADR-0039 must also cover all Pi-labeled tests. Add new Pi / Π test files to `tests/gates/test_adr_0039_pi_scope.py` so the project can audit which legacy-labeled tests are governed by contract/runtime assertions rather than by example-shaped strings.
 

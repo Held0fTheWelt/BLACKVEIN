@@ -13,6 +13,7 @@ from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_FAILU
 from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_FAILURE_CODES
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
 from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_FAILURE_CODES
 
 REWRITEABLE_VALIDATION_REASONS = frozenset(
     {
@@ -47,6 +48,7 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         *NARRATIVE_MOMENTUM_FAILURE_CODES,
         *SCENE_ENERGY_FAILURE_CODES,
         *PACING_RHYTHM_FAILURE_CODES,
+        *TONAL_CONSISTENCY_FAILURE_CODES,
     }
 )
 
@@ -131,6 +133,8 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
         return False
     if reason.startswith("pacing_rhythm_"):
         return False
+    if reason.startswith("tonal_consistency_"):
+        return False
     if reason.startswith("sensory_context_"):
         return False
     if reason.startswith("expectation_variation_"):
@@ -145,6 +149,7 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
         return any(
             not code.startswith("scene_energy_")
             and not code.startswith("pacing_rhythm_")
+            and not code.startswith("tonal_consistency_")
             and not code.startswith("sensory_context_")
             and not code.startswith("expectation_variation_")
             and not code.startswith("narrative_momentum_")
@@ -237,6 +242,14 @@ def collect_playability_feedback_codes(
     pacing_rhythm_validation = outcome.get("pacing_rhythm_validation") if isinstance(outcome, dict) else None
     if isinstance(pacing_rhythm_validation, dict):
         for code in pacing_rhythm_validation.get("failure_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
+    tonal_consistency_validation = (
+        outcome.get("tonal_consistency_validation") if isinstance(outcome, dict) else None
+    )
+    if isinstance(tonal_consistency_validation, dict):
+        for code in tonal_consistency_validation.get("failure_codes") or []:
             code_text = str(code or "").strip()
             if code_text:
                 feedback.append(code_text)

@@ -39,23 +39,25 @@
   }
 
   function canonicalDefaultPayload() {
+    const tid = String(cfg.adminDefaultExperienceTemplateId || '').trim() || 'experience_template';
+    const slug = tid.indexOf('_') >= 0 ? tid.replace(/_/g, '-') : tid;
     return {
-      id: 'god_of_carnage_solo',
-      slug: 'god-of-carnage',
-      title: 'God of Carnage',
+      id: tid,
+      slug: slug,
+      title: 'New authored experience',
       kind: 'solo_story',
       join_policy: 'owner_only',
-      summary: 'Authored single-adventure slice for a social confrontation inside a Paris apartment.',
+      summary: 'Placeholder experience draft for governance workflow testing.',
       max_humans: 1,
       min_humans_to_start: 1,
       persistent: false,
-      initial_beat_id: 'courtesy',
+      initial_beat_id: 'opening',
       roles: [],
       rooms: [],
       props: [],
       actions: [],
       beats: [],
-      tags: ['authored', 'single-adventure', 'social-drama'],
+      tags: ['authored', 'single-adventure'],
       style_profile: 'retro_pulp'
     };
   }

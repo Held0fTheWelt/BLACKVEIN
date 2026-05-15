@@ -14,6 +14,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 - [Callback web contract](callback_web_contract.md) — bounded Pi17 continuity index and operator evidence
 - [Consequence cascade contract](consequence_cascade_contract.md) — bounded Pi21 consequence cascade over committed truth and branch selections
 - [Temporal control contract](temporal_control_contract.md) — bounded Pi28 selected time operation over committed refs
+- [Narrative momentum contract](narrative_momentum_contract.md) — bounded Pi31 momentum state machine and structured validation
 - [Genre awareness contract](genre_awareness_contract.md) — bounded Pi32 module-authored genre profile and structured validation
 - [Symbolic object resonance contract](symbolic_object_resonance_contract.md) — bounded Pi33 object-role selection and structured validation
 - [A1 repair — free input as primary path](a1_free_input_primary_runtime_path.md) — end-to-end player turn path via backend proxy

@@ -90,6 +90,9 @@ CAP_THEMATIC_TRACKING = "thematic_tracking"
 CAP_CALLBACK_WEB = "callback_web"
 CAP_SENSORY_CONTEXT = "sensory_context"
 CAP_GENRE_AWARENESS = "genre_awareness"
+CAP_BROAD_NLU_LISTENING = "broad_nlu_listening"
+CAP_CONVERSATIONAL_MEMORY = "conversational_memory"
+CAP_PROMPT_AUTHORITY = "prompt_authority"
 CAP_NPC_AGENCY = "npc_agency"
 CAP_PLAYER_INTENT_INFERENCE = "player_intent_inference"
 CAP_ACTION_RESOLUTION = "action_resolution"
@@ -108,6 +111,9 @@ INITIAL_CAPABILITIES: tuple[str, ...] = (
     CAP_CALLBACK_WEB,
     CAP_SENSORY_CONTEXT,
     CAP_GENRE_AWARENESS,
+    CAP_BROAD_NLU_LISTENING,
+    CAP_CONVERSATIONAL_MEMORY,
+    CAP_PROMPT_AUTHORITY,
     CAP_NPC_AGENCY,
     CAP_PLAYER_INTENT_INFERENCE,
     CAP_ACTION_RESOLUTION,
@@ -587,6 +593,9 @@ def _player_selection(
         _add_candidate(candidates, capability, required=True)
     for capability in (
         CAP_ENVIRONMENT_STATE,
+        CAP_BROAD_NLU_LISTENING,
+        CAP_CONVERSATIONAL_MEMORY,
+        CAP_PROMPT_AUTHORITY,
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
         CAP_GENRE_AWARENESS,

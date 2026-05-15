@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from ai_stack.tonal_consistency_contracts import (
+    TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE,
     TONAL_CONSISTENCY_FAILURE_CODES,
     TONAL_CONSISTENCY_POLICY_VERSION,
     TONAL_CONSISTENCY_SCHEMA_VERSION,
@@ -15,6 +16,7 @@ from ai_stack.tonal_consistency_contracts import (
     TonalConsistencyValidation,
     normalize_tonal_consistency_policy,
 )
+from ai_stack.tonal_consistency_classifier import classify_tonal_consistency_from_policy
 
 
 def _text(value: Any) -> str:
@@ -145,6 +147,13 @@ def derive_tonal_consistency(
     if not isinstance(forbidden_markers, dict):
         forbidden_markers = policy.get("forbidden_marker_map")
     forbidden_markers = forbidden_markers if isinstance(forbidden_markers, dict) else {}
+    dimension_markers = profile.get("dimension_marker_map")
+    if not isinstance(dimension_markers, dict):
+        dimension_markers = policy.get("dimension_marker_map")
+    dimension_markers = dimension_markers if isinstance(dimension_markers, dict) else {}
+    failure_severity = policy.get("failure_severity")
+    if not isinstance(failure_severity, dict):
+        failure_severity = {}
 
     evidence = [
         _evidence("module_runtime_policy", "tonal_consistency.profile_id", profile_id),
@@ -165,6 +174,11 @@ def derive_tonal_consistency(
         required_dimension_ids=required,
         allowed_registers=allowed_registers,
         forbidden_genre_labels=forbidden_genres,
+        dimension_marker_map={
+            str(key): _clean_str_list(value)
+            for key, value in dimension_markers.items()
+            if _text(key) and _clean_str_list(value)
+        },
         forbidden_marker_map={
             str(key): _clean_str_list(value)
             for key, value in forbidden_markers.items()
@@ -180,6 +194,17 @@ def derive_tonal_consistency(
             policy.get("max_forbidden_marker_hits"), 0, minimum=0, maximum=20
         ),
         drift_behavior=_text(policy.get("default_drift_behavior")) or "diagnostic",  # type: ignore[arg-type]
+        live_loop_mode=_text(policy.get("live_loop_mode")) or "shadow",  # type: ignore[arg-type]
+        max_repair_attempts=_bounded_int(
+            policy.get("max_repair_attempts"), 1, minimum=0, maximum=3
+        ),
+        classification_source=_text(policy.get("classification_source"))
+        or TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE,
+        failure_severity={
+            str(code): str(severity)
+            for code, severity in failure_severity.items()
+            if _text(code) and _text(severity)
+        },
         scene_function=scene_function,
         pressure_band=_pressure_band(social_pressure_target, scene_energy_target),
         source_evidence=evidence,
@@ -208,7 +233,14 @@ def compact_tonal_consistency_context(target: dict[str, Any] | None) -> dict[str
         )
         if isinstance(src.get("forbidden_marker_map"), dict)
         else [],
+        "dimension_marker_classes": sorted(
+            (src.get("dimension_marker_map") or {}).keys()
+        )
+        if isinstance(src.get("dimension_marker_map"), dict)
+        else [],
         "drift_behavior": src.get("drift_behavior"),
+        "live_loop_mode": src.get("live_loop_mode"),
+        "classification_source": src.get("classification_source"),
         "scene_function": src.get("scene_function"),
         "pressure_band": src.get("pressure_band"),
     }
@@ -283,6 +315,15 @@ def classify_tonal_consistency_realization(
     """Classify tone evidence from structured output and policy markers."""
 
     target = tonal_consistency_target if isinstance(tonal_consistency_target, dict) else {}
+    classification_source = _text(
+        target.get("classification_source")
+        or TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE
+    )
+    if classification_source == TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE:
+        return classify_tonal_consistency_from_policy(
+            tonal_consistency_target=target,
+            structured_output=structured_output,
+        )
     payload = _classification_payload(structured_output)
     marker_map = target.get("forbidden_marker_map") if isinstance(target.get("forbidden_marker_map"), dict) else {}
     detected_hits = _marker_hits(
@@ -324,6 +365,8 @@ def classify_tonal_consistency_realization(
         forbidden_marker_hits=merged_hits,
         marker_hit_count=sum(merged_hits.values()),
         confidence=confidence_value,
+        classification_source=classification_source,
+        independent_classifier=False,
         source_evidence=[
             _evidence(
                 "structured_output",
@@ -408,7 +451,7 @@ def validate_tonal_consistency_realization(
     ]
     if not deduped:
         status = "approved"
-    elif target.drift_behavior == "diagnostic":
+    elif target.live_loop_mode == "shadow" and target.drift_behavior == "diagnostic":
         status = "degraded"
     else:
         status = "rejected"
@@ -502,6 +545,15 @@ def build_tonal_consistency_aspect_record(
                 if target_dict.get("max_forbidden_marker_hits") is not None
                 else policy_dict.get("max_forbidden_marker_hits") or 0
             ),
+            "live_loop_mode": target_dict.get("live_loop_mode")
+            or policy_dict.get("live_loop_mode"),
+            "max_repair_attempts": int(
+                target_dict.get("max_repair_attempts")
+                if target_dict.get("max_repair_attempts") is not None
+                else policy_dict.get("max_repair_attempts") or 0
+            ),
+            "classification_source": target_dict.get("classification_source")
+            or policy_dict.get("classification_source"),
         },
         "selected": {
             "target": target_dict,
@@ -514,6 +566,11 @@ def build_tonal_consistency_aspect_record(
                 (target_dict.get("forbidden_marker_map") or {}).keys()
             )
             if isinstance(target_dict.get("forbidden_marker_map"), dict)
+            else [],
+            "dimension_marker_classes": sorted(
+                (target_dict.get("dimension_marker_map") or {}).keys()
+            )
+            if isinstance(target_dict.get("dimension_marker_map"), dict)
             else [],
             "scene_function": target_dict.get("scene_function"),
             "pressure_band": target_dict.get("pressure_band"),

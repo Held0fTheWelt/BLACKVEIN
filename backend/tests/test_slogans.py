@@ -144,6 +144,12 @@ def test_site_settings_returns_rotation_fields(client):
     assert isinstance(data["slogan_rotation_interval_seconds"], int)
     assert data["slogan_rotation_interval_seconds"] >= 0
     assert isinstance(data["slogan_rotation_enabled"], bool)
+    assert "default_content_module_id" in data
+    assert "default_experience_template_id" in data
+    assert isinstance(data["default_content_module_id"], str)
+    assert isinstance(data["default_experience_template_id"], str)
+    assert data["default_content_module_id"] == "god_of_carnage"
+    assert data["default_experience_template_id"] == "god_of_carnage_solo"
 
 
 def test_slogans_list_requires_auth(client):

@@ -19,9 +19,20 @@ from ai_stack.improvisational_coherence_contracts import (
     IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
     IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
 )
+from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
+from ai_stack.active_listening_contracts import (
+    BROAD_NLU_LISTENING_SCHEMA_VERSION,
+    CONVERSATIONAL_MEMORY_SCHEMA_VERSION,
+    PROMPT_AUTHORITY_SCHEMA_VERSION,
+    build_broad_nlu_listening_aspect_record,
+    build_conversational_memory_aspect_record,
+    build_prompt_authority_aspect_record,
+)
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
+    ASPECT_BROAD_NLU_LISTENING,
     ASPECT_CONSEQUENCE_CASCADE,
+    ASPECT_CONVERSATIONAL_MEMORY,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
     ASPECT_GENRE_AWARENESS,
@@ -29,8 +40,10 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INPUT,
     ASPECT_KEYS,
     ASPECT_META_NARRATIVE_AWARENESS,
+    ASPECT_NARRATIVE_MOMENTUM,
     ASPECT_NPC_AGENCY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_PROMPT_AUTHORITY,
     ASPECT_RELATIONSHIP_STATE,
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
@@ -113,6 +126,98 @@ def test_opening_marks_player_action_as_not_applicable() -> None:
     assert action["applicable"] is False
     assert action["status"] == "not_applicable"
     assert action["reasons"] == ["opening_turn_not_player_action_evidence_lane"]
+
+
+def test_runtime_projection_exposes_active_listening_authority_aspects() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s1",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich frage Annette nach der Wahrheit.",
+    )
+    broad_nlu = {
+        "schema_version": BROAD_NLU_LISTENING_SCHEMA_VERSION,
+        "primary_discourse_act": "question",
+        "player_input_kind": "question",
+        "confidence": 0.88,
+        "ambiguity_codes": [],
+        "repair_prompt_recommended": False,
+        "response_expectation": "npc_response",
+        "target_actor_refs": ["annette_reille"],
+        "object_refs": [],
+        "source_refs": ["interpreted_input.kind", "semantic_move_record"],
+        "raw_player_input_included": False,
+    }
+    memory = {
+        "schema_version": CONVERSATIONAL_MEMORY_SCHEMA_VERSION,
+        "memory_present": True,
+        "bounded": True,
+        "context_line_count": 1,
+        "selected_tiers": ["session"],
+        "selected_memory_ref_ids": ["memory:session:1"],
+        "source_refs": ["hierarchical_memory_context"],
+        "raw_player_input_included": False,
+        "raw_prompt_included": False,
+    }
+    authority = {
+        "schema_version": PROMPT_AUTHORITY_SCHEMA_VERSION,
+        "authority_mode": "model_visible_generation_constraints",
+        "authoritative_sections": [
+            "player_intent_surface",
+            "broad_nlu_listening",
+            "conversational_memory",
+        ],
+        "source_refs": [
+            "interpreted_input",
+            "runtime_intelligence_projection.capability_selection",
+        ],
+        "selected_capabilities": ["player_intent_inference"],
+        "selected_memory_ref_ids": ["memory:session:1"],
+        "prompt_authority_applied_to_packet": True,
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "validation_outcome_changed": False,
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_BROAD_NLU_LISTENING,
+        build_broad_nlu_listening_aspect_record(broad_nlu),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_CONVERSATIONAL_MEMORY,
+        build_conversational_memory_aspect_record(memory),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_PROMPT_AUTHORITY,
+        build_prompt_authority_aspect_record(authority),
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    assert projection[ASPECT_BROAD_NLU_LISTENING]["schema_version"] == (
+        BROAD_NLU_LISTENING_SCHEMA_VERSION
+    )
+    assert projection[ASPECT_BROAD_NLU_LISTENING]["primary_discourse_act"] == "question"
+    assert projection[ASPECT_BROAD_NLU_LISTENING]["raw_player_input_included"] is False
+    assert projection[ASPECT_BROAD_NLU_LISTENING]["contract_pass"] is True
+    assert projection[ASPECT_CONVERSATIONAL_MEMORY]["schema_version"] == (
+        CONVERSATIONAL_MEMORY_SCHEMA_VERSION
+    )
+    assert projection[ASPECT_CONVERSATIONAL_MEMORY]["selected_memory_ref_ids"] == [
+        "memory:session:1"
+    ]
+    assert projection[ASPECT_CONVERSATIONAL_MEMORY]["bounded"] is True
+    assert projection[ASPECT_PROMPT_AUTHORITY]["schema_version"] == (
+        PROMPT_AUTHORITY_SCHEMA_VERSION
+    )
+    assert "broad_nlu_listening" in projection[ASPECT_PROMPT_AUTHORITY][
+        "authoritative_sections"
+    ]
+    assert projection[ASPECT_PROMPT_AUTHORITY]["commit_gate_changed"] is False
+    assert projection[ASPECT_PROMPT_AUTHORITY]["validation_outcome_changed"] is False
 
 
 def test_runtime_projection_exposes_npc_agency_aspect() -> None:
@@ -694,6 +799,75 @@ def test_runtime_projection_exposes_expectation_variation_aspect() -> None:
     assert variation["budget_used"] == 1
     assert variation["contract_pass"] is True
     assert variation["failure_codes"] == []
+
+
+def test_runtime_projection_exposes_narrative_momentum_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-momentum",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    driver_ref = {
+        "source": "scene_energy_transition",
+        "field": "target_transition",
+        "value": "rise",
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NARRATIVE_MOMENTUM,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": NARRATIVE_MOMENTUM_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+            },
+            "selected": {
+                "target_state": "building",
+                "target_score": 0.6,
+                "allowed_next_states": ["building", "driving"],
+                "requires_forward_motion": True,
+                "release_allowed": False,
+                "min_progress_event_count": 1,
+                "selected_driver_refs": [driver_ref],
+            },
+            "actual": {
+                "current_state": "building",
+                "current_score": 0.6,
+                "trend": "rising",
+                "velocity": 0.2,
+                "transition_allowed": True,
+                "structured_events_present": True,
+                "event_count": 1,
+                "progress_event_count": 1,
+                "stall_turn_count": 0,
+                "stall_budget_respected": True,
+                "source_refs_valid": True,
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    momentum = projection[ASPECT_NARRATIVE_MOMENTUM]
+    assert momentum["schema_version"] == NARRATIVE_MOMENTUM_SCHEMA_VERSION
+    assert momentum["policy_present"] is True
+    assert momentum["target_state"] == "building"
+    assert momentum["current_state"] == "building"
+    assert momentum["trend"] == "rising"
+    assert momentum["transition_allowed"] is True
+    assert momentum["progress_event_count"] == 1
+    assert momentum["stall_budget_respected"] is True
+    assert momentum["contract_pass"] is True
+    assert momentum["failure_codes"] == []
 
 
 def test_runtime_projection_exposes_symbolic_object_resonance_aspect() -> None:

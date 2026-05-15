@@ -99,6 +99,18 @@ def test_live_turn_with_fallback_used_cannot_be_healthy():
     assert "fallback_used" in result["degradation_signals"]
 
 
+def test_live_turn_with_failed_tonal_consistency_cannot_satisfy_live_success_gate():
+    result = evaluate_live_turn_success_gate(
+        _live_turn_claim(
+            tonal_consistency_contract_pass=False,
+        )
+    )
+
+    assert result["live_success"] is False
+    assert result["quality_class"] == "degraded"
+    assert "tonal_consistency_contract_failed" in result["degradation_signals"]
+
+
 def test_commit_applied_with_empty_visible_output_fails_live_gate():
     result = evaluate_live_turn_success_gate(
         _live_turn_claim(

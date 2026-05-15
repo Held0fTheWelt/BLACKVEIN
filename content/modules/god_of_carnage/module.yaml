@@ -368,7 +368,10 @@ runtime_intelligence:
     require_structured_classification: true
     min_required_dimensions_present: 2
     max_forbidden_marker_hits: 0
-    default_drift_behavior: diagnostic
+    default_drift_behavior: recover
+    live_loop_mode: recover
+    max_repair_attempts: 1
+    classification_source: deterministic_policy_marker_classifier.v1
     model_context_visibility: bounded_tone_target
     allowed_registers:
       - social_drama
@@ -387,6 +390,13 @@ runtime_intelligence:
       debug_text:
         - fallback
         - validation
+    failure_severity:
+      tonal_consistency_classification_missing: recover
+      tonal_consistency_required_dimension_missing: recover
+      tonal_consistency_forbidden_marker_detected: recover
+      tonal_consistency_register_mismatch: recover
+      tonal_consistency_wrong_genre: recover
+      tonal_consistency_target_mismatch: reject
     tone_profiles:
       social_pressure_restraint:
         target_dimension_ids:
@@ -404,6 +414,27 @@ runtime_intelligence:
           - fantasy_adventure
           - therapy_session
           - debug_summary
+        dimension_marker_map:
+          polite_surface:
+            - bitte
+            - please
+            - vielleicht
+            - perhaps
+          subtext_pressure:
+            - pretend
+            - pressure
+            - wirklich
+            - understand
+          concrete_staging:
+            - table
+            - room
+            - door
+            - tisch
+          restrained_escalation:
+            - quiet
+            - calm
+            - sharp
+            - ruhig
     profile_by_scene_function:
       establish_pressure: social_pressure_restraint
       escalate_conflict: social_pressure_restraint

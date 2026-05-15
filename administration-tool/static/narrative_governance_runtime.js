@@ -2,10 +2,17 @@
 (function () {
     "use strict";
 
-    var DEFAULT_MODULE_ID = "god_of_carnage";
-    var GOV_SUMMARY_PATH =
-        "/api/v1/admin/narrative/runtime/gov-summary?module_id=" +
-        encodeURIComponent(DEFAULT_MODULE_ID);
+    function getDefaultModuleId() {
+        var cfg = (typeof window !== "undefined" && window.__FRONTEND_CONFIG__) || {};
+        return String(cfg.adminDefaultContentModuleId || "").trim();
+    }
+
+    function govSummaryPath() {
+        return (
+            "/api/v1/admin/narrative/runtime/gov-summary?module_id=" +
+            encodeURIComponent(getDefaultModuleId())
+        );
+    }
 
     var OK_STATUSES = [
         "canonical_loaded",
@@ -246,11 +253,11 @@
         clearError();
         setGovLoading(true);
         return Promise.all([
-            ManageAuth.apiFetchWithAuth(GOV_SUMMARY_PATH),
+            ManageAuth.apiFetchWithAuth(govSummaryPath()),
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/config"),
             ManageAuth.apiFetchWithAuth(
                 "/api/v1/admin/narrative/runtime/diagnostics?module_id=" +
-                    encodeURIComponent(DEFAULT_MODULE_ID)
+                    encodeURIComponent(getDefaultModuleId())
             )
         ])
             .then(function (results) {
@@ -300,7 +307,7 @@
         if (reloadBtn) {
             reloadBtn.addEventListener("click", function () {
                 ManageAuth.apiFetchWithAuth(
-                    "/api/v1/admin/narrative/packages/" + encodeURIComponent(DEFAULT_MODULE_ID) + "/active"
+                    "/api/v1/admin/narrative/packages/" + encodeURIComponent(getDefaultModuleId()) + "/active"
                 )
                     .then(function (activeRes) {
                         var active = apiData(activeRes).active_version;
@@ -310,7 +317,7 @@
                         }
                         return postJson(
                             "/api/v1/admin/narrative/packages/" +
-                                encodeURIComponent(DEFAULT_MODULE_ID) +
+                                encodeURIComponent(getDefaultModuleId()) +
                                 "/rollback-to/" +
                                 encodeURIComponent(active),
                             {

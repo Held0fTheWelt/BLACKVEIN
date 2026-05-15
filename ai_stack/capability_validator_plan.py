@@ -14,7 +14,9 @@ from typing import Any
 
 from ai_stack.capability_selector import (
     CAP_ACTION_RESOLUTION,
+    CAP_BROAD_NLU_LISTENING,
     CAP_CALLBACK_WEB,
+    CAP_CONVERSATIONAL_MEMORY,
     CAP_CONSEQUENCE_CASCADE,
     CAP_DRAMATIC_IRONY,
     CAP_ENVIRONMENT_STATE,
@@ -23,6 +25,7 @@ from ai_stack.capability_selector import (
     CAP_NARRATOR_AUTHORITY,
     CAP_NPC_AGENCY,
     CAP_PLAYER_INTENT_INFERENCE,
+    CAP_PROMPT_AUTHORITY,
     CAP_SCENE_ENERGY,
     CAP_SENSORY_CONTEXT,
     CAP_SILENCE_NEGATIVE_SPACE,
@@ -72,6 +75,9 @@ OBSERVER_DIAGNOSTICS: dict[str, str] = {
     CAP_THEMATIC_TRACKING: "thematic_tracking_diagnostic",
     CAP_CALLBACK_WEB: "callback_web_diagnostic",
     CAP_SENSORY_CONTEXT: "sensory_context_diagnostic",
+    CAP_BROAD_NLU_LISTENING: "broad_nlu_listening_diagnostic",
+    CAP_CONVERSATIONAL_MEMORY: "conversational_memory_diagnostic",
+    CAP_PROMPT_AUTHORITY: "prompt_authority_diagnostic",
 }
 
 JUDGE_VALIDATORS: dict[str, str] = {

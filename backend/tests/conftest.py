@@ -9,11 +9,23 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db, limiter
 from app.services.play_service_control_service import bootstrap_play_service_control
-from app.models import Role, User
+from app.models import Role, User, SiteSetting
 from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
 from app.models.role import ensure_roles_seeded
 from app.models.area import ensure_areas_seeded
 from werkzeug.security import generate_password_hash
+
+
+def _seed_operator_site_defaults_if_missing() -> None:
+    """Mirror migration 046 for SQLite create_all() test DBs (tests/ is Table-B exempt)."""
+    pairs = (
+        ("default_content_module_id", "god_of_carnage"),
+        ("default_experience_template_id", "god_of_carnage_solo"),
+    )
+    for key, value in pairs:
+        if db.session.get(SiteSetting, key) is None:
+            db.session.add(SiteSetting(key=key, value=value))
+    db.session.commit()
 
 
 @pytest.fixture(autouse=True)
@@ -65,6 +77,7 @@ def app():
         ensure_roles_seeded()
         ensure_areas_seeded()
         bootstrap_play_service_control(application)
+        _seed_operator_site_defaults_if_missing()
         yield application
         # Clean up after test: drop all tables to isolate test state
         db.session.remove()
@@ -90,6 +103,7 @@ def app_bootstrap_on():
         ensure_roles_seeded()
         ensure_areas_seeded()
         bootstrap_play_service_control(application)
+        _seed_operator_site_defaults_if_missing()
         yield application
         db.session.remove()
         db.drop_all()

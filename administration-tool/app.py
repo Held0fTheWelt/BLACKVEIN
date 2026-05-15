@@ -2,9 +2,11 @@
 Serves HTML and static assets only; consumes backend API for data. No database."""
 import json
 import os
+import threading
+import time
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from flask import Flask, request, session
 import secrets  # Import the secrets module
@@ -14,6 +16,9 @@ import secrets  # Import the secrets module
 # For local development: set BACKEND_API_URL=http://127.0.0.1:5000 or uncomment the localhost line below.
 # BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://127.0.0.1:5000").rstrip("/") # LOCALHOST
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "https://held0fthewelt.pythonanywhere.com").rstrip("/")
+# Optional overrides for operator UI (narrative governance, world-engine console, game content editor).
+# Prefer backend site_settings keys default_content_module_id / default_experience_template_id (database).
+# Env ADMIN_DEFAULT_* overrides DB for deployments that need a fixed operator default without changing site_settings.
 SUPPORTED_LANGUAGES = ["de", "en"]
 DEFAULT_LANGUAGE = "de"
 
@@ -88,6 +93,50 @@ def _backend_origin():
     return None
 
 
+_REMOTE_SITE_DEFAULTS_LOCK = threading.Lock()
+_REMOTE_SITE_DEFAULTS: dict[str, float | str] = {"expires_mono": 0.0, "mod": "", "tpl": ""}
+_REMOTE_SITE_DEFAULTS_TTL_SEC = 30.0
+
+
+def reset_operator_defaults_remote_cache() -> None:
+    """Testing hook: invalidate cached GET /api/v1/site/settings operator defaults."""
+    with _REMOTE_SITE_DEFAULTS_LOCK:
+        _REMOTE_SITE_DEFAULTS["expires_mono"] = 0.0
+
+
+def _fetch_operator_defaults_from_backend_public_settings(backend_base: str) -> tuple[str, str]:
+    """GET {backend}/api/v1/site/settings (no auth); returns (module_id, template_id) or ("","")."""
+    base = (backend_base or "").strip().rstrip("/")
+    if not base:
+        return "", ""
+    url = base + "/api/v1/site/settings"
+    try:
+        req = Request(url, headers={"Accept": "application/json"}, method="GET")
+        with urlopen(req, timeout=6) as resp:
+            raw = resp.read()
+        data = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return "", ""
+    if not isinstance(data, dict):
+        return "", ""
+    mod = str(data.get("default_content_module_id") or "").strip()
+    tpl = str(data.get("default_experience_template_id") or "").strip()
+    return mod, tpl
+
+
+def _cached_operator_defaults_from_backend(backend_base: str) -> tuple[str, str]:
+    now = time.monotonic()
+    with _REMOTE_SITE_DEFAULTS_LOCK:
+        if now < float(_REMOTE_SITE_DEFAULTS["expires_mono"]):
+            return str(_REMOTE_SITE_DEFAULTS["mod"]), str(_REMOTE_SITE_DEFAULTS["tpl"])
+    mod, tpl = _fetch_operator_defaults_from_backend_public_settings(backend_base)
+    with _REMOTE_SITE_DEFAULTS_LOCK:
+        _REMOTE_SITE_DEFAULTS["mod"] = mod
+        _REMOTE_SITE_DEFAULTS["tpl"] = tpl
+        _REMOTE_SITE_DEFAULTS["expires_mono"] = now + _REMOTE_SITE_DEFAULTS_TTL_SEC
+    return mod, tpl
+
+
 def inject_config():
     """Expose backend URL, frontend config, current language, and UI translations to all templates.
 
@@ -97,8 +146,25 @@ def inject_config():
     from flask import current_app
     current_lang = _resolve_language()
     t = _load_translations(current_lang)
+    admin_mod = str(
+        current_app.config.get("ADMIN_DEFAULT_CONTENT_MODULE_ID", "") or ""
+    ).strip()
+    admin_tpl = str(
+        current_app.config.get("ADMIN_DEFAULT_EXPERIENCE_TEMPLATE_ID", "") or ""
+    ).strip()
+    if not current_app.config.get("TESTING", False):
+        if not admin_mod or not admin_tpl:
+            b_mod, b_tpl = _cached_operator_defaults_from_backend(
+                current_app.config["BACKEND_API_URL"]
+            )
+            if not admin_mod:
+                admin_mod = b_mod
+            if not admin_tpl:
+                admin_tpl = b_tpl
     return {
         "backend_api_url": current_app.config["BACKEND_API_URL"],
+        "admin_default_content_module_id": admin_mod,
+        "admin_default_experience_template_id": admin_tpl,
         "frontend_config": {
             "backendApiUrl": current_app.config["BACKEND_API_URL"],
             # Use same-origin proxy endpoints to avoid browser CORS issues when the backend is on a different origin.
@@ -106,6 +172,8 @@ def inject_config():
             "supportedLanguages": SUPPORTED_LANGUAGES,
             "defaultLanguage": DEFAULT_LANGUAGE,
             "currentLanguage": current_lang,
+            "adminDefaultContentModuleId": admin_mod,
+            "adminDefaultExperienceTemplateId": admin_tpl,
         },
         "current_lang": current_lang,
         "supported_languages": SUPPORTED_LANGUAGES,
@@ -151,7 +219,10 @@ def create_app(test_config=None):
 
     Args:
         test_config: Optional dict of config overrides for testing.
-                    Supports: BACKEND_API_URL, SECRET_KEY, TESTING
+                    Supports: BACKEND_API_URL, SECRET_KEY, TESTING,
+                    ADMIN_DEFAULT_CONTENT_MODULE_ID, ADMIN_DEFAULT_EXPERIENCE_TEMPLATE_ID
+                    (env overrides; when unset and TESTING is false, values merge from backend
+                    GET /api/v1/site/settings — site_settings DB keys default_*).
 
     Returns:
         Configured Flask application instance.
@@ -236,6 +307,13 @@ def create_app(test_config=None):
         if "BACKEND_API_URL" in config_to_update:
             config_to_update["BACKEND_API_URL"] = config_to_update["BACKEND_API_URL"].rstrip("/")
         app.config.update(config_to_update)
+
+    # Operator UI defaults (env only fills keys omitted from merged config / test_config).
+    for key in ("ADMIN_DEFAULT_CONTENT_MODULE_ID", "ADMIN_DEFAULT_EXPERIENCE_TEMPLATE_ID"):
+        if key not in app.config:
+            app.config[key] = os.environ.get(key, "").strip()
+        else:
+            app.config[key] = str(app.config.get(key, "") or "").strip()
 
     # Register all routes and handlers
     _register_routes(app)

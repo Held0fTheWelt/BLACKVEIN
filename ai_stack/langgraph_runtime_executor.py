@@ -48,6 +48,14 @@ from ai_stack.context_synthesis_engine import (
     context_synthesis_prompt_lines,
     summarize_context_synthesis_for_diagnostics,
 )
+from ai_stack.active_listening_contracts import (
+    build_broad_nlu_listening_aspect_record,
+    build_conversational_memory_aspect_record,
+    build_prompt_authority_aspect_record,
+    build_prompt_authority_packet,
+    derive_broad_nlu_listening,
+    derive_conversational_memory_context,
+)
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
@@ -68,8 +76,10 @@ from ai_stack.runtime_aspect_ledger import (
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
+    ASPECT_BROAD_NLU_LISTENING,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_CONVERSATIONAL_MEMORY,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
     ASPECT_GENRE_AWARENESS,
@@ -82,12 +92,14 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
+    ASPECT_PROMPT_AUTHORITY,
     ASPECT_RELATIONSHIP_STATE,
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_TEMPORAL_CONTROL,
+    ASPECT_TONAL_CONSISTENCY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
@@ -209,6 +221,12 @@ from ai_stack.genre_awareness_engine import (
     compact_genre_awareness_context,
     derive_genre_awareness,
     validate_genre_awareness_realization,
+)
+from ai_stack.tonal_consistency_engine import (
+    build_tonal_consistency_aspect_record,
+    compact_tonal_consistency_context,
+    derive_tonal_consistency,
+    validate_tonal_consistency_realization,
 )
 from ai_stack.symbolic_object_resonance_engine import (
     build_symbolic_object_resonance_aspect_record,
@@ -1881,6 +1899,29 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "social_pressure_validation": social_pressure_validation,
     }
+    tonal_consistency_policy = _runtime_governance_section(state, "tonal_consistency")
+    tonal_consistency_validation = validate_tonal_consistency_realization(
+        tonal_consistency_target=state.get("tonal_consistency_target")
+        if isinstance(state.get("tonal_consistency_target"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_TONAL_CONSISTENCY,
+        build_tonal_consistency_aspect_record(
+            target=state.get("tonal_consistency_target")
+            if isinstance(state.get("tonal_consistency_target"), dict)
+            else None,
+            validation=tonal_consistency_validation,
+            policy=tonal_consistency_policy,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "tonal_consistency_validation": tonal_consistency_validation,
+    }
     relationship_state_validation = validate_relationship_state_realization(
         relationship_state_record=state.get("relationship_state_record")
         if isinstance(state.get("relationship_state_record"), dict)
@@ -2336,6 +2377,25 @@ def _build_runtime_aspect_validation(
                 or (pressure_codes[0] if pressure_codes else "social_pressure_validation_failed")
             ),
             "failure_codes": pressure_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    tonal_consistency_failure = None
+    if (
+        isinstance(tonal_consistency_validation, dict)
+        and str(tonal_consistency_validation.get("status") or "").strip().lower()
+        == "rejected"
+    ):
+        tonal_codes = [
+            str(code)
+            for code in (tonal_consistency_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        tonal_consistency_failure = {
+            "failure_reason": str(
+                tonal_consistency_validation.get("feedback_code")
+                or (tonal_codes[0] if tonal_codes else "tonal_consistency_validation_failed")
+            ),
+            "failure_codes": tonal_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
     relationship_state_failure = None
@@ -2804,6 +2864,26 @@ def _build_runtime_aspect_validation(
             "social_pressure_failure": social_pressure_failure,
         }
     elif (
+        tonal_consistency_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            tonal_consistency_failure.get("failure_reason")
+            or "tonal_consistency_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "tonal_consistency_validation_v1",
+            "tonal_consistency_contract_violation": True,
+            "failure_class": tonal_consistency_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "tonal_consistency_failure": tonal_consistency_failure,
+        }
+    elif (
         relationship_state_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -2964,6 +3044,14 @@ def _build_runtime_aspect_validation(
                 "social_pressure_contract_violation": bool(
                     next_outcome.get("social_pressure_contract_violation")
                 ),
+                "tonal_consistency_validation_status": (
+                    tonal_consistency_validation.get("status")
+                    if isinstance(tonal_consistency_validation, dict)
+                    else None
+                ),
+                "tonal_consistency_contract_violation": bool(
+                    next_outcome.get("tonal_consistency_contract_violation")
+                ),
                 "relationship_state_validation_status": (
                     relationship_state_validation.get("status")
                     if isinstance(relationship_state_validation, dict)
@@ -3091,6 +3179,7 @@ def _build_runtime_aspect_validation(
         "temporal_control_validation": temporal_control_validation,
         "improvisational_coherence_validation": improvisational_validation,
         "social_pressure_validation": social_pressure_validation,
+        "tonal_consistency_validation": tonal_consistency_validation,
         "relationship_state_validation": relationship_state_validation,
         "genre_awareness_validation": genre_awareness_validation,
         "symbolic_object_resonance_validation": symbolic_object_validation,
@@ -3107,6 +3196,7 @@ def _build_runtime_aspect_validation(
         "temporal_control_failure": temporal_control_failure,
         "improvisational_coherence_failure": improvisational_failure,
         "social_pressure_failure": social_pressure_failure,
+        "tonal_consistency_failure": tonal_consistency_failure,
         "relationship_state_failure": relationship_state_failure,
         "genre_awareness_failure": genre_awareness_failure,
         "symbolic_object_resonance_failure": symbolic_object_failure,
@@ -4025,6 +4115,11 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("narrative_momentum_target"), dict)
         else None
     )
+    tonal_consistency_context = compact_tonal_consistency_context(
+        state.get("tonal_consistency_target")
+        if isinstance(state.get("tonal_consistency_target"), dict)
+        else None
+    )
     genre_awareness_context = compact_genre_awareness_context(
         state.get("genre_awareness_target")
         if isinstance(state.get("genre_awareness_target"), dict)
@@ -4073,6 +4168,19 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
     scene_assessment = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
     interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
     semantic = state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else {}
+    broad_nlu_listening = (
+        state.get("broad_nlu_listening")
+        if isinstance(state.get("broad_nlu_listening"), dict)
+        else derive_broad_nlu_listening(
+            interpreted_input=interpreted_input,
+            semantic_move_record=semantic,
+        )
+    )
+    conversational_memory = (
+        state.get("conversational_memory")
+        if isinstance(state.get("conversational_memory"), dict)
+        else {}
+    )
     subtext = semantic.get("subtext") if isinstance(semantic.get("subtext"), dict) else {}
     ranked_semantic = semantic.get("ranked_move_candidates") if isinstance(semantic.get("ranked_move_candidates"), list) else []
     ranked_semantic_compact: list[dict[str, Any]] = []
@@ -4172,6 +4280,15 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "When making genre visible, emit genre_awareness_events with genre_profile_id, register, "
                 "realized_conventions, and marker_ids. Respect max_genre_signals_per_turn and do not add "
                 "unselected profiles, forbidden markers, or prose-only genre claims."
+            ),
+        },
+        "tonal_consistency": {
+            "target": tonal_consistency_context,
+            "instruction": (
+                "Use the selected tonal_consistency profile as bounded turn tone guidance. "
+                "Visible output should realize required_dimension_ids through the scene, not by naming the contract. "
+                "The hard validator uses an independent policy-marker classifier; do not claim tonal consistency "
+                "with prose-only labels or debug text."
             ),
         },
         "symbolic_object_resonance": {
@@ -4293,6 +4410,8 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             else [],
             "ranked_move_candidates": ranked_semantic_compact,
         },
+        "broad_nlu_listening": broad_nlu_listening,
+        "conversational_memory": conversational_memory,
         "subtext_interpretation": {
             "surface_mode": subtext.get("surface_mode"),
             "explicit_intent": subtext.get("explicit_intent"),
@@ -4468,6 +4587,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
         graph.add_node("derive_temporal_control", self._derive_temporal_control)
         graph.add_node("derive_social_pressure", self._derive_social_pressure)
+        graph.add_node("derive_tonal_consistency", self._derive_tonal_consistency)
         graph.add_node("derive_genre_awareness", self._derive_genre_awareness)
         graph.add_node("derive_relationship_state", self._derive_relationship_state)
         graph.add_node("derive_symbolic_object_resonance", self._derive_symbolic_object_resonance)
@@ -4514,7 +4634,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("derive_scene_energy", "derive_pacing_rhythm")
         graph.add_edge("derive_pacing_rhythm", "derive_temporal_control")
         graph.add_edge("derive_temporal_control", "derive_social_pressure")
-        graph.add_edge("derive_social_pressure", "derive_genre_awareness")
+        graph.add_edge("derive_social_pressure", "derive_tonal_consistency")
+        graph.add_edge("derive_tonal_consistency", "derive_genre_awareness")
         graph.add_edge("derive_genre_awareness", "derive_sensory_context")
         graph.add_edge("derive_sensory_context", "derive_improvisational_coherence")
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
@@ -4918,8 +5039,13 @@ class RuntimeTurnGraphExecutor:
             input_kind = "action"
         intent_fields["input_kind"] = input_kind
         interp_dict = {**interp_dict, **intent_fields}
+        broad_nlu_listening = derive_broad_nlu_listening(
+            interpreted_input=interp_dict,
+            semantic_move_record=None,
+        )
         update = _track(state, node_name="interpret_input")
         update["interpreted_input"] = interp_dict
+        update["broad_nlu_listening"] = broad_nlu_listening
         move_class = str(interp_dict.get("kind") or "unknown")
         update["interpreted_move"] = {
             "player_intent": str(interp_dict.get("intent") or "unspecified"),
@@ -4958,6 +5084,11 @@ class RuntimeTurnGraphExecutor:
                 failure_reason=None if raw_pi or turn_number <= 0 else "raw_player_input_missing",
                 missing_field=None if raw_pi or turn_number <= 0 else "raw_player_input",
             ),
+        )
+        update["turn_aspect_ledger"] = set_aspect_record(
+            update["turn_aspect_ledger"],
+            ASPECT_BROAD_NLU_LISTENING,
+            build_broad_nlu_listening_aspect_record(broad_nlu_listening),
         )
         if "turn_input_class" not in state or not state.get("turn_input_class"):
             update["turn_input_class"] = move_class
@@ -6528,6 +6659,46 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_tonal_consistency(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_tonal_consistency")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_tonal_consistency(
+            scene_plan_record=scene_plan,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            pacing_rhythm_target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if target:
+            scene_plan["tonal_consistency_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["tonal_consistency_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {},
+            ASPECT_TONAL_CONSISTENCY,
+            build_tonal_consistency_aspect_record(
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+                source="runtime",
+            ),
+        )
+        return update
+
     def _derive_relationship_state(self, state: RuntimeTurnState) -> RuntimeTurnState:
         update = _track(state, node_name="derive_relationship_state")
         scene_plan = (
@@ -7242,7 +7413,53 @@ class RuntimeTurnGraphExecutor:
     def _assemble_model_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
         """Attach post-director runtime state to the model-visible prompt."""
         prompt = str(state.get("model_prompt") or state.get("player_input") or "")
-        dramatic_packet = _build_dramatic_generation_packet(state)
+        interpreted_for_authority = (
+            state.get("interpreted_input")
+            if isinstance(state.get("interpreted_input"), dict)
+            else {}
+        )
+        semantic_for_authority = (
+            state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else {}
+        )
+        broad_nlu_listening = derive_broad_nlu_listening(
+            interpreted_input=interpreted_for_authority,
+            semantic_move_record=semantic_for_authority,
+        )
+        conversational_memory = derive_conversational_memory_context(
+            hierarchical_memory_context=state.get("hierarchical_memory_context")
+            if isinstance(state.get("hierarchical_memory_context"), dict)
+            else None,
+        )
+        authority_state = {
+            **state,
+            "broad_nlu_listening": broad_nlu_listening,
+            "conversational_memory": conversational_memory,
+        }
+        dramatic_packet = _build_dramatic_generation_packet(authority_state)
+        ledger_for_authority = (
+            state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {}
+        )
+        runtime_projection = (
+            ledger_for_authority.get("runtime_intelligence_projection")
+            if isinstance(ledger_for_authority.get("runtime_intelligence_projection"), dict)
+            else {}
+        )
+        capability_selection = (
+            runtime_projection.get("capability_selection")
+            if isinstance(runtime_projection.get("capability_selection"), dict)
+            else {}
+        )
+        prompt_authority = build_prompt_authority_packet(
+            capability_selection=capability_selection,
+            broad_nlu_listening=broad_nlu_listening,
+            conversational_memory=conversational_memory,
+            dramatic_generation_packet=dramatic_packet,
+        )
+        dramatic_packet["prompt_authority"] = prompt_authority
         lines: list[str] = []
         synthesis_bundle = (
             state.get("context_synthesis_bundle")
@@ -7284,6 +7501,19 @@ class RuntimeTurnGraphExecutor:
                 val = semantic.get(key)
                 if val is not None and str(val).strip():
                     lines.append(f"- {key}: {str(val).strip()[:160]}")
+
+        if broad_nlu_listening:
+            lines.append("Broad NLU Listening (structured, source-bound):")
+            lines.append(
+                "- "
+                f"primary_discourse_act={str(broad_nlu_listening.get('primary_discourse_act') or '')[:80]}, "
+                f"player_input_kind={str(broad_nlu_listening.get('player_input_kind') or '')[:80]}, "
+                f"response_expectation={str(broad_nlu_listening.get('response_expectation') or '')[:80]}, "
+                f"repair_prompt_recommended={str(bool(broad_nlu_listening.get('repair_prompt_recommended'))).lower()}"
+            )
+            source_refs = broad_nlu_listening.get("source_refs")
+            if isinstance(source_refs, list) and source_refs:
+                lines.append(f"- source_refs: {source_refs[:6]}")
 
         social = state.get("social_state_record") if isinstance(state.get("social_state_record"), dict) else {}
         if social:
@@ -7375,6 +7605,15 @@ class RuntimeTurnGraphExecutor:
                 text = str(memory_line or "").strip()
                 if text:
                     lines.append(f"- {text[:220]}")
+
+        selected_memory_refs = conversational_memory.get("selected_memory_ref_ids")
+        if isinstance(selected_memory_refs, list) and selected_memory_refs:
+            lines.append("Conversational Memory Authority (committed refs only):")
+            lines.append(f"- selected_memory_ref_ids: {selected_memory_refs[:8]}")
+            lines.append(
+                "- rule: use these refs as bounded continuity support only; do not turn raw input, "
+                "prompt text, or unverified recollection into session truth."
+            )
 
         responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
         if responders:
@@ -7610,6 +7849,29 @@ class RuntimeTurnGraphExecutor:
                 "realized_conventions must come from required_conventions, and forbidden marker_ids must not appear."
             )
 
+        tonal_consistency = (
+            dramatic_packet.get("tonal_consistency")
+            if isinstance(dramatic_packet.get("tonal_consistency"), dict)
+            else {}
+        )
+        tonal_target = (
+            tonal_consistency.get("target")
+            if isinstance(tonal_consistency.get("target"), dict)
+            else {}
+        )
+        if tonal_target.get("profile_id"):
+            lines.append("Tonal Consistency Context (bounded profile, hard live loop):")
+            lines.append(
+                f"- profile_id: {tonal_target.get('profile_id')} "
+                f"required_dimension_ids: {list(tonal_target.get('required_dimension_ids') or [])[:4]} "
+                f"allowed_registers: {list(tonal_target.get('allowed_registers') or [])[:3]} "
+                f"live_loop_mode: {tonal_target.get('live_loop_mode')}"
+            )
+            lines.append(
+                "- rule: keep visible output inside this tonal target; the runtime classifies visible text "
+                "with policy markers independently, so do not emit debug labels or self-attested tone claims."
+            )
+
         symbolic_object = (
             dramatic_packet.get("symbolic_object_resonance")
             if isinstance(dramatic_packet.get("symbolic_object_resonance"), dict)
@@ -7712,11 +7974,22 @@ class RuntimeTurnGraphExecutor:
 
         lines.append("Dramatic Generation Packet (authoritative JSON):")
         lines.append(json.dumps(dramatic_packet, sort_keys=True))
+        if prompt_authority:
+            lines.append("Prompt Authority (source-bound, no commit mutation):")
+            lines.append(
+                "- authoritative_sections: "
+                f"{list(prompt_authority.get('authoritative_sections') or [])[:10]}"
+            )
+            lines.append(
+                "- forbidden_inferences: "
+                f"{list(prompt_authority.get('forbidden_inferences') or [])[:8]}"
+            )
         lines.append(
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
+            "broad_nlu_listening, conversational_memory, prompt_authority, "
             "the sensory_context target, improvisational_coherence target, information_disclosure target, "
-            "bounded expectation_variation target, bounded genre_awareness target, symbolic_object_resonance target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
+            "bounded expectation_variation target, bounded genre_awareness target, tonal_consistency target, symbolic_object_resonance target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
             "bounded dramatic_irony_context, opt-in meta_narrative_awareness, and consequence_cascade_context."
         )
 
@@ -7724,6 +7997,27 @@ class RuntimeTurnGraphExecutor:
         directive = _session_language_directive_for_model(state)
         update["model_prompt"] = f"{directive}{prompt}\n\n" + "\n".join(lines)
         update["dramatic_generation_packet"] = dramatic_packet
+        update["broad_nlu_listening"] = broad_nlu_listening
+        update["conversational_memory"] = conversational_memory
+        update["prompt_authority"] = prompt_authority
+        updated_ledger = set_aspect_record(
+            state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {},
+            ASPECT_BROAD_NLU_LISTENING,
+            build_broad_nlu_listening_aspect_record(broad_nlu_listening),
+        )
+        updated_ledger = set_aspect_record(
+            updated_ledger,
+            ASPECT_CONVERSATIONAL_MEMORY,
+            build_conversational_memory_aspect_record(conversational_memory),
+        )
+        updated_ledger = set_aspect_record(
+            updated_ledger,
+            ASPECT_PROMPT_AUTHORITY,
+            build_prompt_authority_aspect_record(prompt_authority),
+        )
+        update["turn_aspect_ledger"] = updated_ledger
         if isinstance(synthesis_bundle, dict):
             update["context_synthesis_diagnostics"] = summarize_context_synthesis_for_diagnostics(
                 synthesis_bundle,
@@ -8529,6 +8823,20 @@ class RuntimeTurnGraphExecutor:
         outcome = validation_eval["outcome"]
         turn_number = int(state.get("turn_number") or 0)
         max_attempts = max(0, int(self.max_self_correction_attempts))
+        tonal_target = (
+            state.get("tonal_consistency_target")
+            if isinstance(state.get("tonal_consistency_target"), dict)
+            else {}
+        )
+        if (
+            tonal_target.get("policy_enabled")
+            and tonal_target.get("live_loop_mode") in {"recover", "reject"}
+        ):
+            try:
+                tonal_max_attempts = int(tonal_target.get("max_repair_attempts"))
+            except (TypeError, ValueError):
+                tonal_max_attempts = max_attempts
+            max_attempts = min(max_attempts, max(0, tonal_max_attempts))
         self_correction_attempts: list[dict[str, Any]] = []
         context_synthesis_retry_history: list[dict[str, Any]] = []
         last_retry_context_synthesis_bundle: dict[str, Any] | None = None
@@ -8575,6 +8883,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "improvisational_coherence"
             elif isinstance(outcome.get("social_pressure_failure"), dict):
                 trigger_source = "social_pressure"
+            elif isinstance(outcome.get("tonal_consistency_failure"), dict):
+                trigger_source = "tonal_consistency"
             elif isinstance(outcome.get("genre_awareness_failure"), dict):
                 trigger_source = "genre_awareness"
             elif isinstance(outcome.get("sensory_context_failure"), dict):
@@ -8622,6 +8932,11 @@ class RuntimeTurnGraphExecutor:
             social_pressure_failure_before_retry = (
                 dict(outcome.get("social_pressure_failure"))
                 if isinstance(outcome.get("social_pressure_failure"), dict)
+                else None
+            )
+            tonal_consistency_failure_before_retry = (
+                dict(outcome.get("tonal_consistency_failure"))
+                if isinstance(outcome.get("tonal_consistency_failure"), dict)
                 else None
             )
             genre_awareness_failure_before_retry = (
@@ -8672,6 +8987,7 @@ class RuntimeTurnGraphExecutor:
                 "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                 "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                 "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
+                "tonal_consistency_failure_before_retry": tonal_consistency_failure_before_retry,
                 "genre_awareness_failure_before_retry": genre_awareness_failure_before_retry,
                 "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
@@ -8723,6 +9039,7 @@ class RuntimeTurnGraphExecutor:
                     "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                     "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                     "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
+                    "tonal_consistency_failure_before_retry": tonal_consistency_failure_before_retry,
                     "genre_awareness_failure_before_retry": genre_awareness_failure_before_retry,
                     "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
@@ -8833,6 +9150,10 @@ class RuntimeTurnGraphExecutor:
             ]
         if isinstance(validation_eval.get("social_pressure_validation"), dict):
             update["social_pressure_validation"] = validation_eval["social_pressure_validation"]
+        if isinstance(validation_eval.get("tonal_consistency_validation"), dict):
+            update["tonal_consistency_validation"] = validation_eval[
+                "tonal_consistency_validation"
+            ]
         if isinstance(validation_eval.get("relationship_state_validation"), dict):
             update["relationship_state_validation"] = validation_eval["relationship_state_validation"]
         if isinstance(validation_eval.get("genre_awareness_validation"), dict):

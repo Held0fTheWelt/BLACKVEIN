@@ -30,7 +30,10 @@ from ai_stack.runtime_turn_contracts import (
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
+    ASPECT_BROAD_NLU_LISTENING,
+    ASPECT_CONVERSATIONAL_MEMORY,
     ASPECT_META_NARRATIVE_AWARENESS,
+    ASPECT_PROMPT_AUTHORITY,
 )
 
 
@@ -263,9 +266,14 @@ def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: 
     assert "Pacing Directive:" in prompt
     assert "Eligible Responders:" in prompt
     assert "Canonical GoC Phase Law:" in prompt
+    assert "Broad NLU Listening (structured, source-bound):" in prompt
+    assert "Prompt Authority (source-bound, no commit mutation):" in prompt
     assert "Dramatic Generation Packet (authoritative JSON):" in prompt
     assert '"selected_scene_function"' in prompt
     assert '"selected_responder_set"' in prompt
+    assert '"broad_nlu_listening"' in prompt
+    assert '"conversational_memory"' in prompt
+    assert '"prompt_authority"' in prompt
     assert adapter.prompts
     assert "Director runtime state (authoritative, model-visible):" in adapter.prompts[-1]
     assert "Dramatic Generation Packet (authoritative JSON):" in adapter.prompts[-1]
@@ -274,10 +282,16 @@ def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: 
     assert gen_meta.get("dramatic_generation_packet_scene_function")
     packet = result.get("dramatic_generation_packet") or {}
     assert "meta_narrative_awareness" in packet
+    assert "broad_nlu_listening" in packet
+    assert "conversational_memory" in packet
+    assert "prompt_authority" in packet
     semantic_packet = packet.get("semantic_interpretation") or {}
     assert semantic_packet.get("primary_move_type")
     assert "ranked_move_candidates" in semantic_packet
     ledger = (result.get("turn_aspect_ledger") or {}).get("turn_aspect_ledger") or {}
+    assert ASPECT_BROAD_NLU_LISTENING in ledger
+    assert ASPECT_CONVERSATIONAL_MEMORY in ledger
+    assert ASPECT_PROMPT_AUTHORITY in ledger
     assert ASPECT_META_NARRATIVE_AWARENESS in ledger
 
 

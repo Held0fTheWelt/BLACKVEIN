@@ -66,6 +66,42 @@ ADR-0041 readiness consumer consolidation + operator/inspector echo (2026-05-15)
 
 ---
 
+## Local verification snapshot for Pi31 / narrative momentum runtime aspect
+
+- Date: 2026-05-15
+- Git SHA at verification time: `dcfad220` (dirty worktree; local Pi31 documentation/test follow-up changes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** - no live-provider, staging, live Langfuse, MCP live-query proof, or ADR-0009 promotion proof claim.
+- `python -m py_compile ai_stack/narrative_momentum_contracts.py ai_stack/narrative_momentum_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py ai_stack/story_runtime_playability.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- `python -m pytest ai_stack/tests/test_narrative_momentum_engine.py -q --tb=short` -> 3 passed
+- `python -m pytest ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short` -> 52 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` -> 11 passed
+- `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 40 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 21 passed
+
+Evidence summary: Pi31 is now represented by the generic
+`narrative_momentum` runtime aspect. The module policy normalizes
+`runtime_intelligence.narrative_momentum`; LangGraph derives bounded state and
+target from scene energy, pacing rhythm, social pressure, expectation
+variation, semantic move evidence, and prior planner truth; structured
+`narrative_momentum_events` validate progress, allowed transitions, velocity,
+stall budget, and source refs; planner truth persists state/target/validation;
+`RuntimeAspectLedger.narrative_momentum` projects evidence; and MCP exposes
+semantic `narrative_momentum_*` matrix fields.
+
+ADR-0039 discipline for this slice: production-facing keys use semantic
+`narrative_momentum` names only. Tests derive expectations from normalized
+policy, exported schema/failure-code constants, state-machine transitions,
+structured event payloads, planner-truth persistence, ledger projection, MCP
+row fields, and the anti-hardcoding surface allowlist. Generated momentum
+prose, copied authored examples, and Pi-number score or branch names are not
+pass/fail oracles.
+
+Known limitations: this is local implementation evidence only. Fresh staging
+traces, provider evidence, player-visible replay, live Langfuse traces, and MCP
+live-query proof remain outside this snapshot.
+
+---
+
 ## Local verification snapshot for Pi33 / symbolic object resonance
 
 - Date: 2026-05-15
@@ -722,5 +758,3 @@ Known limitations: no authoritative LangGraph derivation/validation node, no
 planner-truth rehydration, no live/staging traces, no provider evidence, no
 commit/readiness coupling, and no ADR-0009 promotion update. The row remains
 partial/local evidence, not a hard tonal drift loop.
-
----

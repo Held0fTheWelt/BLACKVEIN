@@ -120,6 +120,8 @@ def build_planner_state_projection(state: RuntimeTurnState) -> dict[str, Any]:
         "genre_awareness_state": state.get("genre_awareness_state"),
         "genre_awareness_target": state.get("genre_awareness_target"),
         "genre_awareness_validation": state.get("genre_awareness_validation"),
+        "tonal_consistency_target": state.get("tonal_consistency_target"),
+        "tonal_consistency_validation": state.get("tonal_consistency_validation"),
         "note": "Derived projection of RuntimeTurnState planner fields — not a second truth surface.",
     }
 
@@ -239,6 +241,16 @@ def build_bounded_dramatic_context_summary(state: RuntimeTurnState) -> dict[str,
             "validation_status": (
                 state.get("genre_awareness_validation", {}).get("status")
                 if isinstance(state.get("genre_awareness_validation"), dict)
+                else None
+            ),
+        },
+        "tonal_consistency": {
+            "target": state.get("tonal_consistency_target")
+            if isinstance(state.get("tonal_consistency_target"), dict)
+            else {},
+            "validation_status": (
+                state.get("tonal_consistency_validation", {}).get("status")
+                if isinstance(state.get("tonal_consistency_validation"), dict)
                 else None
             ),
         },

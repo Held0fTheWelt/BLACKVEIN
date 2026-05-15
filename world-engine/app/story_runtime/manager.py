@@ -117,6 +117,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_TEMPORAL_CONTROL,
+    ASPECT_TONAL_CONSISTENCY,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
@@ -4196,6 +4197,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     sensory_context_actual = _actual(ASPECT_SENSORY_CONTEXT)
     genre_awareness_selected = _selected(ASPECT_GENRE_AWARENESS)
     genre_awareness_actual = _actual(ASPECT_GENRE_AWARENESS)
+    tonal_consistency_selected = _selected(ASPECT_TONAL_CONSISTENCY)
+    tonal_consistency_actual = _actual(ASPECT_TONAL_CONSISTENCY)
     symbolic_object_selected = _selected(ASPECT_SYMBOLIC_OBJECT_RESONANCE)
     symbolic_object_actual = _actual(ASPECT_SYMBOLIC_OBJECT_RESONANCE)
     social_pressure_selected = _selected(ASPECT_SOCIAL_PRESSURE)
@@ -4329,6 +4332,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": genre_awareness_actual,
                 "aspect_record": _rec(ASPECT_GENRE_AWARENESS),
+            },
+        ),
+        (
+            "story.tonal_consistency.target",
+            ASPECT_TONAL_CONSISTENCY,
+            {
+                "selected": tonal_consistency_selected,
+                "aspect_record": _rec(ASPECT_TONAL_CONSISTENCY),
+            },
+        ),
+        (
+            "story.tonal_consistency.validate",
+            ASPECT_TONAL_CONSISTENCY,
+            {
+                "actual": tonal_consistency_actual,
+                "aspect_record": _rec(ASPECT_TONAL_CONSISTENCY),
             },
         ),
         (
@@ -4520,6 +4539,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_TEMPORAL_CONTROL,
                         ASPECT_SENSORY_CONTEXT,
                         ASPECT_GENRE_AWARENESS,
+                        ASPECT_TONAL_CONSISTENCY,
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_EXPECTATION_VARIATION,
@@ -4629,6 +4649,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     genre_awareness_failure_codes = genre_awareness_actual.get("failure_codes") or []
     if not isinstance(genre_awareness_failure_codes, list):
         genre_awareness_failure_codes = []
+    tonal_consistency_target = (
+        tonal_consistency_selected.get("target")
+        if isinstance(tonal_consistency_selected.get("target"), dict)
+        else tonal_consistency_selected
+    )
+    tonal_consistency_failure_codes = tonal_consistency_actual.get("failure_codes") or []
+    if not isinstance(tonal_consistency_failure_codes, list):
+        tonal_consistency_failure_codes = []
     symbolic_object_target = (
         symbolic_object_selected.get("target")
         if isinstance(symbolic_object_selected.get("target"), dict)
@@ -4930,6 +4958,52 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 _rec(ASPECT_GENRE_AWARENESS).get("status") in {"passed", "not_applicable"}
                 and genre_awareness_actual.get("contract_pass") is not False
+            ),
+        ),
+        (
+            "tonal_consistency_policy_present",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_TONAL_CONSISTENCY).get("policy_present"))
+            ),
+        ),
+        (
+            "tonal_consistency_target_selected",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(bool(tonal_consistency_target.get("profile_id"))),
+        ),
+        (
+            "tonal_consistency_independent_classification_present",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(
+                bool(tonal_consistency_actual.get("structured_classification_present"))
+                and tonal_consistency_actual.get("independent_classifier") is not False
+            ),
+        ),
+        (
+            "tonal_consistency_classification_present",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(
+                bool(tonal_consistency_actual.get("structured_classification_present"))
+                and tonal_consistency_actual.get("independent_classifier") is not False
+            ),
+        ),
+        (
+            "tonal_consistency_marker_hits_absent",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(
+                "tonal_consistency_forbidden_marker_detected"
+                not in tonal_consistency_failure_codes
+            ),
+        ),
+        (
+            "tonal_consistency_contract_pass",
+            ASPECT_TONAL_CONSISTENCY,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_TONAL_CONSISTENCY).get("status")
+                in {"passed", "not_applicable"}
+                and tonal_consistency_actual.get("contract_pass") is not False
+                and not tonal_consistency_failure_codes
             ),
         ),
         (
@@ -9460,6 +9534,10 @@ class StoryRuntimeManager:
             gov["genre_awareness_target"] = graph_state.get("genre_awareness_target")
         if isinstance(graph_state.get("genre_awareness_validation"), dict):
             gov["genre_awareness_validation"] = graph_state.get("genre_awareness_validation")
+        if isinstance(graph_state.get("tonal_consistency_target"), dict):
+            gov["tonal_consistency_target"] = graph_state.get("tonal_consistency_target")
+        if isinstance(graph_state.get("tonal_consistency_validation"), dict):
+            gov["tonal_consistency_validation"] = graph_state.get("tonal_consistency_validation")
         if isinstance(graph_state.get("narrative_momentum_state"), dict):
             gov["narrative_momentum_state"] = graph_state.get("narrative_momentum_state")
         if isinstance(graph_state.get("narrative_momentum_target"), dict):
@@ -9648,6 +9726,8 @@ class StoryRuntimeManager:
             "social_pressure_state": graph_state.get("social_pressure_state"),
             "social_pressure_target": graph_state.get("social_pressure_target"),
             "social_pressure_validation": graph_state.get("social_pressure_validation"),
+            "tonal_consistency_target": graph_state.get("tonal_consistency_target"),
+            "tonal_consistency_validation": graph_state.get("tonal_consistency_validation"),
             "expectation_variation_state": graph_state.get("expectation_variation_state"),
             "expectation_variation_target": graph_state.get("expectation_variation_target"),
             "expectation_variation_validation": graph_state.get("expectation_variation_validation"),
@@ -11901,6 +11981,13 @@ class StoryRuntimeManager:
             event.setdefault("social_pressure_target", graph_state.get("social_pressure_target"))
         if isinstance(graph_state.get("social_pressure_validation"), dict):
             event.setdefault("social_pressure_validation", graph_state.get("social_pressure_validation"))
+        if isinstance(graph_state.get("tonal_consistency_target"), dict):
+            event.setdefault("tonal_consistency_target", graph_state.get("tonal_consistency_target"))
+        if isinstance(graph_state.get("tonal_consistency_validation"), dict):
+            event.setdefault(
+                "tonal_consistency_validation",
+                graph_state.get("tonal_consistency_validation"),
+            )
         if isinstance(graph_state.get("expectation_variation_state"), dict):
             event.setdefault("expectation_variation_state", graph_state.get("expectation_variation_state"))
         if isinstance(graph_state.get("expectation_variation_target"), dict):
@@ -11989,6 +12076,8 @@ class StoryRuntimeManager:
             "social_pressure_state": event.get("social_pressure_state"),
             "social_pressure_target": event.get("social_pressure_target"),
             "social_pressure_validation": event.get("social_pressure_validation"),
+            "tonal_consistency_target": event.get("tonal_consistency_target"),
+            "tonal_consistency_validation": event.get("tonal_consistency_validation"),
             "expectation_variation_state": event.get("expectation_variation_state"),
             "expectation_variation_target": event.get("expectation_variation_target"),
             "expectation_variation_validation": event.get("expectation_variation_validation"),

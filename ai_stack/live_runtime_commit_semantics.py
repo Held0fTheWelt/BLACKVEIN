@@ -146,6 +146,7 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
     ldss_fallback = _ldss_fallback_flag(payload)
     human_actor_as_responder = bool(payload.get("human_actor_selected_as_responder"))
     actor_lane_unknown = _actor_lane_unknown_flag(payload)
+    tonal_consistency_pass = payload.get("tonal_consistency_contract_pass")
 
     signals: list[str] = []
 
@@ -165,6 +166,8 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
         _append_signal(signals, "human_actor_selected_as_responder")
     if actor_lane_unknown:
         _append_signal(signals, "actor_lane_unknown")
+    if tonal_consistency_pass is False:
+        _append_signal(signals, "tonal_consistency_contract_failed")
     if not invocation_ok:
         _append_signal(signals, "model_invocation_failed")
     if not generated_output_present:
@@ -191,6 +194,7 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
         "opening_leniency_approved": opening_leniency,
         "human_actor_selected_as_responder": human_actor_as_responder,
         "actor_lane_unknown": actor_lane_unknown,
+        "tonal_consistency_contract_pass": tonal_consistency_pass,
         "model_invocation_attempted": bool(payload.get("model_invocation_attempted")),
         "model_invocation_success": bool(payload.get("model_invocation_success")),
         "generated_output_present": generated_output_present,

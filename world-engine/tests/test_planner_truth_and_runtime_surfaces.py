@@ -156,6 +156,32 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "contract_pass": True,
                 "failure_codes": [],
             },
+            "narrative_momentum_state": {
+                "schema_version": "narrative_momentum.v1",
+                "current_state": "building",
+                "current_score": 0.62,
+                "prior_state": "resting",
+                "prior_score": 0.25,
+                "trend": "rising",
+                "velocity": 0.37,
+                "stall_turn_count": 0,
+            },
+            "narrative_momentum_target": {
+                "schema_version": "narrative_momentum.v1",
+                "policy_enabled": True,
+                "target_state": "building",
+                "target_score": 0.62,
+                "allowed_next_states": ["building", "driving"],
+                "requires_forward_motion": True,
+                "release_allowed": False,
+                "min_progress_event_count": 1,
+            },
+            "narrative_momentum_validation": {
+                "schema_version": "narrative_momentum.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
             "relationship_state_record": {
                 "schema_version": "relationship_state_machine.v1",
                 "turn_number": 4,
@@ -292,6 +318,9 @@ def test_planner_truth_populated_from_graph_state() -> None:
     ]
     assert pt.expectation_variation_target["selected_variation_types"] == ["bounded_reveal"]
     assert pt.expectation_variation_validation["contract_pass"] is True
+    assert pt.narrative_momentum_state["current_state"] == "building"
+    assert pt.narrative_momentum_target["allowed_next_states"] == ["building", "driving"]
+    assert pt.narrative_momentum_validation["contract_pass"] is True
     assert pt.relationship_state_record["schema_version"] == "relationship_state_machine.v1"
     assert pt.relationship_dynamics_target["requires_visible_relationship_beat"] is True
     assert pt.relationship_state_validation["contract_pass"] is True
@@ -541,6 +570,39 @@ def test_prior_expectation_variation_read_back_from_session_history() -> None:
     )
 
     assert _prior_expectation_variation_state_from_session(s) == prior_state
+
+
+def test_prior_narrative_momentum_read_back_from_session_history() -> None:
+    from app.story_runtime.manager import (
+        StorySession,
+        _prior_narrative_momentum_state_from_session,
+    )
+
+    prior_state = {
+        "schema_version": "narrative_momentum.v1",
+        "current_state": "building",
+        "current_score": 0.62,
+        "trend": "rising",
+        "velocity": 0.18,
+        "stall_turn_count": 0,
+    }
+    s = StorySession(
+        session_id="sess-narrative-momentum-test",
+        module_id="god_of_carnage",
+        runtime_projection={"scenes": [], "start_scene_id": "s1"},
+    )
+    s.history.append(
+        {
+            "turn_number": 1,
+            "narrative_commit": {
+                "planner_truth": {
+                    "narrative_momentum_state": prior_state,
+                }
+            },
+        }
+    )
+
+    assert _prior_narrative_momentum_state_from_session(s) == prior_state
 
 
 def test_prior_temporal_control_read_back_from_session_history() -> None:

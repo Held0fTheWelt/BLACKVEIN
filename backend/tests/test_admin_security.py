@@ -382,5 +382,38 @@ class TestSiteSettingsAPI:
         assert resp2.status_code == 200
         assert resp2.get_json()["slogan_rotation_interval_seconds"] == 5
 
+    def test_dashboard_site_settings_put_updates_operator_defaults(self, app, client, admin_headers):
+        resp = client.put(
+            "/api/v1/site/settings",
+            headers=admin_headers,
+            json={
+                "default_content_module_id": "other_mod",
+                "default_experience_template_id": "other_tpl",
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["default_content_module_id"] == "other_mod"
+        assert body["default_experience_template_id"] == "other_tpl"
+
+    def test_dashboard_site_settings_put_ignores_invalid_operator_ids(self, app, client, admin_headers):
+        r0 = client.put(
+            "/api/v1/site/settings",
+            headers=admin_headers,
+            json={"default_content_module_id": "stable_mod"},
+            content_type="application/json",
+        )
+        assert r0.status_code == 200
+        resp = client.put(
+            "/api/v1/site/settings",
+            headers=admin_headers,
+            json={"default_content_module_id": "bad id spaces"},
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["default_content_module_id"] == "stable_mod"
+
 
 # ======================= DATA EXPORT/IMPORT TESTS =======================

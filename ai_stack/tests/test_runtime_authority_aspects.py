@@ -8,6 +8,11 @@ from ai_stack.langgraph_runtime_executor import (
     _build_runtime_aspect_validation,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
+from ai_stack.narrative_momentum_contracts import (
+    NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING,
+    NARRATIVE_MOMENTUM_SCHEMA_VERSION,
+)
+from ai_stack.narrative_momentum_engine import derive_narrative_momentum
 from ai_stack.dramatic_capability_contracts import (
     NPC_COERCIVE_ACTION_TYPES,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
@@ -18,9 +23,11 @@ from ai_stack.runtime_dramatic_capabilities import build_capability_selection_re
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_NARRATIVE_MOMENTUM,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_TONAL_CONSISTENCY,
     ASPECT_VALIDATION,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
@@ -30,6 +37,7 @@ from ai_stack.social_pressure_contracts import (
     SOCIAL_PRESSURE_SCHEMA_VERSION,
 )
 from ai_stack.social_pressure_engine import derive_social_pressure
+from ai_stack.tonal_consistency_engine import derive_tonal_consistency
 
 
 def _coercive_action_type() -> str:
@@ -121,6 +129,34 @@ def _social_pressure_fixture() -> tuple[dict[str, Any], dict[str, Any]]:
         module_runtime_policy=policy,
     )
     return policy, pressure
+
+
+def _narrative_momentum_fixture() -> tuple[dict[str, Any], dict[str, Any]]:
+    policy = load_module_runtime_policy("god_of_carnage", "solo_test").to_dict()
+    momentum = derive_narrative_momentum(
+        scene_plan_record={"semantic_move_kind": "escalate"},
+        scene_energy_target={"target_transition": "rise"},
+        pacing_rhythm_target={"cadence": "press"},
+        social_pressure_target={"target_band": "high"},
+        prior_narrative_momentum_state={
+            "current_state": "resting",
+            "current_score": 0.2,
+        },
+        module_runtime_policy=policy,
+    )
+    return policy, momentum
+
+
+def _tonal_consistency_fixture() -> tuple[dict[str, Any], dict[str, Any]]:
+    policy = load_module_runtime_policy("god_of_carnage", "solo_test").to_dict()
+    tonal = derive_tonal_consistency(
+        scene_plan_record={"selected_scene_function": "establish_pressure"},
+        scene_energy_target={"target_transition": "rise"},
+        pacing_rhythm_target={"cadence": "press"},
+        social_pressure_target={"target_band": "high"},
+        module_runtime_policy=policy,
+    )
+    return policy, tonal
 
 
 def test_movement_requires_narrator_authority() -> None:
@@ -609,6 +645,54 @@ def test_social_pressure_validator_ledger_keeps_normalized_policy() -> None:
     assert pressure_projection["target_band"] == pressure["target"]["target_band"]
 
 
+def test_narrative_momentum_validator_ledger_keeps_state_machine_policy() -> None:
+    policy, momentum = _narrative_momentum_fixture()
+    momentum_policy = policy["runtime_governance_policy"]["narrative_momentum"]
+    state = _state()
+    state["module_runtime_policy"] = policy
+    state["narrative_momentum_state"] = momentum["state"]
+    state["narrative_momentum_target"] = momentum["target"]
+
+    result = _build_runtime_aspect_validation(
+        state=state,
+        generation=_generation(
+            {
+                "narration_summary": "The room tightens around Annette's choice.",
+                "action_lines": [],
+                "spoken_lines": [],
+                "narrative_momentum_events": [
+                    {
+                        "event_type": "advance",
+                        "momentum_state": momentum["target"]["target_state"],
+                        "source_refs": momentum["target"]["selected_driver_refs"][:1],
+                    }
+                ],
+            }
+        ),
+        proposed_state_effects=[
+            {
+                "effect_type": "narrative_projection",
+                "description": "The room tightens around Annette's choice.",
+            }
+        ],
+        outcome={"status": "approved", "reason": "seam_ok"},
+    )
+
+    aspect = result["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_NARRATIVE_MOMENTUM]
+    assert aspect["expected"]["schema_version"] == NARRATIVE_MOMENTUM_SCHEMA_VERSION
+    assert aspect["expected"]["policy_present"] is True
+    assert aspect["expected"]["policy_enabled"] == momentum_policy["enabled"]
+    assert aspect["selected"]["target_state"] == momentum["target"]["target_state"]
+    assert aspect["actual"]["contract_pass"] is True
+
+    projection = build_runtime_intelligence_projection(result["turn_aspect_ledger"])
+    momentum_projection = projection[ASPECT_NARRATIVE_MOMENTUM]
+    assert momentum_projection["policy_present"] is True
+    assert momentum_projection["target_state"] == momentum["target"]["target_state"]
+    assert momentum_projection["transition_allowed"] is True
+    assert momentum_projection["progress_event_count"] == 1
+
+
 def test_runtime_aspect_failure_triggers_self_correction_before_final_validation() -> None:
     executor = object.__new__(RuntimeTurnGraphExecutor)
     executor.max_self_correction_attempts = 3
@@ -747,6 +831,167 @@ def test_social_pressure_failure_triggers_social_pressure_retry_diagnostics() ->
     assert captured_feedback["trigger_source"] == "social_pressure"
     assert captured_feedback["social_pressure_failure_before_retry"] == (
         attempt["social_pressure_failure_before_retry"]
+    )
+
+
+def test_tonal_consistency_failure_triggers_hard_live_retry_diagnostics() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 1
+    executor.allow_degraded_commit_after_retries = False
+    policy, tonal = _tonal_consistency_fixture()
+    state = _state()
+    state["module_runtime_policy"] = policy
+    state["tonal_consistency_target"] = tonal["target"]
+    state["generation"] = _generation(
+        {
+            "narration_summary": "Quest debug fallback.",
+            "action_lines": [],
+            "spoken_lines": [],
+        }
+    )
+    state["proposed_state_effects"] = [
+        {
+            "effect_type": "narrative_projection",
+            "description": "Quest debug fallback.",
+        }
+    ]
+    captured_feedback: dict[str, Any] = {}
+
+    def _fake_synthesize(
+        _current_state,
+        *,
+        validation_feedback,
+        attempt_index,
+    ):
+        captured_feedback.update(validation_feedback)
+        return ({}, {"attempt_index": attempt_index}, "")
+
+    def _fake_self_correct(
+        _current_state,
+        _current_generation,
+        _current_proposed,
+        feedback_codes,
+        attempt_index,
+        preserve_actor_lanes=False,
+        **_retry_context_kwargs,
+    ):
+        return (
+            _current_generation,
+            list(_current_proposed),
+            {
+                "attempt_index": attempt_index,
+                "candidate_model": "test-model",
+                "feedback_codes": list(feedback_codes),
+                "success": True,
+                "parser_error": None,
+                "preserve_actor_lanes": preserve_actor_lanes,
+            },
+        )
+
+    executor._synthesize_context_for_retry = _fake_synthesize
+    executor._self_correct_generation = _fake_self_correct
+
+    update = executor._validate_seam(state)
+
+    assert update["validation_outcome"]["status"] == "rejected"
+    assert update["validation_outcome"]["validator_lane"] == "tonal_consistency_validation_v1"
+    assert update["self_correction"]["attempt_count"] == 1
+    assert update["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_TONAL_CONSISTENCY]["status"] == "failed"
+    attempt = update["self_correction"]["attempts"][0]
+    assert attempt["trigger_source"] == "tonal_consistency"
+    assert attempt["tonal_consistency_failure_before_retry"]["failure_reason"] in (
+        attempt["tonal_consistency_failure_before_retry"]["failure_codes"]
+    )
+    assert captured_feedback["trigger_source"] == "tonal_consistency"
+    assert captured_feedback["tonal_consistency_failure_before_retry"] == (
+        attempt["tonal_consistency_failure_before_retry"]
+    )
+
+
+def test_narrative_momentum_failure_triggers_momentum_retry_diagnostics() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 1
+    executor.allow_degraded_commit_after_retries = False
+    policy, momentum = _narrative_momentum_fixture()
+    state = _state()
+    state["module_runtime_policy"] = policy
+    state["narrative_momentum_state"] = momentum["state"]
+    state["narrative_momentum_target"] = momentum["target"]
+    state["generation"] = _generation(
+        {
+            "narration_summary": "The room tightens around Annette's choice.",
+            "action_lines": [],
+            "spoken_lines": [],
+        }
+    )
+    state["proposed_state_effects"] = [
+        {
+            "effect_type": "narrative_projection",
+            "description": "The room tightens around Annette's choice.",
+        }
+    ]
+    captured_feedback: dict[str, Any] = {}
+
+    def _fake_synthesize(
+        _current_state,
+        *,
+        validation_feedback,
+        attempt_index,
+    ):
+        captured_feedback.update(validation_feedback)
+        return ({}, {"attempt_index": attempt_index}, "")
+
+    def _fake_self_correct(
+        _current_state,
+        _current_generation,
+        _current_proposed,
+        feedback_codes,
+        attempt_index,
+        preserve_actor_lanes=False,
+        **_retry_context_kwargs,
+    ):
+        return (
+            _generation(
+                {
+                    "narration_summary": "The room tightens around Annette's choice.",
+                    "action_lines": [],
+                    "spoken_lines": [],
+                    "narrative_momentum_events": [
+                        {
+                            "event_type": "advance",
+                            "momentum_state": momentum["target"]["target_state"],
+                            "source_refs": momentum["target"]["selected_driver_refs"][:1],
+                        }
+                    ],
+                }
+            ),
+            list(_current_proposed),
+            {
+                "attempt_index": attempt_index,
+                "candidate_model": "test-model",
+                "feedback_codes": list(feedback_codes),
+                "success": True,
+                "parser_error": None,
+                "preserve_actor_lanes": preserve_actor_lanes,
+            },
+        )
+
+    executor._synthesize_context_for_retry = _fake_synthesize
+    executor._self_correct_generation = _fake_self_correct
+
+    update = executor._validate_seam(state)
+
+    assert update["validation_outcome"]["status"] == "approved"
+    assert update["self_correction"]["attempt_count"] == 1
+    attempt = update["self_correction"]["attempts"][0]
+    assert attempt["trigger_source"] == "narrative_momentum"
+    assert attempt["narrative_momentum_failure_before_retry"]["failure_reason"] == (
+        NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING
+    )
+    assert NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING in attempt["feedback_codes"]
+    assert captured_feedback["trigger_source"] == "narrative_momentum"
+    assert captured_feedback["narrative_momentum_failure_before_retry"] == (
+        attempt["narrative_momentum_failure_before_retry"]
     )
 
 

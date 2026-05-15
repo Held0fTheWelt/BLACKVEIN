@@ -13,6 +13,7 @@ from ai_stack.improvisational_coherence_contracts import (
 from ai_stack.meta_narrative_awareness_contracts import (
     META_NARRATIVE_AWARENESS_POLICY_VERSION_V2,
 )
+from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_POLICY_VERSION
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
 from ai_stack.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
@@ -121,6 +122,15 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["expectation_variation"]["max_variation_units_per_turn"] == 1
     assert policy["runtime_governance_policy"]["expectation_variation"]["allowed_variation_types"]
     assert (
+        policy["runtime_governance_policy"]["narrative_momentum"]["schema_version"]
+        == NARRATIVE_MOMENTUM_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["narrative_momentum"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["narrative_momentum"]["allowed_transitions"]
+    assert policy["runtime_governance_policy"]["narrative_momentum"]["source_weights"]["scene_energy_transition"]
+    assert policy["runtime_governance_policy"]["narrative_momentum"]["require_structured_events"] is True
+    assert policy["narrative_momentum_policy"]["enabled"] is True
+    assert (
         policy["runtime_governance_policy"]["meta_narrative_awareness"]["schema_version"]
         == META_NARRATIVE_AWARENESS_POLICY_VERSION_V2
     )
@@ -147,6 +157,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert "memory_policy" in policy["content_sources"]
     assert "dramatic_irony_policy" in policy["content_sources"]
     assert "expectation_variation_policy" in policy["content_sources"]
+    assert "narrative_momentum_policy" in policy["content_sources"]
     assert "symbolic_object_resonance_policy" in policy["content_sources"]
     assert "genre_awareness_policy" in policy["content_sources"]
     assert "meta_narrative_awareness_policy" in policy["content_sources"]

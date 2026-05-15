@@ -10,6 +10,7 @@ from ai_stack.expectation_variation_contracts import (
     EXPECTATION_VARIATION_SCHEMA_VERSION,
 )
 from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_SCHEMA_VERSION
+from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
 from ai_stack.symbolic_object_resonance_contracts import (
@@ -56,6 +57,13 @@ def test_runtime_aspect_matrix_recommends_expectation_variation_repair():
     assert (
         _runtime_aspect_recommended_repair("expectation_variation_unselected_event")
         == "repair_expectation_variation_structured_selection"
+    )
+
+
+def test_runtime_aspect_matrix_recommends_narrative_momentum_repair():
+    assert (
+        _runtime_aspect_recommended_repair("narrative_momentum_event_missing")
+        == "repair_narrative_momentum_state_machine"
     )
 
 
@@ -107,6 +115,8 @@ def test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields():
                                 },
                                 "actual": {
                                     "structured_classification_present": True,
+                                    "classification_source": "deterministic_policy_marker_classifier.v1",
+                                    "independent_classifier": True,
                                     "realized_dimension_ids": ["dimension_alpha"],
                                     "marker_hit_count": 0,
                                     "contract_pass": True,
@@ -126,6 +136,8 @@ def test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields():
     assert row["tonal_consistency_profile_id"] == "profile_alpha"
     assert row["tonal_consistency_required_dimensions"] == ["dimension_alpha"]
     assert row["tonal_consistency_realized_dimensions"] == ["dimension_alpha"]
+    assert row["tonal_consistency_classification_source"] == "deterministic_policy_marker_classifier.v1"
+    assert row["tonal_consistency_independent_classification_present"] is True
     assert row["tonal_consistency_classification_present"] is True
     assert row["tonal_consistency_marker_hits_absent"] is True
     assert row["tonal_consistency_contract_pass"] is True
@@ -929,6 +941,86 @@ def test_fetch_langfuse_trace_gate_scores_in_normalized_evidence():
     assert ev["opening_shape_contract_pass"] == 1.0
 
 
+def _trace_with_adr0041_langfuse_evidence(trace_id: str = "lf-adr0041-1") -> dict:
+    from ai_stack.adr0041_langfuse_evidence import (
+        ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
+        ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
+        ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
+        ADR0041_LANGFUSE_SCORE_READINESS_AGG,
+        ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
+        WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME,
+    )
+
+    return {
+        "id": trace_id,
+        "observations": [
+            {
+                "id": "obs-adr41-span",
+                "name": WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME,
+                "metadata": {
+                    "schema_version": ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
+                    "validator_dispatch_mode": "plan_enforced",
+                    "validator_dispatch_feature_flag_enabled": True,
+                    "readiness_aggregation_present": True,
+                    "readiness_aggregation_aggregated": "aggregated_ok",
+                    "readiness_co_authority_preview_present": True,
+                    "readiness_co_authority_enforcement_present": False,
+                    "proof_level": "local_only",
+                    "live_or_staging_evidence": False,
+                    "observation_kind": "adr0041_runtime_intelligence",
+                    "langfuse_evidence_contract": ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
+                },
+                "input": {"projection_summary": {"validator_dispatch_mode": "plan_enforced"}},
+                "output": {
+                    "projection_keys": [
+                        "validator_dispatch_report",
+                        "readiness_aggregation_decision",
+                    ]
+                },
+            }
+        ],
+        "scores": [
+            {"name": ADR0041_LANGFUSE_SCORE_PARENT_PRESENT, "value": 1.0},
+            {"name": ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED, "value": 1.0},
+            {"name": ADR0041_LANGFUSE_SCORE_READINESS_AGG, "value": 1.0},
+            {"name": ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW, "value": 1.0},
+        ],
+    }
+
+
+def test_fetch_langfuse_trace_includes_adr0041_normalized_evidence():
+    registry = _registry()
+    tool = registry.get("fetch_langfuse_trace")
+    from ai_stack.adr0041_langfuse_evidence import (
+        ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
+        ADR0041_LANGFUSE_SCORE_READINESS_AGG,
+        ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
+        ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
+        ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
+    )
+
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        return_value=_trace_with_adr0041_langfuse_evidence(),
+    ):
+        out = tool.handler({"langfuse_trace_id": "lf-adr0041-1"})
+    assert out["ok"] is True
+    ev = out["normalized_wos_evidence"]
+    assert ev["adr0041_runtime_intelligence_observation_present"] is True
+    assert ev["adr0041_langfuse_observation_id"] == "obs-adr41-span"
+    assert ev["adr0041_schema_version"] == ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION
+    assert ev["adr0041_validator_dispatch_mode"] == "plan_enforced"
+    assert ev["adr0041_projection_keys_sample"] == [
+        "validator_dispatch_report",
+        "readiness_aggregation_decision",
+    ]
+    assert ev[ADR0041_LANGFUSE_SCORE_PARENT_PRESENT] == 1.0
+    assert ev[ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED] == 1.0
+    assert ev[ADR0041_LANGFUSE_SCORE_READINESS_AGG] == 1.0
+    assert ev[ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW] == 1.0
+    assert out["evidence_sources"]["adr0041_observation_source"] == "langfuse.observations"
+
+
 def test_assert_opening_contract_extracts_role_from_score_metadata():
     registry = _registry()
     tool = registry.get("assert_langfuse_opening_contract")
@@ -1082,6 +1174,46 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "budget_used": 1,
                             "realized_variation_ids": ["variation_alpha"],
                             "realized_variation_types": [EXPECTATION_VARIATION_BOUNDED_REVEAL],
+                            "failure_codes": [],
+                        },
+                    },
+                    "narrative_momentum": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": NARRATIVE_MOMENTUM_SCHEMA_VERSION,
+                            "policy_present": True,
+                            "policy_enabled": True,
+                            "commit_impact": "recover",
+                            "require_structured_events": True,
+                        },
+                        "selected": {
+                            "target_state": "building",
+                            "target_score": 0.62,
+                            "allowed_next_states": ["building", "driving"],
+                            "requires_forward_motion": True,
+                            "release_allowed": False,
+                            "min_progress_event_count": 1,
+                            "selected_driver_refs": [
+                                {
+                                    "source": "scene_energy_transition",
+                                    "field": "target_transition",
+                                    "value": "rise",
+                                }
+                            ],
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "current_state": "building",
+                            "current_score": 0.62,
+                            "trend": "rising",
+                            "velocity": 0.2,
+                            "transition_allowed": True,
+                            "structured_events_present": True,
+                            "event_count": 1,
+                            "progress_event_count": 1,
+                            "stall_turn_count": 0,
+                            "stall_budget_respected": True,
+                            "source_refs_valid": True,
                             "failure_codes": [],
                         },
                     },
@@ -1323,6 +1455,12 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "expectation_variation_budget_pass", "value": 1.0},
             {"name": "expectation_variation_setup_supported", "value": 1.0},
             {"name": "expectation_variation_contract_pass", "value": 1.0},
+            {"name": "narrative_momentum_policy_present", "value": 1.0},
+            {"name": "narrative_momentum_target_selected", "value": 1.0},
+            {"name": "narrative_momentum_transition_allowed", "value": 1.0},
+            {"name": "narrative_momentum_progress_event_present", "value": 1.0},
+            {"name": "narrative_momentum_stall_budget_respected", "value": 1.0},
+            {"name": "narrative_momentum_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_target_present", "value": 1.0},
             {"name": "pacing_rhythm_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_density_respected", "value": 1.0},
@@ -1399,6 +1537,19 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["expectation_variation_setup_supported"] is True
     assert row["expectation_variation_contract_pass"] is True
     assert row["expectation_variation_failure_codes"] == []
+    assert row["narrative_momentum_policy_present"] is True
+    assert row["narrative_momentum_target_selected"] is True
+    assert row["narrative_momentum_current_state"] == "building"
+    assert row["narrative_momentum_current_score"] == 0.62
+    assert row["narrative_momentum_target_state"] == "building"
+    assert row["narrative_momentum_target_score"] == 0.62
+    assert row["narrative_momentum_trend"] == "rising"
+    assert row["narrative_momentum_velocity"] == 0.2
+    assert row["narrative_momentum_transition_allowed"] is True
+    assert row["narrative_momentum_progress_event_present"] is True
+    assert row["narrative_momentum_stall_budget_respected"] is True
+    assert row["narrative_momentum_contract_pass"] is True
+    assert row["narrative_momentum_failure_codes"] == []
     assert row["pacing_rhythm_target_present"] is True
     assert row["pacing_rhythm_cadence"] == "press"
     assert row["pacing_rhythm_response_shape"] == "exchange"

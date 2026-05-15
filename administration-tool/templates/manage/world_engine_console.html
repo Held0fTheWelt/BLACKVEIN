@@ -123,7 +123,7 @@
                             <div class="mui-field-grid">
                                 <label class="mui-field">
                                     <span class="mui-field-label">module_id</span>
-                                    <input type="text" id="wec-new-module" class="form-input" value="god_of_carnage" />
+                                    <input type="text" id="wec-new-module" class="form-input" value="{{ admin_default_content_module_id | default('') | e }}" />
                                 </label>
                                 <label class="mui-field">
                                     <span class="mui-field-label">start_scene_id</span>

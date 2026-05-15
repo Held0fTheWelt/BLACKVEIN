@@ -161,6 +161,8 @@ class RuntimeTurnState(TypedDict, total=False):
     character_mind_records: list[dict[str, Any]]
     character_voice_profiles: list[dict[str, Any]]
     voice_consistency_validation: dict[str, Any]
+    tonal_consistency_target: dict[str, Any]
+    tonal_consistency_validation: dict[str, Any]
     npc_agency_simulation: dict[str, Any]
     npc_initiative_validation: dict[str, Any]
     dramatic_irony_record: dict[str, Any]

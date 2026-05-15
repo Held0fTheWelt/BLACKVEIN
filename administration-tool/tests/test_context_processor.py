@@ -77,6 +77,24 @@ class TestContextProcessorInjection:
             assert context["frontend_config"]["apiProxyBase"] == "/_proxy"
 
     @pytest.mark.unit
+    def test_frontend_config_has_admin_runtime_defaults(self, app_factory):
+        """Test that frontend_config exposes admin default module/template ids."""
+        from app import inject_config
+        app = app_factory(test_config={
+            "TESTING": True,
+            "ADMIN_DEFAULT_CONTENT_MODULE_ID": "test_module",
+            "ADMIN_DEFAULT_EXPERIENCE_TEMPLATE_ID": "test_template",
+        })
+
+        with app.test_request_context("/"):
+            context = inject_config()
+            fc = context["frontend_config"]
+            assert fc["adminDefaultContentModuleId"] == "test_module"
+            assert fc["adminDefaultExperienceTemplateId"] == "test_template"
+            assert context["admin_default_content_module_id"] == "test_module"
+            assert context["admin_default_experience_template_id"] == "test_template"
+
+    @pytest.mark.unit
     def test_frontend_config_has_supported_languages(self, app_factory):
         """Test that frontend_config includes supportedLanguages."""
         from app import inject_config

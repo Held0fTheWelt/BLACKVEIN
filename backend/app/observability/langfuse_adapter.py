@@ -611,6 +611,112 @@ class LangfuseAdapter:
         """Get the current active span from context."""
         return _active_span_context.get()
 
+    @property
+    def active_root_trace(self) -> Optional[Any]:
+        """Root observation started via ``start_trace`` (may be None in nested-only contexts)."""
+        return self._active_trace
+
+    def resolve_parent_observation_for_nested_span(self) -> Optional[Any]:
+        """Prefer the innermost active span, else the root trace, for nested observations."""
+        return self.get_active_span() or self._active_trace
+
+    def record_wos_nested_span_observation(
+        self,
+        *,
+        name: str,
+        metadata: Optional[dict[str, Any]] = None,
+        input_data: Optional[dict[str, Any]] = None,
+        output_data: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Emit a nested Langfuse span under the active parent; returns diagnostics (never raises)."""
+        out: dict[str, Any] = {
+            "emitted": False,
+            "observation_name": name,
+            "proof_level": "local_only",
+            "live_or_staging_evidence": False,
+            "langfuse_trace_id": None,
+            "langfuse_observation_id": None,
+        }
+        if not self.is_enabled():
+            out["reason"] = "langfuse_disabled_or_not_ready"
+            return out
+        parent = self.resolve_parent_observation_for_nested_span()
+        if parent is None:
+            out["reason"] = "no_active_langfuse_parent_observation"
+            return out
+        try:
+            span_metadata = self._sanitize_metadata(metadata) if metadata else None
+            span_input = (
+                self._sanitize_metadata(input_data)
+                if input_data and self.config.capture_prompts
+                else None
+            )
+            span_output = (
+                self._sanitize_metadata(output_data)
+                if output_data and self.config.capture_outputs
+                else None
+            )
+            child = parent.start_observation(
+                as_type="span",
+                name=name,
+                metadata=span_metadata,
+                input=span_input,
+            )
+            if not child:
+                out["reason"] = "langfuse_child_observation_not_created"
+                return out
+            if span_output:
+                child.update(output=span_output)
+            child.end()
+            trace_id = (
+                getattr(child, "trace_id", None)
+                or getattr(child, "traceId", None)
+                or getattr(parent, "trace_id", None)
+                or getattr(parent, "traceId", None)
+            )
+            obs_id = getattr(child, "id", None) or getattr(child, "observation_id", None)
+            out["emitted"] = True
+            if trace_id is not None:
+                out["langfuse_trace_id"] = str(trace_id)
+            if obs_id is not None:
+                out["langfuse_observation_id"] = str(obs_id)
+            return out
+        except Exception as e:
+            logger.warning("Failed to record WoS nested span %r: %s", name, e)
+            out["reason"] = f"langfuse_error:{e}"
+            return out
+
+    def record_adr0041_langfuse_scores(
+        self,
+        *,
+        scores: list[tuple[str, float]],
+        comment: str,
+    ) -> dict[str, Any]:
+        """Attach ADR-0041 numeric scores to the active root trace (best-effort)."""
+        out: dict[str, Any] = {"emitted": False, "scores_attempted": len(scores)}
+        if not self.is_enabled() or not self._active_trace:
+            out["reason"] = "no_active_root_trace_for_scoring"
+            return out
+        meta_base = {
+            "score_origin": "adr0041_runtime_intelligence",
+            "proof_level": "local_only",
+        }
+        try:
+            for s_name, s_val in scores:
+                self.add_score(
+                    s_name,
+                    float(s_val),
+                    comment=comment,
+                    metadata=meta_base,
+                    trace=self._active_trace,
+                )
+            out["emitted"] = True
+            return out
+        except Exception as e:
+            logger.warning("Failed to record ADR-0041 Langfuse scores: %s", e)
+            out["reason"] = f"langfuse_error:{e}"
+            return out
+
     def calculate_token_cost(
         self,
         model: str,

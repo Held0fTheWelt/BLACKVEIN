@@ -16,6 +16,7 @@ TONAL_CONSISTENCY_SCHEMA_VERSION = "tonal_consistency.v1"
 TONAL_CONSISTENCY_POLICY_VERSION = "tonal_consistency_policy.v1"
 
 TonalConsistencyDriftBehavior = Literal["diagnostic", "recover", "reject"]
+TonalConsistencyLiveLoopMode = Literal["shadow", "recover", "reject"]
 TonalConsistencyValidationStatus = Literal[
     "approved",
     "degraded",
@@ -26,8 +27,14 @@ TonalConsistencyValidationStatus = Literal[
 TONAL_CONSISTENCY_DRIFT_BEHAVIORS: frozenset[str] = frozenset(
     {"diagnostic", "recover", "reject"}
 )
+TONAL_CONSISTENCY_LIVE_LOOP_MODES: frozenset[str] = frozenset(
+    {"shadow", "recover", "reject"}
+)
 TONAL_CONSISTENCY_VALIDATION_STATUSES: frozenset[str] = frozenset(
     {"approved", "degraded", "rejected", "not_applicable"}
+)
+TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE = (
+    "deterministic_policy_marker_classifier.v1"
 )
 
 TONAL_CONSISTENCY_FAILURE_CODES: frozenset[str] = frozenset(
@@ -68,11 +75,16 @@ class TonalConsistencyTarget(BaseModel):
     required_dimension_ids: list[str] = Field(default_factory=list, max_length=16)
     allowed_registers: list[str] = Field(default_factory=list, max_length=12)
     forbidden_genre_labels: list[str] = Field(default_factory=list, max_length=12)
+    dimension_marker_map: dict[str, list[str]] = Field(default_factory=dict)
     forbidden_marker_map: dict[str, list[str]] = Field(default_factory=dict)
     require_structured_classification: bool = True
     min_required_dimensions_present: int = Field(default=1, ge=0, le=16)
     max_forbidden_marker_hits: int = Field(default=0, ge=0, le=20)
     drift_behavior: TonalConsistencyDriftBehavior = "diagnostic"
+    live_loop_mode: TonalConsistencyLiveLoopMode = "shadow"
+    max_repair_attempts: int = Field(default=1, ge=0, le=3)
+    classification_source: str = TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE
+    failure_severity: dict[str, str] = Field(default_factory=dict)
     scene_function: str | None = None
     pressure_band: str | None = None
     source_evidence: list[TonalConsistencyEvidenceRef] = Field(default_factory=list)
@@ -95,6 +107,8 @@ class TonalConsistencyClassification(BaseModel):
     forbidden_marker_hits: dict[str, int] = Field(default_factory=dict)
     marker_hit_count: int = Field(default=0, ge=0)
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    classification_source: str = TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE
+    independent_classifier: bool = True
     source_evidence: list[TonalConsistencyEvidenceRef] = Field(default_factory=list)
 
     def to_runtime_dict(self) -> dict[str, Any]:
@@ -174,6 +188,19 @@ def _clean_profile_map(value: Any) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _clean_failure_severity(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    allowed = {"diagnostic", "recover", "reject", "hard"}
+    out: dict[str, str] = {}
+    for key, raw_severity in value.items():
+        code = _clean_text(key)
+        severity = _clean_text(raw_severity)
+        if code in TONAL_CONSISTENCY_FAILURE_CODES and severity in allowed:
+            out[code] = severity
+    return out
+
+
 def normalize_tonal_consistency_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
     """Return a JSON-safe policy envelope with contract-known keys."""
 
@@ -181,6 +208,12 @@ def normalize_tonal_consistency_policy(policy: dict[str, Any] | None) -> dict[st
     behavior = _clean_text(raw.get("default_drift_behavior") or "diagnostic")
     if behavior not in TONAL_CONSISTENCY_DRIFT_BEHAVIORS:
         behavior = "diagnostic"
+    live_loop_mode = _clean_text(raw.get("live_loop_mode") or "shadow")
+    if live_loop_mode not in TONAL_CONSISTENCY_LIVE_LOOP_MODES:
+        live_loop_mode = "shadow"
+    classification_source = _clean_text(raw.get("classification_source"))
+    if not classification_source:
+        classification_source = TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE
     return {
         "schema_version": TONAL_CONSISTENCY_POLICY_VERSION,
         "enabled": bool(raw.get("enabled", False)),
@@ -208,6 +241,13 @@ def normalize_tonal_consistency_policy(policy: dict[str, Any] | None) -> dict[st
             raw.get("max_forbidden_marker_hits"), 0, minimum=0, maximum=20
         ),
         "default_drift_behavior": behavior,
+        "live_loop_mode": live_loop_mode,
+        "max_repair_attempts": _bounded_int(
+            raw.get("max_repair_attempts"), 1, minimum=0, maximum=3
+        ),
+        "classification_source": classification_source,
+        "dimension_marker_map": _clean_marker_map(raw.get("dimension_marker_map")),
+        "failure_severity": _clean_failure_severity(raw.get("failure_severity")),
         "model_context_visibility": _clean_text(
             raw.get("model_context_visibility") or "bounded_tone_target"
         )

@@ -84,7 +84,10 @@ ADR0041_DRIFT_UNAVAILABLE_VALIDATOR = "unavailable_validator"
 ADR0041_DRIFT_CONFLICTING_RESULT = "conflicting_result"
 
 ASPECT_INPUT = "input"
+ASPECT_BROAD_NLU_LISTENING = "broad_nlu_listening"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
+ASPECT_CONVERSATIONAL_MEMORY = "conversational_memory"
+ASPECT_PROMPT_AUTHORITY = "prompt_authority"
 ASPECT_BEAT = "beat"
 ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_PACING_RHYTHM = "pacing_rhythm"
@@ -117,7 +120,10 @@ ASPECT_VISIBLE_PROJECTION = "visible_projection"
 
 ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_INPUT,
+    ASPECT_BROAD_NLU_LISTENING,
     ASPECT_ACTION_RESOLUTION,
+    ASPECT_CONVERSATIONAL_MEMORY,
+    ASPECT_PROMPT_AUTHORITY,
     ASPECT_BEAT,
     ASPECT_SCENE_ENERGY,
     ASPECT_PACING_RHYTHM,
@@ -339,7 +345,15 @@ def normalize_runtime_aspect_ledger(ledger: dict[str, Any] | None) -> dict[str, 
     if not src.get("canonical_turn_id") and src.get("turn_id"):
         src["canonical_turn_id"] = src.get("turn_id")
     src["turn_aspect_ledger"] = ordered_aspects
-    src["runtime_intelligence_projection"] = build_runtime_intelligence_projection(src)
+    rip = build_runtime_intelligence_projection(src)
+    src["runtime_intelligence_projection"] = rip
+    if isinstance(rip, dict):
+        from ai_stack.adr0041_langfuse_evidence import try_emit_adr0041_langfuse_runtime_intelligence_evidence
+
+        rip["langfuse_adr0041_evidence"] = try_emit_adr0041_langfuse_runtime_intelligence_evidence(
+            projection=rip,
+            story_session_id=str(src.get("story_session_id") or src.get("session_id") or ""),
+        )
     return _json_safe(src)
 
 
@@ -1232,9 +1246,24 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     src = ledger if isinstance(ledger, dict) else {}
     aspects = src.get("turn_aspect_ledger") if isinstance(src.get("turn_aspect_ledger"), dict) else {}
     input_rec = aspects.get(ASPECT_INPUT) if isinstance(aspects.get(ASPECT_INPUT), dict) else {}
+    broad_nlu_rec = (
+        aspects.get(ASPECT_BROAD_NLU_LISTENING)
+        if isinstance(aspects.get(ASPECT_BROAD_NLU_LISTENING), dict)
+        else {}
+    )
     action_rec = (
         aspects.get(ASPECT_ACTION_RESOLUTION)
         if isinstance(aspects.get(ASPECT_ACTION_RESOLUTION), dict)
+        else {}
+    )
+    conversational_memory_rec = (
+        aspects.get(ASPECT_CONVERSATIONAL_MEMORY)
+        if isinstance(aspects.get(ASPECT_CONVERSATIONAL_MEMORY), dict)
+        else {}
+    )
+    prompt_authority_rec = (
+        aspects.get(ASPECT_PROMPT_AUTHORITY)
+        if isinstance(aspects.get(ASPECT_PROMPT_AUTHORITY), dict)
         else {}
     )
     beat_rec = aspects.get(ASPECT_BEAT) if isinstance(aspects.get(ASPECT_BEAT), dict) else {}
@@ -1368,7 +1397,16 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     branching_forecast = src.get("branching_forecast") if isinstance(src.get("branching_forecast"), dict) else {}
 
     input_actual = _record_block(input_rec, "actual")
+    broad_nlu_expected = _record_block(broad_nlu_rec, "expected")
+    broad_nlu_selected = _record_block(broad_nlu_rec, "selected")
+    broad_nlu_actual = _record_block(broad_nlu_rec, "actual")
     action_actual = _record_block(action_rec, "actual")
+    conversational_memory_expected = _record_block(conversational_memory_rec, "expected")
+    conversational_memory_selected = _record_block(conversational_memory_rec, "selected")
+    conversational_memory_actual = _record_block(conversational_memory_rec, "actual")
+    prompt_authority_expected = _record_block(prompt_authority_rec, "expected")
+    prompt_authority_selected = _record_block(prompt_authority_rec, "selected")
+    prompt_authority_actual = _record_block(prompt_authority_rec, "actual")
     beat_expected = _record_block(beat_rec, "expected")
     beat_selected = _record_block(beat_rec, "selected")
     beat_actual = _record_block(beat_rec, "actual")
@@ -1537,6 +1575,96 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "player_action_frame": action_actual.get("player_action_frame") or {},
                 "affordance_resolution": action_actual.get("affordance_resolution") or {},
                 "local_context_transition": action_actual.get("local_context_transition") or {},
+            },
+            "broad_nlu_listening": {
+                "schema_version": broad_nlu_expected.get("schema_version"),
+                "primary_discourse_act": broad_nlu_selected.get("primary_discourse_act"),
+                "player_input_kind": broad_nlu_actual.get("player_input_kind"),
+                "confidence": broad_nlu_actual.get("confidence"),
+                "ambiguity_codes": broad_nlu_actual.get("ambiguity_codes") or [],
+                "repair_prompt_recommended": bool(
+                    broad_nlu_actual.get("repair_prompt_recommended")
+                ),
+                "response_expectation": broad_nlu_actual.get("response_expectation"),
+                "target_actor_refs": broad_nlu_selected.get("target_actor_refs") or [],
+                "object_refs": broad_nlu_selected.get("object_refs") or [],
+                "source_refs": broad_nlu_selected.get("source_refs") or [],
+                "raw_player_input_included": bool(
+                    broad_nlu_actual.get("raw_player_input_included")
+                ),
+                "contract_pass": broad_nlu_actual.get("contract_pass"),
+                "failure_reason": broad_nlu_rec.get("failure_reason")
+                or (
+                    _record_reasons(broad_nlu_rec)[0]
+                    if _record_reasons(broad_nlu_rec)
+                    else None
+                ),
+                "status": broad_nlu_rec.get("status"),
+            },
+            "conversational_memory": {
+                "schema_version": conversational_memory_expected.get("schema_version"),
+                "selected_tiers": conversational_memory_selected.get("selected_tiers") or [],
+                "selected_memory_ref_ids": conversational_memory_selected.get(
+                    "selected_memory_ref_ids"
+                )
+                or [],
+                "source_refs": conversational_memory_selected.get("source_refs") or [],
+                "memory_present": bool(conversational_memory_actual.get("memory_present")),
+                "bounded": bool(conversational_memory_actual.get("bounded")),
+                "context_line_count": int(
+                    conversational_memory_actual.get("context_line_count") or 0
+                ),
+                "raw_player_input_included": bool(
+                    conversational_memory_actual.get("raw_player_input_included")
+                ),
+                "raw_prompt_included": bool(
+                    conversational_memory_actual.get("raw_prompt_included")
+                ),
+                "contract_pass": conversational_memory_actual.get("contract_pass"),
+                "failure_reason": conversational_memory_rec.get("failure_reason")
+                or (
+                    _record_reasons(conversational_memory_rec)[0]
+                    if _record_reasons(conversational_memory_rec)
+                    else None
+                ),
+                "status": conversational_memory_rec.get("status"),
+            },
+            "prompt_authority": {
+                "schema_version": prompt_authority_expected.get("schema_version"),
+                "authoritative_sections": prompt_authority_selected.get(
+                    "authoritative_sections"
+                )
+                or [],
+                "source_refs": prompt_authority_selected.get("source_refs") or [],
+                "selected_capabilities": prompt_authority_selected.get(
+                    "selected_capabilities"
+                )
+                or [],
+                "selected_memory_ref_ids": prompt_authority_selected.get(
+                    "selected_memory_ref_ids"
+                )
+                or [],
+                "authority_mode": prompt_authority_actual.get("authority_mode"),
+                "prompt_authority_applied_to_packet": bool(
+                    prompt_authority_actual.get("prompt_authority_applied_to_packet")
+                ),
+                "commit_gate_changed": bool(
+                    prompt_authority_actual.get("commit_gate_changed")
+                ),
+                "readiness_gate_changed": bool(
+                    prompt_authority_actual.get("readiness_gate_changed")
+                ),
+                "validation_outcome_changed": bool(
+                    prompt_authority_actual.get("validation_outcome_changed")
+                ),
+                "contract_pass": prompt_authority_actual.get("contract_pass"),
+                "failure_reason": prompt_authority_rec.get("failure_reason")
+                or (
+                    _record_reasons(prompt_authority_rec)[0]
+                    if _record_reasons(prompt_authority_rec)
+                    else None
+                ),
+                "status": prompt_authority_rec.get("status"),
             },
             "beat": {
                 "beat_state_before": beat_expected.get("beat_state_before") or {},
@@ -2358,6 +2486,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or tonal_actual.get("schema_version"),
                 "policy_present": bool(tonal_expected.get("policy_present")),
                 "policy_enabled": bool(tonal_expected.get("policy_enabled")),
+                "live_loop_mode": tonal_expected.get("live_loop_mode"),
+                "classification_source": tonal_expected.get("classification_source")
+                or tonal_actual.get("classification_source"),
                 "profile_id": tonal_selected.get("profile_id")
                 or _record_nested_value(tonal_selected, "profile_id", "target"),
                 "target_dimension_ids": tonal_selected.get("target_dimension_ids")
@@ -2382,6 +2513,8 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 ),
                 "register_label": tonal_actual.get("register_label"),
                 "genre_label": tonal_actual.get("genre_label"),
+                "dimension_marker_classes": tonal_selected.get("dimension_marker_classes")
+                or [],
                 "forbidden_marker_classes": tonal_selected.get("forbidden_marker_classes")
                 or [],
                 "forbidden_marker_hits": tonal_actual.get("forbidden_marker_hits") or {},
@@ -2389,6 +2522,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "structured_classification_present": bool(
                     tonal_actual.get("structured_classification_present")
                 ),
+                "independent_classifier": tonal_actual.get("independent_classifier"),
                 "contract_pass": tonal_actual.get("contract_pass"),
                 "failure_codes": tonal_actual.get("failure_codes")
                 or _record_reasons(tonal_rec),

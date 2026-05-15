@@ -439,6 +439,43 @@ planner-truth rehydration, ledger/MCP fields, and structured
 card shape, judge labels, and hand-written surprise beats are never the
 pass/fail oracle.
 
+### Narrative Momentum / Pi31
+
+Narrative momentum is implemented as the generic `narrative_momentum` runtime
+aspect. It is the bounded momentum state-machine contract for a turn: current
+state/score, target state/score, trend, velocity, allowed next states,
+forward-motion requirement, release permission, structured progress events,
+source refs, and stall budget. It consumes `scene_plan_record`,
+`scene_energy_target`, `pacing_rhythm_target`, `social_pressure_target`,
+`expectation_variation_target`, semantic move evidence, prior committed
+momentum state, and normalized module policy. It does not replace scene energy,
+pacing rhythm, social pressure, relationship state, committed truth, or visible
+narration, and it must not become a prose intensity judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.narrative_momentum` into `runtime_governance_policy.narrative_momentum`;
+- LangGraph derives `narrative_momentum_state` and `narrative_momentum_target` after expectation variation and before relationship-state derivation;
+- the dramatic generation packet receives only bounded state-machine fields, progress requirements, allowed next states, release permission, and selected source refs;
+- structured output may emit `narrative_momentum_events`;
+- validation checks target presence, allowed transition, required progress-event count, max velocity delta, stall budget, and source-ref validity;
+- recoverable failures feed self-correction with bounded `narrative_momentum_*` failure codes;
+- `turn_aspect_ledger.narrative_momentum` records policy presence, current/target state and score, transition allowance, event presence, stall-budget status, contract pass, and failure codes;
+- World-Engine persists `narrative_momentum_state`, `narrative_momentum_target`, and `narrative_momentum_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_narrative_momentum_state`;
+- Langfuse and MCP expose policy, selected target, current/target score, trend, velocity, transition/progress/stall evidence, pass/fail, and failure-code fields.
+
+The committed momentum state is bounded planner feedback, not a second canon
+store. It may shape the next turn and operator diagnostics, but it does not
+mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, structured source refs,
+state-machine transitions, planner-truth rehydration, ledger/MCP fields, and
+structured `narrative_momentum_events`. Generated narration, copied dialogue,
+frontend card shape, judge labels, and hand-written dramatic-momentum beats are
+never the pass/fail oracle.
+
 ### Relationship State / Pi27
 
 Relationship state is implemented as the generic `relationship_state` runtime

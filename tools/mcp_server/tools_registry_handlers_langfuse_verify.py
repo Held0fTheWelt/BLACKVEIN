@@ -33,6 +33,13 @@ from ai_stack.langfuse_evaluator_catalog import (
     judge_names_for_scope as _judge_names_for_scope,
     normalize_judge_category_label as _normalize_judge_category_label,
 )
+from ai_stack.adr0041_langfuse_evidence import (
+    ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
+    ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
+    ADR0041_LANGFUSE_SCORE_READINESS_AGG,
+    ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
+    WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME,
+)
 from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
@@ -578,6 +585,7 @@ def _extract_normalized_wos_evidence(
         "voice_consistency_contract_pass",
         "tonal_consistency_policy_present",
         "tonal_consistency_target_selected",
+        "tonal_consistency_independent_classification_present",
         "tonal_consistency_classification_present",
         "tonal_consistency_marker_hits_absent",
         "tonal_consistency_contract_pass",
@@ -586,8 +594,46 @@ def _extract_normalized_wos_evidence(
         "memory_write_from_committed_turn",
         "memory_context_bounded",
         "hierarchical_memory_contract_pass",
+        ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
+        ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
+        ADR0041_LANGFUSE_SCORE_READINESS_AGG,
+        ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
     ):
         ev[gate] = det_scores.get(gate)
+
+    # --- ADR-0041 runtime intelligence (dedicated Langfuse observation + scores) ---
+    adr_obs = _find_observation_by_name(obs_list, WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME)
+    ev["adr0041_runtime_intelligence_observation_present"] = bool(adr_obs)
+    if adr_obs:
+        meta = _coerce_dict_or_json(adr_obs.get("metadata"))
+        inp = _coerce_dict_or_json(adr_obs.get("input"))
+        out_b = _coerce_dict_or_json(adr_obs.get("output"))
+        summary = _coerce_dict_or_json(inp.get("projection_summary"))
+        merged: dict[str, Any] = {**summary, **meta}
+        oid = str(adr_obs.get("id") or "").strip()
+        if oid:
+            ev["adr0041_langfuse_observation_id"] = oid
+        ev["adr0041_schema_version"] = merged.get("schema_version")
+        ev["adr0041_story_session_id"] = merged.get("story_session_id")
+        ev["adr0041_validator_dispatch_mode"] = merged.get("validator_dispatch_mode")
+        ev["adr0041_validator_dispatch_feature_flag_enabled"] = merged.get(
+            "validator_dispatch_feature_flag_enabled"
+        )
+        ev["adr0041_readiness_aggregation_present"] = merged.get("readiness_aggregation_present")
+        ev["adr0041_readiness_aggregation_aggregated"] = merged.get("readiness_aggregation_aggregated")
+        ev["adr0041_readiness_co_authority_preview_present"] = merged.get(
+            "readiness_co_authority_preview_present"
+        )
+        ev["adr0041_readiness_co_authority_enforcement_present"] = merged.get(
+            "readiness_co_authority_enforcement_present"
+        )
+        ev["adr0041_proof_level"] = merged.get("proof_level")
+        ev["adr0041_live_or_staging_claim"] = merged.get("live_or_staging_evidence")
+        ev["adr0041_observation_kind"] = merged.get("observation_kind")
+        ev["adr0041_langfuse_evidence_contract"] = merged.get("langfuse_evidence_contract")
+        pk = out_b.get("projection_keys")
+        if isinstance(pk, list):
+            ev["adr0041_projection_keys_sample"] = [str(x) for x in pk[:40]]
 
     if not isinstance(ev.get("npc_actor_ids"), list):
         ev["npc_actor_ids"] = []
@@ -596,6 +642,9 @@ def _extract_normalized_wos_evidence(
         "path_summary_source": path_summary_source,
         "score_source": score_source,
         "status_message_fallback_used": status_message_fallback_used,
+        "adr0041_observation_source": (
+            "langfuse.observations" if adr_obs else "missing"
+        ),
     }
     return ev, sources
 
@@ -823,6 +872,8 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "tonal_consistency_profile_id",
     "tonal_consistency_required_dimensions",
     "tonal_consistency_realized_dimensions",
+    "tonal_consistency_classification_source",
+    "tonal_consistency_independent_classification_present",
     "tonal_consistency_classification_present",
     "tonal_consistency_marker_hits_absent",
     "tonal_consistency_contract_pass",
@@ -1900,8 +1951,16 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         or [],
         "tonal_consistency_realized_dimensions": tonal_actual.get("realized_dimension_ids")
         or [],
+        "tonal_consistency_classification_source": tonal_actual.get("classification_source"),
+        "tonal_consistency_independent_classification_present": (
+            bool(tonal_actual.get("structured_classification_present"))
+            and tonal_actual.get("independent_classifier") is not False
+            if "structured_classification_present" in tonal_actual
+            else det_scores.get("tonal_consistency_independent_classification_present")
+        ),
         "tonal_consistency_classification_present": (
-            tonal_actual.get("structured_classification_present")
+            bool(tonal_actual.get("structured_classification_present"))
+            and tonal_actual.get("independent_classifier") is not False
             if "structured_classification_present" in tonal_actual
             else det_scores.get("tonal_consistency_classification_present")
         ),
