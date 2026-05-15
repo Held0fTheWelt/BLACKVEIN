@@ -149,9 +149,12 @@ def canonical_quality_summary(
     validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
     committed = state.get("committed_result") if isinstance(state.get("committed_result"), dict) else {}
     signals = canonical_degradation_signals(state=state, fallback_taken=fallback_taken)
+    commit_applied = bool(committed.get("commit_applied")) or bool(
+        committed.get("commit_not_applicable")
+    )
     quality_class = canonical_quality_class(
         validation_outcome=validation,
-        commit_applied=bool(committed.get("commit_applied")),
+        commit_applied=commit_applied,
         degradation_signals=signals,
     )
     summary = {
@@ -160,4 +163,3 @@ def canonical_quality_summary(
         "degradation_summary": ", ".join(signals) if signals else "none",
     }
     return summary
-

@@ -118,6 +118,7 @@ class ImprovisationalCoherenceTarget:
     policy_enabled: bool = False
     commit_impact: str = "diagnostic"
     require_structured_events: bool = False
+    min_anchor_refs: int = 1
     contribution_id: str | None = None
     contribution_kind: str | None = None
     acceptance_mode: str = IMPROV_ACCEPT

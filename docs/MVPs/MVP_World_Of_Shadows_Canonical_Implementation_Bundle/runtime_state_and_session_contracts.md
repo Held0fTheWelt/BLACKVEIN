@@ -297,6 +297,38 @@ exported contract constants, schema versions, ledger/MCP fields, and structured
 visible-block or actor-turn counts. Generated narration, copied dialogue,
 frontend card shape, and judge labels are never the pass/fail oracle.
 
+### Social Pressure / Pi22
+
+Social pressure is implemented as the generic `social_pressure` runtime aspect.
+It is the continuous pressure contract for a turn: normalized score,
+low/moderate/high band, trend, velocity, source evidence, and policy-threshold
+validation. It consumes `scene_assessment`, `social_state_record`,
+`scene_energy_target`, `pacing_rhythm_target`, prior planner truth, committed
+narrative-thread pressure, and the latest committed `prior_social_pressure_state`.
+It does not replace `social_risk_band` and must not become a prose intensity
+judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.social_pressure` into `runtime_governance_policy.social_pressure`;
+- LangGraph derives `social_pressure_state` and `social_pressure_target` after scene energy and pacing rhythm;
+- the dramatic generation packet receives the bounded target as structural pressure guidance;
+- validation checks schema and policy-threshold consistency and writes `social_pressure_validation`;
+- `turn_aspect_ledger.social_pressure` records policy presence, selected target, actual metric, contract pass, and failure codes;
+- World-Engine persists `social_pressure_state`, `social_pressure_target`, and `social_pressure_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_social_pressure_state`;
+- Langfuse and MCP expose score, band, trend, pass/fail, boundedness, and failure-code evidence.
+
+The committed pressure metric is bounded planner feedback, not a second canon
+store. It may shape the next turn and operator diagnostics, but it does not
+mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, ledger/MCP fields, and structured
+source fields such as `thread_pressure_state`, `social_risk_band`, and
+`thread_pressure_level`. Generated narration, copied dialogue, frontend card
+shape, and judge labels are never the pass/fail oracle.
+
 ### Subtext Interpretation / Pi19
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.

@@ -7,6 +7,7 @@ import pytest
 from ai_stack.action_ontology import clear_action_ontology_cache
 from ai_stack.goc_turn_seams import run_validation_seam
 from ai_stack.player_action_resolution import resolve_player_action
+from story_runtime_core.player_input_intent_contract import default_commit_flags_for_player_input_kind
 
 
 @pytest.fixture(autouse=True)
@@ -99,6 +100,32 @@ def test_gibt_es_hier_ein_bad_stays_question_speech() -> None:
     assert frame["verb"] == "ask"
     assert frame["affordance_status"] == "allowed"
     assert frame["npc_response_expected"] is True
+
+
+def test_meta_input_resolution_is_non_story_control() -> None:
+    flags = default_commit_flags_for_player_input_kind("meta")
+    out = resolve_player_action(
+        raw_text="ooc: pause",
+        interpreted_input={
+            "player_input_kind": "meta",
+            **flags,
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["player_input_kind"] == "meta"
+    assert frame["action_kind"] == "control"
+    assert frame["verb"] == "meta"
+    assert frame["speech_text"] is None
+    assert frame["narrator_response_expected"] is False
+    assert frame["npc_response_expected"] is False
+    assert aff["action_commit_policy"] == "no_commit"
+    assert aff["commit_allowed"] is False
+    assert aff["allows_npc_reaction"] is False
 
 
 def test_unknown_target_returns_clarification_status() -> None:

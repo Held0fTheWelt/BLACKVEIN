@@ -23,6 +23,7 @@ from story_runtime_core.player_input_intent_contract import (
     is_action_like_player_input_kind,
     is_mixed_player_input_kind,
     is_narrator_only_player_input_kind,
+    is_non_story_control_player_input_kind,
     is_perception_like_player_input_kind,
     is_speech_like_player_input_kind,
     player_input_kind_family,
@@ -51,6 +52,7 @@ from ai_stack.operational_profile import build_operational_cost_hints_for_runtim
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
+    ADAPTER_INVOCATION_META_CONTROL,
     ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
     EXECUTION_HEALTH_DEGRADED_GENERATION,
     EXECUTION_HEALTH_GRAPH_ERROR,
@@ -3342,6 +3344,7 @@ class RuntimeTurnGraphExecutor:
         """
         graph = StateGraph(RuntimeTurnState)
         graph.add_node("interpret_input", self._interpret_input)
+        graph.add_node("meta_control_turn", self._meta_control_turn)
         graph.add_node("resolve_player_action", self._resolve_player_action)
         graph.add_node("authoritative_action_resolution", self._authoritative_action_resolution_turn)
         graph.add_node("retrieve_context", self._retrieve_context)
@@ -3365,7 +3368,15 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("render_visible", self._render_visible)
         graph.add_node("package_output", self._package_output)
         graph.set_entry_point("interpret_input")
-        graph.add_edge("interpret_input", "resolve_player_action")
+        graph.add_conditional_edges(
+            "interpret_input",
+            self._route_after_interpret_input,
+            {
+                "meta_control_turn": "meta_control_turn",
+                "resolve_player_action": "resolve_player_action",
+            },
+        )
+        graph.add_edge("meta_control_turn", "package_output")
         graph.add_conditional_edges(
             "resolve_player_action",
             self._route_after_resolve_player_action,
@@ -3400,6 +3411,12 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("render_visible", "package_output")
         graph.add_edge("package_output", END)
         return graph.compile()
+
+    def _route_after_interpret_input(self, state: RuntimeTurnState) -> str:
+        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        if is_non_story_control_player_input_kind(interp.get("player_input_kind")):
+            return "meta_control_turn"
+        return "resolve_player_action"
 
     def run(
         self,
@@ -3644,7 +3661,7 @@ class RuntimeTurnGraphExecutor:
             "intent_only": "speech",
             "ambiguous": "action",   # ambiguous inputs route through action path, not speech
             "explicit_command": "speech",
-            "meta": "speech",
+            "meta": "meta",
             "unclear": "action",
         }
         intent_fields: dict[str, Any] = {
@@ -3656,13 +3673,20 @@ class RuntimeTurnGraphExecutor:
             "player_input_visible_block_present": True,
         }
         if kind_raw in ("explicit_command", "meta"):
-            intent_fields["player_input_kind"] = "meta" if kind_raw == "meta" else "unclear"
+            pik = "meta" if kind_raw == "meta" else "unclear"
+            intent_fields["player_input_kind"] = pik
             intent_fields["projection_key"] = None
             intent_fields["projection_captures"] = {}
-            intent_fields["player_action_committed"] = False
-            intent_fields["player_speech_committed"] = kind_raw != "meta"
-            intent_fields["narrator_response_expected"] = False
-            intent_fields["npc_response_expected"] = True
+            intent_fields["semantic_category"] = pik
+            intent_fields["speech_projection_allowed"] = False
+            if is_non_story_control_player_input_kind(pik):
+                intent_fields.update(default_player_intent_commit_flags(pik))
+                intent_fields["control_path"] = "meta"
+            else:
+                intent_fields["player_action_committed"] = False
+                intent_fields["player_speech_committed"] = True
+                intent_fields["narrator_response_expected"] = False
+                intent_fields["npc_response_expected"] = True
         else:
             hit = classify_player_input_from_rules(
                 raw_pi,
@@ -3768,6 +3792,112 @@ class RuntimeTurnGraphExecutor:
         )
         if "turn_input_class" not in state or not state.get("turn_input_class"):
             update["turn_input_class"] = move_class
+        return update
+
+    def _meta_control_turn(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Handle out-of-world meta input without story generation or commit."""
+        update = _track(state, node_name="meta_control_turn")
+        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        rc = self.retrieval_config or RuntimeRetrievalConfig()
+        retrieval = {
+            "domain": RetrievalDomain.RUNTIME.value,
+            "profile": rc.retrieval_profile,
+            "status": "skipped",
+            "retrieval_route": "meta_control_path",
+            "hit_count": 0,
+            "sources": [],
+            "ranking_notes": ["meta_control_path_no_retrieval"],
+            "index_version": "",
+            "corpus_fingerprint": "",
+            "storage_path": "",
+            "embedding_model_id": "",
+            "top_hit_score": "",
+        }
+        attach_retrieval_governance_summary(retrieval)
+        structured_output = {
+            "schema_version": "meta_control_turn_v1",
+            "control_events": [
+                {
+                    "type": "meta_input_acknowledged",
+                    "selected_handling_path": interp.get("selected_handling_path") or "meta",
+                    "player_input_kind": interp.get("player_input_kind") or "meta",
+                }
+            ],
+            "spoken_lines": [],
+            "action_lines": [],
+            "initiative_events": [],
+            "state_effects": [],
+        }
+        generation = {
+            "attempted": False,
+            "success": True,
+            "error": None,
+            "content": "",
+            "retrieval_context_attached": False,
+            "prompt_length": 0,
+            "fallback_used": False,
+            "metadata": {
+                "adapter": "meta_control",
+                "adapter_invocation_mode": ADAPTER_INVOCATION_META_CONTROL,
+                "langchain_prompt_used": False,
+                "langchain_parser_error": None,
+                "structured_output": structured_output,
+                "meta_control_path": True,
+            },
+        }
+        routing = dict(state.get("routing") or {})
+        routing.update(
+            {
+                "selected_model": "meta_control_path",
+                "selected_provider": "wos_runtime",
+                "reason": "meta_control_path",
+                "route_reason": "meta_control_path",
+                "route_reason_code": "meta_control_path",
+                "fallback_model": None,
+                "fallback_chain": ["meta_control_path"],
+                "route_mode": "deterministic_control_path",
+                "generation_required": False,
+                "meta_control_path": True,
+            }
+        )
+        update["retrieval"] = retrieval
+        update["context_text"] = ""
+        update["model_prompt"] = ""
+        update["generation"] = generation
+        update["routing"] = routing
+        update["selected_scene_function"] = "meta_control"
+        update["selected_responder_set"] = []
+        update["response_plan"] = {
+            "meta_control_path": True,
+            "generation_required": False,
+            "narrator_response_expected": False,
+            "npc_response_expected": False,
+        }
+        update["validation_outcome"] = {
+            "status": "approved",
+            "reason": "meta_input_isolated",
+            "validator_lane": "meta_control_path_v1",
+            "dramatic_quality_gate": "not_applicable_meta_control",
+            "intent_surface_diagnostics": {
+                "meta_control_path": True,
+                "npc_narrated_player_action_violation": False,
+            },
+        }
+        update["committed_result"] = {
+            "committed_effects": [],
+            "commit_applied": False,
+            "commit_not_applicable": True,
+            "commit_lane": "meta_control_path_v1",
+        }
+        update["visible_output_bundle"] = {
+            "gm_narration": [],
+            "spoken_lines": [],
+            "action_lines": [],
+            "control_events": structured_output["control_events"],
+        }
+        update["visibility_class_markers"] = ["meta_control_path", "non_story_control"]
+        update["transition_pattern"] = "diagnostics_only"
+        update["fallback_needed"] = False
         return update
 
     def _retrieve_context(self, state: RuntimeTurnState) -> RuntimeTurnState:

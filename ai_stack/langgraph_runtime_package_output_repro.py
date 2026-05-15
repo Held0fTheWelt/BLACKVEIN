@@ -11,6 +11,7 @@ from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION,
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
+    ADAPTER_INVOCATION_META_CONTROL,
     EXECUTION_HEALTH_DEGRADED_GENERATION,
     EXECUTION_HEALTH_GRAPH_ERROR,
     EXECUTION_HEALTH_HEALTHY,
@@ -90,6 +91,8 @@ def build_repro_metadata_and_health(
     repro_metadata["action_resolution_short_path"] = _short_path
     repro_metadata["synthetic_short_path"] = _short_path
     repro_metadata["generation_required"] = bool(_gen_req)
+    if bool(routing.get("meta_control_path")):
+        repro_metadata["meta_control_path"] = True
     if _short_path:
         _reason = str(routing.get("action_resolution_short_path_reason") or "authoritative_action_resolution")
         repro_metadata["action_resolution_short_path_reason"] = _reason
@@ -117,6 +120,8 @@ def build_repro_metadata_and_health(
         graph_path_summary = "primary_invoke_langchain_only"
     elif adapter_mode == ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION:
         graph_path_summary = "authoritative_action_resolution_deterministic"
+    elif adapter_mode == ADAPTER_INVOCATION_META_CONTROL:
+        graph_path_summary = "meta_control_deterministic"
     elif adapter_mode == ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK:
         graph_path_summary = "degraded_adapter_or_fallback_missing"
     else:

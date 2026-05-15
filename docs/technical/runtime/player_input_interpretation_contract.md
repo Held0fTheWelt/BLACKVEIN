@@ -39,6 +39,26 @@ Interpreter returns a structured object containing:
 - `meta` (out-of-world input)
 - `ambiguous`
 
+## Meta control input
+
+Out-of-world and out-of-character player input is represented as
+`kind=meta`, `player_input_kind=meta`, and `selected_handling_path=meta`.
+This is a non-story control path, not dialogue, action, narration, or an
+active meta-narrative layer.
+
+Canonical handling:
+
+- Meta input does not commit player action or player speech.
+- Meta input does not request narrator or NPC story response.
+- The turn graph handles meta input through a deterministic control path that
+  skips story action resolution, retrieval, model invocation, and narrative
+  commit.
+- Runtime output may expose structured `control_events` for diagnostics or UI
+  acknowledgement, but those events are not story prose and must not authorize
+  fictional truth.
+- Tests for this path must assert contract fields and named routing markers
+  following ADR-0039, not generated acknowledgement text.
+
 ## Silence and negative-space input
 
 Empty input, punctuation-only input, and explicit withheld-answer input are valid story-play signals. They are not treated as parser failure just because they lack dialogue text.
@@ -84,7 +104,8 @@ Current contract families:
 - action-like: `action`, `movement_action`, `object_interaction`, `social_nonverbal_action`, `social_speech_action`, `physical_action`, `hostile_action`, `environment_interaction`, `mixed`, `mixed_action_speech`
 - perception-like: `perception`, `perception_action`
 - non-speech question-shape guarded: `action`, `perception`, `movement_action`, `perception_action`, `object_interaction`, `social_nonverbal_action`, `physical_action`, `hostile_action`, `environment_interaction`, `wait_or_observe`, `ambiguous`, `unclear`
-- control/uncertain: `explicit_command`, `meta`, `unclear`, `ambiguous`
+- non-story control: `meta`
+- command/uncertain: `explicit_command`, `unclear`, `ambiguous`
 
 `kind` remains the coarse interpreter category. `player_input_kind` is the
 runtime routing surface used by content locale rules, semantic-move guards,
@@ -105,6 +126,9 @@ scene-director response policy, and Langfuse deterministic scores.
 - Π14 silence signals must remain visible as structured fields through the
   runtime path; action-resolution shortcuts must not consume them before the
   scene director can select negative space.
+- Meta input must remain isolated as a non-story control path: no player
+  action commit, no player speech commit, no NPC/narrator story-response
+  expectation, and no story model invocation.
 - Tests for these invariants must follow ADR-0039: derive primary assertions
   from this contract, canonical content, or a named invariant rather than
   duplicated hardcoded oracle lists.
@@ -131,6 +155,8 @@ scene-director response policy, and Langfuse deterministic scores.
 
 - Story turn execution consumes interpreted input objects, not blind raw strings.
 - Diagnostics must expose raw input, interpreted mode, confidence, ambiguity, and selected handling path.
+- `selected_handling_path=meta` is consumed as a deterministic control path,
+  not as story prose or as the future experimental meta-narrative layer.
 
 ## Primary runtime path contract
 

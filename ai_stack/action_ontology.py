@@ -11,6 +11,7 @@ import yaml
 
 from story_runtime_core.content_locale import resolve_content_modules_root
 from story_runtime_core.player_input_intent_contract import (
+    is_non_story_control_player_input_kind,
     is_perception_like_player_input_kind,
     is_speech_like_player_input_kind,
 )
@@ -44,7 +45,9 @@ def infer_verb_and_action_kind(
     """Return (verb, action_kind) using YAML ontology; fallback heuristics for speech/question."""
     pik = str(player_input_kind or "speech").strip().lower() or "speech"
     text = str(raw_text or "")
-    if is_speech_like_player_input_kind(pik) or pik == "meta":
+    if is_non_story_control_player_input_kind(pik):
+        return "meta", "control"
+    if is_speech_like_player_input_kind(pik):
         low = text.strip().lower()
         if low.endswith("?"):
             return "ask", "speech"

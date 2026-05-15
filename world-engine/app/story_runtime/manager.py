@@ -4162,6 +4162,9 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
+    if not isinstance(improvisational_failure_codes, list):
+        improvisational_failure_codes = []
     social_pressure_target = (
         social_pressure_selected.get("target")
         if isinstance(social_pressure_selected.get("target"), dict)
@@ -4305,6 +4308,50 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
                 and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
+            ),
+        ),
+        (
+            "improvisational_coherence_policy_present",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_IMPROVISATIONAL_COHERENCE).get("policy_present"))
+            ),
+        ),
+        (
+            "improvisational_coherence_target_selected",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            _runtime_aspect_score_value(
+                bool(
+                    improvisational_selected.get("contribution_id")
+                    or improvisational_selected.get("acceptance_mode")
+                    or improvisational_selected.get("required_anchor_refs")
+                )
+            ),
+        ),
+        (
+            "improvisational_coherence_acknowledged",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_IMPROVISATIONAL_COHERENCE).get("status")
+                in {"passed", "not_applicable"}
+                and "improv_player_contribution_dropped" not in improvisational_failure_codes
+            ),
+        ),
+        (
+            "improvisational_coherence_scene_anchor_preserved",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            _runtime_aspect_score_value(
+                "improv_scene_anchor_missing" not in improvisational_failure_codes
+            ),
+        ),
+        (
+            "improvisational_coherence_contract_pass",
+            ASPECT_IMPROVISATIONAL_COHERENCE,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_IMPROVISATIONAL_COHERENCE).get("status")
+                in {"passed", "not_applicable"}
+                and improvisational_actual.get("contract_pass") is not False
+                and not improvisational_failure_codes
             ),
         ),
         (

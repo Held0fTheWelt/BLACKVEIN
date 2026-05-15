@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, patch
 
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from tools.mcp_server.tools_registry import create_default_registry
+from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+    _runtime_aspect_recommended_repair,
+)
 
 
 def _registry():
@@ -29,6 +32,13 @@ def test_langfuse_verify_tools_registered():
     assert registry.get("wos.evaluators.catalog") is not None
     assert registry.get("wos.evaluators.get") is not None
     assert registry.get("wos.evaluators.langfuse_sync_preview") is not None
+
+
+def test_runtime_aspect_matrix_recommends_improvisational_repair():
+    assert (
+        _runtime_aspect_recommended_repair("improv_scene_anchor_missing")
+        == "repair_improvisational_coherence_structured_acceptance"
+    )
 
 
 def test_run_projection_tests_returns_structured_result():
@@ -825,6 +835,48 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "failure_codes": [],
                         },
                     },
+                    "improvisational_coherence": {
+                        "status": "passed",
+                        "expected": {
+                            "schema_version": "improvisational_coherence.v1",
+                            "policy_present": True,
+                            "policy_enabled": True,
+                            "commit_impact": "recover",
+                            "require_structured_events": True,
+                            "min_anchor_refs": 1,
+                        },
+                        "selected": {
+                            "contribution_id": "turn_contribution:alpha",
+                            "contribution_kind": "object_interaction",
+                            "acceptance_mode": "accept",
+                            "min_anchor_refs": 1,
+                            "selected_scene_function": "domestic_disruption",
+                            "required_anchor_refs": [
+                                {
+                                    "source": "scene_plan_record",
+                                    "field": "selected_scene_function",
+                                    "value": "domestic_disruption",
+                                }
+                            ],
+                            "requires_playable_boundary_reason": False,
+                            "boundary_reason_code": None,
+                        },
+                        "actual": {
+                            "contribution_acknowledged": True,
+                            "acceptance_mode": "accept",
+                            "advance_class": "pressure_raise",
+                            "anchor_refs": [
+                                {
+                                    "source": "scene_plan_record",
+                                    "field": "selected_scene_function",
+                                    "value": "domestic_disruption",
+                                }
+                            ],
+                            "boundary_reason_code": None,
+                            "contract_pass": True,
+                            "failure_codes": [],
+                        },
+                    },
                     "social_pressure": {
                         "status": "passed",
                         "expected": {
@@ -959,6 +1011,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "pacing_rhythm_contract_pass", "value": 1.0},
             {"name": "pacing_rhythm_density_respected", "value": 1.0},
             {"name": "pacing_rhythm_pause_respected", "value": 1.0},
+            {"name": "improvisational_coherence_policy_present", "value": 1.0},
+            {"name": "improvisational_coherence_target_selected", "value": 1.0},
+            {"name": "improvisational_coherence_acknowledged", "value": 1.0},
+            {"name": "improvisational_coherence_scene_anchor_preserved", "value": 1.0},
+            {"name": "improvisational_coherence_contract_pass", "value": 1.0},
             {"name": "social_pressure_target_present", "value": 1.0},
             {"name": "social_pressure_contract_pass", "value": 1.0},
             {"name": "social_pressure_metric_bounded", "value": 1.0},
@@ -1016,6 +1073,16 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["pacing_rhythm_response_shape"] == "exchange"
     assert row["pacing_rhythm_density_respected"] is True
     assert row["pacing_rhythm_contract_pass"] is True
+    assert row["improvisational_coherence_policy_present"] is True
+    assert row["improvisational_coherence_target_selected"] is True
+    assert row["improvisational_coherence_contribution_id"] == "turn_contribution:alpha"
+    assert row["improvisational_coherence_contribution_kind"] == "object_interaction"
+    assert row["improvisational_coherence_acceptance_mode"] == "accept"
+    assert row["improvisational_coherence_advance_class"] == "pressure_raise"
+    assert row["improvisational_coherence_acknowledged"] is True
+    assert row["improvisational_coherence_scene_anchor_preserved"] is True
+    assert row["improvisational_coherence_contract_pass"] is True
+    assert row["improvisational_coherence_failure_codes"] == []
     assert row["social_pressure_target_present"] is True
     assert row["social_pressure_score"] == 0.74
     assert row["social_pressure_band"] == "high"

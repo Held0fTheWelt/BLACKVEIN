@@ -31,6 +31,7 @@ from story_runtime_core.player_input_intent_contract import (
     is_action_like_player_input_kind,
     is_mixed_player_input_kind,
     is_narrator_only_player_input_kind,
+    is_non_story_control_player_input_kind,
     is_perception_like_player_input_kind,
     is_speech_like_player_input_kind,
 )
@@ -529,6 +530,46 @@ def resolve_player_action(
 ) -> dict[str, Any]:
     pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
     lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    actor_id = str(interpreted_input.get("actor_id") or interpreted_input.get("player_input_actor_id") or "").strip()
+    selected_actor_id = str(
+        runtime_projection.get("human_actor_id")
+        or runtime_projection.get("selected_player_role")
+        or actor_id
+        or ""
+    ).strip() or None
+    if is_non_story_control_player_input_kind(pik):
+        aff = AffordanceResolutionContract(
+            status="skipped",
+            action_commit_policy="no_commit",
+            reason="meta_input_control_path",
+            resolved_target=None,
+            target_resolution_source="meta_control_path",
+            access_status=None,
+        )
+        frame = PlayerActionFrameContract(
+            raw_text=str(raw_text or "").strip(),
+            input_kind=pik,
+            action_kind="control",
+            verb="meta",
+            speech_text=None,
+            target_query=None,
+            resolved_target=None,
+            affordance_resolution=aff,
+            narrator_response_expected=False,
+            npc_response_expected=False,
+            actor_id=actor_id or None,
+            selected_actor_id=selected_actor_id,
+            source_query=None,
+            resolved_source=None,
+            source_resolution_source=None,
+            validation_surface="meta_control_path",
+            projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
+        )
+        return {
+            "player_action_frame": frame.to_dict(),
+            "affordance_resolution": aff.to_dict(),
+            "scene_affordance_model": {},
+        }
     # Upstream intent can label bounded German device imperatives as ``speech``. If the
     # action-only ontology path resolves a concrete object-interaction verb, treat as
     # ``action`` so affordances and P0 evidence match resolver semantics (no NPC speech lane).
@@ -649,13 +690,6 @@ def resolve_player_action(
         if verb in {"look_at", "listen_to"} and status == "unknown_target":
             status, policy = "partial", "commit_action"
 
-    actor_id = str(interpreted_input.get("actor_id") or interpreted_input.get("player_input_actor_id") or "").strip()
-    selected_actor_id = str(
-        runtime_projection.get("human_actor_id")
-        or runtime_projection.get("selected_player_role")
-        or actor_id
-        or ""
-    ).strip() or None
     narrator_expected = bool(interpreted_input.get("narrator_response_expected"))
     npc_expected = bool(interpreted_input.get("npc_response_expected"))
     if is_narrator_only_player_input_kind(pik) or is_mixed_player_input_kind(pik):

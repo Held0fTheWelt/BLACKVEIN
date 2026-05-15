@@ -1,5 +1,9 @@
 from story_runtime_core.input_interpreter import interpret_player_input
 from story_runtime_core.models import InterpretedInputKind, RuntimeDeliveryHint
+from story_runtime_core.player_input_intent_contract import (
+    default_commit_flags_for_player_input_kind,
+    is_non_story_control_player_input_kind,
+)
 
 
 def test_interpreter_handles_explicit_command():
@@ -12,6 +16,26 @@ def test_interpreter_handles_explicit_command():
 def test_interpreter_handles_meta_input():
     result = interpret_player_input("ooc: let's pause here")
     assert result.kind == InterpretedInputKind.META
+    assert result.runtime_delivery_hint is None
+
+
+def test_meta_intent_defaults_are_non_story_control():
+    result = interpret_player_input("meta: pause")
+    flags = default_commit_flags_for_player_input_kind(result.kind.value)
+    assert is_non_story_control_player_input_kind(result.kind.value) is True
+    assert result.selected_handling_path == "meta"
+    assert flags == {
+        "player_action_committed": False,
+        "player_speech_committed": False,
+        "narrator_response_expected": False,
+        "npc_response_expected": False,
+    }
+
+
+def test_interpreter_handles_out_of_character_meta_prefix():
+    result = interpret_player_input("out of character: pause")
+    assert result.kind == InterpretedInputKind.META
+    assert result.selected_handling_path == "meta"
     assert result.runtime_delivery_hint is None
 
 

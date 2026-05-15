@@ -5,6 +5,9 @@ from pathlib import Path
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
 from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
+from ai_stack.improvisational_coherence_contracts import (
+    IMPROVISATIONAL_COHERENCE_POLICY_VERSION,
+)
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
 from ai_stack.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
@@ -56,6 +59,12 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["schema_version"] == PACING_RHYTHM_POLICY_VERSION
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["enabled"] is True
     assert policy["runtime_governance_policy"]["pacing_rhythm"]["cadence_profiles"]
+    assert (
+        policy["runtime_governance_policy"]["improvisational_coherence"]["schema_version"]
+        == IMPROVISATIONAL_COHERENCE_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["improvisational_coherence"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["improvisational_coherence"]["min_anchor_refs"] >= 1
     assert policy["runtime_governance_policy"]["social_pressure"]["schema_version"] == SOCIAL_PRESSURE_POLICY_VERSION
     assert policy["runtime_governance_policy"]["social_pressure"]["enabled"] is True
     assert policy["runtime_governance_policy"]["social_pressure"]["source_scores"]["social_risk_band"]
@@ -306,6 +315,8 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         repo / "ai_stack" / "module_runtime_policy.py",
         repo / "ai_stack" / "information_disclosure_contracts.py",
         repo / "ai_stack" / "information_disclosure_engine.py",
+        repo / "ai_stack" / "improvisational_coherence_contracts.py",
+        repo / "ai_stack" / "improvisational_coherence_engine.py",
         repo / "ai_stack" / "narrative_aspect_contracts.py",
         repo / "ai_stack" / "hierarchical_memory_contracts.py",
         repo / "ai_stack" / "runtime_aspect_ledger.py",

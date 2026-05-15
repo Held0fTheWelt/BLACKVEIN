@@ -16,6 +16,7 @@
 | [`pacing_rhythm_contract.md`](../../technical/runtime/pacing_rhythm_contract.md) | Bounded Pi18 pacing-rhythm aspect: cadence target, structural validation, ledger/MCP propagation, and ADR-0039 oracle boundary |
 | [`subtext_interpretation_contract.md`](../../technical/runtime/subtext_interpretation_contract.md) | Bounded Pi19 surface-vs-intent contract, policy source, runtime propagation, and ADR-0039 oracle boundary |
 | [`consequence_cascade_contract.md`](../../technical/runtime/consequence_cascade_contract.md) | Bounded Pi21 consequence cascade: committed-truth derivation, branch-selection edges, graph feedback, operator endpoints, and ADR-0039 oracle boundary |
+| [`improvisational_coherence_contract.md`](../../technical/runtime/improvisational_coherence_contract.md) | Bounded Pi24 improvisational-coherence aspect: structured contribution acceptance, scene anchors, ledger/MCP diagnostics, and ADR-0039 oracle boundary |
 
 ## God of Carnage (MVP vertical slice)
 

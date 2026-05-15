@@ -21,6 +21,7 @@ from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPip
 from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
+    ADAPTER_INVOCATION_META_CONTROL,
     EXECUTION_HEALTH_GRAPH_ERROR,
     EXECUTION_HEALTH_HEALTHY,
     EXECUTION_HEALTH_MODEL_FALLBACK,
@@ -476,6 +477,47 @@ def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledg
     assert beat_aspect.get("actual", {}).get("deterministic_action_resolution") is True
     interpreted = result.get("interpreted_input") or {}
     assert interpreted.get("player_speech_committed") is False
+
+
+def test_runtime_turn_graph_meta_input_uses_non_story_control_path(tmp_path: Path) -> None:
+    graph = _build_graph(tmp_path)
+    result = graph.run(
+        session_id="session-meta-1",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="ooc: pause",
+        trace_id="trace-meta-1",
+        turn_number=1,
+    )
+    interp = result.get("interpreted_input") or {}
+    assert interp.get("kind") == "meta"
+    assert interp.get("selected_handling_path") == "meta"
+    assert interp.get("player_input_kind") == "meta"
+    assert interp.get("player_action_committed") is False
+    assert interp.get("player_speech_committed") is False
+    assert interp.get("narrator_response_expected") is False
+    assert interp.get("npc_response_expected") is False
+
+    nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or []
+    assert "meta_control_turn" in nodes
+    assert "resolve_player_action" not in nodes
+    assert "retrieve_context" not in nodes
+    assert "invoke_model" not in nodes
+
+    generation = result.get("generation") or {}
+    meta = generation.get("metadata") or {}
+    assert generation.get("attempted") is False
+    assert generation.get("success") is True
+    assert meta.get("adapter_invocation_mode") == ADAPTER_INVOCATION_META_CONTROL
+    assert result.get("routing", {}).get("generation_required") is False
+    assert (result.get("committed_result") or {}).get("commit_not_applicable") is True
+
+    repro = (result.get("graph_diagnostics") or {}).get("repro_metadata") or {}
+    assert repro.get("adapter_invocation_mode") == ADAPTER_INVOCATION_META_CONTROL
+    assert repro.get("graph_path_summary") == "meta_control_deterministic"
+    assert repro.get("generation_required") is False
+    assert repro.get("meta_control_path") is True
+    assert repro.get("repro_complete") is True
 
 
 def test_execution_health_constants_are_stable_set() -> None:

@@ -496,6 +496,11 @@ def _extract_normalized_wos_evidence(
         "pacing_rhythm_contract_pass",
         "pacing_rhythm_density_respected",
         "pacing_rhythm_pause_respected",
+        "improvisational_coherence_policy_present",
+        "improvisational_coherence_target_selected",
+        "improvisational_coherence_acknowledged",
+        "improvisational_coherence_scene_anchor_preserved",
+        "improvisational_coherence_contract_pass",
         "social_pressure_target_present",
         "social_pressure_contract_pass",
         "social_pressure_metric_bounded",
@@ -596,6 +601,17 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "pacing_rhythm_density_respected",
     "pacing_rhythm_pause_respected",
     "pacing_rhythm_failure_codes",
+    "improvisational_coherence_policy_present",
+    "improvisational_coherence_target_selected",
+    "improvisational_coherence_contribution_id",
+    "improvisational_coherence_contribution_kind",
+    "improvisational_coherence_acceptance_mode",
+    "improvisational_coherence_advance_class",
+    "improvisational_coherence_acknowledged",
+    "improvisational_coherence_scene_anchor_preserved",
+    "improvisational_coherence_boundary_reason_code",
+    "improvisational_coherence_contract_pass",
+    "improvisational_coherence_failure_codes",
     "social_pressure_target_present",
     "social_pressure_score",
     "social_pressure_band",
@@ -768,6 +784,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_consequence_cascade_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
+    if failure.startswith("improv_") or failure.startswith("improvisational_coherence_"):
+        return "repair_improvisational_coherence_structured_acceptance"
     if "beat" in failure:
         return "repair_beat_realization_or_contract_classification"
     if "origin" in failure or "projection" in failure:
@@ -784,6 +802,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
+    improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
@@ -806,6 +825,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
     pacing_rhythm_selected = _aspect_block(pacing_rhythm_rec, "selected")
     pacing_rhythm_actual = _aspect_block(pacing_rhythm_rec, "actual")
+    improvisational_expected = _aspect_block(improvisational_rec, "expected")
+    improvisational_selected = _aspect_block(improvisational_rec, "selected")
+    improvisational_actual = _aspect_block(improvisational_rec, "actual")
     social_pressure_selected = _aspect_block(social_pressure_rec, "selected")
     social_pressure_actual = _aspect_block(social_pressure_rec, "actual")
     disclosure_expected = _aspect_block(disclosure_rec, "expected")
@@ -902,6 +924,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
     if not isinstance(pacing_rhythm_failure_codes, list):
         pacing_rhythm_failure_codes = []
+    improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
+    if not isinstance(improvisational_failure_codes, list):
+        improvisational_failure_codes = []
     social_pressure_target = (
         social_pressure_selected.get("target")
         if isinstance(social_pressure_selected.get("target"), dict)
@@ -932,6 +957,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            improvisational_rec,
             social_pressure_rec,
             disclosure_rec,
             dramatic_irony_rec,
@@ -950,6 +976,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             beat_rec,
             scene_energy_rec,
             pacing_rhythm_rec,
+            improvisational_rec,
             social_pressure_rec,
             disclosure_rec,
             dramatic_irony_rec,
@@ -1023,6 +1050,65 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("pacing_rhythm_pause_respected")
         ),
         "pacing_rhythm_failure_codes": pacing_rhythm_failure_codes,
+        "improvisational_coherence_policy_present": (
+            improvisational_expected.get("policy_present")
+            if "policy_present" in improvisational_expected
+            else det_scores.get("improvisational_coherence_policy_present")
+        ),
+        "improvisational_coherence_target_selected": (
+            bool(
+                improvisational_selected.get("contribution_id")
+                or improvisational_selected.get("acceptance_mode")
+                or improvisational_selected.get("required_anchor_refs")
+            )
+            if improvisational_selected
+            else det_scores.get("improvisational_coherence_target_selected")
+        ),
+        "improvisational_coherence_contribution_id": improvisational_selected.get(
+            "contribution_id"
+        ),
+        "improvisational_coherence_contribution_kind": improvisational_selected.get(
+            "contribution_kind"
+        ),
+        "improvisational_coherence_acceptance_mode": (
+            improvisational_selected.get("acceptance_mode")
+            or improvisational_actual.get("acceptance_mode")
+        ),
+        "improvisational_coherence_advance_class": improvisational_actual.get(
+            "advance_class"
+        ),
+        "improvisational_coherence_acknowledged": (
+            improvisational_actual.get("contribution_acknowledged")
+            if "contribution_acknowledged" in improvisational_actual
+            else (
+                det_scores.get("improvisational_coherence_acknowledged")
+                if "improvisational_coherence_acknowledged" in det_scores
+                else det_scores.get("player_contribution_acknowledged")
+            )
+        ),
+        "improvisational_coherence_scene_anchor_preserved": (
+            "improv_scene_anchor_missing" not in improvisational_failure_codes
+            if improvisational_actual
+            else (
+                det_scores.get("improvisational_coherence_scene_anchor_preserved")
+                if "improvisational_coherence_scene_anchor_preserved" in det_scores
+                else det_scores.get("improv_scene_anchor_preserved")
+            )
+        ),
+        "improvisational_coherence_boundary_reason_code": (
+            improvisational_actual.get("boundary_reason_code")
+            or improvisational_selected.get("boundary_reason_code")
+        ),
+        "improvisational_coherence_contract_pass": (
+            improvisational_actual.get("contract_pass")
+            if "contract_pass" in improvisational_actual
+            else (
+                det_scores.get("improvisational_coherence_contract_pass")
+                if "improvisational_coherence_contract_pass" in det_scores
+                else det_scores.get("improv_contract_pass")
+            )
+        ),
+        "improvisational_coherence_failure_codes": improvisational_failure_codes,
         "social_pressure_target_present": (
             bool(social_pressure_target)
             if social_pressure_rec

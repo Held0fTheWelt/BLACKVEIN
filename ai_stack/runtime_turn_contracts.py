@@ -13,6 +13,7 @@ AdapterInvocationMode = Literal[
     "raw_adapter_graph_managed_fallback",
     "degraded_no_fallback_adapter",
     "authoritative_action_resolution",
+    "meta_control_path",
 ]
 
 ADAPTER_INVOCATION_LANGCHAIN_PRIMARY: AdapterInvocationMode = "langchain_structured_primary"
@@ -20,6 +21,8 @@ ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK: AdapterInvocationMode = "raw_adapter_grap
 ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK: AdapterInvocationMode = "degraded_no_fallback_adapter"
 # Deterministic runtime narration/clarification (no LLM); not mock/LDSS/fallback.
 ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION: AdapterInvocationMode = "authoritative_action_resolution"
+# Deterministic out-of-world control handling (no LLM, no story commit).
+ADAPTER_INVOCATION_META_CONTROL: AdapterInvocationMode = "meta_control_path"
 
 # Package-output execution_health (graph_diagnostics.execution_health).
 ExecutionHealth = Literal["healthy", "graph_error", "model_fallback", "degraded_generation"]

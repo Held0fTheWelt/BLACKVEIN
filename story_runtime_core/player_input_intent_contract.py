@@ -45,6 +45,8 @@ SPEECH_LIKE_KINDS: frozenset[str] = frozenset(
     {"speech", "question", "reaction", "intent_only", "social_speech_action"}
 )
 
+NON_STORY_CONTROL_INPUT_KINDS: frozenset[str] = frozenset({"meta"})
+
 MIXED_INPUT_KINDS: frozenset[str] = frozenset({"mixed", "mixed_action_speech"})
 
 PERCEPTION_LIKE_KINDS: frozenset[str] = frozenset(
@@ -134,6 +136,10 @@ def is_speech_like_player_input_kind(kind: Any) -> bool:
     return normalize_player_input_kind(kind) in SPEECH_LIKE_KINDS
 
 
+def is_non_story_control_player_input_kind(kind: Any) -> bool:
+    return normalize_player_input_kind(kind) in NON_STORY_CONTROL_INPUT_KINDS
+
+
 def is_mixed_player_input_kind(kind: Any) -> bool:
     return normalize_player_input_kind(kind) in MIXED_INPUT_KINDS
 
@@ -173,6 +179,13 @@ def player_input_kind_family(kind: Any) -> str:
 
 def default_commit_flags_for_player_input_kind(kind: Any) -> dict[str, bool]:
     k = normalize_player_input_kind(kind)
+    if k in NON_STORY_CONTROL_INPUT_KINDS:
+        return {
+            "player_action_committed": False,
+            "player_speech_committed": False,
+            "narrator_response_expected": False,
+            "npc_response_expected": False,
+        }
     if k in {"action", "movement_action", "perception", "perception_action"}:
         return {
             "player_action_committed": True,
@@ -187,7 +200,7 @@ def default_commit_flags_for_player_input_kind(kind: Any) -> dict[str, bool]:
             "narrator_response_expected": True,
             "npc_response_expected": True,
         }
-    if k in {"speech", "question", "meta"}:
+    if k in {"speech", "question"}:
         return {
             "player_action_committed": False,
             "player_speech_committed": True,

@@ -612,6 +612,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "visible_actor_ids": improvisational_selected.get("visible_actor_ids") or [],
                 "required_anchor_refs": improvisational_selected.get("required_anchor_refs")
                 or [],
+                "min_anchor_refs": int(
+                    improvisational_selected.get("min_anchor_refs")
+                    or improvisational_expected.get("min_anchor_refs")
+                    or 0
+                ),
                 "anchor_refs": improvisational_actual.get("anchor_refs") or [],
                 "anchor_sources": improvisational_actual.get("anchor_sources") or [],
                 "requires_playable_boundary_reason": bool(

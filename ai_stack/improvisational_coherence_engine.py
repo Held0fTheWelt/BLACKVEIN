@@ -212,6 +212,7 @@ def derive_improvisational_coherence(
         policy_enabled=True,
         commit_impact=str(policy.get("default_commit_impact") or "recover"),
         require_structured_events=bool(policy.get("require_structured_events")),
+        min_anchor_refs=int(policy.get("min_anchor_refs") or 1),
         contribution_id=_stable_id(
             player_input,
             contribution_kind,
@@ -253,6 +254,7 @@ def compact_improvisational_coherence_context(
         "acceptance_mode": src.get("acceptance_mode"),
         "allowed_acceptance_modes": src.get("allowed_acceptance_modes") or [],
         "allowed_advance_classes": src.get("allowed_advance_classes") or [],
+        "min_anchor_refs": int(src.get("min_anchor_refs") or 0),
         "required_anchor_refs": src.get("required_anchor_refs") or [],
         "visible_actor_ids": src.get("visible_actor_ids") or [],
         "requires_playable_boundary_reason": bool(
@@ -456,6 +458,11 @@ def build_improvisational_coherence_aspect_record(
             "commit_impact": target_dict.get("commit_impact")
             or policy_dict.get("default_commit_impact"),
             "require_structured_events": bool(target_dict.get("require_structured_events")),
+            "min_anchor_refs": int(
+                target_dict.get("min_anchor_refs")
+                if target_dict.get("min_anchor_refs") is not None
+                else policy_dict.get("min_anchor_refs") or 0
+            ),
             "allowed_acceptance_modes": target_dict.get("allowed_acceptance_modes")
             or policy_dict.get("allowed_acceptance_modes")
             or [],
@@ -467,6 +474,7 @@ def build_improvisational_coherence_aspect_record(
             "contribution_id": target_dict.get("contribution_id"),
             "contribution_kind": target_dict.get("contribution_kind"),
             "acceptance_mode": target_dict.get("acceptance_mode"),
+            "min_anchor_refs": int(target_dict.get("min_anchor_refs") or 0),
             "selected_scene_function": target_dict.get("selected_scene_function"),
             "visible_actor_ids": target_dict.get("visible_actor_ids") or [],
             "required_anchor_refs": target_dict.get("required_anchor_refs") or [],

@@ -7,10 +7,15 @@ from ai_stack.dramatic_irony_contracts import (
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
     DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
 )
+from ai_stack.improvisational_coherence_contracts import (
+    IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
+    IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
+)
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
+    ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INPUT,
     ASPECT_KEYS,
     ASPECT_NPC_AGENCY,
@@ -317,6 +322,71 @@ def test_runtime_projection_exposes_pacing_rhythm_aspect() -> None:
     assert rhythm["visible_block_count"] == 5
     assert rhythm["failure_codes"] == [density_code]
     assert rhythm["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_improvisational_coherence_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-improv",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich will die Szene in einen Streit ueber Schuld drehen.",
+    )
+    anchor_ref = {
+        "source": "scene_plan_record",
+        "field": "selected_scene_function",
+        "value": "domestic_pressure",
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_IMPROVISATIONAL_COHERENCE,
+        {
+            "applicable": True,
+            "status": "failed",
+            "expected": {
+                "schema_version": IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+                "min_anchor_refs": 1,
+            },
+            "selected": {
+                "contribution_id": "turn_contribution:alpha",
+                "contribution_kind": "speech",
+                "acceptance_mode": "accept",
+                "min_anchor_refs": 1,
+                "selected_scene_function": "domestic_pressure",
+                "required_anchor_refs": [anchor_ref],
+            },
+            "actual": {
+                "contribution_acknowledged": True,
+                "acceptance_mode": "accept",
+                "advance_class": "pressure_raise",
+                "anchor_refs": [],
+                "anchor_sources": [],
+                "contract_pass": False,
+                "failure_codes": [IMPROV_FAILURE_SCENE_ANCHOR_MISSING],
+            },
+            "reasons": [IMPROV_FAILURE_SCENE_ANCHOR_MISSING],
+            "failure_class": "recoverable_dramatic_failure",
+            "failure_reason": IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    improv = projection[ASPECT_IMPROVISATIONAL_COHERENCE]
+    assert improv["schema_version"] == IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION
+    assert improv["policy_enabled"] is True
+    assert improv["contribution_id"] == "turn_contribution:alpha"
+    assert improv["acceptance_mode"] == "accept"
+    assert improv["advance_class"] == "pressure_raise"
+    assert improv["min_anchor_refs"] == 1
+    assert improv["required_anchor_refs"] == [anchor_ref]
+    assert improv["contribution_acknowledged"] is True
+    assert improv["contract_pass"] is False
+    assert improv["failure_codes"] == [IMPROV_FAILURE_SCENE_ANCHOR_MISSING]
 
 
 def test_runtime_projection_exposes_social_pressure_aspect() -> None:

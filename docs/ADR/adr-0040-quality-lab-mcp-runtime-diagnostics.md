@@ -1,9 +1,5 @@
 # ADR-0040: Quality Lab MCP Runtime Diagnostics and Judge-Guided Improvement
 
-> **Note:** This ADR was originally drafted as "ADR-0035" but that number is
-> already taken by `adr-0035-story-opening-economy-and-warmup.md`. Renumbered
-> to ADR-0040 (next available) when filed. Title and substance unchanged.
-
 ## Status
 
 Accepted
