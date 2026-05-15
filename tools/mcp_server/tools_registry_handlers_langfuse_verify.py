@@ -515,6 +515,11 @@ def _extract_normalized_wos_evidence(
         "information_disclosure_budget_pass",
         "information_disclosure_premature_reveal_absent",
         "information_disclosure_contract_pass",
+        "expectation_variation_policy_present",
+        "expectation_variation_target_selected",
+        "expectation_variation_budget_pass",
+        "expectation_variation_setup_supported",
+        "expectation_variation_contract_pass",
         "dramatic_irony_opportunity_present",
         "dramatic_irony_contract_pass",
         "consequence_cascade_policy_present",
@@ -649,6 +654,17 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "information_disclosure_premature_reveal_absent",
     "information_disclosure_contract_pass",
     "information_disclosure_failure_codes",
+    "expectation_variation_policy_present",
+    "expectation_variation_target_selected",
+    "expectation_variation_selected_ids",
+    "expectation_variation_selected_types",
+    "expectation_variation_realized_ids",
+    "expectation_variation_realized_types",
+    "expectation_variation_budget_used",
+    "expectation_variation_budget_pass",
+    "expectation_variation_setup_supported",
+    "expectation_variation_contract_pass",
+    "expectation_variation_failure_codes",
     "dramatic_irony_policy_present",
     "dramatic_irony_opportunity_present",
     "dramatic_irony_selected_opportunities",
@@ -806,6 +822,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_scene_energy_structured_realization"
     if failure.startswith("improv_") or failure.startswith("improvisational_coherence_"):
         return "repair_improvisational_coherence_structured_acceptance"
+    if failure.startswith("expectation_variation_"):
+        return "repair_expectation_variation_structured_selection"
     if "beat" in failure:
         return "repair_beat_realization_or_contract_classification"
     if "origin" in failure or "projection" in failure:
@@ -827,6 +845,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
     relationship_state_rec = _aspect_record(ledger, "relationship_state")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
+    expectation_variation_rec = _aspect_record(ledger, "expectation_variation")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     callback_rec = _aspect_record(ledger, "callback_web")
     cascade_rec = _aspect_record(ledger, "consequence_cascade")
@@ -859,6 +878,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     disclosure_expected = _aspect_block(disclosure_rec, "expected")
     disclosure_selected = _aspect_block(disclosure_rec, "selected")
     disclosure_actual = _aspect_block(disclosure_rec, "actual")
+    expectation_variation_expected = _aspect_block(expectation_variation_rec, "expected")
+    expectation_variation_selected = _aspect_block(expectation_variation_rec, "selected")
+    expectation_variation_actual = _aspect_block(expectation_variation_rec, "actual")
     dramatic_irony_expected = _aspect_block(dramatic_irony_rec, "expected")
     dramatic_irony_selected = _aspect_block(dramatic_irony_rec, "selected")
     dramatic_irony_actual = _aspect_block(dramatic_irony_rec, "actual")
@@ -980,6 +1002,11 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
+    expectation_variation_failure_codes = (
+        expectation_variation_actual.get("failure_codes") or []
+    )
+    if not isinstance(expectation_variation_failure_codes, list):
+        expectation_variation_failure_codes = []
     dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
     if not isinstance(dramatic_irony_violation_codes, list):
         dramatic_irony_violation_codes = []
@@ -1004,6 +1031,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             social_pressure_rec,
             relationship_state_rec,
             disclosure_rec,
+            expectation_variation_rec,
             dramatic_irony_rec,
             callback_rec,
             cascade_rec,
@@ -1025,6 +1053,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             social_pressure_rec,
             relationship_state_rec,
             disclosure_rec,
+            expectation_variation_rec,
             dramatic_irony_rec,
             callback_rec,
             cascade_rec,
@@ -1258,6 +1287,52 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("information_disclosure_contract_pass")
         ),
         "information_disclosure_failure_codes": disclosure_failure_codes,
+        "expectation_variation_policy_present": (
+            expectation_variation_expected.get("policy_present")
+            if "policy_present" in expectation_variation_expected
+            else det_scores.get("expectation_variation_policy_present")
+        ),
+        "expectation_variation_target_selected": (
+            bool(expectation_variation_selected.get("selected_variation_ids"))
+            if expectation_variation_selected
+            else det_scores.get("expectation_variation_target_selected")
+        ),
+        "expectation_variation_selected_ids": expectation_variation_selected.get(
+            "selected_variation_ids"
+        )
+        or [],
+        "expectation_variation_selected_types": expectation_variation_selected.get(
+            "selected_variation_types"
+        )
+        or [],
+        "expectation_variation_realized_ids": expectation_variation_actual.get(
+            "realized_variation_ids"
+        )
+        or [],
+        "expectation_variation_realized_types": expectation_variation_actual.get(
+            "realized_variation_types"
+        )
+        or [],
+        "expectation_variation_budget_used": expectation_variation_actual.get(
+            "budget_used"
+        ),
+        "expectation_variation_budget_pass": (
+            "expectation_variation_over_budget" not in expectation_variation_failure_codes
+            if expectation_variation_actual
+            else det_scores.get("expectation_variation_budget_pass")
+        ),
+        "expectation_variation_setup_supported": (
+            "expectation_variation_unearned_event" not in expectation_variation_failure_codes
+            and "expectation_variation_target_mismatch" not in expectation_variation_failure_codes
+            if expectation_variation_actual
+            else det_scores.get("expectation_variation_setup_supported")
+        ),
+        "expectation_variation_contract_pass": (
+            expectation_variation_actual.get("contract_pass")
+            if "contract_pass" in expectation_variation_actual
+            else det_scores.get("expectation_variation_contract_pass")
+        ),
+        "expectation_variation_failure_codes": expectation_variation_failure_codes,
         "dramatic_irony_policy_present": (
             dramatic_irony_expected.get("policy_present")
             if "policy_present" in dramatic_irony_expected

@@ -329,6 +329,43 @@ source fields such as `thread_pressure_state`, `social_risk_band`, and
 `thread_pressure_level`. Generated narration, copied dialogue, frontend card
 shape, and judge labels are never the pass/fail oracle.
 
+### Relationship State / Pi27
+
+Relationship state is implemented as the generic `relationship_state` runtime
+aspect backed by the `relationship_state_machine` module policy. It is a
+durable, bounded state machine for relationship dynamics: pair scores, axis
+aggregates, transition events, target ids, pressure band, and structured
+validation. It consumes canonical relationship definitions, structured social
+state, social pressure, NPC initiative-pressure edges, continuity evidence, and
+the latest committed `prior_relationship_state_record`. It does not replace
+canonical relationship content, actor-lane safety, committed truth, or visible
+narration, and it must not become a prose psychology judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.relationship_state_machine` into `runtime_governance_policy.relationship_state_machine`;
+- LangGraph derives `relationship_state_record` and `relationship_dynamics_target` after expectation variation and before opt-in meta-narrative awareness / context synthesis;
+- the dramatic generation packet receives bounded durable `relationship_state` plus the existing `relationship_dynamics_context`;
+- structured output may emit `relationship_dynamics_events` with actor ids, relationship ids, axis ids, and transition codes;
+- validation checks schema bounds, selected target ids, allowed transition codes, and actor-lane compatibility;
+- recoverable failures feed self-correction with bounded `relationship_state_*` failure codes;
+- `turn_aspect_ledger.relationship_state` records policy presence, target ids, pressure band, pair/axis/event counts, contract pass, and failure codes;
+- World-Engine persists `relationship_state_record`, `relationship_dynamics_target`, and `relationship_state_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_relationship_state_record`;
+- Langfuse and MCP expose target presence, pressure band, pair count, transition-event count, pass/fail, and failure-code evidence.
+
+The committed relationship state is bounded planner feedback, not a second
+canon store. It may shape the next turn and operator diagnostics, but it does
+not mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, canonical relationship content,
+structured social-state fields, NPC initiative graph edges, planner-truth
+rehydration, ledger/MCP fields, and structured
+`relationship_dynamics_events`. Generated narration, copied dialogue, frontend
+card shape, judge labels, and hand-written GoC relationship truth are never the
+pass/fail oracle.
+
 ### Sensory Context / Pi26
 
 Sensory context is implemented as the generic `sensory_context` runtime aspect.

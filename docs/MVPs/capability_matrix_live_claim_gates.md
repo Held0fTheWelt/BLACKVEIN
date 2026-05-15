@@ -76,6 +76,7 @@ Allowed cross-reference examples:
 | Π24 | `improvisational_coherence` |
 | Π25 | `meta_narrative_awareness` |
 | Π26 | `sensory_context` |
+| Π27 | `relationship_state` / `relationship_state_machine` |
 
 Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.
 

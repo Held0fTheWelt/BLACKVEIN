@@ -95,6 +95,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
+    ASPECT_EXPECTATION_VARIATION,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INFORMATION_DISCLOSURE,
@@ -3073,6 +3074,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("social_pressure_validation"), dict)
             else {}
         ),
+        "expectation_variation_state": (
+            graph_state.get("expectation_variation_state")
+            if isinstance(graph_state.get("expectation_variation_state"), dict)
+            else scene_plan_record.get("expectation_variation_state")
+            if isinstance(scene_plan_record.get("expectation_variation_state"), dict)
+            else {}
+        ),
+        "expectation_variation_target": (
+            graph_state.get("expectation_variation_target")
+            if isinstance(graph_state.get("expectation_variation_target"), dict)
+            else scene_plan_record.get("expectation_variation_target")
+            if isinstance(scene_plan_record.get("expectation_variation_target"), dict)
+            else {}
+        ),
+        "expectation_variation_validation": (
+            graph_state.get("expectation_variation_validation")
+            if isinstance(graph_state.get("expectation_variation_validation"), dict)
+            else {}
+        ),
         "legacy_keyword_scene_candidates_used": bool(
             multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
         ),
@@ -3889,6 +3909,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
     disclosure_selected = _selected(ASPECT_INFORMATION_DISCLOSURE)
     disclosure_actual = _actual(ASPECT_INFORMATION_DISCLOSURE)
+    expectation_variation_selected = _selected(ASPECT_EXPECTATION_VARIATION)
+    expectation_variation_actual = _actual(ASPECT_EXPECTATION_VARIATION)
     dramatic_irony_selected = _selected(ASPECT_DRAMATIC_IRONY)
     dramatic_irony_actual = _actual(ASPECT_DRAMATIC_IRONY)
     narrative_selected = _selected(ASPECT_NARRATIVE_ASPECT)
@@ -4028,6 +4050,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             },
         ),
         (
+            "story.expectation_variation.select",
+            ASPECT_EXPECTATION_VARIATION,
+            {
+                "selected": expectation_variation_selected,
+                "aspect_record": _rec(ASPECT_EXPECTATION_VARIATION),
+            },
+        ),
+        (
+            "story.expectation_variation.validate",
+            ASPECT_EXPECTATION_VARIATION,
+            {
+                "actual": expectation_variation_actual,
+                "aspect_record": _rec(ASPECT_EXPECTATION_VARIATION),
+            },
+        ),
+        (
             "story.dramatic_irony.select",
             ASPECT_DRAMATIC_IRONY,
             {
@@ -4120,6 +4158,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_SENSORY_CONTEXT,
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
+                        ASPECT_EXPECTATION_VARIATION,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
@@ -4223,6 +4262,11 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
+    expectation_variation_failure_codes = (
+        expectation_variation_actual.get("failure_codes") or []
+    )
+    if not isinstance(expectation_variation_failure_codes, list):
+        expectation_variation_failure_codes = []
     dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
     if not isinstance(dramatic_irony_violation_codes, list):
         dramatic_irony_violation_codes = []
@@ -4482,6 +4526,48 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                 in {"passed", "not_applicable"}
                 and disclosure_actual.get("contract_pass") is not False
                 and not disclosure_failure_codes
+            ),
+        ),
+        (
+            "expectation_variation_policy_present",
+            ASPECT_EXPECTATION_VARIATION,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_EXPECTATION_VARIATION).get("policy_present"))
+            ),
+        ),
+        (
+            "expectation_variation_target_selected",
+            ASPECT_EXPECTATION_VARIATION,
+            _runtime_aspect_score_value(
+                bool(expectation_variation_selected.get("selected_variation_ids"))
+            ),
+        ),
+        (
+            "expectation_variation_budget_pass",
+            ASPECT_EXPECTATION_VARIATION,
+            _runtime_aspect_score_value(
+                "expectation_variation_over_budget"
+                not in expectation_variation_failure_codes
+            ),
+        ),
+        (
+            "expectation_variation_setup_supported",
+            ASPECT_EXPECTATION_VARIATION,
+            _runtime_aspect_score_value(
+                "expectation_variation_unearned_event"
+                not in expectation_variation_failure_codes
+                and "expectation_variation_target_mismatch"
+                not in expectation_variation_failure_codes
+            ),
+        ),
+        (
+            "expectation_variation_contract_pass",
+            ASPECT_EXPECTATION_VARIATION,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_EXPECTATION_VARIATION).get("status")
+                in {"passed", "not_applicable"}
+                and expectation_variation_actual.get("contract_pass") is not False
+                and not expectation_variation_failure_codes
             ),
         ),
         (
@@ -6723,6 +6809,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "social_pressure_state",
         "social_pressure_target",
         "social_pressure_validation",
+        "expectation_variation_state",
+        "expectation_variation_target",
+        "expectation_variation_validation",
         "spoken_line_count",
         "action_line_count",
         "initiative_summary",
@@ -6814,6 +6903,23 @@ def _prior_relationship_state_record_from_session(session: "StorySession") -> di
         if not isinstance(planner, dict):
             continue
         state = planner.get("relationship_state_record")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
+def _prior_expectation_variation_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed expectation-variation state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("expectation_variation_state")
         if isinstance(state, dict) and state:
             return dict(state)
     return None
@@ -8613,6 +8719,12 @@ class StoryRuntimeManager:
             gov["social_pressure_target"] = graph_state.get("social_pressure_target")
         if isinstance(graph_state.get("social_pressure_validation"), dict):
             gov["social_pressure_validation"] = graph_state.get("social_pressure_validation")
+        if isinstance(graph_state.get("expectation_variation_state"), dict):
+            gov["expectation_variation_state"] = graph_state.get("expectation_variation_state")
+        if isinstance(graph_state.get("expectation_variation_target"), dict):
+            gov["expectation_variation_target"] = graph_state.get("expectation_variation_target")
+        if isinstance(graph_state.get("expectation_variation_validation"), dict):
+            gov["expectation_variation_validation"] = graph_state.get("expectation_variation_validation")
         if isinstance(session.environment_state, dict) and session.environment_state:
             gov["environment_state"] = session.environment_state
         # Story Runtime Experience packaging: re-pack the visible bundle

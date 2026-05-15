@@ -10,6 +10,23 @@ If a future run records ADR-0041 capability-selection evidence, mark it as selec
 
 Historical entries may include machine-local absolute paths because they preserve the command transcript from that workstation. Treat those paths as local environment evidence only, not as portable instructions or live/staging proof. New entries should prefer repo-relative commands, `REPO_ROOT`, or `$PWD`-relative invocation notes whenever practical.
 
+## Local verification snapshot for Π27 / relationship state machine
+
+Latest local verification recorded for the bounded durable relationship-state implementation:
+
+- `claude-context` semantic search was used to re-locate the existing Π27 relationship-dynamics surfaces, ADR-0039 boundaries, runtime aspect patterns, planner-truth persistence seams, Langfuse/MCP extraction, and documentation drift points before the concrete code/test pass.
+- `python -m py_compile ai_stack/relationship_state_contracts.py ai_stack/relationship_state_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py ai_stack/tests/test_relationship_state_machine.py ai_stack/tests/test_wave3_multi_actor_vitality.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py world-engine/tests/test_planner_truth_and_runtime_surfaces.py` -> passed.
+- `python -m pytest ai_stack/tests/test_relationship_state_machine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_wave3_multi_actor_vitality.py -q --tb=short` -> 61 passed.
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` -> 8 passed.
+- `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 31 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 11 passed.
+
+This evidence is local-only. It proves the contract/runtime/persistence/ledger/MCP wiring for the bounded relationship-state machine, but it is not live-provider or staging proof.
+
+ADR-0039 discipline for Π27: relationship-state tests derive pass/fail evidence from exported schema-version constants, transition/failure-code vocabularies, normalized module policy, canonical relationship content, structured social-state fields, NPC initiative edges, planner-truth rehydration, and ledger/MCP fields. Fixture strings are stimuli or ids only; no generated relationship prose, authored dialogue example, frontend card shape, or LLM-as-a-Judge relationship label is used as the primary oracle.
+
+---
+
 ## Local verification snapshot for Π1-Π13 / ADR-0039 re-audit
 
 Latest local re-audit for the implemented/partial Π1-Π13 rows:
