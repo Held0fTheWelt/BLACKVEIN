@@ -84,7 +84,7 @@ def _interpret_player_empty_or_noise(
             kind=InterpretedInputKind.AMBIGUOUS,
             confidence=0.0,
             ambiguity="empty_input",
-            intent=None,
+            intent="withheld_response_or_silence",
             selected_handling_path="nl_runtime",
             runtime_delivery_hint=RuntimeDeliveryHint.NARRATIVE_BODY,
         )
@@ -95,7 +95,7 @@ def _interpret_player_empty_or_noise(
             kind=InterpretedInputKind.AMBIGUOUS,
             confidence=0.15,
             ambiguity="no_lexical_tokens",
-            intent="uncertain",
+            intent="withheld_response_or_silence",
             selected_handling_path="nl_runtime",
             runtime_delivery_hint=RuntimeDeliveryHint.NARRATIVE_BODY,
         )

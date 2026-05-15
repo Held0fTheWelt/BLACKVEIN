@@ -196,6 +196,10 @@ def _secondary_dramatic_features(
 
     if features.get("syn_pause") or features.get("syn_silence"):
         _push("defensive_pause_signal")
+    if features.get("interpreted_silence_signal"):
+        _push("interpreter_silence_signal")
+    if features.get("non_lexical_silence_signal"):
+        _push("non_lexical_silence_signal")
     if features.get("syn_deflect"):
         _push("evasive_deflection_signal")
     if features.get("syn_escalate"):
@@ -283,6 +287,18 @@ def interpret_goc_semantic_move(
     player_action_committed = bool(inp.get("player_action_committed"))
     player_speech_committed = bool(inp.get("player_speech_committed"))
     intent_s = str(inp.get("intent") or mv.get("player_intent") or "")
+    intent_norm = _normalize(f"{intent_s} {mv.get('player_intent', '')}")
+    ambiguity = str(inp.get("ambiguity") or "").strip().lower()
+    no_lexical_silence = (
+        raw == ""
+        or ambiguity in {"empty_input", "no_lexical_tokens", "punctuation_only"}
+        or player_input_kind == "wait_or_observe"
+    )
+    interpreted_silence_signal = (
+        "withheld_response_or_silence" in intent_norm
+        or "silence" in intent_norm
+        or no_lexical_silence
+    )
     trace.append(
         InterpretationTraceItem(
             step_id="read_interpreted_signals",
@@ -297,12 +313,14 @@ def interpret_goc_semantic_move(
         "syn_repair": _contains_syn(combined, _REPAIR_SYN),
         "syn_deflect": _contains_syn(combined, _DEFLECT_SYN),
         "syn_expose": _contains_syn(combined, _EXPOSE_SYN),
-        "syn_silence": _contains_syn(combined, _SILENCE_SYN),
-        "syn_pause": _contains_syn(combined, _PAUSE_SYN),
+        "syn_silence": _contains_syn(combined, _SILENCE_SYN) or interpreted_silence_signal,
+        "syn_pause": _contains_syn(combined, _PAUSE_SYN) or no_lexical_silence,
         "syn_alliance": _contains_syn(combined, _ALLIANCE_SYN),
         "syn_probe": _contains_syn(combined, _PROBE_SYN),
         "syn_reveal": _contains_syn(combined, _REVEAL_SYN),
         "syn_escalate": _contains_syn(combined, _ESCALATE_SYN),
+        "interpreted_silence_signal": interpreted_silence_signal,
+        "non_lexical_silence_signal": no_lexical_silence,
         "prior_blame_pressure": "blame_pressure" in prior,
         "prior_alliance_shift": "alliance_shift" in prior,
         "player_input_kind": player_input_kind,

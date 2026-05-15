@@ -12,6 +12,8 @@ from story_runtime_core.model_registry import build_default_registry
 langgraph_runtime = pytest.importorskip("ai_stack.langgraph_runtime", reason="LangGraph required")
 from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
+from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
+from ai_stack.silence_negative_space_contract import SILENCE_NEGATIVE_SPACE_CONTRACT_VERSION
 
 
 class _NarrAdapter(BaseModelAdapter):
@@ -89,3 +91,30 @@ def test_indirect_provocation_without_blame_keyword(tmp_path: Path) -> None:
     )
     sm = result.get("semantic_move_record") or {}
     assert sm.get("move_type") in ("indirect_provocation", "establish_situational_pressure", "direct_accusation")
+
+
+def test_pi14_no_lexical_silence_reaches_director_pipeline(tmp_path: Path) -> None:
+    g = _graph(tmp_path)
+    result = g.run(
+        session_id="pi14-silence",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="...",
+        trace_id="tg-pi14",
+    )
+
+    interpreted = result.get("interpreted_input") or {}
+    assert interpreted.get("pi14_silence_signal") is True
+    assert interpreted.get("pi14_silence_signal_source") == "non_lexical_input"
+
+    sm = result.get("semantic_move_record") or {}
+    assert sm.get("move_type") == "silence_withdrawal"
+    assert sm.get("move_type") in SEMANTIC_MOVE_TYPES
+
+    sp = result.get("scene_plan_record") or {}
+    silence = sp.get("silence_brevity_decision") or {}
+    assert sp.get("selected_scene_function") == "withhold_or_evade"
+    assert silence.get("contract") == SILENCE_NEGATIVE_SPACE_CONTRACT_VERSION
+    assert silence.get("mode") == "withheld"
+    assert silence.get("blocks_forced_speech") is True
+    assert silence.get("requires_visible_beat") is True

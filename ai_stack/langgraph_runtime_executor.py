@@ -63,6 +63,8 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_DRAMATIC_IRONY,
+    ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
@@ -73,6 +75,12 @@ from ai_stack.runtime_aspect_ledger import (
     initialize_runtime_aspect_ledger,
     make_aspect_record,
     set_aspect_record,
+)
+from ai_stack.dramatic_irony_runtime import (
+    build_dramatic_irony_aspect_record,
+    build_dramatic_irony_record,
+    compact_dramatic_irony_context,
+    validate_dramatic_irony_realization,
 )
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.dramatic_capability_contracts import (
@@ -86,6 +94,13 @@ from ai_stack.dramatic_capability_contracts import (
     NARRATOR_PERCEPTION_RESULT_DESCRIBE,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
+from ai_stack.environment_state_contracts import (
+    apply_action_to_environment_state,
+    build_environment_generation_context,
+    build_environment_model,
+    build_environment_render_context,
+    normalize_environment_state,
+)
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -111,6 +126,10 @@ from ai_stack.npc_agency_contracts import (
 )
 from ai_stack.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.information_disclosure_engine import (
+    derive_information_disclosure,
+    validate_information_disclosure_realization,
+)
 from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
@@ -997,6 +1016,72 @@ def _scene_energy_aspect_record(
     )
 
 
+def _information_disclosure_aspect_record(
+    *,
+    target: dict[str, Any] | None,
+    validation: dict[str, Any] | None = None,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    target_dict = target if isinstance(target, dict) else {}
+    validation_dict = validation if isinstance(validation, dict) else {}
+    policy_dict = policy if isinstance(policy, dict) else {}
+    failure_codes = [
+        str(code)
+        for code in (validation_dict.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    validation_status = str(validation_dict.get("status") or "").strip().lower()
+    policy_present = bool(policy_dict.get("units") or target_dict.get("policy_enabled"))
+    if not validation_dict:
+        aspect_status = "partial" if target_dict.get("policy_enabled") else "not_applicable"
+    elif validation_status == "approved":
+        aspect_status = "passed"
+    elif validation_status == "not_applicable":
+        aspect_status = "not_applicable"
+    elif validation_status == "degraded":
+        aspect_status = "partial"
+    else:
+        aspect_status = "failed"
+    actual = (
+        dict(validation_dict.get("actual"))
+        if isinstance(validation_dict.get("actual"), dict)
+        else {}
+    )
+    actual.update(
+        {
+            "validation_status": validation_status or None,
+            "contract_pass": validation_dict.get("contract_pass"),
+            "failure_codes": failure_codes,
+        }
+    )
+    return make_aspect_record(
+        applicable=policy_present or bool(target_dict.get("policy_enabled")),
+        status=aspect_status,
+        expected={
+            "schema_version": target_dict.get("schema_version"),
+            "policy_present": policy_present,
+            "policy_enabled": bool(target_dict.get("policy_enabled")),
+            "commit_impact": target_dict.get("commit_impact"),
+            "require_structured_events": bool(target_dict.get("require_structured_events")),
+            "max_visible_units_per_turn": int(target_dict.get("max_visible_units_per_turn") or 0),
+        },
+        selected={
+            "selected_unit_ids": target_dict.get("selected_unit_ids") or [],
+            "allowed_unit_ids": target_dict.get("allowed_unit_ids") or [],
+            "withheld_unit_ids": target_dict.get("withheld_unit_ids") or [],
+            "forbidden_unit_ids": target_dict.get("forbidden_unit_ids") or [],
+            "selected_units": target_dict.get("selected_units") or [],
+            "disclosure_mode": target_dict.get("disclosure_mode"),
+        },
+        actual=actual,
+        reasons=failure_codes
+        or (["information_disclosure_target_selected"] if target_dict.get("selected_unit_ids") and not validation_dict else []),
+        source="runtime" if not validation_dict else "validator",
+        failure_class="recoverable_dramatic_failure" if failure_codes else None,
+        failure_reason=failure_codes[0] if failure_codes else None,
+    )
+
+
 def _npc_agency_plan_from_state(state: "RuntimeTurnState") -> dict[str, Any] | None:
     packet = (
         state.get("dramatic_generation_packet")
@@ -1229,6 +1314,48 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "scene_energy_validation": scene_energy_validation,
     }
+    information_disclosure_validation = validate_information_disclosure_realization(
+        information_disclosure_target=state.get("information_disclosure_target")
+        if isinstance(state.get("information_disclosure_target"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_INFORMATION_DISCLOSURE,
+        _information_disclosure_aspect_record(
+            target=state.get("information_disclosure_target")
+            if isinstance(state.get("information_disclosure_target"), dict)
+            else None,
+            validation=information_disclosure_validation,
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "information_disclosure_validation": information_disclosure_validation,
+    }
+    dramatic_irony_validation = validate_dramatic_irony_realization(
+        record=state.get("dramatic_irony_record")
+        if isinstance(state.get("dramatic_irony_record"), dict)
+        else None,
+        generation=generation,
+        proposed_state_effects=proposed_state_effects,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_DRAMATIC_IRONY,
+        build_dramatic_irony_aspect_record(
+            record=state.get("dramatic_irony_record")
+            if isinstance(state.get("dramatic_irony_record"), dict)
+            else None,
+            validation=dramatic_irony_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "dramatic_irony_validation": dramatic_irony_validation,
+    }
     npc_agency_plan = _npc_agency_plan_from_state(state)
     actor_lane_context = (
         state.get("actor_lane_context")
@@ -1371,6 +1498,46 @@ def _build_runtime_aspect_validation(
             "failure_codes": scene_energy_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
+    information_disclosure_failure = None
+    if (
+        isinstance(information_disclosure_validation, dict)
+        and str(information_disclosure_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        disclosure_codes = [
+            str(code)
+            for code in (information_disclosure_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        information_disclosure_failure = {
+            "failure_reason": str(
+                information_disclosure_validation.get("feedback_code")
+                or (
+                    disclosure_codes[0]
+                    if disclosure_codes
+                    else "information_disclosure_validation_failed"
+                )
+            ),
+            "failure_codes": disclosure_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    dramatic_irony_failure = None
+    if (
+        isinstance(dramatic_irony_validation, dict)
+        and str(dramatic_irony_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        irony_codes = [
+            str(code)
+            for code in (dramatic_irony_validation.get("violation_codes") or [])
+            if str(code).strip()
+        ]
+        dramatic_irony_failure = {
+            "failure_reason": str(
+                dramatic_irony_validation.get("feedback_code")
+                or (irony_codes[0] if irony_codes else "dramatic_irony_validation_failed")
+            ),
+            "violation_codes": irony_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     npc_agency_failure = None
     if (
         isinstance(npc_initiative_validation, dict)
@@ -1473,6 +1640,26 @@ def _build_runtime_aspect_validation(
             "npc_agency_failure": npc_agency_failure,
         }
     elif (
+        dramatic_irony_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            dramatic_irony_failure.get("failure_reason")
+            or "dramatic_irony_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "dramatic_irony_validation_v1",
+            "dramatic_irony_contract_violation": True,
+            "failure_class": dramatic_irony_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "dramatic_irony_failure": dramatic_irony_failure,
+        }
+    elif (
         scene_energy_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -1488,6 +1675,26 @@ def _build_runtime_aspect_validation(
             "hard_boundary_failure": False,
             "recoverable_rejection": True,
             "scene_energy_failure": scene_energy_failure,
+        }
+    elif (
+        information_disclosure_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            information_disclosure_failure.get("failure_reason")
+            or "information_disclosure_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "information_disclosure_validation_v1",
+            "information_disclosure_contract_violation": True,
+            "failure_class": information_disclosure_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "information_disclosure_failure": information_disclosure_failure,
         }
     else:
         next_outcome = {
@@ -1518,6 +1725,22 @@ def _build_runtime_aspect_validation(
                     else None
                 ),
                 "scene_energy_contract_violation": bool(next_outcome.get("scene_energy_contract_violation")),
+                "information_disclosure_validation_status": (
+                    information_disclosure_validation.get("status")
+                    if isinstance(information_disclosure_validation, dict)
+                    else None
+                ),
+                "information_disclosure_contract_violation": bool(
+                    next_outcome.get("information_disclosure_contract_violation")
+                ),
+                "dramatic_irony_validation_status": (
+                    dramatic_irony_validation.get("status")
+                    if isinstance(dramatic_irony_validation, dict)
+                    else None
+                ),
+                "dramatic_irony_contract_violation": bool(
+                    next_outcome.get("dramatic_irony_contract_violation")
+                ),
                 "npc_initiative_validation_status": (
                     npc_initiative_validation.get("status")
                     if isinstance(npc_initiative_validation, dict)
@@ -1569,10 +1792,14 @@ def _build_runtime_aspect_validation(
         "capability_selection": capability_selection,
         "voice_consistency_validation": voice_validation,
         "scene_energy_validation": scene_energy_validation,
+        "information_disclosure_validation": information_disclosure_validation,
+        "dramatic_irony_validation": dramatic_irony_validation,
         "npc_initiative_validation": npc_initiative_validation,
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
         "scene_energy_failure": scene_energy_failure,
+        "information_disclosure_failure": information_disclosure_failure,
+        "dramatic_irony_failure": dramatic_irony_failure,
         "npc_agency_failure": npc_agency_failure,
     }
 
@@ -2313,6 +2540,11 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         npc_actor_ids=allowed_actor_ids,
         compact_minds=compact_minds,
     )
+    dramatic_irony_context = compact_dramatic_irony_context(
+        state.get("dramatic_irony_record")
+        if isinstance(state.get("dramatic_irony_record"), dict)
+        else None
+    )
 
     prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
     continuity_constraints: list[dict[str, str]] = []
@@ -2381,6 +2613,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "npc_agency_simulation": npc_agency_simulation,
         "npc_agency_plan": npc_agency_plan,
         "npc_initiative_directives": npc_initiative_directives,
+        "dramatic_irony_context": dramatic_irony_context,
         "pacing_mode": state.get("pacing_mode"),
         "silence_brevity_decision": state.get("silence_brevity_decision")
         if isinstance(state.get("silence_brevity_decision"), dict)
@@ -2392,6 +2625,15 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "transition": state.get("scene_energy_transition")
             if isinstance(state.get("scene_energy_transition"), dict)
             else {},
+        },
+        "information_disclosure": {
+            "target": state.get("information_disclosure_target")
+            if isinstance(state.get("information_disclosure_target"), dict)
+            else {},
+            "instruction": (
+                "Emit disclosure_events only for selected_unit_ids when relevant. "
+                "Do not reveal forbidden_unit_ids; withheld units may be implied only as pressure, not confirmed truth."
+            ),
         },
         "semantic_interpretation": {
             "primary_move_type": semantic.get("move_type"),
@@ -2423,6 +2665,13 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "narrative_scope": scene_assessment.get("narrative_scope"),
         },
     }
+    environment_state = state.get("environment_state") if isinstance(state.get("environment_state"), dict) else {}
+    environment_model = state.get("environment_model") if isinstance(state.get("environment_model"), dict) else {}
+    if environment_state or environment_model:
+        packet["environment_context"] = build_environment_generation_context(
+            environment_state=environment_state,
+            environment_model=environment_model,
+        )
     knowledge_contract = (
         state.get("goc_runtime_knowledge_contract")
         if isinstance(state.get("goc_runtime_knowledge_contract"), dict)
@@ -2553,6 +2802,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("director_assess_scene", self._director_assess_scene)
         graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
         graph.add_node("derive_scene_energy", self._derive_scene_energy)
+        graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
+        graph.add_node("derive_dramatic_irony", self._derive_dramatic_irony)
         graph.add_node("synthesize_context", self._synthesize_context)
         graph.add_node("assemble_model_context", self._assemble_model_context)
         graph.add_node("route_model", self._route_model)
@@ -2578,7 +2829,9 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
         graph.add_edge("director_select_dramatic_parameters", "derive_scene_energy")
-        graph.add_edge("derive_scene_energy", "synthesize_context")
+        graph.add_edge("derive_scene_energy", "derive_information_disclosure")
+        graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
+        graph.add_edge("derive_dramatic_irony", "synthesize_context")
         graph.add_edge("synthesize_context", "assemble_model_context")
         graph.add_edge("assemble_model_context", "route_model")
         graph.add_edge("route_model", "invoke_model")
@@ -2625,6 +2878,7 @@ class RuntimeTurnGraphExecutor:
         session_output_language: str | None = None,
         story_runtime_experience: dict[str, Any] | None = None,
         validation_execution_mode: str | None = None,
+        environment_state: dict[str, Any] | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -2708,11 +2962,13 @@ class RuntimeTurnGraphExecutor:
             ),
         }
         try:
-            initial_state["module_runtime_policy"] = load_module_runtime_policy(
+            module_policy = load_module_runtime_policy(
                 module_id=module_id,
                 runtime_profile_id=runtime_profile_id,
             ).to_dict()
+            initial_state["module_runtime_policy"] = module_policy
         except Exception as exc:
+            module_policy = {}
             initial_state["module_runtime_policy"] = {
                 "schema_version": "module_runtime_policy.v1",
                 "module_id": module_id,
@@ -2720,6 +2976,19 @@ class RuntimeTurnGraphExecutor:
                 "policy_load_status": "failed",
                 "failure_reason": str(exc),
             }
+        env_model = build_environment_model(
+            module_id=module_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+        initial_state["environment_model"] = env_model
+        initial_state["environment_state"] = normalize_environment_state(
+            environment_state,
+            module_id=module_id,
+            environment_model=env_model,
+            runtime_projection=host_experience_template,
+            actor_lane_context=actor_lane_context,
+            turn_number=effective_turn_number,
+        )
         if turn_number is not None:
             initial_state["turn_number"] = int(turn_number)
         if turn_input_class is not None:
@@ -2779,6 +3048,17 @@ class RuntimeTurnGraphExecutor:
         actor_for_event = human_actor_id or selected_player_role or None
         raw_pi = str(state.get("player_input") or "").strip()
         kind_raw = str(interp_dict.get("kind") or "").strip().lower()
+        interp_intent = str(interp_dict.get("intent") or "").strip().lower()
+        interp_ambiguity = str(interp_dict.get("ambiguity") or "").strip().lower()
+        pi14_no_lexical_silence = (
+            not raw_pi
+            or interp_ambiguity in {"empty_input", "no_lexical_tokens", "punctuation_only"}
+        )
+        pi14_withheld_silence = (
+            "withheld_response_or_silence" in interp_intent
+            or "silence" in interp_intent
+            or pi14_no_lexical_silence
+        )
         session_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
         module_for_rules = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
         input_kind_map = {
@@ -2840,23 +3120,31 @@ class RuntimeTurnGraphExecutor:
                 interp_dict["kind"] = json_kind
                 kind_raw = json_kind
             else:
-                imap = {
-                    "speech": "speech",
-                    "action": "action",
-                    "mixed": "mixed",
-                    "reaction": "speech",
-                    "intent_only": "speech",
-                    # ambiguous social inputs (e.g. "I press someone") stay on full pipeline — keep as speech
-                    "ambiguous": "speech",
-                }
-                pik = imap.get(kind_raw, "speech")
+                if pi14_withheld_silence:
+                    pik = "wait_or_observe" if pi14_no_lexical_silence else "social_nonverbal_action"
+                else:
+                    imap = {
+                        "speech": "speech",
+                        "action": "action",
+                        "mixed": "mixed",
+                        "reaction": "speech",
+                        "intent_only": "speech",
+                        # ambiguous social inputs (e.g. "I press someone") stay on full pipeline — keep as speech
+                        "ambiguous": "speech",
+                    }
+                    pik = imap.get(kind_raw, "speech")
                 intent_fields["player_input_kind"] = pik
-                intent_fields["semantic_category"] = pik
+                intent_fields["semantic_category"] = "silence_withdrawal" if pi14_withheld_silence else pik
                 intent_fields["speech_projection_allowed"] = pik in SPEECH_PROJECTION_KINDS
                 intent_fields["projection_key"] = None
                 intent_fields["projection_captures"] = {}
                 flags = default_player_intent_commit_flags(pik)
                 intent_fields.update(flags)
+                if pi14_withheld_silence:
+                    intent_fields["pi14_silence_signal"] = True
+                    intent_fields["pi14_silence_signal_source"] = (
+                        "non_lexical_input" if pi14_no_lexical_silence else "withheld_response_or_silence"
+                    )
         input_kind = input_kind_map.get(kind_raw, "speech")
         if is_perception_like_player_input_kind(intent_fields.get("player_input_kind")):
             input_kind = "action"
@@ -3127,6 +3415,8 @@ class RuntimeTurnGraphExecutor:
             runtime_projection=runtime_projection,
             content_modules_root=None,
             player_local_context=state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None,
+            environment_state=state.get("environment_state") if isinstance(state.get("environment_state"), dict) else None,
+            environment_model=state.get("environment_model") if isinstance(state.get("environment_model"), dict) else None,
         )
         frame = resolution.get("player_action_frame") if isinstance(resolution.get("player_action_frame"), dict) else {}
         aff = resolution.get("affordance_resolution") if isinstance(resolution.get("affordance_resolution"), dict) else {}
@@ -3271,6 +3561,9 @@ class RuntimeTurnGraphExecutor:
         """Branch: full LLM pipeline vs synthetic action-resolution surface."""
         if not self.action_resolution_short_path_enabled:
             return "full_pipeline"
+        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        if bool(interp.get("pi14_silence_signal")):
+            return "full_pipeline"
         frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
         aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
         # Ontology fallback verb for unmatched ``action`` inputs — not a spatial
@@ -3331,6 +3624,10 @@ class RuntimeTurnGraphExecutor:
             content_modules_root=None,
             scene_affordance_model=state.get("scene_affordance_model") if isinstance(state.get("scene_affordance_model"), dict) else None,
             current_player_local_context=state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None,
+            environment_state=state.get("environment_state") if isinstance(state.get("environment_state"), dict) else None,
+            environment_model=state.get("environment_model") if isinstance(state.get("environment_model"), dict) else None,
+            actor_lane_context=state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else None,
+            turn_number=int(state.get("turn_number") or 0),
         )
         routing = dict(state.get("routing") or {})
         routing["action_resolution_branch"] = "authoritative_deterministic"
@@ -3410,12 +3707,19 @@ class RuntimeTurnGraphExecutor:
         _lct = _gen_meta.get("local_context_transition")
         _ncp = _gen_meta.get("narrator_consequence_plan")
         _uplc = _gen_meta.get("updated_player_local_context")
+        _env_candidate = _gen_meta.get("candidate_environment_state")
         if _lct:
             update["local_context_transition"] = _lct
         if _ncp:
             update["narrator_consequence_plan"] = _ncp
         if _uplc:
             update["player_local_context"] = _uplc
+        if isinstance(_env_candidate, dict) and _env_candidate:
+            update["environment_transition"] = {
+                "contract": "environment_transition.v1",
+                "candidate_state_available": True,
+                "source": "authoritative_action_resolution",
+            }
         update["turn_aspect_ledger"] = set_aspect_record(
             state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
             ASPECT_BEAT,
@@ -3513,6 +3817,23 @@ class RuntimeTurnGraphExecutor:
                     _value = yaml_slice.get(_knowledge_key)
                     if isinstance(_value, dict):
                         update[_knowledge_key] = _value
+                env_model = (
+                    state.get("environment_model")
+                    if isinstance(state.get("environment_model"), dict)
+                    else build_environment_model(module_id=str(module_id))
+                )
+                update["environment_model"] = env_model
+                update["environment_state"] = normalize_environment_state(
+                    state.get("environment_state")
+                    if isinstance(state.get("environment_state"), dict)
+                    else None,
+                    module_id=str(module_id),
+                    environment_model=env_model,
+                    actor_lane_context=state.get("actor_lane_context")
+                    if isinstance(state.get("actor_lane_context"), dict)
+                    else None,
+                    turn_number=int(state.get("turn_number") or 0),
+                )
                 update["knowledge_runtime_loaded"] = {
                     "opening_scene_sequence_loaded": bool(opening_scene_sequence),
                     "hard_forbidden_rules_loaded": bool(hard_forbidden_rules),
@@ -4062,6 +4383,153 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_information_disclosure(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_information_disclosure")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_information_disclosure(
+            scene_plan_record=scene_plan,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            pacing_mode=state.get("pacing_mode") if isinstance(state.get("pacing_mode"), str) else None,
+            prior_continuity_impacts=state.get("prior_continuity_impacts")
+            if isinstance(state.get("prior_continuity_impacts"), list)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if target:
+            scene_plan["information_disclosure_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["information_disclosure_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_INFORMATION_DISCLOSURE,
+            _information_disclosure_aspect_record(
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
+    def _derive_dramatic_irony(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_dramatic_irony")
+        responders = (
+            state.get("selected_responder_set")
+            if isinstance(state.get("selected_responder_set"), list)
+            else []
+        )
+        responder_ids: list[str] = []
+        for row in responders:
+            if not isinstance(row, dict):
+                continue
+            actor_id = str(row.get("actor_id") or row.get("responder_id") or "").strip()
+            if actor_id and actor_id not in responder_ids:
+                responder_ids.append(actor_id)
+
+        actor_lane_ctx = (
+            state.get("actor_lane_context")
+            if isinstance(state.get("actor_lane_context"), dict)
+            else {}
+        )
+        forbidden_actor_ids: set[str] = set()
+        for raw_actor_id in actor_lane_ctx.get("ai_forbidden_actor_ids") or []:
+            forbidden_actor_ids.update(expand_goc_actor_id_aliases(str(raw_actor_id)))
+        human_actor_id = str(actor_lane_ctx.get("human_actor_id") or "").strip()
+        forbidden_actor_ids.update(expand_goc_actor_id_aliases(human_actor_id))
+        allowed_actor_ids = npc_actor_ids_from_context(actor_lane_ctx)
+        if not allowed_actor_ids:
+            allowed_actor_ids = [
+                actor_id
+                for actor_id in responder_ids
+                if actor_id and actor_id not in forbidden_actor_ids
+            ]
+
+        minds = (
+            state.get("character_mind_records")
+            if isinstance(state.get("character_mind_records"), list)
+            else []
+        )
+        compact_minds: list[dict[str, Any]] = []
+        for row in minds[:4]:
+            if not isinstance(row, dict):
+                continue
+            compact_minds.append(
+                {
+                    "actor_id": row.get("runtime_actor_id") or row.get("character_key"),
+                    "formal_role_label": row.get("formal_role_label"),
+                    "tactical_posture": row.get("tactical_posture"),
+                    "pressure_response_bias": row.get("pressure_response_bias"),
+                }
+            )
+
+        _, _, npc_agency_simulation = _build_npc_agency_plan_projection(
+            state=state,
+            responders=responders,
+            responder_ids=responder_ids,
+            npc_actor_ids=allowed_actor_ids,
+            compact_minds=compact_minds,
+        )
+        if isinstance(npc_agency_simulation, dict):
+            update["npc_agency_simulation"] = npc_agency_simulation
+
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        dramatic_irony_record = build_dramatic_irony_record(
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            actor_lane_context=actor_lane_ctx,
+            selected_responder_set=responders,
+            character_mind_records=minds,
+            social_state_record=state.get("social_state_record")
+            if isinstance(state.get("social_state_record"), dict)
+            else None,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            scene_plan_record=scene_plan,
+            npc_agency_simulation=npc_agency_simulation
+            if isinstance(npc_agency_simulation, dict)
+            else state.get("npc_agency_simulation")
+            if isinstance(state.get("npc_agency_simulation"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            current_scene_id=state.get("current_scene_id")
+            if isinstance(state.get("current_scene_id"), str)
+            else None,
+            selected_scene_function=str(state.get("selected_scene_function") or "").strip()
+            or None,
+        )
+        scene_plan["dramatic_irony_record"] = dramatic_irony_record
+        update["scene_plan_record"] = scene_plan
+        update["dramatic_irony_record"] = dramatic_irony_record
+        update["turn_aspect_ledger"] = set_aspect_record(
+            update.get("turn_aspect_ledger")
+            if isinstance(update.get("turn_aspect_ledger"), dict)
+            else state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {},
+            ASPECT_DRAMATIC_IRONY,
+            build_dramatic_irony_aspect_record(
+                record=dramatic_irony_record,
+                validation=None,
+                source="runtime",
+            ),
+        )
+        return update
+
     def _build_context_synthesis_bundle_for_state(
         self,
         state: RuntimeTurnState,
@@ -4365,6 +4833,33 @@ class RuntimeTurnGraphExecutor:
                     desc = str(impact.get("description") or impact.get("summary") or impact.get("note") or "")
                     lines.append(f"- {cls}: {desc[:180]}")
 
+        dramatic_irony_context = (
+            dramatic_packet.get("dramatic_irony_context")
+            if isinstance(dramatic_packet.get("dramatic_irony_context"), dict)
+            else {}
+        )
+        irony_opportunities = (
+            dramatic_irony_context.get("opportunities")
+            if isinstance(dramatic_irony_context.get("opportunities"), list)
+            else []
+        )
+        if irony_opportunities:
+            lines.append("Dramatic Irony Context (bounded, non-omniscient):")
+            for row in irony_opportunities[:3]:
+                if not isinstance(row, dict):
+                    continue
+                lines.append(
+                    "- "
+                    f"opportunity_id={str(row.get('opportunity_id') or '')[:160]}, "
+                    f"ignorant_actor_id={str(row.get('ignorant_actor_id') or '')[:80]}, "
+                    f"surface_mode={str(row.get('allowed_surface_mode') or '')[:80]}, "
+                    f"risk_band={str(row.get('risk_band') or '')[:40]}"
+                )
+            lines.append(
+                "- rule: realize only through subtext, behavior, misread reaction, or withheld context; "
+                "do not state hidden intent or private motive as omniscient narration."
+            )
+
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else {}
         if state.get("module_id") == GOC_MODULE_ID and yslice:
             phase_key = str(scene_assess.get("guidance_phase_key") or "")
@@ -4411,7 +4906,8 @@ class RuntimeTurnGraphExecutor:
         lines.append(json.dumps(dramatic_packet, sort_keys=True))
         lines.append(
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
-            "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, and continuity constraints."
+            "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
+            "the information_disclosure target, and bounded dramatic_irony_context."
         )
 
         update = _track(state, node_name="assemble_model_context")
@@ -5163,6 +5659,9 @@ class RuntimeTurnGraphExecutor:
                 selected_responder_set=list(state.get("selected_responder_set") or [])
                 if isinstance(state.get("selected_responder_set"), list)
                 else [],
+                dramatic_irony_record=state.get("dramatic_irony_record")
+                if isinstance(state.get("dramatic_irony_record"), dict)
+                else None,
                 actor_lane_summary=actor_lane_sum,
             )
             # MVP2: Pass actor_lane_context from state so human-actor enforcement fires
@@ -5254,6 +5753,10 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "capability"
             elif isinstance(outcome.get("scene_energy_failure"), dict):
                 trigger_source = "scene_energy"
+            elif isinstance(outcome.get("information_disclosure_failure"), dict):
+                trigger_source = "information_disclosure"
+            elif isinstance(outcome.get("dramatic_irony_failure"), dict):
+                trigger_source = "dramatic_irony"
             runtime_aspect_failure_before_retry = (
                 dict(outcome.get("runtime_aspect_failure"))
                 if isinstance(outcome.get("runtime_aspect_failure"), dict)
@@ -5269,6 +5772,16 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("scene_energy_failure"), dict)
                 else None
             )
+            information_disclosure_failure_before_retry = (
+                dict(outcome.get("information_disclosure_failure"))
+                if isinstance(outcome.get("information_disclosure_failure"), dict)
+                else None
+            )
+            dramatic_irony_failure_before_retry = (
+                dict(outcome.get("dramatic_irony_failure"))
+                if isinstance(outcome.get("dramatic_irony_failure"), dict)
+                else None
+            )
             validation_feedback = {
                 "codes": list(decision.feedback_codes),
                 "attempt_index": attempt_index,
@@ -5278,6 +5791,8 @@ class RuntimeTurnGraphExecutor:
                 "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                 "capability_failure_before_retry": capability_failure_before_retry,
                 "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
+                "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
+                "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
                 if isinstance(actor_lane_validation, dict)
                 else None,
@@ -5317,6 +5832,8 @@ class RuntimeTurnGraphExecutor:
                     "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                     "capability_failure_before_retry": capability_failure_before_retry,
                     "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
+                    "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
+                    "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
                     "failure_reason_after_retry": outcome.get("reason"),
                     "context_synthesis_retry": retry_context_synthesis_diagnostics,
@@ -5397,6 +5914,14 @@ class RuntimeTurnGraphExecutor:
             update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
         if isinstance(validation_eval.get("scene_energy_validation"), dict):
             update["scene_energy_validation"] = validation_eval["scene_energy_validation"]
+        if isinstance(validation_eval.get("information_disclosure_validation"), dict):
+            update["information_disclosure_validation"] = validation_eval[
+                "information_disclosure_validation"
+            ]
+        if isinstance(validation_eval.get("dramatic_irony_validation"), dict):
+            update["dramatic_irony_validation"] = validation_eval["dramatic_irony_validation"]
+            if isinstance(validation_eval["dramatic_irony_validation"].get("record"), dict):
+                update["dramatic_irony_record"] = validation_eval["dramatic_irony_validation"]["record"]
         if isinstance(validation_eval.get("npc_initiative_validation"), dict):
             update["npc_initiative_validation"] = validation_eval["npc_initiative_validation"]
         update["self_correction"] = {
@@ -5473,6 +5998,33 @@ class RuntimeTurnGraphExecutor:
             if isinstance(committed.get("player_action_authority"), dict)
             else {}
         )
+        committed_environment_state: dict[str, Any] | None = None
+        if bool(committed.get("commit_applied")) and bool(action_authority.get("player_action_committed")):
+            committed_environment_state = apply_action_to_environment_state(
+                environment_state=state.get("environment_state")
+                if isinstance(state.get("environment_state"), dict)
+                else None,
+                environment_model=state.get("environment_model")
+                if isinstance(state.get("environment_model"), dict)
+                else None,
+                player_action_frame=state.get("player_action_frame")
+                if isinstance(state.get("player_action_frame"), dict)
+                else None,
+                affordance_resolution=state.get("affordance_resolution")
+                if isinstance(state.get("affordance_resolution"), dict)
+                else None,
+                local_context_transition=state.get("local_context_transition")
+                if isinstance(state.get("local_context_transition"), dict)
+                else None,
+                narrator_consequence_plan=state.get("narrator_consequence_plan")
+                if isinstance(state.get("narrator_consequence_plan"), dict)
+                else None,
+                actor_lane_context=state.get("actor_lane_context")
+                if isinstance(state.get("actor_lane_context"), dict)
+                else None,
+                turn_number=int(state.get("turn_number") or 0),
+            )
+            committed["environment_state_after"] = committed_environment_state
         validation_status = str(validation.get("status") or "").strip().lower()
         commit_applied = bool(committed.get("commit_applied"))
         commit_status = "partial"
@@ -5531,6 +6083,16 @@ class RuntimeTurnGraphExecutor:
         )
         update["committed_result"] = committed
         update["continuity_impacts"] = continuity
+        if committed_environment_state:
+            update["environment_state"] = committed_environment_state
+            update["environment_transition"] = {
+                "contract": "environment_transition.v1",
+                "committed": True,
+                "source": "commit_seam",
+                "last_environment_event": (
+                    committed_environment_state.get("last_environment_events") or [None]
+                )[-1],
+            }
         update["turn_aspect_ledger"] = commit_ledger
         return update
 
@@ -5613,6 +6175,14 @@ class RuntimeTurnGraphExecutor:
                     "selected_player_role": spr,
                     "npc_actor_ids": list(actor_lane_ctx.get("npc_actor_ids") or []),
                 },
+                "environment_render_context": build_environment_render_context(
+                    environment_state=state.get("environment_state")
+                    if isinstance(state.get("environment_state"), dict)
+                    else None,
+                    environment_model=state.get("environment_model")
+                    if isinstance(state.get("environment_model"), dict)
+                    else None,
+                ),
                 # C3: Reaction order divergence for render support surfacing (computed from realized output)
                 **_compute_reaction_order_divergence_for_render(state),
             },

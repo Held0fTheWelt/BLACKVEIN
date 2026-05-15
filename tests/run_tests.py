@@ -246,6 +246,8 @@ def _capture_flags_for_suite(suite_name: str) -> list[str]:
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
 FRONTEND_COV_FAIL_UNDER = "90"
+# World-engine ``app`` package: full suite exercises HTTP/WS, runtime, and story-runtime paths.
+ENGINE_COV_FAIL_UNDER = "90"
 DEFAULT_COV_FAIL_UNDER = "80"
 # writers_room and improvement suites test only their own modules within the larger app package
 # Overall app coverage will be low when these suites run alone (expected—untested modules drag average down)
@@ -842,6 +844,8 @@ def _cov_fail_under_for_suite(suite_name: str) -> str | None:
         return IMPROVEMENT_COV_FAIL_UNDER
     if suite_name == "story_runtime_core":
         return STORY_RUNTIME_CORE_COV_FAIL_UNDER
+    if suite_name == "engine":
+        return ENGINE_COV_FAIL_UNDER
     if suite_name == "database":
         # ``database/tests`` touch a thin slice of ``backend/app``; gating the whole tree is misleading.
         return None

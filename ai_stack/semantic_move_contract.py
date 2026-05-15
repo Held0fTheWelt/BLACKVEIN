@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 InterpretationTraceStep = Literal[
     "normalize_input",
@@ -80,6 +80,13 @@ class RankedMoveCandidate(BaseModel):
     )
     trace_detail: str
 
+    @field_validator("move_type")
+    @classmethod
+    def _move_type_in_contract(cls, value: str) -> str:
+        if value not in SEMANTIC_MOVE_TYPES:
+            raise ValueError(f"Invalid semantic move type: {value!r}")
+        return value
+
 
 class SemanticMoveRecord(BaseModel):
     """Planner-facing semantic move — deterministic for fixed inputs on the GoC
@@ -118,6 +125,20 @@ class SemanticMoveRecord(BaseModel):
         default_factory=list,
         description="Bounded secondary dramatic feature labels derived from sparse/evasive/provocation signals.",
     )
+
+    @field_validator("move_type")
+    @classmethod
+    def _move_type_in_contract(cls, value: str) -> str:
+        if value not in SEMANTIC_MOVE_TYPES:
+            raise ValueError(f"Invalid semantic move type: {value!r}")
+        return value
+
+    @field_validator("secondary_move_type")
+    @classmethod
+    def _secondary_move_type_in_contract(cls, value: str | None) -> str | None:
+        if value is not None and value not in SEMANTIC_MOVE_TYPES:
+            raise ValueError(f"Invalid secondary semantic move type: {value!r}")
+        return value
 
     def to_runtime_dict(self) -> dict:
         """``to_runtime_dict`` — see implementation for behaviour and contracts.

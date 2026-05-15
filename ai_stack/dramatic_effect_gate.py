@@ -28,6 +28,7 @@ def build_evaluation_context_from_runtime_state(
     scene_plan_record: dict[str, Any] | None,
     prior_continuity_impacts: list[dict[str, Any]] | None,
     selected_responder_set: list[dict[str, Any]] | None,
+    dramatic_irony_record: dict[str, Any] | None = None,
     actor_lane_summary: dict[str, Any] | None = None,
 ) -> DramaticEffectEvaluationContext:
     """Pick primary responder mind record aligned with
@@ -77,6 +78,7 @@ def build_evaluation_context_from_runtime_state(
         social_state_record=social_state_record,
         primary_character_mind=primary,
         scene_plan_record=scene_plan_record,
+        dramatic_irony_record=dramatic_irony_record,
         prior_continuity_impacts=list(prior_continuity_impacts or []),
         actor_lane_summary=actor_lane_summary,
     )

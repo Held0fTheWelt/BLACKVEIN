@@ -42,6 +42,7 @@ def build_planner_projection_section(
         "semantic_move_record": canonical_record.get("semantic_move_record"),
         "social_state_record": canonical_record.get("social_state_record"),
         "character_mind_records": canonical_record.get("character_mind_records"),
+        "dramatic_irony_record": canonical_record.get("dramatic_irony_record"),
         "scene_plan_record": canonical_record.get("scene_plan_record"),
         "interpreted_input": canonical_record.get("interpreted_input"),
         "interpreted_move": canonical_record.get("interpreted_move"),

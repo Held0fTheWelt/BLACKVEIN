@@ -29,11 +29,14 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["location_model"]["locations"]
     assert policy["phase_policy"]["phases"]
     assert policy["narrative_aspect_policy"]["aspects"]
+    assert policy["information_disclosure_policy"]["enabled"] is True
+    assert policy["information_disclosure_policy"]["units"]
     assert policy["memory_policy"]["enabled"] is True
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]
     assert "narrative_aspect_policy" in policy["content_sources"]
+    assert "information_disclosure_policy" in policy["content_sources"]
     assert "memory_policy" in policy["content_sources"]
     assert "runtime_intelligence" in policy["content_sources"]
 
@@ -215,6 +218,39 @@ memory_policy:
     assert "memory_policy" in policy["content_sources"]
 
 
+def test_information_disclosure_policy_loads_from_generic_module_content(tmp_path: Path) -> None:
+    module_dir = tmp_path / "module_alpha"
+    module_dir.mkdir()
+    (module_dir / "information_disclosure_policy.yaml").write_text(
+        """
+information_disclosure_policy:
+  schema_version: information_disclosure_policy.v1
+  enabled: true
+  max_visible_units_per_turn: 1
+  units:
+    - id: unit_alpha
+      stage: hint
+      allowed_modes:
+        - visible_hint
+      unlock_conditions:
+        always: true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    policy = load_module_runtime_policy(
+        "module_alpha",
+        "profile_alpha",
+        content_modules_root=tmp_path,
+    ).to_dict()
+
+    disclosure_policy = policy["information_disclosure_policy"]
+    assert disclosure_policy["enabled"] is True
+    assert disclosure_policy["units"][0]["id"] == "unit_alpha"
+    assert disclosure_policy["units"][0]["stage"] == "hint"
+    assert "information_disclosure_policy" in policy["content_sources"]
+
+
 def test_beat_candidates_come_from_phase_policy_data() -> None:
     policy = load_module_runtime_policy(MODULE_ID, "solo_test").to_dict()
     phase_id = next(iter(policy["phase_policy"]["phases"].keys()))
@@ -240,6 +276,8 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         repo / "ai_stack" / "dramatic_capability_contracts.py",
         repo / "ai_stack" / "visible_origin_contracts.py",
         repo / "ai_stack" / "module_runtime_policy.py",
+        repo / "ai_stack" / "information_disclosure_contracts.py",
+        repo / "ai_stack" / "information_disclosure_engine.py",
         repo / "ai_stack" / "narrative_aspect_contracts.py",
         repo / "ai_stack" / "hierarchical_memory_contracts.py",
         repo / "ai_stack" / "runtime_aspect_ledger.py",

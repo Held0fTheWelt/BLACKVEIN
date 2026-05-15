@@ -32,6 +32,9 @@ class RuntimeTurnState(TypedDict, total=False):
     affordance_resolution: dict[str, Any]
     response_plan: dict[str, Any]
     scene_affordance_model: dict[str, Any]
+    environment_model: dict[str, Any]
+    environment_state: dict[str, Any]
+    environment_transition: dict[str, Any]
     task_type: str
     routing: dict[str, Any]
     selected_provider: str
@@ -84,6 +87,8 @@ class RuntimeTurnState(TypedDict, total=False):
     scene_energy_target: dict[str, Any]
     scene_energy_transition: dict[str, Any]
     scene_energy_validation: dict[str, Any]
+    information_disclosure_target: dict[str, Any]
+    information_disclosure_validation: dict[str, Any]
     proposed_state_effects: list[dict[str, Any]]
     validation_outcome: dict[str, Any]
     committed_result: dict[str, Any]
@@ -115,6 +120,8 @@ class RuntimeTurnState(TypedDict, total=False):
     voice_consistency_validation: dict[str, Any]
     npc_agency_simulation: dict[str, Any]
     npc_initiative_validation: dict[str, Any]
+    dramatic_irony_record: dict[str, Any]
+    dramatic_irony_validation: dict[str, Any]
     scene_plan_record: dict[str, Any]
     dramatic_effect_outcome: dict[str, Any]
     # Model-generated structured behavior outputs; populated by the

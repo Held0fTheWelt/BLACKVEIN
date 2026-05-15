@@ -240,6 +240,16 @@ Characters must maintain consistent:
 
 **ADR-0039 boundary:** `dialogue_examples` in `character_voice.yaml` are authoring examples, not validation or test oracles. Runtime profiles omit them, and tests assert structured validator/aspect outcomes derived from the policy block and canonical profile dimensions rather than copied narrative prose.
 
+### Information Disclosure / Mystery Rationing
+
+Mystery rationing is implemented as the generic `information_disclosure` runtime aspect. Content modules declare bounded disclosure units in `information_disclosure_policy.yaml`; runtime code does not branch on `pi_20`, Table-B labels, or module-specific prose.
+
+During a turn, LangGraph derives an `InformationDisclosureTarget` from the current scene function, semantic move, pacing mode, prior continuity classes, and module policy. The target records selected unit ids, allowed unit ids, withheld unit ids, forbidden unit ids, disclosure mode, structured-event requirement, and per-turn visible-unit budget.
+
+During validation, `InformationDisclosureValidation` reads structured `disclosure_events` from model output when present. It accepts only selected unit ids and can report contract failures such as missing required event, over-budget reveal, forbidden unit, forbidden stage, or forbidden mode. A recovery/reject policy may turn those failures into a recoverable validation rejection before commit.
+
+**ADR-0039 boundary:** Tests derive positive and negative cases from normalized policy structures and assert schema fields, failure codes, ledger projection, Langfuse/MCP score fields, and anti-hardcoding gate behavior. Generated narrative wording is never the pass/fail oracle.
+
 ### Scene Identity Preservation
 
 Every scene must maintain:

@@ -61,6 +61,8 @@ def build_semantic_decision_flow(
             return "present" if non_empty_dict(canonical_record.get("social_state_record")) else "absent"
         if stage_id == "character_mind":
             return "present" if non_empty_list(canonical_record.get("character_mind_records")) else "absent"
+        if stage_id == "dramatic_irony":
+            return "present" if non_empty_dict(canonical_record.get("dramatic_irony_record")) else "absent"
         if stage_id == "scene_plan":
             return "present" if non_empty_dict(canonical_record.get("scene_plan_record")) else "absent"
         if stage_id == "proposed_narrative":

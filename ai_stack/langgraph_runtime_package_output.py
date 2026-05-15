@@ -105,6 +105,10 @@ def package_runtime_graph_output(
         "context_synthesis": context_synthesis,
         "runtime_quality_surface": quality_surface,
     }
+    if isinstance(state.get("environment_state"), dict):
+        gd["environment_state"] = state.get("environment_state")
+    if isinstance(state.get("environment_transition"), dict):
+        gd["environment_transition"] = state.get("environment_transition")
     update["graph_diagnostics"] = gd
     update["dramatic_context_summary"] = dramatic_context_summary
     update["experiment_preview"] = experiment_preview

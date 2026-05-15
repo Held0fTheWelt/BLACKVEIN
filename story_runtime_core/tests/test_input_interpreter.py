@@ -43,6 +43,7 @@ def test_interpreter_handles_ambiguous_input():
     result = interpret_player_input("...")
     assert result.kind == InterpretedInputKind.AMBIGUOUS
     assert result.ambiguity is not None
+    assert result.intent == "withheld_response_or_silence"
     assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
 
 

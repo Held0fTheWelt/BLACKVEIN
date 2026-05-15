@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_stack.silence_negative_space_contract import coerce_silence_negative_space_decision
+
 # Minimum narrative mass for high-stakes scene functions under normal verbal density.
 _MIN_CHARS_HIGH_STAKES = 48
 _MIN_CHARS_WITHHELD_OR_THIN = 12
@@ -170,8 +172,15 @@ def _silence_mode(silence_brevity_decision: dict[str, Any] | None) -> str:
     """
     if not isinstance(silence_brevity_decision, dict):
         return "normal"
-    m = silence_brevity_decision.get("mode")
+    m = coerce_silence_negative_space_decision(silence_brevity_decision).get("mode")
     return str(m) if m else "normal"
+
+
+def _silence_blocks_forced_speech(silence_brevity_decision: dict[str, Any] | None) -> bool:
+    if not isinstance(silence_brevity_decision, dict):
+        return False
+    decision = coerce_silence_negative_space_decision(silence_brevity_decision)
+    return bool(decision.get("blocks_forced_speech"))
 
 
 def dramatic_alignment_legacy_fallback_only(
@@ -198,9 +207,10 @@ def dramatic_alignment_legacy_fallback_only(
     """
     text = proposed_narrative.strip()
     sm = _silence_mode(silence_brevity_decision)
+    blocks_forced_speech = _silence_blocks_forced_speech(silence_brevity_decision)
     low = text.lower()
 
-    if selected_scene_function == "withhold_or_evade" and sm == "withheld":
+    if selected_scene_function == "withhold_or_evade" and (sm == "withheld" or blocks_forced_speech):
         if len(text) < 8:
             return "dramatic_alignment_withhold_requires_min_beat"
         if any(phrase in low for phrase in _COMMENTARY_META_PHRASES):

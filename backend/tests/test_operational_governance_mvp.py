@@ -331,6 +331,106 @@ def test_model_route_crud_and_runtime_readiness(client, admin_headers, monkeypat
     assert readiness["enabled_ai_route_present"] is True
 
 
+def test_runtime_readiness_suppresses_noise_when_non_mock_live_and_routes_green(client, admin_headers, monkeypatch):
+    """Dormant providers are omitted when a non-mock provider is ON; no_enabled_models rows drop when routes are green."""
+    _with_kek(monkeypatch)
+
+    provider_response = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={
+            "provider_type": "openai",
+            "display_name": "Primary OpenAI Noise",
+            "base_url": "https://api.openai.com/v1",
+            "is_enabled": True,
+        },
+    )
+    assert provider_response.status_code == 200
+    openai_id = provider_response.get_json()["data"]["provider_id"]
+    client.post(
+        f"/api/v1/admin/ai/providers/{openai_id}/credential",
+        headers=admin_headers,
+        json={"api_key": "sk-noise-test"},
+    )
+
+    class _StubResp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(governance_runtime_service, "urlopen", lambda req, timeout=0: _StubResp())
+    assert client.post(f"/api/v1/admin/ai/providers/{openai_id}/test-connection", headers=admin_headers, json={}).status_code == 200
+
+    model_response = client.post(
+        "/api/v1/admin/ai/models",
+        headers=admin_headers,
+        json={
+            "provider_id": openai_id,
+            "model_name": "gpt-4o-mini",
+            "display_name": "GPT 4o Mini Noise",
+            "model_role": "llm",
+            "supports_structured_output": True,
+            "is_enabled": True,
+            "timeout_seconds": 30,
+        },
+    )
+    assert model_response.status_code == 200
+    model_id = model_response.get_json()["data"]["model_id"]
+
+    assert (
+        client.post(
+            "/api/v1/admin/ai/routes",
+            headers=admin_headers,
+            json={
+                "task_kind": "narrative_live_generation",
+                "workflow_scope": "global",
+                "preferred_model_id": model_id,
+                "fallback_model_id": model_id,
+                "is_enabled": True,
+                "use_mock_when_provider_unavailable": False,
+            },
+        ).status_code
+        == 200
+    )
+
+    or_resp = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={
+            "provider_type": "openrouter",
+            "display_name": "OpenRouter Extra",
+            "is_enabled": True,
+        },
+    )
+    assert or_resp.status_code == 200
+    openrouter_id = or_resp.get_json()["data"]["provider_id"]
+
+    off_resp = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={
+            "provider_type": "anthropic",
+            "display_name": "Anthropic Dormant",
+            "is_enabled": False,
+        },
+    )
+    assert off_resp.status_code == 200
+    anthropic_id = off_resp.get_json()["data"]["provider_id"]
+
+    readiness = client.get("/api/v1/admin/ai/runtime-readiness", headers=admin_headers).get_json()["data"]
+    assert readiness.get("task_routes_green") is True
+
+    codes_by_entity = {(b.get("entity_id"), b.get("code")) for b in readiness.get("blockers") or []}
+    assert (anthropic_id, "provider_credential_missing") not in codes_by_entity
+    assert (anthropic_id, "provider_no_enabled_models") not in codes_by_entity
+    assert (openrouter_id, "provider_no_enabled_models") not in codes_by_entity
+    assert (openrouter_id, "provider_credential_missing") in codes_by_entity
+
+
 def test_route_rejects_mock_model_as_preferred_ai_model(client, admin_headers):
     _, model_id = _ensure_mock_provider_and_model(
         client,

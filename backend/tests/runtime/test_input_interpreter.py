@@ -71,6 +71,13 @@ def test_punctuation_only_silence():
     assert env.primary_mode == InputPrimaryMode.SILENCE
 
 
+def test_withheld_answer_is_silence_not_mixed_mode():
+    env = interpret_operator_input("I do not answer. I just stare at him.")
+    assert env.primary_mode == InputPrimaryMode.SILENCE
+    assert env.secondary_modes == []
+    assert env.spoken_text_segments == []
+
+
 def test_parser_version_stable():
     env = interpret_operator_input("test")
     assert env.parser_version == "1a/2"

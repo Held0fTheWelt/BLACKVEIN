@@ -19,6 +19,10 @@ from ai_stack.action_resolution_contracts import (
     longest_embedded_alias_match,
     strip_directional_prefixes,
 )
+from ai_stack.environment_state_contracts import (
+    environment_state_to_player_local_context,
+    scene_affordance_model_with_environment_state,
+)
 from story_runtime_core.content_locale import (
     greeting_imperative_addressee_fragment,
     resolve_content_modules_root,
@@ -205,6 +209,8 @@ def build_scene_affordance_model(
     module_id: str,
     runtime_projection: dict[str, Any],
     content_modules_root: Path | None = None,
+    environment_state: dict[str, Any] | None = None,
+    environment_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     scene_affordances = _load_scene_affordances(
         module_id,
@@ -224,7 +230,11 @@ def build_scene_affordance_model(
         else [],
         "actors": actors,
     }
-    return model
+    return scene_affordance_model_with_environment_state(
+        model,
+        environment_state=environment_state,
+        environment_model=environment_model,
+    )
 
 
 def _entity_rows_for_scan(affordance_model: dict[str, Any]) -> list[dict[str, Any]]:
@@ -514,6 +524,8 @@ def resolve_player_action(
     runtime_projection: dict[str, Any],
     content_modules_root: Path | None = None,
     player_local_context: dict[str, Any] | None = None,
+    environment_state: dict[str, Any] | None = None,
+    environment_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
     lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
@@ -539,6 +551,8 @@ def resolve_player_action(
         module_id=module_id,
         runtime_projection=runtime_projection,
         content_modules_root=content_modules_root,
+        environment_state=environment_state,
+        environment_model=environment_model,
     )
     speech_text: str | None = None
     if is_mixed_player_input_kind(pik):
@@ -566,7 +580,11 @@ def resolve_player_action(
     source_query = _infer_source_query(raw_text, lang=lang, verb=verb)
 
     merged_plc = _merge_player_local_context(
+        environment_state_to_player_local_context(environment_state),
         player_local_context,
+    )
+    merged_plc = _merge_player_local_context(
+        merged_plc,
         interpreted_input.get("player_local_context") if isinstance(interpreted_input.get("player_local_context"), dict) else None,
     )
     movement_return_intent = bool(interpreted_input.get("movement_return_intent"))

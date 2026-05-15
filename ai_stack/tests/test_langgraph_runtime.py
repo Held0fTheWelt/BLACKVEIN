@@ -434,6 +434,13 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert beat_aspect.get("selected", {}).get("selected_scene_function") == "deterministic_action_resolution"
     assert beat_aspect.get("actual", {}).get("deterministic_action_resolution") is True
     assert result.get("response_plan", {}).get("deterministic_action_resolution") is True
+    environment_state = result.get("environment_state") or {}
+    assert environment_state.get("current_room_id") == frame.get("resolved_target_id")
+    assert (result.get("committed_result") or {}).get("environment_state_after") == environment_state
+    render_support = (result.get("visible_output_bundle") or {}).get("render_support") or {}
+    render_environment = render_support.get("environment") or {}
+    assert render_environment.get("current_room_id") == environment_state.get("current_room_id")
+    assert "environment_state_bound" in (result.get("visibility_class_markers") or [])
 
 
 def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:

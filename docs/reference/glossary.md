@@ -43,6 +43,12 @@ String identifier for a content module (for GoC, `god_of_carnage` is the slice b
 **AI proposal vs commit**  
 Model output is **non-authoritative** until validated and **committed** by runtime rules. The graph may produce proposals; committed state follows validation and commit seams (see `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` for normative detail).
 
+**Runtime aspect ledger**  
+Backend/world-engine-owned per-turn evidence record for runtime intelligence contracts such as beat, capability, authority, voice consistency, information disclosure, visible projection, validation, commit, and memory. It is diagnostics/authority evidence; the player shell may display provided data but must not infer correctness from prose.
+
+**Information disclosure runtime aspect**  
+Generic runtime aspect implementing bounded reveal control for mystery-rationing behavior. Content policy selects which disclosure units may be visible in a turn, validation checks structured `disclosure_events` and budget/failure codes, and tests use policy/schema/ledger fields rather than story prose as oracles.
+
 **Preview (experiment preview)**  
 Diagnostics or non-committed views of model or graph output used for review; must not be treated as committed player truth. Operational docs should point engineers to seam and contract docs for exact behavior.
 

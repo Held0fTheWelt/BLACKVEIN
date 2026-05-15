@@ -66,6 +66,10 @@ _SILENCE_EXPLICIT = re.compile(
     r"^\s*(?:\.\.\.|…)\s*$|^\s*\(?\s*silence\s*\)?\s*$",
     re.IGNORECASE,
 )
+_WITHHOLD_SILENCE = re.compile(
+    r"\b(?:do\s+not|don'?t)\s+answer\b|\bwon'?t\s+answer\b|\b(?:stay|remain)\s+silent\b|\bjust\s+stare\b|\bwithout\s+say(?:ing)?\b",
+    re.IGNORECASE,
+)
 
 
 class InputPrimaryMode(StrEnum):
@@ -324,6 +328,10 @@ def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
 
     if _SILENCE_EXPLICIT.match(normalized_text):
         return _envelope_explicit_silence(raw_text, collapsed)
+    if _WITHHOLD_SILENCE.search(normalized_text):
+        env = _envelope_explicit_silence(raw_text, collapsed)
+        env.rationale = "Withheld answer or silence-like nonverbal input detected."
+        return env
 
     (
         spoken,

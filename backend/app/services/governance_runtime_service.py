@@ -1626,6 +1626,18 @@ def _readiness_suggested_action(*, code: str, entity_id: str | None, limitation:
     return "Review **Runtime readiness** details and the raw inventory below."
 
 
+def _has_enabled_non_mock_provider(provider_rows: list[dict]) -> bool:
+    return any(bool(p.get("is_enabled")) and p.get("provider_type") != "mock" for p in provider_rows)
+
+
+def _task_routes_operator_green(route_rows: list[dict]) -> bool:
+    """True when every enabled route has a working preferred/fallback chain (matches rail AI-path semantics)."""
+    enabled = [r for r in route_rows if r.get("is_enabled")]
+    if not enabled:
+        return False
+    return all(bool(r.get("ai_path_ready")) for r in enabled)
+
+
 def evaluate_runtime_readiness() -> dict:
     """Deterministic readiness and blocker report for operator runtime decisions."""
     provider_rows = list_providers()
@@ -1674,8 +1686,16 @@ def evaluate_runtime_readiness() -> dict:
             }
         )
 
+    suppress_disabled_provider_blockers = _has_enabled_non_mock_provider(provider_rows)
+    task_routes_green = _task_routes_operator_green(route_rows)
+
     for provider in provider_rows:
+        if not provider.get("is_enabled") and suppress_disabled_provider_blockers:
+            # Operator has at least one live non-mock path; ignore dormant provider inventory noise.
+            continue
         for limitation in provider.get("limitations") or []:
+            if limitation == "no_enabled_models" and task_routes_green:
+                continue
             code = f"provider_{limitation}"
             blockers.append(
                 {
@@ -1727,6 +1747,8 @@ def evaluate_runtime_readiness() -> dict:
         "mock_only_required=true means at least one governed AI precondition is still missing; keep generation_execution_mode on mock_only until blockers clear.",
         "ai_only_valid=true means an eligible non-mock provider, a runtime-eligible model on it, and at least one enabled route with a working AI model chain are all satisfied.",
         "Each blocker lists entity_type/entity_id when a specific provider or route is at fault; global rows (no entity_id) describe missing prerequisites.",
+        "When at least one non-mock provider is enabled, disabled providers are omitted from provider-scoped readiness rows.",
+        "Provider no_enabled_models rows are omitted when every enabled task route already reports AI path ready.",
     ]
 
     play_story_runtime_governance: dict[str, object] = {"status": "skipped", "reason": "play_service_not_configured"}
@@ -1834,6 +1856,7 @@ def evaluate_runtime_readiness() -> dict:
             "ai_ready": sum(1 for r in route_rows if r["ai_path_ready"]),
             "runtime_eligible": sum(1 for r in route_rows if r["runtime_eligible"]),
         },
+        "task_routes_green": task_routes_green,
         "play_story_runtime_governance": play_story_runtime_governance,
     }
 

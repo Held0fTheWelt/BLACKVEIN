@@ -94,6 +94,10 @@ SCENE_ENERGY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.scene_energy",
     re.compile(r"\bscene_energy\b", re.IGNORECASE),
 )
+INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.information_disclosure",
+    re.compile(r"\binformation_disclosure\b", re.IGNORECASE),
+)
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/langgraph_runtime_executor.py",
@@ -108,6 +112,17 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "backend/app/services/inspector_turn_projection_sections_assembly_filled.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
+    "ai_stack/information_disclosure_contracts.py",
+    "ai_stack/information_disclosure_engine.py",
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager.py",
 }
 
@@ -228,6 +243,24 @@ def test_scene_energy_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
 
     assert not violations, (
         "scene_energy appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_information_disclosure_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Information disclosure is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in INFORMATION_DISCLOSURE_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "information_disclosure appeared outside reviewed canonical aspect surfaces. "
         "Add a contract/policy-backed surface or remove the shortcut literal:\n"
         + "\n".join(violations)
     )

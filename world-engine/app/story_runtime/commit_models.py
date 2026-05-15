@@ -187,6 +187,7 @@ class PlannerTruth(BaseModel):
     npc_long_horizon_state: dict[str, Any] = Field(default_factory=dict)
     npc_private_plans: list[dict[str, Any]] = Field(default_factory=list)
     npc_plan_conflict_resolution: dict[str, Any] = Field(default_factory=dict)
+    dramatic_irony: dict[str, Any] = Field(default_factory=dict)
     npc_agency_closure: dict[str, Any] = Field(default_factory=dict)
     unresolved_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
     carried_forward_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
@@ -746,6 +747,10 @@ def _planner_truth_from_graph_state(
 
     dramatic_packet = _as_dict(graph_state.get("dramatic_generation_packet"))
     dramatic_packet_scene_energy = _as_dict(dramatic_packet.get("scene_energy"))
+    dramatic_irony = _as_dict(
+        graph_state.get("dramatic_irony_record")
+        or dramatic_packet.get("dramatic_irony_context")
+    )
     scene_energy_target = _as_dict(
         graph_state.get("scene_energy_target")
         or dramatic_packet_scene_energy.get("target")
@@ -869,6 +874,7 @@ def _planner_truth_from_graph_state(
         npc_long_horizon_state=npc_long_horizon_state,
         npc_private_plans=npc_private_plans,
         npc_plan_conflict_resolution=npc_plan_conflict_resolution,
+        dramatic_irony=dramatic_irony,
         npc_agency_closure=npc_agency_closure or {},
         unresolved_npc_initiatives=carried_forward_npc_initiatives,
         carried_forward_npc_initiatives=carried_forward_npc_initiatives,

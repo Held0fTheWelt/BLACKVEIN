@@ -23,6 +23,10 @@ from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label
 from ai_stack.scene_director_goc_legacy_keyword_candidates import (
     legacy_keyword_scene_candidates as _legacy_keyword_scene_candidates,
 )
+from ai_stack.silence_negative_space_contract import (
+    build_silence_negative_space_decision,
+    coerce_silence_negative_space_decision,
+)
 from story_runtime_core.player_input_intent_contract import (
     is_narrator_only_player_input_kind,
     is_question_punctuation_probe_guarded,
@@ -44,8 +48,9 @@ def _finalize_pacing_silence(pacing: str, silence: dict[str, Any]) -> tuple[str,
             Returns a value of type ``tuple[str, dict[str, Any]]``; see the function body for structure, error paths, and sentinels.
     """
     assert_subdecision_label_in_matrix("pacing_mode", pacing)
-    assert_subdecision_label_in_matrix("silence_brevity_mode", silence["mode"])
-    return pacing, silence
+    normalized_silence = coerce_silence_negative_space_decision(silence)
+    assert_subdecision_label_in_matrix("silence_brevity_mode", normalized_silence["mode"])
+    return pacing, normalized_silence
 
 # CANONICAL_TURN_CONTRACT_GOC.md §5.1 — minimal keys for GoC scene_assessment (when slice active).
 GOC_SCENE_ASSESSMENT_MINIMAL_KEYS: frozenset[str] = frozenset({"scene_core", "pressure_state", "module_slice"})
@@ -928,6 +933,70 @@ def _has_unresolved_carry_forward_tension(
     return False
 
 
+def _no_lexical_player_input(trimmed: str) -> bool:
+    if not trimmed:
+        return True
+    return not any(ch.isalnum() for ch in trimmed)
+
+
+def _semantic_silence_signal(
+    *,
+    player_input: str,
+    interpreted_move: dict[str, Any],
+    semantic_move_record: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Return structured Π14 signal metadata when silence is the social move."""
+
+    sem = semantic_move_record if isinstance(semantic_move_record, dict) else {}
+    sem_move_type = str(sem.get("move_type") or "").strip()
+    intent = str(interpreted_move.get("player_intent") or "").strip().lower()
+    move_class = str(interpreted_move.get("move_class") or "").strip().lower()
+    player_input_kind = str(interpreted_move.get("player_input_kind") or "").strip().lower()
+    trimmed = player_input.strip()
+    lowered = trimmed.lower()
+    no_lexical = _no_lexical_player_input(trimmed)
+
+    if sem_move_type == "silence_withdrawal":
+        if not trimmed:
+            silence_kind = "empty_input"
+            interpreter_signal = "semantic_move:silence_withdrawal+empty_input"
+        elif no_lexical:
+            silence_kind = "non_lexical_input"
+            interpreter_signal = "semantic_move:silence_withdrawal+non_lexical_input"
+        elif "awkward pause" in lowered or "long pause" in lowered:
+            silence_kind = "awkward_pause"
+            interpreter_signal = "semantic_move:silence_withdrawal+pause"
+        elif "do not answer" in lowered or "won't answer" in lowered or "dont answer" in lowered:
+            silence_kind = "withheld_answer"
+            interpreter_signal = "semantic_move:silence_withdrawal+withheld_answer"
+        else:
+            silence_kind = "explicit_silence"
+            interpreter_signal = "semantic_move:silence_withdrawal"
+        return {
+            "source": "semantic_move",
+            "silence_kind": silence_kind,
+            "semantic_move_type": sem_move_type,
+            "interpreter_signal": interpreter_signal,
+        }
+
+    if (
+        "withheld_response_or_silence" in intent
+        or "silence" in intent
+        or player_input_kind == "wait_or_observe"
+        or (move_class in {"ambiguous", "intent_only"} and no_lexical)
+        or (not move_class and no_lexical)
+    ):
+        silence_kind = "empty_input" if not trimmed else "non_lexical_input" if no_lexical else "withheld_answer"
+        return {
+            "source": "interpreted_input",
+            "silence_kind": silence_kind,
+            "semantic_move_type": sem_move_type or None,
+            "interpreter_signal": f"interpreted:{move_class or player_input_kind or 'silence'}",
+        }
+
+    return None
+
+
 def build_pacing_and_silence(
     *,
     player_input: str,
@@ -954,7 +1023,10 @@ def build_pacing_and_silence(
         tuple[str, dict[str, Any]]:
             Returns a value of type ``tuple[str, dict[str, Any]]``; see the function body for structure, error paths, and sentinels.
     """
-    text = f"{player_input} {interpreted_move.get('move_class', '')}".lower()
+    text = (
+        f"{player_input} {interpreted_move.get('move_class', '')} "
+        f"{interpreted_move.get('player_intent', '')}"
+    ).lower()
     intent = str(interpreted_move.get("player_intent") or "").lower()
     if module_id != GOC_MODULE_ID:
         return _finalize_pacing_silence(
@@ -962,6 +1034,9 @@ def build_pacing_and_silence(
             {
                 "mode": assert_silence_brevity_mode("normal"),
                 "reason": "non_goc_slice_default",
+                "source": "non_goc_slice",
+                "silence_kind": "none",
+                "dramatic_function": "not_applicable",
             },
         )
     off_scope_keywords = (
@@ -984,11 +1059,48 @@ def build_pacing_and_silence(
             {
                 "mode": assert_silence_brevity_mode("normal"),
                 "reason": "slice_boundary_containment_move",
+                "source": "slice_boundary",
+                "silence_kind": "boundary_containment",
+                "dramatic_function": "contain_boundary",
             },
         )
     trimmed = player_input.strip()
     words = [w for w in trimmed.replace(".", " ").split() if w]
     thin_fragment = len(trimmed) <= 10 and len(words) <= 2 and "?" not in trimmed
+    semantic_silence = _semantic_silence_signal(
+        player_input=player_input,
+        interpreted_move=interpreted_move,
+        semantic_move_record=semantic_move_record,
+    )
+    if semantic_silence:
+        prior_tension = _has_unresolved_carry_forward_tension(prior_planner_truth)
+        if prior_tension:
+            return _finalize_pacing_silence(
+                assert_pacing_mode("compressed"),
+                build_silence_negative_space_decision(
+                    mode=assert_silence_brevity_mode("brief"),
+                    reason="silence_withdrawal_upgraded_by_prior_tension",
+                    source=str(semantic_silence["source"]),
+                    silence_kind="charged_after_tension",
+                    dramatic_function="carry_tension",
+                    pressure_basis="prior_planner_truth",
+                    semantic_move_type=str(semantic_silence.get("semantic_move_type") or "silence_withdrawal"),
+                    interpreter_signal=str(semantic_silence.get("interpreter_signal") or ""),
+                ),
+            )
+        return _finalize_pacing_silence(
+            assert_pacing_mode("thin_edge"),
+            build_silence_negative_space_decision(
+                mode=assert_silence_brevity_mode("withheld"),
+                reason="silence_withdrawal",
+                source=str(semantic_silence["source"]),
+                silence_kind=str(semantic_silence["silence_kind"]),
+                dramatic_function="withhold_response",
+                pressure_basis="semantic_move",
+                semantic_move_type=str(semantic_silence.get("semantic_move_type") or "silence_withdrawal"),
+                interpreter_signal=str(semantic_silence.get("interpreter_signal") or ""),
+            ),
+        )
     awkward_pause = (
         "awkward pause" in text
         or "long pause" in text

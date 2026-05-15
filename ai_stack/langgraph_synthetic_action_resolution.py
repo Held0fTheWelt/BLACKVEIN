@@ -18,6 +18,7 @@ from ai_stack.narrator_consequence_contracts import (
     build_updated_player_local_context,
     normalize_scene_affordance_model_for_contracts,
 )
+from ai_stack.environment_state_contracts import apply_action_to_environment_state
 
 
 def build_synthetic_generation_for_action_resolution(
@@ -29,6 +30,10 @@ def build_synthetic_generation_for_action_resolution(
     content_modules_root: Any = None,
     scene_affordance_model: dict[str, Any] | None = None,
     current_player_local_context: dict[str, Any] | None = None,
+    environment_state: dict[str, Any] | None = None,
+    environment_model: dict[str, Any] | None = None,
+    actor_lane_context: dict[str, Any] | None = None,
+    turn_number: int | None = None,
 ) -> dict[str, Any]:
     """Return a minimal successful generation dict with structured_output for proposal_normalize."""
     status = str(affordance_resolution.get("affordance_status") or "").strip().lower()
@@ -47,6 +52,7 @@ def build_synthetic_generation_for_action_resolution(
     local_context_transition: dict[str, Any] = {}
     narrator_consequence_plan: dict[str, Any] = {}
     updated_player_local_context: dict[str, Any] = {}
+    candidate_environment_state: dict[str, Any] = {}
 
     if sam:
         local_context_transition = build_local_context_transition(
@@ -67,6 +73,16 @@ def build_synthetic_generation_for_action_resolution(
             local_context_transition=local_context_transition,
             narrator_consequence_plan=narrator_consequence_plan,
             scene_affordance_model=sam,
+        )
+        candidate_environment_state = apply_action_to_environment_state(
+            environment_state=environment_state,
+            environment_model=environment_model,
+            player_action_frame=player_action_frame,
+            affordance_resolution=affordance_resolution,
+            local_context_transition=local_context_transition,
+            narrator_consequence_plan=narrator_consequence_plan,
+            actor_lane_context=actor_lane_context,
+            turn_number=turn_number,
         )
 
     # Select template key (fallback path when scene affordance detail is absent).
@@ -153,5 +169,6 @@ def build_synthetic_generation_for_action_resolution(
             "local_context_transition": local_context_transition or None,
             "narrator_consequence_plan": narrator_consequence_plan or None,
             "updated_player_local_context": updated_player_local_context or None,
+            "candidate_environment_state": candidate_environment_state or None,
         },
     }

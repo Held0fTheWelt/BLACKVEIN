@@ -434,6 +434,7 @@ def _player_shell_state_view(
         "last_narrative_commit_summary": committed.get("last_narrative_commit_summary"),
         "last_committed_consequences": committed.get("last_committed_consequences") or [],
         "last_open_pressures": committed.get("last_open_pressures") or [],
+        "environment_state": committed.get("environment_state") if isinstance(committed.get("environment_state"), dict) else {},
         "player_shell_context": player_shell_context,
         "module_scope_truth": module_scope_truth,
     }

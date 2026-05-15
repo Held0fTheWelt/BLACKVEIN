@@ -13,6 +13,8 @@ Short orientation for **non-developers**. For the **full, maintained** term list
 | **God of Carnage (GoC)** | The first full vertical slice module and its contracts. |
 | **Turn** | One cycle of player input, processing, and updated session state in live play. |
 | **Proposal vs commit** | AI may **propose** content; only **validated, committed** results become authoritative narrative state. |
+| **Runtime aspect ledger** | The backend/world-engine evidence record that explains whether important runtime contracts passed. |
+| **Information disclosure** | The runtime’s bounded reveal-control system: it decides which mystery/clue units may surface now and records if the model stayed inside that budget. |
 | **RAG** | Retrieval over project documents to **inform** generation—does not override runtime authority. |
 
 When you implement behavior, use the [normative contracts index](../dev/contracts/normative-contracts-index.md) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) instead of this short table alone.

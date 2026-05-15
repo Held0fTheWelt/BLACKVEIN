@@ -65,10 +65,20 @@ MCP Langfuse verification normalizes deterministic runtime evidence separately f
 - `voice_cross_actor_confusion_absent`
 - `voice_forbidden_markers_absent`
 - `voice_consistency_contract_pass`
+- `information_disclosure_policy_present`
+- `information_disclosure_target_selected`
+- `information_disclosure_selected_units`
+- `information_disclosure_visible_units`
+- `information_disclosure_withheld_units`
+- `information_disclosure_budget_used`
+- `information_disclosure_budget_pass`
+- `information_disclosure_premature_reveal_absent`
+- `information_disclosure_contract_pass`
+- `information_disclosure_failure_codes`
 - `hierarchical_memory_present`
 - `memory_policy_applied`
 - `memory_write_from_committed_turn`
 - `memory_context_bounded`
 - `hierarchical_memory_contract_pass`
 
-For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.
+For runtime aspects and hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer beat realization, authority ownership, capability realization, NPC agency closure, long-horizon NPC state, private-plan visibility, voice classification, information-disclosure correctness, visible-origin preservation, or memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.

@@ -777,6 +777,27 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                         "status": "passed",
                         "actual": {"visible_block_origin_present": True},
                     },
+                    "information_disclosure": {
+                        "status": "passed",
+                        "expected": {
+                            "policy_present": True,
+                            "policy_enabled": True,
+                            "max_visible_units_per_turn": 1,
+                            "commit_impact": "recover",
+                        },
+                        "selected": {
+                            "selected_unit_ids": ["unit_alpha"],
+                            "allowed_unit_ids": ["unit_alpha"],
+                            "withheld_unit_ids": ["unit_beta"],
+                            "forbidden_unit_ids": ["unit_beta"],
+                        },
+                        "actual": {
+                            "contract_pass": True,
+                            "visible_unit_ids": ["unit_alpha"],
+                            "budget_used": 1,
+                            "failure_codes": [],
+                        },
+                    },
                     "narrative_aspect": {
                         "status": "passed",
                         "expected": {
@@ -848,6 +869,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "npc_intention_threads_carried_forward", "value": 1.0},
             {"name": "npc_required_initiatives_realized", "value": 1.0},
             {"name": "npc_carry_forward_closed", "value": 1.0},
+            {"name": "information_disclosure_policy_present", "value": 1.0},
+            {"name": "information_disclosure_target_selected", "value": 1.0},
+            {"name": "information_disclosure_budget_pass", "value": 1.0},
+            {"name": "information_disclosure_premature_reveal_absent", "value": 1.0},
+            {"name": "information_disclosure_contract_pass", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
             {"name": "theme_tracking_policy_present", "value": 1.0},
             {"name": "theme_tracking_selected", "value": 1.0},
@@ -888,6 +914,12 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["npc_agency_candidate_actor_ids"] == ["npc_primary", "npc_secondary"]
     assert row["npc_agency_claim_readiness_status"] == NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
     assert row["npc_agency_full_claim_allowed"] is False
+    assert row["information_disclosure_policy_present"] is True
+    assert row["information_disclosure_selected_units"] == ["unit_alpha"]
+    assert row["information_disclosure_visible_units"] == ["unit_alpha"]
+    assert row["information_disclosure_withheld_units"] == ["unit_beta"]
+    assert row["information_disclosure_budget_pass"] is True
+    assert row["information_disclosure_contract_pass"] == 1.0
     assert row["narrative_aspect_policy_present"] is True
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]

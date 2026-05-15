@@ -879,8 +879,26 @@ def run_visible_render(
     profile = rc.get("character_profile_snippet") if isinstance(rc.get("character_profile_snippet"), dict) else {}
     guidance_snips = rc.get("scene_guidance_snippets") if isinstance(rc.get("scene_guidance_snippets"), dict) else {}
     responder_actor_id = str(rc.get("responder_actor_id") or "").strip()
+    environment_render_context = (
+        rc.get("environment_render_context")
+        if isinstance(rc.get("environment_render_context"), dict)
+        else {}
+    )
 
     director_surface_hints: list[dict[str, str | bool]] = []
+
+    def attach_environment_render_support(bundle: dict[str, Any]) -> None:
+        if module_id != GOC_MODULE_ID or not environment_render_context:
+            return
+        render_support = bundle.setdefault("render_support", {})
+        if not isinstance(render_support, dict):
+            render_support = {}
+            bundle["render_support"] = render_support
+        render_support.setdefault("projection_version", "render_support.v1")
+        render_support.setdefault("player_visible", False)
+        render_support["environment"] = environment_render_context
+        if "environment_state_bound" not in markers:
+            markers.append("environment_state_bound")
 
     def add_director_hint(hint_type: str, text: str, source: str) -> None:
         clean = str(text or "").strip()
@@ -982,6 +1000,7 @@ def run_visible_render(
             "spoken_lines": structured_spoken_lines,
             "action_lines": structured_action_lines,
         }
+        attach_environment_render_support(bundle)
         if spoken_human_drops or action_human_drops:
             render_support = bundle.setdefault("render_support", {})
             if not isinstance(render_support, dict):
@@ -1062,6 +1081,7 @@ def run_visible_render(
             "spoken_lines": structured_spoken_lines,
             "action_lines": structured_action_lines,
         }
+        attach_environment_render_support(bundle)
         if actor_lanes_rejected:
             bundle["render_downgrade"] = {
                 "actor_lanes": "validation_rejected",
@@ -1076,6 +1096,7 @@ def run_visible_render(
         "spoken_lines": structured_spoken_lines,
         "action_lines": structured_action_lines,
     }
+    attach_environment_render_support(bundle)
     if actor_lanes_rejected:
         bundle["render_downgrade"] = {
             "actor_lanes": "validation_rejected",
@@ -1384,6 +1405,7 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
         ),
         "social_state_record": state.get("social_state_record"),
         "character_mind_records": state.get("character_mind_records"),
+        "dramatic_irony_record": state.get("dramatic_irony_record"),
         "scene_plan_record": state.get("scene_plan_record"),
         "interpreted_move": state.get("interpreted_move"),
         "interpreted_input": interpreted_input or None,

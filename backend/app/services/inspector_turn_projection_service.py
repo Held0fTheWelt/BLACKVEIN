@@ -14,6 +14,7 @@ _LAST_TURN_PLANNER_KEYS: tuple[str, ...] = (
     "semantic_move_record",
     "social_state_record",
     "character_mind_records",
+    "dramatic_irony_record",
     "scene_plan_record",
     "interpreted_input",
     "interpreted_move",
@@ -50,6 +51,7 @@ def _planner_fields_from_last_turn(last_turn: dict[str, Any]) -> dict[str, Any]:
                 "semantic_move_record",
                 "social_state_record",
                 "character_mind_records",
+                "dramatic_irony_record",
                 "scene_plan_record",
             ):
                 if key not in out and psp.get(key) is not None:

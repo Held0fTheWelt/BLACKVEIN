@@ -15,7 +15,9 @@ import yaml
 
 from ai_stack.authority_contracts import default_authority_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
+from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
+from ai_stack.information_disclosure_contracts import normalize_information_disclosure_policy
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 
@@ -176,6 +178,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     capability_gate = capability_gate if isinstance(capability_gate, dict) else {}
     scene_energy = raw.get("scene_energy")
     scene_energy = scene_energy if isinstance(scene_energy, dict) else {}
+    dramatic_irony = raw.get("dramatic_irony")
+    dramatic_irony = dramatic_irony if isinstance(dramatic_irony, dict) else {}
 
     return {
         "action_resolution_short_path": {
@@ -220,6 +224,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
             ),
         },
         "scene_energy": normalize_scene_energy_policy(scene_energy),
+        "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
     }
 
 
@@ -240,7 +245,9 @@ class ModuleRuntimePolicy:
     opening_policy: dict[str, Any] = field(default_factory=dict)
     locale_policy: dict[str, Any] = field(default_factory=dict)
     narrative_aspect_policy: dict[str, Any] = field(default_factory=dict)
+    information_disclosure_policy: dict[str, Any] = field(default_factory=dict)
     memory_policy: dict[str, Any] = field(default_factory=dict)
+    dramatic_irony_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
 
@@ -285,11 +292,30 @@ def load_module_runtime_policy(
             "narrative_aspect_policy",
         )
     )
+    information_disclosure_policy = normalize_information_disclosure_policy(
+        _unwrap(
+            _read_yaml(module_dir / "information_disclosure_policy.yaml"),
+            "information_disclosure_policy",
+        )
+    )
     memory_policy = normalize_hierarchical_memory_policy(
         _unwrap(
             _read_yaml(module_dir / "memory_policy.yaml"),
             "memory_policy",
         )
+    )
+    runtime_intelligence = (
+        module_yaml.get("runtime_intelligence")
+        if isinstance(module_yaml.get("runtime_intelligence"), dict)
+        else {}
+    )
+    dramatic_irony_raw = (
+        runtime_intelligence.get("dramatic_irony")
+        if isinstance(runtime_intelligence.get("dramatic_irony"), dict)
+        else {}
+    )
+    dramatic_irony_policy = normalize_dramatic_irony_policy(
+        dramatic_irony_raw if dramatic_irony_raw else None
     )
 
     sources = []
@@ -306,7 +332,15 @@ def load_module_runtime_policy(
         ("player_input_rules", player_input_rules),
         ("module_strings", module_strings),
         ("narrative_aspect_policy", narrative_aspect_policy if narrative_aspect_policy.get("aspects") else {}),
+        (
+            "information_disclosure_policy",
+            information_disclosure_policy
+            if information_disclosure_policy.get("enabled")
+            and information_disclosure_policy.get("units")
+            else {},
+        ),
         ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
+        ("dramatic_irony_policy", dramatic_irony_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
     ):
         if payload:
@@ -343,7 +377,9 @@ def load_module_runtime_policy(
         opening_policy=opening_policy,
         locale_policy=locale_policy,
         narrative_aspect_policy=narrative_aspect_policy,
+        information_disclosure_policy=information_disclosure_policy,
         memory_policy=memory_policy,
+        dramatic_irony_policy=dramatic_irony_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,
     )

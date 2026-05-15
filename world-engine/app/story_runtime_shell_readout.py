@@ -97,6 +97,58 @@ def _thread_continuity(committed_state: dict[str, Any]) -> dict[str, Any]:
     return tc if isinstance(tc, dict) else {}
 
 
+def _environment_state(committed_state: dict[str, Any]) -> dict[str, Any]:
+    env = committed_state.get("environment_state")
+    return env if isinstance(env, dict) else {}
+
+
+def _environment_surface_token(environment_state: dict[str, Any]) -> str:
+    salient = environment_state.get("salient_object_ids")
+    if isinstance(salient, list):
+        for item in salient:
+            token = str(item or "").strip()
+            if token:
+                return token
+    current = str(environment_state.get("current_room_id") or environment_state.get("current_area") or "").strip()
+    return current or ""
+
+
+def _environment_projection(environment_state: dict[str, Any]) -> dict[str, Any]:
+    if not environment_state:
+        return {}
+    return {
+        "contract": "shell_environment_state_projection.v1",
+        "current_room_id": environment_state.get("current_room_id") or environment_state.get("current_area"),
+        "previous_room_id": environment_state.get("previous_room_id") or environment_state.get("previous_area"),
+        "visible_room_ids": environment_state.get("visible_room_ids") if isinstance(environment_state.get("visible_room_ids"), list) else [],
+        "salient_object_ids": environment_state.get("salient_object_ids") if isinstance(environment_state.get("salient_object_ids"), list) else [],
+        "last_environment_events": environment_state.get("last_environment_events") if isinstance(environment_state.get("last_environment_events"), list) else [],
+    }
+
+
+def _environment_live_surface_now(environment_state: dict[str, Any]) -> str:
+    token = _environment_surface_token(environment_state)
+    if not token:
+        return ""
+    return f"Environment state marks {token} as the active surface right now."
+
+
+def _environment_salient_object_now(environment_state: dict[str, Any]) -> str:
+    token = _environment_surface_token(environment_state)
+    if not token:
+        return ""
+    return f"Environment state is carrying salience through {token}."
+
+
+def _environment_situational_affordance_now(environment_state: dict[str, Any]) -> str:
+    current = str(environment_state.get("current_room_id") or environment_state.get("current_area") or "").strip()
+    visible = environment_state.get("visible_room_ids") if isinstance(environment_state.get("visible_room_ids"), list) else []
+    if not current:
+        return ""
+    visible_count = len([x for x in visible if str(x).strip()])
+    return f"Environment state keeps {current} active with {visible_count} visible room link(s)."
+
+
 def _contains_any(values: list[str], *needles: str) -> bool:
     lowered = " | ".join(values).lower().replace("_", " ").replace("-", " ")
     for needle in needles:
@@ -1507,15 +1559,20 @@ def build_story_runtime_shell_readout(*, state: dict[str, Any], last_diagnostic:
     open_pressures = _open_pressures(committed_state)
     consequences = _last_consequences(committed_state)
     thread_continuity = _thread_continuity(committed_state)
+    environment_state = _environment_state(committed_state)
     previous_reply_context = _previous_reply_continuity_context(state=state, committed_state=committed_state)
     earlier_reply_context = _earlier_reply_continuity_context(state=state, committed_state=committed_state)
     social_state = _social_state_record(last_diagnostic)
     responder_actor = _first_responder_actor(last_diagnostic)
     selected_scene_function = _selected_scene_function(last_diagnostic)
+    env_live_surface = _environment_live_surface_now(environment_state)
+    env_salient_object = _environment_salient_object_now(environment_state)
+    env_situational_affordance = _environment_situational_affordance_now(environment_state)
 
     return {
         "social_weather_now": _social_weather_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),
-        "live_surface_now": _live_surface_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
+        "environment_state_now": _environment_projection(environment_state),
+        "live_surface_now": env_live_surface or _live_surface_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
         "carryover_now": _carryover_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state, thread_continuity=thread_continuity),
         "social_geometry_now": _social_geometry_now(open_pressures=open_pressures, social_state=social_state, responder_actor=responder_actor, current_scene_id=current_scene_id),
         "situational_freedom_now": _situational_freedom_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),
@@ -1535,7 +1592,7 @@ def build_story_runtime_shell_readout(*, state: dict[str, Any], last_diagnostic:
         "observation_foothold_now": _observation_foothold_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state, selected_scene_function=selected_scene_function, responder_actor=responder_actor),
         "room_pressure_now": _room_pressure_now(current_scene_id=current_scene_id, open_pressures=open_pressures, social_state=social_state),
         "zone_sensitivity_now": _zone_sensitivity_now(current_scene_id=current_scene_id, open_pressures=open_pressures, social_state=social_state),
-        "salient_object_now": _salient_object_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
+        "salient_object_now": env_salient_object or _salient_object_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
         "object_sensitivity_now": _object_sensitivity_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
         "continued_wound_now": _continued_wound_now(open_pressures=open_pressures, social_state=social_state, thread_continuity=thread_continuity),
         "role_pressure_now": _role_pressure_now(social_state=social_state, responder_actor=responder_actor),
@@ -1550,7 +1607,7 @@ def build_story_runtime_shell_readout(*, state: dict[str, Any], last_diagnostic:
         "active_pressure_now": _active_pressure_summary(open_pressures),
         "recent_act_social_meaning": _recent_act_social_meaning(open_pressures=open_pressures, consequences=consequences, social_state=social_state),
         "object_social_reading_now": _object_social_reading_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences),
-        "situational_affordance_now": _situational_affordance_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),
+        "situational_affordance_now": env_situational_affordance or _situational_affordance_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),
         "reaction_delta_now": _reaction_delta_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),
         "carryover_delta_now": _carryover_delta_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state, thread_continuity=thread_continuity),
         "pressure_shift_delta_now": _pressure_shift_delta_now(current_scene_id=current_scene_id, open_pressures=open_pressures, consequences=consequences, social_state=social_state),

@@ -85,7 +85,7 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 
 ## Runtime aspect and hierarchical memory observability
 
-The World-Engine turn path emits a backend-owned `turn_aspect_ledger` for runtime intelligence. The ledger is the authority for beat, capability, narrator/NPC authority, visible-origin, commit, and hierarchical-memory proof. The frontend may display backend-provided fields but must not infer correctness from prose or card shape.
+The World-Engine turn path emits a backend-owned `turn_aspect_ledger` for runtime intelligence. The ledger is the authority for beat, capability, narrator/NPC authority, information disclosure, visible-origin, commit, and hierarchical-memory proof. The frontend may display backend-provided fields but must not infer correctness from prose or card shape.
 
 Runtime governance is module-policy-driven:
 
@@ -93,6 +93,13 @@ Runtime governance is module-policy-driven:
 - Action-resolution short-path eligibility, visible-projection hard-failure behavior, missing/forbidden capability behavior, and continuity hooks are policy values.
 - Projection failures that lose required beat/narrator/capability evidence block or recover before canonical commit according to policy; they must not be papered over by frontend card folding.
 - The ledger records `committed_result` / commit status so degraded, recoverable, rejected, and committed outcomes remain distinguishable in backend/world-engine/Langfuse data.
+
+Information disclosure is policy-driven runtime evidence:
+
+- Module content provides `information_disclosure_policy.yaml`; runtime code consumes normalized disclosure units and does not use Table-B labels as production behavior switches.
+- LangGraph records selected, allowed, withheld, and forbidden unit ids before generation.
+- Validation reads structured `disclosure_events` when present and checks selected unit ids, stage/mode, and visible-unit budget.
+- Langfuse/MCP expose target-selected, budget-pass, premature-reveal-absent, and contract-pass signals. These are structural contract scores, not story-prose quality ratings.
 
 Hierarchical memory is a bounded projection of canonical committed truth:
 
@@ -113,6 +120,8 @@ Langfuse runtime aspect spans include:
 - `story.authority.npc`
 - `story.capability.select`
 - `story.capability.realize`
+- `story.information_disclosure.select`
+- `story.information_disclosure.validate`
 - `story.npc_agency.plan`
 - `story.npc_agency.realize`
 - `story.visible.project`
@@ -145,6 +154,11 @@ Deterministic runtime aspect scores include:
 - `forbidden_capability_absent`
 - `selected_capabilities_realized`
 - `dramatic_capability_contract_pass`
+- `information_disclosure_policy_present`
+- `information_disclosure_target_selected`
+- `information_disclosure_budget_pass`
+- `information_disclosure_premature_reveal_absent`
+- `information_disclosure_contract_pass`
 - `npc_agency_plan_present`
 - `npc_independent_planning_used`
 - `npc_required_initiatives_realized`

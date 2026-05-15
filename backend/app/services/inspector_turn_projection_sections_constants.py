@@ -23,6 +23,7 @@ SEMANTIC_FLOW_STAGES: tuple[tuple[str, str], ...] = (
     ("semantic_move", "Semantic move"),
     ("social_state", "Social state"),
     ("character_mind", "Character mind"),
+    ("dramatic_irony", "Dramatic irony"),
     ("scene_plan", "Scene plan"),
     ("proposed_narrative", "Candidate / proposed narrative"),
     ("dramatic_effect_gate", "Dramatic effect gate"),
@@ -32,7 +33,7 @@ SEMANTIC_FLOW_STAGES: tuple[tuple[str, str], ...] = (
 )
 
 PLANNER_BOUND_STAGES: frozenset[str] = frozenset(
-    {"semantic_move", "social_state", "character_mind", "scene_plan"}
+    {"semantic_move", "social_state", "character_mind", "dramatic_irony", "scene_plan"}
 )
 
 SUPPORT_NOTE_FULL_GOC = (

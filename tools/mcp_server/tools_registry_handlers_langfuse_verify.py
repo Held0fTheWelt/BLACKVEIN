@@ -492,6 +492,13 @@ def _extract_normalized_wos_evidence(
         "scene_energy_contract_pass",
         "scene_energy_transition_allowed",
         "scene_energy_pressure_realized",
+        "information_disclosure_policy_present",
+        "information_disclosure_target_selected",
+        "information_disclosure_budget_pass",
+        "information_disclosure_premature_reveal_absent",
+        "information_disclosure_contract_pass",
+        "dramatic_irony_opportunity_present",
+        "dramatic_irony_contract_pass",
         "narrator_required_when_expected",
         "npc_takeover_absent",
         "npc_agency_plan_present",
@@ -573,6 +580,24 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "scene_energy_transition_allowed",
     "scene_energy_pressure_realized",
     "scene_energy_failure_codes",
+    "information_disclosure_policy_present",
+    "information_disclosure_target_selected",
+    "information_disclosure_selected_units",
+    "information_disclosure_visible_units",
+    "information_disclosure_withheld_units",
+    "information_disclosure_budget_used",
+    "information_disclosure_budget_pass",
+    "information_disclosure_premature_reveal_absent",
+    "information_disclosure_contract_pass",
+    "information_disclosure_failure_codes",
+    "dramatic_irony_policy_present",
+    "dramatic_irony_opportunity_present",
+    "dramatic_irony_selected_opportunities",
+    "dramatic_irony_realized_opportunities",
+    "dramatic_irony_realization_status",
+    "dramatic_irony_leak_blocked",
+    "dramatic_irony_contract_pass",
+    "dramatic_irony_violation_codes",
     "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
@@ -711,6 +736,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     action_rec = _aspect_record(ledger, "action_resolution")
     beat_rec = _aspect_record(ledger, "beat")
     scene_energy_rec = _aspect_record(ledger, "scene_energy")
+    disclosure_rec = _aspect_record(ledger, "information_disclosure")
+    dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     narr_rec = _aspect_record(ledger, "narrator_authority")
     npc_rec = _aspect_record(ledger, "npc_authority")
     npc_agency_rec = _aspect_record(ledger, "npc_agency")
@@ -726,6 +753,12 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_actual = _aspect_block(beat_rec, "actual")
     scene_energy_selected = _aspect_block(scene_energy_rec, "selected")
     scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
+    disclosure_expected = _aspect_block(disclosure_rec, "expected")
+    disclosure_selected = _aspect_block(disclosure_rec, "selected")
+    disclosure_actual = _aspect_block(disclosure_rec, "actual")
+    dramatic_irony_expected = _aspect_block(dramatic_irony_rec, "expected")
+    dramatic_irony_selected = _aspect_block(dramatic_irony_rec, "selected")
+    dramatic_irony_actual = _aspect_block(dramatic_irony_rec, "actual")
     narr_expected = _aspect_block(narr_rec, "expected")
     narr_actual = _aspect_block(narr_rec, "actual")
     npc_expected = _aspect_block(npc_rec, "expected")
@@ -800,6 +833,12 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
     if not isinstance(scene_energy_failure_codes, list):
         scene_energy_failure_codes = []
+    disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
+    if not isinstance(disclosure_failure_codes, list):
+        disclosure_failure_codes = []
+    dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
+    if not isinstance(dramatic_irony_violation_codes, list):
+        dramatic_irony_violation_codes = []
     failed_records = [
         r
         for r in (
@@ -809,6 +848,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             cap_rec,
             beat_rec,
             scene_energy_rec,
+            disclosure_rec,
+            dramatic_irony_rec,
             vis_rec,
             narrative_rec,
             voice_rec,
@@ -821,6 +862,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         for r in (
             beat_rec,
             scene_energy_rec,
+            disclosure_rec,
+            dramatic_irony_rec,
             npc_agency_rec,
             cap_rec,
             vis_rec,
@@ -865,6 +908,58 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("scene_energy_pressure_realized")
         ),
         "scene_energy_failure_codes": scene_energy_failure_codes,
+        "information_disclosure_policy_present": (
+            disclosure_expected.get("policy_present")
+            if "policy_present" in disclosure_expected
+            else det_scores.get("information_disclosure_policy_present")
+        ),
+        "information_disclosure_target_selected": (
+            bool(disclosure_selected.get("selected_unit_ids"))
+            if disclosure_selected
+            else det_scores.get("information_disclosure_target_selected")
+        ),
+        "information_disclosure_selected_units": disclosure_selected.get("selected_unit_ids") or [],
+        "information_disclosure_visible_units": disclosure_actual.get("visible_unit_ids") or [],
+        "information_disclosure_withheld_units": disclosure_selected.get("withheld_unit_ids")
+        or disclosure_actual.get("withheld_unit_ids")
+        or [],
+        "information_disclosure_budget_used": disclosure_actual.get("budget_used"),
+        "information_disclosure_budget_pass": (
+            "information_disclosure_over_budget" not in disclosure_failure_codes
+            if disclosure_actual
+            else det_scores.get("information_disclosure_budget_pass")
+        ),
+        "information_disclosure_premature_reveal_absent": (
+            "information_disclosure_forbidden_unit" not in disclosure_failure_codes
+            if disclosure_actual
+            else det_scores.get("information_disclosure_premature_reveal_absent")
+        ),
+        "information_disclosure_contract_pass": (
+            disclosure_actual.get("contract_pass")
+            if "contract_pass" in disclosure_actual
+            else det_scores.get("information_disclosure_contract_pass")
+        ),
+        "information_disclosure_failure_codes": disclosure_failure_codes,
+        "dramatic_irony_policy_present": (
+            dramatic_irony_expected.get("policy_present")
+            if "policy_present" in dramatic_irony_expected
+            else det_scores.get("dramatic_irony_policy_present")
+        ),
+        "dramatic_irony_opportunity_present": (
+            bool(dramatic_irony_actual.get("opportunity_count"))
+            if "opportunity_count" in dramatic_irony_actual
+            else det_scores.get("dramatic_irony_opportunity_present")
+        ),
+        "dramatic_irony_selected_opportunities": dramatic_irony_selected.get("selected_opportunity_ids") or [],
+        "dramatic_irony_realized_opportunities": dramatic_irony_actual.get("realized_opportunity_ids") or [],
+        "dramatic_irony_realization_status": dramatic_irony_actual.get("realization_status"),
+        "dramatic_irony_leak_blocked": bool(dramatic_irony_actual.get("leak_blocked")),
+        "dramatic_irony_contract_pass": (
+            dramatic_irony_actual.get("contract_pass")
+            if "contract_pass" in dramatic_irony_actual
+            else det_scores.get("dramatic_irony_contract_pass")
+        ),
+        "dramatic_irony_violation_codes": dramatic_irony_violation_codes,
         "narrator_required_when_expected": det_scores.get("narrator_required_when_expected"),
         "narrator_required": narr_expected.get("required"),
         "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),

@@ -82,7 +82,9 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_DRAMATIC_IRONY,
     ASPECT_HIERARCHICAL_MEMORY,
+    ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
@@ -100,6 +102,10 @@ from ai_stack.runtime_aspect_ledger import (
     set_aspect_record,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
+from ai_stack.environment_state_contracts import (
+    build_environment_model,
+    normalize_environment_state,
+)
 from ai_stack.hierarchical_memory_contracts import (
     build_hierarchical_memory_write,
     empty_hierarchical_memory_snapshot,
@@ -1195,6 +1201,8 @@ class StorySession:
     prior_continuity_impacts: list[dict[str, Any]] = field(default_factory=list)
     # Bounded hierarchical memory derived only from canonical committed turns.
     hierarchical_memory: dict[str, Any] = field(default_factory=dict)
+    # Durable Pi15 environment state derived from canonical content and committed turns.
+    environment_state: dict[str, Any] = field(default_factory=dict)
     # Immutable-ish snapshot of published content identity at session birth (audit F-M3).
     content_provenance: dict[str, Any] = field(default_factory=dict)
 
@@ -1226,6 +1234,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "last_thread_update_trace": trace.model_dump(mode="json") if trace is not None else None,
         "prior_continuity_impacts": session.prior_continuity_impacts,
         "hierarchical_memory": session.hierarchical_memory,
+        "environment_state": session.environment_state,
         "content_provenance": session.content_provenance,
     }
 
@@ -1265,6 +1274,7 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         last_thread_update_trace=trace,
         prior_continuity_impacts=list(data.get("prior_continuity_impacts") or []),
         hierarchical_memory=dict(data.get("hierarchical_memory") or {}),
+        environment_state=dict(data.get("environment_state") or {}),
         content_provenance=provenance,
     )
 
@@ -2892,6 +2902,10 @@ def _build_langfuse_path_summary(
     summary["local_context_transition"] = _lct_gs if isinstance(_lct_gs, dict) else None
     _ncp_gs = graph_state.get("narrator_consequence_plan")
     summary["narrator_consequence_plan"] = _ncp_gs if isinstance(_ncp_gs, dict) else None
+    _env_gs = graph_state.get("environment_state")
+    summary["environment_state"] = _env_gs if isinstance(_env_gs, dict) else None
+    _env_tr = graph_state.get("environment_transition")
+    summary["environment_transition"] = _env_tr if isinstance(_env_tr, dict) else None
     summary["movement_return_intent"] = bool(interpreted_input.get("movement_return_intent"))
     if "speech_projection_allowed" in interpreted_input:
         summary["speech_projection_allowed"] = bool(interpreted_input.get("speech_projection_allowed"))
@@ -3572,6 +3586,10 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_selected = _selected(ASPECT_SCENE_ENERGY)
     scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
+    disclosure_selected = _selected(ASPECT_INFORMATION_DISCLOSURE)
+    disclosure_actual = _actual(ASPECT_INFORMATION_DISCLOSURE)
+    dramatic_irony_selected = _selected(ASPECT_DRAMATIC_IRONY)
+    dramatic_irony_actual = _actual(ASPECT_DRAMATIC_IRONY)
     narrative_selected = _selected(ASPECT_NARRATIVE_ASPECT)
     narrative_actual = _actual(ASPECT_NARRATIVE_ASPECT)
     memory_selected = _selected(ASPECT_HIERARCHICAL_MEMORY)
@@ -3626,6 +3644,38 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": scene_energy_actual,
                 "aspect_record": _rec(ASPECT_SCENE_ENERGY),
+            },
+        ),
+        (
+            "story.information_disclosure.select",
+            ASPECT_INFORMATION_DISCLOSURE,
+            {
+                "selected": disclosure_selected,
+                "aspect_record": _rec(ASPECT_INFORMATION_DISCLOSURE),
+            },
+        ),
+        (
+            "story.information_disclosure.validate",
+            ASPECT_INFORMATION_DISCLOSURE,
+            {
+                "actual": disclosure_actual,
+                "aspect_record": _rec(ASPECT_INFORMATION_DISCLOSURE),
+            },
+        ),
+        (
+            "story.dramatic_irony.select",
+            ASPECT_DRAMATIC_IRONY,
+            {
+                "selected": dramatic_irony_selected,
+                "aspect_record": _rec(ASPECT_DRAMATIC_IRONY),
+            },
+        ),
+        (
+            "story.dramatic_irony.validate",
+            ASPECT_DRAMATIC_IRONY,
+            {
+                "actual": dramatic_irony_actual,
+                "aspect_record": _rec(ASPECT_DRAMATIC_IRONY),
             },
         ),
         ("story.authority.narrator", ASPECT_NARRATOR_AUTHORITY, _rec(ASPECT_NARRATOR_AUTHORITY)),
@@ -3701,6 +3751,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_ACTION_RESOLUTION,
                         ASPECT_BEAT,
                         ASPECT_SCENE_ENERGY,
+                        ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
@@ -3756,6 +3807,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     narrator_actual = _actual(ASPECT_NARRATOR_AUTHORITY)
     npc_actual = _actual(ASPECT_NPC_AUTHORITY)
     npc_agency_actual = _actual(ASPECT_NPC_AGENCY)
+    dramatic_irony_expected = _expected(ASPECT_DRAMATIC_IRONY)
+    dramatic_irony_actual = _actual(ASPECT_DRAMATIC_IRONY)
     cap_actual = _actual(ASPECT_CAPABILITY_SELECTION)
     visible_actual = _actual(ASPECT_VISIBLE_PROJECTION)
     narrative_expected = _expected(ASPECT_NARRATIVE_ASPECT)
@@ -3772,6 +3825,12 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
     if not isinstance(scene_energy_failure_codes, list):
         scene_energy_failure_codes = []
+    disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
+    if not isinstance(disclosure_failure_codes, list):
+        disclosure_failure_codes = []
+    dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
+    if not isinstance(dramatic_irony_violation_codes, list):
+        dramatic_irony_violation_codes = []
     npc_failure_reason = str(_rec(ASPECT_NPC_AUTHORITY).get("failure_reason") or "")
     violated_capabilities = cap_actual.get("violated_capabilities") or []
     if not isinstance(violated_capabilities, list):
@@ -3874,6 +3933,62 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             ASPECT_SCENE_ENERGY,
             _runtime_aspect_score_value(
                 "scene_energy_missing_required_pressure" not in scene_energy_failure_codes
+            ),
+        ),
+        (
+            "information_disclosure_policy_present",
+            ASPECT_INFORMATION_DISCLOSURE,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_INFORMATION_DISCLOSURE).get("policy_present"))
+            ),
+        ),
+        (
+            "information_disclosure_target_selected",
+            ASPECT_INFORMATION_DISCLOSURE,
+            _runtime_aspect_score_value(bool(disclosure_selected.get("selected_unit_ids"))),
+        ),
+        (
+            "information_disclosure_budget_pass",
+            ASPECT_INFORMATION_DISCLOSURE,
+            _runtime_aspect_score_value(
+                "information_disclosure_over_budget" not in disclosure_failure_codes
+            ),
+        ),
+        (
+            "information_disclosure_premature_reveal_absent",
+            ASPECT_INFORMATION_DISCLOSURE,
+            _runtime_aspect_score_value(
+                "information_disclosure_forbidden_unit" not in disclosure_failure_codes
+            ),
+        ),
+        (
+            "information_disclosure_contract_pass",
+            ASPECT_INFORMATION_DISCLOSURE,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_INFORMATION_DISCLOSURE).get("status")
+                in {"passed", "not_applicable"}
+                and disclosure_actual.get("contract_pass") is not False
+                and not disclosure_failure_codes
+            ),
+        ),
+        (
+            "dramatic_irony_policy_present",
+            ASPECT_DRAMATIC_IRONY,
+            _runtime_aspect_score_value(bool(dramatic_irony_expected.get("policy_present"))),
+        ),
+        (
+            "dramatic_irony_opportunity_present",
+            ASPECT_DRAMATIC_IRONY,
+            _runtime_aspect_score_value(bool(dramatic_irony_actual.get("opportunity_count"))),
+        ),
+        (
+            "dramatic_irony_contract_pass",
+            ASPECT_DRAMATIC_IRONY,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_DRAMATIC_IRONY).get("status")
+                in {"passed", "not_applicable"}
+                and dramatic_irony_actual.get("contract_pass") is not False
+                and not dramatic_irony_violation_codes
             ),
         ),
         (
@@ -7539,6 +7654,8 @@ class StoryRuntimeManager:
         turn_lc.advance("generated_or_resolved")
         turn_lc.advance("validated")
         session.current_scene_id = narrative_commit.committed_scene_id
+        if isinstance(graph_state.get("environment_state"), dict):
+            session.environment_state = dict(graph_state["environment_state"])
         session.narrative_threads, session.last_thread_update_trace = update_narrative_threads(
             prior=session.narrative_threads,
             latest_commit=narrative_commit,
@@ -7782,6 +7899,8 @@ class StoryRuntimeManager:
             gov["scene_energy_transition"] = graph_state.get("scene_energy_transition")
         if isinstance(graph_state.get("scene_energy_validation"), dict):
             gov["scene_energy_validation"] = graph_state.get("scene_energy_validation")
+        if isinstance(session.environment_state, dict) and session.environment_state:
+            gov["environment_state"] = session.environment_state
         # Story Runtime Experience packaging: re-pack the visible bundle
         # according to the governed experience policy. The policy is a real
         # first-class runtime value pulled from the resolved config, so
@@ -7923,10 +8042,15 @@ class StoryRuntimeManager:
             "validation_outcome": val,
             "committed_result": graph_state.get("committed_result"),
             "committed_turn_authority": committed_turn_authority,
+            "environment_state": session.environment_state
+            if isinstance(session.environment_state, dict)
+            else {},
             "selected_scene_function": graph_state.get("selected_scene_function"),
             "scene_energy_target": graph_state.get("scene_energy_target"),
             "scene_energy_transition": graph_state.get("scene_energy_transition"),
             "scene_energy_validation": graph_state.get("scene_energy_validation"),
+            "dramatic_irony_record": graph_state.get("dramatic_irony_record"),
+            "dramatic_irony_validation": graph_state.get("dramatic_irony_validation"),
             "selected_responder_set": selected_responder_set,
             "visibility_class_markers": graph_state.get("visibility_class_markers"),
             "failure_markers": graph_state.get("failure_markers"),
@@ -8472,6 +8596,9 @@ class StoryRuntimeManager:
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
+                "environment_state": session.environment_state
+                if isinstance(session.environment_state, dict)
+                else {},
             },
         }
         _record_hierarchical_memory_aspect(
@@ -8506,6 +8633,9 @@ class StoryRuntimeManager:
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
+                "environment_state": session.environment_state
+                if isinstance(session.environment_state, dict)
+                else {},
             },
         }
         if isinstance(event.get("narrator_streaming"), dict):
@@ -8553,6 +8683,9 @@ class StoryRuntimeManager:
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
                 validation_execution_mode=self._validation_execution_mode(),
+                environment_state=session.environment_state
+                if isinstance(session.environment_state, dict)
+                else None,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -8629,6 +8762,18 @@ class StoryRuntimeManager:
             current_scene_id=current_scene_id,
             session_output_language=session_output_language,
             content_provenance=prov,
+        )
+        env_model = build_environment_model(
+            module_id=module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(runtime_projection),
+        )
+        session.environment_state = normalize_environment_state(
+            None,
+            module_id=module_id,
+            environment_model=env_model,
+            runtime_projection=runtime_projection,
+            actor_lane_context=self._extract_actor_lane_context(session),
+            turn_number=0,
         )
         self.sessions[session_id] = session
         with self._session_locks_guard:
@@ -9556,6 +9701,9 @@ class StoryRuntimeManager:
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
                 validation_execution_mode=self._validation_execution_mode(),
+                environment_state=session.environment_state
+                if isinstance(session.environment_state, dict)
+                else None,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -9815,6 +9963,9 @@ class StoryRuntimeManager:
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
+                "environment_state": session.environment_state
+                if isinstance(session.environment_state, dict)
+                else {},
             },
         }
         turn_lc.advance("persisted")
@@ -10071,6 +10222,9 @@ class StoryRuntimeManager:
             "committed_state": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
+                "environment_state": session.environment_state
+                if isinstance(session.environment_state, dict)
+                else {},
                 "last_narrative_commit": last_narrative_commit,
                 "last_committed_turn_authority": last_committed_turn_authority,
                 "last_dramatic_context_summary": last_dramatic_context_summary,
@@ -10122,6 +10276,9 @@ class StoryRuntimeManager:
         committed_state = {
             "current_scene_id": session.current_scene_id,
             "turn_counter": session.turn_counter,
+            "environment_state": session.environment_state
+            if isinstance(session.environment_state, dict)
+            else {},
         }
         trace_payload: dict[str, Any] | None = None
         if session.last_thread_update_trace is not None:

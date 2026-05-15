@@ -1,0 +1,45 @@
+information_disclosure_policy:
+  schema_version: information_disclosure_policy.v1
+  enabled: true
+  default_commit_impact: diagnostic
+  require_structured_events: false
+  max_visible_units_per_turn: 1
+  units:
+    - id: private_contradiction_pressure
+      stage: hint
+      allowed_modes:
+        - visible_hint
+        - implication
+      unlock_conditions:
+        scene_functions_any:
+          - probe_motive
+          - withhold_or_evade
+        semantic_families_any:
+          - probe
+          - evade
+      semantic_profile:
+        public_hint: >-
+          omission contradiction evasive pressure discomfort inconsistency
+          ausweichen widerspruch druck
+        protected_truth: >-
+          explicit confession final admission whole truth complete explanation
+      metadata:
+        table_b_refs:
+          - pi_20
+    - id: private_contradiction_confirmation
+      stage: confirm
+      allowed_modes:
+        - confirmation
+      unlock_conditions:
+        scene_functions_any:
+          - reveal_surface
+        prior_continuity_classes_any:
+          - revealed_fact
+      semantic_profile:
+        public_hint: >-
+          admission surface exposed confirmed consequence
+        protected_truth: >-
+          full private motive complete conspiracy final answer
+      metadata:
+        table_b_refs:
+          - pi_20

@@ -7,6 +7,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_COMMIT,
     ASPECT_HIERARCHICAL_MEMORY,
+    ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_VALIDATION,
@@ -398,6 +399,54 @@ def test_visible_projection_records_policy_driven_theme_semantics(monkeypatch) -
     projected = out["runtime_intelligence_projection"]["narrative_aspect"]
     assert projected["selected_theme_aspects"] == ["aspect_theme"]
     assert projected["semantic_classification_count"] == 1
+
+
+def test_runtime_projection_records_information_disclosure_contract() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="session-disclosure",
+        module_id="module_alpha",
+        runtime_profile_id="profile_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Ask carefully.",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_INFORMATION_DISCLOSURE,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={
+                "policy_present": True,
+                "policy_enabled": True,
+                "max_visible_units_per_turn": 1,
+                "commit_impact": "recover",
+            },
+            selected={
+                "selected_unit_ids": ["unit_alpha"],
+                "allowed_unit_ids": ["unit_alpha"],
+                "withheld_unit_ids": ["unit_beta"],
+                "forbidden_unit_ids": ["unit_beta"],
+                "disclosure_mode": "visible_hint",
+            },
+            actual={
+                "contract_pass": True,
+                "structured_events_present": True,
+                "event_count": 1,
+                "visible_unit_ids": ["unit_alpha"],
+                "budget_used": 1,
+                "failure_codes": [],
+            },
+            source="validator",
+        ),
+    )
+
+    projection = ledger["runtime_intelligence_projection"]["information_disclosure"]
+    assert projection["policy_present"] is True
+    assert projection["selected_unit_ids"] == ["unit_alpha"]
+    assert projection["withheld_unit_ids"] == ["unit_beta"]
+    assert projection["contract_pass"] is True
+    assert projection["budget_used"] == 1
 
 
 def test_hierarchical_memory_records_policy_driven_committed_turn(monkeypatch) -> None:

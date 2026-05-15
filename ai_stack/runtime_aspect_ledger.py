@@ -25,8 +25,10 @@ ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
 ASPECT_NPC_AGENCY = "npc_agency"
+ASPECT_DRAMATIC_IRONY = "dramatic_irony"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
+ASPECT_INFORMATION_DISCLOSURE = "information_disclosure"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
 ASPECT_VALIDATION = "validation"
 ASPECT_COMMIT = "commit"
@@ -41,8 +43,10 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_NPC_AGENCY,
+    ASPECT_DRAMATIC_IRONY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_NARRATIVE_ASPECT,
+    ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_VALIDATION,
     ASPECT_COMMIT,
@@ -304,6 +308,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_NPC_AGENCY), dict)
         else {}
     )
+    dramatic_irony_rec = (
+        aspects.get(ASPECT_DRAMATIC_IRONY)
+        if isinstance(aspects.get(ASPECT_DRAMATIC_IRONY), dict)
+        else {}
+    )
     voice_rec = (
         aspects.get(ASPECT_VOICE_CONSISTENCY)
         if isinstance(aspects.get(ASPECT_VOICE_CONSISTENCY), dict)
@@ -312,6 +321,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     narrative_rec = (
         aspects.get(ASPECT_NARRATIVE_ASPECT)
         if isinstance(aspects.get(ASPECT_NARRATIVE_ASPECT), dict)
+        else {}
+    )
+    disclosure_rec = (
+        aspects.get(ASPECT_INFORMATION_DISCLOSURE)
+        if isinstance(aspects.get(ASPECT_INFORMATION_DISCLOSURE), dict)
         else {}
     )
     memory_rec = (
@@ -350,11 +364,17 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     npc_agency_expected = _record_block(npc_agency_rec, "expected")
     npc_agency_selected = _record_block(npc_agency_rec, "selected")
     npc_agency_actual = _record_block(npc_agency_rec, "actual")
+    dramatic_irony_expected = _record_block(dramatic_irony_rec, "expected")
+    dramatic_irony_selected = _record_block(dramatic_irony_rec, "selected")
+    dramatic_irony_actual = _record_block(dramatic_irony_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
     voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
     narrative_selected = _record_block(narrative_rec, "selected")
     narrative_actual = _record_block(narrative_rec, "actual")
+    disclosure_expected = _record_block(disclosure_rec, "expected")
+    disclosure_selected = _record_block(disclosure_rec, "selected")
+    disclosure_actual = _record_block(disclosure_rec, "actual")
     memory_expected = _record_block(memory_rec, "expected")
     memory_selected = _record_block(memory_rec, "selected")
     memory_actual = _record_block(memory_rec, "actual")
@@ -558,6 +578,37 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or (_record_reasons(npc_agency_rec)[0] if _record_reasons(npc_agency_rec) else None),
                 "status": npc_agency_rec.get("status"),
             },
+            "dramatic_irony": {
+                "schema_version": dramatic_irony_expected.get("schema_version"),
+                "policy_present": bool(dramatic_irony_expected.get("policy_present")),
+                "policy_enabled": bool(dramatic_irony_expected.get("policy_enabled")),
+                "allowed_sources": dramatic_irony_expected.get("allowed_sources") or [],
+                "allowed_surface_modes": dramatic_irony_expected.get("allowed_surface_modes") or [],
+                "direct_reveal_allowed": bool(
+                    dramatic_irony_expected.get("direct_reveal_allowed")
+                ),
+                "selected_opportunity_ids": dramatic_irony_selected.get("selected_opportunity_ids")
+                or [],
+                "selected_fact_ids": dramatic_irony_selected.get("selected_fact_ids") or [],
+                "fact_count": int(dramatic_irony_actual.get("fact_count") or 0),
+                "opportunity_count": int(dramatic_irony_actual.get("opportunity_count") or 0),
+                "selected_opportunity_count": int(
+                    dramatic_irony_actual.get("selected_opportunity_count") or 0
+                ),
+                "realization_status": dramatic_irony_actual.get("realization_status"),
+                "realized_opportunity_ids": dramatic_irony_actual.get("realized_opportunity_ids")
+                or [],
+                "leak_blocked": bool(dramatic_irony_actual.get("leak_blocked")),
+                "violation_codes": dramatic_irony_actual.get("violation_codes") or [],
+                "contract_pass": dramatic_irony_actual.get("contract_pass"),
+                "failure_reason": dramatic_irony_rec.get("failure_reason")
+                or (
+                    _record_reasons(dramatic_irony_rec)[0]
+                    if _record_reasons(dramatic_irony_rec)
+                    else None
+                ),
+                "status": dramatic_irony_rec.get("status"),
+            },
             "visible_projection": {
                 "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),
                 "required_blocks_present": bool(visible_actual.get("required_blocks_present")),
@@ -616,6 +667,36 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "failure_reason": narrative_rec.get("failure_reason")
                 or (_record_reasons(narrative_rec)[0] if _record_reasons(narrative_rec) else None),
                 "status": narrative_rec.get("status"),
+            },
+            "information_disclosure": {
+                "policy_present": bool(disclosure_expected.get("policy_present")),
+                "policy_enabled": bool(disclosure_expected.get("policy_enabled")),
+                "commit_impact": disclosure_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    disclosure_expected.get("require_structured_events")
+                ),
+                "max_visible_units_per_turn": int(
+                    disclosure_expected.get("max_visible_units_per_turn") or 0
+                ),
+                "selected_unit_ids": disclosure_selected.get("selected_unit_ids") or [],
+                "allowed_unit_ids": disclosure_selected.get("allowed_unit_ids") or [],
+                "withheld_unit_ids": disclosure_selected.get("withheld_unit_ids")
+                or disclosure_actual.get("withheld_unit_ids")
+                or [],
+                "forbidden_unit_ids": disclosure_selected.get("forbidden_unit_ids") or [],
+                "disclosure_mode": disclosure_selected.get("disclosure_mode"),
+                "structured_events_present": bool(
+                    disclosure_actual.get("structured_events_present")
+                ),
+                "event_count": int(disclosure_actual.get("event_count") or 0),
+                "visible_unit_ids": disclosure_actual.get("visible_unit_ids") or [],
+                "budget_used": int(disclosure_actual.get("budget_used") or 0),
+                "contract_pass": disclosure_actual.get("contract_pass"),
+                "failure_codes": disclosure_actual.get("failure_codes")
+                or _record_reasons(disclosure_rec),
+                "failure_reason": disclosure_rec.get("failure_reason")
+                or (_record_reasons(disclosure_rec)[0] if _record_reasons(disclosure_rec) else None),
+                "status": disclosure_rec.get("status"),
             },
             "hierarchical_memory": {
                 "policy_present": bool(memory_expected.get("policy_present")),
@@ -833,4 +914,13 @@ def aspect_score_metadata(
         or transition.get("transition_intent"),
         "scene_energy_contract_pass": actual.get("contract_pass"),
         "scene_energy_failure_codes": actual.get("failure_codes"),
+        "information_disclosure_selected_unit_ids": selected.get("selected_unit_ids"),
+        "information_disclosure_visible_unit_ids": actual.get("visible_unit_ids"),
+        "information_disclosure_contract_pass": actual.get("contract_pass"),
+        "information_disclosure_failure_codes": actual.get("failure_codes"),
+        "dramatic_irony_selected_opportunity_ids": selected.get("selected_opportunity_ids"),
+        "dramatic_irony_selected_fact_ids": selected.get("selected_fact_ids"),
+        "dramatic_irony_realization_status": actual.get("realization_status"),
+        "dramatic_irony_leak_blocked": actual.get("leak_blocked"),
+        "dramatic_irony_violation_codes": actual.get("violation_codes"),
     }
