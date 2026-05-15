@@ -1,8 +1,8 @@
 """ADR-0041 authority bridge: explicit mapping between ``run_validation_seam`` and local validators.
 
-This module can emit non-mutating scoped authority decisions. It does **not**
-change ``validation_outcome``, commit/readiness gates, prompts, or story
-generation.
+This module can emit non-mutating scoped authority decisions and readiness policy
+artifacts (preview, enforcement, aggregation). It does **not** change
+``validation_outcome``, commit gates, prompts, or story generation.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from ai_stack.goc_seam_mirror_validator_adapters import (
 
 VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION = "validation_authority_bridge.v5"
 VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION = "validation_co_authority_decision.v1"
+READINESS_CO_AUTHORITY_PREVIEW_SCHEMA_VERSION = "readiness_co_authority_preview.v1"
 
 # Drift labels align with ``runtime_aspect_ledger.classify_adr0041_validation_authority_drift`` (no cyclic import).
 _DRIFT_ALIGNED = "aligned"
@@ -54,6 +55,15 @@ CO_AUTHORITY_STAGE_SCOPED = "scoped_co_authority"
 CO_AUTHORITY_DECISION_READY = "validation_co_authority_ready"
 CO_AUTHORITY_LEGACY_SEAM = "run_validation_seam"
 CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.goc_turn_seams.run_validation_seam"
+
+READINESS_POLICY_SHADOW_ONLY = "shadow_only"
+READINESS_POLICY_PREVIEW_CANDIDATE = "readiness_preview_candidate"
+READINESS_POLICY_PREVIEW_ALLOW = "readiness_preview_allow"
+READINESS_POLICY_PREVIEW_BLOCK = "readiness_preview_block"
+READINESS_POLICY_NOT_ELIGIBLE = "not_eligible"
+
+READINESS_ENFORCEMENT_SCHEMA_VERSION = "readiness_co_authority_enforcement.v1"
+READINESS_AGGREGATION_SCHEMA_VERSION = "readiness_aggregation_decision.v1"
 
 # Declarative map: canonical seam concern IDs (see ``ai_stack.goc_turn_seams.run_validation_seam``)
 # Seam concerns that must be explicitly delegated before ADR-0041 could share gate authority.
@@ -908,6 +918,353 @@ def build_validation_co_authority_decision(
         "live_or_staging_evidence": False,
         "feature_flag": feature_flag_name,
         "feature_flag_enabled": True,
+    }
+
+
+def build_readiness_co_authority_preview(
+    *,
+    validation_authority_bridge: dict[str, Any],
+    validator_dispatch_report: dict[str, Any],
+    selected_turn_class: str,
+    validation_co_authority_decision: dict[str, Any] | None,
+    feature_flag_name: str,
+    feature_flag_enabled: bool,
+) -> dict[str, Any]:
+    """Build policy-grade, non-mutating readiness co-authority preview."""
+    bridge = validation_authority_bridge if isinstance(validation_authority_bridge, dict) else {}
+    report = validator_dispatch_report if isinstance(validator_dispatch_report, dict) else {}
+    tc_key = normalize_turn_class_key(str(selected_turn_class or bridge.get("selected_turn_class") or ""))
+    adr = _adr0041_aggregate_status(report)
+    seam_status = bridge.get("seam_status") if isinstance(bridge.get("seam_status"), dict) else {}
+    handoff = bridge.get("authority_handoff_candidate")
+    handoff = handoff if isinstance(handoff, dict) else {}
+    per_tc = bridge.get("per_turn_class") if isinstance(bridge.get("per_turn_class"), dict) else {}
+    snap = per_tc.get(tc_key) if isinstance(per_tc.get(tc_key), dict) else {}
+
+    scope = sorted(_critical_concerns_for_turn_class(tc_key))
+    drift_classification = str(bridge.get("drift_classification") or "").strip() or None
+    dramatic_fidelity = _dramatic_mirror_fidelity(report)
+    unavailable_validators = [str(x) for x in (adr.get("unavailable_validator_ids") or []) if str(x)]
+    failed_validators: list[str] = []
+    for ent in report.get("entries") or []:
+        if not isinstance(ent, dict):
+            continue
+        if not ent.get("actually_executed") or ent.get("unavailable"):
+            continue
+        ev = ent.get("local_execution_evidence")
+        if isinstance(ev, dict) and ev.get("passed") is False:
+            vid = str(ent.get("validator_id") or "")
+            if vid and vid not in failed_validators:
+                failed_validators.append(vid)
+    partial_blocked = [str(x) for x in (snap.get("partial_transfer_blocked") or []) if str(x)]
+
+    blockers: list[str] = []
+    if adr.get("engagement") != "plan_enforced":
+        blockers.append("no_sidecar_or_not_plan_enforced")
+    if dramatic_fidelity == "partial_defaults":
+        blockers.append("partial_defaults")
+    if unavailable_validators:
+        blockers.append("unavailable_validator")
+    if drift_classification == "missing_context" or any("missing_context" in b for b in partial_blocked):
+        blockers.append("missing_context")
+    if drift_classification and drift_classification != _DRIFT_ALIGNED:
+        blockers.append("drift_not_aligned")
+    if failed_validators:
+        blockers.append("failed_validator")
+    has_scoped_decision = isinstance(validation_co_authority_decision, dict)
+    if not has_scoped_decision and adr.get("engagement") == "plan_enforced":
+        blockers.append("no_scoped_co_authority_decision")
+
+    blocker_seen: set[str] = set()
+    blocker_out: list[str] = []
+    for row in blockers:
+        text = str(row).strip()
+        if text and text not in blocker_seen:
+            blocker_seen.add(text)
+            blocker_out.append(text)
+
+    policy_stage = READINESS_POLICY_SHADOW_ONLY
+    candidate = False
+    would_allow_readiness = False
+    would_block_readiness = False
+    status = "shadow_only"
+    if "no_sidecar_or_not_plan_enforced" in blocker_out:
+        policy_stage = READINESS_POLICY_NOT_ELIGIBLE
+        status = "not_eligible"
+    elif any(x in blocker_out for x in ("missing_context", "unavailable_validator", "partial_defaults")):
+        policy_stage = READINESS_POLICY_NOT_ELIGIBLE
+        status = "not_eligible"
+    elif has_scoped_decision and not blocker_out:
+        policy_stage = READINESS_POLICY_PREVIEW_ALLOW
+        status = "readiness_preview_allow"
+        candidate = True
+        would_allow_readiness = True
+    elif has_scoped_decision:
+        policy_stage = READINESS_POLICY_PREVIEW_CANDIDATE
+        status = "readiness_preview_candidate"
+        candidate = True
+        would_block_readiness = True
+    elif blocker_out:
+        policy_stage = READINESS_POLICY_PREVIEW_BLOCK
+        status = "readiness_preview_block"
+        would_block_readiness = True
+
+    return {
+        "schema_version": READINESS_CO_AUTHORITY_PREVIEW_SCHEMA_VERSION,
+        "mode": "shadow_readiness_preview",
+        "policy_stage": policy_stage,
+        "status": status,
+        "candidate": candidate,
+        "would_allow_readiness": would_allow_readiness,
+        "would_block_readiness": would_block_readiness,
+        "scope": scope,
+        "turn_class": tc_key,
+        "source": (
+            "adr0041_validation_co_authority_decision"
+            if has_scoped_decision
+            else "adr0041_validation_authority_bridge"
+        ),
+        "run_validation_seam_status": seam_status.get("status"),
+        "run_validation_seam_reason": seam_status.get("reason"),
+        "adr0041_status": adr.get("engagement"),
+        "drift_classification": drift_classification,
+        "blockers": blocker_out,
+        "evidence": {
+            "partial_transfer_ready": bool(snap.get("partial_transfer_ready")),
+            "handoff_candidate": handoff.get("candidate") is True,
+            "mirror_fidelity_gate_passed": dramatic_fidelity != "partial_defaults",
+            "unavailable_validators": unavailable_validators,
+            "failed_validators": failed_validators,
+            "partial_transfer_blocked": partial_blocked,
+        },
+        "authority_limits": [
+            "readiness_preview_only",
+            "does_not_mutate_commit_gate",
+            "does_not_mutate_readiness_gate",
+            "does_not_overwrite_validation_outcome",
+            "run_validation_seam_remains_canonical",
+        ],
+        "affects_commit": False,
+        "affects_readiness": False,
+        "validation_outcome_changed": False,
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
+        "feature_flag": feature_flag_name,
+        "feature_flag_enabled": bool(feature_flag_enabled),
+    }
+
+
+def build_readiness_co_authority_enforcement(
+    *,
+    readiness_co_authority_preview: dict[str, Any] | None,
+    validator_dispatch_report: dict[str, Any],
+    selected_turn_class: str,
+    feature_flag_name: str,
+    feature_flag_enabled: bool,
+) -> dict[str, Any]:
+    """Build scoped readiness enforcement pilot output (still non-mutating)."""
+    report = validator_dispatch_report if isinstance(validator_dispatch_report, dict) else {}
+    preview = (
+        readiness_co_authority_preview
+        if isinstance(readiness_co_authority_preview, dict)
+        else {}
+    )
+    tc_key = normalize_turn_class_key(str(selected_turn_class or preview.get("turn_class") or ""))
+    scope = (
+        [str(x) for x in (preview.get("scope") or []) if str(x)]
+        if isinstance(preview.get("scope"), list)
+        else sorted(_critical_concerns_for_turn_class(tc_key))
+    )
+    evidence = preview.get("evidence") if isinstance(preview.get("evidence"), dict) else {}
+    policy_stage = str(preview.get("policy_stage") or "").strip()
+    drift = str(preview.get("drift_classification") or "").strip()
+    blockers = [str(x) for x in (preview.get("blockers") or []) if str(x)]
+    unavailable = [
+        str(x) for x in (evidence.get("unavailable_validators") or []) if str(x)
+    ]
+    failed = [str(x) for x in (evidence.get("failed_validators") or []) if str(x)]
+    partial_defaults = "partial_defaults" in blockers or not bool(
+        evidence.get("mirror_fidelity_gate_passed", True)
+    )
+    entries = report.get("entries") if isinstance(report.get("entries"), list) else []
+    judges_executed = False
+    judge_ids = frozenset({"narrative_coherence_judge", "dramatic_quality_judge", "consistency_judge"})
+    for ent in entries:
+        if not isinstance(ent, dict):
+            continue
+        if str(ent.get("validator_id") or "") in judge_ids and ent.get("actually_executed"):
+            judges_executed = True
+            break
+
+    readiness_input = "no_decision"
+    reason = "enforcement_flag_disabled_or_preview_missing"
+    if feature_flag_enabled and preview:
+        allow = (
+            policy_stage == READINESS_POLICY_PREVIEW_ALLOW
+            and preview.get("would_allow_readiness") is True
+            and preview.get("would_block_readiness") is False
+            and drift == _DRIFT_ALIGNED
+            and not unavailable
+            and not failed
+            and not partial_defaults
+            and not judges_executed
+        )
+        block = (
+            preview.get("would_block_readiness") is True
+            or drift not in {"", _DRIFT_ALIGNED}
+            or bool(unavailable)
+            or bool(failed)
+            or partial_defaults
+            or "missing_context" in blockers
+        )
+        if allow:
+            readiness_input = "allow"
+            reason = "all_scoped_enforcement_preconditions_met"
+        elif block:
+            readiness_input = "block"
+            reason = "scoped_readiness_enforcement_blocked_by_policy_evidence"
+        else:
+            readiness_input = "no_decision"
+            reason = "pilot_enabled_but_no_explicit_allow_or_block_signal"
+
+    return {
+        "schema_version": READINESS_ENFORCEMENT_SCHEMA_VERSION,
+        "mode": "scoped_readiness_enforcement",
+        "enabled": bool(feature_flag_enabled),
+        "enforcement_stage": "pilot",
+        "would_affect_readiness": readiness_input in {"allow", "block"},
+        "readiness_input": readiness_input,
+        "scope": scope,
+        "turn_class": tc_key,
+        "source": "adr0041_readiness_co_authority_preview",
+        "policy_stage": policy_stage or None,
+        "drift_classification": drift or None,
+        "reason": reason,
+        "blockers": blockers,
+        "evidence": evidence,
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
+        "validation_outcome_changed": False,
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "affects_commit": False,
+        "affects_readiness": False,
+        "feature_flag": feature_flag_name,
+        "feature_flag_enabled": bool(feature_flag_enabled),
+    }
+
+
+def classify_seam_readiness_for_aggregation(
+    validation_seam_summary: dict[str, Any] | None,
+) -> str:
+    """Map seam summary to coarse readiness for aggregation (allow / reject / unknown)."""
+    seam = validation_seam_summary if isinstance(validation_seam_summary, dict) else {}
+    status = str(seam.get("status") or "").strip().lower()
+    if status in {"approved", "passed", "ok"}:
+        return "allow"
+    if status in {"rejected", "failed", "error"}:
+        return "reject"
+    return "unknown"
+
+
+def aggregate_runtime_readiness_with_adr0041(
+    *,
+    seam_readiness: str,
+    adr0041_readiness_input: str,
+) -> tuple[str, bool, bool, str]:
+    """Combine seam canonical readiness with ADR-0041 policy input (veto-only).
+
+    Rules:
+    - ``run_validation_seam`` outcome is canonical for allow vs reject.
+    - ADR-0041 may **block** an otherwise seam-allowed readiness (veto).
+    - ADR-0041 must **never** upgrade a seam reject into allow.
+
+    Returns:
+        ``(aggregated_readiness, adr0041_veto_applied, adr0041_can_upgrade_seam_reject, reason)``
+        where ``aggregated_readiness`` is ``allow | block | unchanged``.
+    """
+    sr = str(seam_readiness or "").strip().lower()
+    if sr not in {"allow", "reject", "unknown"}:
+        sr = "unknown"
+    adr = str(adr0041_readiness_input or "").strip().lower()
+    if adr not in {"allow", "block", "no_decision"}:
+        adr = "no_decision"
+
+    can_upgrade = False
+    veto = False
+    agg = "unchanged"
+    reason = "aggregation_baseline"
+
+    if sr == "allow":
+        if adr == "block":
+            agg, veto, reason = "block", True, "adr0041_scoped_readiness_veto_over_seam_allow"
+        elif adr == "allow":
+            agg, reason = "allow", "seam_allow_and_adr0041_allow"
+        else:
+            agg, reason = "allow", "seam_allow_adr0041_no_decision"
+    elif sr == "reject":
+        if adr == "allow":
+            agg, reason = "unchanged", "seam_reject_adr0041_allow_no_upgrade"
+        elif adr == "block":
+            agg, reason = "block", "seam_reject_with_adr0041_block"
+        else:
+            agg, reason = "block", "seam_reject_adr0041_no_decision"
+    else:
+        if adr == "block":
+            agg, reason = "block", "adr0041_block_seam_readiness_unknown"
+        elif adr == "allow":
+            agg, reason = "unchanged", "seam_unknown_adr0041_allow_conservative_no_upgrade"
+        else:
+            agg, reason = "unchanged", "seam_unknown_adr0041_no_decision"
+
+    return agg, veto, can_upgrade, reason
+
+
+def build_readiness_aggregation_decision(
+    *,
+    validation_seam_summary: dict[str, Any] | None,
+    readiness_policy_input: dict[str, Any],
+) -> dict[str, Any]:
+    """Scoped readiness aggregation pilot: seam canonical + ADR-0041 veto-only."""
+    policy = readiness_policy_input if isinstance(readiness_policy_input, dict) else {}
+    seam_rd = classify_seam_readiness_for_aggregation(validation_seam_summary)
+    adr_in = str(policy.get("readiness_input") or "no_decision").strip().lower()
+    if adr_in not in {"allow", "block", "no_decision"}:
+        adr_in = "no_decision"
+    scope = [str(x) for x in (policy.get("scope") or []) if str(x)] if isinstance(
+        policy.get("scope"), list
+    ) else []
+    blockers = [str(x) for x in (policy.get("blockers") or []) if str(x)] if isinstance(
+        policy.get("blockers"), list
+    ) else []
+
+    agg, veto, can_upgrade, reason = aggregate_runtime_readiness_with_adr0041(
+        seam_readiness=seam_rd,
+        adr0041_readiness_input=adr_in,
+    )
+
+    return {
+        "schema_version": READINESS_AGGREGATION_SCHEMA_VERSION,
+        "mode": "scoped_readiness_aggregation",
+        "enabled": True,
+        "source": "adr0041_readiness_policy_input",
+        "seam_readiness": seam_rd,
+        "adr0041_readiness_input": adr_in,
+        "aggregated_readiness": agg,
+        "adr0041_veto_applied": bool(veto),
+        "adr0041_can_upgrade_seam_reject": bool(can_upgrade),
+        "scope": scope,
+        "reason": reason,
+        "blockers": list(blockers),
+        "validation_outcome_changed": False,
+        "commit_gate_changed": False,
+        "readiness_gate_changed": False,
+        "affects_commit": False,
+        "affects_readiness": False,
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
     }
 
 

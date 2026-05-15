@@ -116,6 +116,10 @@ The cascade derives from committed runtime surfaces only:
 - durable `branch_timeline_record.v1` events
 - optional `callback_web_id` correlation
 
+Recoverable/player-visible failure turns remain in session history for audit and
+story-window continuity, but rows marked as recoverable outcomes or false
+commits are filtered out before consequence atoms or edges are built.
+
 The graph feedback export omits atom evidence and returns only bounded ids, classes, statuses, turn numbers, and thread ids.
 
 ## Policy and Bounds

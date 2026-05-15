@@ -140,6 +140,34 @@ def test_build_consequence_cascade_beat_pressure_source_field():
     assert "beat_progression" in atom["evidence"]["source_fields"][0]
 
 
+def test_build_consequence_cascade_filters_recoverable_rows_from_truth_feedback():
+    recoverable = _row(turn_id="recoverable", turn_number=2, scene="s", continuity_class="heat")
+    recoverable["recoverable_outcome"] = True
+    recoverable["turn_outcome"] = "recoverable_rejection"
+    recoverable["turn_kind"] = "player_rejected_recoverable"
+    recoverable["validation_outcome"] = {
+        "status": "rejected",
+        "recoverable_rejection": True,
+    }
+    recoverable["committed_result"] = {
+        "commit_applied": False,
+        "recoverable_rejection": True,
+    }
+
+    rec = build_consequence_cascade_record(
+        story_session_id="recoverable-filter",
+        module_id="m",
+        history=[
+            _row(turn_id="committed", turn_number=1, scene="s", continuity_class="heat"),
+            recoverable,
+        ],
+    )
+
+    assert {atom["source_turn_id"] for atom in rec["atoms"]} == {"committed"}
+    assert rec["snapshot"]["atom_count"] == 1
+    assert rec["edges"] == []
+
+
 def test_build_consequence_cascade_branch_timeline_replay_committed():
     history = [
         _row(turn_id="root", turn_number=1, scene="s", continuity_class="sel"),

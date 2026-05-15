@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -10,8 +11,16 @@ from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from story_runtime_core.model_registry import build_default_registry
 
 langgraph_runtime = pytest.importorskip("ai_stack.langgraph_runtime", reason="LangGraph required")
+from ai_stack.capability_validator_dispatch import ValidatorDispatchMode
 from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
+from ai_stack.runtime_aspect_ledger import (
+    ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
+    ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
+    initialize_runtime_aspect_ledger,
+    normalize_runtime_aspect_ledger,
+)
+from ai_stack.tests.test_capability_validator_registry import _opening_dispatch_context
 from ai_stack.goc_turn_seams import build_operator_canonical_turn_record
 
 
@@ -108,3 +117,54 @@ def test_package_output_preserves_bounded_dramatic_context(tmp_path: Path) -> No
     assert "scene_assessment" in context
     assert "social_state" in context
     assert "dramatic_outcome" in context
+
+
+def test_opening_langgraph_validation_outcome_untouched_when_co_authority_normalize_runs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """E2E: LangGraph liefert ``validation_outcome``; Co-Authority entsteht nur in der Projektion."""
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    g = _graph(tmp_path)
+    result = g.run(
+        session_id="s-coauth-langgraph",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="",
+        trace_id="t-coauth-langgraph",
+        turn_number=0,
+        turn_input_class="opening",
+    )
+    assert isinstance(result.get("validation_outcome"), dict)
+    vo_snapshot = copy.deepcopy(result["validation_outcome"])
+    assert "validation_co_authority_decision" not in result["validation_outcome"]
+
+    # Graph dispatch context can be stricter than harness fixtures; use the same opening ledger
+    # + dispatch bundle as scoped co-authority tests so local evidence stays seam-aligned.
+    ledger = initialize_runtime_aspect_ledger(
+        session_id=result.get("session_id"),
+        module_id=result.get("module_id"),
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+        turn_id=result.get("turn_id"),
+        trace_id=result.get("trace_id"),
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    normalized = normalize_runtime_aspect_ledger(ledger)
+    co = normalized["runtime_intelligence_projection"].get("validation_co_authority_decision")
+    assert co is not None
+    assert co["validation_outcome_changed"] is False
+    assert co["commit_gate_changed"] is False
+    assert co["readiness_gate_changed"] is False
+    assert co["affects_commit"] is False
+    assert co["affects_readiness"] is False
+    assert co["proof_level"] == "local_only"
+    assert co["live_or_staging_evidence"] is False
+
+    assert result["validation_outcome"] == vo_snapshot
+    assert "validation_co_authority_decision" not in result["validation_outcome"]

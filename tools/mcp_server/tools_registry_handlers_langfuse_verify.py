@@ -559,6 +559,11 @@ def _extract_normalized_wos_evidence(
         "voice_cross_actor_confusion_absent",
         "voice_forbidden_markers_absent",
         "voice_consistency_contract_pass",
+        "tonal_consistency_policy_present",
+        "tonal_consistency_target_selected",
+        "tonal_consistency_classification_present",
+        "tonal_consistency_marker_hits_absent",
+        "tonal_consistency_contract_pass",
         "hierarchical_memory_present",
         "memory_policy_applied",
         "memory_write_from_committed_turn",
@@ -759,6 +764,15 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "voice_cross_actor_confusion_count",
     "voice_forbidden_markers_absent",
     "voice_consistency_contract_pass",
+    "tonal_consistency_policy_present",
+    "tonal_consistency_target_selected",
+    "tonal_consistency_profile_id",
+    "tonal_consistency_required_dimensions",
+    "tonal_consistency_realized_dimensions",
+    "tonal_consistency_classification_present",
+    "tonal_consistency_marker_hits_absent",
+    "tonal_consistency_contract_pass",
+    "tonal_consistency_failure_codes",
     "hierarchical_memory_present",
     "memory_policy_applied",
     "selected_memory_tiers",
@@ -830,6 +844,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_capability_selection_block_forbidden_realization"
     if "voice" in failure or "cross_actor_voice" in failure:
         return "repair_voice_consistency_follow_character_profiles"
+    if failure.startswith("tonal_consistency_"):
+        return "repair_tonal_consistency_follow_policy_target"
     if failure.startswith("callback_"):
         return "repair_callback_web_bounded_committed_evidence"
     if failure.startswith("consequence_cascade_"):
@@ -875,6 +891,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     vis_rec = _aspect_record(ledger, "visible_projection")
     narrative_rec = _aspect_record(ledger, "narrative_aspect")
     voice_rec = _aspect_record(ledger, "voice_consistency")
+    tonal_rec = _aspect_record(ledger, "tonal_consistency")
     memory_rec = _aspect_record(ledger, "hierarchical_memory")
 
     input_actual = _aspect_block(input_rec, "actual")
@@ -925,6 +942,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     narrative_actual = _aspect_block(narrative_rec, "actual")
     voice_expected = _aspect_block(voice_rec, "expected")
     voice_actual = _aspect_block(voice_rec, "actual")
+    tonal_expected = _aspect_block(tonal_rec, "expected")
+    tonal_selected = _aspect_block(tonal_rec, "selected")
+    tonal_actual = _aspect_block(tonal_rec, "actual")
     memory_selected = _aspect_block(memory_rec, "selected")
     memory_actual = _aspect_block(memory_rec, "actual")
     claim_readiness = assess_npc_agency_claim_readiness(
@@ -973,6 +993,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     voice_forbidden_marker_count = int(
         voice_drift_counts.get("forbidden_language_marker") or 0
     )
+    tonal_target = (
+        tonal_selected.get("target")
+        if isinstance(tonal_selected.get("target"), dict)
+        else tonal_selected
+    )
+    tonal_failure_codes = tonal_actual.get("failure_codes") or []
+    if not isinstance(tonal_failure_codes, list):
+        tonal_failure_codes = []
     scene_energy_target = (
         scene_energy_selected.get("target")
         if isinstance(scene_energy_selected.get("target"), dict)
@@ -1069,6 +1097,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             vis_rec,
             narrative_rec,
             voice_rec,
+            tonal_rec,
             memory_rec,
         )
         if r.get("status") == "failed"
@@ -1094,6 +1123,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             vis_rec,
             narrative_rec,
             voice_rec,
+            tonal_rec,
             memory_rec,
         )
         if r.get("status") == "partial"
@@ -1575,6 +1605,42 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("voice_forbidden_markers_absent")
         ),
         "voice_consistency_contract_pass": det_scores.get("voice_consistency_contract_pass"),
+        "tonal_consistency_policy_present": (
+            tonal_expected.get("policy_present")
+            if "policy_present" in tonal_expected
+            else det_scores.get("tonal_consistency_policy_present")
+        ),
+        "tonal_consistency_target_selected": (
+            bool(
+                tonal_target.get("profile_id")
+                or tonal_target.get("target_dimension_ids")
+                or tonal_selected.get("required_dimension_ids")
+            )
+            if tonal_selected
+            else det_scores.get("tonal_consistency_target_selected")
+        ),
+        "tonal_consistency_profile_id": tonal_target.get("profile_id"),
+        "tonal_consistency_required_dimensions": tonal_target.get("required_dimension_ids")
+        or tonal_selected.get("required_dimension_ids")
+        or [],
+        "tonal_consistency_realized_dimensions": tonal_actual.get("realized_dimension_ids")
+        or [],
+        "tonal_consistency_classification_present": (
+            tonal_actual.get("structured_classification_present")
+            if "structured_classification_present" in tonal_actual
+            else det_scores.get("tonal_consistency_classification_present")
+        ),
+        "tonal_consistency_marker_hits_absent": (
+            int(tonal_actual.get("marker_hit_count") or 0) == 0
+            if tonal_actual
+            else det_scores.get("tonal_consistency_marker_hits_absent")
+        ),
+        "tonal_consistency_contract_pass": (
+            tonal_actual.get("contract_pass")
+            if "contract_pass" in tonal_actual
+            else det_scores.get("tonal_consistency_contract_pass")
+        ),
+        "tonal_consistency_failure_codes": tonal_failure_codes,
         "hierarchical_memory_present": memory_actual.get("memory_present") if "memory_present" in memory_actual else det_scores.get("hierarchical_memory_present"),
         "memory_policy_applied": det_scores.get("memory_policy_applied"),
         "selected_memory_tiers": memory_selected.get("selected_tiers") or [],

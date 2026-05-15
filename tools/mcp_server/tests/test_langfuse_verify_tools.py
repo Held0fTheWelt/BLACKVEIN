@@ -14,6 +14,7 @@ from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
 from tools.mcp_server.tools_registry import create_default_registry
 from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
     _runtime_aspect_recommended_repair,
+    _runtime_aspect_matrix_row,
 )
 
 
@@ -52,6 +53,65 @@ def test_runtime_aspect_matrix_recommends_expectation_variation_repair():
         _runtime_aspect_recommended_repair("expectation_variation_unselected_event")
         == "repair_expectation_variation_structured_selection"
     )
+
+
+def test_runtime_aspect_matrix_recommends_tonal_consistency_repair():
+    assert (
+        _runtime_aspect_recommended_repair("tonal_consistency_required_dimension_missing")
+        == "repair_tonal_consistency_follow_policy_target"
+    )
+
+
+def test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields():
+    row = _runtime_aspect_matrix_row(
+        {
+            "id": "trace-tonal",
+            "output": {
+                "path_summary": {
+                    "contract": "story_runtime_path_observability.v1",
+                    "session_id": "session-tonal",
+                    "canonical_turn_id": "session-tonal:turn:1",
+                    "turn_number": 1,
+                    "turn_aspect_ledger": {
+                        "session_id": "session-tonal",
+                        "turn_number": 1,
+                        "turn_aspect_ledger": {
+                            "tonal_consistency": {
+                                "status": "partial",
+                                "expected": {
+                                    "policy_present": True,
+                                    "policy_enabled": True,
+                                },
+                                "selected": {
+                                    "profile_id": "profile_alpha",
+                                    "required_dimension_ids": ["dimension_alpha"],
+                                    "target_dimension_ids": ["dimension_alpha", "dimension_beta"],
+                                },
+                                "actual": {
+                                    "structured_classification_present": True,
+                                    "realized_dimension_ids": ["dimension_alpha"],
+                                    "marker_hit_count": 0,
+                                    "contract_pass": True,
+                                    "failure_codes": [],
+                                },
+                            }
+                        },
+                    },
+                }
+            },
+            "scores": [],
+        }
+    )
+
+    assert row["tonal_consistency_policy_present"] is True
+    assert row["tonal_consistency_target_selected"] is True
+    assert row["tonal_consistency_profile_id"] == "profile_alpha"
+    assert row["tonal_consistency_required_dimensions"] == ["dimension_alpha"]
+    assert row["tonal_consistency_realized_dimensions"] == ["dimension_alpha"]
+    assert row["tonal_consistency_classification_present"] is True
+    assert row["tonal_consistency_marker_hits_absent"] is True
+    assert row["tonal_consistency_contract_pass"] is True
+    assert row["tonal_consistency_failure_codes"] == []
 
 
 def test_run_projection_tests_returns_structured_result():

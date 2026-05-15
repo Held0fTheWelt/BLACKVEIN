@@ -23,7 +23,9 @@ from ai_stack.capability_selector import (
     INITIAL_CAPABILITIES,
     CapabilityBudget,
     CapabilityMode,
+    CapabilitySelectionResult,
     TurnSituation,
+    derive_turn_situation_from_runtime_context,
     select_capabilities,
     validate_semantic_capability_name,
 )
@@ -257,6 +259,35 @@ def test_selection_projection_is_runtime_ledger_compatible() -> None:
     assert payload["activation_modes"][CAP_NARRATOR_AUTHORITY] == CapabilityMode.ENFORCE.value
     assert payload["activation_modes"][CAP_SENSORY_CONTEXT] == CapabilityMode.OBSERVE.value
     assert payload["activation_modes"][CAP_NPC_AGENCY] == CapabilityMode.OFF.value
+
+
+def test_judge_mode_does_not_downgrade_enforced_capabilities() -> None:
+    result = CapabilitySelectionResult(
+        situation=_opening(),
+        budget=CapabilityBudget(max_enforced_capabilities=5, allow_llm_judges=True),
+        enforced=(CAP_VOICE_CONSISTENCY,),
+        observed=(CAP_SENSORY_CONTEXT,),
+        judged=(CAP_VOICE_CONSISTENCY, CAP_SENSORY_CONTEXT),
+    )
+
+    modes = result.activation_modes()
+
+    assert modes[CAP_VOICE_CONSISTENCY] == CapabilityMode.ENFORCE.value
+    assert modes[CAP_SENSORY_CONTEXT] == CapabilityMode.JUDGE.value
+
+
+def test_recoverable_runtime_turn_kinds_derive_recovery_situation() -> None:
+    for turn_kind in ("player_rejected_recoverable", "player_graph_exception_playable"):
+        situation, warnings = derive_turn_situation_from_runtime_context(
+            turn_kind=turn_kind,
+            turn_number=2,
+            raw_player_input="anything",
+        )
+
+        assert situation.turn_kind.value == "recovery"
+        assert situation.active_actor.value == "system"
+        assert situation.last_turn_quality.value == "fallback"
+        assert warnings == ()
 
 
 def test_selection_projection_does_not_claim_live_or_staging_evidence() -> None:

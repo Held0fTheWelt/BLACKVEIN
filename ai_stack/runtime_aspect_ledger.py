@@ -44,6 +44,9 @@ from ai_stack.capability_validator_registry import (
     goc_seam_mirror_plan_validator_ids_for_turn_class,
 )
 from ai_stack.validation_authority_bridge import (
+    build_readiness_aggregation_decision,
+    build_readiness_co_authority_enforcement,
+    build_readiness_co_authority_preview,
     build_validation_authority_bridge,
     build_validation_co_authority_decision,
 )
@@ -60,6 +63,9 @@ ADR0041_HARNESS_PLAN_ENFORCED_REQUIRES_REGISTRY_WARNING = (
 ADR0041_PLAN_PROJECTION_ENABLED_ENV = "ADR0041_PLAN_PROJECTION_ENABLED"
 ADR0041_PLAN_PROJECTION_SCHEMA_VERSION = "adr0041_plan_projection.v1"
 ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV = "ADR0041_SCOPED_CO_AUTHORITY_ENABLED"
+ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV = "ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED"
+ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV = "ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED"
+ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV = "ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED"
 
 # Ephemeral bundle attached by LangGraph validate_seam when
 # ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
@@ -93,6 +99,7 @@ ASPECT_NPC_AGENCY = "npc_agency"
 ASPECT_DRAMATIC_IRONY = "dramatic_irony"
 ASPECT_EXPECTATION_VARIATION = "expectation_variation"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
+ASPECT_TONAL_CONSISTENCY = "tonal_consistency"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_INFORMATION_DISCLOSURE = "information_disclosure"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
@@ -121,6 +128,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
     ASPECT_VOICE_CONSISTENCY,
+    ASPECT_TONAL_CONSISTENCY,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_HIERARCHICAL_MEMORY,
@@ -652,6 +660,78 @@ def resolve_adr0041_scoped_co_authority_enabled(
     return False, tuple(warnings)
 
 
+def resolve_adr0041_readiness_co_authority_preview_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve explicit readiness co-authority preview flag.
+
+    Default ``False`` (fail closed): no readiness policy preview payload is emitted.
+    """
+    warnings: list[str] = []
+    raw = (
+        env_value
+        if env_value is not None
+        else os.environ.get(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV)
+    )
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 readiness co-authority preview disabled."
+    )
+    return False, tuple(warnings)
+
+
+def resolve_adr0041_scoped_readiness_enforcement_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve explicit scoped readiness enforcement pilot flag (fail closed)."""
+    warnings: list[str] = []
+    raw = (
+        env_value
+        if env_value is not None
+        else os.environ.get(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV)
+    )
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 scoped readiness enforcement disabled."
+    )
+    return False, tuple(warnings)
+
+
+def resolve_adr0041_scoped_readiness_aggregation_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve scoped readiness aggregation pilot flag (fail closed)."""
+    warnings: list[str] = []
+    raw = (
+        env_value
+        if env_value is not None
+        else os.environ.get(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV)
+    )
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 scoped readiness aggregation disabled."
+    )
+    return False, tuple(warnings)
+
+
 def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     *,
     capability_context: dict[str, Any],
@@ -727,6 +807,7 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     )
     semantic_validator_dispatch_report["validation_authority_bridge"] = _json_safe(bridge)
     co_authority_enabled, co_authority_warnings = resolve_adr0041_scoped_co_authority_enabled()
+    co_authority_decision: dict[str, Any] | None = None
     if co_authority_enabled:
         co_authority_decision = build_validation_co_authority_decision(
             validation_authority_bridge=bridge,
@@ -739,10 +820,83 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
             semantic_validator_dispatch_report["validation_co_authority_decision"] = _json_safe(
                 co_authority_decision
             )
+    readiness_preview_enabled, readiness_preview_warnings = (
+        resolve_adr0041_readiness_co_authority_preview_enabled()
+    )
+    if readiness_preview_enabled:
+        readiness_preview = build_readiness_co_authority_preview(
+            validation_authority_bridge=bridge,
+            validator_dispatch_report=semantic_validator_dispatch_report,
+            selected_turn_class=turn_class_key,
+            validation_co_authority_decision=co_authority_decision,
+            feature_flag_name=ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+            feature_flag_enabled=True,
+        )
+        semantic_validator_dispatch_report["readiness_co_authority_preview"] = _json_safe(
+            readiness_preview
+        )
+    enforcement_enabled, enforcement_warnings = (
+        resolve_adr0041_scoped_readiness_enforcement_enabled()
+    )
+    if enforcement_enabled:
+        readiness_enforcement = build_readiness_co_authority_enforcement(
+            readiness_co_authority_preview=(
+                semantic_validator_dispatch_report.get("readiness_co_authority_preview")
+                if isinstance(semantic_validator_dispatch_report.get("readiness_co_authority_preview"), dict)
+                else None
+            ),
+            validator_dispatch_report=semantic_validator_dispatch_report,
+            selected_turn_class=turn_class_key,
+            feature_flag_name=ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
+            feature_flag_enabled=True,
+        )
+        semantic_validator_dispatch_report["readiness_co_authority_enforcement"] = _json_safe(
+            readiness_enforcement
+        )
+    aggregation_enabled, aggregation_warnings = (
+        resolve_adr0041_scoped_readiness_aggregation_enabled()
+    )
+    prereq_aggregation = (
+        co_authority_enabled
+        and readiness_preview_enabled
+        and enforcement_enabled
+    )
+    policy_for_agg = semantic_validator_dispatch_report.get("readiness_co_authority_enforcement")
+    if aggregation_enabled:
+        if prereq_aggregation and isinstance(policy_for_agg, dict):
+            semantic_validator_dispatch_report["readiness_aggregation_decision"] = _json_safe(
+                build_readiness_aggregation_decision(
+                    validation_seam_summary=seam_summary if isinstance(seam_summary, dict) else {},
+                    readiness_policy_input=policy_for_agg,
+                )
+            )
+        elif not prereq_aggregation:
+            merged_pre = semantic_validator_dispatch_report.get("warnings")
+            merged_list = list(merged_pre) if isinstance(merged_pre, list) else []
+            msg = (
+                "ADR-0041 scoped readiness aggregation skipped: prerequisite flags "
+                "(scoped co-authority, readiness preview, enforcement) not all enabled."
+            )
+            if msg not in merged_list:
+                merged_list.append(msg)
+            semantic_validator_dispatch_report["warnings"] = merged_list
+        else:
+            merged_pre = semantic_validator_dispatch_report.get("warnings")
+            merged_list = list(merged_pre) if isinstance(merged_pre, list) else []
+            msg = (
+                "ADR-0041 scoped readiness aggregation skipped: readiness policy input missing "
+                "(enable scoped readiness enforcement to emit enforcement payload)."
+            )
+            if msg not in merged_list:
+                merged_list.append(msg)
+            semantic_validator_dispatch_report["warnings"] = merged_list
     extra_warnings = [
         *dispatch_mode_warnings,
         *sidecar_deriv_warnings,
         *co_authority_warnings,
+        *readiness_preview_warnings,
+        *enforcement_warnings,
+        *aggregation_warnings,
     ]
     existing_warnings = semantic_validator_dispatch_report.get("warnings")
     merged: list[str] = list(existing_warnings) if isinstance(existing_warnings, list) else []
@@ -1114,6 +1268,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_VOICE_CONSISTENCY), dict)
         else {}
     )
+    tonal_rec = (
+        aspects.get(ASPECT_TONAL_CONSISTENCY)
+        if isinstance(aspects.get(ASPECT_TONAL_CONSISTENCY), dict)
+        else {}
+    )
     narrative_rec = (
         aspects.get(ASPECT_NARRATIVE_ASPECT)
         if isinstance(aspects.get(ASPECT_NARRATIVE_ASPECT), dict)
@@ -1200,6 +1359,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     expectation_variation_selected = _record_block(expectation_variation_rec, "selected")
     expectation_variation_actual = _record_block(expectation_variation_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
+    tonal_expected = _record_block(tonal_rec, "expected")
+    tonal_selected = _record_block(tonal_rec, "selected")
+    tonal_actual = _record_block(tonal_rec, "actual")
     voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
     narrative_selected = _record_block(narrative_rec, "selected")
@@ -1961,6 +2123,50 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or (_record_reasons(voice_rec)[0] if _record_reasons(voice_rec) else None),
                 "status": voice_rec.get("status"),
             },
+            "tonal_consistency": {
+                "schema_version": tonal_expected.get("schema_version")
+                or tonal_selected.get("schema_version")
+                or tonal_actual.get("schema_version"),
+                "policy_present": bool(tonal_expected.get("policy_present")),
+                "policy_enabled": bool(tonal_expected.get("policy_enabled")),
+                "profile_id": tonal_selected.get("profile_id")
+                or _record_nested_value(tonal_selected, "profile_id", "target"),
+                "target_dimension_ids": tonal_selected.get("target_dimension_ids")
+                or (
+                    tonal_selected.get("target", {}).get("target_dimension_ids")
+                    if isinstance(tonal_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "required_dimension_ids": tonal_selected.get("required_dimension_ids")
+                or (
+                    tonal_selected.get("target", {}).get("required_dimension_ids")
+                    if isinstance(tonal_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "realized_dimension_ids": tonal_actual.get("realized_dimension_ids") or [],
+                "missing_required_dimension_ids": tonal_actual.get("missing_required_dimension_ids")
+                or [],
+                "required_dimension_present_count": int(
+                    tonal_actual.get("required_dimension_present_count") or 0
+                ),
+                "register_label": tonal_actual.get("register_label"),
+                "genre_label": tonal_actual.get("genre_label"),
+                "forbidden_marker_classes": tonal_selected.get("forbidden_marker_classes")
+                or [],
+                "forbidden_marker_hits": tonal_actual.get("forbidden_marker_hits") or {},
+                "marker_hit_count": int(tonal_actual.get("marker_hit_count") or 0),
+                "structured_classification_present": bool(
+                    tonal_actual.get("structured_classification_present")
+                ),
+                "contract_pass": tonal_actual.get("contract_pass"),
+                "failure_codes": tonal_actual.get("failure_codes")
+                or _record_reasons(tonal_rec),
+                "failure_reason": tonal_rec.get("failure_reason")
+                or (_record_reasons(tonal_rec)[0] if _record_reasons(tonal_rec) else None),
+                "status": tonal_rec.get("status"),
+            },
             "narrative_aspect": {
                 "policy_present": bool(narrative_expected.get("policy_present")),
                 "candidate_aspects": narrative_expected.get("candidate_aspects") or [],
@@ -2210,6 +2416,22 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     co_authority_decision = semantic_validator_dispatch_report.get("validation_co_authority_decision")
     if isinstance(co_authority_decision, dict):
         projection_payload["validation_co_authority_decision"] = co_authority_decision
+    readiness_co_authority_preview = semantic_validator_dispatch_report.get(
+        "readiness_co_authority_preview"
+    )
+    if isinstance(readiness_co_authority_preview, dict):
+        projection_payload["readiness_co_authority_preview"] = readiness_co_authority_preview
+    readiness_co_authority_enforcement = semantic_validator_dispatch_report.get(
+        "readiness_co_authority_enforcement"
+    )
+    if isinstance(readiness_co_authority_enforcement, dict):
+        projection_payload["readiness_co_authority_enforcement"] = readiness_co_authority_enforcement
+        projection_payload["readiness_policy_input"] = readiness_co_authority_enforcement
+    readiness_aggregation_decision = semantic_validator_dispatch_report.get(
+        "readiness_aggregation_decision"
+    )
+    if isinstance(readiness_aggregation_decision, dict):
+        projection_payload["readiness_aggregation_decision"] = readiness_aggregation_decision
     return _json_safe(projection_payload)
 
 

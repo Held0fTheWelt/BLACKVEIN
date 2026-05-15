@@ -1841,6 +1841,7 @@ def _build_runtime_aspect_validation(
         if isinstance(state.get("module_runtime_policy"), dict)
         else None,
     )
+    social_pressure_policy = _runtime_governance_section(state, "social_pressure")
     authority_ledger = set_aspect_record(
         authority_ledger,
         ASPECT_SOCIAL_PRESSURE,
@@ -1852,6 +1853,7 @@ def _build_runtime_aspect_validation(
             if isinstance(state.get("social_pressure_target"), dict)
             else None,
             validation=social_pressure_validation,
+            policy=social_pressure_policy,
         ),
     )
     next_outcome = {
@@ -8010,6 +8012,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "temporal_control"
             elif isinstance(outcome.get("improvisational_coherence_failure"), dict):
                 trigger_source = "improvisational_coherence"
+            elif isinstance(outcome.get("social_pressure_failure"), dict):
+                trigger_source = "social_pressure"
             elif isinstance(outcome.get("sensory_context_failure"), dict):
                 trigger_source = "sensory_context"
             elif isinstance(outcome.get("information_disclosure_failure"), dict):
@@ -8050,6 +8054,11 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("improvisational_coherence_failure"), dict)
                 else None
             )
+            social_pressure_failure_before_retry = (
+                dict(outcome.get("social_pressure_failure"))
+                if isinstance(outcome.get("social_pressure_failure"), dict)
+                else None
+            )
             sensory_context_failure_before_retry = (
                 dict(outcome.get("sensory_context_failure"))
                 if isinstance(outcome.get("sensory_context_failure"), dict)
@@ -8087,6 +8096,7 @@ class RuntimeTurnGraphExecutor:
                 "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                 "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                 "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
+                "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
                 "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
@@ -8135,6 +8145,7 @@ class RuntimeTurnGraphExecutor:
                     "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                     "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                     "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
+                    "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
                     "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,

@@ -151,6 +151,25 @@ ADR-0039 applies here with extra force: `dialogue_examples` are authoring
 examples, not correctness oracles. They must not be copied into tests as the
 primary pass/fail signal, and runtime profile serialization omits them.
 
+## Tonal consistency policy
+
+`module.yaml` declares `runtime_intelligence.tonal_consistency` for bounded
+turn-level tone evidence. This policy is separate from actor voice. It selects
+tone profiles, required tone-dimension ids, allowed registers, forbidden genre
+labels, and forbidden marker classes for the generic `tonal_consistency`
+runtime aspect.
+
+Current status is local/partial: policy normalization, target derivation,
+structured validation, `RuntimeAspectLedger.tonal_consistency`, and MCP
+`tonal_consistency_*` diagnostics exist, but the authoritative live LangGraph
+turn path does not yet enforce tonal drift before commit.
+
+ADR-0039 applies here in the same way as voice policy: tests use normalized
+policy fields, schema constants, structured `tonal_consistency_classification`,
+marker-class counts, ledger projection, and MCP extraction. Generated prose,
+copied dialogue, and `goc_tone_fidelity_judge` categories are not correctness
+oracles.
+
 ## Hierarchical memory policy
 
 `memory_policy.yaml` is module content, not runtime-core logic. It enables the

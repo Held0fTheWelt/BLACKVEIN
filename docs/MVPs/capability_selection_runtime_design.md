@@ -113,7 +113,13 @@ governance slice.
   with explicit `affects_commit=false` / `affects_readiness=false` and drift classification vs the seam
   summary. With `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` and `partial_transfer_ready=true`,
   the same path can add **top-level** `validation_co_authority_decision`; this is a bounded
-  runtime authority decision preview, not gate mutation.
+  runtime authority decision preview, not gate mutation. With
+  `ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED=true`, the same path can also add
+  **top-level** `readiness_co_authority_preview` (policy stage + blockers/evidence) as
+  policy-grade runtime output without mutating real readiness. With
+  `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED=true`, the path can emit
+  **top-level** `readiness_co_authority_enforcement` (`allow|block|no_decision`) as explicit
+  `readiness_policy_input` for downstream governance, still without mutating final readiness gates.
 - **Harness path:** `build_adr0041_validator_dispatch_harness_report` — tests only; **not** invoked from ledger normalization.
 - **Semantic naming / Pi:** Validator IDs remain semantic contract names; **no `actually_detected`** symbol exists in the repo (canonical field is **`actually_executed`**).
 
@@ -150,6 +156,8 @@ governance slice.
 | `authority_preview` | Implemented as `validation_authority_preview` and bridge drift fields. |
 | `authority_handoff_candidate` | Implemented as a shadow governance signal. |
 | `scoped_co_authority` | Implemented as `validation_co_authority_decision` behind `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`; preview-only today. |
+| `readiness_co_authority_preview` | Implemented as policy-grade preview behind `ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED=true`; still non-mutating for commit/readiness. |
+| `scoped_readiness_enforcement_pilot` | Implemented as `readiness_co_authority_enforcement` + `readiness_policy_input` behind `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED=true`; explicit policy input only, no default readiness-gate mutation. |
 | `scoped_primary_authority` | Not implemented. |
 | `full runtime authority` | Not implemented and explicitly long-term. |
 

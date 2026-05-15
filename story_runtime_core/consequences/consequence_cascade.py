@@ -17,6 +17,7 @@ from story_runtime_core.branching import (
     BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED,
     BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_CONFLICT,
 )
+from story_runtime_core.committed_truth import committed_story_truth_rows
 
 
 CONSEQUENCE_CASCADE_RECORD_SCHEMA_VERSION = "consequence_cascade_record.v1"
@@ -474,7 +475,7 @@ def build_consequence_cascade_record(
     created_at: str | None = None,
 ) -> dict[str, Any]:
     bounded = normalize_consequence_cascade_bounds(bounds)
-    rows = [dict(row) for row in (history or []) if isinstance(row, dict)]
+    rows = committed_story_truth_rows(history)
     latest_turn_number = 0
     for row in rows:
         try:

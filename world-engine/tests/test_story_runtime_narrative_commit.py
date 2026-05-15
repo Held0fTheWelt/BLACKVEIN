@@ -253,6 +253,13 @@ def test_recoverable_validation_rejection_returns_structured_turn(manager: Story
     assert turn["validation_outcome"]["status"] == "rejected"
     assert turn["turn_kind"] == "player_rejected_recoverable"
     assert turn["canonical_turn_id"].endswith(":turn:1")
+    playability = turn["recoverable_playability"]
+    assert playability["contract"] == "recoverable_outcome_playability.v1"
+    assert playability["obstacle_kind"] == "validation_rejection"
+    assert playability["commits_story_truth"] is False
+    assert playability["next_step_affordance_present"] is True
+    assert playability["technical_leak_absent"] is True
+    assert turn["diagnostics"]["recoverable_playability"] == playability
     assert session.turn_counter == 1
     state = manager.get_state(session.session_id)
     assert state["history_count"] == 2
@@ -688,8 +695,29 @@ def test_graph_execution_exception_returns_playable_turn(manager: StoryRuntimeMa
     assert turn["ok"] is False
     assert turn["turn_status"] == "rejected_recoverable"
     assert turn["reason"] == "graph_execution_exception"
+    assert turn["recoverable_playability"]["obstacle_kind"] == "runtime_graph_exception"
+    assert turn["recoverable_playability"]["commits_story_truth"] is False
     vb = turn.get("visible_output_bundle") or {}
     assert isinstance(vb.get("scene_blocks"), list) and vb["scene_blocks"]
     state = manager.get_state(session.session_id)
     assert state["history_count"] == 2
     assert state["story_window"]["latest_entry"]["turn_number"] == 1
+
+
+def test_graph_programming_exception_is_not_persisted_as_playable_turn(manager: StoryRuntimeManager) -> None:
+    class _BadGraph:
+        def run(self, **_kwargs: Any) -> dict[str, Any]:
+            raise TypeError("bad graph contract")
+
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+    )
+    manager.turn_graph = _BadGraph()  # type: ignore[assignment]
+
+    with pytest.raises(TypeError, match="bad graph contract"):
+        manager.execute_turn(session_id=session.session_id, player_input="test")
+
+    assert session.turn_counter == 0
+    assert len(session.history) == 1

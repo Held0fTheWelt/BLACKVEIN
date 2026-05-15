@@ -77,6 +77,7 @@ Allowed cross-reference examples:
 | Π25 | `meta_narrative_awareness` |
 | Π26 | `sensory_context` |
 | Π27 | `relationship_state` / `relationship_state_machine` |
+| Π35 | `tonal_consistency` |
 
 Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.
 
@@ -87,6 +88,11 @@ Pi / Π references are forbidden in runtime branch keys, Langfuse score names, M
 Runtime behavior must be contract-driven, not string-driven. Pi / Π labels must not become special-case production logic. Semantic capability names are allowed when they are backed by contracts, validators, ledger projection, or documented MCP/Langfuse mappings.
 
 Tests should distinguish forbidden Pi-number usage from valid semantic implementations. New capabilities must be added to `tests/gates/test_table_b_anti_hardcoding_gate.py` or explicitly documented as out of scope.
+
+`tonal_consistency` is currently a local/partial diagnostic contract. It has
+semantic ledger/MCP fields and ADR-0039 tests, but it must not be claimed as
+live tonal drift enforcement until the authoritative runtime path, promotion
+criteria, and anti-hardcoding coverage are updated together.
 
 ADR-0039 must also cover all Pi-labeled tests. Add new Pi / Π test files to `tests/gates/test_adr_0039_pi_scope.py` so the project can audit which legacy-labeled tests are governed by contract/runtime assertions rather than by example-shaped strings.
 

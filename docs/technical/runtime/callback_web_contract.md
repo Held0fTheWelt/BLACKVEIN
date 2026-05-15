@@ -102,6 +102,10 @@ The callback web derives from committed runtime surfaces only:
 - durable `branch_timeline_record.v1` events
 - current session fingerprint metadata
 
+Recoverable/player-visible failure turns remain in session history for audit and
+story-window continuity, but rows marked as recoverable outcomes or false
+commits are filtered out before callback observations or edges are built.
+
 Opening turn `0` is a valid callback source. This matters because the opening often establishes the pressure that later turns reuse.
 
 Branch-derived edges only connect committed replay outcomes back to their original root turn. The callback web may observe `selection_replay_committed` or `selection_replay_conflict`, but it must not adopt simulated branch state.

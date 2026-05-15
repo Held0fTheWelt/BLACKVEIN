@@ -31,6 +31,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_TEMPORAL_CONTROL,
+    ASPECT_TONAL_CONSISTENCY,
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
     set_aspect_record,
@@ -43,6 +44,7 @@ from ai_stack.sensory_context_contracts import (
     SENSORY_CONTEXT_SCHEMA_VERSION,
 )
 from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_SCHEMA_VERSION
+from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_SCHEMA_VERSION
 
 
 def _scene_energy_missing_pressure_code() -> str:
@@ -421,6 +423,70 @@ def test_runtime_projection_exposes_sensory_context_aspect() -> None:
     assert sensory["event_count"] == 0
     assert sensory["failure_codes"] == [missing_code]
     assert sensory["contract_pass"] is False
+
+
+def test_runtime_projection_exposes_tonal_consistency_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-tone",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    failure_code = "tonal_consistency_required_dimension_missing"
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_TONAL_CONSISTENCY,
+        {
+            "applicable": True,
+            "status": "partial",
+            "expected": {
+                "schema_version": TONAL_CONSISTENCY_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "require_structured_classification": True,
+                "drift_behavior": "diagnostic",
+            },
+            "selected": {
+                "profile_id": "profile_alpha",
+                "target_dimension_ids": ["dimension_alpha", "dimension_beta"],
+                "required_dimension_ids": ["dimension_alpha"],
+                "allowed_registers": ["register_alpha"],
+                "forbidden_marker_classes": ["marker_class_alpha"],
+                "scene_function": "scene_function_alpha",
+                "pressure_band": "high",
+            },
+            "actual": {
+                "structured_classification_present": True,
+                "realized_dimension_ids": [],
+                "missing_required_dimension_ids": ["dimension_alpha"],
+                "required_dimension_present_count": 0,
+                "register_label": "register_alpha",
+                "genre_label": "register_alpha",
+                "forbidden_marker_hits": {"marker_class_alpha": 1},
+                "marker_hit_count": 1,
+                "contract_pass": False,
+                "failure_codes": [failure_code],
+            },
+            "reasons": [failure_code],
+            "failure_class": "degradation_only",
+            "failure_reason": failure_code,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    tonal = projection[ASPECT_TONAL_CONSISTENCY]
+    assert tonal["schema_version"] == TONAL_CONSISTENCY_SCHEMA_VERSION
+    assert tonal["policy_enabled"] is True
+    assert tonal["profile_id"] == "profile_alpha"
+    assert tonal["required_dimension_ids"] == ["dimension_alpha"]
+    assert tonal["realized_dimension_ids"] == []
+    assert tonal["forbidden_marker_classes"] == ["marker_class_alpha"]
+    assert tonal["forbidden_marker_hits"] == {"marker_class_alpha": 1}
+    assert tonal["marker_hit_count"] == 1
+    assert tonal["contract_pass"] is False
+    assert tonal["failure_codes"] == [failure_code]
 
 
 def test_runtime_projection_exposes_improvisational_coherence_aspect() -> None:

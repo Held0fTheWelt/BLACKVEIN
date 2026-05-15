@@ -250,6 +250,44 @@ Characters must maintain consistent:
 
 **ADR-0039 boundary:** `dialogue_examples` in `character_voice.yaml` are authoring examples, not validation or test oracles. Runtime profiles omit them, and tests assert structured validator/aspect outcomes derived from the policy block and canonical profile dimensions rather than copied narrative prose.
 
+### Tonal Consistency / Pi35
+
+Tonal consistency is represented by the generic `tonal_consistency` runtime
+aspect. It is the bounded tone-drift evidence surface for a turn: selected tone
+profile, target and required tone-dimension ids, allowed registers, forbidden
+genre labels, forbidden marker classes, structured classification evidence, and
+diagnostic/recover/reject behavior.
+
+The authoritative technical contract is
+[`docs/technical/runtime/tonal_consistency_contract.md`](../../technical/runtime/tonal_consistency_contract.md).
+
+Current status: local/partial. The contract, policy normalization,
+RuntimeAspectLedger projection, and MCP matrix extraction exist. The
+authoritative live LangGraph path does not yet derive/validate the aspect for
+commit, and the GoC policy uses `default_drift_behavior=diagnostic`. Do not use
+this surface to claim live tonal drift enforcement, staging proof, or
+readiness promotion.
+
+During a turn when the aspect is used:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.tonal_consistency`
+  into `runtime_governance_policy.tonal_consistency`;
+- `derive_tonal_consistency` selects a profile from scene function and adjacent
+  structured state;
+- the compact model context exposes profile id, dimension ids, allowed
+  registers, marker classes, scene function, and pressure band without prose
+  examples;
+- validation consumes structured `tonal_consistency_classification` plus
+  policy-declared marker classes;
+- `turn_aspect_ledger.tonal_consistency` records policy presence, target
+  selection, classification evidence, contract pass/fail, and failure codes;
+- MCP exposes `tonal_consistency_*` fields for local diagnostics.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized policy,
+schema constants, structured classification rows, marker-class counts, ledger
+projection, and MCP fields. Generated narration, copied dialogue, and
+LLM-as-a-Judge tone categories are not pass/fail oracles.
+
 ### Callback Web / Pi17
 
 The callback web is implemented as a bounded `callback_web_record.v1` index over committed session continuity. It connects later committed turns back to earlier committed turns through structured evidence: continuity classes, narrative threads, repeated scene anchors, and selected branch replay events.
@@ -258,7 +296,7 @@ The callback web is diagnostic evidence and prompt support, not canonical truth.
 
 During a turn:
 
-- World-Engine rebuilds the callback web from `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
+- World-Engine rebuilds the callback web from committed-truth rows in `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
 - the latest history row receives `callback_web_summary`, `callback_web_feedback`, and `callback_web_validation`;
 - the next LangGraph turn receives bounded `prior_callback_web_state`;
 - `turn_aspect_ledger.callback_web` records policy, selected edge, edge counts, validation status, and failure codes;
@@ -537,7 +575,7 @@ The consequence cascade is committed-state feedback and prompt support, not cano
 
 During a turn:
 
-- World-Engine rebuilds the cascade from `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
+- World-Engine rebuilds the cascade from committed-truth rows in `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
 - the latest history row receives `consequence_cascade_summary`, `consequence_cascade_feedback`, and `consequence_cascade_validation`;
 - the next LangGraph turn receives bounded `prior_consequence_cascade_state`;
 - `turn_aspect_ledger.consequence_cascade` records policy, selected consequence ids/classes/statuses, atom/edge counts, validation status, and failure codes;
@@ -652,6 +690,31 @@ Output is shown to player
 - **Operator pauses session** → Session marked `paused`; can be resumed later with same state
 - **Session crashes** → Session marked `error`; operator can inspect turn_trace to debug
 - **Validation failure cascade** → Session may degrade to fallback mode; operator alerted
+
+### Recoverable Failure-as-story / Pi30
+
+The implemented Pi30 scope is a bounded recoverable-failure fragment, not a
+full no-dead-end engine. Recoverable validation rejections and expected graph
+`RuntimeError` failures can produce a player-visible `rejected_recoverable`
+turn that preserves the attempted input, offers a retry affordance, and records
+`recoverable_playability.v1` metadata.
+
+Recoverable failure rows are audit/story-window records only:
+
+- `committed_result.commit_applied=false`;
+- `recoverable_playability.commits_story_truth=false`;
+- recoverable/false-commit rows are filtered before callback-web observations
+  or consequence-cascade atoms/edges are built;
+- memory and committed-truth feedback must continue to derive from canonical
+  committed rows, not from fallback narration.
+
+Programming and contract failures are not failure-as-story. They roll back the
+attempted turn number and propagate as errors instead of being persisted as
+playable history.
+
+**ADR-0039 boundary:** Tests assert schema/status fields, commit flags,
+exception boundaries, turn ids, and feedback-graph row counts. Generated
+recovery wording is not a pass/fail oracle.
 
 ---
 

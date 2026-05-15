@@ -128,7 +128,10 @@ that categorical state plus adjacent structured runtime evidence.
 4. The dramatic generation packet receives the bounded target as structural
    pressure guidance.
 5. Validation checks schema and policy-threshold consistency only.
-6. `social_pressure_validation` updates `turn_aspect_ledger.social_pressure`.
+6. `social_pressure_validation` updates `turn_aspect_ledger.social_pressure`;
+   the final validator ledger row must preserve
+   `runtime_governance_policy.social_pressure` as
+   `expected.policy_present` and `expected.policy_enabled`.
 7. World-Engine persists `social_pressure_state`, `social_pressure_target`, and
    `social_pressure_validation` in planner truth and governance surfaces.
 8. The next turn receives the latest committed state as
@@ -158,6 +161,10 @@ Runtime diagnostics should use structured fields:
 - `social_pressure_contract_pass`
 - `social_pressure_metric_bounded`
 - `social_pressure_failure_codes`
+- `validation_feedback.trigger_source`
+- `validation_feedback.social_pressure_failure_before_retry`
+- `self_correction.attempts[].trigger_source`
+- `self_correction.attempts[].social_pressure_failure_before_retry`
 
 Operator and frontend surfaces may display backend-provided diagnostics. They
 must not infer pressure correctness from prose intensity, visible card density,
@@ -205,6 +212,7 @@ Forbidden primary oracles:
 
 ```text
 python -m py_compile ai_stack/social_pressure_contracts.py ai_stack/social_pressure_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py
+python -m pytest ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short
 python -m pytest ai_stack/tests/test_social_pressure_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py -q --tb=short
 PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short
 PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short

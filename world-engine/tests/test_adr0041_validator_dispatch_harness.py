@@ -19,6 +19,9 @@ from ai_stack.capability_validator_registry import (
 from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
 from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_aspect_ledger import (
+    ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+    ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
+    ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
     ADR0041_PLAN_PROJECTION_ENABLED_ENV,
     build_adr0041_validator_dispatch_harness_report,
     build_runtime_intelligence_projection,
@@ -146,6 +149,54 @@ def test_world_engine_default_projection_remains_dry_run() -> None:
 
     assert report["mode"] == "dry_run"
     assert report["execution_changed"] is False
+    assert "readiness_co_authority_preview" not in proj
+
+
+def test_world_engine_projection_omits_readiness_preview_when_flag_disabled(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.delenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, raising=False)
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-ready-off",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    assert "readiness_co_authority_preview" not in out["runtime_intelligence_projection"]
+
+
+def test_world_engine_projection_emits_readiness_preview_when_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-ready-on",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    preview = out["runtime_intelligence_projection"]["readiness_co_authority_preview"]
+    assert preview["policy_stage"] in {
+        "shadow_only",
+        "readiness_preview_candidate",
+        "readiness_preview_allow",
+        "readiness_preview_block",
+        "not_eligible",
+    }
+    assert preview["affects_commit"] is False
+    assert preview["affects_readiness"] is False
 
 
 def test_world_engine_default_projection_executes_no_validators() -> None:

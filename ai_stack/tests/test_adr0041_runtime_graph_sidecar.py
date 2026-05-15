@@ -13,7 +13,10 @@ from ai_stack.runtime_aspect_ledger import (
     ADR0041_DRIFT_ADR_STRICTER,
     ADR0041_DRIFT_ALIGNED,
     ADR0041_DRIFT_MISSING_CONTEXT,
+    ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+    ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
+    ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
     ASPECT_NPC_AGENCY,
     initialize_runtime_aspect_ledger,
     normalize_runtime_aspect_ledger,
@@ -41,6 +44,7 @@ def _assert_sidecar_local_only(report: dict) -> None:
 
 def test_runtime_graph_bundle_ignored_without_plan_enforced_env(monkeypatch) -> None:
     monkeypatch.delenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, raising=False)
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-gbundle",
         module_id="god_of_carnage",
@@ -59,6 +63,7 @@ def test_runtime_graph_bundle_ignored_without_plan_enforced_env(monkeypatch) -> 
     assert report["actually_executed"] == []
     assert report["execution_changed"] is False
     assert "validation_authority_preview" not in projection
+    assert "readiness_co_authority_enforcement" not in projection
 
 
 def test_plan_enforced_graph_bundle_runs_opening_validators(monkeypatch) -> None:
@@ -129,6 +134,7 @@ def test_plan_enforced_graph_bundle_runs_player_turn_validators(monkeypatch) -> 
     assert report["adr0041_selected_turn_class"] == "normal_player_turn"
     _assert_sidecar_local_only(report)
     assert "narrator_authority_contract" not in report["actually_executed"]
+    assert set(report["actually_executed"]).isdisjoint(set(JUDGE_VALIDATORS.values()))
 
 
 def test_plan_enforced_graph_bundle_runs_npc_conflict_validators(monkeypatch) -> None:
@@ -157,10 +163,120 @@ def test_plan_enforced_graph_bundle_runs_npc_conflict_validators(monkeypatch) ->
     assert set(report["actually_executed"]) == set(get_turn_class_enforced_validators(TURN_CLASS_NPC_CONFLICT_TURN))
     assert report["adr0041_selected_turn_class"] == "npc_conflict_turn"
     _assert_sidecar_local_only(report)
+    assert set(report["actually_executed"]).isdisjoint(set(JUDGE_VALIDATORS.values()))
+
+
+def test_plan_enforced_opening_readiness_preview_allow_when_flags_enabled(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-gready-open",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    preview = out["runtime_intelligence_projection"]["readiness_co_authority_preview"]
+    assert preview["policy_stage"] == "readiness_preview_allow"
+    assert preview["candidate"] is True
+    assert preview["would_allow_readiness"] is True
+    assert preview["turn_class"] == TURN_CLASS_OPENING_SCENE
+    assert preview["validation_outcome_changed"] is False
+    assert preview["affects_commit"] is False
+    assert preview["affects_readiness"] is False
+
+
+def test_plan_enforced_opening_readiness_enforcement_allow_when_flags_enabled(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-genf-open",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    enforcement = out["runtime_intelligence_projection"]["readiness_co_authority_enforcement"]
+    assert enforcement["readiness_input"] == "allow"
+    assert enforcement["would_affect_readiness"] is True
+    assert enforcement["commit_gate_changed"] is False
+    assert enforcement["validation_outcome_changed"] is False
+    assert enforcement["readiness_gate_changed"] is False
+
+
+def test_plan_enforced_player_readiness_preview_allow_when_flags_enabled(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-gready-player",
+        module_id="god_of_carnage",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Gehe ins Bad",
+        input_kind="action",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _player_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    preview = out["runtime_intelligence_projection"]["readiness_co_authority_preview"]
+    assert preview["policy_stage"] == "readiness_preview_allow"
+    assert preview["candidate"] is True
+    assert preview["would_allow_readiness"] is True
+    assert preview["turn_class"] == TURN_CLASS_NORMAL_PLAYER_TURN
+
+
+def test_plan_enforced_npc_readiness_preview_allow_when_flags_enabled(monkeypatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-gready-npc",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="npc",
+        raw_player_input="",
+    )
+    naspects = ledger["turn_aspect_ledger"][ASPECT_NPC_AGENCY]
+    ledger["turn_aspect_ledger"][ASPECT_NPC_AGENCY] = {
+        **naspects,
+        "expected": {
+            **(naspects.get("expected") if isinstance(naspects.get("expected"), dict) else {}),
+            "candidate_actor_ids": ["veronique_vallon"],
+        },
+    }
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _npc_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    preview = out["runtime_intelligence_projection"]["readiness_co_authority_preview"]
+    assert preview["policy_stage"] == "readiness_preview_allow"
+    assert preview["candidate"] is True
+    assert preview["would_allow_readiness"] is True
+    assert preview["turn_class"] == TURN_CLASS_NPC_CONFLICT_TURN
 
 
 def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
     monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-gmiss",
         module_id="god_of_carnage",
@@ -180,3 +296,10 @@ def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
     assert set(report["validators_unavailable"]) == set(get_turn_class_enforced_validators(TURN_CLASS_OPENING_SCENE))
     preview = projection["validation_authority_preview"]
     assert preview["drift_vs_validation_seam"]["classification"] == ADR0041_DRIFT_MISSING_CONTEXT
+    readiness_preview = projection["readiness_co_authority_preview"]
+    assert readiness_preview["policy_stage"] == "not_eligible"
+    assert readiness_preview["would_allow_readiness"] is False
+    assert "missing_context" in readiness_preview["blockers"]
+    enforcement = projection["readiness_co_authority_enforcement"]
+    assert enforcement["readiness_input"] == "block"
+    assert "missing_context" in enforcement["blockers"]

@@ -107,6 +107,33 @@ def test_build_callback_web_record_repeated_scene_anchor_when_turn_gap_gt_one():
     assert CALLBACK_EDGE_KIND_REPEATED_SCENE_ANCHOR in kinds
 
 
+def test_build_callback_web_record_filters_recoverable_rows_from_truth_feedback():
+    recoverable = _row(turn_id="recoverable", turn_number=2, scene="salon", continuity_class="x")
+    recoverable["recoverable_outcome"] = True
+    recoverable["turn_outcome"] = "recoverable_rejection"
+    recoverable["turn_kind"] = "player_rejected_recoverable"
+    recoverable["validation_outcome"] = {
+        "status": "rejected",
+        "recoverable_rejection": True,
+    }
+    recoverable["committed_result"] = {
+        "commit_applied": False,
+        "recoverable_rejection": True,
+    }
+
+    record = build_callback_web_record(
+        story_session_id="recoverable-filter",
+        history=[
+            _row(turn_id="committed", turn_number=1, scene="salon", continuity_class="x"),
+            recoverable,
+        ],
+    )
+
+    assert {obs["turn_id"] for obs in record["observations"]} == {"committed"}
+    assert record["snapshot"]["observation_count"] == 1
+    assert record["edges"] == []
+
+
 def test_build_callback_web_record_branch_timeline_selection_replay_edge():
     history = [
         _row(turn_id="root", turn_number=1, scene="r1", continuity_class="c1"),

@@ -80,6 +80,56 @@ def test_invalid_scoped_co_authority_flag_fails_closed() -> None:
     assert "scoped co-authority decision disabled" in warnings[0]
 
 
+def test_readiness_preview_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+        resolve_adr0041_readiness_co_authority_preview_enabled,
+    )
+
+    monkeypatch.delenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, raising=False)
+    enabled, warnings = resolve_adr0041_readiness_co_authority_preview_enabled()
+
+    assert enabled is False
+    assert warnings == ()
+
+
+def test_invalid_readiness_preview_flag_fails_closed() -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        resolve_adr0041_readiness_co_authority_preview_enabled,
+    )
+
+    enabled, warnings = resolve_adr0041_readiness_co_authority_preview_enabled(env_value="later")
+
+    assert enabled is False
+    assert warnings
+    assert "readiness co-authority preview disabled" in warnings[0]
+
+
+def test_scoped_readiness_enforcement_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
+        resolve_adr0041_scoped_readiness_enforcement_enabled,
+    )
+
+    monkeypatch.delenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, raising=False)
+    enabled, warnings = resolve_adr0041_scoped_readiness_enforcement_enabled()
+
+    assert enabled is False
+    assert warnings == ()
+
+
+def test_invalid_scoped_readiness_enforcement_flag_fails_closed() -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        resolve_adr0041_scoped_readiness_enforcement_enabled,
+    )
+
+    enabled, warnings = resolve_adr0041_scoped_readiness_enforcement_enabled(env_value="pilot-maybe")
+
+    assert enabled is False
+    assert warnings
+    assert "scoped readiness enforcement disabled" in warnings[0]
+
+
 def test_env_plan_enforced_requires_explicit_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, "plan_enforced")
 

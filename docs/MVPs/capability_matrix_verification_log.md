@@ -48,6 +48,43 @@ ADR-0041 production-orchestration readiness audit (2026-05-15): documented flow 
 
 ADR-0041 scoped co-authority decision preview (2026-05-15): `validation_authority_bridge.v5` adds `opening_event_coverage` to the bounded critical scope and `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true` may emit `runtime_intelligence_projection.validation_co_authority_decision` only when plan-enforced sidecar execution is `partial_transfer_ready`. Verification: `python -m pytest ai_stack/tests/test_validation_authority_bridge.py ai_stack/tests/test_capability_validator_dispatch_feature_flag.py -q`; `validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`; `run_validation_seam` remains canonical; `live_or_staging_evidence=false`; no Capability Matrix promotion.
 
+ADR-0041 readiness co-authority preview (2026-05-15): `ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED=true` may emit `runtime_intelligence_projection.readiness_co_authority_preview` with machine-readable policy stage (`shadow_only`, `readiness_preview_candidate`, `readiness_preview_allow`, `readiness_preview_block`, `not_eligible`) and bounded blockers/evidence while `affects_commit=false`, `affects_readiness=false`, `validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`. Verification: `python -m pytest ai_stack/tests/test_validation_authority_bridge.py ai_stack/tests/test_adr0041_runtime_graph_sidecar.py ai_stack/tests/test_capability_validator_dispatch_feature_flag.py -q`, `cd world-engine && python -m pytest tests/test_adr0041_validator_dispatch_harness.py -q`; `run_validation_seam` remains canonical; `proof_level=local_only`; no live/staging claim or Capability Matrix promotion.
+
+ADR-0041 scoped readiness enforcement pilot (2026-05-15): `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED=true` may emit `runtime_intelligence_projection.readiness_co_authority_enforcement` and mirror it as `runtime_intelligence_projection.readiness_policy_input` with `readiness_input=allow|block|no_decision`, bounded scope, blockers/evidence, and explicit pilot-stage flags. Output may serve as a real readiness policy input for governed aggregation, but remains non-mutating (`validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`, `affects_commit=false`, `affects_readiness=false`, `proof_level=local_only`, `live_or_staging_evidence=false`). Verification: `python -m pytest ai_stack/tests -q`, table-B/ADR-0039 gates, `cd world-engine && python -m pytest tests/test_adr0041_validator_dispatch_harness.py tests/test_story_runtime_aspect_ledger.py -q`; no commit behavior changes; no live/staging claim or Capability Matrix promotion.
+
+---
+
+## Local verification snapshot for Π30 / failure-as-story fragment
+
+- Date: 2026-05-15
+- Git SHA at verification time: `a407508e` (dirty worktree; local Π30 documentation/runtime changes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, or MCP live proof claim.
+- `PYTHONPATH=. python -m py_compile story_runtime_core/committed_truth.py story_runtime_core/callbacks/callback_web.py story_runtime_core/consequences/consequence_cascade.py world-engine/app/story_runtime/manager.py` -> passed
+- `PYTHONPATH=. python -m pytest story_runtime_core/tests/test_callback_web.py story_runtime_core/tests/test_consequence_cascade.py -q -s` -> 24 passed
+- `cd world-engine && PYTHONPATH=..:. python -m pytest tests/test_story_runtime_narrative_commit.py::test_recoverable_validation_rejection_returns_structured_turn tests/test_story_runtime_narrative_commit.py::test_graph_execution_exception_returns_playable_turn tests/test_story_runtime_narrative_commit.py::test_graph_programming_exception_is_not_persisted_as_playable_turn -q -s` -> 3 passed
+- `cd world-engine && PYTHONPATH=..:. python -m pytest tests/test_story_runtime_short_path_persist_convergence.py::test_graph_exception_recoverable_matches_canonical_narrator_bundle -q -s` -> 1 passed
+- `PYTHONPATH=. python -m pytest tests/callbacks/test_callback_web.py tests/consequences/test_consequence_cascade.py -q -s` -> 6 passed
+- `PYTHONPATH=. python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q -s` -> 13 passed
+
+Evidence summary: Π30 is still a partial failure-as-story fragment, not a full
+no-dead-end system. The verified behavior is narrower: recoverable validation
+rejections and expected graph `RuntimeError` failures produce player-visible
+`rejected_recoverable` turns with structured `recoverable_playability.v1`
+metadata and `commits_story_truth=false`; programming/contract exceptions are
+not converted into playable story turns; recoverable/false-commit history rows
+are filtered out before callback-web observations and consequence-cascade atoms
+or edges are built.
+
+ADR-0039 discipline for this slice: tests assert schema/status fields,
+commit flags, exception class boundaries, stable turn ids, callback/cascade
+record counts, and anti-hardcoding gate behavior. Generated recovery prose,
+authored example language, and Pi labels are not pass/fail oracles.
+
+Notable local-environment notes: some World-Engine tests emitted non-fatal
+FastEmbed cache and missing `observability_credentials` table warnings during
+test startup. These warnings did not fail the local verification and are not
+live/staging evidence.
+
 ---
 
 ## Local verification snapshot for Π28 / temporal-control runtime aspect
@@ -335,14 +372,24 @@ ADR-0039 discipline for this slice: tests derive selected/withheld/forbidden uni
 
 Latest local verification recorded for the bounded continuous social-pressure work:
 
+- Date: 2026-05-15
+- Scope: local runtime/contract verification only; no live provider, staging
+  trace, or player-visible replay claim.
 - `python -m py_compile ai_stack/social_pressure_contracts.py ai_stack/social_pressure_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed.
-- `python -m pytest ai_stack/tests/test_social_pressure_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py -q --tb=short` -> 20 passed.
-- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` -> 8 passed.
+- `python -m pytest ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short` -> 23 passed.
+- `python -m pytest ai_stack/tests/test_social_pressure_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py -q --tb=short` -> 26 passed.
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` -> 10 passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short` -> 1 passed.
-- `python -m pytest ai_stack/tests/test_langgraph_runtime.py::test_runtime_turn_graph_delivers_director_context_to_model_prompt -q --tb=short` -> 1 passed.
-- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 8 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 13 passed.
 
 The latest closure adds the dedicated `social_pressure` runtime aspect: `thread_pressure_state=high_unresolved_thread_pressure` and `social_risk_band=high` now feed a continuous score, not only a categorical band; the score/band/trend are ledgered, persisted in planner truth, and rehydrated as bounded prior state.
+
+The 2026-05-15 follow-up closes the final-validator diagnostic gap: the
+validator-written `turn_aspect_ledger.social_pressure` row preserves normalized
+policy flags (`expected.policy_present`, `expected.policy_enabled`) and
+self-correction attempts now carry `trigger_source="social_pressure"` plus
+`social_pressure_failure_before_retry` when social-pressure validation rejects
+before retry.
 
 ADR-0039 discipline for this slice: tests assert normalized policy thresholds, schema versions, metric/band consistency, aspect-ledger projection, MCP matrix fields, and planner-truth rehydration. Generated narrative text is not the primary oracle.
 
@@ -546,5 +593,41 @@ live/staging proof. The Capability Matrix is not promoted by this projection.
 Known limitations: actual validator dispatch/gating, prompt assembly
 integration, judge execution, Langfuse/MCP live proof, and Capability Matrix
 promotion remain future work.
+
+---
+
+## Local verification snapshot for Π35 / tonal consistency
+
+- Date: 2026-05-15
+- Scope: **local pytest/static-gate evidence only** - no live-provider, staging,
+  live Langfuse, MCP live proof, ADR-0009 promotion proof, or authoritative
+  LangGraph commit-enforcement claim.
+- `python -m py_compile ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_tonal_consistency_aspect ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_recommends_tonal_consistency_repair -q --tb=short` -> 31 passed
+- `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 77 passed
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py tests/gates/test_table_b_anti_hardcoding_gate.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 25 passed
+- `git diff --check -- ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capability_selector.py ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tools/mcp_server/tests/test_langfuse_verify_tools.py content/modules/god_of_carnage/module.yaml docs/technical/runtime/tonal_consistency_contract.md docs/MVPs/capability_matrix_status_and_adr_relations.md` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: Π35 is now represented as the generic
+`tonal_consistency` local contract surface. GoC policy declares a bounded tone
+profile under `runtime_intelligence.tonal_consistency`; the engine derives a
+`tonal_consistency.v1` target, validates structured
+`tonal_consistency_classification` and policy-declared marker classes, projects
+`RuntimeAspectLedger.tonal_consistency`, and exposes MCP
+`tonal_consistency_*` matrix fields. The ADR-0041 selector correction in the
+same local pass preserves `enforce` over `judge` activation mode and maps
+recoverable runtime turn kinds to recovery.
+
+ADR-0039 discipline for this slice: production-facing keys use semantic
+`tonal_consistency` names only. Tests derive expectations from normalized
+policy, exported schema/failure-code constants, structured classification
+payloads, marker-class counts, ledger projection, and MCP row fields.
+Generated narration, copied dialogue examples, and LLM-as-a-Judge tone
+categories are not pass/fail oracles.
+
+Known limitations: no authoritative LangGraph derivation/validation node, no
+planner-truth rehydration, no live/staging traces, no provider evidence, no
+commit/readiness coupling, and no ADR-0009 promotion update. The row remains
+partial/local evidence, not a hard tonal drift loop.
 
 ---

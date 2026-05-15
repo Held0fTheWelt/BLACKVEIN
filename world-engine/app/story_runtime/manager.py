@@ -274,6 +274,21 @@ class StorySessionContractError(ValueError):
     """Raised when a direct story-session create violates the governed runtime contract."""
 
 
+NON_RECOVERABLE_TURN_EXCEPTION_TYPES = (
+    LiveStoryGovernanceError,
+    StorySessionContractError,
+    TypeError,
+    AttributeError,
+    KeyError,
+    ImportError,
+    OSError,
+)
+
+
+def _is_recoverable_graph_execution_exception(exc: Exception) -> bool:
+    return isinstance(exc, RuntimeError) and not isinstance(exc, NON_RECOVERABLE_TURN_EXCEPTION_TYPES)
+
+
 def _require_non_empty_string(value: Any, field_name: str) -> str:
     text = str(value or "").strip()
     if not text:
@@ -562,11 +577,30 @@ def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
     lang = str(getattr(session, "session_output_language", "de") or "de").strip().lower()[:2] or "de"
     if lang == "en":
         if reason == "graph_execution_exception":
-            return "This turn could not be fully loaded. Please try again."
-        return "This action cannot be resolved cleanly from the current scene right now."
+            return "The moment catches before it can settle. Try a simpler move from here."
+        return "The scene pushes back. Try a cleaner move from this same moment."
     if reason == "graph_execution_exception":
-        return "Dieser Zug konnte nicht vollstaendig geladen werden. Bitte versuche es erneut."
-    return "Dieser Zug laesst sich im Moment nicht sauber aus der Szene heraus aufloesen."
+        return "Der Moment verhakt sich, bevor er sich sauber fassen laesst. Versuche von hier aus einen einfacheren Zug."
+    return "Die Szene gibt gerade Widerstand. Versuche aus demselben Moment heraus einen klareren Zug."
+
+
+def _recoverable_playability_metadata(
+    *,
+    player_input: str,
+    reason: str,
+    turn_kind: str,
+) -> dict[str, Any]:
+    obstacle_kind = "runtime_graph_exception" if reason == "graph_execution_exception" else "validation_rejection"
+    return {
+        "contract": "recoverable_outcome_playability.v1",
+        "recovery_mode": "retry_affordance" if obstacle_kind == "runtime_graph_exception" else "scene_constraint_redirect",
+        "obstacle_kind": obstacle_kind,
+        "attempted_action_present": bool(str(player_input or "").strip()),
+        "next_step_affordance_present": True,
+        "technical_leak_absent": True,
+        "commits_story_truth": False,
+        "turn_kind": turn_kind,
+    }
 
 
 def _recoverable_narrator_visible_output_bundle(*, message: str) -> dict[str, Any]:
@@ -615,8 +649,14 @@ def _recoverable_playable_turn_envelope(
         "hard_boundary_failure": False,
         "turn_aspect_ledger": turn_aspect_ledger,
     }
+    playability = _recoverable_playability_metadata(
+        player_input=player_input,
+        reason=reason,
+        turn_kind=turn_kind,
+    )
     if diagnostics_extras:
         diag.update(diagnostics_extras)
+    diag["recoverable_playability"] = playability
     return {
         "turn_number": commit_turn_number,
         "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
@@ -637,6 +677,7 @@ def _recoverable_playable_turn_envelope(
         "ok": False,
         "turn_status": "rejected_recoverable",
         "reason": reason,
+        "recoverable_playability": playability,
         "player_visible_message": message,
         "diagnostics": diag,
     }
@@ -11023,6 +11064,16 @@ class StoryRuntimeManager:
                 else None,
             )
         except Exception as exc:
+            if not _is_recoverable_graph_execution_exception(exc):
+                session.turn_counter -= 1
+                log_story_runtime_failure(
+                    trace_id=trace_id,
+                    story_session_id=session_id,
+                    operation="execute_turn",
+                    message=str(exc),
+                    failure_class="turn_execution_unrecoverable_exception",
+                )
+                raise
             log_story_runtime_failure(
                 trace_id=trace_id,
                 story_session_id=session_id,

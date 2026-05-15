@@ -7,6 +7,7 @@ from ai_stack.langgraph_runtime_executor import (
     _build_authority_aspect_records,
     _build_runtime_aspect_validation,
 )
+from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.dramatic_capability_contracts import (
     NPC_COERCIVE_ACTION_TYPES,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
@@ -19,9 +20,16 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_SOCIAL_PRESSURE,
     ASPECT_VALIDATION,
+    build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
 )
+from ai_stack.social_pressure_contracts import (
+    SOCIAL_PRESSURE_BANDS,
+    SOCIAL_PRESSURE_SCHEMA_VERSION,
+)
+from ai_stack.social_pressure_engine import derive_social_pressure
 
 
 def _coercive_action_type() -> str:
@@ -93,6 +101,26 @@ def _generation(structured: dict[str, Any]) -> dict[str, Any]:
         "content": "structured",
         "metadata": {"structured_output": structured},
     }
+
+
+def _social_pressure_fixture() -> tuple[dict[str, Any], dict[str, Any]]:
+    policy = load_module_runtime_policy("god_of_carnage", "solo_test").to_dict()
+    social_policy = policy["runtime_governance_policy"]["social_pressure"]
+    source_scores = social_policy["source_scores"]
+    social_risk_band = max(
+        source_scores["social_risk_band"],
+        key=source_scores["social_risk_band"].get,
+    )
+    thread_pressure_state = max(
+        source_scores["thread_pressure_state"],
+        key=source_scores["thread_pressure_state"].get,
+    )
+    pressure = derive_social_pressure(
+        scene_assessment={"thread_pressure_state": thread_pressure_state},
+        social_state_record={"social_risk_band": social_risk_band},
+        module_runtime_policy=policy,
+    )
+    return policy, pressure
 
 
 def test_movement_requires_narrator_authority() -> None:
@@ -542,6 +570,45 @@ def test_recoverable_commit_records_failed_aspects() -> None:
     assert commit["actual"]["deliberately_not_committed_failure"] == "narrator_required_missing"
 
 
+def test_social_pressure_validator_ledger_keeps_normalized_policy() -> None:
+    policy, pressure = _social_pressure_fixture()
+    social_policy = policy["runtime_governance_policy"]["social_pressure"]
+    state = _state()
+    state["module_runtime_policy"] = policy
+    state["social_pressure_state"] = pressure["state"]
+    state["social_pressure_target"] = pressure["target"]
+
+    result = _build_runtime_aspect_validation(
+        state=state,
+        generation=_generation(
+            {
+                "narration_summary": "The room registers the movement.",
+                "action_lines": [],
+                "spoken_lines": [],
+            }
+        ),
+        proposed_state_effects=[
+            {
+                "effect_type": "narrative_projection",
+                "description": "The room registers the movement.",
+            }
+        ],
+        outcome={"status": "approved", "reason": "seam_ok"},
+    )
+
+    aspect = result["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_SOCIAL_PRESSURE]
+    assert aspect["expected"]["schema_version"] == SOCIAL_PRESSURE_SCHEMA_VERSION
+    assert aspect["expected"]["policy_present"] is True
+    assert aspect["expected"]["policy_enabled"] == social_policy["enabled"]
+    assert aspect["actual"]["contract_pass"] is True
+
+    projection = build_runtime_intelligence_projection(result["turn_aspect_ledger"])
+    pressure_projection = projection[ASPECT_SOCIAL_PRESSURE]
+    assert pressure_projection["policy_present"] is True
+    assert pressure_projection["policy_enabled"] == social_policy["enabled"]
+    assert pressure_projection["target_band"] == pressure["target"]["target_band"]
+
+
 def test_runtime_aspect_failure_triggers_self_correction_before_final_validation() -> None:
     executor = object.__new__(RuntimeTurnGraphExecutor)
     executor.max_self_correction_attempts = 3
@@ -604,6 +671,83 @@ def test_runtime_aspect_failure_triggers_self_correction_before_final_validation
     assert attempt["runtime_aspect_failure_before_retry"]["failure_reason"] == "npc_executed_player_action"
     assert "npc_executed_player_action" in attempt["feedback_codes"]
     assert attempt["resolved_failure"] is True
+
+
+def test_social_pressure_failure_triggers_social_pressure_retry_diagnostics() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 1
+    executor.allow_degraded_commit_after_retries = False
+    policy, pressure = _social_pressure_fixture()
+    state = _state()
+    state["module_runtime_policy"] = policy
+    state["social_pressure_state"] = pressure["state"]
+    state["social_pressure_target"] = {
+        **pressure["target"],
+        "target_band": next(
+            band for band in sorted(SOCIAL_PRESSURE_BANDS) if band != pressure["target"]["target_band"]
+        ),
+    }
+    state["generation"] = _generation(
+        {
+            "narration_summary": "The room registers the movement.",
+            "action_lines": [],
+            "spoken_lines": [],
+        }
+    )
+    state["proposed_state_effects"] = [
+        {
+            "effect_type": "narrative_projection",
+            "description": "The room registers the movement.",
+        }
+    ]
+    captured_feedback: dict[str, Any] = {}
+
+    def _fake_synthesize(
+        _current_state,
+        *,
+        validation_feedback,
+        attempt_index,
+    ):
+        captured_feedback.update(validation_feedback)
+        return ({}, {"attempt_index": attempt_index}, "")
+
+    def _fake_self_correct(
+        _current_state,
+        _current_generation,
+        _current_proposed,
+        feedback_codes,
+        attempt_index,
+        preserve_actor_lanes=False,
+        **_retry_context_kwargs,
+    ):
+        return (
+            _current_generation,
+            list(_current_proposed),
+            {
+                "attempt_index": attempt_index,
+                "candidate_model": "test-model",
+                "feedback_codes": list(feedback_codes),
+                "success": True,
+                "parser_error": None,
+                "preserve_actor_lanes": preserve_actor_lanes,
+            },
+        )
+
+    executor._synthesize_context_for_retry = _fake_synthesize
+    executor._self_correct_generation = _fake_self_correct
+
+    update = executor._validate_seam(state)
+
+    assert update["self_correction"]["attempt_count"] == 1
+    attempt = update["self_correction"]["attempts"][0]
+    assert attempt["trigger_source"] == "social_pressure"
+    assert attempt["social_pressure_failure_before_retry"]["failure_reason"] in (
+        attempt["social_pressure_failure_before_retry"]["failure_codes"]
+    )
+    assert captured_feedback["trigger_source"] == "social_pressure"
+    assert captured_feedback["social_pressure_failure_before_retry"] == (
+        attempt["social_pressure_failure_before_retry"]
+    )
 
 
 def test_missing_narrator_authority_triggers_self_correction() -> None:

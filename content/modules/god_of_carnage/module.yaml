@@ -331,6 +331,58 @@ runtime_intelligence:
       probe_motive: mid_tension
       reveal_surface: mid_tension
       scene_pivot: mid_tension
+  tonal_consistency:
+    enabled: true
+    schema_version: tonal_consistency_policy.v1
+    default_profile_id: social_pressure_restraint
+    require_structured_classification: true
+    min_required_dimensions_present: 2
+    max_forbidden_marker_hits: 0
+    default_drift_behavior: diagnostic
+    model_context_visibility: bounded_tone_target
+    allowed_registers:
+      - social_drama
+      - restrained_theatrical
+    forbidden_genre_labels:
+      - fantasy_adventure
+      - therapy_session
+      - debug_summary
+    forbidden_marker_map:
+      therapy_speak:
+        - safe space
+        - process your feelings
+      game_master:
+        - quest
+        - roll for
+      debug_text:
+        - fallback
+        - validation
+    tone_profiles:
+      social_pressure_restraint:
+        target_dimension_ids:
+          - polite_surface
+          - subtext_pressure
+          - concrete_staging
+          - restrained_escalation
+        required_dimension_ids:
+          - polite_surface
+          - subtext_pressure
+        allowed_registers:
+          - social_drama
+          - restrained_theatrical
+        forbidden_genre_labels:
+          - fantasy_adventure
+          - therapy_session
+          - debug_summary
+    profile_by_scene_function:
+      establish_pressure: social_pressure_restraint
+      escalate_conflict: social_pressure_restraint
+      redirect_blame: social_pressure_restraint
+      probe_motive: social_pressure_restraint
+      repair_or_stabilize: social_pressure_restraint
+      withhold_or_evade: social_pressure_restraint
+      reveal_surface: social_pressure_restraint
+      scene_pivot: social_pressure_restraint
   social_pressure:
     enabled: true
     schema_version: social_pressure_policy.v1

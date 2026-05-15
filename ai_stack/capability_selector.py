@@ -20,7 +20,17 @@ LOCAL_SELECTION_PROOF_LEVEL = "local_only"
 _NON_LEXICAL_INPUT_KINDS = frozenset({"non_lexical", "silence", "gesture"})
 _OPENING_TURN_KINDS = frozenset({"opening", "engine_opening"})
 _NPC_TURN_KINDS = frozenset({"npc", "npc_turn"})
-_RECOVERY_TURN_KINDS = frozenset({"recovery", "fallback", "fallback_recovery"})
+_RECOVERY_TURN_KINDS = frozenset(
+    {
+        "recovery",
+        "fallback",
+        "fallback_recovery",
+        "rejected_recoverable",
+        "player_rejected_recoverable",
+        "player_graph_exception_playable",
+        "graph_exception_playable",
+    }
+)
 _SYSTEM_TURN_KINDS = frozenset({"system_transition"})
 
 
@@ -253,7 +263,8 @@ class CapabilitySelectionResult:
         for capability in self.enforced:
             modes[capability] = CapabilityMode.ENFORCE.value
         for capability in self.judged:
-            modes[capability] = CapabilityMode.JUDGE.value
+            if modes.get(capability) != CapabilityMode.ENFORCE.value:
+                modes[capability] = CapabilityMode.JUDGE.value
         return modes
 
     def to_runtime_aspect_projection(self) -> dict[str, Any]:

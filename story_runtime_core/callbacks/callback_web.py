@@ -13,6 +13,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from story_runtime_core.committed_truth import committed_story_truth_rows
+
 
 CALLBACK_WEB_RECORD_SCHEMA_VERSION = "callback_web_record.v1"
 CALLBACK_EDGE_SCHEMA_VERSION = "callback_edge.v1"
@@ -560,7 +562,7 @@ def build_callback_web_record(
     created_at: str | None = None,
 ) -> dict[str, Any]:
     normalized_bounds = normalize_callback_web_bounds(bounds)
-    rows = [row for row in (history or []) if isinstance(row, dict)]
+    rows = committed_story_truth_rows(history)
     observations = [
         obs
         for obs in (_observation_for_row(row=row, narrative_threads=narrative_threads) for row in rows)

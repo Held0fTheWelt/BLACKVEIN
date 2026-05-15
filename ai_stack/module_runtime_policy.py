@@ -34,6 +34,7 @@ from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
 from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
 from ai_stack.temporal_control_contracts import normalize_temporal_control_policy
+from ai_stack.tonal_consistency_contracts import normalize_tonal_consistency_policy
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -200,6 +201,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     consequence_cascade = consequence_cascade if isinstance(consequence_cascade, dict) else {}
     temporal_control = raw.get("temporal_control")
     temporal_control = temporal_control if isinstance(temporal_control, dict) else {}
+    tonal_consistency = raw.get("tonal_consistency")
+    tonal_consistency = tonal_consistency if isinstance(tonal_consistency, dict) else {}
     expectation_variation = raw.get("expectation_variation")
     expectation_variation = (
         expectation_variation if isinstance(expectation_variation, dict) else {}
@@ -291,6 +294,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "callback_web": normalize_callback_web_policy(callback_web),
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
         "temporal_control": normalize_temporal_control_policy(temporal_control),
+        "tonal_consistency": normalize_tonal_consistency_policy(tonal_consistency),
     }
 
 
@@ -315,6 +319,7 @@ class ModuleRuntimePolicy:
     memory_policy: dict[str, Any] = field(default_factory=dict)
     dramatic_irony_policy: dict[str, Any] = field(default_factory=dict)
     improvisational_coherence_policy: dict[str, Any] = field(default_factory=dict)
+    tonal_consistency_policy: dict[str, Any] = field(default_factory=dict)
     expectation_variation_policy: dict[str, Any] = field(default_factory=dict)
     meta_narrative_awareness_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
@@ -410,6 +415,14 @@ def load_module_runtime_policy(
     meta_narrative_awareness_policy = normalize_meta_narrative_awareness_policy(
         meta_narrative_awareness_raw if meta_narrative_awareness_raw else None
     )
+    tonal_consistency_raw = (
+        runtime_intelligence.get("tonal_consistency")
+        if isinstance(runtime_intelligence.get("tonal_consistency"), dict)
+        else {}
+    )
+    tonal_consistency_policy = normalize_tonal_consistency_policy(
+        tonal_consistency_raw if tonal_consistency_raw else None
+    )
 
     sources = []
     for label, payload in (
@@ -435,6 +448,7 @@ def load_module_runtime_policy(
         ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
         ("dramatic_irony_policy", dramatic_irony_raw),
         ("improvisational_coherence_policy", improvisational_coherence_raw),
+        ("tonal_consistency_policy", tonal_consistency_raw),
         ("expectation_variation_policy", expectation_variation_raw),
         ("meta_narrative_awareness_policy", meta_narrative_awareness_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
@@ -477,6 +491,7 @@ def load_module_runtime_policy(
         memory_policy=memory_policy,
         dramatic_irony_policy=dramatic_irony_policy,
         improvisational_coherence_policy=improvisational_coherence_policy,
+        tonal_consistency_policy=tonal_consistency_policy,
         expectation_variation_policy=expectation_variation_policy,
         meta_narrative_awareness_policy=meta_narrative_awareness_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
