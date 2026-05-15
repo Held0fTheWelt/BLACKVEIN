@@ -39,6 +39,20 @@ Interpreter returns a structured object containing:
 - `meta` (out-of-world input)
 - `ambiguous`
 
+## Silence and negative-space input
+
+Empty input, punctuation-only input, and explicit withheld-answer input are valid story-play signals. They are not treated as parser failure just because they lack dialogue text.
+
+Canonical handling:
+
+- Empty input and non-lexical input keep the coarse `kind=ambiguous`, low confidence, and `runtime_delivery_hint=narrative_body`, but set `intent=withheld_response_or_silence`.
+- Explicit withheld-answer phrases are interpreted as silence / nonverbal withholding, not mixed dialogue/action.
+- The LangGraph runtime may map these signals to `player_input_kind=wait_or_observe` for non-lexical input or `player_input_kind=social_nonverbal_action` for explicit withholding.
+- Runtime payloads mark `pi14_silence_signal=true` and set `semantic_category=silence_withdrawal` when the signal should continue into the Π14 negative-space path.
+- Semantic interpretation may then emit `semantic_move_record.move_type=silence_withdrawal`, allowing the scene director to produce `silence_negative_space.v1` inside `silence_brevity_decision`.
+
+This path is still deterministic interpretation. It does not authorize committed facts, does not force the player character to speak, and does not let generated silence prose become a test oracle.
+
 ## Canonical `player_input_kind` taxonomy
 
 The runtime's fine-grained `player_input_kind` taxonomy is defined in
@@ -69,6 +83,9 @@ scene-director response policy, and Langfuse deterministic scores.
   and `Veronique` as the same canonical target.
 - `intent_surface_contract_pass` and `semantic_move_alignment_pass` must use
   the same shared taxonomy as the interpreter and semantic-move pipeline.
+- Π14 silence signals must remain visible as structured fields through the
+  runtime path; action-resolution shortcuts must not consume them before the
+  scene director can select negative space.
 - Tests for these invariants must follow ADR-0039: derive primary assertions
   from this contract, canonical content, or a named invariant rather than
   duplicated hardcoded oracle lists.

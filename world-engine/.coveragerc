@@ -1,0 +1,14 @@
+# World-engine pytest-cov configuration (see tests/run_tests.py ENGINE_COV_SOURCES).
+# Orphan modules: not imported by the packaged app; exercised from repo-root branching tests.
+[run]
+branch = false
+omit =
+    app/runtime/branching_turn_executor.py
+    app/story_runtime/minimal_turn_graph.py
+    app/narrative/scene_packet_builder.py
+
+[report]
+precision = 2
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:

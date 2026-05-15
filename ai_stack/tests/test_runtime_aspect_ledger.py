@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import json
 
+from ai_stack.dramatic_irony_contracts import (
+    DRAMATIC_IRONY_SCHEMA_VERSION,
+    DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
+    DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
+)
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
+    ASPECT_DRAMATIC_IRONY,
     ASPECT_INPUT,
     ASPECT_KEYS,
     ASPECT_NPC_AGENCY,
@@ -114,6 +120,61 @@ def test_runtime_projection_exposes_npc_agency_aspect() -> None:
     assert npc_agency["private_plan_resolution_present"] is True
     assert npc_agency["private_plan_visibility_respected"] is True
     assert npc_agency["selected_private_plan_ids"] == expected_actual["selected_private_plan_ids"]
+
+
+def test_runtime_projection_exposes_dramatic_irony_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s1",
+        module_id="god_of_carnage",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="Ich widerspreche.",
+    )
+    selected = {
+        "selected_opportunity_ids": ["fact:runtime:selected:unknown_to:actor_b"],
+        "selected_fact_ids": ["fact:runtime:selected"],
+    }
+    actual = {
+        "status": "selected",
+        "fact_count": len(selected["selected_fact_ids"]),
+        "opportunity_count": len(selected["selected_opportunity_ids"]),
+        "selected_opportunity_count": len(selected["selected_opportunity_ids"]),
+        "realization_status": "realized",
+        "realized_opportunity_ids": selected["selected_opportunity_ids"],
+        "leak_blocked": False,
+        "violation_codes": [],
+        "contract_pass": True,
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_DRAMATIC_IRONY,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": DRAMATIC_IRONY_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "allowed_sources": [DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED],
+                "allowed_surface_modes": [DRAMATIC_IRONY_SURFACE_MISREAD_REACTION],
+                "direct_reveal_allowed": False,
+            },
+            "selected": selected,
+            "actual": actual,
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    dramatic_irony = projection[ASPECT_DRAMATIC_IRONY]
+    assert dramatic_irony["policy_present"] is True
+    assert dramatic_irony["selected_opportunity_ids"] == selected["selected_opportunity_ids"]
+    assert dramatic_irony["selected_fact_ids"] == selected["selected_fact_ids"]
+    assert dramatic_irony["opportunity_count"] == actual["opportunity_count"]
+    assert dramatic_irony["realization_status"] == actual["realization_status"]
+    assert dramatic_irony["leak_blocked"] is False
+    assert dramatic_irony["contract_pass"] is True
 
 
 def test_runtime_projection_exposes_scene_energy_aspect() -> None:

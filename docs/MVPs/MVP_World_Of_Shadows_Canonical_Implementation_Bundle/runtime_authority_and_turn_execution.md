@@ -68,6 +68,7 @@ The complete turn flow from player input to rendered output:
 - **Input:** Scene function, turn history, character pressure state
 - **Output:** `pacing_mode`, `silence_brevity_decision`, visibility constraints
 - **Governance:** Deterministic policy; shapes what proposal generation may express
+- **Π14 negative space:** `silence_brevity_decision` carries `silence_negative_space.v1` when silence, withheld response, or non-lexical input is the dramatic move. This is soft shaping only: it may require a visible beat and block forced player speech, but it does not commit new truth.
 
 ---
 
@@ -175,11 +176,21 @@ Every turn maintains this structure:
       "reason": "string (why this character responds)"
     }
   ],
-  "selected_scene_function": "string (escalate_conflict|offer_repair|reveal_fact|etc)",
-  "pacing_mode": "standard|multi_pressure|silence|rapid_fire",
+  "selected_scene_function": "string (establish_pressure|escalate_conflict|probe_motive|repair_or_stabilize|withhold_or_evade|reveal_surface|redirect_blame|scene_pivot)",
+  "pacing_mode": "standard|compressed|thin_edge|containment|multi_pressure",
   "silence_brevity_decision": {
-    "mode": "normal|brief|silence",
-    "reason": "string"
+    "contract": "silence_negative_space.v1",
+    "mode": "normal|brief|withheld|expanded",
+    "reason": "string",
+    "source": "default|semantic_move|interpreted_input|raw_text|slice_boundary|non_goc_slice|sparse_fragment|narrative_thread|player_request",
+    "silence_kind": "none|empty_input|non_lexical_input|explicit_silence|withheld_answer|awkward_pause|defensive_pause|discomfort_pause|refusal_pressure|provocation_pause|charged_after_tension|player_requested_brevity|boundary_containment|thread_pressure|thread_interpretation_pressure",
+    "dramatic_function": "not_applicable|default_verbal_density|withhold_response|carry_tension|compress_response|maintain_pressure|escalate_pressure|contain_boundary",
+    "pressure_basis": "string|null",
+    "duration_hint": "none|beat|short|held",
+    "requires_visible_beat": true,
+    "blocks_forced_speech": false,
+    "semantic_move_type": "silence_withdrawal|null",
+    "interpreter_signal": "string|null"
   },
   "proposed_state_effects": [],
   "validation_outcome": {
@@ -212,7 +223,8 @@ A turn execution is valid when:
 4. **Commit decision is explicit** (`committed_result.commit_applied` is true or false)
 5. **Render output is auditable** (if turn reaches player, `visible_output_bundle` is recorded)
 6. **No player-visible factual claim bypasses committed truth** (all factual statements trace to `committed_result` or are explicitly marked non-factual)
-7. **Diagnostics are complete** (if seam behavior was exceptional, `diagnostics_refs` records why)
+7. **Negative space stays structured** (`silence_brevity_decision.contract` is `silence_negative_space.v1` and active silence sets reason/flags rather than relying on generated prose)
+8. **Diagnostics are complete** (if seam behavior was exceptional, `diagnostics_refs` records why)
 
 ---
 
@@ -226,4 +238,3 @@ If a turn fails at any seam:
 - **Render fails:** Fallback generic message is shown; operator is alerted; full turn trace is available for debugging
 
 All degradation is governed (not silent). Operators can inspect what happened via diagnostics.
-

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from story_runtime_core import ModelRegistry
 
+from ai_stack.dramatic_irony_runtime import build_dramatic_irony_record
 from ai_stack.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
@@ -209,6 +210,11 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
             "unrealized_required_initiative_actor_ids": [actor_ids[1]],
         },
     }
+    dramatic_irony_record = build_dramatic_irony_record(
+        actor_lane_context={"npc_actor_ids": actor_ids},
+        selected_responder_set=[{"actor_id": actor_id} for actor_id in actor_ids],
+        npc_agency_simulation=simulation,
+    )
 
     rec = resolve_narrative_commit(
         turn_number=4,
@@ -220,6 +226,7 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
         graph_state={
             "turn_number": 4,
             "dramatic_generation_packet": {"npc_agency_simulation": simulation},
+            "dramatic_irony_record": dramatic_irony_record,
             "npc_initiative_validation": validation,
             "actor_lane_context": {"ai_allowed_actor_ids": actor_ids, "npc_actor_ids": actor_ids},
         },
@@ -232,6 +239,11 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
     assert pt.npc_plan_conflict_resolution["schema_version"] == NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION
     assert pt.npc_agency_closure["schema_version"] == NPC_AGENCY_CLOSURE_SCHEMA_VERSION
     assert pt.npc_agency_closure["closure_status"] == NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+    assert pt.dramatic_irony["selected_opportunity_ids"] == dramatic_irony_record["selected_opportunity_ids"]
+    assert {
+        fact["provenance"]["private_plan_id"]
+        for fact in pt.dramatic_irony["facts"]
+    } == set(simulation["npc_plan_conflict_resolution"]["selected_private_plan_ids"])
     assert pt.unresolved_npc_initiatives == pt.npc_agency_closure["carried_forward_npc_initiatives"]
     assert [row["actor_id"] for row in pt.carried_forward_npc_initiatives] == validation["missing_required_actor_ids"]
     assert pt.npc_agency_closure["carried_forward_private_plan_ids"] == [f"{actor_ids[1]}:private_plan:4"]

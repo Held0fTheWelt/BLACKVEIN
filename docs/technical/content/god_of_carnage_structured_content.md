@@ -27,8 +27,8 @@ decide hard-forbidden pass/fail.
 | `knowledge/hard_forbidden_rules.yaml` | `detect_hard_forbidden_runtime` (validation seam), narrator packet | `hard_forbidden_detection`, `hard_forbidden_absent`, `opening_summary_only_absent`, per-category absent scores (`opening_player_speech_absent`, `opening_npc_exposition_absent`, `meta_runtime_language_absent`, `stage_direction_labels_absent`, `source_reproduction_absent`, `player_agency_violation_absent`) |
 | `knowledge/premise_and_backstory.yaml` | narrator packet, opening prompt, RAG seed | `knowledge_runtime_loaded.premise_and_backstory_loaded` |
 | `knowledge/narrator_sensory_palette.yaml` | narrator packet, scene-director dramatic parameters | `narrator_sensory_palette_loaded` |
-| `apartment_layout.yaml` | affordance resolution, player-local context, RAG | `apartment_layout_loaded` |
-| `apartment_objects.yaml` | affordance resolution, narrator packet, RAG | `apartment_objects_loaded` |
+| `apartment_layout.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, player-local context, RAG | `apartment_layout_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
+| `apartment_objects.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, narrator packet, RAG | `apartment_objects_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
 | `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
 | `direction/character_voice.yaml` | character voice profile builder, prompt packet, runtime voice validator | `character_voice_profiles`, `voice_consistency_validation`, `turn_aspect_ledger.voice_consistency` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
@@ -96,6 +96,28 @@ policy keys such as:
 Module-specific actor names, room aliases, phase names, beat ids, and sample
 prose stay in content files. Generic runtime validators read the policy and
 ledger fields; they must not hardcode God of Carnage literals.
+
+## Environment state / Pi15
+
+The Pi15 environmental-story slice is implemented as bounded canonical state,
+not as free-form narrator memory. `apartment_layout.yaml` and
+`apartment_objects.yaml` are normalized into `EnvironmentModel`; session start
+initializes `StorySession.environment_state` with current room, actor
+locations, prop states, visible rooms, salient object ids, and recent
+environment events.
+
+Runtime consumers use the same state through the turn:
+
+- Action resolution derives player-local context from `environment_state`.
+- The LangGraph generation packet receives a compact environment context.
+- The commit seam mutates environment state only after an approved committed
+  action, such as a movement or admitted object interaction.
+- Render support carries `environment_render_context.v1` and the shell projects
+  `environment_state_now`.
+
+ADR-0039 applies to this surface: tests derive rooms and objects from canonical
+policy/content and assert schema/state relationships. Generated narration is not
+the primary oracle for environment truth.
 
 ## Character voice policy
 

@@ -69,8 +69,39 @@ The following are **selected and recorded before** the proposal-generation model
 - `selected_responder_set`
 - `selected_scene_function` (subject to §3.5 when multiple intentions compete)
 - `pacing_mode` (vocabulary: `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §5)
-- `silence_brevity_decision` (including `mode` from the same §5 mini-vocabulary)
+- `silence_brevity_decision` (including `mode` from the same §5 mini-vocabulary and the Π14 `silence_negative_space.v1` payload when silence/negative space is active)
 - Visibility shaping and fallback-shaping inputs that constrain proposal/render
+
+### 3.4.1 Π14 silence / negative-space decision (binding)
+
+`silence_brevity_decision` is still the canonical turn field for silence and brevity. Its stable `mode` remains the small vocabulary defined in `VERTICAL_SLICE_CONTRACT_GOC.md` §5, but the active GoC runtime now carries a structured Π14 payload under the same object. This avoids inventing a second silence surface while making negative space inspectable by validators, diagnostics, and tests.
+
+Required shape after director selection:
+
+```json
+{
+  "contract": "silence_negative_space.v1",
+  "mode": "normal|brief|withheld|expanded",
+  "reason": "string",
+  "source": "default|non_goc_slice|slice_boundary|raw_text|semantic_move|interpreted_input|sparse_fragment|narrative_thread|player_request",
+  "silence_kind": "none|empty_input|non_lexical_input|explicit_silence|withheld_answer|awkward_pause|defensive_pause|discomfort_pause|refusal_pressure|provocation_pause|charged_after_tension|player_requested_brevity|boundary_containment|thread_pressure|thread_interpretation_pressure",
+  "dramatic_function": "not_applicable|default_verbal_density|withhold_response|carry_tension|compress_response|maintain_pressure|escalate_pressure|contain_boundary",
+  "pressure_basis": "string|null",
+  "duration_hint": "none|beat|short|held",
+  "requires_visible_beat": true,
+  "blocks_forced_speech": true,
+  "semantic_move_type": "silence_withdrawal|null",
+  "interpreter_signal": "string|null"
+}
+```
+
+Runtime rules:
+
+- Empty input, punctuation-only input, and explicit withheld-answer input may become `semantic_move_record.move_type == "silence_withdrawal"`.
+- Π14 silence must continue through the full director path; it must not be consumed as a deterministic action-resolution shortcut.
+- `blocks_forced_speech=true` means proposal and validation must not force the player character into speech merely to fill the turn.
+- Prior unresolved tension may upgrade the visible mode from `withheld` to `brief`, but the payload must keep `blocks_forced_speech=true` and a reason such as `silence_withdrawal_upgraded_by_prior_tension`.
+- Tests for this field must comply with ADR-0039: assert contract version, vocabulary, reason codes, and flags; do not assert generated narrative wording as the primary oracle.
 
 ### 3.5 Single `selected_scene_function` under multiple intentions (binding)
 
@@ -123,8 +154,18 @@ Structure per FREEZE §11 (required field groups). The JSON skeleton is binding 
   "selected_scene_function": "escalate_conflict",
   "pacing_mode": "standard",
   "silence_brevity_decision": {
+    "contract": "silence_negative_space.v1",
     "mode": "normal",
-    "reason": "default_verbal_density"
+    "reason": "default_verbal_density",
+    "source": "default",
+    "silence_kind": "none",
+    "dramatic_function": "default_verbal_density",
+    "pressure_basis": null,
+    "duration_hint": "none",
+    "requires_visible_beat": false,
+    "blocks_forced_speech": false,
+    "semantic_move_type": null,
+    "interpreter_signal": null
   },
   "proposed_state_effects": [],
   "validation_outcome": {
@@ -163,7 +204,7 @@ Phase legend: **deterministic pre-model** · **model-proposed** · **validation-
 | selected_responder_set | Scene director policy | deterministic pre-model (target) | required for target slice | 0..n | Do not confuse with provider routing |
 | selected_scene_function | Scene director policy | deterministic pre-model | required for target slice | 1 | Values: canonical scene functions (`VERTICAL_SLICE_CONTRACT_GOC.md` §5); §3.5 if multiple intentions |
 | pacing_mode | Scene director policy | deterministic pre-model | required for target slice | 1 | Canonical pacing vocabulary (`VERTICAL_SLICE_CONTRACT_GOC.md` §5) |
-| silence_brevity_decision | Scene director policy | deterministic pre-model | required for target slice | 1 | Canonical `mode` vocabulary (`VERTICAL_SLICE_CONTRACT_GOC.md` §5) |
+| silence_brevity_decision | Scene director policy | deterministic pre-model | required for target slice | 1 | Canonical `mode` vocabulary (`VERTICAL_SLICE_CONTRACT_GOC.md` §5) plus Π14 `silence_negative_space.v1` structured payload |
 | proposed_state_effects | Model (proposal seam) | model-proposed | required when model runs | 0..n | May be fed from `generation.metadata.structured_output` until normalized |
 | validation_outcome | Rule validator (`validate_seam` / `run_validation_seam`) | validation-shaped | required (always set on graph exit) | 1 | No player text; `validator_lane` identifies engine |
 | committed_result | Commit authority (`commit_seam` / `run_commit_seam`) | commit-owned | required when dramatic truth is claimed | 1 | Empty shell when validation not `approved`; `commit_lane` identifies engine |
@@ -228,7 +269,7 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 | Scope violation or unsafe out-of-world claim | (containment policy; scene function may be `scene_pivot` or withhold) | `diagnostics_only` | No truth extension | none | `failure_class: scope_breach` |
 | Model fallback or graph error | — | `diagnostics_only` | No new committed effects without explicit policy | none | `execution_health` / `failure_class: graph_error` or `model_fallback` |
 | Continuity conflict between proposal and session | — | `soft` or `diagnostics_only` | Rejected or reduced effects | none | `failure_class: continuity_inconsistency` |
-| Silence / brevity as dramatic choice | (director sets `silence_brevity_decision`) | `soft` | Visibility/pacing only; no new facts | soft | `transition_pattern: soft` |
+| Silence / negative space as dramatic choice | `withhold_or_evade` when semantic silence drives the turn; otherwise director sets `silence_brevity_decision` only | `soft` | Visibility/pacing only; no new facts; may block forced player speech | soft | `silence_brevity_decision.contract: silence_negative_space.v1`; `blocks_forced_speech: true` when active |
 
 ---
 

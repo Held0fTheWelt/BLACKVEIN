@@ -19,11 +19,21 @@ Every session maintains explicit state with three visibility tiers:
       "rules_version": "hash"
     }
   },
-  "world_state": {
-    "current_scene_id": "string",
-    "scene_state": {
-      "scene_core": "string",
-      "present_characters": ["actor_id"],
+    "world_state": {
+      "current_scene_id": "string",
+      "environment_state": {
+        "schema_version": "environment_state.v1",
+        "current_room_id": "string|null",
+        "previous_room_id": "string|null",
+        "actor_locations": {"actor_id": "room_id"},
+        "prop_states": {"object_id": {"status": "present|changed", "room_id": "string|null"}},
+        "visible_room_ids": ["room_id"],
+        "salient_object_ids": ["object_id"],
+        "last_environment_events": []
+      },
+      "scene_state": {
+        "scene_core": "string",
+        "present_characters": ["actor_id"],
       "room_state": "string",
       "pressure_vectors": [
         {
@@ -250,6 +260,42 @@ During validation, `InformationDisclosureValidation` reads structured `disclosur
 
 **ADR-0039 boundary:** Tests derive positive and negative cases from normalized policy structures and assert schema fields, failure codes, ledger projection, Langfuse/MCP score fields, and anti-hardcoding gate behavior. Generated narrative wording is never the pass/fail oracle.
 
+### Environmental Story / Pi15
+
+Environmental story is implemented as durable, bounded `EnvironmentState`, not as
+free-form descriptive memory. `ai_stack/environment_state_contracts.py` builds an
+`EnvironmentModel` from canonical module content and normalizes
+`StorySession.environment_state` for persistence.
+
+The authoritative fields are:
+
+- `current_room_id` / `previous_room_id`
+- `actor_locations`
+- `prop_states`
+- `visible_room_ids`
+- `salient_object_ids`
+- `last_environment_events`
+
+Lifecycle:
+
+1. Session creation initializes environment state from canonical layout/object
+   content and actor-lane context.
+2. LangGraph receives the state and uses it to derive action-resolution local
+   context plus compact generation context.
+3. The commit seam mutates environment state only after approved committed
+   movement or admitted object interaction.
+4. Render support and shell/get-state projections expose the same committed
+   state through `environment_render_context.v1` and `environment_state_now`.
+
+**Authority boundary:** Narration, RAG, and model proposals may describe or stage
+environment details, but they do not create persistent environment truth. Durable
+state must trace to canonical content plus committed/admitted actions.
+
+**ADR-0039 boundary:** Tests load or derive room/object expectations from
+canonical content and assert schema/state transitions, render markers, and shell
+projection fields. They do not use generated narrator prose as the correctness
+oracle.
+
 ### Scene Identity Preservation
 
 Every scene must maintain:
@@ -335,6 +381,7 @@ Session state is correct when:
 5. **Consistency checks pass** → Automated checks find no contradictions
 6. **Governance log is audit-trail** → Every operator intervention is recorded with reason and evidence
 7. **Session snapshot is immutable** → Content changes mid-session do not affect this session
+8. **Environment state is bound** → Current room, actor locations, prop states, render support, and shell projection all derive from the same committed `environment_state`
 
 ---
 

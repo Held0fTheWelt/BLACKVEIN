@@ -54,7 +54,7 @@ Compact classification of roadmap targets vs inspected current shape. *(From FRE
 | Scene assessment | `director_assess_scene` writes `scene_assessment` from canonical YAML + optional guidance hints (`ai_stack/scene_director_goc.py`). | Schema-first `scene_assessment`. | implemented | Minimal required keys documented in `CANONICAL_TURN_CONTRACT_GOC.md` §5.1. |
 | Responder selection | `_route_model` still selects **model adapter**; `director_select_dramatic_parameters` sets `selected_responder_set` (dramatic actors). | Dramatic + infra routing distinguished. | implemented | Do not conflate `routing.selected_provider` with `selected_responder_set`. |
 | Scene function | `director_select_dramatic_parameters` sets `selected_scene_function` (frozen vocabulary). | `selected_scene_function`. | implemented | §3.5 multi-pressure rule applied in director helpers. |
-| Pacing / silence / brevity shaping | `build_pacing_and_silence` → `pacing_mode`, `silence_brevity_decision`. | Explicit pacing and silence/brevity decisions. | implemented | Frozen vocabularies in §5. |
+| Pacing / silence / brevity shaping | `build_pacing_and_silence` → `pacing_mode`, `silence_brevity_decision` with `silence_negative_space.v1` payload. | Explicit pacing and silence/negative-space decisions. | implemented | Frozen vocabularies in §5; structured Π14 payload in `CANONICAL_TURN_CONTRACT_GOC.md` §3.4.1. |
 | Proposed state effects | `proposal_normalize` maps structured output → `proposed_state_effects` (strips §3.6 director overwrites). | `proposed_state_effects`. | implemented | — |
 | Validation outcome | `validate_seam` → `run_validation_seam` → `validation_outcome` (`approved` / `rejected` / `waived`). | `validation_outcome`. | implemented | Rule-based GoC validator; not a second LLM judge. |
 | Committed result | `commit_seam` → `run_commit_seam` → `committed_result` (`commit_applied`, `committed_effects`). | `committed_result`. | implemented | Commit only when validation `approved`. |
@@ -97,6 +97,18 @@ Canonical labels for scene functions, pacing, silence/brevity, continuity, visib
 - `brief` — Shorter lines; same truth and visibility doctrine.
 - `withheld` — Deliberate under-response / silence as a dramatic move.
 - `expanded` — More explicit rendering; still truth-safe unless visibility classes allow otherwise.
+
+**Π14 negative-space payload (normative extension):**
+
+`silence_brevity_decision.mode` stays intentionally small and frozen. The active runtime carries additional silence/negative-space detail in the same object with `contract: silence_negative_space.v1`. The payload makes silence inspectable without turning it into committed world truth:
+
+- `silence_kind` identifies the signal family, such as `empty_input`, `non_lexical_input`, `withheld_answer`, `awkward_pause`, or `charged_after_tension`.
+- `dramatic_function` identifies why the director is using negative space, such as `withhold_response`, `carry_tension`, `compress_response`, or `contain_boundary`.
+- `requires_visible_beat` asks the proposal/render path to give the silence a perceivable beat when active.
+- `blocks_forced_speech` prevents validators and proposal prompts from forcing the player character to speak just to fill an empty or withheld turn.
+- `semantic_move_type` is populated with `silence_withdrawal` when semantic interpretation selected silence as the social move.
+
+Negative-space payloads are **soft dramatic shaping**. They do not commit new facts, do not reveal hidden truth, and do not bypass validation or commit. ADR-0039 applies: tests may assert contract fields, vocabularies, flags, and reason codes; generated silence prose is not a primary oracle.
 
 **Stability for tasks and diagnostics:** Scene function, pacing, silence/brevity, continuity class, and visibility class values appear in structured canonical turn fields and are stable enough for automated gates. Failure class must be recoverable from `failure_markers` and gate reports; raw operational messages may be aliased until mapping is complete.
 

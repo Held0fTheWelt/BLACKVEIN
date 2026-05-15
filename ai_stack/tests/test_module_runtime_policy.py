@@ -32,6 +32,9 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["information_disclosure_policy"]["enabled"] is True
     assert policy["information_disclosure_policy"]["units"]
     assert policy["memory_policy"]["enabled"] is True
+    assert policy["dramatic_irony_policy"]["enabled"] is True
+    assert policy["dramatic_irony_policy"]["direct_reveal_allowed"] is False
+    assert policy["runtime_governance_policy"]["dramatic_irony"]["enabled"] is True
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]

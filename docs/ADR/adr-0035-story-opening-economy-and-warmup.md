@@ -2,18 +2,18 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Implementation Status
 
-**Design intent only — no implementation work has started; Open Questions not yet resolved.**
+**Accepted and implemented as a bounded GoC opening/runtime-state contract.**
 
-- This ADR describes intended future behavior after deliberate implementation work. No subsystem is obligated until this ADR is accepted.
-- What exists in codebase: `content/modules/god_of_carnage/direction/opening_sequence.yaml` (canonical two-part opening + narrator bar + premise seeds), `scenes.yaml` (phase_1 polite opening), `direction/scene_guidance.yaml` (phase guidance).
-- What is NOT implemented: runtime opening-prompt constraints for economy/warmup, LDSS fallback tone restrictions for early phases, two-part opening composition enforcement.
-- `world-engine/app/story_runtime/manager.py` (`_build_opening_prompt`) and `ai_stack/live_dramatic_scene_simulator.py` (LDSS) are the primary files that would need changes.
-- Promotion to Accepted requires: resolving all five Open Questions (NPC silence threshold, provider vs. deterministic openings, module variability, localization) + at least one implementation epic reference.
-- Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs block rendering. This ADR governs literary posture of the opening content itself.
+- Implemented opening contract surfaces: `content/modules/god_of_carnage/knowledge/opening_scene_sequence.yaml`, `direction/opening_sequence.yaml`, `scenes.yaml`, and `direction/scene_guidance.yaml` are loaded through the module runtime policy and GoC YAML slice.
+- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
+- Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
+- The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
+- Still outside this ADR: a multi-request warmup choreography, a global relaxation of NPC visibility/passivity rules, and any free-form literary quality judge.
+- Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs block rendering; ADR-0039 governs tests for this contract.
 
 ## Date
 
@@ -51,9 +51,9 @@ Opening **readiness** and **truthful degradation** remain governed by [ADR-0033]
 2. **Economy vs. encyclopedia:** Player-facing first beats risk reading like half the synopsis instead of a **hook** (orientation without resolving the whole arc).
 3. **Unclear contract:** We lack an explicit product/engine agreement on **opening composition**: how much scene-setting vs. how much withheld until play advances.
 
-## Decision (Future State — Design Intent)
+## Decision
 
-This section describes **intended behavior after intentional implementation work**. No subsystem is obligated until this ADR is accepted and broken down into tasks.
+This section is the accepted runtime contract for GoC-style openings. Module-specific content remains the source of truth; runtime code may enforce and project the contract but must not invent new opening truth.
 
 ### D1 — Opening economy principle
 
@@ -130,23 +130,25 @@ flowchart LR
   p2 --> SH[Shell: typed blocks + typewriter slice]
 ```
 
-## Open Questions (Elaborate Before Implementation)
+## Resolved / Deferred Boundaries
 
 1. **Single vs. multi-step warmup:** **Resolved for UX:** One HTTP player-bundle refresh can carry **multiple committed blocks** (cumulative transcript). The shell animates **only the slice** corresponding to the latest commit using `visible_scene_output.typewriter_slice_start_index` (ADR-0034 §7). Warmup may still be authored as **one or more** runtime commits depending on engine policy; the UI does not require a separate “phase UI” if blocks are ordered correctly.
-2. **NPC silence threshold:** Under phase 1, what is the minimum acceptable NPC surface — ambient action only vs. one polite line — without violating LDSS passivity policies?
-3. **Provider-backed vs. deterministic openings:** Under MVP gates, when must openings remain deterministic LDSS vs. provider-generated — does literary economy change MVP acceptance criteria?
-4. **Module variability:** Should economy rules be **per-module** overrides (e.g. thriller vs. drawing-room drama) in `module.yaml` or direction packs?
-5. **Localization:** Economy rules apply to German-first GoC text — how do we regression-test without brittle line matchers?
+2. **NPC silence threshold:** Deferred as a broader LDSS/passivity-policy question. The implemented contract requires visible opening evidence and forbids forced player speech; it does not globally redefine ordinary-turn NPC visibility gates.
+3. **Provider-backed vs. deterministic openings:** Deferred to runtime mode/operator policy. The opening contract applies to both provider and deterministic paths by validating structured evidence and diagnostics.
+4. **Module variability:** Resolved for the bounded slice through module content and `ModuleRuntimePolicy`; new genres should add or amend module policy rather than hardcoding GoC-specific phase semantics in runtime code.
+5. **Localization:** Resolved for tests by ADR-0039 discipline: regression tests assert structured contract fields, policy-derived ids, handover phases, and failure codes, not exact German or English narrator prose.
 
-## Verification (Deferred)
+## Verification
 
-Until implementation exists:
+Current verification uses structured/content-derived assertions:
 
-- No mandatory gate beyond document review and stakeholder **acceptance** of this ADR.
-
-After implementation:
-
-- Targeted tests on opening envelopes (golden texts or structured assertions), scoped per agreed tasks — invoked via `python tests/run_tests.py` per suite touched.
+- `ai_stack/tests/test_goc_knowledge_runtime_gates.py`
+- `ai_stack/tests/test_goc_structured_setting_knowledge.py`
+- `ai_stack/tests/test_goc_opening_handover.py`
+- `world-engine/tests/test_goc_knowledge_runtime_path_summary.py`
+- `backend/tests/content/test_content_compiler.py`
+- `backend/tests/content/test_module_loader.py`
+- Pi15 environment-state tests that assert opening/session state projection from canonical content
 
 ## References
 
@@ -157,12 +159,14 @@ After implementation:
 - `content/modules/god_of_carnage/direction/system_prompt.md` — phase semantics (“structural, not stage directions”)
 - `world-engine/app/story_runtime/manager.py` — `_build_opening_prompt` (opening prompt construction)
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary
+- `ai_stack/goc_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
+- `ai_stack/goc_opening_handover.py` — opening handover diagnostics and block-level normalization support
+- `ai_stack/environment_state_contracts.py` — bounded Pi15 room/object state initialized from canonical module content
+- `world-engine/app/story_runtime_shell_readout.py` — player/operator projection of committed environment state
 - [ADR-0033](adr-0033-live-runtime-commit-semantics.md) — opening readiness / commit truth
 - [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) — player shell / narrator lane presentation
+- [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — no hardcoded narrative oracles in gate tests
 
-## Acceptance Criteria for ADR Promotion
+## Promotion Record
 
-Move from **Proposed** to **Accepted** when:
-
-1. Narrative governance and runtime owners confirm Open Questions are resolved or explicitly deferred with owners.
-2. At least one concrete implementation epic outline references this ADR (issue or planning doc link).
+Promoted from **Proposed** to **Accepted** after the bounded opening contract, structured diagnostics, hard-forbidden opening gates, handover checks, typewriter-slice shell contract, and Pi15 environment-state initialization reached implementation-backed test coverage. Remaining items above are explicit future extensions, not blockers for the accepted GoC opening contract.
