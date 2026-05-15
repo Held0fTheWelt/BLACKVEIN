@@ -250,6 +250,22 @@ Characters must maintain consistent:
 
 **ADR-0039 boundary:** `dialogue_examples` in `character_voice.yaml` are authoring examples, not validation or test oracles. Runtime profiles omit them, and tests assert structured validator/aspect outcomes derived from the policy block and canonical profile dimensions rather than copied narrative prose.
 
+### Callback Web / Pi17
+
+The callback web is implemented as a bounded `callback_web_record.v1` index over committed session continuity. It connects later committed turns back to earlier committed turns through structured evidence: continuity classes, narrative threads, repeated scene anchors, and selected branch replay events.
+
+The callback web is diagnostic evidence and prompt support, not canonical truth. It does not mutate story state, replace narrative threads, create memory outside the session, or adopt simulated branch state. The authoritative technical contract is [`docs/technical/runtime/callback_web_contract.md`](../../technical/runtime/callback_web_contract.md).
+
+During a turn:
+
+- World-Engine rebuilds the callback web from `StorySession.history`, `StorySession.narrative_threads`, and the durable branch timeline;
+- the latest history row receives `callback_web_summary`, `callback_web_feedback`, and `callback_web_validation`;
+- the next LangGraph turn receives bounded `prior_callback_web_state`;
+- `turn_aspect_ledger.callback_web` records policy, selected edge, edge counts, validation status, and failure codes;
+- internal operator endpoints expose the record, edge list, and rebuild operation.
+
+**ADR-0039 boundary:** Tests derive expectations from schema constants, edge kinds, session/turn ids, branch lifecycle fields, normalized policy bounds, and stable ids. Generated narration, branch preview prose, and authored example paragraphs are not valid pass/fail oracles.
+
 ### Subtext Interpretation / Pi19
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.

@@ -22,7 +22,7 @@
 
         <aside class="mui-deck-rail" aria-label="Diagnosis sections">
             <a href="#checks" class="mui-rail-btn" data-deck-target="checks">
-                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-badge"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">All checks</span>
                     <span class="mui-rail-secondary">overall + per group</span>
@@ -32,7 +32,7 @@
                 <span class="mui-rail-badge"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Run metadata</span>
-                    <span class="mui-rail-secondary">cache + freshness</span>
+                    <span class="mui-rail-secondary" id="manage-dx-rail-meta-sub">cache + freshness</span>
                 </span>
             </a>
         </aside>
@@ -47,8 +47,8 @@
                         <p class="mui-inspector-summary">Overall state + every group's checks. Auto-refresh runs every 15 seconds.</p>
                     </header>
                     <div class="mui-inspector-body">
-                        <div id="manage-diagnosis-overall" class="manage-dx-overall panel" style="margin: 0 0 1rem 0;"></div>
-                        <div id="manage-diagnosis-groups" class="manage-dx-groups"></div>
+                        <div id="manage-diagnosis-overall" class="manage-dx-overall mui-card"></div>
+                        <div id="manage-diagnosis-groups" class="manage-dx-groups mui-card-grid"></div>
                     </div>
                 </article>
             </section>

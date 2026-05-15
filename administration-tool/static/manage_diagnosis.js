@@ -1,189 +1,313 @@
 /**
  * System diagnosis: GET /api/v1/admin/system-diagnosis via same-origin proxy.
  */
-(function() {
-    var REFRESH_MS = 15000;
+(function () {
+  var REFRESH_MS = 15000;
 
-    function statusBadgeClass(status) {
-        if (status === "fail") return "manage-dx-badge manage-dx-badge--fail";
-        if (status === "initialized") return "manage-dx-badge manage-dx-badge--init";
-        return "manage-dx-badge manage-dx-badge--ok";
+  function diagnosisPayload(res) {
+    if (res && res.data !== undefined && Object.prototype.hasOwnProperty.call(res, "ok")) {
+      return res.data || {};
     }
+    return res || {};
+  }
 
-    function escapeHtml(s) {
-        if (s == null) return "";
-        return String(s)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
+  function statusBadgeClass(status) {
+    if (status === "fail") return "manage-dx-badge manage-dx-badge--fail";
+    if (status === "initialized") return "manage-dx-badge manage-dx-badge--init";
+    return "manage-dx-badge manage-dx-badge--ok";
+  }
+
+  function railBadgeClass(status) {
+    if (status === "fail") return "mui-rail-badge--fail";
+    if (status === "initialized") return "mui-rail-badge--warn";
+    return "mui-rail-badge--ok";
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function syncRailBadges(data) {
+    var overall = data.overall_status || "initialized";
+    var checksRail = document.querySelector('.mui-rail-btn[data-deck-target="checks"] .mui-rail-badge');
+    if (checksRail) {
+      checksRail.className = "mui-rail-badge " + railBadgeClass(overall);
     }
-
-    function renderMeta(data) {
-        var el = document.getElementById("manage-diagnosis-meta");
-        if (!el) return;
-        var parts = [];
-        if (data.generated_at) {
-            parts.push("<strong>Generated:</strong> " + escapeHtml(data.generated_at));
-        }
-        if (data.cached) {
-            parts.push("<strong>Cache:</strong> served from " + (data.cache && data.cache.hit ? "TTL cache" : "fresh"));
-            if (typeof data.stale_seconds === "number") {
-                parts.push("<strong>Age:</strong> " + data.stale_seconds + " s since snapshot");
-            }
-        } else {
-            parts.push("<strong>Cache:</strong> fresh run");
-        }
-        el.innerHTML = "<p class=\"manage-state\">" + parts.join(" · ") + "</p>";
+    var metaRail = document.querySelector('.mui-rail-btn[data-deck-target="meta"] .mui-rail-badge');
+    var metaSub = document.getElementById("manage-dx-rail-meta-sub");
+    if (metaRail) {
+      metaRail.className = "mui-rail-badge " + (data.generated_at ? "mui-rail-badge--ok" : "");
     }
-
-    function renderOverall(data) {
-        var el = document.getElementById("manage-diagnosis-overall");
-        if (!el) return;
-        var st = data.overall_status || "initialized";
-        var sum = data.summary || {};
-        el.innerHTML =
-            "<header class=\"panel-header\"><h2>Overall</h2></header>" +
-            "<div class=\"manage-dx-overall-inner\">" +
-            "<span class=\"" + statusBadgeClass(st) + "\" title=\"Overall status\">" + escapeHtml(st) + "</span>" +
-            "<span class=\"manage-dx-summary-counts\" aria-label=\"Summary counts\">" +
-            "running: " + (sum.running || 0) +
-            " · initialized: " + (sum.initialized || 0) +
-            " · fail: " + (sum.fail || 0) +
-            "</span></div>";
+    if (metaSub) {
+      metaSub.textContent = data.generated_at ? "snapshot ready" : "awaiting run";
     }
+  }
 
-    function renderCheckDetails(c) {
-        var html = "";
-        if (c.details && typeof c.details === "object") {
-            html += "<details class=\"manage-dx-check-details\">";
-            html += "<summary class=\"muted\">Details</summary>";
-            html += "<pre class=\"manage-dx-details-json muted\">" + escapeHtml(JSON.stringify(c.details, null, 2)) + "</pre>";
-            html += "</details>";
-        }
-        return html;
+  function renderMeta(data) {
+    var el = document.getElementById("manage-diagnosis-meta");
+    if (!el) return;
+    var rows = [];
+    if (data.generated_at) {
+      rows.push({ label: "Generated", value: data.generated_at });
     }
-
-    function renderGateLink(c) {
-        var html = "";
-        if (c.gate_id) {
-            var gateBadgeClass = "manage-dx-gate-badge";
-            var gateStatus = c.gate_status || "unknown";
-            if (gateStatus === "closed") gateBadgeClass += " manage-dx-gate-badge--closed";
-            else if (gateStatus === "partial") gateBadgeClass += " manage-dx-gate-badge--partial";
-            else if (gateStatus === "open") gateBadgeClass += " manage-dx-gate-badge--open";
-
-            html += "<p class=\"manage-dx-gate-info\">";
-            html += "Readiness gate: <strong>" + escapeHtml(c.gate_id) + "</strong>";
-            html += " <span class=\"" + gateBadgeClass + "\">" + escapeHtml(gateStatus) + "</span>";
-            html += " <a href=\"/manage/ai-stack/release-readiness\" class=\"manage-dx-gate-link\">View all gates →</a>";
-            html += "</p>";
-        }
-        return html;
+    if (data.cached) {
+      rows.push({
+        label: "Cache",
+        value: data.cache && data.cache.hit ? "TTL cache hit" : "fresh run",
+      });
+      if (typeof data.stale_seconds === "number") {
+        rows.push({ label: "Snapshot age", value: data.stale_seconds + " s" });
+      }
+    } else {
+      rows.push({ label: "Cache", value: "fresh run (not served from cache)" });
     }
-
-    function renderGroups(data) {
-        var root = document.getElementById("manage-diagnosis-groups");
-        if (!root) return;
-        var groups = data.groups || [];
-        var html = "";
-
-        // Show partial gate count if available
-        if (typeof data.partial_gate_count === "number") {
-            html += "<section class=\"panel manage-dx-gates-summary\">";
-            html += "<header class=\"panel-header\"><h2>Readiness Status</h2></header>";
-            html += "<p class=\"muted\" style=\"margin:0;\">Partial gates: <strong>" + data.partial_gate_count + "</strong>";
-            if (data.partial_gate_count > 0) {
-                html += " <a href=\"/manage/ai-stack/release-readiness?status=partial\">View partial gates →</a>";
-            }
-            html += "</p>";
-            html += "</section>";
-        }
-
-        for (var g = 0; g < groups.length; g++) {
-            var grp = groups[g];
-            html += "<section class=\"panel manage-dx-group\">";
-            html += "<header class=\"panel-header\"><h2>" + escapeHtml(grp.label || grp.id) + "</h2></header>";
-            html += "<ul class=\"manage-dx-check-list\">";
-            var checks = grp.checks || [];
-            for (var i = 0; i < checks.length; i++) {
-                var c = checks[i];
-                var crit = c.critical ? " · critical" : "";
-                html += "<li class=\"manage-dx-check\">";
-                html += "<div class=\"manage-dx-check-head\">";
-                html += "<span class=\"" + statusBadgeClass(c.status) + "\">" + escapeHtml(c.status) + "</span>";
-                html += "<strong class=\"manage-dx-check-label\">" + escapeHtml(c.label || c.id) + "</strong>";
-                html += "<span class=\"muted\">" + escapeHtml(crit) + "</span>";
-                html += "</div>";
-                html += "<p class=\"manage-dx-msg\">" + escapeHtml(c.message || "") + "</p>";
-                if (typeof c.latency_ms === "number") {
-                    html += "<p class=\"manage-dx-detail muted\">Latency: " + c.latency_ms + " ms";
-                    if (c.timed_out) html += " · timed out";
-                    html += "</p>";
-                }
-                if (c.source) {
-                    html += "<p class=\"manage-dx-detail muted\">Source: " + escapeHtml(c.source) + "</p>";
-                }
-                // Add gate information
-                html += renderGateLink(c);
-                // Add expandable details
-                html += renderCheckDetails(c);
-                html += "</li>";
-            }
-            html += "</ul></section>";
-        }
-        root.innerHTML = html;
+    if (data.cache && typeof data.cache.ttl_seconds === "number") {
+      rows.push({ label: "Cache TTL", value: data.cache.ttl_seconds + " s" });
     }
-
-    function loadDiagnosis(refresh) {
-        var errEl = document.getElementById("manage-diagnosis-error");
-        if (errEl) {
-            errEl.style.display = "none";
-            errEl.textContent = "";
-        }
-        var path = "/api/v1/admin/system-diagnosis";
-        if (refresh) path += "?refresh=1";
-        return window.ManageAuth.apiFetchWithAuth(path).then(function(data) {
-            renderMeta(data);
-            renderOverall(data);
-            renderGroups(data);
-        });
+    if (!rows.length) {
+      el.innerHTML = "<p class=\"manage-dx-empty\">No metadata yet — run a refresh.</p>";
+      return;
     }
-
-    function showError(msg) {
-        var errEl = document.getElementById("manage-diagnosis-error");
-        if (!errEl) return;
-        errEl.style.display = "";
-        errEl.textContent = msg || "Request failed";
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        if (!window.ManageAuth) return;
-        var timer = null;
-        function schedule() {
-            if (timer) clearInterval(timer);
-            timer = setInterval(function() {
-                loadDiagnosis(false).catch(function(e) {
-                    showError(e && e.message ? e.message : "Auto-refresh failed");
-                });
-            }, REFRESH_MS);
-        }
-        window.ManageAuth.ensureAuth()
-            .then(function() {
-                return loadDiagnosis(false);
-            })
-            .then(function() {
-                schedule();
-            })
-            .catch(function() {});
-
-        var btn = document.getElementById("manage-diagnosis-refresh");
-        if (btn) {
-            btn.addEventListener("click", function() {
-                loadDiagnosis(true).catch(function(e) {
-                    showError(e && e.message ? e.message : "Refresh failed");
-                });
-            });
-        }
+    var html = "<dl class=\"manage-dx-meta-grid\">";
+    rows.forEach(function (row) {
+      html += "<dt>" + escapeHtml(row.label) + "</dt><dd>" + escapeHtml(row.value) + "</dd>";
     });
+    html += "</dl>";
+    el.innerHTML = html;
+  }
+
+  function renderOverall(data) {
+    var el = document.getElementById("manage-diagnosis-overall");
+    if (!el) return;
+    var st = data.overall_status || "initialized";
+    var sum = data.summary || {};
+    var headline =
+      st === "running"
+        ? "All critical checks report running."
+        : st === "fail"
+          ? "At least one critical check failed."
+          : "Some checks are initialized or degraded — review groups below.";
+    el.innerHTML =
+      "<p class=\"mui-card-meta\">Overall posture</p>" +
+      "<div class=\"manage-dx-overall-inner\">" +
+      "<span class=\"" +
+      statusBadgeClass(st) +
+      "\" title=\"Overall status\">" +
+      escapeHtml(st) +
+      "</span>" +
+      "<span class=\"manage-dx-summary-counts\" aria-label=\"Summary counts\">" +
+      "running: " +
+      (sum.running || 0) +
+      " · initialized: " +
+      (sum.initialized || 0) +
+      " · fail: " +
+      (sum.fail || 0) +
+      "</span></div>" +
+      "<p class=\"manage-dx-overall-copy muted\">" +
+      escapeHtml(headline) +
+      "</p>";
+  }
+
+  function detailsHasContent(details) {
+    if (!details || typeof details !== "object" || Array.isArray(details)) return false;
+    return Object.keys(details).length > 0;
+  }
+
+  function renderCheckDetails(c) {
+    if (!detailsHasContent(c.details)) {
+      return "";
+    }
+    return (
+      "<details class=\"manage-dx-check-details\">" +
+      "<summary>Technical details</summary>" +
+      "<pre class=\"manage-dx-details-json\">" +
+      escapeHtml(JSON.stringify(c.details, null, 2)) +
+      "</pre>" +
+      "</details>"
+    );
+  }
+
+  function renderGateLink(c) {
+    if (!c.gate_id) return "";
+    var gateBadgeClass = "manage-dx-gate-badge";
+    var gateStatus = c.gate_status || "unknown";
+    if (gateStatus === "closed") gateBadgeClass += " manage-dx-gate-badge--closed";
+    else if (gateStatus === "partial") gateBadgeClass += " manage-dx-gate-badge--partial";
+    else if (gateStatus === "open") gateBadgeClass += " manage-dx-gate-badge--open";
+
+    return (
+      "<p class=\"manage-dx-gate-info\">" +
+      "Readiness gate: <strong>" +
+      escapeHtml(c.gate_id) +
+      "</strong> " +
+      "<span class=\"" +
+      gateBadgeClass +
+      "\">" +
+      escapeHtml(gateStatus) +
+      "</span> " +
+      "<a href=\"/manage/ai-stack/release-readiness\" class=\"manage-dx-gate-link\">View all gates</a>" +
+      "</p>"
+    );
+  }
+
+  function renderGroups(data) {
+    var root = document.getElementById("manage-diagnosis-groups");
+    if (!root) return;
+    var groups = data.groups || [];
+    if (!groups.length) {
+      root.innerHTML = "<p class=\"manage-dx-empty\">No check groups returned. Verify backend access and feature <code>manage.system_diagnosis</code>.</p>";
+      return;
+    }
+    var html = "";
+
+    if (typeof data.partial_gate_count === "number") {
+      html += "<section class=\"mui-card manage-dx-gates-summary\">";
+      html += "<p class=\"mui-card-meta\">Readiness gates</p>";
+      html += "<p class=\"manage-dx-gates-summary-line\">Partial gates: <strong>" + data.partial_gate_count + "</strong>";
+      if (data.partial_gate_count > 0) {
+        html += " <a href=\"/manage/ai-stack/release-readiness?status=partial\" class=\"manage-dx-gate-link\">View partial gates</a>";
+      }
+      html += "</p></section>";
+    }
+
+    for (var g = 0; g < groups.length; g++) {
+      var grp = groups[g];
+      var checks = grp.checks || [];
+      html += "<section class=\"mui-card manage-dx-group\">";
+      html += "<p class=\"mui-card-meta\">" + escapeHtml(grp.label || grp.id) + "</p>";
+      if (!checks.length) {
+        html += "<p class=\"manage-dx-empty\">No checks in this group.</p>";
+      } else {
+        html += "<ul class=\"manage-dx-check-list\">";
+        for (var i = 0; i < checks.length; i++) {
+          var c = checks[i];
+          var crit = c.critical ? "critical" : "non-critical";
+          var msg = (c.message || "").trim() || "No message from upstream check.";
+          html += "<li class=\"manage-dx-check\">";
+          html += "<div class=\"manage-dx-check-head\">";
+          html += "<span class=\"" + statusBadgeClass(c.status) + "\">" + escapeHtml(c.status) + "</span>";
+          html += "<strong class=\"manage-dx-check-label\">" + escapeHtml(c.label || c.id) + "</strong>";
+          html += "<span class=\"manage-dx-check-meta muted\">" + escapeHtml(crit) + "</span>";
+          html += "</div>";
+          html += "<p class=\"manage-dx-msg\">" + escapeHtml(msg) + "</p>";
+          var facts = [];
+          if (typeof c.latency_ms === "number") {
+            facts.push("Latency: " + c.latency_ms + " ms" + (c.timed_out ? " (timed out)" : ""));
+          }
+          if (c.source) facts.push("Source: " + c.source);
+          if (c.id) facts.push("ID: " + c.id);
+          if (facts.length) {
+            html += "<p class=\"manage-dx-detail muted\">" + escapeHtml(facts.join(" · ")) + "</p>";
+          }
+          html += renderGateLink(c);
+          html += renderCheckDetails(c);
+          html += "</li>";
+        }
+        html += "</ul>";
+      }
+      html += "</section>";
+    }
+    root.innerHTML = html;
+    if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+      window.ManageUI.scan(root);
+    }
+  }
+
+  function setLoading(loading) {
+    var overall = document.getElementById("manage-diagnosis-overall");
+    var groups = document.getElementById("manage-diagnosis-groups");
+    if (loading) {
+      if (overall) {
+        overall.innerHTML = "<p class=\"manage-dx-empty\">Loading overall status…</p>";
+      }
+      if (groups) {
+        groups.innerHTML = "<p class=\"manage-dx-empty\">Loading checks…</p>";
+      }
+    }
+  }
+
+  function loadDiagnosis(refresh) {
+    var errEl = document.getElementById("manage-diagnosis-error");
+    if (errEl) {
+      errEl.hidden = true;
+      errEl.style.display = "none";
+      errEl.textContent = "";
+    }
+    setLoading(true);
+    var path = "/api/v1/admin/system-diagnosis";
+    if (refresh) path += "?refresh=1";
+    return window.ManageAuth.apiFetchWithAuth(path)
+      .then(function (res) {
+        var data = diagnosisPayload(res);
+        if (!data || !data.groups) {
+          throw { status: 0, message: "Diagnosis response missing groups — check proxy and backend route." };
+        }
+        renderMeta(data);
+        renderOverall(data);
+        renderGroups(data);
+        syncRailBadges(data);
+        if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+          window.ManageUI.scan(document.querySelector("[data-page=\"diagnosis\"]") || document);
+        }
+        return data;
+      })
+      .catch(function (e) {
+        setLoading(false);
+        var groups = document.getElementById("manage-diagnosis-groups");
+        if (groups) {
+          groups.innerHTML = "";
+        }
+        throw e;
+      });
+  }
+
+  function showError(msg) {
+    var errEl = document.getElementById("manage-diagnosis-error");
+    if (!errEl) return;
+    errEl.hidden = false;
+    errEl.style.display = "";
+    errEl.classList.remove("mui-legacy-hidden");
+    errEl.textContent = msg || "Request failed";
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!window.ManageAuth) {
+      showError("ManageAuth is not loaded — cannot fetch diagnosis.");
+      return;
+    }
+    var timer = null;
+    function schedule() {
+      if (timer) clearInterval(timer);
+      timer = setInterval(function () {
+        loadDiagnosis(false).catch(function (e) {
+          showError(e && e.message ? e.message : "Auto-refresh failed");
+        });
+      }, REFRESH_MS);
+    }
+
+    window.ManageAuth.ensureAuth()
+      .then(function () {
+        return loadDiagnosis(false);
+      })
+      .then(function () {
+        schedule();
+      })
+      .catch(function (e) {
+        showError(e && e.message ? e.message : "Could not load system diagnosis");
+      });
+
+    var btn = document.getElementById("manage-diagnosis-refresh");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        loadDiagnosis(true).catch(function (e) {
+          showError(e && e.message ? e.message : "Refresh failed");
+        });
+      });
+    }
+  });
 })();

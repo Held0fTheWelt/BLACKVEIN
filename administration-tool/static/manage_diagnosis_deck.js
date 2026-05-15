@@ -25,7 +25,10 @@
     if (!overall || !pills) return;
     var badge = overall.querySelector(".manage-dx-badge");
     var counts = overall.querySelector(".manage-dx-summary-counts");
-    if (!badge && !counts) { pills.innerHTML = ""; return; }
+    if (!badge && !counts) {
+      pills.innerHTML = "";
+      return;
+    }
 
     var state = badge ? (badge.textContent || "").trim() : "";
     var stateMod = state === "ok" || state === "running" ? "ok" : state === "fail" ? "fail" : "warn";

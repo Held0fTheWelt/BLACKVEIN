@@ -49,6 +49,9 @@ Backend/world-engine-owned per-turn evidence record for runtime intelligence con
 **EnvironmentState / environmental story**
 Durable, bounded story-session environment state for the GoC slice: current room, actor locations, prop states, visible rooms, salient objects, and recent environment events. It is initialized from canonical module content and mutates only through committed/admitted actions; narration and RAG do not create persistent environment truth.
 
+**Callback web / Pi17**
+Bounded, deterministic continuity index over committed story-session records. It links earlier and later committed turns through structured evidence such as continuity classes, narrative threads, scene anchors, and selected branch replay events. It may support prompts and diagnostics, but it is non-authoritative and cannot mutate canon or replace memory.
+
 **Subtext interpretation / Pi19**
 Bounded surface-vs-intent diagnostic carried as `SemanticMoveRecord.subtext`. It records policy-backed surface mode, hidden-intent hypothesis, subtext function, sincerity band, evidence codes, and policy provenance. It may shape planning and observability but does not commit story truth or use generated prose as an oracle.
 

@@ -28,6 +28,7 @@ Ownership matrix
 - Loads `ModuleRuntimePolicy.runtime_governance_policy` so action-resolution short paths, visible-projection hard-failure behavior, capability gates, and continuity hooks come from module content instead of module-name branches in generic runtime code.
 - Persists `turn_aspect_ledger` with the canonical turn record so selected beat, capability, narrator/NPC/player authority, visible origin evidence, validation, and commit status can be inspected without frontend inference.
 - Loads `ModuleRuntimePolicy.memory_policy`, writes bounded hierarchical memory only from canonical committed turns, and projects safe memory context into LangGraph. This is session-local runtime continuity, not a second source of truth.
+- Rebuilds the bounded callback web after commits, persists `callback_web_record.v1`, projects `callback_web_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.callback_web` without mutating canonical story state.
 
 ## Session lifecycle (conceptual)
 
@@ -59,6 +60,7 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`docs/ADR/README.md`](../../ADR/README.md) — Architecture Decision Records (ADR) index
 - [`world_engine_authoritative_runtime_and_system_interactions.md`](world_engine_authoritative_runtime_and_system_interactions.md) — canonical World Engine spine (two play-service faces, integration, diagrams)
 - [`player_input_interpretation_contract.md`](player_input_interpretation_contract.md) — structured interpretation contract
+- [`callback_web_contract.md`](callback_web_contract.md) — bounded Pi17 callback web index and operator evidence
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration
 - [`../ai/RAG.md`](../ai/RAG.md) — retrieval in the turn path

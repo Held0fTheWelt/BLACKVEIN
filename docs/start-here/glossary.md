@@ -15,6 +15,7 @@ Short orientation for **non-developers**. For the **full, maintained** term list
 | **Proposal vs commit** | AI may **propose** content; only **validated, committed** results become authoritative narrative state. |
 | **Runtime aspect ledger** | The backend/world-engine evidence record that explains whether important runtime contracts passed. |
 | **EnvironmentState** | The committed room/object/actor-location state for a live story session; narration may describe it, but only committed/admitted actions change it. |
+| **Callback web** | A bounded continuity index that links later committed turns back to earlier committed turns using structured evidence; it helps diagnostics and context, but it is not canon itself. |
 | **Subtext interpretation** | A bounded diagnostic surface for what a player move appears to do and what scene-pressure function it may carry; it shapes planning but does not create story truth. |
 | **Dramatic irony** | A bounded runtime contract for private-plan asymmetry: the model may show approved subtext, behavior, or misread reactions, but must not reveal hidden NPC intent directly. |
 | **Information disclosure** | The runtime’s bounded reveal-control system: it decides which mystery/clue units may surface now and records if the model stayed inside that budget. |

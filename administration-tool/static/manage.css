@@ -377,12 +377,56 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     margin-bottom: 1rem;
 }
 
+.manage-dx-overall {
+    margin-bottom: 1rem;
+}
+
+.manage-dx-overall-copy {
+    margin: 0.65rem 0 0 0;
+    max-width: 52rem;
+}
+
 .manage-dx-overall-inner {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
-    padding: 0 0 1rem 0;
+    padding: 0.25rem 0 0 0;
+}
+
+.manage-dx-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+}
+
+.manage-dx-meta-grid {
+    display: grid;
+    grid-template-columns: minmax(8rem, auto) 1fr;
+    gap: 0.35rem 1rem;
+    margin: 0;
+}
+
+.manage-dx-meta-grid dt {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.manage-dx-meta-grid dd {
+    margin: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.88rem;
+}
+
+.manage-dx-groups.mui-card-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.manage-dx-gates-summary-line {
+    margin: 0;
 }
 
 .manage-dx-summary-counts {
@@ -461,9 +505,10 @@ textarea.form-input { min-height: 100px; resize: vertical; }
 .manage-dx-gate-info {
     margin: 0.5rem 0 0 0;
     font-size: 0.9rem;
-    padding: 0.5rem;
-    background: #f5f5f5;
-    border-radius: 4px;
+    padding: 0.55rem 0.65rem;
+    background: rgba(122, 92, 158, 0.08);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
 .manage-dx-gate-badge {
@@ -477,18 +522,21 @@ textarea.form-input { min-height: 100px; resize: vertical; }
 }
 
 .manage-dx-gate-badge--closed {
-    background: #c8e6c9;
-    color: #1b5e20;
+    background: rgba(46, 160, 67, 0.18);
+    color: #7ee787;
+    border: 1px solid rgba(46, 160, 67, 0.35);
 }
 
 .manage-dx-gate-badge--partial {
-    background: #fff9c4;
-    color: #f57f17;
+    background: rgba(210, 153, 34, 0.18);
+    color: #e3b341;
+    border: 1px solid rgba(210, 153, 34, 0.35);
 }
 
 .manage-dx-gate-badge--open {
-    background: #ffcdd2;
-    color: #b71c1c;
+    background: rgba(248, 81, 73, 0.15);
+    color: #ff7b72;
+    border: 1px solid rgba(248, 81, 73, 0.35);
 }
 
 .manage-dx-gate-link {
@@ -496,7 +544,7 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     margin-left: 0.5rem;
     font-size: 0.85rem;
     text-decoration: none;
-    color: #2196f3;
+    color: var(--accent, #8ab4ff);
 }
 
 .manage-dx-gate-link:hover {
@@ -518,13 +566,14 @@ textarea.form-input { min-height: 100px; resize: vertical; }
 }
 
 .manage-dx-details-json {
-    margin: 0.35rem 0 0 1rem;
-    padding: 0.5rem;
-    background: #fafafa;
-    border: 1px solid #ddd;
-    border-radius: 3px;
+    margin: 0.35rem 0 0 0;
+    padding: 0.65rem 0.75rem;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
     font-size: 0.8rem;
-    max-height: 10rem;
+    max-height: 12rem;
     overflow: auto;
 }
 
