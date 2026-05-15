@@ -1,6 +1,6 @@
 # Capability Matrix verification log
 
-Last updated: 2026-05-15
+Last updated: 2026-05-16
 
 This log preserves dated local verification history for the Capability Matrix. It is evidence input, not the current truth map. The current status, ADR relation, semantic names, and maturity summary live in [capability_matrix_status_and_adr_relations.md](capability_matrix_status_and_adr_relations.md). Live/staging claim requirements live in [capability_matrix_live_claim_gates.md](capability_matrix_live_claim_gates.md).
 
@@ -15,6 +15,48 @@ Historical entries may include machine-local absolute paths because they preserv
 [adr0039_runtime_surface_governance_inventory.md](adr0039_runtime_surface_governance_inventory.md) lists **runtime decision surfaces** under [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md): **`ai_stack`**, **`world-engine`**, **`story_runtime_core`**, the **frontend Play Shell**, the **`administration-tool`** operator UI/proxy, **session**, **turn**, **beat / runtime progression** loops, and **critical decision trees** inside those loops. Each row records an `authority_level` (`canonical`, `co_authority`, `preview`, `sidecar`, `diagnostic`, `display_only`).
 
 **Entries in this log must not** treat **preview**, **sidecar**, **diagnostic**, or **display_only** surfaces as canonical runtime authority, seam/commit truth, or live/staging proof. **Frontend / Play Shell** traces are **display / consumption** evidence only—not engine truth unless the same entry ties them to **canonical backend / world-engine** state and documents how. **`administration-tool`** dashboards and proxy responses are **operator display and control-plane** evidence only—the same correlation rules apply. **`story_runtime_core`** inventory rows are **preview** or **diagnostic** unless the run explicitly shows outcomes **committed through canonical runtime mechanisms** (world-engine turn path, validation seam, commit). This file does **not** promote any matrix row and must **not** imply live/staging success without meeting [capability_matrix_live_claim_gates.md](capability_matrix_live_claim_gates.md).
+
+## Local verification snapshot for Π43 / cost-token-provider budgeting observability
+
+- Date: 2026-05-16
+- Git SHA at verification time: `6bf83213`
+- Scope: **local pytest/static-gate/runtime-path evidence only** - no live-provider, staging, live Langfuse, MCP live-query proof, tenant billing authority, or Capability Matrix promotion claim.
+- `python -m py_compile backend/app/services/game_service.py` -> passed
+- `python -m py_compile world-engine/app/story_runtime/manager.py world-engine/app/observability/langfuse_adapter.py` -> passed
+- `python -m py_compile world-engine/tests/test_langfuse_adapter_payload.py world-engine/tests/test_mvp4_diagnostics_integration.py backend/tests/test_game_service_play_http.py` -> passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest tests/test_langfuse_adapter_payload.py -q` from `world-engine/` -> 24 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest tests/test_mvp4_diagnostics_integration.py -q` from `world-engine/` -> 15 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/backend:/mnt/d/WorldOfShadows pytest backend/tests/test_game_service_play_http.py -q` -> 19 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest tests/gates/test_goc_mvp04_observability_diagnostics_gate.py -q` -> 49 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/backend:/mnt/d/WorldOfShadows pytest backend/tests/test_operational_governance_mvp.py::test_cost_budget_and_usage_endpoints backend/tests/test_operational_governance_mvp.py::test_mvp4_session_summary_exposes_live_cost_budget_and_overrides -q` -> 2 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows pytest tests/gates/test_adr_0039_pi_scope.py -q --tb=short` -> 7 passed
+
+Evidence summary: Π43 remains a bounded local observability/control-plane slice.
+World-engine now exposes the Langfuse adapter methods required by shared
+ADR-0041/local evidence helpers, records nested observations and semantic scores
+as `proof_level=local_only`, and keeps Langfuse as an export surface rather than
+the cost source of truth. `StoryRuntimeManager` adds a semantic
+`model_generation` phase-cost record from provider adapter metadata when
+provider usage is present, marks real provider calls without usage as
+`billing_mode=unavailable`, and continues to aggregate canonical
+`graph_state["phase_costs"]` into diagnostics. Backend story session / turn calls
+now check governed cost hard-stop budgets and runtime token-budget exhaustion
+before contacting world-engine.
+
+ADR-0039 discipline for this slice: runtime-facing keys are semantic
+(`model_generation`, `phase_costs`, `story_turn`, local proof fields). Tests
+assert contract fields, adapter API parity, provider-usage provenance,
+aggregation invariants, and hard-stop behavior. They do not use Pi / Π labels as
+runtime keys or pass/fail oracles, and local PASS output is not live/staging or
+provider proof.
+
+Known limitations: no live provider trace was executed for this snapshot; no
+staging Langfuse query or MCP live-query proof is recorded; provider-specific
+pre-turn budget matching is limited by the provider information available before
+a turn request; tenant billing authority and full cross-tenant spend governance
+remain outside this local verification.
+
+---
 
 ## Local verification snapshot for ADR-0041 / semantic capability selector core
 

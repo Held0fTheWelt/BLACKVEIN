@@ -70,7 +70,6 @@ ADR0039_PI_TEST_SCOPE = {
     "world-engine/tests/test_story_runtime_aspect_ledger.py": "Π12 fixture metadata is verified through RuntimeAspectLedger projection fields.",
     "world-engine/tests/test_story_runtime_callback_web.py": "Π17 continuity tests assert schema constants, bounds, graph export, and ledger projection.",
     "world-engine/tests/test_story_runtime_consequence_cascade.py": "Π21 continuity tests assert schema constants, bounds, graph export, and ledger projection.",
-    "world-engine/tests/test_mvp4_diagnostics_integration.py": "MVP4 diagnostics assertions verify structured diagnostics-envelope fields, operator summary fields, and trace metadata rather than generated prose.",
 }
 
 

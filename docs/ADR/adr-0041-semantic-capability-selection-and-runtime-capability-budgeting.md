@@ -97,6 +97,12 @@ selection evidence.
   names only; no hardcoded oracle bypasses; no active Pi / Π runtime keys.
 - [ADR-0040](adr-0040-quality-lab-mcp-runtime-diagnostics.md) - Quality Lab may
   interpret evidence but must not promote Capability Matrix status by itself.
+- [ADR-0044](adr-0044-runtime-rag-context-fabric-routing-and-authority-boundaries.md) -
+  runtime RAG routing, authority metadata on context packs, ADR-0041 safe
+  consumption of retrieval as observation only, readiness/frontend boundaries.
+- [ADR-0045](adr-0045-runtime-memory-indexes-and-retrieval-write-contracts.md) -
+  session memory indexes and post-commit write contracts for retrieval-aligned
+  stores.
 
 ## Context
 

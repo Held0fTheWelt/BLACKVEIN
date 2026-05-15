@@ -36,6 +36,15 @@ Without explicit **domains** and **governance lanes**, draft notes and evaluatio
 - **Capabilities:** `wos.context_pack.build` accepts a payload `domain` (defaults to `runtime`) when assembling packs (`ai_stack/capabilities.py`).
 - **Research store:** persisted research artifacts (`.wos/research/`) are a **different** subsystem from the RAG corpus; research **retrieval domain** in RAG is defined for consistent policy when callers use `RetrievalDomain.RESEARCH`.
 
+## Runtime integration governance (ADR-0044 / ADR-0045)
+
+Normative rules for **capability-routed retrieval**, **Narrator/NPC audience scoping**, **ADR-0041 safe consumption** (retrieval as observation only for authority), **readiness/frontend boundaries**, and **memory-index write contracts** are recorded in:
+
+- [ADR-0044](../../ADR/adr-0044-runtime-rag-context-fabric-routing-and-authority-boundaries.md)
+- [ADR-0045](../../ADR/adr-0045-runtime-memory-indexes-and-retrieval-write-contracts.md)
+
+Implementation map and anchor index: [rag_runtime_integration.md](rag_runtime_integration.md).
+
 ---
 
 ## Authoritative truth vs retrieved context
@@ -233,6 +242,7 @@ Embedding hardening notes and older evaluation write-ups live under `docs/archiv
 
 ## Related
 
+- [rag_runtime_integration.md](rag_runtime_integration.md) — Pi / Narrator / multi-agent / ADR-0041 integration map.
 - [LangGraph.md](../integration/LangGraph.md) — `retrieve_context` node.
 - [LangChain.md](../integration/LangChain.md) — Writers’ Room retriever bridge.
 - [MCP.md](../integration/MCP.md) — operator surface (not RAG storage).

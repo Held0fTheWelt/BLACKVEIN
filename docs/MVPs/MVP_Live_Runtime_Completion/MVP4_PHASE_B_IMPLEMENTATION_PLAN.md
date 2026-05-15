@@ -1,6 +1,6 @@
 # MVP4 Phase B Implementation Plan
 
-**Status**: Implementation Description (Phase A prerequisites exist; Phase B fills cost truth)  
+**Status**: Local implementation verified for canonical phase-cost truth; live/staging provider proof still pending
 **Related**: adr-0032, `MVP4_PHASE_A_IMPLEMENTATION_PLAN.md`, `MVP4_PHASE_C_IMPLEMENTATION_PLAN.md`  
 **Primary Goal**: Every runtime phase reports truthful token/cost evidence. Real LLM calls must carry real usage. Deterministic/mock paths must explicitly declare zero-cost provenance.
 
@@ -31,6 +31,15 @@ Every phase that contributes to a story turn must emit a cost attribution record
 ```
 
 For real provider calls, `billing_mode` must be `provider_usage`, token counts must come from the provider/adapter response, and `billable` must be `true`.
+
+**Current local implementation snapshot (2026-05-16):**
+
+- `ai_stack/runtime_cost_attribution.py` is the shared canonical helper surface for phase-cost records and aggregation.
+- World-engine GoC committed turns aggregate `graph_state["phase_costs"]` into `diagnostics_envelope.cost_summary`.
+- Deterministic/mock paths are explicit zero-cost records.
+- Provider-backed model generation records a semantic `model_generation` phase only from adapter-reported usage metadata.
+- If a real provider response has no usage metadata, the phase is `billing_mode="unavailable"` / `token_source="unavailable"` rather than guessed from text length.
+- Langfuse observations receive the same cost truth as metadata/export data; Langfuse is not the source of local cost truth.
 
 ---
 
@@ -238,6 +247,7 @@ Recommended shape:
 graph_state["phase_costs"] = {
     "ldss": {...PhaseCost...},
     "narrator": {...PhaseCost...},
+    "model_generation": {...PhaseCost...},
 }
 ```
 
@@ -252,11 +262,18 @@ Aggregated diagnostics:
     "cost_breakdown": {"ldss": 0.0, "narrator": 0.0},
     "phase_costs": {
       "ldss": {"billing_mode": "deterministic", "...": "..."},
-      "narrator": {"billing_mode": "deterministic", "...": "..."}
+      "narrator": {"billing_mode": "deterministic", "...": "..."},
+      "model_generation": {"billing_mode": "provider_usage", "token_source": "provider_usage", "...": "..."}
     }
   }
 }
 ```
+
+Provider-backed `model_generation` is emitted only when the adapter metadata
+contains provider usage such as `usage_details.input`, `usage_details.output`,
+and `usage_details.total` (or equivalent prompt/completion totals). Missing
+usage on a real provider path is represented as an explicit unavailable cost
+record; text length must not be used as a token-count substitute.
 
 ### Step 5: Attach Cost Data To Langfuse Spans
 
@@ -273,6 +290,13 @@ Required change:
 - Root turn span output/metadata includes the aggregated `cost_summary` where safe.
 
 For Langfuse v4 observations, prefer native usage fields when available for generation observations. For regular spans, include the canonical cost record in metadata.
+
+World-engine's Langfuse adapter also exposes shared helper parity for local
+evidence export: `resolve_parent_observation_for_nested_span`,
+`record_wos_nested_span_observation`, and
+`record_adr0041_langfuse_scores`. These helpers are best-effort export
+surfaces and mark local evidence as `proof_level="local_only"` /
+`live_or_staging_evidence=false`.
 
 ### Step 6: Tests
 
@@ -336,6 +360,11 @@ Keep these out of Phase B unless they already exist and only need trace correlat
 - Offline trace export as final proof path
 
 These can consume Phase B cost truth later, but they should not block Phase B.
+
+Note: a backend pre-turn hard-stop guard now exists as a bounded operational
+settings closure over Phase B cost truth. That guard belongs to the operational
+governance/control-plane slice, not to Phase B's cost attribution source of
+truth.
 
 ---
 
