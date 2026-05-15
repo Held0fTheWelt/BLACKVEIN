@@ -41,6 +41,95 @@ NPC_NARRATE_PLAYER_PERCEPTION_FORBIDDEN = "npc.narrate_player_perception.forbidd
 NPC_FORCE_PLAYER_SPEECH_FORBIDDEN = "npc.force_player_speech.forbidden"
 NPC_EXPLAIN_ENVIRONMENT_AS_NARRATOR_FORBIDDEN = "npc.explain_environment_as_narrator.forbidden"
 
+NPC_EXECUTED_PLAYER_ACTION_REASON = "npc_executed_player_action"
+NPC_NARRATED_PLAYER_PERCEPTION_REASON = "npc_narrated_player_perception"
+AI_CONTROLLED_HUMAN_ACTOR_REASON = "ai_controlled_human_actor"
+NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON = "npc_action_controls_human_actor"
+NPC_EXPLAINED_ENVIRONMENT_AS_NARRATOR_REASON = "npc_explained_environment_as_narrator"
+
+NPC_COERCIVE_ACTION_TYPES: frozenset[str] = frozenset(
+    {
+        "force_speech",
+        "compel_speech",
+        "control_speech",
+        "force_action",
+        "compel_action",
+        "control_action",
+        "force_movement",
+        "control_movement",
+        "assign_emotion",
+        "force_emotion",
+        "control_emotion",
+        "force_decision",
+        "control_decision",
+        "assign_belief",
+        "control_belief",
+        "force_consent",
+        "assign_physical_state",
+        "control_outcome",
+    }
+)
+
+NPC_COERCIVE_CONTROL_VERBS: frozenset[str] = frozenset(
+    {
+        "forces",
+        "force",
+        "forced",
+        "makes",
+        "made",
+        "compels",
+        "compel",
+        "compelled",
+        "causes",
+        "cause",
+        "caused",
+        "commands",
+        "command",
+        "commanded",
+        "orders",
+        "order",
+        "ordered",
+        "decides",
+        "decided",
+        "controls",
+        "controlled",
+        "dictates",
+        "dictate",
+        "dictated",
+        "puppets",
+        "puppet",
+    }
+)
+
+NPC_ALLOWED_PRESSURE_VERBS: frozenset[str] = frozenset(
+    {
+        "pressures",
+        "pressure",
+        "challenges",
+        "challenge",
+        "confronts",
+        "confront",
+        "addresses",
+        "address",
+        "accuses",
+        "accuse",
+        "taunts",
+        "taunt",
+        "provokes",
+        "provoke",
+        "interrupts",
+        "interrupt",
+        "appeals",
+        "appeal",
+        "asks",
+        "ask",
+        "questions",
+        "question",
+        "suggests",
+        "suggest",
+    }
+)
+
 
 def _json_safe(value: Any) -> Any:
     if isinstance(value, dict):
@@ -150,12 +239,12 @@ def narrator_capability_for_frame(frame: dict[str, Any], player_input_kind: str)
 
 def forbidden_capability_for_reason(reason: str | None) -> str | None:
     value = str(reason or "").strip()
-    if value == "npc_executed_player_action":
+    if value == NPC_EXECUTED_PLAYER_ACTION_REASON:
         return NPC_EXECUTE_PLAYER_ACTION_FORBIDDEN
-    if value == "npc_narrated_player_perception":
+    if value == NPC_NARRATED_PLAYER_PERCEPTION_REASON:
         return NPC_NARRATE_PLAYER_PERCEPTION_FORBIDDEN
-    if value == "ai_controlled_human_actor":
+    if value in {AI_CONTROLLED_HUMAN_ACTOR_REASON, NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON}:
         return NPC_FORCE_PLAYER_SPEECH_FORBIDDEN
-    if value == "npc_explained_environment_as_narrator":
+    if value == NPC_EXPLAINED_ENVIRONMENT_AS_NARRATOR_REASON:
         return NPC_EXPLAIN_ENVIRONMENT_AS_NARRATOR_FORBIDDEN
     return None

@@ -87,42 +87,6 @@
         });
     }
 
-    function loadRuntime() {
-        Promise.all([
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/config"),
-            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/diagnostics?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID))
-        ]).then(function (results) {
-            renderJson("narrative-runtime-panel", "Runtime Config & Diagnostics", {
-                config: results[0].data,
-                diagnostics: results[1].data
-            }, function () {
-                return buildActions([
-                    {
-                        label: "Reload Active Package",
-                        onClick: function () {
-                            var moduleId = getModuleId();
-                            if (!moduleId) return;
-                            ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/packages/" + encodeURIComponent(moduleId) + "/active")
-                                .then(function (activeRes) {
-                                    var active = activeRes.data && activeRes.data.active_version;
-                                    if (!active) {
-                                        window.alert("No active version available.");
-                                        return;
-                                    }
-                                    return postJson("/api/v1/admin/narrative/packages/" + encodeURIComponent(moduleId) + "/rollback-to/" + encodeURIComponent(active), {
-                                        requested_by: "operator",
-                                        reason: "Force runtime reload via rollback-to-active shortcut."
-                                    }).then(loadRuntime);
-                                })
-                                .catch(function (err) { window.alert(extractError(err)); });
-                        }
-                    }
-                ]);
-            });
-        })
-            .catch(function (err) { renderJson("narrative-runtime-panel", "Runtime Config Error", err); });
-    }
-
     function loadRuntimeHealth() {
         Promise.all([
             ManageAuth.apiFetchWithAuth("/api/v1/admin/narrative/runtime/health?module_id=" + encodeURIComponent(DEFAULT_MODULE_ID)),
@@ -361,7 +325,6 @@
         var page = pageEl.getAttribute("data-narrative-page");
         var loaders = {
             overview: loadOverview,
-            runtime: loadRuntime,
             runtime_health: loadRuntimeHealth,
             packages: loadPackages,
             policies: loadPolicies,

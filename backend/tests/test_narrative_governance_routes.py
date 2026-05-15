@@ -133,6 +133,27 @@ def test_promote_preview_route_maps_reload_refusal(client, moderator_headers, mo
     assert response.get_json()["error"]["code"] == "world_engine_reload_refused"
 
 
+def test_runtime_gov_summary_route_success(client, moderator_headers, monkeypatch):
+    from app.api.v1 import narrative_governance_routes as routes_module
+
+    monkeypatch.setattr(
+        routes_module,
+        "runtime_gov_summary",
+        lambda module_id: {
+            "module_id": module_id,
+            "summary": {"contract": "narrative_gov_summary.v1", "content_module_health": {}},
+        },
+    )
+    response = client.get(
+        "/api/v1/admin/narrative/runtime/gov-summary?module_id=god_of_carnage",
+        headers=moderator_headers,
+    )
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["ok"] is True
+    assert body["data"]["summary"]["contract"] == "narrative_gov_summary.v1"
+
+
 def test_runtime_health_sync_route_success(client, moderator_headers, monkeypatch):
     from app.api.v1 import narrative_governance_routes as routes_module
 

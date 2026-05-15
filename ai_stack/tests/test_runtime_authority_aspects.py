@@ -7,6 +7,11 @@ from ai_stack.langgraph_runtime_executor import (
     _build_authority_aspect_records,
     _build_runtime_aspect_validation,
 )
+from ai_stack.dramatic_capability_contracts import (
+    NPC_COERCIVE_ACTION_TYPES,
+    NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
+    NPC_FORCE_PLAYER_SPEECH_FORBIDDEN,
+)
 from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.runtime_aspect_ledger import (
@@ -17,6 +22,10 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
 )
+
+
+def _coercive_action_type() -> str:
+    return sorted(NPC_COERCIVE_ACTION_TYPES)[0]
 
 
 def _state(
@@ -170,6 +179,31 @@ def test_npc_cannot_narrate_player_perception() -> None:
     assert npc["expected_owner"] == "narrator"
 
 
+def test_npc_structured_coercion_of_human_actor_rejected_by_runtime_aspect() -> None:
+    state = _state(player_input_kind="speech", verb="", target_query="")
+
+    _narrator, npc = _build_authority_aspect_records(
+        state=state,
+        generation=_generation(
+            {
+                "narration_summary": "Narrator consequence.",
+                "action_lines": [
+                    {
+                        "actor_id": "michel_longstreet",
+                        "target_actor_id": state["actor_lane_context"]["human_actor_id"],
+                        "action_type": _coercive_action_type(),
+                    }
+                ],
+            }
+        ),
+        proposed_state_effects=[],
+    )
+
+    assert npc["status"] == "failed"
+    assert npc["failure_reason"] == NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
+    assert npc["actual"]["npc_takeover_detected"] is True
+
+
 def test_authority_violation_written_to_aspect_ledger() -> None:
     executor = object.__new__(RuntimeTurnGraphExecutor)
     executor.max_self_correction_attempts = 0
@@ -200,6 +234,38 @@ def test_authority_violation_written_to_aspect_ledger() -> None:
     assert update["validation_outcome"]["status"] == "rejected"
     assert update["validation_outcome"]["reason"] == "npc_executed_player_action"
     assert update["validation_outcome"]["authority_contract_violation"] is True
+
+
+def test_structured_npc_coercion_written_to_aspect_ledger_and_capability_violation() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 0
+    executor.allow_degraded_commit_after_retries = False
+    state = _state(player_input_kind="speech", verb="", target_query="")
+    state["generation"] = _generation(
+        {
+            "narration_summary": "Narrator consequence.",
+            "action_lines": [
+                {
+                    "actor_id": "michel_longstreet",
+                    "target_actor_id": state["actor_lane_context"]["human_actor_id"],
+                    "action_type": _coercive_action_type(),
+                }
+            ],
+        }
+    )
+    state["proposed_state_effects"] = [
+        {"effect_type": "narrative_projection", "description": "Narrator consequence."}
+    ]
+
+    update = executor._validate_seam(state)
+
+    ledger = update["turn_aspect_ledger"]
+    npc = ledger["turn_aspect_ledger"][ASPECT_NPC_AUTHORITY]
+    cap = ledger["turn_aspect_ledger"][ASPECT_CAPABILITY_SELECTION]
+    assert update["validation_outcome"]["status"] == "rejected"
+    assert update["validation_outcome"]["reason"] == NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
+    assert npc["failure_reason"] == NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
+    assert NPC_FORCE_PLAYER_SPEECH_FORBIDDEN in cap["actual"]["violated_capabilities"]
 
 
 def test_validation_reads_narrator_authority_aspect() -> None:
@@ -429,6 +495,30 @@ def test_commit_records_player_action_outcome() -> None:
     assert commit["actual"]["commit_applied"] is True
     assert commit["actual"]["player_action_committed"] is True
     assert commit["actual"]["validation_rejection_not_committed"] is False
+
+
+def test_commit_seam_passes_candidate_deltas_to_state_delta_boundary() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    state = _state()
+    state["validation_outcome"] = {"status": "approved", "reason": "test"}
+    state["proposed_state_effects"] = [
+        {"effect_type": "narrative_projection", "description": "Annette moves."}
+    ]
+    state["candidate_deltas"] = [
+        {"path": "human_actor_id", "operation": "replace", "value": "alain_reille"}
+    ]
+
+    update = executor._commit_seam(state)
+
+    committed = update["committed_result"]
+    commit = update["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_COMMIT]
+    rejection = committed["state_delta_rejection"]
+    assert committed["commit_applied"] is False
+    assert rejection["path"] == state["candidate_deltas"][0]["path"]
+    assert commit["status"] == "failed"
+    assert commit["failure_class"] == "hard_contract_failure"
+    assert commit["failure_reason"] == rejection["error_code"]
+    assert commit["actual"]["state_delta_rejection"] == rejection
 
 
 def test_recoverable_commit_records_failed_aspects() -> None:

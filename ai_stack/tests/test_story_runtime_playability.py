@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ai_stack.dramatic_capability_contracts import NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
 from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.story_runtime_playability import (
@@ -137,6 +138,42 @@ def test_runtime_aspect_failures_are_retryable_but_not_degradable() -> None:
         proposed_state_effects=[],
         allow_degraded_commit_after_retries=True,
     )
+    assert exhausted.should_retry is False
+    assert exhausted.allow_degraded_commit is False
+
+
+def test_npc_coercion_runtime_aspect_is_retryable_but_not_degradable() -> None:
+    outcome = {
+        "status": "rejected",
+        "reason": NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
+        "recoverable_rejection": True,
+        "runtime_aspect_failure": {
+            "failure_reason": NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
+        },
+    }
+
+    retry = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=1,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+
+    exhausted = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=3,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+
+    assert retry.should_retry is True
+    assert NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON in retry.feedback_codes
     assert exhausted.should_retry is False
     assert exhausted.allow_degraded_commit is False
 

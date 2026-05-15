@@ -37,6 +37,7 @@ from app.services.narrative_governance_service import (
     list_packages,
     list_revision_candidates,
     runtime_diagnostics,
+    runtime_gov_summary,
     package_history,
     promote_preview_to_active,
     record_evaluation_run,
@@ -198,6 +199,16 @@ def admin_narrative_runtime_diagnostics():
     module_id = request.args.get("module_id", "god_of_carnage")
     try:
         return _ok(runtime_diagnostics(module_id))
+    except NarrativeGovernanceError as exc:
+        return _error(503, exc.code, str(exc), {"module_id": module_id})
+
+
+@api_v1_bp.route("/admin/narrative/runtime/gov-summary", methods=["GET"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_gov_summary():
+    module_id = request.args.get("module_id", "god_of_carnage")
+    try:
+        return _ok(runtime_gov_summary(module_id))
     except NarrativeGovernanceError as exc:
         return _error(503, exc.code, str(exc), {"module_id": module_id})
 

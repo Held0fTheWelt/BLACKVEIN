@@ -386,14 +386,18 @@ def assert_manager_get_narrative_gov_summary_calls_builder(manager_py: Path) -> 
 
 
 def assert_narrative_gov_template_renders_panel_contract(runtime_html: Path) -> None:
-    """Admin template JS must reference NarrativeGovSummary JSON keys (machine contract, not prose)."""
+    """Admin runtime surface must expose narrative gov contract keys and authenticated admin fetch."""
     text = runtime_html.read_text(encoding="utf-8")
     assert 'data-testid="narrative-gov-summary"' in text, "runtime.html must expose data-testid for narrative gov root"
-    gov_route = "/story/runtime/narrative-gov-summary"
-    expected_fetch = admin_proxy_path_for_api_route(gov_route)
-    assert expected_fetch in text, f"runtime.html must fetch {expected_fetch} (derived from router path {gov_route})"
+    runtime_js = runtime_html.resolve().parents[3] / "static" / "narrative_governance_runtime.js"
+    js_text = runtime_js.read_text(encoding="utf-8") if runtime_js.is_file() else ""
+    combined = text + "\n" + js_text
+    assert "/api/v1/admin/narrative/runtime/gov-summary" in combined, (
+        "narrative runtime UI must fetch authenticated admin gov-summary route"
+    )
+    assert "narrative_governance_runtime.js" in text, "runtime.html must load narrative_governance_runtime.js"
     for key in NARRATIVE_GOV_JSON_KEYS:
-        assert key in text, f"runtime.html narrative gov script must reference panel key {key!r}"
+        assert key in combined, f"narrative runtime UI must reference panel key {key!r}"
 
 
 def assert_mvp4_execute_turn_diagnostics_integration_passes(repo_root: Path) -> None:

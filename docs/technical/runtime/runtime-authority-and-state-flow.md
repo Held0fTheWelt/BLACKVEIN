@@ -18,6 +18,11 @@ Ownership matrix
 
 **AI output is not committed narrative truth** until validation and commit rules allow it. For God of Carnage, the binding turn contract is [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
+Agency preservation is enforced at two levels:
+
+- Actor-lane and authority validation reject AI output that speaks, acts, emotes, decides for, or coerces the selected human actor. Structured NPC coercion of the human actor is recorded as `npc_action_controls_human_actor`, mapped to `npc.force_player_speech.forbidden`, and blocked before commit.
+- Protected identity and canonical truth deltas are proposal data only. `candidate_deltas` must pass the `StateDeltaBoundary` check in `run_commit_seam`; rejected deltas produce `state_delta_rejection` and no committed story truth.
+
 ## Code anchor (first read)
 
 `world-engine/app/story_runtime/manager.py` — `StoryRuntimeManager`:
@@ -26,7 +31,8 @@ Ownership matrix
 - Builds default retriever and context assembler via `ai_stack` (`build_runtime_retriever`).
 - Constructs `RuntimeTurnGraphExecutor` with `interpret_player_input` from `story_runtime_core`, routing, registry, adapters, retriever, capability registry, and repo root.
 - Loads `ModuleRuntimePolicy.runtime_governance_policy` so action-resolution short paths, visible-projection hard-failure behavior, capability gates, and continuity hooks come from module content instead of module-name branches in generic runtime code.
-- Persists `turn_aspect_ledger` with the canonical turn record so selected beat, capability, narrator/NPC/player authority, visible origin evidence, validation, and commit status can be inspected without frontend inference.
+- Persists `turn_aspect_ledger` with the canonical turn record so selected beat, capability, narrator/NPC/player authority, structured NPC coercion rejection, visible origin evidence, validation, and commit status can be inspected without frontend inference.
+- Forwards `candidate_deltas` and `state_delta_boundary` into the commit seam. Protected-path rejections stay explicit in `committed_result.state_delta_rejection` and `turn_aspect_ledger.commit`.
 - Loads `ModuleRuntimePolicy.memory_policy`, writes bounded hierarchical memory only from canonical committed turns, and projects safe memory context into LangGraph. This is session-local runtime continuity, not a second source of truth.
 - Rebuilds the bounded callback web after commits, persists `callback_web_record.v1`, projects `callback_web_feedback.v1` into the next graph turn, and records `turn_aspect_ledger.callback_web` without mutating canonical story state.
 

@@ -30,6 +30,7 @@ from app.models.narrative_enums import NarrativeEventType
 from app.services.game_service import (
     GameServiceError,
     end_narrative_preview_session,
+    get_narrative_gov_summary,
     get_narrative_runtime_health,
     get_narrative_runtime_state,
     get_narrative_runtime_validator_config,
@@ -1196,6 +1197,21 @@ def runtime_diagnostics(module_id: str) -> dict[str, object]:
         "state": state,
         "validator_config": validator_config,
         "health": health,
+    }
+
+
+def runtime_gov_summary(module_id: str) -> dict[str, object]:
+    """Return NarrativeGovSummary from the live play-service runtime."""
+    try:
+        summary = get_narrative_gov_summary()
+    except GameServiceError as exc:
+        raise NarrativeGovernanceError(
+            f"Failed to fetch narrative gov summary from play service: {exc}",
+            code="runtime_state_unavailable",
+        ) from exc
+    return {
+        "module_id": module_id,
+        "summary": summary,
     }
 
 

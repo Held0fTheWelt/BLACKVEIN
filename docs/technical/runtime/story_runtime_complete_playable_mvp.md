@@ -14,9 +14,15 @@ Clients should treat `opening_turn` as **committed narration** (same envelope sh
 
 ### Self-correction
 
-Validation may reject a seam outcome. The executor retries generation for exactly **`max_self_correction_attempts`** rewrite attempts (from governed runtime settings, default 3) with bounded, feedback-coded repair instructions. Parser/validation failures and runtime-aspect failures share the same recovery loop: narrator/NPC authority violations, missing narrator authority, missing required dramatic capabilities, and forbidden capability realization are captured before the retry decision and surfaced as self-correction trigger evidence.
+Validation may reject a seam outcome. The executor retries generation for exactly **`max_self_correction_attempts`** rewrite attempts (from governed runtime settings, default 3) with bounded, feedback-coded repair instructions. Parser/validation failures and runtime-aspect failures share the same recovery loop: narrator/NPC authority violations, structured NPC coercion of the human actor, missing narrator authority, missing required dramatic capabilities, and forbidden capability realization are captured before the retry decision and surfaced as self-correction trigger evidence.
 
-After retries, **`allow_degraded_commit_after_retries`** may downgrade validation only on later turns when policy allows and the rejection is safe to degrade. Actor-lane, authority, required-narrator, and dramatic capability contract failures remain commit-blocking rather than silently becoming degraded story truth.
+After retries, **`allow_degraded_commit_after_retries`** may downgrade validation only on later turns when policy allows and the rejection is safe to degrade. Actor-lane, authority, structured NPC coercion, required-narrator, protected-delta, and dramatic capability contract failures remain commit-blocking rather than silently becoming degraded story truth.
+
+### Authority and protected deltas
+
+The live graph writes narrator/NPC authority records before final validation. If an NPC action structurally targets the selected human actor with a coercive action/coercion type, validation records `npc_action_controls_human_actor`, marks the matching forbidden capability, and rejects the turn.
+
+The commit seam also receives `candidate_deltas` and `state_delta_boundary` from graph state. Protected identity or canonical-truth mutations return `state_delta_rejection`, set `commit_applied=False`, and are recorded in the commit aspect ledger.
 
 ### Retrieval context
 

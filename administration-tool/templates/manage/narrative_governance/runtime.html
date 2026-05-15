@@ -2,106 +2,62 @@
 {% block title %}Narrative Runtime{% endblock %}
 {% block content %}
 {% set active_narrative_section = 'runtime' %}
-<section class="manage-section narrative-governance-page" data-narrative-page="runtime">
+<section class="manage-section narrative-governance-page" data-page="narrative-runtime">
+
     <header class="mui-deck-header">
         <div>
             <p class="mui-deck-eyebrow">AI Governance · Narrative</p>
             <h1>Narrative Runtime</h1>
-            <p class="mui-deck-headline">MVP4 — Operator evidence from the live God of Carnage runtime path.</p>
+            <p class="mui-deck-headline">Operator evidence from the live God of Carnage runtime path — health panels sourced from play-service diagnostics, plus config and validator posture.</p>
+        </div>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="ng-runtime-reload-package">Reload active package</button>
+            <button type="button" class="btn btn-primary" id="ng-runtime-refresh">Refresh</button>
         </div>
     </header>
+
     {% include "manage/narrative_governance/_subnav.html" %}
 
-    <!-- MVP4: Narrative Gov Summary Panels (sourced from play-service live diagnostics) -->
-    <div id="mvp4-narrative-gov-summary" class="narrative-grid" data-testid="narrative-gov-summary">
-        <div id="mvp4-loading" class="manage-muted">Loading runtime evidence…</div>
-    </div>
+    <p id="ng-runtime-error" class="form-error mui-legacy-hidden" hidden role="alert" aria-live="polite"></p>
 
-    <div id="narrative-runtime-panel" class="narrative-grid"></div>
+    <article class="mui-inspector ng-runtime-inspector">
+        <header class="mui-inspector-head">
+            <span class="mui-inspector-eyebrow">MVP4 · Live evidence</span>
+            <h2>Runtime health panels</h2>
+            <p class="mui-inspector-summary">Panels map to <code>narrative_gov_summary.v1</code> — content module, runtime profile, runtime module, LDSS, actor lanes, frontend contract, and degradation.</p>
+        </header>
+        <div class="mui-inspector-body">
+            <div id="mvp4-narrative-gov-summary" class="mui-card-grid ng-runtime-gov-grid" data-testid="narrative-gov-summary">
+                <p class="manage-dx-empty">Loading runtime evidence…</p>
+            </div>
+        </div>
+    </article>
+
+    <article class="mui-inspector ng-runtime-inspector">
+        <header class="mui-inspector-head">
+            <span class="mui-inspector-eyebrow">Session</span>
+            <h2>Latest session snapshot</h2>
+            <p class="mui-inspector-summary">Identifiers from the most recent GoC session with diagnostics on the play service.</p>
+        </header>
+        <div class="mui-inspector-body">
+            <div id="ng-runtime-session-meta" class="mui-card ng-runtime-session-card" aria-live="polite"></div>
+        </div>
+    </article>
+
+    <article class="mui-inspector ng-runtime-inspector">
+        <header class="mui-inspector-head">
+            <span class="mui-inspector-eyebrow">Technical</span>
+            <h2>Config &amp; diagnostics</h2>
+            <p class="mui-inspector-summary">Raw backend payloads for validator config and world-engine runtime state (expand when debugging).</p>
+        </header>
+        <div class="mui-inspector-body">
+            <div id="ng-runtime-technical" class="ng-runtime-technical"></div>
+        </div>
+    </article>
+
 </section>
 {% endblock %}
 {% block extra_scripts %}
 <link rel="stylesheet" href="{{ url_for('static', filename='narrative_governance.css') }}">
-<script src="{{ url_for('static', filename='narrative_governance.js') }}"></script>
-<script>
-// MVP4: Fetch NarrativeGovSummary from play-service via proxy
-(function() {
-    var panel = document.getElementById('mvp4-narrative-gov-summary');
-    var loading = document.getElementById('mvp4-loading');
-
-    fetch('/_proxy/api/story/runtime/narrative-gov-summary', {
-        headers: {'Content-Type': 'application/json'}
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (loading) loading.remove();
-        panel.innerHTML = buildNarrativeGovPanels(data);
-    })
-    .catch(function(e) {
-        if (loading) loading.textContent = 'Runtime evidence unavailable (play-service offline or not configured).';
-    });
-
-    function esc(s) {
-        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    function statusBadge(status) {
-        var ok = ['canonical_loaded','evidenced_live_path','profile_only','runtime_logic_only','ready_for_frontend','normal'];
-        var cls = ok.indexOf(status) >= 0 ? 'badge-ok' : 'badge-warn';
-        return '<span class="badge ' + cls + '">' + esc(status) + '</span>';
-    }
-
-    function buildNarrativeGovPanels(d) {
-        var html = '';
-
-        // Content module health
-        var cm = d.content_module_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Content Module Health</h3>';
-        html += '<p>Module: <strong>' + esc(cm.content_module_id || d.content_module_id) + '</strong> ' + statusBadge(cm.status) + '</p>';
-        html += '<p>Story truth present: <strong>' + esc(cm.story_truth_present) + '</strong></p></div>';
-
-        // Runtime profile health
-        var rp = d.runtime_profile_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Runtime Profile Health</h3>';
-        html += '<p>Profile: <strong>' + esc(rp.runtime_profile_id || d.runtime_profile_id) + '</strong> ' + statusBadge(rp.status) + '</p>';
-        html += '<p>Story truth present: <strong>' + esc(rp.story_truth_present) + '</strong></p></div>';
-
-        // Runtime module health
-        var rm = d.runtime_module_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Runtime Module Health</h3>';
-        html += '<p>Module: <strong>' + esc(rm.runtime_module_id || d.runtime_module_id) + '</strong> ' + statusBadge(rm.status) + '</p></div>';
-
-        // LDSS health
-        var ldss = d.ldss_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>LDSS Health</h3>';
-        html += '<p>Status: ' + statusBadge(ldss.status) + '</p>';
-        html += '<p>Last trace: <code>' + esc(ldss.last_trace_id || 'none') + '</code></p>';
-        html += '<p>Last session: <code>' + esc(ldss.last_session_id || 'none') + '</code> turn ' + esc(ldss.last_turn_number) + '</p></div>';
-
-        // Actor lane health
-        var al = d.actor_lane_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Actor Lane Enforcement</h3>';
-        html += '<p>Human actor: <strong>' + esc(al.human_actor_id || 'not assigned') + '</strong></p>';
-        html += '<p>NPC actors: <strong>' + esc((al.npc_actor_ids || []).join(', ') || 'none') + '</strong></p>';
-        html += '<p>Visitor present: <strong>' + esc(al.visitor_present) + '</strong></p>';
-        html += '<p>Enforcement active: <strong>' + esc(al.enforcement_active) + '</strong></p></div>';
-
-        // Frontend render contract health
-        var fc = d.frontend_render_contract_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Frontend Render Contract</h3>';
-        html += '<p>Status: ' + statusBadge(fc.status) + '</p>';
-        html += '<p>Scene blocks: <strong>' + esc(fc.scene_block_count) + '</strong></p>';
-        html += '<p>Legacy blob used: <strong>' + esc(fc.legacy_blob_used) + '</strong></p></div>';
-
-        // Degradation health
-        var dg = d.degradation_health || {};
-        html += '<div class="manage-card mvp4-panel"><h3>Degradation Status</h3>';
-        html += '<p>Quality: ' + statusBadge(dg.status || dg.quality_class) + '</p>';
-        var sigs = (dg.degradation_signals || []);
-        html += '<p>Signals: <strong>' + esc(sigs.length ? sigs.join(', ') : 'none') + '</strong></p></div>';
-
-        return html;
-    }
-})();
-</script>
+<script src="{{ url_for('static', filename='narrative_governance_runtime.js') }}"></script>
 {% endblock %}

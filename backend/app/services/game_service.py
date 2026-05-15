@@ -751,3 +751,20 @@ def get_narrative_runtime_health(*, trace_id: str | None = None) -> dict:
         trace_id=trace_id,
     )
     return _parse_narrative_ok_data(payload, kind="narrative_runtime_health")
+
+
+def get_narrative_gov_summary(*, trace_id: str | None = None) -> dict:
+    """Fetch NarrativeGovSummary operator health evidence from the play service."""
+    payload = _request(
+        "GET",
+        "/api/story/runtime/narrative-gov-summary",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected narrative gov summary payload.")
+    if payload.get("ok") is True and isinstance(payload.get("data"), dict):
+        return payload["data"]
+    if str(payload.get("contract") or "").strip() == "narrative_gov_summary.v1":
+        return payload
+    raise GameServiceError("Play service returned an unexpected narrative gov summary payload.")

@@ -96,6 +96,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
@@ -2921,6 +2922,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("scene_energy_validation"), dict)
             else {}
         ),
+        "pacing_rhythm_state": (
+            graph_state.get("pacing_rhythm_state")
+            if isinstance(graph_state.get("pacing_rhythm_state"), dict)
+            else scene_plan_record.get("pacing_rhythm_state")
+            if isinstance(scene_plan_record.get("pacing_rhythm_state"), dict)
+            else {}
+        ),
+        "pacing_rhythm_target": (
+            graph_state.get("pacing_rhythm_target")
+            if isinstance(graph_state.get("pacing_rhythm_target"), dict)
+            else scene_plan_record.get("pacing_rhythm_target")
+            if isinstance(scene_plan_record.get("pacing_rhythm_target"), dict)
+            else {}
+        ),
+        "pacing_rhythm_validation": (
+            graph_state.get("pacing_rhythm_validation")
+            if isinstance(graph_state.get("pacing_rhythm_validation"), dict)
+            else {}
+        ),
         "legacy_keyword_scene_candidates_used": bool(
             multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
         ),
@@ -3726,6 +3746,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     beat_actual = _actual(ASPECT_BEAT)
     scene_energy_selected = _selected(ASPECT_SCENE_ENERGY)
     scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
+    pacing_rhythm_selected = _selected(ASPECT_PACING_RHYTHM)
+    pacing_rhythm_actual = _actual(ASPECT_PACING_RHYTHM)
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
     disclosure_selected = _selected(ASPECT_INFORMATION_DISCLOSURE)
     disclosure_actual = _actual(ASPECT_INFORMATION_DISCLOSURE)
@@ -3785,6 +3807,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": scene_energy_actual,
                 "aspect_record": _rec(ASPECT_SCENE_ENERGY),
+            },
+        ),
+        (
+            "story.pacing_rhythm.target",
+            ASPECT_PACING_RHYTHM,
+            {
+                "selected": pacing_rhythm_selected,
+                "aspect_record": _rec(ASPECT_PACING_RHYTHM),
+            },
+        ),
+        (
+            "story.pacing_rhythm.validate",
+            ASPECT_PACING_RHYTHM,
+            {
+                "actual": pacing_rhythm_actual,
+                "aspect_record": _rec(ASPECT_PACING_RHYTHM),
             },
         ),
         (
@@ -3892,6 +3930,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_ACTION_RESOLUTION,
                         ASPECT_BEAT,
                         ASPECT_SCENE_ENERGY,
+                        ASPECT_PACING_RHYTHM,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
@@ -3966,6 +4005,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
     if not isinstance(scene_energy_failure_codes, list):
         scene_energy_failure_codes = []
+    pacing_rhythm_target = (
+        pacing_rhythm_selected.get("target")
+        if isinstance(pacing_rhythm_selected.get("target"), dict)
+        else pacing_rhythm_selected
+    )
+    pacing_rhythm_failure_codes = pacing_rhythm_actual.get("failure_codes") or []
+    if not isinstance(pacing_rhythm_failure_codes, list):
+        pacing_rhythm_failure_codes = []
     disclosure_failure_codes = disclosure_actual.get("failure_codes") or []
     if not isinstance(disclosure_failure_codes, list):
         disclosure_failure_codes = []
@@ -4074,6 +4121,33 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             ASPECT_SCENE_ENERGY,
             _runtime_aspect_score_value(
                 "scene_energy_missing_required_pressure" not in scene_energy_failure_codes
+            ),
+        ),
+        (
+            "pacing_rhythm_target_present",
+            ASPECT_PACING_RHYTHM,
+            _runtime_aspect_score_value(bool(pacing_rhythm_target)),
+        ),
+        (
+            "pacing_rhythm_contract_pass",
+            ASPECT_PACING_RHYTHM,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_PACING_RHYTHM).get("status") in {"passed", "not_applicable"}
+            ),
+        ),
+        (
+            "pacing_rhythm_density_respected",
+            ASPECT_PACING_RHYTHM,
+            _runtime_aspect_score_value(
+                "pacing_rhythm_visible_density_exceeded" not in pacing_rhythm_failure_codes
+            ),
+        ),
+        (
+            "pacing_rhythm_pause_respected",
+            ASPECT_PACING_RHYTHM,
+            _runtime_aspect_score_value(
+                "pacing_rhythm_pause_obligation_lost" not in pacing_rhythm_failure_codes
+                and "pacing_rhythm_forced_speech_violation" not in pacing_rhythm_failure_codes
             ),
         ),
         (
@@ -6342,6 +6416,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "scene_energy_transition",
         "scene_energy_validation",
         "scene_energy_level",
+        "pacing_rhythm_state",
+        "pacing_rhythm_target",
+        "pacing_rhythm_validation",
         "spoken_line_count",
         "action_line_count",
         "initiative_summary",

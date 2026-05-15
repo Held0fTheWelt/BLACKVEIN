@@ -1,0 +1,53 @@
+# Versioned SceneBlock stimuli for MVP3 pre-commit validators (ADR-0039).
+# Grouped by LDSS validation order in ai_stack/live_dramatic_scene_simulator.py:
+#   actor_lane_blocks -> dramatic_mass -> passivity
+# (narrator_voice / affordance prose lives in mvp3_narrator_and_affordance_examples.yaml)
+# Gate tests assert status / error_code only; block text here is data-only.
+version: 1
+
+scenarios:
+  actor_lane_illegal_human_line:
+    validation_step: actor_lane_blocks
+    expected_error_code: ai_controlled_human_actor
+    block_type: actor_line
+    text: "I agree with everything you said."
+
+  actor_lane_valid_npc_line:
+    validation_step: actor_lane_blocks
+    block_type: actor_line
+    text: "You keep turning this into a legal question."
+
+  actor_lane_illegal_human_apology:
+    validation_step: actor_lane_blocks
+    expected_error_code: ai_controlled_human_actor
+    block_type: actor_line
+    text: "You're absolutely right, I apologize."
+
+  dramatic_mass_narrator_only:
+    validation_step: dramatic_mass
+    expected_error_code: dramatic_alignment_insufficient_mass
+    block_type: narrator
+    text: "The room is tense."
+
+  dramatic_mass_narrator_only_very_thin:
+    validation_step: dramatic_mass
+    expected_error_code: dramatic_alignment_insufficient_mass
+    block_type: narrator
+    text: "The room is very tense."
+
+  dramatic_mass_valid_npc_line:
+    validation_step: dramatic_mass
+    block_type: actor_line
+    text: "That is not acceptable."
+
+  passivity_narrator_only:
+    validation_step: passivity
+    expected_error_code: no_visible_actor_response
+    block_type: narrator
+    text: "The room is tense."
+
+  passivity_narrator_only_very_thin:
+    validation_step: passivity
+    expected_error_code: no_visible_actor_response
+    block_type: narrator
+    text: "The room is very tense."

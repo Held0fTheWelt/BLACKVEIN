@@ -69,6 +69,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
@@ -84,8 +85,15 @@ from ai_stack.dramatic_irony_runtime import (
 )
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.dramatic_capability_contracts import (
+    AI_CONTROLLED_HUMAN_ACTOR_REASON,
     NPC_ACTION_GESTURE_OPTIONAL,
+    NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
+    NPC_ALLOWED_PRESSURE_VERBS,
+    NPC_COERCIVE_ACTION_TYPES,
+    NPC_COERCIVE_CONTROL_VERBS,
     NPC_DIRECT_ANSWER_ALLOWED,
+    NPC_EXECUTED_PLAYER_ACTION_REASON,
+    NPC_NARRATED_PLAYER_PERCEPTION_REASON,
     NPC_SOCIAL_REACTION_OPTIONAL,
     NARRATOR_ACTION_CONSEQUENCE_DESCRIBE,
     NARRATOR_LOCATION_TRANSITION_DESCRIBE,
@@ -129,6 +137,10 @@ from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.information_disclosure_engine import (
     derive_information_disclosure,
     validate_information_disclosure_realization,
+)
+from ai_stack.pacing_rhythm_engine import (
+    derive_pacing_rhythm,
+    validate_pacing_rhythm_realization,
 )
 from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
@@ -602,6 +614,33 @@ def _authority_text_matches_player_action(text: str, frame: dict[str, Any]) -> b
     return verb_hit and len(raw_words.intersection(words)) >= 2
 
 
+def _npc_action_controls_human_actor(row: dict[str, Any], human_scope: set[str]) -> bool:
+    """Return True for structured NPC coercion targeting the player-owned actor."""
+    target_values: list[Any] = [
+        row.get("target_actor_id"),
+        row.get("target_actor"),
+        row.get("target_id"),
+    ]
+    target_actor_ids = row.get("target_actor_ids")
+    if isinstance(target_actor_ids, list):
+        target_values.extend(target_actor_ids)
+    target_ids = row.get("target_ids")
+    if isinstance(target_ids, list):
+        target_values.extend(target_ids)
+    if not any(_actor_in_scope(str(value or ""), human_scope) for value in target_values):
+        return False
+
+    for key in ("coercion_type", "action_type"):
+        value = str(row.get(key) or "").strip().lower()
+        if value in NPC_COERCIVE_ACTION_TYPES:
+            return True
+
+    words = _normalized_word_set(_row_text(row))
+    if words.intersection(NPC_ALLOWED_PRESSURE_VERBS):
+        return False
+    return bool(words.intersection(NPC_COERCIVE_CONTROL_VERBS))
+
+
 def _build_authority_aspect_records(
     *,
     state: "RuntimeTurnState",
@@ -706,13 +745,13 @@ def _build_authority_aspect_records(
         if _actor_in_scope(sid, human_scope):
             offending_actor_id = sid
             offending_block_id = str(row.get("id") or row.get("block_id") or "")
-            failure_reason = "ai_controlled_human_actor"
+            failure_reason = AI_CONTROLLED_HUMAN_ACTOR_REASON
             break
         if is_perception_like_player_input_kind(player_input_kind) and not _actor_in_scope(sid, human_scope):
             if _authority_text_matches_player_action(_row_text(row), frame):
                 offending_actor_id = sid or None
                 offending_block_id = str(row.get("id") or row.get("block_id") or "")
-                failure_reason = "npc_narrated_player_perception"
+                failure_reason = NPC_NARRATED_PLAYER_PERCEPTION_REASON
                 break
     if failure_reason is None:
         for row in action_rows:
@@ -720,7 +759,12 @@ def _build_authority_aspect_records(
             if _actor_in_scope(aid, human_scope):
                 offending_actor_id = aid
                 offending_block_id = str(row.get("id") or row.get("block_id") or "")
-                failure_reason = "ai_controlled_human_actor"
+                failure_reason = AI_CONTROLLED_HUMAN_ACTOR_REASON
+                break
+            if not _actor_in_scope(aid, human_scope) and _npc_action_controls_human_actor(row, human_scope):
+                offending_actor_id = aid or None
+                offending_block_id = str(row.get("id") or row.get("block_id") or "")
+                failure_reason = NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
                 break
             if _actor_in_scope(aid, npc_scope) and (
                 is_action_like_player_input_kind(player_input_kind)
@@ -731,9 +775,9 @@ def _build_authority_aspect_records(
                     offending_actor_id = aid
                     offending_block_id = str(row.get("id") or row.get("block_id") or "")
                     failure_reason = (
-                        "npc_narrated_player_perception"
+                        NPC_NARRATED_PLAYER_PERCEPTION_REASON
                         if is_perception_like_player_input_kind(player_input_kind)
-                        else "npc_executed_player_action"
+                        else NPC_EXECUTED_PLAYER_ACTION_REASON
                     )
                     break
     npc_status = "failed" if failure_reason else "passed"
@@ -784,7 +828,7 @@ def _build_authority_aspect_records(
         failure_reason=failure_reason,
         offending_actor_id=offending_actor_id,
         offending_block_id=offending_block_id or None,
-        expected_owner="narrator" if failure_reason == "npc_narrated_player_perception" else None,
+        expected_owner="narrator" if failure_reason == NPC_NARRATED_PLAYER_PERCEPTION_REASON else None,
         actual_owner="npc" if failure_reason else None,
     )
     return narrator_record, npc_record
@@ -1010,6 +1054,76 @@ def _scene_energy_aspect_record(
         selected=selected,
         actual=actual,
         reasons=failure_codes or (["scene_energy_target_selected"] if target_dict and not validation_dict else []),
+        source="runtime" if not validation_dict else "validator",
+        failure_class="recoverable_dramatic_failure" if failure_codes else None,
+        failure_reason=failure_codes[0] if failure_codes else None,
+    )
+
+
+def _pacing_rhythm_aspect_record(
+    *,
+    state_record: dict[str, Any] | None,
+    target: dict[str, Any] | None,
+    validation: dict[str, Any] | None = None,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    state_dict = state_record if isinstance(state_record, dict) else {}
+    target_dict = target if isinstance(target, dict) else {}
+    validation_dict = validation if isinstance(validation, dict) else {}
+    failure_codes = [
+        str(code)
+        for code in (validation_dict.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    validation_status = str(validation_dict.get("status") or "").strip().lower()
+    applicable = bool(target_dict)
+    if not validation_dict:
+        aspect_status = "partial" if applicable else "not_applicable"
+    elif validation_status == "approved":
+        aspect_status = "passed"
+    elif validation_status == "not_applicable":
+        aspect_status = "not_applicable"
+        applicable = False
+    elif validation_status == "degraded":
+        aspect_status = "partial"
+    else:
+        aspect_status = "failed"
+    actual = (
+        dict(validation_dict.get("actual"))
+        if isinstance(validation_dict.get("actual"), dict)
+        else {}
+    )
+    actual.update(
+        {
+            "validation_status": validation_status or None,
+            "contract_pass": validation_dict.get("contract_pass"),
+            "failure_codes": failure_codes,
+        }
+    )
+    selected = {
+        "state": state_dict,
+        "target": target_dict,
+        "cadence": target_dict.get("cadence"),
+        "tempo_arc": target_dict.get("tempo_arc"),
+        "response_shape": target_dict.get("response_shape"),
+        "turn_change_policy": target_dict.get("turn_change_policy"),
+        "min_visible_blocks": target_dict.get("min_visible_blocks"),
+        "max_visible_blocks": target_dict.get("max_visible_blocks"),
+        "requires_pause": target_dict.get("requires_pause"),
+        "blocks_forced_speech": target_dict.get("blocks_forced_speech"),
+    }
+    return make_aspect_record(
+        applicable=applicable,
+        status=aspect_status,
+        expected={
+            "schema_version": target_dict.get("schema_version"),
+            "policy_present": bool(policy),
+            "policy_enabled": bool((policy or {}).get("enabled")),
+            "validation_uses_structured_counts": True,
+        },
+        selected=selected,
+        actual=actual,
+        reasons=failure_codes or (["pacing_rhythm_target_selected"] if target_dict and not validation_dict else []),
         source="runtime" if not validation_dict else "validator",
         failure_class="recoverable_dramatic_failure" if failure_codes else None,
         failure_reason=failure_codes[0] if failure_codes else None,
@@ -1314,6 +1428,32 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "scene_energy_validation": scene_energy_validation,
     }
+    pacing_rhythm_validation = validate_pacing_rhythm_realization(
+        pacing_rhythm_target=state.get("pacing_rhythm_target")
+        if isinstance(state.get("pacing_rhythm_target"), dict)
+        else None,
+        pacing_rhythm_state=state.get("pacing_rhythm_state")
+        if isinstance(state.get("pacing_rhythm_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_PACING_RHYTHM,
+        _pacing_rhythm_aspect_record(
+            state_record=state.get("pacing_rhythm_state")
+            if isinstance(state.get("pacing_rhythm_state"), dict)
+            else None,
+            target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            validation=pacing_rhythm_validation,
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "pacing_rhythm_validation": pacing_rhythm_validation,
+    }
     information_disclosure_validation = validate_information_disclosure_realization(
         information_disclosure_target=state.get("information_disclosure_target")
         if isinstance(state.get("information_disclosure_target"), dict)
@@ -1498,6 +1638,24 @@ def _build_runtime_aspect_validation(
             "failure_codes": scene_energy_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
+    pacing_rhythm_failure = None
+    if (
+        isinstance(pacing_rhythm_validation, dict)
+        and str(pacing_rhythm_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        rhythm_codes = [
+            str(code)
+            for code in (pacing_rhythm_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        pacing_rhythm_failure = {
+            "failure_reason": str(
+                pacing_rhythm_validation.get("feedback_code")
+                or (rhythm_codes[0] if rhythm_codes else "pacing_rhythm_validation_failed")
+            ),
+            "failure_codes": rhythm_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     information_disclosure_failure = None
     if (
         isinstance(information_disclosure_validation, dict)
@@ -1677,6 +1835,26 @@ def _build_runtime_aspect_validation(
             "scene_energy_failure": scene_energy_failure,
         }
     elif (
+        pacing_rhythm_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            pacing_rhythm_failure.get("failure_reason")
+            or "pacing_rhythm_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "pacing_rhythm_validation_v1",
+            "pacing_rhythm_contract_violation": True,
+            "failure_class": pacing_rhythm_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "pacing_rhythm_failure": pacing_rhythm_failure,
+        }
+    elif (
         information_disclosure_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -1725,6 +1903,14 @@ def _build_runtime_aspect_validation(
                     else None
                 ),
                 "scene_energy_contract_violation": bool(next_outcome.get("scene_energy_contract_violation")),
+                "pacing_rhythm_validation_status": (
+                    pacing_rhythm_validation.get("status")
+                    if isinstance(pacing_rhythm_validation, dict)
+                    else None
+                ),
+                "pacing_rhythm_contract_violation": bool(
+                    next_outcome.get("pacing_rhythm_contract_violation")
+                ),
                 "information_disclosure_validation_status": (
                     information_disclosure_validation.get("status")
                     if isinstance(information_disclosure_validation, dict)
@@ -1792,6 +1978,7 @@ def _build_runtime_aspect_validation(
         "capability_selection": capability_selection,
         "voice_consistency_validation": voice_validation,
         "scene_energy_validation": scene_energy_validation,
+        "pacing_rhythm_validation": pacing_rhythm_validation,
         "information_disclosure_validation": information_disclosure_validation,
         "dramatic_irony_validation": dramatic_irony_validation,
         "npc_initiative_validation": npc_initiative_validation,
@@ -2651,6 +2838,18 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             if isinstance(state.get("scene_energy_transition"), dict)
             else {},
         },
+        "pacing_rhythm": {
+            "state": state.get("pacing_rhythm_state")
+            if isinstance(state.get("pacing_rhythm_state"), dict)
+            else {},
+            "target": state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else {},
+            "instruction": (
+                "Follow the selected rhythm target with structured spoken_lines/action_lines counts. "
+                "Do not satisfy rhythm by adding unstructured prose; preserve actor-lane and silence constraints."
+            ),
+        },
         "information_disclosure": {
             "target": state.get("information_disclosure_target")
             if isinstance(state.get("information_disclosure_target"), dict)
@@ -2839,6 +3038,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("director_assess_scene", self._director_assess_scene)
         graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
         graph.add_node("derive_scene_energy", self._derive_scene_energy)
+        graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
         graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
         graph.add_node("derive_dramatic_irony", self._derive_dramatic_irony)
         graph.add_node("synthesize_context", self._synthesize_context)
@@ -2866,7 +3066,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
         graph.add_edge("director_select_dramatic_parameters", "derive_scene_energy")
-        graph.add_edge("derive_scene_energy", "derive_information_disclosure")
+        graph.add_edge("derive_scene_energy", "derive_pacing_rhythm")
+        graph.add_edge("derive_pacing_rhythm", "derive_information_disclosure")
         graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
         graph.add_edge("derive_dramatic_irony", "synthesize_context")
         graph.add_edge("synthesize_context", "assemble_model_context")
@@ -4476,6 +4677,64 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_pacing_rhythm(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_pacing_rhythm")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_pacing_rhythm(
+            scene_plan_record=scene_plan,
+            pacing_mode=state.get("pacing_mode") if isinstance(state.get("pacing_mode"), str) else None,
+            silence_brevity_decision=state.get("silence_brevity_decision")
+            if isinstance(state.get("silence_brevity_decision"), dict)
+            else None,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            selected_responder_set=state.get("selected_responder_set")
+            if isinstance(state.get("selected_responder_set"), list)
+            else None,
+            prior_pacing_rhythm_state=state.get("prior_pacing_rhythm_state")
+            if isinstance(state.get("prior_pacing_rhythm_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            prior_dramatic_signature=state.get("prior_dramatic_signature")
+            if isinstance(state.get("prior_dramatic_signature"), dict)
+            else None,
+            prior_narrative_thread_state=state.get("prior_narrative_thread_state")
+            if isinstance(state.get("prior_narrative_thread_state"), dict)
+            else None,
+            prior_callback_web_state=state.get("prior_callback_web_state")
+            if isinstance(state.get("prior_callback_web_state"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        rhythm_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if rhythm_state:
+            scene_plan["pacing_rhythm_state"] = rhythm_state
+        if target:
+            scene_plan["pacing_rhythm_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["pacing_rhythm_state"] = rhythm_state
+        update["pacing_rhythm_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_PACING_RHYTHM,
+            _pacing_rhythm_aspect_record(
+                state_record=rhythm_state,
+                target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
     def _derive_information_disclosure(self, state: RuntimeTurnState) -> RuntimeTurnState:
         update = _track(state, node_name="derive_information_disclosure")
         scene_plan = (
@@ -4784,6 +5043,28 @@ class RuntimeTurnGraphExecutor:
         silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
         if silence:
             lines.append(f"Silence/Brevity Decision: {json.dumps(silence, sort_keys=True)[:260]}")
+        rhythm_target = (
+            state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else {}
+        )
+        if rhythm_target:
+            compact_rhythm = {
+                key: rhythm_target.get(key)
+                for key in (
+                    "cadence",
+                    "tempo_arc",
+                    "response_shape",
+                    "turn_change_policy",
+                    "min_visible_blocks",
+                    "max_visible_blocks",
+                    "min_actor_turns",
+                    "requires_pause",
+                    "blocks_forced_speech",
+                )
+                if rhythm_target.get(key) is not None
+            }
+            lines.append(f"Pacing Rhythm Target: {json.dumps(compact_rhythm, sort_keys=True)[:320]}")
 
         memory_context = state.get("hierarchical_memory_context") if isinstance(state.get("hierarchical_memory_context"), dict) else {}
         memory_lines = memory_context.get("context_lines") if isinstance(memory_context.get("context_lines"), list) else []
@@ -5846,6 +6127,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "capability"
             elif isinstance(outcome.get("scene_energy_failure"), dict):
                 trigger_source = "scene_energy"
+            elif isinstance(outcome.get("pacing_rhythm_failure"), dict):
+                trigger_source = "pacing_rhythm"
             elif isinstance(outcome.get("information_disclosure_failure"), dict):
                 trigger_source = "information_disclosure"
             elif isinstance(outcome.get("dramatic_irony_failure"), dict):
@@ -5863,6 +6146,11 @@ class RuntimeTurnGraphExecutor:
             scene_energy_failure_before_retry = (
                 dict(outcome.get("scene_energy_failure"))
                 if isinstance(outcome.get("scene_energy_failure"), dict)
+                else None
+            )
+            pacing_rhythm_failure_before_retry = (
+                dict(outcome.get("pacing_rhythm_failure"))
+                if isinstance(outcome.get("pacing_rhythm_failure"), dict)
                 else None
             )
             information_disclosure_failure_before_retry = (
@@ -5884,6 +6172,7 @@ class RuntimeTurnGraphExecutor:
                 "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                 "capability_failure_before_retry": capability_failure_before_retry,
                 "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
+                "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
@@ -5925,6 +6214,7 @@ class RuntimeTurnGraphExecutor:
                     "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                     "capability_failure_before_retry": capability_failure_before_retry,
                     "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
+                    "pacing_rhythm_failure_before_retry": pacing_rhythm_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
@@ -6007,6 +6297,8 @@ class RuntimeTurnGraphExecutor:
             update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
         if isinstance(validation_eval.get("scene_energy_validation"), dict):
             update["scene_energy_validation"] = validation_eval["scene_energy_validation"]
+        if isinstance(validation_eval.get("pacing_rhythm_validation"), dict):
+            update["pacing_rhythm_validation"] = validation_eval["pacing_rhythm_validation"]
         if isinstance(validation_eval.get("information_disclosure_validation"), dict):
             update["information_disclosure_validation"] = validation_eval[
                 "information_disclosure_validation"
@@ -6064,10 +6356,14 @@ class RuntimeTurnGraphExecutor:
         update = _track(state, node_name="commit_seam")
         validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
         proposed = list(state.get("proposed_state_effects") or [])
+        candidate_deltas = state.get("candidate_deltas")
+        state_delta_boundary = state.get("state_delta_boundary")
         committed = run_commit_seam(
             module_id=state.get("module_id") or "",
             validation_outcome=validation,
             proposed_state_effects=proposed,
+            candidate_deltas=candidate_deltas if isinstance(candidate_deltas, list) else None,
+            state_delta_boundary=state_delta_boundary if isinstance(state_delta_boundary, dict) else None,
             player_action_frame=state.get("player_action_frame")
             if isinstance(state.get("player_action_frame"), dict)
             else None,
@@ -6126,7 +6422,17 @@ class RuntimeTurnGraphExecutor:
         ):
             commit_status = "passed"
         commit_failure_reason = None
-        if validation_status == "approved" and not commit_applied:
+        state_delta_rejection = (
+            committed.get("state_delta_rejection")
+            if isinstance(committed.get("state_delta_rejection"), dict)
+            else {}
+        )
+        if state_delta_rejection:
+            commit_status = "failed"
+            commit_failure_reason = str(
+                state_delta_rejection.get("error_code") or "state_delta_boundary_violation"
+            )
+        if validation_status == "approved" and not commit_applied and not state_delta_rejection:
             commit_failure_reason = "approved_turn_without_committed_effects"
         ledger_aspects = (
             (state.get("turn_aspect_ledger") or {}).get("turn_aspect_ledger")
@@ -6167,10 +6473,17 @@ class RuntimeTurnGraphExecutor:
                     "selected_capabilities": cap_selected.get("selected_capabilities"),
                     "realized_capabilities": cap_actual.get("realized_capabilities"),
                     "forbidden_capability_realized": cap_actual.get("forbidden_capability_realized"),
+                    "state_delta_rejection": state_delta_rejection,
                 },
                 reasons=[commit_failure_reason] if commit_failure_reason else [],
                 source="runtime",
-                failure_class="observability_gap" if commit_failure_reason else None,
+                failure_class=(
+                    "hard_contract_failure"
+                    if state_delta_rejection
+                    else "observability_gap"
+                    if commit_failure_reason
+                    else None
+                ),
                 failure_reason=commit_failure_reason,
             ),
         )

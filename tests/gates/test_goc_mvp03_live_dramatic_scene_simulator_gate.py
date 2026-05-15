@@ -79,12 +79,40 @@ from ai_stack.live_dramatic_scene_simulator import (
 _MVP3_TEXT = copy.deepcopy(_load_gate_fixture_yaml("mvp3_narrator_and_affordance_examples.yaml"))
 # LDSS player_input stimuli: tests/gates/fixtures/mvp3_ldss_player_inputs.yaml (wave 03; same strings as before).
 _MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
+# Pre-commit validator SceneBlock stimuli (LDSS validation order; ADR-0039).
+_MVP3_PRE_COMMIT = copy.deepcopy(_load_gate_fixture_yaml("mvp3_pre_commit_validator_stimuli.yaml"))
 _PRIMARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[0]
 _SECONDARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[1]
 
 
 def _npc_actor_ids_for(human_actor_id: str) -> list[str]:
     return goc_npc_actor_ids_for_selected(human_actor_id)
+
+
+def _pre_commit_scenario(name: str) -> dict:
+    """Named validator stimulus from mvp3_pre_commit_validator_stimuli.yaml."""
+    try:
+        return copy.deepcopy(_MVP3_PRE_COMMIT["scenarios"][name])
+    except KeyError as exc:
+        raise KeyError(f"Unknown pre-commit validator scenario: {name!r}") from exc
+
+
+def _scene_block_from_pre_commit_scenario(
+    name: str,
+    *,
+    block_id: str,
+    actor_id: str | None = None,
+    speaker_label: str | None = None,
+) -> SceneBlock:
+    """Build a SceneBlock from a versioned pre-commit validator stimulus."""
+    spec = _pre_commit_scenario(name)
+    return SceneBlock(
+        id=block_id,
+        block_type=spec["block_type"],
+        actor_id=actor_id,
+        speaker_label=speaker_label,
+        text=spec["text"],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -316,19 +344,18 @@ def test_mvp3_gate_actor_lane_validation_before_commit():
     """Actor-lane validation rejects human actor control without committing illegal state."""
     human_id = _PRIMARY_HUMAN_ID
     valid_npc_id = _npc_actor_ids_for(human_id)[0]
-    illegal_block = SceneBlock(
-        id="test-illegal",
-        block_type="actor_line",
+    illegal_spec = _pre_commit_scenario("actor_lane_illegal_human_line")
+    illegal_block = _scene_block_from_pre_commit_scenario(
+        "actor_lane_illegal_human_line",
+        block_id="test-illegal",
         speaker_label=goc_role_display_name(human_id),
         actor_id=human_id,  # human actor — forbidden
-        text="I agree with everything you said.",
     )
-    valid_block = SceneBlock(
-        id="test-valid",
-        block_type="actor_line",
+    valid_block = _scene_block_from_pre_commit_scenario(
+        "actor_lane_valid_npc_line",
+        block_id="test-valid",
         speaker_label=goc_role_display_name(valid_npc_id),
         actor_id=valid_npc_id,
-        text="You keep turning this into a legal question.",
     )
 
     # Rejection without commit
@@ -336,7 +363,7 @@ def test_mvp3_gate_actor_lane_validation_before_commit():
         [illegal_block], human_actor_id=human_id
     )
     assert illegal_result.status == "rejected"
-    assert illegal_result.error_code == "ai_controlled_human_actor"
+    assert illegal_result.error_code == illegal_spec["expected_error_code"]
     assert illegal_result.actor_id == human_id
 
     # Approval of valid NPC block
@@ -355,32 +382,31 @@ def test_mvp3_gate_actor_lane_validation_before_commit():
 @pytest.mark.mvp3
 def test_mvp3_gate_dramatic_validation_before_commit():
     """Dramatic validation rejects too-thin output (no visible NPC response)."""
-    # Narrator-only output fails dramatic mass check
+    mass_thin_spec = _pre_commit_scenario("dramatic_mass_narrator_only")
+    passivity_thin_spec = _pre_commit_scenario("passivity_narrator_only")
     narrator_only = [
-        SceneBlock(
-            id="test-narrator",
-            block_type="narrator",
+        _scene_block_from_pre_commit_scenario(
+            "dramatic_mass_narrator_only",
+            block_id="test-narrator",
             actor_id=None,
-            text="The room is tense.",
         )
     ]
     result = validate_dramatic_mass(narrator_only)
     assert result.status == "rejected"
-    assert result.error_code == "dramatic_alignment_insufficient_mass"
+    assert result.error_code == mass_thin_spec["expected_error_code"]
 
     # Passivity validation also rejects narrator-only
     passivity_result = validate_passivity(narrator_only)
     assert passivity_result.status == "rejected"
-    assert passivity_result.error_code == "no_visible_actor_response"
+    assert passivity_result.error_code == passivity_thin_spec["expected_error_code"]
 
     # Valid: at least one NPC actor_line
     valid_blocks = narrator_only + [
-        SceneBlock(
-            id="test-actor",
-            block_type="actor_line",
+        _scene_block_from_pre_commit_scenario(
+            "dramatic_mass_valid_npc_line",
+            block_id="test-actor",
             speaker_label=goc_role_display_name(_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0]),
             actor_id=_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0],
-            text="That is not acceptable.",
         )
     ]
     valid_result = validate_dramatic_mass(valid_blocks)
@@ -434,19 +460,18 @@ def test_mvp3_gate_response_packaged_from_committed_state():
 def test_mvp3_gate_invalid_ai_human_control_rejected_without_commit():
     """When AI would control human actor, rejection returns structured error without commit."""
     human_id = _PRIMARY_HUMAN_ID
-    # Simulate AI-generated block with human actor
+    illegal_spec = _pre_commit_scenario("actor_lane_illegal_human_apology")
     illegal_blocks = [
-        SceneBlock(
-            id="illegal-1",
-            block_type="actor_line",
+        _scene_block_from_pre_commit_scenario(
+            "actor_lane_illegal_human_apology",
+            block_id="illegal-1",
             speaker_label=goc_role_display_name(human_id),
             actor_id=human_id,
-            text="You're absolutely right, I apologize.",
         )
     ]
     result = validate_actor_lane_blocks(illegal_blocks, human_actor_id=human_id)
     assert result.status == "rejected"
-    assert result.error_code == "ai_controlled_human_actor"
+    assert result.error_code == illegal_spec["expected_error_code"]
 
     # run_ldss must not produce human actor in blocks
     ldss_input = _primary_human_ldss_input()
@@ -464,24 +489,24 @@ def test_mvp3_gate_invalid_ai_human_control_rejected_without_commit():
 @pytest.mark.mvp3
 def test_mvp3_gate_too_thin_mock_output_recovered_or_rejected_without_commit():
     """Too-thin output (narrator only) is rejected with structured error, not committed."""
-    # Build a proposal with only a narrator block (no NPC visible response)
+    mass_spec = _pre_commit_scenario("dramatic_mass_narrator_only_very_thin")
+    passivity_spec = _pre_commit_scenario("passivity_narrator_only_very_thin")
     thin_proposal = [
-        SceneBlock(
-            id="turn-1-block-1",
-            block_type="narrator",
-            text="The room is very tense.",
+        _scene_block_from_pre_commit_scenario(
+            "dramatic_mass_narrator_only_very_thin",
+            block_id="turn-1-block-1",
         )
     ]
 
     # validate_dramatic_mass rejects it
     mass_result = validate_dramatic_mass(thin_proposal)
     assert mass_result.status == "rejected"
-    assert mass_result.error_code == "dramatic_alignment_insufficient_mass"
+    assert mass_result.error_code == mass_spec["expected_error_code"]
 
     # validate_passivity rejects it
     passivity_result = validate_passivity(thin_proposal)
     assert passivity_result.status == "rejected"
-    assert passivity_result.error_code == "no_visible_actor_response"
+    assert passivity_result.error_code == passivity_spec["expected_error_code"]
 
     # run_ldss never produces thin output (deterministic mock always has NPC response)
     ldss_input = _primary_human_ldss_input()

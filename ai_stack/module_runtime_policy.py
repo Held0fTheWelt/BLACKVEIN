@@ -20,6 +20,7 @@ from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
 from ai_stack.information_disclosure_contracts import normalize_information_disclosure_policy
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
+from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 
 
@@ -183,6 +184,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     dramatic_irony = dramatic_irony if isinstance(dramatic_irony, dict) else {}
     callback_web = raw.get("callback_web")
     callback_web = callback_web if isinstance(callback_web, dict) else {}
+    pacing_rhythm = raw.get("pacing_rhythm")
+    pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
 
     return {
         "action_resolution_short_path": {
@@ -227,6 +230,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
             ),
         },
         "scene_energy": normalize_scene_energy_policy(scene_energy),
+        "pacing_rhythm": normalize_pacing_rhythm_policy(pacing_rhythm),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
         "callback_web": normalize_callback_web_policy(callback_web),
     }

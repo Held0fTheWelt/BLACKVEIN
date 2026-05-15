@@ -21,6 +21,7 @@ ASPECT_INPUT = "input"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
 ASPECT_BEAT = "beat"
 ASPECT_SCENE_ENERGY = "scene_energy"
+ASPECT_PACING_RHYTHM = "pacing_rhythm"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
@@ -40,6 +41,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_SCENE_ENERGY,
+    ASPECT_PACING_RHYTHM,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
@@ -294,6 +296,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_SCENE_ENERGY), dict)
         else {}
     )
+    pacing_rhythm_rec = (
+        aspects.get(ASPECT_PACING_RHYTHM)
+        if isinstance(aspects.get(ASPECT_PACING_RHYTHM), dict)
+        else {}
+    )
     cap_rec = (
         aspects.get(ASPECT_CAPABILITY_SELECTION)
         if isinstance(aspects.get(ASPECT_CAPABILITY_SELECTION), dict)
@@ -361,6 +368,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     scene_energy_expected = _record_block(scene_energy_rec, "expected")
     scene_energy_selected = _record_block(scene_energy_rec, "selected")
     scene_energy_actual = _record_block(scene_energy_rec, "actual")
+    pacing_rhythm_expected = _record_block(pacing_rhythm_rec, "expected")
+    pacing_rhythm_selected = _record_block(pacing_rhythm_rec, "selected")
+    pacing_rhythm_actual = _record_block(pacing_rhythm_rec, "actual")
     cap_expected = _record_block(cap_rec, "expected")
     cap_selected = _record_block(cap_rec, "selected")
     cap_actual = _record_block(cap_rec, "actual")
@@ -483,6 +493,73 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "failure_reason": scene_energy_rec.get("failure_reason")
                 or (_record_reasons(scene_energy_rec)[0] if _record_reasons(scene_energy_rec) else None),
                 "status": scene_energy_rec.get("status"),
+            },
+            "pacing_rhythm": {
+                "schema_version": pacing_rhythm_expected.get("schema_version")
+                or pacing_rhythm_selected.get("schema_version")
+                or pacing_rhythm_actual.get("schema_version"),
+                "policy_present": bool(pacing_rhythm_expected.get("policy_present")),
+                "policy_enabled": bool(pacing_rhythm_expected.get("policy_enabled")),
+                "cadence": _record_nested_value(
+                    pacing_rhythm_selected, "cadence", "target"
+                ),
+                "tempo_arc": _record_nested_value(
+                    pacing_rhythm_selected, "tempo_arc", "target"
+                ),
+                "response_shape": _record_nested_value(
+                    pacing_rhythm_selected, "response_shape", "target"
+                ),
+                "turn_change_policy": _record_nested_value(
+                    pacing_rhythm_selected, "turn_change_policy", "target"
+                ),
+                "min_visible_blocks": int(
+                    pacing_rhythm_selected.get("min_visible_blocks")
+                    or (
+                        pacing_rhythm_selected.get("target", {}).get("min_visible_blocks")
+                        if isinstance(pacing_rhythm_selected.get("target"), dict)
+                        else 0
+                    )
+                    or 0
+                ),
+                "max_visible_blocks": int(
+                    pacing_rhythm_selected.get("max_visible_blocks")
+                    or (
+                        pacing_rhythm_selected.get("target", {}).get("max_visible_blocks")
+                        if isinstance(pacing_rhythm_selected.get("target"), dict)
+                        else 0
+                    )
+                    or 0
+                ),
+                "visible_block_count": int(
+                    pacing_rhythm_actual.get("visible_block_count") or 0
+                ),
+                "actor_turn_count": int(pacing_rhythm_actual.get("actor_turn_count") or 0),
+                "requires_pause": bool(
+                    pacing_rhythm_selected.get("requires_pause")
+                    or (
+                        pacing_rhythm_selected.get("target", {}).get("requires_pause")
+                        if isinstance(pacing_rhythm_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "blocks_forced_speech": bool(
+                    pacing_rhythm_selected.get("blocks_forced_speech")
+                    or (
+                        pacing_rhythm_selected.get("target", {}).get("blocks_forced_speech")
+                        if isinstance(pacing_rhythm_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "contract_pass": pacing_rhythm_actual.get("contract_pass"),
+                "failure_codes": pacing_rhythm_actual.get("failure_codes")
+                or _record_reasons(pacing_rhythm_rec),
+                "failure_reason": pacing_rhythm_rec.get("failure_reason")
+                or (
+                    _record_reasons(pacing_rhythm_rec)[0]
+                    if _record_reasons(pacing_rhythm_rec)
+                    else None
+                ),
+                "status": pacing_rhythm_rec.get("status"),
             },
             "capability": {
                 "selected_capabilities": selected_capabilities

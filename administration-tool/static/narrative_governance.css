@@ -43,3 +43,29 @@
     padding: 0.75rem;
     border-radius: 6px;
 }
+
+/* Narrative runtime (/manage/narrative/runtime) — aligned with manage diagnosis MUI */
+.ng-runtime-inspector {
+    margin-top: 1rem;
+}
+
+.ng-runtime-inspector + .ng-runtime-inspector {
+    margin-top: 1.25rem;
+}
+
+.ng-runtime-gov-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.ng-runtime-panel h4 {
+    margin: 0 0 0.55rem 0;
+    font-size: 0.95rem;
+}
+
+.ng-runtime-session-card {
+    padding: 0.85rem 0.95rem;
+}
+
+.ng-runtime-technical {
+    margin-top: 0.25rem;
+}

@@ -126,6 +126,9 @@ class PlannerTruth(BaseModel):
     scene_energy_transition: dict[str, Any] = Field(default_factory=dict)
     scene_energy_validation: dict[str, Any] = Field(default_factory=dict)
     scene_energy_level: str | None = None
+    pacing_rhythm_state: dict[str, Any] = Field(default_factory=dict)
+    pacing_rhythm_target: dict[str, Any] = Field(default_factory=dict)
+    pacing_rhythm_validation: dict[str, Any] = Field(default_factory=dict)
     spoken_line_count: int = 0
     action_line_count: int = 0
     initiative_summary: dict[str, Any] = Field(default_factory=dict)
@@ -760,6 +763,16 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_scene_energy.get("transition")
     )
     scene_energy_validation = _as_dict(graph_state.get("scene_energy_validation"))
+    dramatic_packet_pacing_rhythm = _as_dict(dramatic_packet.get("pacing_rhythm"))
+    pacing_rhythm_state = _as_dict(
+        graph_state.get("pacing_rhythm_state")
+        or dramatic_packet_pacing_rhythm.get("state")
+    )
+    pacing_rhythm_target = _as_dict(
+        graph_state.get("pacing_rhythm_target")
+        or dramatic_packet_pacing_rhythm.get("target")
+    )
+    pacing_rhythm_validation = _as_dict(graph_state.get("pacing_rhythm_validation"))
     npc_agency_simulation = _as_dict(
         dramatic_packet.get("npc_agency_simulation")
         or graph_state.get("npc_agency_simulation")
@@ -832,6 +845,9 @@ def _planner_truth_from_graph_state(
         scene_energy_transition=scene_energy_transition,
         scene_energy_validation=scene_energy_validation,
         scene_energy_level=_opt_str(scene_energy_target.get("energy_level")),
+        pacing_rhythm_state=pacing_rhythm_state,
+        pacing_rhythm_target=pacing_rhythm_target,
+        pacing_rhythm_validation=pacing_rhythm_validation,
         spoken_line_count=spoken_line_count,
         action_line_count=action_line_count,
         initiative_summary=initiative_summary,

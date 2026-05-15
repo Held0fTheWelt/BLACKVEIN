@@ -213,6 +213,65 @@ runtime_intelligence:
         volatility: breaking
         target_transition: rise
         minimum_actor_response_count: 2
+  pacing_rhythm:
+    enabled: true
+    schema_version: pacing_rhythm_policy.v1
+    max_repeated_cadence_count: 2
+    default_max_visible_blocks: 6
+    cadence_profiles:
+      breathe:
+        tempo_arc: still
+        response_shape: pause
+        turn_change_policy: silence_or_action_only
+        min_visible_blocks: 0
+        max_visible_blocks: 3
+        min_actor_turns: 0
+        max_actor_turns: 1
+        requires_pause: true
+      hold:
+        tempo_arc: standard
+        response_shape: single_beat
+        turn_change_policy: allow_hold
+        min_visible_blocks: 1
+        max_visible_blocks: 6
+      press:
+        tempo_arc: accelerating
+        response_shape: exchange
+        turn_change_policy: prefer_actor_turn_change
+        min_visible_blocks: 1
+        max_visible_blocks: 6
+        min_actor_turns: 1
+      release:
+        tempo_arc: releasing
+        response_shape: single_beat
+        turn_change_policy: allow_hold
+        min_visible_blocks: 1
+        max_visible_blocks: 5
+        max_actor_turns: 2
+      pivot:
+        tempo_arc: compressed
+        response_shape: exchange
+        turn_change_policy: prefer_actor_turn_change
+        min_visible_blocks: 1
+        max_visible_blocks: 6
+      interrupt:
+        tempo_arc: accelerating
+        response_shape: multi_reaction
+        turn_change_policy: require_actor_turn_change
+        min_visible_blocks: 2
+        max_visible_blocks: 8
+        min_actor_turns: 2
+    pacing_mode_profiles:
+      thin_edge:
+        max_visible_blocks: 3
+        requires_pause: true
+      compressed:
+        max_visible_blocks: 5
+      multi_pressure:
+        min_actor_turns: 2
+      containment:
+        tempo_arc: compressed
+        response_shape: exchange
   dramatic_irony:
     enabled: true
     schema_version: dramatic_irony.v1
