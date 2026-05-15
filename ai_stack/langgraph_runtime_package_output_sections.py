@@ -117,6 +117,9 @@ def build_planner_state_projection(state: RuntimeTurnState) -> dict[str, Any]:
         "pacing_rhythm_state": state.get("pacing_rhythm_state"),
         "pacing_rhythm_target": state.get("pacing_rhythm_target"),
         "pacing_rhythm_validation": state.get("pacing_rhythm_validation"),
+        "genre_awareness_state": state.get("genre_awareness_state"),
+        "genre_awareness_target": state.get("genre_awareness_target"),
+        "genre_awareness_validation": state.get("genre_awareness_validation"),
         "note": "Derived projection of RuntimeTurnState planner fields — not a second truth surface.",
     }
 
@@ -223,6 +226,19 @@ def build_bounded_dramatic_context_summary(state: RuntimeTurnState) -> dict[str,
             "validation_status": (
                 state.get("pacing_rhythm_validation", {}).get("status")
                 if isinstance(state.get("pacing_rhythm_validation"), dict)
+                else None
+            ),
+        },
+        "genre_awareness": {
+            "state": state.get("genre_awareness_state")
+            if isinstance(state.get("genre_awareness_state"), dict)
+            else {},
+            "target": state.get("genre_awareness_target")
+            if isinstance(state.get("genre_awareness_target"), dict)
+            else {},
+            "validation_status": (
+                state.get("genre_awareness_validation", {}).get("status")
+                if isinstance(state.get("genre_awareness_validation"), dict)
                 else None
             ),
         },

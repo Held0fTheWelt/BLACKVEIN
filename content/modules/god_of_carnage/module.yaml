@@ -331,6 +331,36 @@ runtime_intelligence:
       probe_motive: mid_tension
       reveal_surface: mid_tension
       scene_pivot: mid_tension
+  symbolic_object_resonance:
+    enabled: true
+    schema_version: symbolic_object_resonance_policy.v1
+    max_symbols_per_turn: 2
+    max_source_refs: 6
+    require_structured_events: false
+    default_commit_impact: diagnostic
+    model_context_visibility: bounded_structured_only
+    allowed_resonance_roles:
+      - attention_diversion
+      - departure_surface
+      - exposure_surface
+      - hospitality_surface
+      - status_surface
+      - territorial_anchor
+    role_weights:
+      territorial_anchor: 90
+      exposure_surface: 80
+      hospitality_surface: 72
+      status_surface: 68
+      attention_diversion: 64
+      departure_surface: 58
+    source_priority:
+      - player_action_frame
+      - environment_state
+      - sensory_context_target
+      - social_pressure_target
+      - relationship_state_record
+      - prior_callback_web_state
+      - prior_consequence_cascade_state
   tonal_consistency:
     enabled: true
     schema_version: tonal_consistency_policy.v1
@@ -383,6 +413,25 @@ runtime_intelligence:
       withhold_or_evade: social_pressure_restraint
       reveal_surface: social_pressure_restraint
       scene_pivot: social_pressure_restraint
+  genre_awareness:
+    enabled: true
+    schema_version: genre_awareness_policy.v1
+    genre_profile_id: bourgeois_social_drama
+    allowed_registers:
+      - social_drama
+      - restrained_theatrical
+    required_conventions:
+      - civility_under_pressure
+      - status_and_blame_conflict
+      - concrete_domestic_staging
+    forbidden_genre_markers:
+      - id: fantasy_quest_frame
+      - id: therapy_resolution_frame
+      - id: debug_runtime_frame
+    require_structured_events: true
+    max_genre_signals_per_turn: 1
+    default_commit_impact: recover
+    model_context_visibility: bounded_genre_profile
   social_pressure:
     enabled: true
     schema_version: social_pressure_policy.v1

@@ -4,7 +4,7 @@
 - **Date:** 2026-05-13
 - **Project:** World of Shadows
 - **Decision owner:** Engineering / QA / Runtime governance
-- **Related areas:** Operational gates, MVP gates, CI, contract tests, narrative/runtime validation
+- **Related areas:** Operational gates, MVP gates, CI, contract tests, narrative/runtime validation, **`story_runtime_core`** shared runtime library (input interpretation, recovery, branching)
 - **Related ADR:** [ADR-0008](adr-0008-validation-strategy-explicit-configurable.md) — validation strategy must remain explicit and meaningful
 - **Related ADR:** [ADR-0009](adr-0009-evaluation-is-a-promotion-gate.md) — evaluation and gates are promotion mechanisms, not decoration
 - **Related ADR:** [ADR-0025](adr-0025-canonical-authored-content-model.md) — canonical content is the right oracle surface for slice truth
@@ -84,6 +84,20 @@ Local pytest, mocked provider checks, fixture traces, and degraded/fallback path
 
 False-green prevention for MCP/Langfuse gates requires structured result fields: return codes, command/cwd or query metadata, environment scope, evidence scope, score names, and normalized runtime metadata. A PASS label, test name, trace id string, comment, or documentation statement is not proof unless the structured output supports the claim.
 
+### Runtime surface governance (expanded scope)
+
+ADR-0039 governs **runtime behavior and decision surfaces**, not only tests and documentation. Any path that can distort **runtime truth, readiness, player/session/turn flow, beat progression, or decision-tree behavior** is in scope, including:
+
+- **`ai_stack`** — LangGraph executor, `run_validation_seam`, `runtime_aspect_ledger` / `runtime_intelligence_projection`, ADR-0041 sidecar and flags (fail-closed defaults; projection must not impersonate seam or commit).
+- **`world-engine`** — `StoryRuntimeManager`, commit/readiness models, narrative commit seam.
+- **`backend`** — player-session bundle and readiness derivation (`evaluate_session_opening_readiness`, ADR-0041 veto-only consumer).
+- **`frontend` Play Shell** — must **not manufacture** readiness, live, or healthy semantics; display only fields the backend/runtime bundle proves.
+- **`story_runtime_core`** — first-class: `interpret_player_input` / locale rules (**preview** shaping only), **`recovery/no_dead_end`** (**diagnostic** evidence contract only), branching / callback / consequence helpers (**diagnostic** unless explicitly wired through world-engine commit). This package must **not** bypass canonical validation or commit authority.
+
+**Normative inventory:** [`docs/MVPs/adr0039_runtime_surface_governance_inventory.md`](../MVPs/adr0039_runtime_surface_governance_inventory.md) (YAML front matter, gate-enforced). Code is authoritative over prose; update the inventory when surfaces change.
+
+**Interaction with ADR-0041:** Scoped co-authority and readiness aggregation remain **bounded, explicit, and testable**; they must **not** silently mutate `validation_outcome`, commit, or seam-canonical readiness. `plan_enforced` without the LangGraph graph sidecar must remain **dry-run** on the ledger projection path.
+
 ---
 
 ## 3. Consequences
@@ -109,6 +123,7 @@ False-green prevention for MCP/Langfuse gates requires structured result fields:
 ## 4. Testing (how this ADR is enforced)
 
 - **Review gate:** PR reviewers reject hardcoded-oracle gate tests per §2.
+- **Runtime surface inventory gate:** `tests/gates/test_adr0039_runtime_surface_governance.py` — inventory file present, YAML parseable, required surfaces (including **`story_runtime_core_*`**) listed with valid `authority_level` and existing `primary_files`.
 - **Optional automation (future):** lint or CI heuristic flagging large string literals in gate test paths (low precision; human decision remains authoritative).
 - **Failure mode triggering ADR review:** Evidence that a gate test was changed only by adjusting expected literals while production behavior or contracts did not improve.
 
@@ -121,6 +136,7 @@ False-green prevention for MCP/Langfuse gates requires structured result fields:
 - [ADR-0025 — Canonical authored content model](adr-0025-canonical-authored-content-model.md)
 - [ADR-MVP2-016 — Operational gates](MVP_Live_Runtime_Completion/adr-mvp2-016-operational-gates.md)
 - Repository test runner: `tests/run_tests.py` (canonical; gate suites must stay honest under this ADR)
+- [Runtime surface governance inventory](../MVPs/adr0039_runtime_surface_governance_inventory.md)
 
 ---
 

@@ -852,6 +852,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_consequence_cascade_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
+    if failure.startswith("symbolic_object_resonance_"):
+        return "repair_symbolic_object_resonance_structured_selection"
     if failure.startswith("temporal_control_"):
         return "repair_temporal_control_bounded_committed_refs"
     if failure.startswith("improv_") or failure.startswith("improvisational_coherence_"):
@@ -876,6 +878,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
     temporal_control_rec = _aspect_record(ledger, "temporal_control")
     sensory_context_rec = _aspect_record(ledger, "sensory_context")
+    symbolic_object_rec = _aspect_record(ledger, "symbolic_object_resonance")
     improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
     relationship_state_rec = _aspect_record(ledger, "relationship_state")
@@ -907,6 +910,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     temporal_control_actual = _aspect_block(temporal_control_rec, "actual")
     sensory_context_selected = _aspect_block(sensory_context_rec, "selected")
     sensory_context_actual = _aspect_block(sensory_context_rec, "actual")
+    symbolic_object_expected = _aspect_block(symbolic_object_rec, "expected")
+    symbolic_object_selected = _aspect_block(symbolic_object_rec, "selected")
+    symbolic_object_actual = _aspect_block(symbolic_object_rec, "actual")
     improvisational_expected = _aspect_block(improvisational_rec, "expected")
     improvisational_selected = _aspect_block(improvisational_rec, "selected")
     improvisational_actual = _aspect_block(improvisational_rec, "actual")
@@ -1038,6 +1044,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     sensory_context_failure_codes = sensory_context_actual.get("failure_codes") or []
     if not isinstance(sensory_context_failure_codes, list):
         sensory_context_failure_codes = []
+    symbolic_object_target = (
+        symbolic_object_selected.get("target")
+        if isinstance(symbolic_object_selected.get("target"), dict)
+        else symbolic_object_selected
+    )
+    symbolic_object_failure_codes = symbolic_object_actual.get("failure_codes") or []
+    if not isinstance(symbolic_object_failure_codes, list):
+        symbolic_object_failure_codes = []
     improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
     if not isinstance(improvisational_failure_codes, list):
         improvisational_failure_codes = []
@@ -1086,6 +1100,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             pacing_rhythm_rec,
             temporal_control_rec,
             sensory_context_rec,
+            symbolic_object_rec,
             improvisational_rec,
             social_pressure_rec,
             relationship_state_rec,
@@ -1110,6 +1125,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             pacing_rhythm_rec,
             temporal_control_rec,
             sensory_context_rec,
+            symbolic_object_rec,
             improvisational_rec,
             social_pressure_rec,
             relationship_state_rec,
@@ -1259,6 +1275,63 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("sensory_context_source_refs_valid")
         ),
         "sensory_context_failure_codes": sensory_context_failure_codes,
+        "symbolic_object_resonance_policy_present": (
+            symbolic_object_expected.get("policy_present")
+            if "policy_present" in symbolic_object_expected
+            else det_scores.get("symbolic_object_resonance_policy_present")
+        ),
+        "symbolic_object_resonance_target_selected": (
+            bool(symbolic_object_target.get("selected_object_ids"))
+            if symbolic_object_selected
+            else det_scores.get("symbolic_object_resonance_target_selected")
+        ),
+        "symbolic_object_resonance_selected_object_ids": (
+            symbolic_object_target.get("selected_object_ids")
+            if isinstance(symbolic_object_target, dict)
+            else []
+        )
+        or [],
+        "symbolic_object_resonance_selected_symbol_ids": (
+            symbolic_object_target.get("selected_symbol_ids")
+            if isinstance(symbolic_object_target, dict)
+            else []
+        )
+        or [],
+        "symbolic_object_resonance_selected_roles": (
+            symbolic_object_target.get("selected_resonance_roles")
+            if isinstance(symbolic_object_target, dict)
+            else []
+        )
+        or [],
+        "symbolic_object_resonance_realized_object_ids": (
+            symbolic_object_actual.get("realized_object_ids") or []
+        ),
+        "symbolic_object_resonance_realized_symbol_ids": (
+            symbolic_object_actual.get("realized_symbol_ids") or []
+        ),
+        "symbolic_object_resonance_event_count": int(
+            symbolic_object_actual.get("event_count") or 0
+        ),
+        "symbolic_object_resonance_source_refs_valid": (
+            "symbolic_object_resonance_source_ref_mismatch"
+            not in symbolic_object_failure_codes
+            and "symbolic_object_resonance_unselected_object"
+            not in symbolic_object_failure_codes
+            if symbolic_object_actual
+            else det_scores.get("symbolic_object_resonance_source_refs_valid")
+        ),
+        "symbolic_object_resonance_budget_pass": (
+            "symbolic_object_resonance_budget_exceeded"
+            not in symbolic_object_failure_codes
+            if symbolic_object_actual
+            else det_scores.get("symbolic_object_resonance_budget_pass")
+        ),
+        "symbolic_object_resonance_contract_pass": (
+            symbolic_object_actual.get("contract_pass")
+            if "contract_pass" in symbolic_object_actual
+            else det_scores.get("symbolic_object_resonance_contract_pass")
+        ),
+        "symbolic_object_resonance_failure_codes": symbolic_object_failure_codes,
         "improvisational_coherence_policy_present": (
             improvisational_expected.get("policy_present")
             if "policy_present" in improvisational_expected

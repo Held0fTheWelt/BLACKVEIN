@@ -52,33 +52,42 @@ ADR-0041 readiness co-authority preview (2026-05-15): `ADR0041_READINESS_CO_AUTH
 
 ADR-0041 scoped readiness enforcement pilot (2026-05-15): `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED=true` may emit `runtime_intelligence_projection.readiness_co_authority_enforcement` and mirror it as `runtime_intelligence_projection.readiness_policy_input` with `readiness_input=allow|block|no_decision`, bounded scope, blockers/evidence, and explicit pilot-stage flags. Output may serve as a real readiness policy input for governed aggregation, but remains non-mutating (`validation_outcome_changed=false`, `commit_gate_changed=false`, `readiness_gate_changed=false`, `affects_commit=false`, `affects_readiness=false`, `proof_level=local_only`, `live_or_staging_evidence=false`). Verification: `python -m pytest ai_stack/tests -q`, table-B/ADR-0039 gates, `cd world-engine && python -m pytest tests/test_adr0041_validator_dispatch_harness.py tests/test_story_runtime_aspect_ledger.py -q`; no commit behavior changes; no live/staging claim or Capability Matrix promotion.
 
+ADR-0041 scoped readiness aggregation pilot (2026-05-15): `ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED=true` with scoped co-authority, readiness preview, and enforcement all enabled may emit `runtime_intelligence_projection.readiness_aggregation_decision` (`seam_readiness`, `aggregated_readiness`, `adr0041_veto_applied`, `adr0041_can_upgrade_seam_reject=false`). Seam is canonical for allow/reject; ADR-0041 may veto seam-allowed readiness only under bounded policy; no upgrade of seam reject to allow; no `validation_outcome` or commit mutation. Verification: `ai_stack/tests/test_validation_authority_bridge.py`, `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`, `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`.
+
+ADR-0041 runtime readiness consumer contract (2026-05-15): `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` plus the same upstream flags may apply `readiness_aggregation_decision` as a **veto-only** overlay on `runtime_session_ready` / `can_execute` in `backend/app/api/v1/game_routes.py::_player_session_bundle` via `ai_stack/runtime_readiness_consumer.py::resolve_runtime_readiness_with_adr0041`; default without the flag leaves final readiness byte-compatible with `evaluate_session_opening_readiness`; `validation_outcome` and commit unchanged; `proof_level=local_only`; no live/staging or Capability Matrix promotion. Verification: `ai_stack/tests/test_runtime_readiness_consumer.py`, `backend/tests/test_runtime_readiness_consumer_bundle.py`, `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`.
+
 ---
 
-## Local verification snapshot for Π30 / failure-as-story fragment
+## Local verification snapshot for Π30 / no-dead-end recovery
 
 - Date: 2026-05-15
-- Git SHA at verification time: `a407508e` (dirty worktree; local Π30 documentation/runtime changes not committed at run time)
+- Git SHA at verification time: `ad0b5437` (dirty worktree; local Π30 no-dead-end runtime/documentation changes not committed at run time)
 - Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, or MCP live proof claim.
-- `PYTHONPATH=. python -m py_compile story_runtime_core/committed_truth.py story_runtime_core/callbacks/callback_web.py story_runtime_core/consequences/consequence_cascade.py world-engine/app/story_runtime/manager.py` -> passed
-- `PYTHONPATH=. python -m pytest story_runtime_core/tests/test_callback_web.py story_runtime_core/tests/test_consequence_cascade.py -q -s` -> 24 passed
-- `cd world-engine && PYTHONPATH=..:. python -m pytest tests/test_story_runtime_narrative_commit.py::test_recoverable_validation_rejection_returns_structured_turn tests/test_story_runtime_narrative_commit.py::test_graph_execution_exception_returns_playable_turn tests/test_story_runtime_narrative_commit.py::test_graph_programming_exception_is_not_persisted_as_playable_turn -q -s` -> 3 passed
-- `cd world-engine && PYTHONPATH=..:. python -m pytest tests/test_story_runtime_short_path_persist_convergence.py::test_graph_exception_recoverable_matches_canonical_narrator_bundle -q -s` -> 1 passed
-- `PYTHONPATH=. python -m pytest tests/callbacks/test_callback_web.py tests/consequences/test_consequence_cascade.py -q -s` -> 6 passed
-- `PYTHONPATH=. python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q -s` -> 13 passed
+- `PYTHONPATH=. python -m py_compile story_runtime_core/recovery/no_dead_end.py story_runtime_core/recovery/__init__.py story_runtime_core/committed_truth.py story_runtime_core/callbacks/callback_web.py story_runtime_core/consequences/consequence_cascade.py ai_stack/runtime_aspect_ledger.py world-engine/app/story_runtime/manager.py` -> passed
+- `PYTHONPATH=. python -m pytest story_runtime_core/tests/test_no_dead_end_recovery.py story_runtime_core/tests/test_callback_web.py story_runtime_core/tests/test_consequence_cascade.py -q -s` -> 28 passed
+- `PYTHONPATH=. python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_aspect_ledger_serializes_stably -q -s` -> 1 passed
+- `cd world-engine && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=..:. python -m pytest tests/test_story_runtime_narrative_commit.py::test_illegal_proposal_is_blocked_committed_truth tests/test_story_runtime_narrative_commit.py::test_recoverable_validation_rejection_returns_structured_turn tests/test_story_runtime_narrative_commit.py::test_graph_execution_exception_returns_playable_turn tests/test_story_runtime_narrative_commit.py::test_graph_programming_exception_is_not_persisted_as_playable_turn -q -s` -> 4 passed
+- `cd world-engine && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=..:. python -m pytest tests/test_story_runtime_short_path_persist_convergence.py::test_graph_exception_recoverable_matches_canonical_narrator_bundle -q -s` -> 1 passed
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python -m pytest tests/callbacks/test_callback_web.py tests/consequences/test_consequence_cascade.py -q -s` -> 6 passed
+- `PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/test_capability_matrix_documentation_readiness.py tests/gates/test_adr_0039_pi_scope.py -q` -> 11 passed
+- `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q -s` -> 13 passed
 
-Evidence summary: Π30 is still a partial failure-as-story fragment, not a full
-no-dead-end system. The verified behavior is narrower: recoverable validation
-rejections and expected graph `RuntimeError` failures produce player-visible
-`rejected_recoverable` turns with structured `recoverable_playability.v1`
-metadata and `commits_story_truth=false`; programming/contract exceptions are
-not converted into playable story turns; recoverable/false-commit history rows
-are filtered out before callback-web observations and consequence-cascade atoms
-or edges are built.
+Evidence summary: Π30 is implemented locally as the bounded
+`no_dead_end_recovery.v1` contract. Player-visible committed and recoverable
+turns receive recovery class, obstacle kind, attempt fingerprint, bounded
+next-step options, commit policy, validation status, and
+`turn_aspect_ledger.no_dead_end_recovery`. Recoverable validation rejections
+and expected graph `RuntimeError` failures also expose
+`recoverable_playability.v1` with `commits_story_truth=false`; programming and
+contract exceptions are not converted into playable story turns; recoverable
+or false-commit history rows are filtered before callback-web observations and
+consequence-cascade atoms or edges are built.
 
 ADR-0039 discipline for this slice: tests assert schema/status fields,
-commit flags, exception class boundaries, stable turn ids, callback/cascade
-record counts, and anti-hardcoding gate behavior. Generated recovery prose,
-authored example language, and Pi labels are not pass/fail oracles.
+recovery classes, commit flags, exception class boundaries, stable turn ids,
+next-step evidence, callback/cascade record counts, ledger projection, and
+anti-hardcoding gate behavior. Generated recovery prose, authored example
+language, LLM judge categories, and Pi labels are not pass/fail oracles.
 
 Notable local-environment notes: some World-Engine tests emitted non-fatal
 FastEmbed cache and missing `observability_credentials` table warnings during
@@ -531,10 +540,10 @@ Known limitations: this is local implementation and mocked/fixture verification 
 - Date: 2026-05-15
 - Git SHA at verification time: `7784f246` (dirty worktree; local ADR-0041 projection changes not committed at run time)
 - Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, or MCP live proof claim.
-- `python -m pytest ai_stack/tests/test_capability_selector.py -q` -> 12 passed
-- `python -m pytest ai_stack/tests/test_capability_selector_runtime_projection.py -q` -> 6 passed
-- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py -q` -> 13 passed
-- `python -m pytest world-engine/tests/test_story_runtime_aspect_ledger.py -q` -> 21 passed
+- `python -m pytest ai_stack/tests/test_capability_selector.py -q` -> 15 passed
+- `python -m pytest ai_stack/tests/test_capability_selector_runtime_projection.py -q` -> 7 passed
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py -q` -> 15 passed
+- `PYTHONPATH=world-engine:. python -m pytest world-engine/tests/test_story_runtime_aspect_ledger.py -q` -> 21 passed
 - `python -m pytest tests/gates/test_adr_0039_pi_scope.py -q` -> 7 passed
 - `python -m pytest tests/gates/test_adr0039_* -q` -> 1 passed
 - `python -m pytest tests/gates/test_adr_0039_* -q` -> 7 passed
@@ -546,6 +555,12 @@ Evidence summary: ADR-0041 now exposes a local-only semantic selector payload at
 aspect ledgers. The projection records selected, observed, judged, and excluded
 semantic capability names, activation modes, budget, reason, warnings,
 `proof_level=local_only`, and `live_or_staging_evidence=false`.
+
+Selector correction included in this snapshot: explicit player turns with NPC
+response evidence remain `turn_kind=player_input` and `active_actor=player`.
+`npc_agency` can be selected as a conditional enforced capability alongside
+`player_intent_inference` and `action_resolution`, but the evidence does not
+convert the turn into an NPC turn.
 
 ADR-0039 discipline for this slice: selector projection uses semantic capability
 names only, adds no active Pi / Π runtime keys, does not mark

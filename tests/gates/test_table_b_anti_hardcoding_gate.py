@@ -4,6 +4,13 @@ The Table B runtime aspect layer must remain content-driven. This gate prevents
 new God-of-Carnage-specific literals or Table-B-specific control IDs from
 leaking into generic production code. Existing legacy seams are documented here
 as explicit debt so the allowlist is visible and cannot grow accidentally.
+
+**Runtime surface scope (ADR-0039):** ``SCAN_ROOTS`` includes ``story_runtime_core``
+alongside ``ai_stack``, ``world-engine/app``, backend, and frontend so Table-B
+rules apply to the same governed runtime surface as
+``docs/MVPs/adr0039_runtime_surface_governance_inventory.md`` and
+``docs/ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md`` § Runtime surface
+governance.
 """
 
 from __future__ import annotations
@@ -27,6 +34,8 @@ SOURCE_SUFFIXES = {
     ".yml",
 }
 
+# Production scan roots — keep aligned with ADR-0039 runtime surface inventory
+# (docs/MVPs/adr0039_runtime_surface_governance_inventory.md).
 SCAN_ROOTS = (
     "ai_stack",
     "backend/app",
@@ -590,3 +599,20 @@ def test_known_module_literal_debt_allowlist_is_still_current() -> None:
 
     assert not stale_paths, "Remove stale anti-hardcoding debt allowlist paths:\n" + "\n".join(stale_paths)
     assert not empty_reasons, "Every anti-hardcoding debt allowlist path needs a reason:\n" + "\n".join(empty_reasons)
+
+
+def test_table_b_scan_roots_align_with_adr0039_runtime_surface_inventory() -> None:
+    """Table-B production scan must cover the same roots as the ADR-0039 inventory doc."""
+    inventory = REPO_ROOT / "docs/MVPs/adr0039_runtime_surface_governance_inventory.md"
+    assert inventory.is_file(), "ADR-0039 runtime surface inventory must exist"
+    required_roots = {
+        "ai_stack",
+        "backend/app",
+        "frontend/app",
+        "frontend/static",
+        "frontend/templates",
+        "story_runtime_core",
+        "tools/mcp_server",
+        "world-engine/app",
+    }
+    assert set(SCAN_ROOTS) == required_roots

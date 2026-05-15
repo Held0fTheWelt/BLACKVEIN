@@ -72,6 +72,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
+    ASPECT_GENRE_AWARENESS,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
@@ -84,6 +85,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_TEMPORAL_CONTROL,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
@@ -194,6 +196,18 @@ from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_ene
 from ai_stack.sensory_context_engine import (
     derive_sensory_context,
     validate_sensory_context_realization,
+)
+from ai_stack.genre_awareness_engine import (
+    build_genre_awareness_aspect_record,
+    compact_genre_awareness_context,
+    derive_genre_awareness,
+    validate_genre_awareness_realization,
+)
+from ai_stack.symbolic_object_resonance_engine import (
+    build_symbolic_object_resonance_aspect_record,
+    compact_symbolic_object_resonance_context,
+    derive_symbolic_object_resonance,
+    validate_symbolic_object_resonance_realization,
 )
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
@@ -1892,6 +1906,60 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "relationship_state_validation": relationship_state_validation,
     }
+    genre_awareness_validation = validate_genre_awareness_realization(
+        genre_awareness_target=state.get("genre_awareness_target")
+        if isinstance(state.get("genre_awareness_target"), dict)
+        else None,
+        genre_awareness_state=state.get("genre_awareness_state")
+        if isinstance(state.get("genre_awareness_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_GENRE_AWARENESS,
+        build_genre_awareness_aspect_record(
+            target=state.get("genre_awareness_target")
+            if isinstance(state.get("genre_awareness_target"), dict)
+            else None,
+            state=state.get("genre_awareness_state")
+            if isinstance(state.get("genre_awareness_state"), dict)
+            else None,
+            validation=genre_awareness_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "genre_awareness_validation": genre_awareness_validation,
+    }
+    symbolic_object_validation = validate_symbolic_object_resonance_realization(
+        symbolic_object_resonance_target=state.get("symbolic_object_resonance_target")
+        if isinstance(state.get("symbolic_object_resonance_target"), dict)
+        else None,
+        symbolic_object_resonance_state=state.get("symbolic_object_resonance_state")
+        if isinstance(state.get("symbolic_object_resonance_state"), dict)
+        else None,
+        structured_output=structured_output,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+        build_symbolic_object_resonance_aspect_record(
+            target=state.get("symbolic_object_resonance_target")
+            if isinstance(state.get("symbolic_object_resonance_target"), dict)
+            else None,
+            state=state.get("symbolic_object_resonance_state")
+            if isinstance(state.get("symbolic_object_resonance_state"), dict)
+            else None,
+            validation=symbolic_object_validation,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "symbolic_object_resonance_validation": symbolic_object_validation,
+    }
     sensory_context_validation = validate_sensory_context_realization(
         sensory_context_target=state.get("sensory_context_target")
         if isinstance(state.get("sensory_context_target"), dict)
@@ -2246,6 +2314,46 @@ def _build_runtime_aspect_validation(
             if relationship_codes
             else "relationship_state_validation_failed",
             "failure_codes": relationship_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    genre_awareness_failure = None
+    if (
+        isinstance(genre_awareness_validation, dict)
+        and str(genre_awareness_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        genre_codes = [
+            str(code)
+            for code in (genre_awareness_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        genre_awareness_failure = {
+            "failure_reason": str(
+                genre_awareness_validation.get("feedback_code")
+                or (genre_codes[0] if genre_codes else "genre_awareness_validation_failed")
+            ),
+            "failure_codes": genre_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
+    symbolic_object_failure = None
+    if (
+        isinstance(symbolic_object_validation, dict)
+        and str(symbolic_object_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        symbolic_codes = [
+            str(code)
+            for code in (symbolic_object_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        symbolic_object_failure = {
+            "failure_reason": str(
+                symbolic_object_validation.get("feedback_code")
+                or (
+                    symbolic_codes[0]
+                    if symbolic_codes
+                    else "symbolic_object_resonance_validation_failed"
+                )
+            ),
+            "failure_codes": symbolic_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
     sensory_context_failure = None
@@ -2634,6 +2742,46 @@ def _build_runtime_aspect_validation(
             "relationship_state_failure": relationship_state_failure,
         }
     elif (
+        genre_awareness_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            genre_awareness_failure.get("failure_reason")
+            or "genre_awareness_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "genre_awareness_validation_v1",
+            "genre_awareness_contract_violation": True,
+            "failure_class": genre_awareness_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "genre_awareness_failure": genre_awareness_failure,
+        }
+    elif (
+        symbolic_object_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            symbolic_object_failure.get("failure_reason")
+            or "symbolic_object_resonance_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "symbolic_object_resonance_validation_v1",
+            "symbolic_object_resonance_contract_violation": True,
+            "failure_class": symbolic_object_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "symbolic_object_resonance_failure": symbolic_object_failure,
+        }
+    elif (
         sensory_context_failure is not None
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
@@ -2742,6 +2890,22 @@ def _build_runtime_aspect_validation(
                 "relationship_state_contract_violation": bool(
                     next_outcome.get("relationship_state_contract_violation")
                 ),
+                "genre_awareness_validation_status": (
+                    genre_awareness_validation.get("status")
+                    if isinstance(genre_awareness_validation, dict)
+                    else None
+                ),
+                "genre_awareness_contract_violation": bool(
+                    next_outcome.get("genre_awareness_contract_violation")
+                ),
+                "symbolic_object_resonance_validation_status": (
+                    symbolic_object_validation.get("status")
+                    if isinstance(symbolic_object_validation, dict)
+                    else None
+                ),
+                "symbolic_object_resonance_contract_violation": bool(
+                    next_outcome.get("symbolic_object_resonance_contract_violation")
+                ),
                 "sensory_context_validation_status": (
                     sensory_context_validation.get("status")
                     if isinstance(sensory_context_validation, dict)
@@ -2838,6 +3002,8 @@ def _build_runtime_aspect_validation(
         "improvisational_coherence_validation": improvisational_validation,
         "social_pressure_validation": social_pressure_validation,
         "relationship_state_validation": relationship_state_validation,
+        "genre_awareness_validation": genre_awareness_validation,
+        "symbolic_object_resonance_validation": symbolic_object_validation,
         "sensory_context_validation": sensory_context_validation,
         "information_disclosure_validation": information_disclosure_validation,
         "dramatic_irony_validation": dramatic_irony_validation,
@@ -2851,6 +3017,8 @@ def _build_runtime_aspect_validation(
         "improvisational_coherence_failure": improvisational_failure,
         "social_pressure_failure": social_pressure_failure,
         "relationship_state_failure": relationship_state_failure,
+        "genre_awareness_failure": genre_awareness_failure,
+        "symbolic_object_resonance_failure": symbolic_object_failure,
         "sensory_context_failure": sensory_context_failure,
         "information_disclosure_failure": information_disclosure_failure,
         "dramatic_irony_failure": dramatic_irony_failure,
@@ -3760,6 +3928,16 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("expectation_variation_target"), dict)
         else None
     )
+    genre_awareness_context = compact_genre_awareness_context(
+        state.get("genre_awareness_target")
+        if isinstance(state.get("genre_awareness_target"), dict)
+        else None
+    )
+    symbolic_object_context = compact_symbolic_object_resonance_context(
+        state.get("symbolic_object_resonance_target")
+        if isinstance(state.get("symbolic_object_resonance_target"), dict)
+        else None
+    )
     meta_narrative_context = compact_meta_narrative_awareness_context(
         state.get("meta_narrative_awareness_target")
         if isinstance(state.get("meta_narrative_awareness_target"), dict)
@@ -3874,6 +4052,30 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "Use selected expectation_variation ids only when they help the turn. "
                 "When realizing one, emit expectation_variation_events with variation_id, variation_type, and source_refs. "
                 "Do not invent setup, exceed max_variation_units_per_turn, or realize withheld variation ids."
+            ),
+        },
+        "genre_awareness": {
+            "state": state.get("genre_awareness_state")
+            if isinstance(state.get("genre_awareness_state"), dict)
+            else {},
+            "target": genre_awareness_context,
+            "instruction": (
+                "Use the selected genre_awareness profile as bounded genre framing only. "
+                "When making genre visible, emit genre_awareness_events with genre_profile_id, register, "
+                "realized_conventions, and marker_ids. Respect max_genre_signals_per_turn and do not add "
+                "unselected profiles, forbidden markers, or prose-only genre claims."
+            ),
+        },
+        "symbolic_object_resonance": {
+            "state": state.get("symbolic_object_resonance_state")
+            if isinstance(state.get("symbolic_object_resonance_state"), dict)
+            else {},
+            "target": symbolic_object_context,
+            "instruction": (
+                "Use selected symbolic_object_resonance object ids and resonance roles only as bounded staging guidance. "
+                "When realizing one explicitly, emit symbolic_object_resonance_events with object_id, symbol_id, "
+                "resonance_role, and source_refs from required_source_refs. Do not invent new object truth, "
+                "unselected symbols, or prose-only symbolic interpretations."
             ),
         },
         "temporal_control": {
@@ -4158,7 +4360,9 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("derive_pacing_rhythm", self._derive_pacing_rhythm)
         graph.add_node("derive_temporal_control", self._derive_temporal_control)
         graph.add_node("derive_social_pressure", self._derive_social_pressure)
+        graph.add_node("derive_genre_awareness", self._derive_genre_awareness)
         graph.add_node("derive_relationship_state", self._derive_relationship_state)
+        graph.add_node("derive_symbolic_object_resonance", self._derive_symbolic_object_resonance)
         graph.add_node("derive_sensory_context", self._derive_sensory_context)
         graph.add_node("derive_improvisational_coherence", self._derive_improvisational_coherence)
         graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
@@ -4201,13 +4405,15 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("derive_scene_energy", "derive_pacing_rhythm")
         graph.add_edge("derive_pacing_rhythm", "derive_temporal_control")
         graph.add_edge("derive_temporal_control", "derive_social_pressure")
-        graph.add_edge("derive_social_pressure", "derive_sensory_context")
+        graph.add_edge("derive_social_pressure", "derive_genre_awareness")
+        graph.add_edge("derive_genre_awareness", "derive_sensory_context")
         graph.add_edge("derive_sensory_context", "derive_improvisational_coherence")
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
         graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
         graph.add_edge("derive_dramatic_irony", "derive_expectation_variation")
         graph.add_edge("derive_expectation_variation", "derive_relationship_state")
-        graph.add_edge("derive_relationship_state", "derive_meta_narrative_awareness")
+        graph.add_edge("derive_relationship_state", "derive_symbolic_object_resonance")
+        graph.add_edge("derive_symbolic_object_resonance", "derive_meta_narrative_awareness")
         graph.add_edge("derive_meta_narrative_awareness", "synthesize_context")
         graph.add_edge("synthesize_context", "assemble_model_context")
         graph.add_edge("assemble_model_context", "route_model")
@@ -4252,6 +4458,8 @@ class RuntimeTurnGraphExecutor:
         prior_consequence_cascade_state: dict[str, Any] | None = None,
         prior_temporal_control_state: dict[str, Any] | None = None,
         prior_expectation_variation_state: dict[str, Any] | None = None,
+        prior_genre_awareness_state: dict[str, Any] | None = None,
+        prior_symbolic_object_resonance_state: dict[str, Any] | None = None,
         prior_pacing_rhythm_state: dict[str, Any] | None = None,
         prior_social_pressure_state: dict[str, Any] | None = None,
         prior_relationship_state_record: dict[str, Any] | None = None,
@@ -4303,6 +4511,10 @@ class RuntimeTurnGraphExecutor:
                 feedback snapshot rehydrated from the story session.
             prior_expectation_variation_state: bounded committed variation
                 feedback snapshot rehydrated from the story session.
+            prior_genre_awareness_state: bounded committed genre-awareness
+                snapshot rehydrated from the story session.
+            prior_symbolic_object_resonance_state: bounded committed
+                symbolic-object feedback snapshot rehydrated from the story session.
             prior_pacing_rhythm_state: bounded committed rhythm feedback
                 snapshot rehydrated from the story session.
             prior_social_pressure_state: bounded committed pressure metric
@@ -4432,6 +4644,12 @@ class RuntimeTurnGraphExecutor:
         if prior_expectation_variation_state:
             initial_state["prior_expectation_variation_state"] = dict(
                 prior_expectation_variation_state
+            )
+        if prior_genre_awareness_state:
+            initial_state["prior_genre_awareness_state"] = dict(prior_genre_awareness_state)
+        if prior_symbolic_object_resonance_state:
+            initial_state["prior_symbolic_object_resonance_state"] = dict(
+                prior_symbolic_object_resonance_state
             )
         if prior_pacing_rhythm_state:
             initial_state["prior_pacing_rhythm_state"] = dict(prior_pacing_rhythm_state)
@@ -6250,6 +6468,81 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_symbolic_object_resonance(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_symbolic_object_resonance")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_symbolic_object_resonance(
+            environment_state=state.get("environment_state")
+            if isinstance(state.get("environment_state"), dict)
+            else None,
+            environment_model=state.get("environment_model")
+            if isinstance(state.get("environment_model"), dict)
+            else None,
+            apartment_objects=state.get("apartment_objects")
+            if isinstance(state.get("apartment_objects"), dict)
+            else None,
+            scene_affordances=state.get("scene_affordances")
+            if isinstance(state.get("scene_affordances"), dict)
+            else None,
+            player_action_frame=state.get("player_action_frame")
+            if isinstance(state.get("player_action_frame"), dict)
+            else None,
+            sensory_context_target=state.get("sensory_context_target")
+            if isinstance(state.get("sensory_context_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            relationship_state_record=state.get("relationship_state_record")
+            if isinstance(state.get("relationship_state_record"), dict)
+            else None,
+            expectation_variation_target=state.get("expectation_variation_target")
+            if isinstance(state.get("expectation_variation_target"), dict)
+            else None,
+            prior_callback_web_state=state.get("prior_callback_web_state")
+            if isinstance(state.get("prior_callback_web_state"), dict)
+            else None,
+            prior_consequence_cascade_state=state.get("prior_consequence_cascade_state")
+            if isinstance(state.get("prior_consequence_cascade_state"), dict)
+            else None,
+            prior_symbolic_object_resonance_state=state.get(
+                "prior_symbolic_object_resonance_state"
+            )
+            if isinstance(state.get("prior_symbolic_object_resonance_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        resonance_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if resonance_state:
+            scene_plan["symbolic_object_resonance_state"] = resonance_state
+        if target:
+            scene_plan["symbolic_object_resonance_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["symbolic_object_resonance_state"] = resonance_state
+        update["symbolic_object_resonance_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {},
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            build_symbolic_object_resonance_aspect_record(
+                target=target,
+                state=resonance_state,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
     def _derive_meta_narrative_awareness(self, state: RuntimeTurnState) -> RuntimeTurnState:
         update = _track(state, node_name="derive_meta_narrative_awareness")
         scene_plan = (
@@ -6303,6 +6596,58 @@ class RuntimeTurnGraphExecutor:
             ASPECT_META_NARRATIVE_AWARENESS,
             build_meta_narrative_awareness_aspect_record(
                 target=target,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+                source="runtime",
+            ),
+        )
+        return update
+
+    def _derive_genre_awareness(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_genre_awareness")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_genre_awareness(
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            scene_plan_record=scene_plan,
+            selected_scene_function=state.get("selected_scene_function")
+            if isinstance(state.get("selected_scene_function"), str)
+            else None,
+            current_scene_id=state.get("current_scene_id")
+            if isinstance(state.get("current_scene_id"), str)
+            else None,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            prior_genre_awareness_state=state.get("prior_genre_awareness_state")
+            if isinstance(state.get("prior_genre_awareness_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+        )
+        genre_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if genre_state:
+            scene_plan["genre_awareness_state"] = genre_state
+        if target:
+            scene_plan["genre_awareness_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["genre_awareness_state"] = genre_state
+        update["genre_awareness_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_GENRE_AWARENESS,
+            build_genre_awareness_aspect_record(
+                target=target,
+                state=genre_state,
                 policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
                 source="runtime",
             ),
@@ -7075,6 +7420,54 @@ class RuntimeTurnGraphExecutor:
                 "and source_refs from required_setup_refs; do not realize withheld variation ids."
             )
 
+        genre_awareness = (
+            dramatic_packet.get("genre_awareness")
+            if isinstance(dramatic_packet.get("genre_awareness"), dict)
+            else {}
+        )
+        genre_target = (
+            genre_awareness.get("target")
+            if isinstance(genre_awareness.get("target"), dict)
+            else {}
+        )
+        if genre_target.get("genre_profile_id"):
+            lines.append("Genre Awareness Context (bounded profile, selected only):")
+            lines.append(
+                f"- genre_profile_id: {genre_target.get('genre_profile_id')} "
+                f"selected_registers: {list(genre_target.get('selected_registers') or [])[:3]} "
+                f"required_conventions: {list(genre_target.get('required_conventions') or [])[:4]}"
+            )
+            lines.append(
+                "- rule: emit genre_awareness_events only for the selected profile/registers; "
+                "realized_conventions must come from required_conventions, and forbidden marker_ids must not appear."
+            )
+
+        symbolic_object = (
+            dramatic_packet.get("symbolic_object_resonance")
+            if isinstance(dramatic_packet.get("symbolic_object_resonance"), dict)
+            else {}
+        )
+        symbolic_target = (
+            symbolic_object.get("target")
+            if isinstance(symbolic_object.get("target"), dict)
+            else {}
+        )
+        selected_symbolic_object_ids = (
+            symbolic_target.get("selected_object_ids")
+            if isinstance(symbolic_target.get("selected_object_ids"), list)
+            else []
+        )
+        if selected_symbolic_object_ids:
+            lines.append("Symbolic Object Resonance Context (bounded, selected only):")
+            lines.append(
+                f"- selected_object_ids: {list(selected_symbolic_object_ids)[:3]} "
+                f"selected_resonance_roles: {list(symbolic_target.get('selected_resonance_roles') or [])[:3]}"
+            )
+            lines.append(
+                "- rule: emit symbolic_object_resonance_events only for selected object ids and roles "
+                "with source_refs from required_source_refs; do not invent new symbolic objects or prose-only proof."
+            )
+
         if temporal_target:
             lines.append("Temporal Control Context (bounded committed refs):")
             lines.append(
@@ -7155,7 +7548,7 @@ class RuntimeTurnGraphExecutor:
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
             "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
             "the sensory_context target, improvisational_coherence target, information_disclosure target, "
-            "bounded expectation_variation target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
+            "bounded expectation_variation target, bounded genre_awareness target, symbolic_object_resonance target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
             "bounded dramatic_irony_context, opt-in meta_narrative_awareness, and consequence_cascade_context."
         )
 
@@ -8014,6 +8407,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "improvisational_coherence"
             elif isinstance(outcome.get("social_pressure_failure"), dict):
                 trigger_source = "social_pressure"
+            elif isinstance(outcome.get("genre_awareness_failure"), dict):
+                trigger_source = "genre_awareness"
             elif isinstance(outcome.get("sensory_context_failure"), dict):
                 trigger_source = "sensory_context"
             elif isinstance(outcome.get("information_disclosure_failure"), dict):
@@ -8059,6 +8454,11 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("social_pressure_failure"), dict)
                 else None
             )
+            genre_awareness_failure_before_retry = (
+                dict(outcome.get("genre_awareness_failure"))
+                if isinstance(outcome.get("genre_awareness_failure"), dict)
+                else None
+            )
             sensory_context_failure_before_retry = (
                 dict(outcome.get("sensory_context_failure"))
                 if isinstance(outcome.get("sensory_context_failure"), dict)
@@ -8097,6 +8497,7 @@ class RuntimeTurnGraphExecutor:
                 "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                 "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                 "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
+                "genre_awareness_failure_before_retry": genre_awareness_failure_before_retry,
                 "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
@@ -8146,6 +8547,7 @@ class RuntimeTurnGraphExecutor:
                     "temporal_control_failure_before_retry": temporal_control_failure_before_retry,
                     "improvisational_coherence_failure_before_retry": improvisational_failure_before_retry,
                     "social_pressure_failure_before_retry": social_pressure_failure_before_retry,
+                    "genre_awareness_failure_before_retry": genre_awareness_failure_before_retry,
                     "sensory_context_failure_before_retry": sensory_context_failure_before_retry,
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
@@ -8256,6 +8658,12 @@ class RuntimeTurnGraphExecutor:
             update["social_pressure_validation"] = validation_eval["social_pressure_validation"]
         if isinstance(validation_eval.get("relationship_state_validation"), dict):
             update["relationship_state_validation"] = validation_eval["relationship_state_validation"]
+        if isinstance(validation_eval.get("genre_awareness_validation"), dict):
+            update["genre_awareness_validation"] = validation_eval["genre_awareness_validation"]
+        if isinstance(validation_eval.get("symbolic_object_resonance_validation"), dict):
+            update["symbolic_object_resonance_validation"] = validation_eval[
+                "symbolic_object_resonance_validation"
+            ]
         if isinstance(validation_eval.get("sensory_context_validation"), dict):
             update["sensory_context_validation"] = validation_eval["sensory_context_validation"]
         if isinstance(validation_eval.get("information_disclosure_validation"), dict):

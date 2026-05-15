@@ -148,7 +148,9 @@ def test_adr0039_links_current_matrix_and_live_gate_docs() -> None:
     assert "capability_matrix_status_and_adr_relations.md" in adr
     assert "capability_matrix_verification_log.md" in adr
     assert "capability_matrix_live_claim_gates.md" in adr
+    assert "adr0039_runtime_surface_governance_inventory.md" in adr
     assert "tests/gates/test_adr_0039_pi_scope.py" in adr
+    assert "tests/gates/test_adr0039_runtime_surface_governance.py" in adr
 
 
 def test_current_truth_docs_do_not_embed_machine_local_paths() -> None:

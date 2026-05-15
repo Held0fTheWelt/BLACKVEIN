@@ -66,6 +66,7 @@ ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV = "ADR0041_SCOPED_CO_AUTHORITY_ENABLED"
 ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV = "ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED"
 ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV = "ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED"
 ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV = "ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED"
+ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV = "ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED"
 
 # Ephemeral bundle attached by LangGraph validate_seam when
 # ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
@@ -88,8 +89,10 @@ ASPECT_BEAT = "beat"
 ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_PACING_RHYTHM = "pacing_rhythm"
 ASPECT_SENSORY_CONTEXT = "sensory_context"
+ASPECT_SYMBOLIC_OBJECT_RESONANCE = "symbolic_object_resonance"
 ASPECT_IMPROVISATIONAL_COHERENCE = "improvisational_coherence"
 ASPECT_META_NARRATIVE_AWARENESS = "meta_narrative_awareness"
+ASPECT_NO_DEAD_END_RECOVERY = "no_dead_end_recovery"
 ASPECT_SOCIAL_PRESSURE = "social_pressure"
 ASPECT_RELATIONSHIP_STATE = "relationship_state"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
@@ -100,6 +103,7 @@ ASPECT_DRAMATIC_IRONY = "dramatic_irony"
 ASPECT_EXPECTATION_VARIATION = "expectation_variation"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_TONAL_CONSISTENCY = "tonal_consistency"
+ASPECT_GENRE_AWARENESS = "genre_awareness"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_INFORMATION_DISCLOSURE = "information_disclosure"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
@@ -117,8 +121,10 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_SCENE_ENERGY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SENSORY_CONTEXT,
+    ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_META_NARRATIVE_AWARENESS,
+    ASPECT_NO_DEAD_END_RECOVERY,
     ASPECT_SOCIAL_PRESSURE,
     ASPECT_RELATIONSHIP_STATE,
     ASPECT_CAPABILITY_SELECTION,
@@ -129,6 +135,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_EXPECTATION_VARIATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_TONAL_CONSISTENCY,
+    ASPECT_GENRE_AWARENESS,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_HIERARCHICAL_MEMORY,
@@ -732,6 +739,33 @@ def resolve_adr0041_scoped_readiness_aggregation_enabled(
     return False, tuple(warnings)
 
 
+def resolve_adr0041_runtime_readiness_consumer_enabled(
+    *,
+    env_value: str | None = None,
+) -> tuple[bool, tuple[str, ...]]:
+    """Resolve ADR-0041 runtime readiness consumer flag (fail closed).
+
+    When disabled, final session readiness fields must match legacy/seam evaluation
+    with no silent ADR-0041 overlay.
+    """
+    warnings: list[str] = []
+    raw = (
+        env_value
+        if env_value is not None
+        else os.environ.get(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV)
+    )
+    text = str(raw or "").strip().lower()
+    if text in {"", "0", "false", "no", "off"}:
+        return False, tuple(warnings)
+    if text in {"1", "true", "yes", "on"}:
+        return True, tuple(warnings)
+    warnings.append(
+        f"Unsupported {ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV}={raw!r}; "
+        "ADR-0041 runtime readiness consumer disabled."
+    )
+    return False, tuple(warnings)
+
+
 def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     *,
     capability_context: dict[str, Any],
@@ -1217,6 +1251,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_SENSORY_CONTEXT), dict)
         else {}
     )
+    symbolic_object_rec = (
+        aspects.get(ASPECT_SYMBOLIC_OBJECT_RESONANCE)
+        if isinstance(aspects.get(ASPECT_SYMBOLIC_OBJECT_RESONANCE), dict)
+        else {}
+    )
     improvisational_rec = (
         aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE)
         if isinstance(aspects.get(ASPECT_IMPROVISATIONAL_COHERENCE), dict)
@@ -1271,6 +1310,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     tonal_rec = (
         aspects.get(ASPECT_TONAL_CONSISTENCY)
         if isinstance(aspects.get(ASPECT_TONAL_CONSISTENCY), dict)
+        else {}
+    )
+    genre_awareness_rec = (
+        aspects.get(ASPECT_GENRE_AWARENESS)
+        if isinstance(aspects.get(ASPECT_GENRE_AWARENESS), dict)
         else {}
     )
     narrative_rec = (
@@ -1330,6 +1374,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     sensory_context_expected = _record_block(sensory_context_rec, "expected")
     sensory_context_selected = _record_block(sensory_context_rec, "selected")
     sensory_context_actual = _record_block(sensory_context_rec, "actual")
+    symbolic_object_expected = _record_block(symbolic_object_rec, "expected")
+    symbolic_object_selected = _record_block(symbolic_object_rec, "selected")
+    symbolic_object_actual = _record_block(symbolic_object_rec, "actual")
     improvisational_expected = _record_block(improvisational_rec, "expected")
     improvisational_selected = _record_block(improvisational_rec, "selected")
     improvisational_actual = _record_block(improvisational_rec, "actual")
@@ -1362,6 +1409,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     tonal_expected = _record_block(tonal_rec, "expected")
     tonal_selected = _record_block(tonal_rec, "selected")
     tonal_actual = _record_block(tonal_rec, "actual")
+    genre_awareness_expected = _record_block(genre_awareness_rec, "expected")
+    genre_awareness_selected = _record_block(genre_awareness_rec, "selected")
+    genre_awareness_actual = _record_block(genre_awareness_rec, "actual")
     voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
     narrative_selected = _record_block(narrative_rec, "selected")
@@ -1647,6 +1697,75 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     else None
                 ),
                 "status": sensory_context_rec.get("status"),
+            },
+            "symbolic_object_resonance": {
+                "schema_version": symbolic_object_expected.get("schema_version")
+                or symbolic_object_selected.get("schema_version")
+                or symbolic_object_actual.get("schema_version"),
+                "policy_present": bool(symbolic_object_expected.get("policy_present")),
+                "policy_enabled": bool(symbolic_object_expected.get("policy_enabled")),
+                "commit_impact": symbolic_object_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    symbolic_object_expected.get("require_structured_events")
+                ),
+                "max_symbols_per_turn": int(
+                    symbolic_object_expected.get("max_symbols_per_turn") or 0
+                ),
+                "allowed_resonance_roles": symbolic_object_expected.get(
+                    "allowed_resonance_roles"
+                )
+                or [],
+                "selected_symbol_ids": symbolic_object_selected.get("selected_symbol_ids")
+                or (
+                    symbolic_object_selected.get("target", {}).get("selected_symbol_ids")
+                    if isinstance(symbolic_object_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "selected_object_ids": symbolic_object_selected.get("selected_object_ids")
+                or (
+                    symbolic_object_selected.get("target", {}).get("selected_object_ids")
+                    if isinstance(symbolic_object_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "selected_resonance_roles": symbolic_object_selected.get(
+                    "selected_resonance_roles"
+                )
+                or (
+                    symbolic_object_selected.get("target", {}).get(
+                        "selected_resonance_roles"
+                    )
+                    if isinstance(symbolic_object_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "required_source_refs": symbolic_object_selected.get(
+                    "required_source_refs"
+                )
+                or [],
+                "structured_events_present": bool(
+                    symbolic_object_actual.get("structured_events_present")
+                ),
+                "event_count": int(symbolic_object_actual.get("event_count") or 0),
+                "realized_object_ids": symbolic_object_actual.get("realized_object_ids")
+                or [],
+                "realized_symbol_ids": symbolic_object_actual.get("realized_symbol_ids")
+                or [],
+                "realized_resonance_roles": symbolic_object_actual.get(
+                    "realized_resonance_roles"
+                )
+                or [],
+                "contract_pass": symbolic_object_actual.get("contract_pass"),
+                "failure_codes": symbolic_object_actual.get("failure_codes")
+                or _record_reasons(symbolic_object_rec),
+                "failure_reason": symbolic_object_rec.get("failure_reason")
+                or (
+                    _record_reasons(symbolic_object_rec)[0]
+                    if _record_reasons(symbolic_object_rec)
+                    else None
+                ),
+                "status": symbolic_object_rec.get("status"),
             },
             "improvisational_coherence": {
                 "schema_version": improvisational_expected.get("schema_version")
@@ -2167,6 +2286,72 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or (_record_reasons(tonal_rec)[0] if _record_reasons(tonal_rec) else None),
                 "status": tonal_rec.get("status"),
             },
+            "genre_awareness": {
+                "schema_version": genre_awareness_expected.get("schema_version")
+                or genre_awareness_selected.get("schema_version")
+                or genre_awareness_actual.get("schema_version"),
+                "policy_present": bool(genre_awareness_expected.get("policy_present")),
+                "policy_enabled": bool(genre_awareness_expected.get("policy_enabled")),
+                "commit_impact": genre_awareness_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    genre_awareness_expected.get("require_structured_events")
+                ),
+                "genre_profile_id": genre_awareness_selected.get("genre_profile_id")
+                or _record_nested_value(genre_awareness_selected, "genre_profile_id", "target"),
+                "selected_registers": genre_awareness_selected.get("selected_registers")
+                or (
+                    genre_awareness_selected.get("target", {}).get("selected_registers")
+                    if isinstance(genre_awareness_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "required_conventions": genre_awareness_selected.get("required_conventions")
+                or (
+                    genre_awareness_selected.get("target", {}).get("required_conventions")
+                    if isinstance(genre_awareness_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "forbidden_marker_ids": genre_awareness_selected.get("forbidden_marker_ids")
+                or (
+                    genre_awareness_selected.get("target", {}).get("forbidden_marker_ids")
+                    if isinstance(genre_awareness_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "max_genre_signals_per_turn": int(
+                    genre_awareness_expected.get("max_genre_signals_per_turn")
+                    or (
+                        genre_awareness_selected.get("target", {}).get("max_genre_signals_per_turn")
+                        if isinstance(genre_awareness_selected.get("target"), dict)
+                        else 0
+                    )
+                    or 0
+                ),
+                "structured_events_present": bool(
+                    genre_awareness_actual.get("structured_events_present")
+                ),
+                "event_count": int(genre_awareness_actual.get("event_count") or 0),
+                "realized_profile_ids": genre_awareness_actual.get("realized_profile_ids")
+                or [],
+                "realized_registers": genre_awareness_actual.get("realized_registers") or [],
+                "realized_conventions": genre_awareness_actual.get("realized_conventions")
+                or [],
+                "missing_required_conventions": genre_awareness_actual.get(
+                    "missing_required_conventions"
+                )
+                or [],
+                "contract_pass": genre_awareness_actual.get("contract_pass"),
+                "failure_codes": genre_awareness_actual.get("failure_codes")
+                or _record_reasons(genre_awareness_rec),
+                "failure_reason": genre_awareness_rec.get("failure_reason")
+                or (
+                    _record_reasons(genre_awareness_rec)[0]
+                    if _record_reasons(genre_awareness_rec)
+                    else None
+                ),
+                "status": genre_awareness_rec.get("status"),
+            },
             "narrative_aspect": {
                 "policy_present": bool(narrative_expected.get("policy_present")),
                 "candidate_aspects": narrative_expected.get("candidate_aspects") or [],
@@ -2663,6 +2848,20 @@ def aspect_score_metadata(
         "expectation_variation_budget_used": actual.get("budget_used"),
         "expectation_variation_contract_pass": actual.get("contract_pass"),
         "expectation_variation_failure_codes": actual.get("failure_codes"),
+        "genre_awareness_profile_id": selected.get("genre_profile_id")
+        or target.get("genre_profile_id"),
+        "genre_awareness_selected_registers": selected.get("selected_registers")
+        or target.get("selected_registers"),
+        "genre_awareness_required_conventions": selected.get("required_conventions")
+        or target.get("required_conventions"),
+        "genre_awareness_realized_profile_ids": actual.get("realized_profile_ids"),
+        "genre_awareness_realized_registers": actual.get("realized_registers"),
+        "genre_awareness_realized_conventions": actual.get("realized_conventions"),
+        "genre_awareness_missing_required_conventions": actual.get(
+            "missing_required_conventions"
+        ),
+        "genre_awareness_contract_pass": actual.get("contract_pass"),
+        "genre_awareness_failure_codes": actual.get("failure_codes"),
         "consequence_cascade_selected_consequence_ids": selected.get("selected_consequence_ids"),
         "consequence_cascade_selected_edge_ids": selected.get("selected_edge_ids"),
         "consequence_cascade_selected_continuity_classes": selected.get(

@@ -528,6 +528,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
         )
         return preserve_prefix + base_instruction + sensory_context_feedback
 
+    genre_awareness_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("genre_awareness_")
+    ]
+    if genre_awareness_issues:
+        genre_awareness_feedback = (
+            " Genre awareness repair: preserve actor lanes and committed facts, "
+            "but realize only the selected genre_awareness profile from the dramatic packet. "
+            "Emit genre_awareness_events with selected genre_profile_id/register values, include required conventions, "
+            "respect max_genre_signals_per_turn, and remove forbidden or unselected marker_ids."
+        )
+        return preserve_prefix + base_instruction + genre_awareness_feedback
+
     expectation_variation_issues = [
         code
         for code in feedback_codes

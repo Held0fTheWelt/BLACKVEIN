@@ -224,6 +224,13 @@ def test_illegal_proposal_is_blocked_committed_truth(manager: StoryRuntimeManage
     assert nc["commit_reason_code"] == "illegal_transition_not_allowed"
     assert nc["committed_scene_id"] == "scene_1"
     assert "proposal_blocked:illegal_transition" in nc["committed_consequences"]
+    recovery = turn["no_dead_end_recovery"]
+    assert recovery["schema_version"] == "no_dead_end_recovery.v1"
+    assert recovery["recovery_class"] == "blocked_playable"
+    assert recovery["commit_policy"]["commits_story_truth"] is True
+    assert recovery["commit_policy"]["committed_truth_scope"] == "blocked_attempt_only"
+    assert recovery["playability"]["next_step_affordance_present"] is True
+    assert turn["turn_aspect_ledger"]["turn_aspect_ledger"]["no_dead_end_recovery"]["status"] == "passed"
 
 
 def test_recoverable_validation_rejection_returns_structured_turn(manager: StoryRuntimeManager) -> None:
@@ -259,7 +266,14 @@ def test_recoverable_validation_rejection_returns_structured_turn(manager: Story
     assert playability["commits_story_truth"] is False
     assert playability["next_step_affordance_present"] is True
     assert playability["technical_leak_absent"] is True
+    assert playability["no_dead_end_recovery_schema"] == "no_dead_end_recovery.v1"
+    assert playability["recovery_class"] == "blocked_playable"
     assert turn["diagnostics"]["recoverable_playability"] == playability
+    recovery = turn["no_dead_end_recovery"]
+    assert recovery["recovery_class"] == "blocked_playable"
+    assert recovery["commit_policy"]["commits_story_truth"] is False
+    assert recovery["validation"]["status"] == "approved"
+    assert turn["turn_aspect_ledger"]["turn_aspect_ledger"]["no_dead_end_recovery"]["status"] == "passed"
     assert session.turn_counter == 1
     state = manager.get_state(session.session_id)
     assert state["history_count"] == 2
@@ -697,6 +711,8 @@ def test_graph_execution_exception_returns_playable_turn(manager: StoryRuntimeMa
     assert turn["reason"] == "graph_execution_exception"
     assert turn["recoverable_playability"]["obstacle_kind"] == "runtime_graph_exception"
     assert turn["recoverable_playability"]["commits_story_truth"] is False
+    assert turn["no_dead_end_recovery"]["recovery_class"] == "safe_fallback_playable"
+    assert turn["no_dead_end_recovery"]["validation"]["recoverable_no_dead_end"] is True
     vb = turn.get("visible_output_bundle") or {}
     assert isinstance(vb.get("scene_blocks"), list) and vb["scene_blocks"]
     state = manager.get_state(session.session_id)

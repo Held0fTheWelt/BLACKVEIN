@@ -19,6 +19,7 @@ from ai_stack.consequence_cascade_contracts import normalize_consequence_cascade
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.expectation_variation_contracts import normalize_expectation_variation_policy
+from ai_stack.genre_awareness_contracts import normalize_genre_awareness_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
 from ai_stack.improvisational_coherence_contracts import (
     normalize_improvisational_coherence_policy,
@@ -33,6 +34,9 @@ from ai_stack.relationship_state_contracts import normalize_relationship_state_p
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
 from ai_stack.social_pressure_contracts import normalize_social_pressure_policy
+from ai_stack.symbolic_object_resonance_contracts import (
+    normalize_symbolic_object_resonance_policy,
+)
 from ai_stack.temporal_control_contracts import normalize_temporal_control_policy
 from ai_stack.tonal_consistency_contracts import normalize_tonal_consistency_policy
 
@@ -203,6 +207,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     temporal_control = temporal_control if isinstance(temporal_control, dict) else {}
     tonal_consistency = raw.get("tonal_consistency")
     tonal_consistency = tonal_consistency if isinstance(tonal_consistency, dict) else {}
+    genre_awareness = raw.get("genre_awareness")
+    genre_awareness = genre_awareness if isinstance(genre_awareness, dict) else {}
     expectation_variation = raw.get("expectation_variation")
     expectation_variation = (
         expectation_variation if isinstance(expectation_variation, dict) else {}
@@ -211,6 +217,12 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
     sensory_context = raw.get("sensory_context")
     sensory_context = sensory_context if isinstance(sensory_context, dict) else {}
+    symbolic_object_resonance = raw.get("symbolic_object_resonance")
+    symbolic_object_resonance = (
+        symbolic_object_resonance
+        if isinstance(symbolic_object_resonance, dict)
+        else {}
+    )
     improvisational_coherence = raw.get("improvisational_coherence")
     improvisational_coherence = (
         improvisational_coherence
@@ -277,6 +289,9 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "scene_energy": normalize_scene_energy_policy(scene_energy),
         "pacing_rhythm": normalize_pacing_rhythm_policy(pacing_rhythm),
         "sensory_context": normalize_sensory_context_policy(sensory_context),
+        "symbolic_object_resonance": normalize_symbolic_object_resonance_policy(
+            symbolic_object_resonance
+        ),
         "improvisational_coherence": normalize_improvisational_coherence_policy(
             improvisational_coherence
         ),
@@ -295,6 +310,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
         "temporal_control": normalize_temporal_control_policy(temporal_control),
         "tonal_consistency": normalize_tonal_consistency_policy(tonal_consistency),
+        "genre_awareness": normalize_genre_awareness_policy(genre_awareness),
     }
 
 
@@ -320,6 +336,8 @@ class ModuleRuntimePolicy:
     dramatic_irony_policy: dict[str, Any] = field(default_factory=dict)
     improvisational_coherence_policy: dict[str, Any] = field(default_factory=dict)
     tonal_consistency_policy: dict[str, Any] = field(default_factory=dict)
+    genre_awareness_policy: dict[str, Any] = field(default_factory=dict)
+    symbolic_object_resonance_policy: dict[str, Any] = field(default_factory=dict)
     expectation_variation_policy: dict[str, Any] = field(default_factory=dict)
     meta_narrative_awareness_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
@@ -423,6 +441,22 @@ def load_module_runtime_policy(
     tonal_consistency_policy = normalize_tonal_consistency_policy(
         tonal_consistency_raw if tonal_consistency_raw else None
     )
+    genre_awareness_raw = (
+        runtime_intelligence.get("genre_awareness")
+        if isinstance(runtime_intelligence.get("genre_awareness"), dict)
+        else {}
+    )
+    genre_awareness_policy = normalize_genre_awareness_policy(
+        genre_awareness_raw if genre_awareness_raw else None
+    )
+    symbolic_object_resonance_raw = (
+        runtime_intelligence.get("symbolic_object_resonance")
+        if isinstance(runtime_intelligence.get("symbolic_object_resonance"), dict)
+        else {}
+    )
+    symbolic_object_resonance_policy = normalize_symbolic_object_resonance_policy(
+        symbolic_object_resonance_raw if symbolic_object_resonance_raw else None
+    )
 
     sources = []
     for label, payload in (
@@ -449,6 +483,8 @@ def load_module_runtime_policy(
         ("dramatic_irony_policy", dramatic_irony_raw),
         ("improvisational_coherence_policy", improvisational_coherence_raw),
         ("tonal_consistency_policy", tonal_consistency_raw),
+        ("genre_awareness_policy", genre_awareness_raw),
+        ("symbolic_object_resonance_policy", symbolic_object_resonance_raw),
         ("expectation_variation_policy", expectation_variation_raw),
         ("meta_narrative_awareness_policy", meta_narrative_awareness_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
@@ -492,6 +528,8 @@ def load_module_runtime_policy(
         dramatic_irony_policy=dramatic_irony_policy,
         improvisational_coherence_policy=improvisational_coherence_policy,
         tonal_consistency_policy=tonal_consistency_policy,
+        genre_awareness_policy=genre_awareness_policy,
+        symbolic_object_resonance_policy=symbolic_object_resonance_policy,
         expectation_variation_policy=expectation_variation_policy,
         meta_narrative_awareness_policy=meta_narrative_awareness_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),

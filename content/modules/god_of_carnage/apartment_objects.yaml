@@ -10,6 +10,9 @@ apartment_objects:
       interaction_notes:
         look_at: "Perception-only; does not change social geometry."
       risk_tags: []
+      symbolic_roles:
+        - exposure_surface
+        - departure_surface
 
     - id: television
       placement_room_id: vallon_living_room
@@ -19,6 +22,9 @@ apartment_objects:
         deactivate: "Restores quiet domestic baseline."
       risk_tags:
         - attention_diversion
+      symbolic_roles:
+        - attention_diversion
+        - status_surface
 
     - id: dining_table
       placement_room_id: vallon_living_room
@@ -26,3 +32,6 @@ apartment_objects:
       interaction_notes: {}
       risk_tags:
         - territorial_anchor
+      symbolic_roles:
+        - territorial_anchor
+        - hospitality_surface

@@ -135,6 +135,12 @@ class PlannerTruth(BaseModel):
     sensory_context_state: dict[str, Any] = Field(default_factory=dict)
     sensory_context_target: dict[str, Any] = Field(default_factory=dict)
     sensory_context_validation: dict[str, Any] = Field(default_factory=dict)
+    genre_awareness_state: dict[str, Any] = Field(default_factory=dict)
+    genre_awareness_target: dict[str, Any] = Field(default_factory=dict)
+    genre_awareness_validation: dict[str, Any] = Field(default_factory=dict)
+    symbolic_object_resonance_state: dict[str, Any] = Field(default_factory=dict)
+    symbolic_object_resonance_target: dict[str, Any] = Field(default_factory=dict)
+    symbolic_object_resonance_validation: dict[str, Any] = Field(default_factory=dict)
     social_pressure_state: dict[str, Any] = Field(default_factory=dict)
     social_pressure_target: dict[str, Any] = Field(default_factory=dict)
     social_pressure_validation: dict[str, Any] = Field(default_factory=dict)
@@ -811,6 +817,30 @@ def _planner_truth_from_graph_state(
         or dramatic_packet_sensory_context.get("target")
     )
     sensory_context_validation = _as_dict(graph_state.get("sensory_context_validation"))
+    dramatic_packet_genre_awareness = _as_dict(dramatic_packet.get("genre_awareness"))
+    genre_awareness_state = _as_dict(
+        graph_state.get("genre_awareness_state")
+        or dramatic_packet_genre_awareness.get("state")
+    )
+    genre_awareness_target = _as_dict(
+        graph_state.get("genre_awareness_target")
+        or dramatic_packet_genre_awareness.get("target")
+    )
+    genre_awareness_validation = _as_dict(graph_state.get("genre_awareness_validation"))
+    dramatic_packet_symbolic_object = _as_dict(
+        dramatic_packet.get("symbolic_object_resonance")
+    )
+    symbolic_object_resonance_state = _as_dict(
+        graph_state.get("symbolic_object_resonance_state")
+        or dramatic_packet_symbolic_object.get("state")
+    )
+    symbolic_object_resonance_target = _as_dict(
+        graph_state.get("symbolic_object_resonance_target")
+        or dramatic_packet_symbolic_object.get("target")
+    )
+    symbolic_object_resonance_validation = _as_dict(
+        graph_state.get("symbolic_object_resonance_validation")
+    )
     dramatic_packet_social_pressure = _as_dict(dramatic_packet.get("social_pressure"))
     social_pressure_state = _as_dict(
         graph_state.get("social_pressure_state")
@@ -926,6 +956,12 @@ def _planner_truth_from_graph_state(
         sensory_context_state=sensory_context_state,
         sensory_context_target=sensory_context_target,
         sensory_context_validation=sensory_context_validation,
+        genre_awareness_state=genre_awareness_state,
+        genre_awareness_target=genre_awareness_target,
+        genre_awareness_validation=genre_awareness_validation,
+        symbolic_object_resonance_state=symbolic_object_resonance_state,
+        symbolic_object_resonance_target=symbolic_object_resonance_target,
+        symbolic_object_resonance_validation=symbolic_object_resonance_validation,
         social_pressure_state=social_pressure_state,
         social_pressure_target=social_pressure_target,
         social_pressure_validation=social_pressure_validation,

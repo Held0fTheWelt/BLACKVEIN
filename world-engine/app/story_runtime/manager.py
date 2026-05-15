@@ -78,6 +78,10 @@ from story_runtime_core.consequences import (
     build_graph_consequence_cascade_export,
     stable_consequence_cascade_id,
 )
+from story_runtime_core.recovery import (
+    NO_DEAD_END_RECOVERY_SCHEMA_VERSION,
+    build_no_dead_end_recovery_record,
+)
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -96,18 +100,21 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
+    ASPECT_GENRE_AWARENESS,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NO_DEAD_END_RECOVERY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_PACING_RHYTHM,
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_TEMPORAL_CONTROL,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
@@ -589,9 +596,18 @@ def _recoverable_playability_metadata(
     player_input: str,
     reason: str,
     turn_kind: str,
+    no_dead_end_recovery: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    obstacle_kind = "runtime_graph_exception" if reason == "graph_execution_exception" else "validation_rejection"
-    return {
+    recovery = no_dead_end_recovery if isinstance(no_dead_end_recovery, dict) else {}
+    recovery_obstacle_kind = str(recovery.get("obstacle_kind") or "").strip()
+    if recovery_obstacle_kind == "validation_or_scene_constraint":
+        obstacle_kind = "validation_rejection"
+    else:
+        obstacle_kind = recovery_obstacle_kind or (
+            "runtime_graph_exception" if reason == "graph_execution_exception" else "validation_rejection"
+        )
+    next_steps = recovery.get("next_step_options") if isinstance(recovery.get("next_step_options"), list) else []
+    out = {
         "contract": "recoverable_outcome_playability.v1",
         "recovery_mode": "retry_affordance" if obstacle_kind == "runtime_graph_exception" else "scene_constraint_redirect",
         "obstacle_kind": obstacle_kind,
@@ -601,6 +617,139 @@ def _recoverable_playability_metadata(
         "commits_story_truth": False,
         "turn_kind": turn_kind,
     }
+    if recovery:
+        playability = recovery.get("playability") if isinstance(recovery.get("playability"), dict) else {}
+        commit_policy = recovery.get("commit_policy") if isinstance(recovery.get("commit_policy"), dict) else {}
+        out.update(
+            {
+                "no_dead_end_recovery_schema": recovery.get("schema_version"),
+                "recovery_class": recovery.get("recovery_class"),
+                "next_step_count": len(next_steps),
+                "next_step_affordance_present": bool(playability.get("next_step_affordance_present")),
+                "technical_leak_absent": bool(playability.get("technical_leak_absent")),
+                "commits_story_truth": bool(commit_policy.get("commits_story_truth")),
+            }
+        )
+    return out
+
+
+def _no_dead_end_recovery_aspect_record(recovery: dict[str, Any]) -> dict[str, Any]:
+    validation = recovery.get("validation") if isinstance(recovery.get("validation"), dict) else {}
+    failure_codes = validation.get("failure_codes") if isinstance(validation.get("failure_codes"), list) else []
+    approved = str(validation.get("status") or "") == "approved"
+    reason = str(recovery.get("obstacle_reason") or "").strip()
+    playability = recovery.get("playability") if isinstance(recovery.get("playability"), dict) else {}
+    commit_policy = recovery.get("commit_policy") if isinstance(recovery.get("commit_policy"), dict) else {}
+    return make_aspect_record(
+        applicable=True,
+        status="passed" if approved else "failed",
+        expected={
+            "schema_version": NO_DEAD_END_RECOVERY_SCHEMA_VERSION,
+            "playable_recovery_required": True,
+            "next_step_required": True,
+            "technical_leak_absent_required": True,
+        },
+        selected={
+            "recovery_class": recovery.get("recovery_class"),
+            "obstacle_kind": recovery.get("obstacle_kind"),
+            "next_step_option_count": len(recovery.get("next_step_options") or []),
+        },
+        actual={
+            "validation_status": validation.get("status"),
+            "failure_codes": failure_codes,
+            "next_step_affordance_present": bool(playability.get("next_step_affordance_present")),
+            "technical_leak_absent": bool(playability.get("technical_leak_absent")),
+            "commits_story_truth": bool(commit_policy.get("commits_story_truth")),
+            "committed_truth_scope": commit_policy.get("committed_truth_scope"),
+            "false_truth_feedback_allowed": bool(commit_policy.get("false_truth_feedback_allowed")),
+        },
+        reasons=[str(code) for code in failure_codes] or ([reason] if reason else []),
+        source="runtime",
+        failure_class=None if approved else "recoverable_dramatic_failure",
+        failure_reason=None if approved else (str(failure_codes[0]) if failure_codes else reason or "no_dead_end_recovery_failed"),
+    )
+
+
+def _record_no_dead_end_recovery_aspect(
+    ledger: dict[str, Any] | None,
+    recovery: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not isinstance(ledger, dict):
+        return None
+    return set_aspect_record(
+        ledger,
+        ASPECT_NO_DEAD_END_RECOVERY,
+        _no_dead_end_recovery_aspect_record(recovery),
+    )
+
+
+def _event_reason_for_no_dead_end(event: dict[str, Any], turn_outcome: str | None = None) -> str:
+    validation = event.get("validation_outcome") if isinstance(event.get("validation_outcome"), dict) else {}
+    commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
+    for value in (
+        validation.get("reason"),
+        commit.get("commit_reason_code"),
+        turn_outcome,
+        event.get("reason"),
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return "continue"
+
+
+def _attach_no_dead_end_recovery_to_event(
+    *,
+    session: "StorySession",
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+    player_input: str,
+    turn_number: int,
+    turn_kind: str,
+    turn_outcome: str,
+    recoverable_outcome: bool = False,
+) -> dict[str, Any] | None:
+    if str(turn_kind or "").strip().lower() in {"opening", "engine_opening"} and not str(player_input or "").strip():
+        return None
+    visible_output_bundle = (
+        event.get("visible_output_bundle")
+        if isinstance(event.get("visible_output_bundle"), dict)
+        else graph_state.get("visible_output_bundle")
+        if isinstance(graph_state.get("visible_output_bundle"), dict)
+        else {}
+    )
+    committed_result = (
+        event.get("committed_result")
+        if isinstance(event.get("committed_result"), dict)
+        else graph_state.get("committed_result")
+        if isinstance(graph_state.get("committed_result"), dict)
+        else {}
+    )
+    recovery = build_no_dead_end_recovery_record(
+        story_session_id=session.session_id,
+        module_id=session.module_id,
+        turn_number=turn_number,
+        turn_kind=turn_kind,
+        player_input=player_input,
+        reason=_event_reason_for_no_dead_end(event, turn_outcome),
+        validation_outcome=event.get("validation_outcome") if isinstance(event.get("validation_outcome"), dict) else {},
+        narrative_commit=event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {},
+        committed_result=committed_result,
+        visible_output_bundle=visible_output_bundle,
+        recoverable_outcome=recoverable_outcome,
+    )
+    event["no_dead_end_recovery"] = recovery
+    graph_state["no_dead_end_recovery"] = recovery
+    ledger = event.get("turn_aspect_ledger") if isinstance(event.get("turn_aspect_ledger"), dict) else None
+    if ledger is not None:
+        ledger = _record_no_dead_end_recovery_aspect(ledger, recovery) or ledger
+        event["turn_aspect_ledger"] = ledger
+        graph_state["turn_aspect_ledger"] = ledger
+    diagnostics = event.get("diagnostics") if isinstance(event.get("diagnostics"), dict) else None
+    if diagnostics is not None:
+        diagnostics["no_dead_end_recovery"] = recovery
+        diagnostics["turn_aspect_ledger"] = event.get("turn_aspect_ledger")
+    return recovery
 
 
 def _recoverable_narrator_visible_output_bundle(*, message: str) -> dict[str, Any]:
@@ -644,16 +793,42 @@ def _recoverable_playable_turn_envelope(
         commit_turn_number=commit_turn_number,
         turn_kind=turn_kind,
     ) or turn_aspect_ledger
-    diag: dict[str, Any] = {
+    committed_result = {
+        "commit_applied": False,
+        "committed_effects": [],
+        "reason": reason,
         "recoverable_rejection": True,
-        "hard_boundary_failure": False,
-        "turn_aspect_ledger": turn_aspect_ledger,
     }
+    visible_output_bundle = _recoverable_narrator_visible_output_bundle(message=message)
+    no_dead_end_recovery = build_no_dead_end_recovery_record(
+        story_session_id=session.session_id,
+        module_id=session.module_id,
+        turn_number=commit_turn_number,
+        turn_kind=turn_kind,
+        player_input=player_input,
+        reason=reason,
+        validation_outcome=validation_outcome,
+        narrative_commit=narrative_commit,
+        committed_result=committed_result,
+        visible_output_bundle=visible_output_bundle,
+        recoverable_outcome=True,
+    )
+    turn_aspect_ledger = _record_no_dead_end_recovery_aspect(
+        turn_aspect_ledger,
+        no_dead_end_recovery,
+    ) or turn_aspect_ledger
     playability = _recoverable_playability_metadata(
         player_input=player_input,
         reason=reason,
         turn_kind=turn_kind,
+        no_dead_end_recovery=no_dead_end_recovery,
     )
+    diag: dict[str, Any] = {
+        "recoverable_rejection": True,
+        "hard_boundary_failure": False,
+        "turn_aspect_ledger": turn_aspect_ledger,
+        "no_dead_end_recovery": no_dead_end_recovery,
+    }
     if diagnostics_extras:
         diag.update(diagnostics_extras)
     diag["recoverable_playability"] = playability
@@ -667,13 +842,9 @@ def _recoverable_playable_turn_envelope(
         "interpreted_input": interpreted_input,
         "narrative_commit": narrative_commit,
         "validation_outcome": validation_outcome,
-        "committed_result": {
-            "commit_applied": False,
-            "committed_effects": [],
-            "reason": reason,
-            "recoverable_rejection": True,
-        },
-        "visible_output_bundle": _recoverable_narrator_visible_output_bundle(message=message),
+        "committed_result": committed_result,
+        "visible_output_bundle": visible_output_bundle,
+        "no_dead_end_recovery": no_dead_end_recovery,
         "ok": False,
         "turn_status": "rejected_recoverable",
         "reason": reason,
@@ -3116,6 +3287,44 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("sensory_context_validation"), dict)
             else {}
         ),
+        "genre_awareness_state": (
+            graph_state.get("genre_awareness_state")
+            if isinstance(graph_state.get("genre_awareness_state"), dict)
+            else scene_plan_record.get("genre_awareness_state")
+            if isinstance(scene_plan_record.get("genre_awareness_state"), dict)
+            else {}
+        ),
+        "genre_awareness_target": (
+            graph_state.get("genre_awareness_target")
+            if isinstance(graph_state.get("genre_awareness_target"), dict)
+            else scene_plan_record.get("genre_awareness_target")
+            if isinstance(scene_plan_record.get("genre_awareness_target"), dict)
+            else {}
+        ),
+        "genre_awareness_validation": (
+            graph_state.get("genre_awareness_validation")
+            if isinstance(graph_state.get("genre_awareness_validation"), dict)
+            else {}
+        ),
+        "symbolic_object_resonance_state": (
+            graph_state.get("symbolic_object_resonance_state")
+            if isinstance(graph_state.get("symbolic_object_resonance_state"), dict)
+            else scene_plan_record.get("symbolic_object_resonance_state")
+            if isinstance(scene_plan_record.get("symbolic_object_resonance_state"), dict)
+            else {}
+        ),
+        "symbolic_object_resonance_target": (
+            graph_state.get("symbolic_object_resonance_target")
+            if isinstance(graph_state.get("symbolic_object_resonance_target"), dict)
+            else scene_plan_record.get("symbolic_object_resonance_target")
+            if isinstance(scene_plan_record.get("symbolic_object_resonance_target"), dict)
+            else {}
+        ),
+        "symbolic_object_resonance_validation": (
+            graph_state.get("symbolic_object_resonance_validation")
+            if isinstance(graph_state.get("symbolic_object_resonance_validation"), dict)
+            else {}
+        ),
         "social_pressure_state": (
             graph_state.get("social_pressure_state")
             if isinstance(graph_state.get("social_pressure_state"), dict)
@@ -3965,6 +4174,10 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     temporal_control_actual = _actual(ASPECT_TEMPORAL_CONTROL)
     sensory_context_selected = _selected(ASPECT_SENSORY_CONTEXT)
     sensory_context_actual = _actual(ASPECT_SENSORY_CONTEXT)
+    genre_awareness_selected = _selected(ASPECT_GENRE_AWARENESS)
+    genre_awareness_actual = _actual(ASPECT_GENRE_AWARENESS)
+    symbolic_object_selected = _selected(ASPECT_SYMBOLIC_OBJECT_RESONANCE)
+    symbolic_object_actual = _actual(ASPECT_SYMBOLIC_OBJECT_RESONANCE)
     social_pressure_selected = _selected(ASPECT_SOCIAL_PRESSURE)
     social_pressure_actual = _actual(ASPECT_SOCIAL_PRESSURE)
     improvisational_selected = _selected(ASPECT_IMPROVISATIONAL_COHERENCE)
@@ -4078,6 +4291,38 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {
                 "actual": sensory_context_actual,
                 "aspect_record": _rec(ASPECT_SENSORY_CONTEXT),
+            },
+        ),
+        (
+            "story.genre_awareness.target",
+            ASPECT_GENRE_AWARENESS,
+            {
+                "selected": genre_awareness_selected,
+                "aspect_record": _rec(ASPECT_GENRE_AWARENESS),
+            },
+        ),
+        (
+            "story.genre_awareness.validate",
+            ASPECT_GENRE_AWARENESS,
+            {
+                "actual": genre_awareness_actual,
+                "aspect_record": _rec(ASPECT_GENRE_AWARENESS),
+            },
+        ),
+        (
+            "story.symbolic_object_resonance.target",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            {
+                "selected": symbolic_object_selected,
+                "aspect_record": _rec(ASPECT_SYMBOLIC_OBJECT_RESONANCE),
+            },
+        ),
+        (
+            "story.symbolic_object_resonance.validate",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            {
+                "actual": symbolic_object_actual,
+                "aspect_record": _rec(ASPECT_SYMBOLIC_OBJECT_RESONANCE),
             },
         ),
         (
@@ -4236,6 +4481,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_PACING_RHYTHM,
                         ASPECT_TEMPORAL_CONTROL,
                         ASPECT_SENSORY_CONTEXT,
+                        ASPECT_GENRE_AWARENESS,
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_EXPECTATION_VARIATION,
@@ -4336,6 +4582,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     sensory_context_failure_codes = sensory_context_actual.get("failure_codes") or []
     if not isinstance(sensory_context_failure_codes, list):
         sensory_context_failure_codes = []
+    genre_awareness_target = (
+        genre_awareness_selected.get("target")
+        if isinstance(genre_awareness_selected.get("target"), dict)
+        else genre_awareness_selected
+    )
+    genre_awareness_failure_codes = genre_awareness_actual.get("failure_codes") or []
+    if not isinstance(genre_awareness_failure_codes, list):
+        genre_awareness_failure_codes = []
+    symbolic_object_target = (
+        symbolic_object_selected.get("target")
+        if isinstance(symbolic_object_selected.get("target"), dict)
+        else symbolic_object_selected
+    )
+    symbolic_object_failure_codes = symbolic_object_actual.get("failure_codes") or []
+    if not isinstance(symbolic_object_failure_codes, list):
+        symbolic_object_failure_codes = []
     improvisational_failure_codes = improvisational_actual.get("failure_codes") or []
     if not isinstance(improvisational_failure_codes, list):
         improvisational_failure_codes = []
@@ -4565,6 +4827,92 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(
                 "sensory_context_source_ref_mismatch" not in sensory_context_failure_codes
                 and "sensory_context_unselected_layer" not in sensory_context_failure_codes
+            ),
+        ),
+        (
+            "genre_awareness_policy_present",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_GENRE_AWARENESS).get("policy_present"))
+            ),
+        ),
+        (
+            "genre_awareness_target_selected",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(bool(genre_awareness_target.get("genre_profile_id"))),
+        ),
+        (
+            "genre_awareness_registers_valid",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(
+                "genre_awareness_register_not_allowed" not in genre_awareness_failure_codes
+            ),
+        ),
+        (
+            "genre_awareness_required_conventions_realized",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(
+                "genre_awareness_missing_required_convention"
+                not in genre_awareness_failure_codes
+                and "genre_awareness_missing_required_event"
+                not in genre_awareness_failure_codes
+            ),
+        ),
+        (
+            "genre_awareness_forbidden_markers_absent",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(
+                "genre_awareness_forbidden_marker" not in genre_awareness_failure_codes
+            ),
+        ),
+        (
+            "genre_awareness_contract_pass",
+            ASPECT_GENRE_AWARENESS,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_GENRE_AWARENESS).get("status") in {"passed", "not_applicable"}
+                and genre_awareness_actual.get("contract_pass") is not False
+            ),
+        ),
+        (
+            "symbolic_object_resonance_policy_present",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_SYMBOLIC_OBJECT_RESONANCE).get("policy_present"))
+            ),
+        ),
+        (
+            "symbolic_object_resonance_target_selected",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            _runtime_aspect_score_value(
+                bool(symbolic_object_selected.get("selected_object_ids"))
+            ),
+        ),
+        (
+            "symbolic_object_resonance_source_refs_valid",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            _runtime_aspect_score_value(
+                "symbolic_object_resonance_source_ref_mismatch"
+                not in symbolic_object_failure_codes
+                and "symbolic_object_resonance_unselected_object"
+                not in symbolic_object_failure_codes
+            ),
+        ),
+        (
+            "symbolic_object_resonance_budget_pass",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            _runtime_aspect_score_value(
+                "symbolic_object_resonance_budget_exceeded"
+                not in symbolic_object_failure_codes
+            ),
+        ),
+        (
+            "symbolic_object_resonance_contract_pass",
+            ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_SYMBOLIC_OBJECT_RESONANCE).get("status")
+                in {"passed", "not_applicable"}
+                and symbolic_object_actual.get("contract_pass") is not False
+                and not symbolic_object_failure_codes
             ),
         ),
         (
@@ -6947,6 +7295,12 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "sensory_context_state",
         "sensory_context_target",
         "sensory_context_validation",
+        "genre_awareness_state",
+        "genre_awareness_target",
+        "genre_awareness_validation",
+        "symbolic_object_resonance_state",
+        "symbolic_object_resonance_target",
+        "symbolic_object_resonance_validation",
         "social_pressure_state",
         "social_pressure_target",
         "social_pressure_validation",
@@ -7083,6 +7437,40 @@ def _prior_expectation_variation_state_from_session(session: "StorySession") -> 
     return None
 
 
+def _prior_genre_awareness_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed genre-awareness state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("genre_awareness_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
+def _prior_symbolic_object_resonance_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed symbolic-object-resonance state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("symbolic_object_resonance_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
 def _prior_narrative_thread_state_from_session(
     session: "StorySession",
     *,
@@ -7181,6 +7569,11 @@ def _build_committed_dramatic_context_summary(
         if isinstance(base.get("temporal_control"), dict)
         else {}
     )
+    base_genre_awareness = (
+        base.get("genre_awareness")
+        if isinstance(base.get("genre_awareness"), dict)
+        else {}
+    )
     base_scene = (
         base.get("scene_assessment")
         if isinstance(base.get("scene_assessment"), dict)
@@ -7248,6 +7641,19 @@ def _build_committed_dramatic_context_summary(
                     planner.get("temporal_control_validation", {}).get("status")
                     if isinstance(planner.get("temporal_control_validation"), dict)
                     else base_temporal_control.get("validation_status")
+                ),
+            },
+            "genre_awareness": {
+                "state": planner.get("genre_awareness_state")
+                if isinstance(planner.get("genre_awareness_state"), dict)
+                else base_genre_awareness.get("state") or {},
+                "target": planner.get("genre_awareness_target")
+                if isinstance(planner.get("genre_awareness_target"), dict)
+                else base_genre_awareness.get("target") or {},
+                "validation_status": (
+                    planner.get("genre_awareness_validation", {}).get("status")
+                    if isinstance(planner.get("genre_awareness_validation"), dict)
+                    else base_genre_awareness.get("validation_status")
                 ),
             },
             "social_pressure": {
@@ -8908,6 +9314,18 @@ class StoryRuntimeManager:
             gov["sensory_context_target"] = graph_state.get("sensory_context_target")
         if isinstance(graph_state.get("sensory_context_validation"), dict):
             gov["sensory_context_validation"] = graph_state.get("sensory_context_validation")
+        if isinstance(graph_state.get("symbolic_object_resonance_state"), dict):
+            gov["symbolic_object_resonance_state"] = graph_state.get(
+                "symbolic_object_resonance_state"
+            )
+        if isinstance(graph_state.get("symbolic_object_resonance_target"), dict):
+            gov["symbolic_object_resonance_target"] = graph_state.get(
+                "symbolic_object_resonance_target"
+            )
+        if isinstance(graph_state.get("symbolic_object_resonance_validation"), dict):
+            gov["symbolic_object_resonance_validation"] = graph_state.get(
+                "symbolic_object_resonance_validation"
+            )
         if isinstance(graph_state.get("social_pressure_state"), dict):
             gov["social_pressure_state"] = graph_state.get("social_pressure_state")
         if isinstance(graph_state.get("social_pressure_target"), dict):
@@ -9160,7 +9578,7 @@ class StoryRuntimeManager:
                     "runtime_aspect_failure": failure,
                 },
             )
-            graph_state["turn_aspect_ledger"] = turn_aspect_ledger
+            graph_state["turn_aspect_ledger"] = recoverable_event.get("turn_aspect_ledger")
             graph_state["validation_outcome"] = val_projection
             graph_state["visible_output_bundle"] = recoverable_event["visible_output_bundle"]
             graph_state["committed_result"] = {
@@ -9608,6 +10026,16 @@ class StoryRuntimeManager:
             graph_state["human_input_attribution"] = human_att
             event["human_input_attribution"] = human_att
         _reconcile_governance_passivity_with_final_projection(event)
+        _attach_no_dead_end_recovery_to_event(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+            player_input=player_input,
+            turn_number=commit_turn_number,
+            turn_kind=turn_kind or "player",
+            turn_outcome=outcome,
+            recoverable_outcome=False,
+        )
         memory_source_turn = {
             "canonical_turn_id": event.get("canonical_turn_id"),
             "module_id": session.module_id,
@@ -9621,6 +10049,7 @@ class StoryRuntimeManager:
             "committed_turn_authority": committed_turn_authority,
             "dramatic_context_summary": dramatic_context_summary,
             "actor_turn_summary": actor_turn_summary,
+            "no_dead_end_recovery": event.get("no_dead_end_recovery"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "committed_state_after": {
@@ -9651,6 +10080,7 @@ class StoryRuntimeManager:
             "dramatic_context_summary": dramatic_context_summary,
             "actor_turn_summary": actor_turn_summary,
             "branching_forecast": event.get("branching_forecast"),
+            "no_dead_end_recovery": event.get("no_dead_end_recovery"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "scene_energy_target": event.get("scene_energy_target"),
@@ -9716,6 +10146,7 @@ class StoryRuntimeManager:
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
         prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
         prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
+        prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
         prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
 
         try:
@@ -9734,6 +10165,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
+                prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
                 prior_relationship_state_record=prior_relationship_state_record,
@@ -11016,6 +11448,7 @@ class StoryRuntimeManager:
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
             prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
+            prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
             prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
@@ -11047,6 +11480,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
+                prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
                 prior_relationship_state_record=prior_relationship_state_record,
@@ -11141,7 +11575,7 @@ class StoryRuntimeManager:
                 "graph_errors": ["graph_execution_exception"],
                 "validation_outcome": val_graph_exc,
                 "visible_output_bundle": event["visible_output_bundle"],
-                "turn_aspect_ledger": turn_aspect_ledger,
+                "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             }
             return self._persist_player_visible_turn_event(
                 session=session,
@@ -11282,6 +11716,21 @@ class StoryRuntimeManager:
             event.setdefault("sensory_context_target", graph_state.get("sensory_context_target"))
         if isinstance(graph_state.get("sensory_context_validation"), dict):
             event.setdefault("sensory_context_validation", graph_state.get("sensory_context_validation"))
+        if isinstance(graph_state.get("symbolic_object_resonance_state"), dict):
+            event.setdefault(
+                "symbolic_object_resonance_state",
+                graph_state.get("symbolic_object_resonance_state"),
+            )
+        if isinstance(graph_state.get("symbolic_object_resonance_target"), dict):
+            event.setdefault(
+                "symbolic_object_resonance_target",
+                graph_state.get("symbolic_object_resonance_target"),
+            )
+        if isinstance(graph_state.get("symbolic_object_resonance_validation"), dict):
+            event.setdefault(
+                "symbolic_object_resonance_validation",
+                graph_state.get("symbolic_object_resonance_validation"),
+            )
         if isinstance(graph_state.get("social_pressure_state"), dict):
             event.setdefault("social_pressure_state", graph_state.get("social_pressure_state"))
         if isinstance(graph_state.get("social_pressure_target"), dict):
@@ -11307,6 +11756,8 @@ class StoryRuntimeManager:
         graph_state.setdefault("validation_outcome", event.get("validation_outcome"))
         graph_state.setdefault("visible_output_bundle", event.get("visible_output_bundle"))
         graph_state.setdefault("interpreted_input", interpreted_input)
+        if isinstance(event.get("no_dead_end_recovery"), dict):
+            graph_state["no_dead_end_recovery"] = event["no_dead_end_recovery"]
         _record_hierarchical_memory_aspect(
             session=session,
             graph_state=graph_state,
@@ -11321,6 +11772,7 @@ class StoryRuntimeManager:
                 "turn_kind": event.get("turn_kind") or "player_rejected_recoverable",
                 "turn_outcome": turn_outcome,
                 "recoverable_outcome": True,
+                "no_dead_end_recovery": event.get("no_dead_end_recovery"),
                 "narrative_commit": event.get("narrative_commit"),
                 "turn_aspect_ledger": event.get("turn_aspect_ledger"),
                 "visible_output_bundle": event.get("visible_output_bundle"),
@@ -11349,6 +11801,7 @@ class StoryRuntimeManager:
             "committed_result": event.get("committed_result")
             if isinstance(event.get("committed_result"), dict)
             else graph_state.get("committed_result"),
+            "no_dead_end_recovery": event.get("no_dead_end_recovery"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "scene_energy_target": event.get("scene_energy_target"),
@@ -11459,7 +11912,7 @@ class StoryRuntimeManager:
             turn_aspect_ledger=turn_aspect_ledger,
             reason=reason,
         )
-        graph_state["turn_aspect_ledger"] = turn_aspect_ledger
+        graph_state["turn_aspect_ledger"] = event.get("turn_aspect_ledger")
         graph_state["visible_output_bundle"] = event["visible_output_bundle"]
         graph_state["validation_outcome"] = event["validation_outcome"]
         return self._persist_player_visible_turn_event(

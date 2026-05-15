@@ -130,6 +130,52 @@ def test_invalid_scoped_readiness_enforcement_flag_fails_closed() -> None:
     assert "scoped readiness enforcement disabled" in warnings[0]
 
 
+def test_scoped_readiness_aggregation_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV,
+        resolve_adr0041_scoped_readiness_aggregation_enabled,
+    )
+
+    monkeypatch.delenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, raising=False)
+    enabled, warnings = resolve_adr0041_scoped_readiness_aggregation_enabled()
+
+    assert enabled is False
+    assert warnings == ()
+
+
+def test_invalid_scoped_readiness_aggregation_flag_fails_closed() -> None:
+    from ai_stack.runtime_aspect_ledger import resolve_adr0041_scoped_readiness_aggregation_enabled
+
+    enabled, warnings = resolve_adr0041_scoped_readiness_aggregation_enabled(env_value="on-maybe")
+
+    assert enabled is False
+    assert warnings
+    assert "scoped readiness aggregation disabled" in warnings[0]
+
+
+def test_runtime_readiness_consumer_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ai_stack.runtime_aspect_ledger import (
+        ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV,
+        resolve_adr0041_runtime_readiness_consumer_enabled,
+    )
+
+    monkeypatch.delenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, raising=False)
+    enabled, warnings = resolve_adr0041_runtime_readiness_consumer_enabled()
+
+    assert enabled is False
+    assert warnings == ()
+
+
+def test_invalid_runtime_readiness_consumer_flag_fails_closed() -> None:
+    from ai_stack.runtime_aspect_ledger import resolve_adr0041_runtime_readiness_consumer_enabled
+
+    enabled, warnings = resolve_adr0041_runtime_readiness_consumer_enabled(env_value="maybe")
+
+    assert enabled is False
+    assert warnings
+    assert "runtime readiness consumer disabled" in warnings[0].lower()
+
+
 def test_env_plan_enforced_requires_explicit_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, "plan_enforced")
 

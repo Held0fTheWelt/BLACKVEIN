@@ -6,6 +6,7 @@ from ai_stack.capability_selector import (
     CAP_CONSEQUENCE_CASCADE,
     CAP_DRAMATIC_IRONY,
     CAP_ENVIRONMENT_STATE,
+    CAP_GENRE_AWARENESS,
     CAP_INFORMATION_DISCLOSURE,
     CAP_LONG_HORIZON_FORECAST,
     CAP_NARRATOR_AUTHORITY,
@@ -21,8 +22,11 @@ from ai_stack.capability_selector import (
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_NPC_AGENCY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
+    make_aspect_record,
+    set_aspect_record,
 )
 
 
@@ -53,6 +57,7 @@ def test_opening_runtime_projection_contains_capability_selection() -> None:
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
         CAP_SENSORY_CONTEXT,
+        CAP_GENRE_AWARENESS,
     ]
     assert projection["budget"]["max_enforced"] == 5
 
@@ -115,6 +120,37 @@ def test_player_turn_projection_selects_action_resolution_without_forecast_by_de
     assert CAP_PLAYER_INTENT_INFERENCE in projection["selected"]
     assert CAP_LONG_HORIZON_FORECAST in projection["excluded"]
     assert projection["budget"]["heavy_forecast_allowed"] is False
+
+
+def test_player_turn_projection_keeps_player_input_when_npc_agency_evidence_exists() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="selector-player-npc-evidence",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="I ask what they are hiding.",
+        input_kind="speech",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NPC_AGENCY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={"candidate_actor_ids": ["npc_primary"]},
+            selected={"selected_private_plan_actor_ids": ["npc_primary"]},
+            actual={"planned_actor_ids": ["npc_primary"]},
+            source="runtime",
+        ),
+    )
+
+    projection = ledger["runtime_intelligence_projection"]["capability_selection"]
+
+    assert projection["turn_kind"] == "player_input"
+    assert projection["active_actor"] == "player"
+    assert CAP_PLAYER_INTENT_INFERENCE in projection["selected"]
+    assert CAP_ACTION_RESOLUTION in projection["selected"]
+    assert CAP_NPC_AGENCY in projection["selected"]
 
 
 def test_projection_does_not_change_commit_or_readiness_status() -> None:

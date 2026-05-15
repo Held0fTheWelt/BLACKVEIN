@@ -10,6 +10,7 @@ from ai_stack.capability_selector import (
     CAP_CONSEQUENCE_CASCADE,
     CAP_DRAMATIC_IRONY,
     CAP_ENVIRONMENT_STATE,
+    CAP_GENRE_AWARENESS,
     CAP_INFORMATION_DISCLOSURE,
     CAP_LONG_HORIZON_FORECAST,
     CAP_NARRATOR_AUTHORITY,
@@ -62,6 +63,7 @@ def test_opening_scene_selects_narrator_minimal_capabilities() -> None:
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
         CAP_SENSORY_CONTEXT,
+        CAP_GENRE_AWARENESS,
     )
     assert len(result.enforced) == 5
     assert len(result.enforced) < len(INITIAL_CAPABILITIES)
@@ -117,6 +119,7 @@ def test_player_turn_selects_action_resolution_without_forecast_by_default() -> 
         CAP_ENVIRONMENT_STATE,
         CAP_THEMATIC_TRACKING,
         CAP_CALLBACK_WEB,
+        CAP_GENRE_AWARENESS,
     )
     assert CAP_LONG_HORIZON_FORECAST in result.excluded
     assert CAP_CONSEQUENCE_CASCADE in result.excluded
@@ -218,6 +221,26 @@ def test_consequence_cascade_requires_world_state_change() -> None:
 
     assert CAP_CONSEQUENCE_CASCADE in no_world_change.excluded
     assert CAP_CONSEQUENCE_CASCADE in world_change.enforced
+
+
+def test_player_turn_with_npc_decision_signal_keeps_player_turn_authority() -> None:
+    situation, warnings = derive_turn_situation_from_runtime_context(
+        turn_kind="player",
+        turn_number=2,
+        raw_player_input="I ask what they are hiding.",
+        input_kind="speech",
+        npc_decision_required=True,
+    )
+
+    assert warnings == ()
+    assert situation.turn_kind.value == "player_input"
+    assert situation.active_actor.value == "player"
+    assert situation.npc_decision_required is True
+
+    result = select_capabilities(situation)
+    assert CAP_PLAYER_INTENT_INFERENCE in result.enforced
+    assert CAP_ACTION_RESOLUTION in result.enforced
+    assert CAP_NPC_AGENCY in result.enforced
 
 
 def test_budget_caps_enforced_capabilities() -> None:

@@ -10,6 +10,11 @@ from sqlalchemy import select
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
+from ai_stack.runtime_readiness_consumer import (
+    degradation_signals_from_latest_turn,
+    resolve_runtime_readiness_with_adr0041,
+    runtime_intelligence_projection_from_turn_aspect_ledger,
+)
 from ai_stack.player_narrative_cards import (
     build_player_facing_narrative_cards,
     player_shell_typewriter_start_index,
@@ -504,6 +509,15 @@ def _player_session_bundle(
         visible_scene_output=visible_scene_output,
         created=created,
     )
+    rip = runtime_intelligence_projection_from_turn_aspect_ledger(latest_turn)
+    deg = degradation_signals_from_latest_turn(latest_turn)
+    readiness_overlay = resolve_runtime_readiness_with_adr0041(
+        legacy_runtime_session_ready=bool(opening_readiness["runtime_session_ready"]),
+        legacy_can_execute=bool(opening_readiness["can_execute"]),
+        opening_generation_status=str(opening_readiness.get("opening_generation_status") or ""),
+        runtime_intelligence_projection=rip,
+        degradation_signals=deg,
+    )
 
     return {
         "contract": "game_player_session_v1",
@@ -514,8 +528,8 @@ def _player_session_bundle(
         "backend_session_id": None,
         "runtime_session_id": runtime_session_id,
         "world_engine_story_session_id": runtime_session_id,
-        "runtime_session_ready": opening_readiness["runtime_session_ready"],
-        "can_execute": opening_readiness["can_execute"],
+        "runtime_session_ready": readiness_overlay["runtime_ready"],
+        "can_execute": readiness_overlay["can_execute"],
         "opening_generation_status": opening_readiness["opening_generation_status"],
         "opening_present": opening_readiness["opening_present"],
         "story_window": story_window,
@@ -535,6 +549,7 @@ def _player_session_bundle(
         "governance": {
             "runtime_governance_surface": latest_governance,
             "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,
+            "adr0041_runtime_readiness_consumer": readiness_overlay,
             "content_publication_gate": "published_game_content_required_for_template_module_binding",
             "player_path_governed_by": [
                 "game content publication lifecycle",

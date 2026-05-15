@@ -89,6 +89,7 @@ CAP_VOICE_CONSISTENCY = "voice_consistency"
 CAP_THEMATIC_TRACKING = "thematic_tracking"
 CAP_CALLBACK_WEB = "callback_web"
 CAP_SENSORY_CONTEXT = "sensory_context"
+CAP_GENRE_AWARENESS = "genre_awareness"
 CAP_NPC_AGENCY = "npc_agency"
 CAP_PLAYER_INTENT_INFERENCE = "player_intent_inference"
 CAP_ACTION_RESOLUTION = "action_resolution"
@@ -106,6 +107,7 @@ INITIAL_CAPABILITIES: tuple[str, ...] = (
     CAP_THEMATIC_TRACKING,
     CAP_CALLBACK_WEB,
     CAP_SENSORY_CONTEXT,
+    CAP_GENRE_AWARENESS,
     CAP_NPC_AGENCY,
     CAP_PLAYER_INTENT_INFERENCE,
     CAP_ACTION_RESOLUTION,
@@ -382,6 +384,10 @@ def derive_turn_situation_from_runtime_context(
     derived_non_lexical = input_kind_text in _NON_LEXICAL_INPUT_KINDS
     non_lexical = explicit_non_lexical or derived_non_lexical
     visibility = True if visible_projection_required is None else bool(visible_projection_required)
+    known_player_kinds = {"", "player", "player_input"}
+    explicit_player_turn = kind_text in {"player", "player_input"} or (
+        not kind_text and player_input_present and actor_text != ActiveActor.NPC.value
+    )
 
     opening = kind_text in _OPENING_TURN_KINDS or (
         tn is not None and tn <= 0 and not player_input_present
@@ -402,6 +408,66 @@ def derive_turn_situation_from_runtime_context(
                 knowledge_gap_present=bool(knowledge_gap_present),
                 world_state_change_requested=False,
                 scene_phase=ScenePhase.OPENING,
+            ),
+            tuple(warnings),
+        )
+
+    if kind_text in _RECOVERY_TURN_KINDS:
+        return (
+            TurnSituation(
+                turn_kind=TurnKind.RECOVERY,
+                active_actor=ActiveActor.SYSTEM,
+                player_input_present=player_input_present,
+                npc_decision_required=False,
+                action_resolution_required=False,
+                visible_projection_required=visibility,
+                scene_phase=ScenePhase.RECOVERY,
+                last_turn_quality=LastTurnQuality.FALLBACK,
+                non_lexical_input_present=non_lexical,
+                knowledge_gap_present=bool(knowledge_gap_present),
+                world_state_change_requested=False,
+            ),
+            tuple(warnings),
+        )
+
+    if kind_text in _SYSTEM_TURN_KINDS or (actor_text == ActiveActor.SYSTEM.value and not explicit_player_turn):
+        return (
+            TurnSituation(
+                turn_kind=TurnKind.SYSTEM_TRANSITION,
+                active_actor=ActiveActor.SYSTEM,
+                player_input_present=player_input_present,
+                npc_decision_required=False,
+                action_resolution_required=False,
+                visible_projection_required=visibility,
+                non_lexical_input_present=non_lexical,
+                knowledge_gap_present=bool(knowledge_gap_present),
+                world_state_change_requested=False,
+            ),
+            tuple(warnings),
+        )
+
+    if explicit_player_turn:
+        return (
+            TurnSituation(
+                turn_kind=TurnKind.PLAYER_INPUT,
+                active_actor=ActiveActor.PLAYER,
+                player_input_present=player_input_present,
+                npc_decision_required=bool(npc_decision_required),
+                action_resolution_required=bool(action_resolution_required)
+                if action_resolution_required is not None
+                else player_input_present,
+                visible_projection_required=visibility,
+                interpersonal_pressure=InterpersonalPressure.HIGH
+                if npc_decision_required
+                else InterpersonalPressure.NONE,
+                scene_phase=ScenePhase.CONFRONTATION
+                if npc_decision_required
+                else ScenePhase.ESCALATION
+                if player_input_present
+                else ScenePhase.OPENING,
+                non_lexical_input_present=non_lexical,
+                knowledge_gap_present=bool(knowledge_gap_present),
+                world_state_change_requested=bool(world_state_change_requested),
             ),
             tuple(warnings),
         )
@@ -431,41 +497,6 @@ def derive_turn_situation_from_runtime_context(
             tuple(warnings),
         )
 
-    if kind_text in _RECOVERY_TURN_KINDS:
-        return (
-            TurnSituation(
-                turn_kind=TurnKind.RECOVERY,
-                active_actor=ActiveActor.SYSTEM,
-                player_input_present=player_input_present,
-                npc_decision_required=False,
-                action_resolution_required=False,
-                visible_projection_required=visibility,
-                scene_phase=ScenePhase.RECOVERY,
-                last_turn_quality=LastTurnQuality.FALLBACK,
-                non_lexical_input_present=non_lexical,
-                knowledge_gap_present=bool(knowledge_gap_present),
-                world_state_change_requested=False,
-            ),
-            tuple(warnings),
-        )
-
-    if kind_text in _SYSTEM_TURN_KINDS or actor_text == ActiveActor.SYSTEM.value:
-        return (
-            TurnSituation(
-                turn_kind=TurnKind.SYSTEM_TRANSITION,
-                active_actor=ActiveActor.SYSTEM,
-                player_input_present=player_input_present,
-                npc_decision_required=False,
-                action_resolution_required=False,
-                visible_projection_required=visibility,
-                non_lexical_input_present=non_lexical,
-                knowledge_gap_present=bool(knowledge_gap_present),
-                world_state_change_requested=False,
-            ),
-            tuple(warnings),
-        )
-
-    known_player_kinds = {"", "player", "player_input"}
     if kind_text not in known_player_kinds:
         warnings.append(f"situation_derivation:unknown_turn_kind:{kind_text}")
 
@@ -532,7 +563,12 @@ def _opening_selection(
         CAP_VOICE_CONSISTENCY,
     ):
         _add_candidate(candidates, capability, required=True)
-    for capability in (CAP_THEMATIC_TRACKING, CAP_CALLBACK_WEB, CAP_SENSORY_CONTEXT):
+    for capability in (
+        CAP_THEMATIC_TRACKING,
+        CAP_CALLBACK_WEB,
+        CAP_SENSORY_CONTEXT,
+        CAP_GENRE_AWARENESS,
+    ):
         _add_observed(observed, capability)
     return "Opening scene with narrator-only authority and no player action."
 
@@ -545,9 +581,16 @@ def _player_selection(
     _add_candidate(candidates, CAP_PLAYER_INTENT_INFERENCE, required=True)
     if situation.action_resolution_required:
         _add_candidate(candidates, CAP_ACTION_RESOLUTION, required=True)
+    if situation.npc_decision_required:
+        _add_candidate(candidates, CAP_NPC_AGENCY, required=True)
     for capability in (CAP_INFORMATION_DISCLOSURE, CAP_VOICE_CONSISTENCY, CAP_SCENE_ENERGY):
         _add_candidate(candidates, capability, required=True)
-    for capability in (CAP_ENVIRONMENT_STATE, CAP_THEMATIC_TRACKING, CAP_CALLBACK_WEB):
+    for capability in (
+        CAP_ENVIRONMENT_STATE,
+        CAP_THEMATIC_TRACKING,
+        CAP_CALLBACK_WEB,
+        CAP_GENRE_AWARENESS,
+    ):
         _add_observed(observed, capability)
     return "Player input turn with action/intent handling and visible projection."
 
@@ -563,7 +606,7 @@ def _npc_conflict_selection(
         CAP_INFORMATION_DISCLOSURE,
     ):
         _add_candidate(candidates, capability, required=True)
-    for capability in (CAP_CALLBACK_WEB, CAP_THEMATIC_TRACKING):
+    for capability in (CAP_CALLBACK_WEB, CAP_THEMATIC_TRACKING, CAP_GENRE_AWARENESS):
         _add_observed(observed, capability)
     return "NPC conflict turn with NPC decision pressure and visible projection."
 
@@ -572,6 +615,7 @@ def _recovery_selection(candidates: list[tuple[str, bool]], observed: list[str])
     for capability in (CAP_NARRATOR_AUTHORITY, CAP_VOICE_CONSISTENCY, CAP_INFORMATION_DISCLOSURE):
         _add_candidate(candidates, capability, required=True)
     _add_observed(observed, CAP_ENVIRONMENT_STATE)
+    _add_observed(observed, CAP_GENRE_AWARENESS)
     return "Fallback or recovery turn with small enforced capability set."
 
 

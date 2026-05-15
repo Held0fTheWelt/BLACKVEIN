@@ -17,6 +17,9 @@ from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
 from ai_stack.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_POLICY_VERSION
 from ai_stack.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
+from ai_stack.symbolic_object_resonance_contracts import (
+    SYMBOLIC_OBJECT_RESONANCE_POLICY_VERSION,
+)
 from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_POLICY_VERSION
 from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_POLICY_VERSION
 from ai_stack.runtime_aspect_ledger import (
@@ -77,6 +80,14 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["sensory_context"]["enabled"] is True
     assert policy["runtime_governance_policy"]["sensory_context"]["require_structured_events"] is True
     assert (
+        policy["runtime_governance_policy"]["symbolic_object_resonance"]["schema_version"]
+        == SYMBOLIC_OBJECT_RESONANCE_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["symbolic_object_resonance"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["symbolic_object_resonance"]["max_symbols_per_turn"] == 2
+    assert policy["runtime_governance_policy"]["symbolic_object_resonance"]["allowed_resonance_roles"]
+    assert policy["symbolic_object_resonance_policy"]["enabled"] is True
+    assert (
         policy["runtime_governance_policy"]["tonal_consistency"]["schema_version"]
         == TONAL_CONSISTENCY_POLICY_VERSION
     )
@@ -123,6 +134,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert "memory_policy" in policy["content_sources"]
     assert "dramatic_irony_policy" in policy["content_sources"]
     assert "expectation_variation_policy" in policy["content_sources"]
+    assert "symbolic_object_resonance_policy" in policy["content_sources"]
     assert "meta_narrative_awareness_policy" in policy["content_sources"]
     assert "tonal_consistency_policy" in policy["content_sources"]
     assert "runtime_intelligence" in policy["content_sources"]

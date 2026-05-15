@@ -22,6 +22,17 @@ The first local deterministic selector core now exists in
 `ai_stack/capability_selector.py`, with focused tests in
 `ai_stack/tests/test_capability_selector.py`.
 
+2026-05-15 selector correction (historical Π34 context): explicit player-turn
+signals keep player-turn authority even when NPC agency evidence is present.
+For `turn_kind=player` / `player_input` or clear player input without an NPC
+actor signal, `npc_decision_required=true` now means: keep
+`turn_kind=player_input`, keep `active_actor=player`, enforce
+`player_intent_inference` and `action_resolution` when applicable, and add
+`npc_agency` as a conditional enforced capability. It does **not** reclassify
+the turn as `npc_turn`. Tests:
+`ai_stack/tests/test_capability_selector.py` and
+`ai_stack/tests/test_capability_selector_runtime_projection.py`.
+
 The RuntimeAspectLedger runtime intelligence projection now exposes
 `runtime_intelligence_projection.capability_selection` as local-only evidence
 derived from existing turn context. This projection does not set
@@ -129,7 +140,8 @@ governance slice.
 |------|-------------------|--------------|------|------------------------|-------------------|-----------|----------------|
 | GoC validation seam | `ai_stack/goc_turn_seams.py::run_validation_seam` | Proposal validation (`validation_outcome`): actor lane, dramatic-effect gate, GoC rules | After generation proposal, before commit | **Blocking** for rejected outcomes | **Drives** retry/degraded path via executor + aspect ledger | No judge by default in seam | **must_not_be_plan_routed** (canonical commitment seam — ADR-0041 dispatch must not replace this without governance) |
 | LangGraph validation node | `ai_stack/langgraph_runtime_executor.py` — `_run_validation` closure calling `run_validation_seam`; `_build_runtime_aspect_validation`; retry loop `decide_playability_recovery` | Packages seam outcome into `validation_outcome`, aspect ledger aspects, per-contract validation dicts on graph state | During graph execution on turn | **Blocking** / degraded leniency | **Indirectly** affects commit via `validation_outcome` + ledger | Optional provider generation upstream; seam local | **must_not_be_plan_routed** without separate ADR |
-| Aspect ledger normalization | `ai_stack/runtime_aspect_ledger.py::normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` | Adds **`runtime_intelligence_projection`** (capability selection, validator plan, **dry-run** dispatch report by default; optional **plan-enforced** dispatch + `validation_authority_preview` when graph bundle + env) | On ledger normalize | **Non-blocking** for gameplay (projection) | **Does not** change commit/readiness | No | **dry_run_projection_only** default; **plan_enforced_sidecar** = local routing preview + drift only |
+| Aspect ledger normalization | `ai_stack/runtime_aspect_ledger.py::normalize_runtime_aspect_ledger` → `build_runtime_intelligence_projection` | Adds **`runtime_intelligence_projection`** (capability selection, validator plan, **dry-run** dispatch report by default; optional **plan-enforced** dispatch + `validation_authority_preview` when graph bundle + env; optional `readiness_aggregation_decision` when aggregation flag + prerequisites) | On ledger normalize | **Non-blocking** for gameplay (projection) | **Does not** change commit/readiness or `validation_outcome` | No | **dry_run_projection_only** default; **plan_enforced_sidecar** = local routing preview + drift + optional readiness aggregation (veto-only vs seam) |
+| ADR-0041 runtime readiness consumer (bundle) | `ai_stack/runtime_readiness_consumer.py::resolve_runtime_readiness_with_adr0041` → `backend/app/api/v1/game_routes.py::_player_session_bundle` | When `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` and upstream ADR-0041 flags + `readiness_aggregation_decision` are present, may **veto** legacy-allowed `runtime_session_ready` / `can_execute` only; never upgrades reject→allow; exposes diagnostics under `governance.adr0041_runtime_readiness_consumer` | Player session bundle assembly | **Player-path readiness display** only | **Does not** change `validation_outcome` or commit; default without flag = legacy fields unchanged | No | **opt_in_veto_only** |
 | ADR-0041 harness | `ai_stack/runtime_aspect_ledger.py::build_adr0041_validator_dispatch_harness_report` | Optional plan-enforced execution in tests | Explicit test call only | Test-scoped | No | No | **dry_run_projection_only** (production) / harness-only execution |
 | Commit narrative capture | `world-engine/app/story_runtime/commit_models.py` — `resolve_narrative_commit` family | Snapshots validator layers / validation blobs into commit record | Commit persistence | N/A | **Yes** (record shape) | N/A | **requires_commit_policy_decision** if ADR-0041 results ever feed this |
 | Recoverable / blocking ledger | `world-engine/app/story_runtime/manager.py` — `_recoverable_runtime_aspect_ledger`, `_runtime_aspect_commit_blocking_failure` | Marks validation/commit aspects failed/partial; detects blocking failures | Recoverable error paths | Can block “clean” commit path | **Yes** | No | **must_not_be_plan_routed** blindly |
@@ -158,6 +170,8 @@ governance slice.
 | `scoped_co_authority` | Implemented as `validation_co_authority_decision` behind `ADR0041_SCOPED_CO_AUTHORITY_ENABLED=true`; preview-only today. |
 | `readiness_co_authority_preview` | Implemented as policy-grade preview behind `ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED=true`; still non-mutating for commit/readiness. |
 | `scoped_readiness_enforcement_pilot` | Implemented as `readiness_co_authority_enforcement` + `readiness_policy_input` behind `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED=true`; explicit policy input only, no default readiness-gate mutation. |
+| `scoped_readiness_aggregation_pilot` | Implemented as `readiness_aggregation_decision` behind `ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED=true` plus prerequisite flags; seam-canonical allow/reject with ADR-0041 veto-only; no upgrade of seam reject; projection/diagnostics only unless the runtime readiness consumer applies the field. |
+| `runtime_readiness_consumer` | Implemented behind `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` plus the same upstream flags; applies veto-only overlay to player-bundle `runtime_session_ready` / `can_execute` from `readiness_aggregation_decision`; does not mutate `validation_outcome` or commit. |
 | `scoped_primary_authority` | Not implemented. |
 | `full runtime authority` | Not implemented and explicitly long-term. |
 
@@ -280,72 +294,79 @@ knowledge_gap_present: boolean
 world_state_change_requested: boolean
 ```
 
-This is an initial vocabulary. Implementers should refine it as contracts land,
-but new signal names must remain semantic and ADR-0039 compliant.
+This is the current local selector vocabulary. Later runtime integrations may
+refine it as contracts land, but new signal names must remain semantic and
+ADR-0039 compliant.
 
 ## Output Shape
 
-Future selector output should be JSON-safe and ledger-friendly:
+Current local selector output is JSON-safe and ledger-friendly. It is emitted by
+`CapabilitySelectionResult.to_runtime_aspect_projection()` as local-only
+evidence. Abbreviated opening-scene example:
 
 ```json
 {
-  "turn_kind": "opening",
-  "active_actor": "narrator",
-  "modes": {
-    "narrator_authority": "enforce",
-    "scene_energy": "enforce",
-    "environment_state": "enforce",
-    "information_disclosure": "enforce",
-    "voice_consistency": "enforce",
-    "thematic_tracking": "observe",
-    "callback_web": "observe",
-    "sensory_context": "observe",
-    "npc_agency": "off",
-    "action_resolution": "off"
-  },
-  "selected": [
-    "narrator_authority",
-    "scene_energy",
-    "environment_state",
-    "information_disclosure",
-    "voice_consistency"
-  ],
-  "observed_only": [
-    "thematic_tracking",
-    "callback_web",
-    "sensory_context"
-  ],
-  "excluded": [
-    "npc_agency",
-    "action_resolution",
-    "consequence_cascade",
-    "long_horizon_forecast"
-  ],
-  "budget": {
-    "max_enforced": 5,
-    "llm_judges_allowed": false,
-    "heavy_forecast_allowed": false
-  },
-  "judge_allowlist": [],
-  "validator_allowlist": [
-    "narrator_authority",
-    "scene_energy",
-    "environment_state",
-    "information_disclosure",
-    "voice_consistency"
-  ],
-  "reason_codes": [
-    "opening_turn",
-    "narrator_only_authority",
-    "no_player_input",
-    "no_npc_decision"
-  ],
-  "evidence_scope": "local_selection",
-  "live_or_staging_evidence": false
+  "capability_selection": {
+    "schema_version": "capability_selection.v1",
+    "turn_kind": "opening",
+    "active_actor": "narrator",
+    "selected": [
+      "narrator_authority",
+      "scene_energy",
+      "environment_state",
+      "information_disclosure",
+      "voice_consistency"
+    ],
+    "observed_only": [
+      "thematic_tracking",
+      "callback_web",
+      "sensory_context",
+      "genre_awareness"
+    ],
+    "judged": [],
+    "excluded": [
+      "npc_agency",
+      "player_intent_inference",
+      "action_resolution",
+      "consequence_cascade",
+      "long_horizon_forecast",
+      "silence_negative_space",
+      "dramatic_irony"
+    ],
+    "activation_modes": {
+      "narrator_authority": "enforce",
+      "scene_energy": "enforce",
+      "environment_state": "enforce",
+      "information_disclosure": "enforce",
+      "voice_consistency": "enforce",
+      "thematic_tracking": "observe",
+      "callback_web": "observe",
+      "sensory_context": "observe",
+      "genre_awareness": "observe",
+      "npc_agency": "off",
+      "action_resolution": "off"
+    },
+    "budget": {
+      "max_enforced": 5,
+      "llm_judges_allowed": false,
+      "heavy_forecast_allowed": false
+    },
+    "reason": "Opening scene with narrator-only authority and no player action.",
+    "warnings": [
+      "llm_judges_disabled_by_budget",
+      "heavy_forecast_disabled_by_budget"
+    ],
+    "evidence_scope": "local_runtime_selection",
+    "proof_level": "local_only",
+    "live_or_staging_evidence": false
+  }
 }
 ```
 
-The exact schema belongs to a later implementation ADR or code change.
+The concrete projection also records `warnings`, `implementation_proof=false`,
+`implemented_by_runtime=false`, `live_verified=false`, `staging_verified=false`,
+`provider_verified=false`, and `capability_promoted=false`. Future extensions
+must remain semantic-name-only and preserve ADR-0039 boundaries.
 
 ## Activation Modes
 
@@ -390,8 +411,8 @@ fallback_recovery:
   allow_heavy_forecast: false
 ```
 
-These numbers are initial defaults, not proven operating limits. Future
-implementation should collect cost and quality evidence before tuning them.
+These numbers are initial defaults, not proven operating limits. Further
+runtime integration should collect cost and quality evidence before tuning them.
 
 ## Opening Scene Design
 
@@ -441,6 +462,12 @@ action resolution when required, narrator authority, environment state,
 information disclosure, and voice/visible projection contracts. NPC agency,
 consequence cascade, and long-horizon forecast remain conditional.
 
+If a player turn carries NPC-response evidence (`npc_decision_required=true` or
+an existing `npc_agency` ledger aspect), the selector keeps the turn classified
+as `player_input` and keeps `active_actor=player`. The NPC evidence activates
+`npc_agency` alongside player intent/action capabilities; it is not authority to
+reinterpret the turn as an NPC turn.
+
 `npc_conflict_turn` may enforce NPC agency when an NPC decision is required and
 interpersonal pressure is medium or high. It may also enforce social pressure,
 voice consistency, information disclosure, and dramatic irony when a knowledge
@@ -470,7 +497,7 @@ Judge rules:
 
 ## RuntimeAspectLedger Projection
 
-Future projection should use semantic names:
+The current local projection uses semantic names:
 
 ```json
 {
@@ -500,6 +527,26 @@ Future projection should use semantic names:
       "llm_judges_allowed": false
     },
     "reason": "Opening scene with narrator-only authority and no player action."
+  }
+}
+```
+
+For the implemented player-turn/NPC-agency edge, the local projection keeps the
+same player authority boundary:
+
+```json
+{
+  "capability_selection": {
+    "turn_kind": "player_input",
+    "active_actor": "player",
+    "selected": [
+      "player_intent_inference",
+      "action_resolution",
+      "npc_agency"
+    ],
+    "evidence_scope": "local_runtime_selection",
+    "proof_level": "local_only",
+    "live_or_staging_evidence": false
   }
 }
 ```
@@ -569,22 +616,34 @@ MCP and Langfuse diagnostics should report:
 - evidence scope and environment.
 
 They must not report selection as live success. A selected capability still
-needs execution, validation, RuntimeAspectLedger projection, and live/staging
-evidence before any live claim.
+needs runtime execution, validation evidence, and live/staging proof before any
+live claim.
 
-## Future Implementation Plan
+## Implementation Progress and Remaining Work
 
-1. Write a selector schema and fixture examples.
-2. Create a semantic-name manifest with ADR-0039 guardrails.
-3. Implement deterministic situation classification.
-4. Implement selection for opening, player, NPC conflict, high-stakes, and
-   recovery turns.
-5. Wire selected `enforce` capabilities into runtime/prompt assembly.
-6. Gate validators by selected `enforce` capabilities.
-7. Gate LLM-as-a-Judge by budget and reason.
-8. Project selection evidence into RuntimeAspectLedger.
-9. Add MCP/Langfuse scoped diagnostics.
-10. Add tests only after implementation begins.
+Implemented locally:
+
+1. Selector data contract: situation signals, activation modes, budget fields,
+   reason strings, warnings, and evidence shape.
+2. Deterministic situation classification for opening, player, NPC, recovery,
+   system, and high-stakes-style budgeted turns.
+3. Deterministic selection for opening, player, NPC conflict, high-stakes, and
+   recovery situations.
+4. RuntimeAspectLedger runtime intelligence projection for
+   `capability_selection`.
+5. ADR-0039-compliant tests over structured selector and ledger evidence,
+   including the player-turn/NPC-agency boundary.
+
+Still pending / governed:
+
+1. A declarative selector manifest, if the implementation moves beyond the
+   current Python registry constants.
+2. World-engine prompt/runtime assembly authority from selected `enforce`
+   capabilities.
+3. Production selected-validator gating beyond opt-in local plan-enforced
+   sidecar behavior.
+4. LLM-as-a-Judge execution from budgeted judge metadata.
+5. Live/staging Langfuse and MCP proof for any Capability Matrix promotion.
 
 ## Future Audit Checklist
 

@@ -691,18 +691,31 @@ Output is shown to player
 - **Session crashes** → Session marked `error`; operator can inspect turn_trace to debug
 - **Validation failure cascade** → Session may degrade to fallback mode; operator alerted
 
-### Recoverable Failure-as-story / Pi30
+### No-dead-end Recovery / Pi30
 
-The implemented Pi30 scope is a bounded recoverable-failure fragment, not a
-full no-dead-end engine. Recoverable validation rejections and expected graph
-`RuntimeError` failures can produce a player-visible `rejected_recoverable`
-turn that preserves the attempted input, offers a retry affordance, and records
-`recoverable_playability.v1` metadata.
+The implemented Pi30 scope is now the bounded `no_dead_end_recovery.v1`
+contract for player-visible turns. It records whether the turn is a committed
+success, partial success, blocked playable outcome, redirected playable
+outcome, clarification-needed outcome, safe fallback playable outcome, or an
+unrecoverable system error.
 
-Recoverable failure rows are audit/story-window records only:
+Every player-visible committed or recoverable turn records:
+
+- `no_dead_end_recovery.recovery_class`;
+- a player-attempt fingerprint;
+- bounded `next_step_options`;
+- `turn_aspect_ledger.no_dead_end_recovery`;
+- explicit commit policy and committed-truth scope.
+
+Recoverable validation rejections and expected graph `RuntimeError` failures
+can still produce a player-visible `rejected_recoverable` turn that preserves
+the attempted input, offers a retry affordance, and records
+`recoverable_playability.v1` metadata. Recoverable failure rows are
+audit/story-window records only:
 
 - `committed_result.commit_applied=false`;
 - `recoverable_playability.commits_story_truth=false`;
+- `no_dead_end_recovery.commit_policy.committed_truth_scope=none`;
 - recoverable/false-commit rows are filtered before callback-web observations
   or consequence-cascade atoms/edges are built;
 - memory and committed-truth feedback must continue to derive from canonical
@@ -712,9 +725,10 @@ Programming and contract failures are not failure-as-story. They roll back the
 attempted turn number and propagate as errors instead of being persisted as
 playable history.
 
-**ADR-0039 boundary:** Tests assert schema/status fields, commit flags,
-exception boundaries, turn ids, and feedback-graph row counts. Generated
-recovery wording is not a pass/fail oracle.
+**ADR-0039 boundary:** Tests assert schema/status fields, recovery class,
+commit flags, exception boundaries, turn ids, next-step evidence, and
+feedback-graph row counts. Generated recovery wording is not a pass/fail
+oracle.
 
 ---
 

@@ -15,6 +15,7 @@ from ai_stack.runtime_aspect_ledger import (
     ADR0041_DRIFT_CONFLICTING_RESULT,
     ADR0041_DRIFT_MISSING_CONTEXT,
     ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+    ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV,
     ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
     ADR0041_DRIFT_SEAM_STRICTER,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
@@ -33,6 +34,7 @@ from ai_stack.tests.test_capability_validator_registry import (
 from ai_stack.validation_authority_bridge import (
     VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION,
     VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION,
+    build_readiness_aggregation_decision,
     build_validation_authority_bridge,
     seam_concerns_covered_by_adr0041_validators,
 )
@@ -102,6 +104,18 @@ def _assert_readiness_enforcement_safety(enforcement: dict) -> None:
     assert enforcement["affects_readiness"] is False
     assert enforcement["proof_level"] == "local_only"
     assert enforcement["live_or_staging_evidence"] is False
+
+
+def _assert_readiness_aggregation_safety(agg: dict) -> None:
+    assert agg["mode"] == "scoped_readiness_aggregation"
+    assert agg["validation_outcome_changed"] is False
+    assert agg["commit_gate_changed"] is False
+    assert agg["readiness_gate_changed"] is False
+    assert agg["affects_commit"] is False
+    assert agg["affects_readiness"] is False
+    assert agg["proof_level"] == "local_only"
+    assert agg["live_or_staging_evidence"] is False
+    assert agg["adr0041_can_upgrade_seam_reject"] is False
 
 
 def _ledger_npc_conflict_plan_enforced(*, dispatch_context: dict) -> dict:
@@ -278,6 +292,7 @@ def test_invalid_readiness_preview_flag_fails_closed(monkeypatch) -> None:
 def test_default_projection_omits_readiness_enforcement(monkeypatch) -> None:
     monkeypatch.delenv("ADR0041_VALIDATOR_DISPATCH_MODE", raising=False)
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-br-enforce-default",
         module_id="god_of_carnage",
@@ -289,6 +304,7 @@ def test_default_projection_omits_readiness_enforcement(monkeypatch) -> None:
     proj = out["runtime_intelligence_projection"]
     assert "readiness_co_authority_enforcement" not in proj
     assert "readiness_policy_input" not in proj
+    assert "readiness_aggregation_decision" not in proj
 
 
 def test_enforcement_flag_disabled_omits_enforcement_output(monkeypatch) -> None:
@@ -314,11 +330,38 @@ def test_enforcement_flag_disabled_omits_enforcement_output(monkeypatch) -> None
     assert "readiness_policy_input" not in proj
 
 
+def test_invalid_readiness_aggregation_flag_fails_closed(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "maybe-later")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-agg-invalid",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+    assert "readiness_aggregation_decision" not in proj
+    assert any(
+        "scoped readiness aggregation disabled" in str(w)
+        for w in (proj["validator_dispatch_report"].get("warnings") or [])
+    )
+
+
 def test_enforcement_enabled_without_preview_emits_no_decision(monkeypatch) -> None:
     monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
     monkeypatch.delenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, raising=False)
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-br-enforce-no-preview",
         module_id="god_of_carnage",
@@ -331,10 +374,16 @@ def test_enforcement_enabled_without_preview_emits_no_decision(monkeypatch) -> N
         "validation_seam_summary": {"status": "approved", "reason": "fixture"},
     }
     out = normalize_runtime_aspect_ledger(ledger)
-    enforcement = out["runtime_intelligence_projection"]["readiness_co_authority_enforcement"]
+    proj = out["runtime_intelligence_projection"]
+    enforcement = proj["readiness_co_authority_enforcement"]
     _assert_readiness_enforcement_safety(enforcement)
     assert enforcement["readiness_input"] == "no_decision"
     assert enforcement["would_affect_readiness"] is False
+    assert "readiness_aggregation_decision" not in proj
+    assert any(
+        "scoped readiness aggregation skipped" in str(w)
+        for w in (proj["validator_dispatch_report"].get("warnings") or [])
+    )
 
 
 def test_invalid_enforcement_flag_fails_closed(monkeypatch) -> None:
@@ -441,6 +490,7 @@ def test_readiness_enforcement_opening_positive_allow(monkeypatch) -> None:
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-br-enforce-opening",
         module_id="god_of_carnage",
@@ -463,6 +513,13 @@ def test_readiness_enforcement_opening_positive_allow(monkeypatch) -> None:
     assert enforcement["turn_class"] == "opening_scene"
     assert enforcement["source"] == "adr0041_readiness_co_authority_preview"
     assert proj["readiness_policy_input"] == enforcement
+    agg = proj["readiness_aggregation_decision"]
+    _assert_readiness_aggregation_safety(agg)
+    assert agg["enabled"] is True
+    assert agg["seam_readiness"] == "allow"
+    assert agg["adr0041_readiness_input"] == "allow"
+    assert agg["aggregated_readiness"] == "allow"
+    assert agg["adr0041_veto_applied"] is False
 
 
 def test_readiness_preview_player_positive_allow(monkeypatch) -> None:
@@ -541,6 +598,190 @@ def test_readiness_enforcement_npc_positive_allow(monkeypatch) -> None:
     assert enforcement["turn_class"] == "npc_conflict_turn"
 
 
+def test_readiness_aggregation_decision_unit_matrix() -> None:
+    pol = {"readiness_input": "allow", "scope": ["dramatic_effect_gate"], "blockers": []}
+    d = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "approved"},
+        readiness_policy_input=pol,
+    )
+    _assert_readiness_aggregation_safety(d)
+    assert d["aggregated_readiness"] == "allow"
+    assert d["adr0041_veto_applied"] is False
+
+    d2 = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "rejected"},
+        readiness_policy_input=pol,
+    )
+    assert d2["aggregated_readiness"] == "unchanged"
+    assert d2["adr0041_veto_applied"] is False
+
+    pol_block = {
+        "readiness_input": "block",
+        "scope": ["dramatic_effect_gate"],
+        "blockers": ["missing_context"],
+    }
+    d3 = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "approved"},
+        readiness_policy_input=pol_block,
+    )
+    assert d3["aggregated_readiness"] == "block"
+    assert d3["adr0041_veto_applied"] is True
+
+    d4 = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "rejected"},
+        readiness_policy_input=pol_block,
+    )
+    assert d4["aggregated_readiness"] == "block"
+    assert d4["adr0041_veto_applied"] is False
+
+    pol_nd = {"readiness_input": "no_decision", "scope": [], "blockers": []}
+    d5 = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "approved"},
+        readiness_policy_input=pol_nd,
+    )
+    assert d5["aggregated_readiness"] == "allow"
+    assert d5["adr0041_veto_applied"] is False
+
+    d6 = build_readiness_aggregation_decision(
+        validation_seam_summary={"status": "rejected"},
+        readiness_policy_input=pol_nd,
+    )
+    assert d6["aggregated_readiness"] == "block"
+    assert d6["adr0041_veto_applied"] is False
+
+
+def test_readiness_aggregation_opening_veto_missing_context(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-agg-miss",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": {},
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+    agg = proj["readiness_aggregation_decision"]
+    _assert_readiness_aggregation_safety(agg)
+    assert agg["seam_readiness"] == "allow"
+    assert agg["adr0041_readiness_input"] == "block"
+    assert agg["aggregated_readiness"] == "block"
+    assert agg["adr0041_veto_applied"] is True
+
+
+def test_readiness_aggregation_player_veto_partial_defaults(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    monkeypatch.setattr(
+        capability_validator_dispatch,
+        "_sanitize_local_execution_evidence",
+        _sanitize_local_evidence_preserve_dramatic_fidelity,
+    )
+    orig_reg = runtime_aspect_ledger.adr0041_validator_registry_for_turn_class
+
+    def _reg_with_partial_defaults(tc: str):
+        reg = dict(orig_reg(tc))
+        reg[DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT] = _dramatic_mirror_adapter_with_partial_defaults
+        return reg
+
+    monkeypatch.setattr(
+        runtime_aspect_ledger,
+        "adr0041_validator_registry_for_turn_class",
+        _reg_with_partial_defaults,
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-agg-player-partial",
+        module_id="god_of_carnage",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Gehe ins Bad",
+        input_kind="action",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _player_dispatch_context(),
+        "validation_seam_summary": {"status": "approved"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    agg = out["runtime_intelligence_projection"]["readiness_aggregation_decision"]
+    _assert_readiness_aggregation_safety(agg)
+    assert agg["seam_readiness"] == "allow"
+    assert agg["adr0041_readiness_input"] == "block"
+    assert agg["aggregated_readiness"] == "block"
+    assert agg["adr0041_veto_applied"] is True
+    assert "partial_defaults" in agg["blockers"]
+
+
+def test_readiness_aggregation_npc_veto_partial_defaults(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    monkeypatch.setattr(
+        capability_validator_dispatch,
+        "_sanitize_local_execution_evidence",
+        _sanitize_local_evidence_preserve_dramatic_fidelity,
+    )
+    orig_reg = runtime_aspect_ledger.adr0041_validator_registry_for_turn_class
+
+    def _reg_with_partial_defaults(tc: str):
+        reg = dict(orig_reg(tc))
+        reg[DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT] = _dramatic_mirror_adapter_with_partial_defaults
+        return reg
+
+    monkeypatch.setattr(
+        runtime_aspect_ledger,
+        "adr0041_validator_registry_for_turn_class",
+        _reg_with_partial_defaults,
+    )
+    ledger = _ledger_npc_conflict_plan_enforced(dispatch_context=_npc_dispatch_context())
+    out = normalize_runtime_aspect_ledger(ledger)
+    agg = out["runtime_intelligence_projection"]["readiness_aggregation_decision"]
+    _assert_readiness_aggregation_safety(agg)
+    assert agg["seam_readiness"] == "allow"
+    assert agg["adr0041_readiness_input"] == "block"
+    assert agg["aggregated_readiness"] == "block"
+    assert agg["adr0041_veto_applied"] is True
+    assert "partial_defaults" in agg["blockers"]
+
+
+def test_readiness_aggregation_aggregation_on_enforcement_off_skips_decision(monkeypatch) -> None:
+    monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.delenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, raising=False)
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-br-agg-no-enf",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger[ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY] = {
+        "dispatch_context": _opening_dispatch_context(),
+        "validation_seam_summary": {"status": "approved", "reason": "fixture"},
+    }
+    out = normalize_runtime_aspect_ledger(ledger)
+    proj = out["runtime_intelligence_projection"]
+    assert "readiness_aggregation_decision" not in proj
+    assert any(
+        "scoped readiness aggregation skipped" in str(w)
+        for w in (proj["validator_dispatch_report"].get("warnings") or [])
+    )
+
+
 def test_scoped_co_authority_decision_blocked_without_partial_transfer_ready(monkeypatch) -> None:
     monkeypatch.setenv("ADR0041_VALIDATOR_DISPATCH_MODE", ValidatorDispatchMode.PLAN_ENFORCED.value)
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
@@ -573,6 +814,7 @@ def test_plan_enforced_without_runtime_graph_bundle_emits_no_validation_co_autho
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-br-coauth-no-sidecar",
         module_id="god_of_carnage",
@@ -589,6 +831,7 @@ def test_plan_enforced_without_runtime_graph_bundle_emits_no_validation_co_autho
     assert "readiness_co_authority_preview" not in proj["validator_dispatch_report"]
     assert "readiness_co_authority_enforcement" not in proj
     assert "readiness_policy_input" not in proj
+    assert "readiness_aggregation_decision" not in proj
 
 
 def test_partial_defaults_dramatic_mirror_blocks_validation_co_authority_on_normalize(monkeypatch) -> None:
@@ -770,6 +1013,7 @@ def test_readiness_enforcement_drift_not_aligned_blocks(monkeypatch) -> None:
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-br-enforce-drift",
         module_id="god_of_carnage",
@@ -786,6 +1030,12 @@ def test_readiness_enforcement_drift_not_aligned_blocks(monkeypatch) -> None:
     _assert_readiness_enforcement_safety(enforcement)
     assert enforcement["readiness_input"] == "block"
     assert "drift_not_aligned" in enforcement["blockers"]
+    agg = out["runtime_intelligence_projection"]["readiness_aggregation_decision"]
+    _assert_readiness_aggregation_safety(agg)
+    assert agg["seam_readiness"] == "reject"
+    assert agg["adr0041_readiness_input"] == "block"
+    assert agg["aggregated_readiness"] == "block"
+    assert agg["adr0041_veto_applied"] is False
 
 
 def test_scoped_co_authority_player_turn_positive_path_scope_excludes_opening_event_coverage(

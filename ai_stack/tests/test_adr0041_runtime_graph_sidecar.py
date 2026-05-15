@@ -14,6 +14,7 @@ from ai_stack.runtime_aspect_ledger import (
     ADR0041_DRIFT_ALIGNED,
     ADR0041_DRIFT_MISSING_CONTEXT,
     ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
+    ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV,
     ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
@@ -277,6 +278,7 @@ def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
     monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
     monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-gmiss",
         module_id="god_of_carnage",
@@ -303,3 +305,7 @@ def test_graph_bundle_missing_context_fails_closed(monkeypatch) -> None:
     enforcement = projection["readiness_co_authority_enforcement"]
     assert enforcement["readiness_input"] == "block"
     assert "missing_context" in enforcement["blockers"]
+    agg = projection["readiness_aggregation_decision"]
+    assert agg["aggregated_readiness"] == "block"
+    assert agg["adr0041_veto_applied"] is True
+    assert agg["seam_readiness"] == "allow"
