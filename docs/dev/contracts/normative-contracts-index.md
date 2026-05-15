@@ -7,8 +7,8 @@
 | Document | Binding scope |
 |----------|----------------|
 | [`runtime-authority-and-state-flow.md`](../../technical/runtime/runtime-authority-and-state-flow.md) | Consolidated authority: world-engine owns live sessions; backend owns governance/publishing |
-| [`world_engine_authoritative_runtime_and_system_interactions.md`](../../technical/runtime/world_engine_authoritative_runtime_and_system_interactions.md) | Runtime/session interaction map, including runtime-aspect evidence such as voice consistency, information disclosure, memory, and commit authority |
-| [`runtime_state_and_session_contracts.md`](../../MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/runtime_state_and_session_contracts.md) | Session-state invariants, continuity expectations, voice consistency, and information-disclosure contract boundaries |
+| [`world_engine_authoritative_runtime_and_system_interactions.md`](../../technical/runtime/world_engine_authoritative_runtime_and_system_interactions.md) | Runtime/session interaction map, including runtime-aspect evidence such as voice consistency, information disclosure, environment state, memory, and commit authority |
+| [`runtime_state_and_session_contracts.md`](../../MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/runtime_state_and_session_contracts.md) | Session-state invariants, continuity expectations, voice consistency, environment-state, and information-disclosure contract boundaries |
 | [`runtime_authority_decision.md`](../../archive/architecture-legacy/runtime_authority_decision.md) | Archived original decision text (Milestones 0–5); prefer technical page for navigation |
 | [`ai-stack-overview.md`](../../technical/ai/ai-stack-overview.md) | Current AI stack — cross-check with vertical slice for implemented graph |
 | [`player_input_interpretation_contract.md`](../../technical/runtime/player_input_interpretation_contract.md) | Interpretation pipeline expectations |
