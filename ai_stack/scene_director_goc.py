@@ -963,7 +963,7 @@ def _semantic_silence_signal(
     interpreted_move: dict[str, Any],
     semantic_move_record: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    """Return structured Π14 signal metadata when silence is the social move."""
+    """Return structured silence-negative-space signal metadata when silence is the social move."""
 
     sem = semantic_move_record if isinstance(semantic_move_record, dict) else {}
     sem_move_type = str(sem.get("move_type") or "").strip()

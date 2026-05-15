@@ -17,7 +17,7 @@ PI_REFERENCE_RE = re.compile(
     re.IGNORECASE,
 )
 ACTIVE_PI_TOKEN_RE = re.compile(
-    r"(?<![A-Za-z0-9])pi_\d+\b|(?<![A-Za-z0-9])pi\d+_[A-Za-z0-9_]+\b",
+    r"(?<![A-Za-z0-9])pi_\d+\b|(?<![A-Za-z0-9])pi\d+_[A-Za-z0-9_]+\b|Π\d+\b",
     re.IGNORECASE,
 )
 MACHINE_ABSOLUTE_PATH_RE = re.compile(r"(/mnt/[A-Za-z]/|[A-Za-z]:\\|/home/[^`\s)]+)")

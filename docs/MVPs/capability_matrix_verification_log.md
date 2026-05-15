@@ -301,3 +301,20 @@ Latest local verification recorded for ADR-0039 as an active Capability Matrix g
 ADR-0039 discipline for this slice: the new ADR gate discovers every Pi / Π-labeled test file and requires an explicit coverage rationale. The Π14 silence runtime path now uses semantic `silence_negative_space_signal` fields instead of active `pi14_*` runtime keys, and `run_projection_tests` reports `evidence_scope=local_pytest`, `proof_level=local_only`, and `live_or_staging_evidence=false` so MCP verification cannot be mistaken for staging/live proof.
 
 ---
+
+## Local verification snapshot for ADR-0039 governance gates (2026-05-15 re-audit)
+
+- Date: 2026-05-15
+- Git SHA at verification time: `f0136c30` (dirty worktree; governance fixes not committed at run time)
+- Scope: **local governance verification only** — Pi / Π vocabulary gates, Table B anti-hardcoding, Capability Matrix doc readiness, MCP handler repo-root portability. No capability promotion and no live/staging/Langfuse provider claim.
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py -q --tb=short` -> 7 passed
+- `python -m pytest tests/gates/test_adr0039_pi_scope.py -q --tb=short` -> 1 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 10 passed
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 4 passed
+- `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_run_projection_tests_handler_has_no_machine_absolute_repo_paths -q --tb=short` -> 1 passed
+
+Evidence scope: `live_or_staging_evidence=false` (MCP `run_projection_tests` and this log entry are local-only). Local PASS lines above are **not** live-, provider-, or staging proof.
+
+Known limitations: no real provider traces; no fresh staging Langfuse scores; no end-to-end replay evidence. `sensory_context` remains diagnostic/local-only until an owning ADR, world-engine projection proof, and focused tests support any `implemented` or live claim.
+
+---

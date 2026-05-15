@@ -44,9 +44,6 @@ _DEFAULT_INTENSITY_BY_PRESSURE_BAND: dict[str, str] = {
     "high": "high",
 }
 
-_LIVING_ROOM_ALIASES = {"living_room", "salon", "vallon_living_room"}
-
-
 def _clean_text(value: Any) -> str:
     return str(value or "").strip()
 
@@ -96,6 +93,30 @@ def _location_rows(scene_affordances: dict[str, Any] | None) -> dict[str, dict[s
     }
 
 
+def _resolve_location_id_from_scene(
+    scene_id: str,
+    scene_affordances: dict[str, Any] | None,
+) -> str | None:
+    """Map a scene or alias id to the canonical location id declared in affordances."""
+
+    scene = _clean_text(scene_id).lower()
+    if not scene:
+        return None
+    for row in _location_rows(scene_affordances).values():
+        location_id = _clean_text(row.get("id"))
+        if not location_id:
+            continue
+        if scene == location_id.lower():
+            return location_id
+        aliases = row.get("aliases")
+        if not isinstance(aliases, list):
+            continue
+        alias_set = {_clean_text(alias).lower() for alias in aliases if _clean_text(alias)}
+        if scene in alias_set:
+            return location_id
+    return None
+
+
 def _object_rows(scene_affordances: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
     affordances = _scene_affordances(scene_affordances)
     return {
@@ -139,9 +160,9 @@ def _current_location_id(
     value = _clean_text(prior_state.get("location_id"))
     if value:
         return value
-    scene = _clean_text(current_scene_id).lower()
-    if scene in _LIVING_ROOM_ALIASES:
-        return "vallon_living_room"
+    resolved = _resolve_location_id_from_scene(_clean_text(current_scene_id), scene_affordances)
+    if resolved:
+        return resolved
     affordances = _scene_affordances(scene_affordances)
     return _clean_text(affordances.get("current_area")) or None
 

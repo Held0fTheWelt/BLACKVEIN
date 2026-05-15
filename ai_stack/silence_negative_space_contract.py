@@ -1,4 +1,4 @@
-"""Π14 contract for silence / negative-space scene decisions.
+"""Silence / negative-space contract for bounded scene decisions.
 
 The contract extends the existing ``silence_brevity_decision`` payload without
 changing its stable ``mode`` field, so older runtime consumers keep working
@@ -68,7 +68,7 @@ SILENCE_NEGATIVE_SPACE_DURATION_HINTS: frozenset[str] = frozenset(
 
 
 class SilenceNegativeSpaceDecision(BaseModel):
-    """Structured Π14 decision carried inside ``silence_brevity_decision``."""
+    """Structured silence decision carried inside ``silence_brevity_decision``."""
 
     model_config = {"extra": "forbid"}
 
@@ -196,7 +196,7 @@ def build_silence_negative_space_decision(
     semantic_move_type: str | None = None,
     interpreter_signal: str | None = None,
 ) -> dict[str, Any]:
-    """Build a normalized Π14 payload for runtime use."""
+    """Build a normalized silence-negative-space payload for runtime use."""
 
     kind = silence_kind or _infer_silence_kind(reason, mode)
     function = dramatic_function or _infer_dramatic_function(reason, mode, kind)
@@ -235,7 +235,7 @@ def build_silence_negative_space_decision(
 
 
 def coerce_silence_negative_space_decision(payload: dict[str, Any]) -> dict[str, Any]:
-    """Normalize legacy silence payloads into the Π14 contract."""
+    """Normalize legacy silence payloads into the silence-negative-space contract."""
 
     src = payload if isinstance(payload, dict) else {}
     mode = str(src.get("mode") or "normal").strip()
