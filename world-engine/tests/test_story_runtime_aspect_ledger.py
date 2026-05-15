@@ -326,6 +326,80 @@ def test_visible_projection_records_policy_driven_narrative_aspect(monkeypatch) 
     assert out["runtime_intelligence_projection"]["narrative_aspect"]["selected_aspects"] == ["aspect_alpha"]
 
 
+def test_visible_projection_records_policy_driven_theme_semantics(monkeypatch) -> None:
+    semantic_profile = {
+        "material_anchor": "glass table pressure visible room",
+        "social_mask": "polite civility courtesy mask",
+    }
+    policy = {
+        "module_id": "module_alpha",
+        "runtime_profile_id": "profile_alpha",
+        "narrative_aspect_policy": {
+            "schema_version": "narrative_aspect_policy.v1",
+            "aspects": [
+                {
+                    "id": "aspect_theme",
+                    "enabled": True,
+                    "activation": {"always": True},
+                    "commit_impact": "diagnostic",
+                    "semantic_policy": {"enabled": True, "required": True},
+                    "semantic_profile": semantic_profile,
+                    "metadata": {"table_b_refs": ["pi_12"]},
+                }
+            ],
+        },
+    }
+    monkeypatch.setattr(
+        "app.story_runtime.manager.load_module_runtime_policy",
+        lambda **_kwargs: _FakeModulePolicy(policy),
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="session-theme-aspect",
+        module_id="module_alpha",
+        runtime_profile_id="profile_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Look carefully.",
+    )
+    profile_text = " ".join(
+        token
+        for value in semantic_profile.values()
+        for token in str(value).split()[:3]
+    )
+
+    out = _record_visible_projection_aspect(
+        ledger=ledger,
+        session_id="session-theme-aspect",
+        module_id="module_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Look carefully.",
+        trace_id="trace-theme-aspect",
+        scene_blocks=[
+            {
+                "id": "block-theme",
+                "block_type": "narrator",
+                "text": profile_text,
+                "origin_aspect": ASPECT_NARRATIVE_ASPECT,
+                "origin_aspect_id": "aspect_theme",
+                "origin_beat_id": "",
+                "origin_capability": "narrative.aspect.evidence",
+                "authority_owner": "system",
+            }
+        ],
+    )
+
+    record = out["turn_aspect_ledger"][ASPECT_NARRATIVE_ASPECT]
+    assert record["status"] == "passed"
+    assert record["expected"]["theme_tracking_policy_present"] is True
+    assert record["selected"]["selected_theme_aspects"] == ["aspect_theme"]
+    assert record["actual"]["realized_theme_aspects"] == ["aspect_theme"]
+    assert record["actual"]["semantic_classification_count"] == 1
+    projected = out["runtime_intelligence_projection"]["narrative_aspect"]
+    assert projected["selected_theme_aspects"] == ["aspect_theme"]
+    assert projected["semantic_classification_count"] == 1
+
+
 def test_hierarchical_memory_records_policy_driven_committed_turn(monkeypatch) -> None:
     policy = {
         "module_id": "module_alpha",

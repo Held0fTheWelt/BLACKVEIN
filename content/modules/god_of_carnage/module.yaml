@@ -108,3 +108,92 @@ runtime_intelligence:
   continuity:
     hooks:
       - module_continuity_impacts_on_commit_v1
+  scene_energy:
+    enabled: true
+    schema_version: scene_energy_policy.v1
+    default_maximum_visible_density_count: 8
+    scene_function_profiles:
+      establish_pressure:
+        energy_level: contained
+        pressure_vector: social
+        tempo: standard
+        density: focused
+        volatility: stable
+        target_transition: hold
+        minimum_actor_response_count: 1
+      escalate_conflict:
+        energy_level: rising
+        pressure_vector: rupture
+        tempo: accelerating
+        density: layered
+        volatility: unstable
+        target_transition: rise
+        minimum_actor_response_count: 2
+      redirect_blame:
+        energy_level: rising
+        pressure_vector: social
+        tempo: accelerating
+        density: layered
+        volatility: unstable
+        target_transition: rise
+        minimum_actor_response_count: 2
+      probe_motive:
+        energy_level: contained
+        pressure_vector: moral
+        tempo: compressed
+        density: focused
+        volatility: unstable
+        target_transition: hold
+        minimum_actor_response_count: 1
+      repair_or_stabilize:
+        energy_level: contained
+        pressure_vector: repair
+        tempo: compressed
+        density: focused
+        volatility: stable
+        target_transition: deescalate
+        minimum_actor_response_count: 1
+      withhold_or_evade:
+        energy_level: contained
+        pressure_vector: evasive
+        tempo: still
+        density: sparse
+        volatility: unstable
+        target_transition: hold
+        minimum_actor_response_count: 0
+      reveal_surface:
+        energy_level: rising
+        pressure_vector: exposure
+        tempo: standard
+        density: focused
+        volatility: unstable
+        target_transition: rise
+        minimum_actor_response_count: 1
+      scene_pivot:
+        energy_level: contained
+        pressure_vector: social
+        tempo: compressed
+        density: focused
+        volatility: stable
+        target_transition: pivot
+        minimum_actor_response_count: 1
+    pacing_profiles:
+      thin_edge:
+        tempo: still
+        density: sparse
+        target_transition: hold
+        maximum_visible_density_count: 4
+      compressed:
+        tempo: compressed
+        density: focused
+        maximum_visible_density_count: 5
+      containment:
+        energy_level: contained
+        target_transition: pivot
+        maximum_visible_density_count: 6
+      multi_pressure:
+        energy_level: volatile
+        density: layered
+        volatility: breaking
+        target_transition: rise
+        minimum_actor_response_count: 2

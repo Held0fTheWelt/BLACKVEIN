@@ -24,6 +24,7 @@ from ai_stack.dramatic_capability_contracts import (
     narrator_capability_for_frame,
     player_capability_for_frame,
 )
+from story_runtime_core.player_input_intent_contract import is_speech_like_player_input_kind
 
 
 def _capability_policy(module_runtime_policy: dict[str, Any] | None) -> dict[str, Any]:
@@ -85,7 +86,7 @@ def build_capability_selection_record(
     npc_actual = npc_authority.get("actual") if isinstance(npc_authority.get("actual"), dict) else {}
     npc_response_cap = (
         NPC_DIRECT_ANSWER_ALLOWED
-        if player_input_kind in {"speech", "question"}
+        if is_speech_like_player_input_kind(player_input_kind)
         else NPC_SOCIAL_REACTION_OPTIONAL
     )
     if bool(interp.get("npc_response_expected")) or int(npc_actual.get("spoken_line_count") or 0) > 0:

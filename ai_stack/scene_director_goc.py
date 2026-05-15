@@ -16,11 +16,16 @@ from ai_stack.goc_frozen_vocab import (
     assert_scene_function,
     assert_silence_brevity_mode,
 )
+from ai_stack.goc_actor_aliases import resolve_goc_actor_alias
 from ai_stack.goc_scene_identity import GOC_DEFAULT_GUIDANCE_PHASE_KEY, guidance_phase_key_for_scene_id
 from ai_stack.goc_yaml_authority import scene_assessment_phase_hints, scene_guidance_snippets
 from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label_in_matrix
 from ai_stack.scene_director_goc_legacy_keyword_candidates import (
     legacy_keyword_scene_candidates as _legacy_keyword_scene_candidates,
+)
+from story_runtime_core.player_input_intent_contract import (
+    is_narrator_only_player_input_kind,
+    is_question_punctuation_probe_guarded,
 )
 
 
@@ -536,16 +541,7 @@ def _narrative_thread_feedback_signal(
 
 
 def _actor_from_thread_entities(entities: list[str]) -> str | None:
-    joined = " ".join(entities).lower()
-    if "annette" in joined:
-        return "annette_reille"
-    if "alain" in joined:
-        return "alain_reille"
-    if "michel" in joined or "michael" in joined:
-        return "michel_longstreet"
-    if "veronique" in joined or "penelope" in joined:
-        return "veronique_vallon"
-    return None
+    return resolve_goc_actor_alias(" ".join(entities))
 
 
 def _goc_primary_responder_from_context(
@@ -582,14 +578,9 @@ def _goc_primary_responder_from_context(
         hint.endswith("_reille") or hint.endswith("longstreet") or hint.endswith("vallon")
     ):
         return hint, "semantic_target_actor_hint"
-    if "annette" in text:
-        return "annette_reille", "named_in_player_move"
-    if "alain" in text:
-        return "alain_reille", "named_in_player_move"
-    if "michel" in text or "michael" in text:
-        return "michel_longstreet", "named_in_player_move"
-    if "veronique" in text or "penelope" in text:
-        return "veronique_vallon", "named_in_player_move"
+    actor_from_text = resolve_goc_actor_alias(text)
+    if actor_from_text:
+        return actor_from_text, "named_in_player_move"
     tf = thread_feedback if isinstance(thread_feedback, dict) else {}
     actor_from_thread = _actor_from_thread_entities(
         tf.get("related_entities") if isinstance(tf.get("related_entities"), list) else []
@@ -821,7 +812,7 @@ def build_responder_and_function(
         scene_fn = "scene_pivot"
         heuristic_trace.append("thread:progression_blocked_override->scene_pivot")
     if (
-        player_input_kind in {"action", "perception", "movement_action", "perception_action"}
+        is_question_punctuation_probe_guarded(player_input_kind)
         and narrator_expected
         and not npc_expected
         and scene_fn == "probe_motive"
@@ -899,7 +890,7 @@ def build_responder_and_function(
         thread_feedback=thread_feedback,
     )
     resolution["responder_set_resolution"] = responder_set_resolution
-    if player_input_kind in {"action", "perception", "movement_action", "perception_action"} and narrator_expected and not npc_expected:
+    if is_narrator_only_player_input_kind(player_input_kind) and narrator_expected and not npc_expected:
         resolution["selection_source"] = "advisory_npc_reaction_after_player_action"
         resolution["npc_response_policy"] = "optional_social_only"
         if responders and isinstance(responders[0], dict):

@@ -122,6 +122,10 @@ class PlannerTruth(BaseModel):
     function_type: str | None = None
     pacing_mode: str | None = None
     silence_mode: str | None = None
+    scene_energy_target: dict[str, Any] = Field(default_factory=dict)
+    scene_energy_transition: dict[str, Any] = Field(default_factory=dict)
+    scene_energy_validation: dict[str, Any] = Field(default_factory=dict)
+    scene_energy_level: str | None = None
     spoken_line_count: int = 0
     action_line_count: int = 0
     initiative_summary: dict[str, Any] = Field(default_factory=dict)
@@ -741,6 +745,16 @@ def _planner_truth_from_graph_state(
             initiative_pressure_label = "stable"
 
     dramatic_packet = _as_dict(graph_state.get("dramatic_generation_packet"))
+    dramatic_packet_scene_energy = _as_dict(dramatic_packet.get("scene_energy"))
+    scene_energy_target = _as_dict(
+        graph_state.get("scene_energy_target")
+        or dramatic_packet_scene_energy.get("target")
+    )
+    scene_energy_transition = _as_dict(
+        graph_state.get("scene_energy_transition")
+        or dramatic_packet_scene_energy.get("transition")
+    )
+    scene_energy_validation = _as_dict(graph_state.get("scene_energy_validation"))
     npc_agency_simulation = _as_dict(
         dramatic_packet.get("npc_agency_simulation")
         or graph_state.get("npc_agency_simulation")
@@ -809,6 +823,10 @@ def _planner_truth_from_graph_state(
             structured.get("silence_mode"),
             graph_state.get("selected_silence_mode"),
         ),
+        scene_energy_target=scene_energy_target,
+        scene_energy_transition=scene_energy_transition,
+        scene_energy_validation=scene_energy_validation,
+        scene_energy_level=_opt_str(scene_energy_target.get("energy_level")),
         spoken_line_count=spoken_line_count,
         action_line_count=action_line_count,
         initiative_summary=initiative_summary,

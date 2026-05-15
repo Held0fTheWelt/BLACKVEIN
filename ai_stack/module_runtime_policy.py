@@ -17,6 +17,7 @@ from ai_stack.authority_contracts import default_authority_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
 from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
+from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -173,6 +174,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     continuity = continuity if isinstance(continuity, dict) else {}
     capability_gate = raw.get("capability_gate")
     capability_gate = capability_gate if isinstance(capability_gate, dict) else {}
+    scene_energy = raw.get("scene_energy")
+    scene_energy = scene_energy if isinstance(scene_energy, dict) else {}
 
     return {
         "action_resolution_short_path": {
@@ -216,6 +219,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
                 continuity.get("hooks") if isinstance(continuity.get("hooks"), list) else []
             ),
         },
+        "scene_energy": normalize_scene_energy_policy(scene_energy),
     }
 
 

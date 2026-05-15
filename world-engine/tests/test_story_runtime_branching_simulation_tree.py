@@ -4,11 +4,18 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from story_runtime_core.branching import (
+    BRANCHING_TIMELINE_EVENT_NODE_SELECTED,
+    BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED,
+    BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_STARTED,
+    BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+    BRANCHING_TIMELINE_EVENT_TREE_CREATED,
+    BRANCHING_TIMELINE_RECORD_SCHEMA_VERSION,
     BRANCHING_SIMULATION_TREE_SCHEMA_VERSION,
     BRANCHING_TREE_RECORD_SCHEMA_VERSION,
 )
 
 from app.story_runtime import StoryRuntimeManager
+from app.story_runtime.branch_timeline_store import JsonBranchTimelineStore
 from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 
 
@@ -165,6 +172,35 @@ def test_branching_tree_record_is_durable_and_restored(monkeypatch: Any, tmp_pat
     assert loaded["adopts_simulated_snapshot"] is False
 
 
+def test_branch_timeline_record_is_durable_and_tracks_tree_creation(monkeypatch: Any, tmp_path) -> None:
+    _disable_langfuse(monkeypatch)
+    tree_store = JsonBranchingTreeStore(tmp_path / "branching_trees")
+    timeline_store = JsonBranchTimelineStore(tmp_path / "branch_timelines")
+    manager = StoryRuntimeManager(branching_tree_store=tree_store, branch_timeline_store=timeline_store)
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "profile-branching-timeline",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(_envelope())  # type: ignore[assignment]
+    manager.execute_turn(session_id=session.session_id, player_input="Build a forecast.")
+
+    record = manager.create_branching_tree(session_id=session.session_id, max_depth=1, max_branching=1)
+    restored = StoryRuntimeManager(branching_tree_store=tree_store, branch_timeline_store=timeline_store)
+    restored.sessions[session.session_id] = manager.get_session(session.session_id)
+
+    timeline = restored.get_branch_timeline(session_id=session.session_id)
+    event_types = [event["event_type"] for event in timeline["events"]]
+
+    assert timeline["schema_version"] == BRANCHING_TIMELINE_RECORD_SCHEMA_VERSION
+    assert BRANCHING_TIMELINE_EVENT_TREE_CREATED in event_types
+    assert timeline["snapshot"]["active_tree_ids"] == [record["tree_id"]]
+
+
 def test_branching_tree_becomes_stale_when_session_advances(monkeypatch: Any) -> None:
     _disable_langfuse(monkeypatch)
     manager = StoryRuntimeManager()
@@ -182,6 +218,9 @@ def test_branching_tree_becomes_stale_when_session_advances(monkeypatch: Any) ->
 
     assert stale["status"] == "stale"
     assert stale["stale_reason"] == "session_changed_since_tree_creation"
+    timeline = manager.get_branch_timeline(session_id=session.session_id)
+    assert BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE in [event["event_type"] for event in timeline["events"]]
+    assert record["tree_id"] in timeline["snapshot"]["stale_tree_ids"]
 
 
 def test_selecting_branching_tree_node_replays_normal_commit_path(monkeypatch: Any) -> None:
@@ -217,3 +256,9 @@ def test_selecting_branching_tree_node_replays_normal_commit_path(monkeypatch: A
     assert after["turn_counter"] == before["turn_counter"] + 1
     assert after["history_count"] == before["history_count"] + 1
     assert ":branch-sim:" not in manager.get_session(session.session_id).history[-1]["canonical_turn_id"]
+    timeline = manager.get_branch_timeline(session_id=session.session_id)
+    event_types = [event["event_type"] for event in timeline["events"]]
+    assert BRANCHING_TIMELINE_EVENT_NODE_SELECTED in event_types
+    assert BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_STARTED in event_types
+    assert BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED in event_types
+    assert record["tree_id"] in timeline["snapshot"]["committed_tree_ids"]

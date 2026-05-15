@@ -488,6 +488,10 @@ def _extract_normalized_wos_evidence(
         "turn_aspect_ledger_present",
         "beat_selected",
         "beat_realized",
+        "scene_energy_target_present",
+        "scene_energy_contract_pass",
+        "scene_energy_transition_allowed",
+        "scene_energy_pressure_realized",
         "narrator_required_when_expected",
         "npc_takeover_absent",
         "npc_agency_plan_present",
@@ -507,6 +511,11 @@ def _extract_normalized_wos_evidence(
         "narrative_aspect_selected",
         "narrative_aspect_visible_when_required",
         "narrative_aspect_contract_pass",
+        "theme_tracking_policy_present",
+        "theme_tracking_selected",
+        "theme_semantic_classification_present",
+        "theme_weak_alignment_absent",
+        "theme_tracking_contract_pass",
         "voice_consistency_policy_present",
         "voice_semantic_classification_present",
         "voice_cross_actor_confusion_absent",
@@ -557,6 +566,13 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "beat_selected",
     "selected_beat",
     "beat_realized",
+    "scene_energy_target_present",
+    "scene_energy_level",
+    "scene_energy_transition",
+    "scene_energy_contract_pass",
+    "scene_energy_transition_allowed",
+    "scene_energy_pressure_realized",
+    "scene_energy_failure_codes",
     "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
@@ -590,6 +606,14 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "realized_narrative_aspects",
     "narrative_aspect_visible_when_required",
     "narrative_aspect_contract_pass",
+    "theme_tracking_policy_present",
+    "theme_tracking_selected",
+    "selected_theme_aspects",
+    "realized_theme_aspects",
+    "theme_semantic_classification_present",
+    "theme_semantic_classification_count",
+    "theme_weak_alignment_count",
+    "theme_tracking_contract_pass",
     "voice_consistency_policy_present",
     "voice_semantic_classification_enabled",
     "voice_semantic_classification_present",
@@ -670,6 +694,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_capability_selection_block_forbidden_realization"
     if "voice" in failure or "cross_actor_voice" in failure:
         return "repair_voice_consistency_follow_character_profiles"
+    if failure.startswith("scene_energy_"):
+        return "repair_scene_energy_structured_realization"
     if "beat" in failure:
         return "repair_beat_realization_or_contract_classification"
     if "origin" in failure or "projection" in failure:
@@ -684,6 +710,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     input_rec = _aspect_record(ledger, "input")
     action_rec = _aspect_record(ledger, "action_resolution")
     beat_rec = _aspect_record(ledger, "beat")
+    scene_energy_rec = _aspect_record(ledger, "scene_energy")
     narr_rec = _aspect_record(ledger, "narrator_authority")
     npc_rec = _aspect_record(ledger, "npc_authority")
     npc_agency_rec = _aspect_record(ledger, "npc_agency")
@@ -697,6 +724,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     action_actual = _aspect_block(action_rec, "actual")
     beat_selected = _aspect_block(beat_rec, "selected")
     beat_actual = _aspect_block(beat_rec, "actual")
+    scene_energy_selected = _aspect_block(scene_energy_rec, "selected")
+    scene_energy_actual = _aspect_block(scene_energy_rec, "actual")
     narr_expected = _aspect_block(narr_rec, "expected")
     narr_actual = _aspect_block(narr_rec, "actual")
     npc_expected = _aspect_block(npc_rec, "expected")
@@ -758,8 +787,49 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     voice_forbidden_marker_count = int(
         voice_drift_counts.get("forbidden_language_marker") or 0
     )
-    failed_records = [r for r in (narr_rec, npc_rec, npc_agency_rec, cap_rec, beat_rec, vis_rec, narrative_rec, voice_rec, memory_rec) if r.get("status") == "failed"]
-    partial_records = [r for r in (beat_rec, npc_agency_rec, cap_rec, vis_rec, narrative_rec, voice_rec, memory_rec) if r.get("status") == "partial"]
+    scene_energy_target = (
+        scene_energy_selected.get("target")
+        if isinstance(scene_energy_selected.get("target"), dict)
+        else scene_energy_selected
+    )
+    scene_energy_transition = (
+        scene_energy_selected.get("transition")
+        if isinstance(scene_energy_selected.get("transition"), dict)
+        else {}
+    )
+    scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
+    if not isinstance(scene_energy_failure_codes, list):
+        scene_energy_failure_codes = []
+    failed_records = [
+        r
+        for r in (
+            narr_rec,
+            npc_rec,
+            npc_agency_rec,
+            cap_rec,
+            beat_rec,
+            scene_energy_rec,
+            vis_rec,
+            narrative_rec,
+            voice_rec,
+            memory_rec,
+        )
+        if r.get("status") == "failed"
+    ]
+    partial_records = [
+        r
+        for r in (
+            beat_rec,
+            scene_energy_rec,
+            npc_agency_rec,
+            cap_rec,
+            vis_rec,
+            narrative_rec,
+            voice_rec,
+            memory_rec,
+        )
+        if r.get("status") == "partial"
+    ]
     main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
     reasons = main_record.get("reasons") if isinstance(main_record.get("reasons"), list) else []
     main_failure = str(main_record.get("failure_reason") or (reasons[0] if reasons else "")).strip() or None
@@ -776,6 +846,25 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "beat_selected": bool(beat_selected.get("selected_beat_id") or beat_selected.get("selected_scene_function")) if beat_selected else det_scores.get("beat_selected"),
         "selected_beat": beat_selected.get("selected_beat_id") or beat_selected.get("selected_scene_function"),
         "beat_realized": beat_actual.get("realized") if "realized" in beat_actual else det_scores.get("beat_realized"),
+        "scene_energy_target_present": bool(scene_energy_target) if scene_energy_rec else det_scores.get("scene_energy_target_present"),
+        "scene_energy_level": scene_energy_target.get("energy_level"),
+        "scene_energy_transition": scene_energy_target.get("target_transition") or scene_energy_transition.get("transition_intent"),
+        "scene_energy_contract_pass": (
+            scene_energy_actual.get("contract_pass")
+            if "contract_pass" in scene_energy_actual
+            else det_scores.get("scene_energy_contract_pass")
+        ),
+        "scene_energy_transition_allowed": (
+            scene_energy_actual.get("transition_allowed")
+            if "transition_allowed" in scene_energy_actual
+            else det_scores.get("scene_energy_transition_allowed")
+        ),
+        "scene_energy_pressure_realized": (
+            "scene_energy_missing_required_pressure" not in scene_energy_failure_codes
+            if scene_energy_actual
+            else det_scores.get("scene_energy_pressure_realized")
+        ),
+        "scene_energy_failure_codes": scene_energy_failure_codes,
         "narrator_required_when_expected": det_scores.get("narrator_required_when_expected"),
         "narrator_required": narr_expected.get("required"),
         "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),
@@ -846,6 +935,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "realized_narrative_aspects": narrative_actual.get("realized_aspects") or [],
         "narrative_aspect_visible_when_required": narrative_actual.get("visible_when_required") if "visible_when_required" in narrative_actual else det_scores.get("narrative_aspect_visible_when_required"),
         "narrative_aspect_contract_pass": det_scores.get("narrative_aspect_contract_pass"),
+        "theme_tracking_policy_present": narrative_expected.get("theme_tracking_policy_present") if "theme_tracking_policy_present" in narrative_expected else det_scores.get("theme_tracking_policy_present"),
+        "theme_tracking_selected": bool(narrative_actual.get("selected_theme_aspects")) if narrative_actual else det_scores.get("theme_tracking_selected"),
+        "selected_theme_aspects": narrative_actual.get("selected_theme_aspects") or narrative_selected.get("selected_theme_aspects") or [],
+        "realized_theme_aspects": narrative_actual.get("realized_theme_aspects") or [],
+        "theme_semantic_classification_present": det_scores.get("theme_semantic_classification_present"),
+        "theme_semantic_classification_count": narrative_actual.get("semantic_classification_count"),
+        "theme_weak_alignment_count": narrative_actual.get("semantic_weak_alignment_count"),
+        "theme_tracking_contract_pass": det_scores.get("theme_tracking_contract_pass"),
         "voice_consistency_policy_present": voice_expected.get("policy_present") if "policy_present" in voice_expected else det_scores.get("voice_consistency_policy_present"),
         "voice_semantic_classification_enabled": voice_expected.get("semantic_classification_enabled"),
         "voice_semantic_classification_present": det_scores.get("voice_semantic_classification_present"),

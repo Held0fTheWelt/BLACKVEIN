@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+
 REWRITEABLE_VALIDATION_REASONS = frozenset(
     {
         "dramatic_alignment_narrative_too_short",
@@ -37,6 +39,7 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "npc_initiative_missing_required_secondary",
         "npc_initiative_forbidden_actor_planned",
         "npc_initiative_forbidden_actor_realized",
+        *SCENE_ENERGY_FAILURE_CODES,
     }
 )
 
@@ -116,12 +119,18 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
     reason = _reason(outcome)
     if not reason:
         return False
+    if reason.startswith("scene_energy_"):
+        return False
     if reason.startswith(HARD_BOUNDARY_REASON_PREFIXES):
         return True
     geo = outcome.get("dramatic_effect_gate_outcome") if isinstance(outcome, dict) else None
     if isinstance(geo, dict):
         codes = [str(x) for x in geo.get("effect_rationale_codes") or []]
-        return any(code.startswith(HARD_BOUNDARY_REASON_PREFIXES) for code in codes)
+        return any(
+            not code.startswith("scene_energy_")
+            and code.startswith(HARD_BOUNDARY_REASON_PREFIXES)
+            for code in codes
+        )
     return False
 
 
@@ -199,6 +208,12 @@ def collect_playability_feedback_codes(
             actor_text = str(actor_id or "").strip()
             if actor_text:
                 feedback.append(f"missing_required_npc_initiative:{actor_text}")
+    scene_energy_validation = outcome.get("scene_energy_validation") if isinstance(outcome, dict) else None
+    if isinstance(scene_energy_validation, dict):
+        for code in scene_energy_validation.get("failure_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
     raw = str(gen.get("model_raw_text") or gen.get("content") or "")
     if raw.strip().startswith("[mock]"):
         feedback.append("mock_fallback_output")
@@ -406,6 +421,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "and never move dialogue or action onto the human/player actor."
         )
         return preserve_prefix + base_instruction + npc_agency_feedback
+
+    scene_energy_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("scene_energy_")
+    ]
+    if scene_energy_issues:
+        scene_energy_feedback = (
+            " Scene energy repair: preserve the selected scene function and actor boundaries, "
+            "but make the structured output satisfy the scene_energy target. Add visible spoken_lines "
+            "or action_lines for the required actor response count, keep the turn concise enough for "
+            "the target density, and avoid any forbidden transition."
+        )
+        return preserve_prefix + base_instruction + scene_energy_feedback
 
     return preserve_prefix + base_instruction
 

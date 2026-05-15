@@ -63,6 +63,9 @@ def build_planner_projection_section(
         "selected_scene_function": canonical_record.get("selected_scene_function"),
         "pacing_mode": canonical_record.get("pacing_mode"),
         "silence_brevity_decision": canonical_record.get("silence_brevity_decision"),
+        "scene_energy_target": canonical_record.get("scene_energy_target"),
+        "scene_energy_transition": canonical_record.get("scene_energy_transition"),
+        "scene_energy_validation": canonical_record.get("scene_energy_validation"),
     }
     if posture is not None:
         planner_data["support_posture"] = posture
@@ -166,6 +169,11 @@ def assemble_filled_inspector_sections(
                     "commit_applied": committed.get("commit_applied"),
                     "selected_scene_function": canonical_record.get("selected_scene_function"),
                     "pacing_mode": canonical_record.get("pacing_mode"),
+                    "scene_energy_level": (
+                        canonical_record.get("scene_energy_target", {}).get("energy_level")
+                        if isinstance(canonical_record.get("scene_energy_target"), dict)
+                        else None
+                    ),
                 },
                 "reserved_for_future": list(COMPARISON_RESERVED_FIELDS),
             }

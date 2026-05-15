@@ -10,6 +10,10 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from ai_stack.narrative_aspect_semantic_classifier import (
+    classify_narrative_aspect_semantics,
+)
+
 
 NARRATIVE_ASPECT_SCHEMA_VERSION = "narrative_aspect_policy.v1"
 NARRATIVE_ASPECT_RECORD_VERSION = "narrative_aspect_record.v1"
@@ -92,6 +96,8 @@ class NarrativeAspectPolicy:
     selection_source: str = "module_policy"
     activation: dict[str, Any] = field(default_factory=dict)
     evidence: list[NarrativeAspectEvidenceRule] = field(default_factory=list)
+    semantic_profile: dict[str, Any] = field(default_factory=dict)
+    semantic_policy: dict[str, Any] = field(default_factory=dict)
     commit_impact: str = "diagnostic"
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -131,6 +137,12 @@ class NarrativeAspectValidation:
     schema_version: str = NARRATIVE_ASPECT_RECORD_VERSION
     selected_aspects: list[str] = field(default_factory=list)
     realized_aspects: list[str] = field(default_factory=list)
+    semantic_aspect_ids: list[str] = field(default_factory=list)
+    realized_semantic_aspects: list[str] = field(default_factory=list)
+    semantic_classification_count: int = 0
+    semantic_weak_alignment_count: int = 0
+    semantic_required_weak_alignment_count: int = 0
+    semantic_classifications: list[dict[str, Any]] = field(default_factory=list)
     missing_required_evidence: list[dict[str, Any]] = field(default_factory=list)
     evidence: list[dict[str, Any]] = field(default_factory=list)
     failure_reason: str | None = None
@@ -191,6 +203,12 @@ def normalize_narrative_aspect_policy(policy: dict[str, Any] | None) -> dict[str
                     for rule in evidence
                     if isinstance(rule, dict)
                 ],
+                semantic_profile=raw.get("semantic_profile")
+                if isinstance(raw.get("semantic_profile"), dict)
+                else {},
+                semantic_policy=raw.get("semantic_policy")
+                if isinstance(raw.get("semantic_policy"), dict)
+                else {},
                 commit_impact=commit_impact,
                 metadata=raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
             ).to_dict()
@@ -328,6 +346,20 @@ def validate_narrative_aspects(
     missing_required: list[dict[str, Any]] = []
     realized: list[str] = []
     max_impact = "diagnostic"
+    semantic_classifications = classify_narrative_aspect_semantics(
+        aspects=[
+            aspect
+            for aspect in (policy.get("aspects") or [])
+            if isinstance(aspect, dict)
+        ],
+        selected_aspect_ids=selected_ids,
+        visible_blocks=_visible_blocks(context),
+    )
+    semantic_by_aspect = {
+        str(item.get("aspect_id") or "").strip(): item
+        for item in semantic_classifications
+        if isinstance(item, dict) and str(item.get("aspect_id") or "").strip()
+    }
     for aspect in policy.get("aspects") or []:
         if not isinstance(aspect, dict):
             continue
@@ -344,6 +376,22 @@ def validate_narrative_aspects(
             _evaluate_rule(aspect_id=aspect_id, rule=rule, context=context)
             for rule in rules
         ]
+        semantic = semantic_by_aspect.get(aspect_id)
+        if semantic is not None:
+            evaluated.append(
+                NarrativeAspectEvidence(
+                    aspect_id=aspect_id,
+                    rule_id="semantic_profile_alignment",
+                    kind="semantic_profile_alignment",
+                    required=bool(semantic.get("required")),
+                    present=str(semantic.get("status") or "") == "passed",
+                    detail={
+                        "semantic_alignment": semantic.get("semantic_alignment"),
+                        "matched_dimensions": semantic.get("matched_dimensions") or [],
+                        "finding_codes": semantic.get("finding_codes") or [],
+                    },
+                )
+            )
         evidence.extend(item.to_dict() for item in evaluated)
         missing_for_aspect = [
             item.to_dict()
@@ -363,11 +411,41 @@ def validate_narrative_aspects(
     else:
         status = "not_applicable"
     failure_reason = "missing_required_narrative_aspect_evidence" if missing_required else None
+    semantic_aspect_ids = [
+        str(item.get("aspect_id") or "").strip()
+        for item in semantic_classifications
+        if isinstance(item, dict) and str(item.get("aspect_id") or "").strip()
+    ]
+    realized_semantic_aspects = [
+        str(item.get("aspect_id") or "").strip()
+        for item in semantic_classifications
+        if isinstance(item, dict)
+        and str(item.get("aspect_id") or "").strip()
+        and str(item.get("status") or "") == "passed"
+    ]
+    semantic_weak_alignment_count = sum(
+        1
+        for item in semantic_classifications
+        if isinstance(item, dict) and str(item.get("status") or "") == "weak"
+    )
+    semantic_required_weak_alignment_count = sum(
+        1
+        for item in semantic_classifications
+        if isinstance(item, dict)
+        and bool(item.get("required"))
+        and str(item.get("status") or "") == "weak"
+    )
     return NarrativeAspectValidation(
         status=status,
         policy_present=policy_present,
         selected_aspects=selection.selected_aspects,
         realized_aspects=realized,
+        semantic_aspect_ids=semantic_aspect_ids,
+        realized_semantic_aspects=realized_semantic_aspects,
+        semantic_classification_count=len(semantic_classifications),
+        semantic_weak_alignment_count=semantic_weak_alignment_count,
+        semantic_required_weak_alignment_count=semantic_required_weak_alignment_count,
+        semantic_classifications=semantic_classifications,
         missing_required_evidence=missing_required,
         evidence=evidence,
         failure_reason=failure_reason,

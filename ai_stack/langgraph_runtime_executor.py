@@ -18,6 +18,15 @@ from ai_stack.langgraph_imports import END, StateGraph
 
 from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
+from story_runtime_core.player_input_intent_contract import (
+    SPEECH_PROJECTION_KINDS,
+    is_action_like_player_input_kind,
+    is_mixed_player_input_kind,
+    is_narrator_only_player_input_kind,
+    is_perception_like_player_input_kind,
+    is_speech_like_player_input_kind,
+    player_input_kind_family,
+)
 from ai_stack.capabilities import CapabilityRegistry
 from ai_stack.story_runtime_playability import (
     build_rewrite_instruction,
@@ -58,6 +67,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_SCENE_ENERGY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
@@ -101,6 +111,7 @@ from ai_stack.npc_agency_contracts import (
 )
 from ai_stack.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
@@ -596,7 +607,7 @@ def _build_authority_aspect_records(
     turn_number = int(state.get("turn_number") or 0)
     player_input_kind = str(frame.get("player_input_kind") or interp.get("player_input_kind") or "").strip().lower()
     narrator_required = bool(frame.get("narrator_response_expected") or interp.get("narrator_response_expected"))
-    if player_input_kind in {"action", "perception", "mixed"}:
+    if is_narrator_only_player_input_kind(player_input_kind) or is_mixed_player_input_kind(player_input_kind):
         narrator_required = True
     if str(aff.get("requires_narrator") or "").strip().lower() == "true":
         narrator_required = True
@@ -624,13 +635,13 @@ def _build_authority_aspect_records(
             "required": bool(narrator_required),
             "expected_owner": "narrator" if narrator_required else None,
             "reason": "player_action_or_perception_consequence"
-            if player_input_kind in {"action", "perception", "mixed"}
+            if is_narrator_only_player_input_kind(player_input_kind) or is_mixed_player_input_kind(player_input_kind)
             else "opening_or_optional_narration"
             if narrator_required
             else None,
             "required_capabilities": [
                 NARRATOR_PERCEPTION_RESULT_DESCRIBE
-                if player_input_kind == "perception"
+                if is_perception_like_player_input_kind(player_input_kind)
                 else NARRATOR_LOCATION_TRANSITION_DESCRIBE
                 if str(frame.get("action_kind") or "").strip().lower() == "movement"
                 else NARRATOR_OBJECT_STATE_DESCRIBE
@@ -678,7 +689,7 @@ def _build_authority_aspect_records(
             offending_block_id = str(row.get("id") or row.get("block_id") or "")
             failure_reason = "ai_controlled_human_actor"
             break
-        if player_input_kind == "perception" and not _actor_in_scope(sid, human_scope):
+        if is_perception_like_player_input_kind(player_input_kind) and not _actor_in_scope(sid, human_scope):
             if _authority_text_matches_player_action(_row_text(row), frame):
                 offending_actor_id = sid or None
                 offending_block_id = str(row.get("id") or row.get("block_id") or "")
@@ -692,13 +703,17 @@ def _build_authority_aspect_records(
                 offending_block_id = str(row.get("id") or row.get("block_id") or "")
                 failure_reason = "ai_controlled_human_actor"
                 break
-            if _actor_in_scope(aid, npc_scope) and player_input_kind in {"action", "perception", "mixed"}:
+            if _actor_in_scope(aid, npc_scope) and (
+                is_action_like_player_input_kind(player_input_kind)
+                or is_perception_like_player_input_kind(player_input_kind)
+                or is_mixed_player_input_kind(player_input_kind)
+            ):
                 if _authority_text_matches_player_action(_row_text(row), frame):
                     offending_actor_id = aid
                     offending_block_id = str(row.get("id") or row.get("block_id") or "")
                     failure_reason = (
                         "npc_narrated_player_perception"
-                        if player_input_kind == "perception"
+                        if is_perception_like_player_input_kind(player_input_kind)
                         else "npc_executed_player_action"
                     )
                     break
@@ -712,7 +727,7 @@ def _build_authority_aspect_records(
         aid = str(row.get("actor_id") or "").strip()
         if aid and aid not in actual_npc_actors:
             actual_npc_actors.append(aid)
-    policy_name = "direct_response" if player_input_kind in {"speech", "question"} else "optional_social_reaction"
+    policy_name = "direct_response" if is_speech_like_player_input_kind(player_input_kind) else "optional_social_reaction"
     if not spoken_rows and not action_rows and not bool(interp.get("npc_response_expected")):
         policy_name = "none"
     forbidden_caps = [
@@ -912,6 +927,74 @@ def _voice_semantic_failure_present(result: dict[str, Any]) -> bool:
         ):
             return True
     return False
+
+
+def _scene_energy_aspect_record(
+    *,
+    target: dict[str, Any] | None,
+    transition: dict[str, Any] | None,
+    validation: dict[str, Any] | None = None,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    target_dict = target if isinstance(target, dict) else {}
+    transition_dict = transition if isinstance(transition, dict) else {}
+    validation_dict = validation if isinstance(validation, dict) else {}
+    failure_codes = [
+        str(code)
+        for code in (validation_dict.get("failure_codes") or [])
+        if str(code).strip()
+    ]
+    validation_status = str(validation_dict.get("status") or "").strip().lower()
+    applicable = bool(target_dict)
+    if not validation_dict:
+        aspect_status = "partial" if applicable else "not_applicable"
+    elif validation_status == "approved":
+        aspect_status = "passed"
+    elif validation_status == "not_applicable":
+        aspect_status = "not_applicable"
+        applicable = False
+    else:
+        aspect_status = "failed"
+    actual = (
+        dict(validation_dict.get("actual"))
+        if isinstance(validation_dict.get("actual"), dict)
+        else {}
+    )
+    actual.update(
+        {
+            "validation_status": validation_status or None,
+            "contract_pass": validation_dict.get("contract_pass"),
+            "failure_codes": failure_codes,
+            "transition_allowed": transition_dict.get("allowed"),
+        }
+    )
+    selected = {
+        "target": target_dict,
+        "transition": transition_dict,
+        "energy_level": target_dict.get("energy_level"),
+        "pressure_vector": target_dict.get("pressure_vector"),
+        "tempo": target_dict.get("tempo"),
+        "density": target_dict.get("density"),
+        "volatility": target_dict.get("volatility"),
+        "target_transition": target_dict.get("target_transition"),
+        "minimum_actor_response_count": target_dict.get("minimum_actor_response_count"),
+    }
+    return make_aspect_record(
+        applicable=applicable,
+        status=aspect_status,
+        expected={
+            "schema_version": target_dict.get("schema_version"),
+            "policy_present": bool(policy),
+            "policy_enabled": bool((policy or {}).get("enabled")),
+            "validation_uses_structured_counts": True,
+        },
+        selected=selected,
+        actual=actual,
+        reasons=failure_codes or (["scene_energy_target_selected"] if target_dict and not validation_dict else []),
+        source="runtime" if not validation_dict else "validator",
+        failure_class="recoverable_dramatic_failure" if failure_codes else None,
+        failure_reason=failure_codes[0] if failure_codes else None,
+    )
 
 
 def _npc_agency_plan_from_state(state: "RuntimeTurnState") -> dict[str, Any] | None:
@@ -1116,6 +1199,36 @@ def _build_runtime_aspect_validation(
         ASPECT_VOICE_CONSISTENCY,
         voice_record,
     )
+    structured_output = _structured_output_from_generation(generation)
+    scene_energy_validation = validate_scene_energy_realization(
+        scene_energy_target=state.get("scene_energy_target")
+        if isinstance(state.get("scene_energy_target"), dict)
+        else None,
+        scene_energy_transition=state.get("scene_energy_transition")
+        if isinstance(state.get("scene_energy_transition"), dict)
+        else None,
+        structured_output=structured_output,
+        scene_plan_record=state.get("scene_plan_record")
+        if isinstance(state.get("scene_plan_record"), dict)
+        else None,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_SCENE_ENERGY,
+        _scene_energy_aspect_record(
+            target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            transition=state.get("scene_energy_transition")
+            if isinstance(state.get("scene_energy_transition"), dict)
+            else None,
+            validation=scene_energy_validation,
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "scene_energy_validation": scene_energy_validation,
+    }
     npc_agency_plan = _npc_agency_plan_from_state(state)
     actor_lane_context = (
         state.get("actor_lane_context")
@@ -1125,7 +1238,7 @@ def _build_runtime_aspect_validation(
     npc_initiative_validation = (
         validate_npc_initiative_realization(
             npc_agency_plan,
-            _structured_output_from_generation(generation),
+            structured_output,
             actor_lane_context=actor_lane_context,
             strict_required=True,
         )
@@ -1240,6 +1353,24 @@ def _build_runtime_aspect_validation(
             "missing_required_capabilities": capability_selection.get("missing_required_capabilities") or [],
             "selected_capability": cap_missing_first,
         }
+    scene_energy_failure = None
+    if (
+        isinstance(scene_energy_validation, dict)
+        and str(scene_energy_validation.get("status") or "").strip().lower() == "rejected"
+    ):
+        scene_energy_codes = [
+            str(code)
+            for code in (scene_energy_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        scene_energy_failure = {
+            "failure_reason": str(
+                scene_energy_validation.get("feedback_code")
+                or (scene_energy_codes[0] if scene_energy_codes else "scene_energy_validation_failed")
+            ),
+            "failure_codes": scene_energy_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     npc_agency_failure = None
     if (
         isinstance(npc_initiative_validation, dict)
@@ -1341,6 +1472,20 @@ def _build_runtime_aspect_validation(
             "recoverable_rejection": True,
             "npc_agency_failure": npc_agency_failure,
         }
+    elif scene_energy_failure is not None:
+        failure_reason = str(scene_energy_failure.get("failure_reason") or "scene_energy_validation_failed")
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "scene_energy_validation_v1",
+            "scene_energy_contract_violation": True,
+            "failure_class": scene_energy_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "scene_energy_failure": scene_energy_failure,
+        }
     else:
         next_outcome = {
             **next_outcome,
@@ -1364,6 +1509,12 @@ def _build_runtime_aspect_validation(
                 "voice_consistency_contract_violation": bool(next_outcome.get("voice_consistency_contract_violation")),
                 "voice_consistency_status": voice_validation.get("status"),
                 "voice_consistency_reason": voice_validation.get("reason"),
+                "scene_energy_validation_status": (
+                    scene_energy_validation.get("status")
+                    if isinstance(scene_energy_validation, dict)
+                    else None
+                ),
+                "scene_energy_contract_violation": bool(next_outcome.get("scene_energy_contract_violation")),
                 "npc_initiative_validation_status": (
                     npc_initiative_validation.get("status")
                     if isinstance(npc_initiative_validation, dict)
@@ -1414,9 +1565,11 @@ def _build_runtime_aspect_validation(
         "npc_authority": npc_authority,
         "capability_selection": capability_selection,
         "voice_consistency_validation": voice_validation,
+        "scene_energy_validation": scene_energy_validation,
         "npc_initiative_validation": npc_initiative_validation,
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
+        "scene_energy_failure": scene_energy_failure,
         "npc_agency_failure": npc_agency_failure,
     }
 
@@ -2229,6 +2382,14 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "silence_brevity_decision": state.get("silence_brevity_decision")
         if isinstance(state.get("silence_brevity_decision"), dict)
         else {},
+        "scene_energy": {
+            "target": state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else {},
+            "transition": state.get("scene_energy_transition")
+            if isinstance(state.get("scene_energy_transition"), dict)
+            else {},
+        },
         "semantic_interpretation": {
             "primary_move_type": semantic.get("move_type"),
             "secondary_move_type": semantic.get("secondary_move_type"),
@@ -2388,6 +2549,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
         graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
+        graph.add_node("derive_scene_energy", self._derive_scene_energy)
         graph.add_node("synthesize_context", self._synthesize_context)
         graph.add_node("assemble_model_context", self._assemble_model_context)
         graph.add_node("route_model", self._route_model)
@@ -2412,7 +2574,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
-        graph.add_edge("director_select_dramatic_parameters", "synthesize_context")
+        graph.add_edge("director_select_dramatic_parameters", "derive_scene_energy")
+        graph.add_edge("derive_scene_energy", "synthesize_context")
         graph.add_edge("synthesize_context", "assemble_model_context")
         graph.add_edge("assemble_model_context", "route_model")
         graph.add_edge("route_model", "invoke_model")
@@ -2659,24 +2822,15 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["player_speech_committed"] = bool(hit.get("player_speech_committed"))
                 intent_fields["narrator_response_expected"] = bool(hit.get("narrator_response_expected"))
                 intent_fields["npc_response_expected"] = bool(hit.get("npc_response_expected"))
-                # Map fine-grained semantic kinds → coarse LangGraph kind.
-                _PIK_TO_JSON_KIND: dict[str, str] = {
-                    "speech": "speech",
-                    "question": "speech",
-                    "social_speech_action": "speech",
-                    "mixed": "mixed",
-                    "mixed_action_speech": "mixed",
-                    "action": "action",
-                    "perception": "action",
-                    "movement_action": "action",
-                    "perception_action": "action",
-                    "object_interaction": "action",
-                    "social_nonverbal_action": "action",
-                    "physical_action": "action",
-                    "hostile_action": "action",
-                    "wait_or_observe": "action",
-                }
-                json_kind = _PIK_TO_JSON_KIND.get(pik, kind_raw)
+                family = player_input_kind_family(pik)
+                if is_speech_like_player_input_kind(pik):
+                    json_kind = "speech"
+                elif is_mixed_player_input_kind(pik):
+                    json_kind = "mixed"
+                elif family in {"action", "perception", "social_nonverbal_action", "wait_or_observe"}:
+                    json_kind = "action"
+                else:
+                    json_kind = kind_raw
                 # Also propagate semantic fields from rules hit
                 intent_fields["semantic_category"] = hit.get("semantic_category") or pik
                 intent_fields["speech_projection_allowed"] = bool(hit.get("speech_projection_allowed"))
@@ -2695,13 +2849,13 @@ class RuntimeTurnGraphExecutor:
                 pik = imap.get(kind_raw, "speech")
                 intent_fields["player_input_kind"] = pik
                 intent_fields["semantic_category"] = pik
-                intent_fields["speech_projection_allowed"] = pik in ("speech", "question", "social_speech_action")
+                intent_fields["speech_projection_allowed"] = pik in SPEECH_PROJECTION_KINDS
                 intent_fields["projection_key"] = None
                 intent_fields["projection_captures"] = {}
                 flags = default_player_intent_commit_flags(pik)
                 intent_fields.update(flags)
         input_kind = input_kind_map.get(kind_raw, "speech")
-        if str(intent_fields.get("player_input_kind") or "") == "perception":
+        if is_perception_like_player_input_kind(intent_fields.get("player_input_kind")):
             input_kind = "action"
         intent_fields["input_kind"] = input_kind
         interp_dict = {**interp_dict, **intent_fields}
@@ -3018,13 +3172,11 @@ class RuntimeTurnGraphExecutor:
             or final_interp.get("player_input_kind")
             or ""
         ).strip().lower()
-        action_applicable = turn_number > 0 and player_input_kind in {
-            "action",
-            "perception",
-            "mixed",
-            "movement_action",
-            "perception_action",
-        }
+        action_applicable = turn_number > 0 and (
+            is_action_like_player_input_kind(player_input_kind)
+            or is_perception_like_player_input_kind(player_input_kind)
+            or is_mixed_player_input_kind(player_input_kind)
+        )
         affordance_status = str(aff.get("affordance_status") or "").strip()
         action_commit_policy = str(aff.get("action_commit_policy") or "").strip()
         resolution_present = bool(frame and aff)
@@ -3124,9 +3276,9 @@ class RuntimeTurnGraphExecutor:
         if verb_early == "interact":
             return "full_pipeline"
         pik = str(frame.get("player_input_kind") or "").strip().lower()
-        if pik in {"speech", "question", "meta"}:
+        if is_speech_like_player_input_kind(pik) or pik == "meta":
             return "full_pipeline"
-        if pik == "mixed":
+        if is_mixed_player_input_kind(pik):
             return "full_pipeline"
         short_path_policy = _runtime_governance_section(state, "action_resolution_short_path")
         if not bool(short_path_policy.get("enabled")):
@@ -3204,7 +3356,7 @@ class RuntimeTurnGraphExecutor:
         if response_plan["narrator_response_expected"]:
             expected_realization.append(
                 NARRATOR_PERCEPTION_RESULT_DESCRIBE
-                if player_input_kind == "perception" or verb in {"look_at", "listen_to"}
+                if is_perception_like_player_input_kind(player_input_kind) or verb in {"look_at", "listen_to"}
                 else NARRATOR_LOCATION_TRANSITION_DESCRIBE
                 if action_kind == "movement" or verb == "move_to"
                 else NARRATOR_OBJECT_STATE_DESCRIBE
@@ -3852,6 +4004,61 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_scene_energy(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_scene_energy")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_scene_energy(
+            scene_plan_record=scene_plan,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            social_state_record=state.get("social_state_record")
+            if isinstance(state.get("social_state_record"), dict)
+            else None,
+            pacing_mode=state.get("pacing_mode") if isinstance(state.get("pacing_mode"), str) else None,
+            silence_brevity_decision=state.get("silence_brevity_decision")
+            if isinstance(state.get("silence_brevity_decision"), dict)
+            else None,
+            selected_responder_set=state.get("selected_responder_set")
+            if isinstance(state.get("selected_responder_set"), list)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            prior_continuity_impacts=state.get("prior_continuity_impacts")
+            if isinstance(state.get("prior_continuity_impacts"), list)
+            else None,
+            npc_agency_simulation=state.get("npc_agency_simulation")
+            if isinstance(state.get("npc_agency_simulation"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        transition = result.get("transition") if isinstance(result.get("transition"), dict) else {}
+        if target:
+            scene_plan["scene_energy_target"] = target
+        if transition:
+            scene_plan["scene_energy_transition"] = transition
+        update["scene_plan_record"] = scene_plan
+        update["scene_energy_target"] = target
+        update["scene_energy_transition"] = transition
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_SCENE_ENERGY,
+            _scene_energy_aspect_record(
+                target=target,
+                transition=transition,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
     def _build_context_synthesis_bundle_for_state(
         self,
         state: RuntimeTurnState,
@@ -4490,6 +4697,16 @@ class RuntimeTurnGraphExecutor:
                         "dramatic_generation_packet_included": isinstance(
                             state.get("dramatic_generation_packet"), dict
                         ),
+                        "dramatic_generation_packet_scene_function": (
+                            state.get("dramatic_generation_packet", {}).get("selected_scene_function")
+                            if isinstance(state.get("dramatic_generation_packet"), dict)
+                            else None
+                        ),
+                        "dramatic_generation_packet_primary_responder": (
+                            state.get("dramatic_generation_packet", {}).get("primary_responder_id")
+                            if isinstance(state.get("dramatic_generation_packet"), dict)
+                            else None
+                        ),
                     }
                     if call.success:
                         update = _track(state, node_name="fallback_model")
@@ -4656,6 +4873,16 @@ class RuntimeTurnGraphExecutor:
                 "dramatic_generation_packet_included": isinstance(
                     state.get("dramatic_generation_packet"), dict
                 ),
+                "dramatic_generation_packet_scene_function": (
+                    state.get("dramatic_generation_packet", {}).get("selected_scene_function")
+                    if isinstance(state.get("dramatic_generation_packet"), dict)
+                    else None
+                ),
+                "dramatic_generation_packet_primary_responder": (
+                    state.get("dramatic_generation_packet", {}).get("primary_responder_id")
+                    if isinstance(state.get("dramatic_generation_packet"), dict)
+                    else None
+                ),
             }
             return (
                 preserved,
@@ -4711,6 +4938,16 @@ class RuntimeTurnGraphExecutor:
             "context_synthesis_retry_status": retry_synthesis_status,
             "dramatic_generation_packet_included": isinstance(
                 state.get("dramatic_generation_packet"), dict
+            ),
+            "dramatic_generation_packet_scene_function": (
+                state.get("dramatic_generation_packet", {}).get("selected_scene_function")
+                if isinstance(state.get("dramatic_generation_packet"), dict)
+                else None
+            ),
+            "dramatic_generation_packet_primary_responder": (
+                state.get("dramatic_generation_packet", {}).get("primary_responder_id")
+                if isinstance(state.get("dramatic_generation_packet"), dict)
+                else None
             ),
         }
         proposed = structured_output_to_proposed_effects(parsed_structured)
@@ -5012,6 +5249,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "runtime_aspect"
             elif isinstance(outcome.get("capability_failure"), dict):
                 trigger_source = "capability"
+            elif isinstance(outcome.get("scene_energy_failure"), dict):
+                trigger_source = "scene_energy"
             runtime_aspect_failure_before_retry = (
                 dict(outcome.get("runtime_aspect_failure"))
                 if isinstance(outcome.get("runtime_aspect_failure"), dict)
@@ -5022,6 +5261,11 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("capability_failure"), dict)
                 else None
             )
+            scene_energy_failure_before_retry = (
+                dict(outcome.get("scene_energy_failure"))
+                if isinstance(outcome.get("scene_energy_failure"), dict)
+                else None
+            )
             validation_feedback = {
                 "codes": list(decision.feedback_codes),
                 "attempt_index": attempt_index,
@@ -5030,6 +5274,7 @@ class RuntimeTurnGraphExecutor:
                 "failure_reason_before_retry": failure_reason_before_retry,
                 "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                 "capability_failure_before_retry": capability_failure_before_retry,
+                "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
                 if isinstance(actor_lane_validation, dict)
                 else None,
@@ -5068,6 +5313,7 @@ class RuntimeTurnGraphExecutor:
                     "failure_reason_before_retry": failure_reason_before_retry,
                     "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
                     "capability_failure_before_retry": capability_failure_before_retry,
+                    "scene_energy_failure_before_retry": scene_energy_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
                     "failure_reason_after_retry": outcome.get("reason"),
                     "context_synthesis_retry": retry_context_synthesis_diagnostics,
@@ -5146,6 +5392,8 @@ class RuntimeTurnGraphExecutor:
                 update["context_synthesis_diagnostics"] = retry_diag
         if isinstance(validation_eval.get("voice_consistency_validation"), dict):
             update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
+        if isinstance(validation_eval.get("scene_energy_validation"), dict):
+            update["scene_energy_validation"] = validation_eval["scene_energy_validation"]
         if isinstance(validation_eval.get("npc_initiative_validation"), dict):
             update["npc_initiative_validation"] = validation_eval["npc_initiative_validation"]
         update["self_correction"] = {

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from ai_stack.semantic_move_contract import InterpretationTraceItem
+from story_runtime_core.player_input_intent_contract import is_question_punctuation_probe_guarded
 
 # Predicate receives: features dict, combined normalized text, intent_s, interpreted_move dict
 RulePredicate = Callable[[dict[str, Any], str, str, dict[str, Any]], bool]
@@ -277,7 +278,9 @@ def _pred_probe_or_question(
     """
     # PLAYER-ACTION-INTENT-01: physical moves/perception questions should not default
     # to probe_inquiry / NPC-answer demand.
-    if bool(f.get("player_input_kind_is_action")) or bool(f.get("player_input_kind_is_perception")):
+    if bool(f.get("player_input_kind_question_shape_guarded")) or is_question_punctuation_probe_guarded(
+        f.get("player_input_kind")
+    ):
         return False
     return bool(
         f["syn_probe"] or f["question_end"] or "question" in str(mv.get("move_class", "")).lower()
@@ -299,7 +302,9 @@ def _pred_provocation(_f: dict[str, Any], combined: str, intent_s: str, _mv: dic
         bool:
             Returns a value of type ``bool``; see the function body for structure, error paths, and sentinels.
     """
-    if bool(_f.get("player_input_kind_is_action")) or bool(_f.get("player_input_kind_is_perception")):
+    if bool(_f.get("player_input_kind_question_shape_guarded")) or is_question_punctuation_probe_guarded(
+        _f.get("player_input_kind")
+    ):
         return False
     return "cynic" in intent_s or "provok" in combined
 

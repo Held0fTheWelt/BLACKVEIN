@@ -42,6 +42,13 @@ from ai_stack.runtime_aspect_ledger import (
     make_aspect_record,
     set_aspect_record,
 )
+from story_runtime_core.player_input_intent_contract import (
+    FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES,
+    INTENT_CONTRACT_VERSION,
+    PLAYER_INPUT_KINDS,
+    default_commit_flags_for_player_input_kind,
+    player_input_kind_family,
+)
 
 
 def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
@@ -3766,6 +3773,80 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
     assert metadata["semantic_move_kind"] == "observe"
     assert metadata["scene_director_selection_source"] == "semantic_move"
     assert metadata["planner_rationale_codes"] == ["player_perception_requires_environmental_feedback"]
+
+
+def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    intent_kind = "object_interaction"
+    assert intent_kind in PLAYER_INPUT_KINDS
+    path_summary = _healthy_path_summary_turn(1)
+    path_summary.update(
+        {
+            "player_input_kind": intent_kind,
+            "player_input_kind_family": player_input_kind_family(intent_kind),
+            "intent_contract_version": INTENT_CONTRACT_VERSION,
+            **default_commit_flags_for_player_input_kind(intent_kind),
+            "semantic_move_kind": "establish_situational_pressure",
+            "scene_director_selection_source": "semantic_move",
+            "planner_rationale_codes": [],
+            "legacy_keyword_scene_candidates_used": False,
+            "npc_narrated_player_action_violation": False,
+            "player_input_attribution_pass": 1,
+        }
+    )
+    graph_state = {"model_prompt": "prompt"}
+    event = {"visible_output_bundle": {"scene_blocks": [{"block_type": "narrator", "text": "x"}]}}
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["intent_surface_contract_pass"] == 1.0
+    assert score_values["semantic_move_alignment_pass"] == 1.0
+
+    metadata = _last_score_metadata_for(adapter, "intent_surface_contract_pass")
+    assert metadata["player_input_kind_family"] == player_input_kind_family(intent_kind)
+    assert metadata["intent_contract_version"] == INTENT_CONTRACT_VERSION
+
+
+def test_langfuse_scores_reject_guarded_action_probe_alignment(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    intent_kind = "physical_action"
+    forbidden_move = sorted(FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES)[0]
+    path_summary = _healthy_path_summary_turn(1)
+    path_summary.update(
+        {
+            "player_input_kind": intent_kind,
+            "player_input_kind_family": player_input_kind_family(intent_kind),
+            "intent_contract_version": INTENT_CONTRACT_VERSION,
+            **default_commit_flags_for_player_input_kind(intent_kind),
+            "semantic_move_kind": forbidden_move,
+            "scene_director_selection_source": "semantic_move",
+            "planner_rationale_codes": [],
+            "legacy_keyword_scene_candidates_used": False,
+            "npc_narrated_player_action_violation": False,
+            "player_input_attribution_pass": 1,
+        }
+    )
+    graph_state = {"model_prompt": "prompt"}
+    event = {"visible_output_bundle": {"scene_blocks": [{"block_type": "narrator", "text": "x"}]}}
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["intent_surface_contract_pass"] == 1.0
+    assert score_values["semantic_move_alignment_pass"] == 0.0
 
 
 def test_langfuse_child_span_log_placeholder_when_sdk_ids_absent(caplog):

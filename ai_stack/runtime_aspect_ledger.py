@@ -20,6 +20,7 @@ RUNTIME_ASPECT_RECORD_VERSION = "runtime_aspect_record.v1"
 ASPECT_INPUT = "input"
 ASPECT_ACTION_RESOLUTION = "action_resolution"
 ASPECT_BEAT = "beat"
+ASPECT_SCENE_ENERGY = "scene_energy"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
@@ -35,6 +36,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_INPUT,
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
+    ASPECT_SCENE_ENERGY,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
@@ -254,6 +256,11 @@ def _record_block(record: dict[str, Any], key: str) -> dict[str, Any]:
     return block if isinstance(block, dict) else {}
 
 
+def _record_nested_value(record: dict[str, Any], key: str, nested_key: str) -> Any:
+    nested = record.get(nested_key) if isinstance(record.get(nested_key), dict) else {}
+    return record.get(key) or nested.get(key)
+
+
 def _record_reasons(record: dict[str, Any]) -> list[str]:
     reasons = record.get("reasons") if isinstance(record, dict) else []
     return [str(reason) for reason in reasons if str(reason).strip()] if isinstance(reasons, list) else []
@@ -276,6 +283,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         else {}
     )
     beat_rec = aspects.get(ASPECT_BEAT) if isinstance(aspects.get(ASPECT_BEAT), dict) else {}
+    scene_energy_rec = (
+        aspects.get(ASPECT_SCENE_ENERGY)
+        if isinstance(aspects.get(ASPECT_SCENE_ENERGY), dict)
+        else {}
+    )
     cap_rec = (
         aspects.get(ASPECT_CAPABILITY_SELECTION)
         if isinstance(aspects.get(ASPECT_CAPABILITY_SELECTION), dict)
@@ -325,6 +337,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     beat_expected = _record_block(beat_rec, "expected")
     beat_selected = _record_block(beat_rec, "selected")
     beat_actual = _record_block(beat_rec, "actual")
+    scene_energy_expected = _record_block(scene_energy_rec, "expected")
+    scene_energy_selected = _record_block(scene_energy_rec, "selected")
+    scene_energy_actual = _record_block(scene_energy_rec, "actual")
     cap_expected = _record_block(cap_rec, "expected")
     cap_selected = _record_block(cap_rec, "selected")
     cap_actual = _record_block(cap_rec, "actual")
@@ -399,6 +414,45 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or (_record_reasons(beat_rec)[0] if _record_reasons(beat_rec) else None),
                 "beat_state_after": beat_actual.get("beat_state_after") or {},
                 "status": beat_rec.get("status"),
+            },
+            "scene_energy": {
+                "schema_version": scene_energy_expected.get("schema_version")
+                or scene_energy_selected.get("schema_version")
+                or scene_energy_actual.get("schema_version"),
+                "policy_present": bool(scene_energy_expected.get("policy_present")),
+                "policy_enabled": bool(scene_energy_expected.get("policy_enabled")),
+                "energy_level": _record_nested_value(
+                    scene_energy_selected, "energy_level", "target"
+                ),
+                "pressure_vector": _record_nested_value(
+                    scene_energy_selected, "pressure_vector", "target"
+                ),
+                "tempo": _record_nested_value(scene_energy_selected, "tempo", "target"),
+                "density": _record_nested_value(scene_energy_selected, "density", "target"),
+                "volatility": _record_nested_value(
+                    scene_energy_selected, "volatility", "target"
+                ),
+                "target_transition": scene_energy_selected.get("target_transition")
+                or _record_nested_value(scene_energy_selected, "transition_intent", "transition"),
+                "minimum_actor_response_count": int(
+                    scene_energy_selected.get("minimum_actor_response_count")
+                    or (
+                        scene_energy_selected.get("target", {}).get("minimum_actor_response_count")
+                        if isinstance(scene_energy_selected.get("target"), dict)
+                        else 0
+                    )
+                    or 0
+                ),
+                "actual_actor_response_count": int(
+                    scene_energy_actual.get("actual_actor_response_count") or 0
+                ),
+                "visible_density_count": int(scene_energy_actual.get("visible_density_count") or 0),
+                "transition_allowed": scene_energy_actual.get("transition_allowed"),
+                "failure_codes": scene_energy_actual.get("failure_codes") or _record_reasons(scene_energy_rec),
+                "contract_pass": scene_energy_actual.get("contract_pass"),
+                "failure_reason": scene_energy_rec.get("failure_reason")
+                or (_record_reasons(scene_energy_rec)[0] if _record_reasons(scene_energy_rec) else None),
+                "status": scene_energy_rec.get("status"),
             },
             "capability": {
                 "selected_capabilities": selected_capabilities
@@ -545,12 +599,20 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
             "narrative_aspect": {
                 "policy_present": bool(narrative_expected.get("policy_present")),
                 "candidate_aspects": narrative_expected.get("candidate_aspects") or [],
+                "semantic_tracking_enabled": bool(narrative_expected.get("semantic_tracking_enabled")),
+                "semantic_profile_aspects": narrative_expected.get("semantic_profile_aspects") or [],
                 "selected_aspects": narrative_selected.get("selected_aspects") or [],
+                "selected_theme_aspects": narrative_selected.get("selected_theme_aspects") or narrative_actual.get("selected_theme_aspects") or [],
                 "selection_source": narrative_selected.get("selection_source"),
                 "realized_aspects": narrative_actual.get("realized_aspects") or [],
+                "realized_theme_aspects": narrative_actual.get("realized_theme_aspects") or [],
                 "missing_required_evidence": narrative_actual.get("missing_required_evidence") or [],
                 "evidence": narrative_actual.get("evidence") or [],
                 "visible_when_required": narrative_actual.get("visible_when_required"),
+                "semantic_classification_count": int(narrative_actual.get("semantic_classification_count") or 0),
+                "semantic_weak_alignment_count": int(narrative_actual.get("semantic_weak_alignment_count") or 0),
+                "semantic_required_weak_alignment_count": int(narrative_actual.get("semantic_required_weak_alignment_count") or 0),
+                "semantic_classifications": narrative_actual.get("semantic_classifications") or [],
                 "failure_reason": narrative_rec.get("failure_reason")
                 or (_record_reasons(narrative_rec)[0] if _record_reasons(narrative_rec) else None),
                 "status": narrative_rec.get("status"),
@@ -739,6 +801,9 @@ def aspect_score_metadata(
     aspect = get_aspect_record(normalized, aspect_name)
     reasons = aspect.get("reasons") if isinstance(aspect.get("reasons"), list) else []
     actual = aspect.get("actual") if isinstance(aspect.get("actual"), dict) else {}
+    selected = aspect.get("selected") if isinstance(aspect.get("selected"), dict) else {}
+    target = selected.get("target") if isinstance(selected.get("target"), dict) else {}
+    transition = selected.get("transition") if isinstance(selected.get("transition"), dict) else {}
     return {
         "score_name": score_name,
         "aspect_name": aspect_name,
@@ -763,4 +828,9 @@ def aspect_score_metadata(
         "candidate_actor_ids": actual.get("candidate_actor_ids"),
         "independent_planning_used": actual.get("independent_planning_used"),
         "npc_agency_closure_status": actual.get("closure_status"),
+        "scene_energy_level": selected.get("energy_level") or target.get("energy_level"),
+        "scene_energy_transition": selected.get("target_transition")
+        or transition.get("transition_intent"),
+        "scene_energy_contract_pass": actual.get("contract_pass"),
+        "scene_energy_failure_codes": actual.get("failure_codes"),
     }

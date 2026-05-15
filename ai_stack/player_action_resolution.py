@@ -23,6 +23,13 @@ from story_runtime_core.content_locale import (
     greeting_imperative_addressee_fragment,
     resolve_content_modules_root,
 )
+from story_runtime_core.player_input_intent_contract import (
+    is_action_like_player_input_kind,
+    is_mixed_player_input_kind,
+    is_narrator_only_player_input_kind,
+    is_perception_like_player_input_kind,
+    is_speech_like_player_input_kind,
+)
 
 
 def _normalize(value: str) -> str:
@@ -263,7 +270,11 @@ def _infer_target_query(
         if frag:
             return collapse_ws(frag)
     pik = str(interpreted_input.get("player_input_kind") or "").strip().lower()
-    if pik in {"action", "perception", "mixed"} and verb in {
+    if (
+        is_action_like_player_input_kind(pik)
+        or is_perception_like_player_input_kind(pik)
+        or is_mixed_player_input_kind(pik)
+    ) and verb in {
         "look_at",
         "listen_to",
         "move_to",
@@ -509,7 +520,7 @@ def resolve_player_action(
     # Upstream intent can label bounded German device imperatives as ``speech``. If the
     # action-only ontology path resolves a concrete object-interaction verb, treat as
     # ``action`` so affordances and P0 evidence match resolver semantics (no NPC speech lane).
-    if pik in {"speech", "question"}:
+    if is_speech_like_player_input_kind(pik):
         v_act, ak_act = infer_verb_and_action_kind(
             raw_text,
             module_id=module_id,
@@ -530,7 +541,7 @@ def resolve_player_action(
         content_modules_root=content_modules_root,
     )
     speech_text: str | None = None
-    if pik == "mixed":
+    if is_mixed_player_input_kind(pik):
         caps = interpreted_input.get("projection_captures") if isinstance(interpreted_input.get("projection_captures"), dict) else {}
         st = str(caps.get("speech") or "").strip()
         speech_text = st or None
@@ -562,7 +573,7 @@ def resolve_player_action(
     implicit_return = False
     aff_reason: str | None = None
 
-    if pik in {"speech", "question", "meta"}:
+    if is_speech_like_player_input_kind(pik) or pik == "meta":
         status, policy, tid, ttyp, src, access = (
             "allowed",
             "commit_speech",
@@ -629,9 +640,9 @@ def resolve_player_action(
     ).strip() or None
     narrator_expected = bool(interpreted_input.get("narrator_response_expected"))
     npc_expected = bool(interpreted_input.get("npc_response_expected"))
-    if pik in {"action", "perception", "mixed"}:
+    if is_narrator_only_player_input_kind(pik) or is_mixed_player_input_kind(pik):
         narrator_expected = True
-    if pik in {"action", "perception", "mixed"} and verb in {
+    if (is_narrator_only_player_input_kind(pik) or is_mixed_player_input_kind(pik)) and verb in {
         "move_to",
         "look_at",
         "listen_to",
@@ -643,7 +654,7 @@ def resolve_player_action(
         "place",
     }:
         npc_expected = False
-    if pik == "mixed":
+    if is_mixed_player_input_kind(pik):
         npc_expected = bool(interpreted_input.get("npc_response_expected", True))
 
     matched_alias = None
@@ -672,10 +683,11 @@ def resolve_player_action(
         access_status=access,
     )
 
-    rt_for_frame = None if pik in {"speech", "question", "meta"} else rt
+    speech_only = is_speech_like_player_input_kind(pik) and not is_action_like_player_input_kind(pik)
+    rt_for_frame = None if speech_only or pik == "meta" else rt
     resolved_source = None
     source_resolution_source = None
-    if source_query and pik not in {"speech", "question", "meta"}:
+    if source_query and not (speech_only or pik == "meta"):
         src_id, src_type, source_resolution_source = _resolve_entity_query(source_query, affordance_model)
         if src_id:
             resolved_source = ResolvedTarget.from_outcome(
@@ -697,7 +709,10 @@ def resolve_player_action(
                 access_status=access,
             )
     frame_input_kind = pik
-    if verb == "move_to" and frame_input_kind in {"action", "mixed"}:
+    if verb == "move_to" and (
+        is_action_like_player_input_kind(frame_input_kind)
+        or is_mixed_player_input_kind(frame_input_kind)
+    ):
         frame_input_kind = "movement_action"
 
     frame = PlayerActionFrameContract(

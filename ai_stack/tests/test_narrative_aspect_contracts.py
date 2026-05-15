@@ -41,6 +41,43 @@ def _policy() -> dict:
     }
 
 
+def _semantic_policy(required: bool = True) -> dict:
+    return {
+        "schema_version": "narrative_aspect_policy.v1",
+        "aspects": [
+            {
+                "id": "aspect_alpha",
+                "enabled": True,
+                "activation": {"always": True},
+                "commit_impact": "diagnostic",
+                "semantic_policy": {
+                    "enabled": True,
+                    "required": required,
+                    "thresholds": {
+                        "min_aspect_alignment": 0.25,
+                        "min_dimension_alignment": 0.20,
+                        "min_matched_dimensions": 1,
+                    },
+                },
+                "semantic_profile": {
+                    "material_anchor": "glass table pressure visible room",
+                    "social_mask": "polite civility courtesy mask",
+                },
+                "metadata": {"table_b_refs": ["pi_12"]},
+            }
+        ],
+    }
+
+
+def _text_from_semantic_profile(policy: dict) -> str:
+    profile = policy["aspects"][0]["semantic_profile"]
+    return " ".join(
+        token
+        for value in profile.values()
+        for token in str(value).split()[:3]
+    )
+
+
 def test_narrative_aspect_policy_is_json_safe_and_module_neutral() -> None:
     policy = normalize_narrative_aspect_policy(_policy())
 
@@ -92,3 +129,43 @@ def test_narrative_aspect_validation_fails_only_by_policy_contract() -> None:
     assert payload["status"] == "partial"
     assert payload["failure_reason"] == "missing_required_narrative_aspect_evidence"
     assert payload["missing_required_evidence"][0]["kind"] == "visible_origin_present"
+
+
+def test_narrative_aspect_semantic_tracking_uses_policy_profile() -> None:
+    policy = _semantic_policy()
+    validation = validate_narrative_aspects(
+        narrative_aspect_policy=policy,
+        runtime_context={
+            "visible_blocks": [
+                {
+                    "id": "block-1",
+                    "text": _text_from_semantic_profile(policy),
+                }
+            ],
+        },
+    )
+
+    payload = validation.to_dict()
+    aspect_id = policy["aspects"][0]["id"]
+    assert payload["status"] == "passed"
+    assert payload["semantic_aspect_ids"] == [aspect_id]
+    assert payload["realized_semantic_aspects"] == [aspect_id]
+    assert payload["semantic_classification_count"] == 1
+    assert payload["semantic_classifications"][0]["table_b_refs"] == ["pi_12"]
+    semantic_evidence = [
+        row for row in payload["evidence"] if row["kind"] == "semantic_profile_alignment"
+    ]
+    assert semantic_evidence[0]["present"] is True
+
+
+def test_required_narrative_aspect_semantics_fail_without_visible_evidence() -> None:
+    validation = validate_narrative_aspects(
+        narrative_aspect_policy=_semantic_policy(required=True),
+        runtime_context={"visible_blocks": []},
+    )
+
+    payload = validation.to_dict()
+    assert payload["status"] == "partial"
+    assert payload["semantic_weak_alignment_count"] == 1
+    assert payload["semantic_required_weak_alignment_count"] == 1
+    assert payload["missing_required_evidence"][0]["kind"] == "semantic_profile_alignment"

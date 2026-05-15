@@ -840,6 +840,25 @@ class TestGocPrimaryResponderFromContext:
         )
         assert actor == "veronique_vallon"
 
+    def test_responder_from_named_veronique_accent_folded(self):
+        """Responder lookup follows the canonical GoC alias matcher."""
+        from ai_stack.goc_actor_aliases import GOC_ACTOR_ALIASES
+        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+
+        actor_id = "veronique_vallon"
+        assert actor_id in GOC_ACTOR_ALIASES
+        actor, reason = _goc_primary_responder_from_context(
+            text="véronique what do you think",
+            hint=None,
+            yaml_slice=None,
+            prior_classes=[],
+            current_scene_id="",
+            scene_fn="establish_pressure",
+            implied={},
+        )
+        assert actor == actor_id
+        assert reason == "named_in_player_move"
+
     def test_responder_from_dignity_injury_bias(self):
         """Dignity injury bias applies (lines 486-487)."""
         from ai_stack.scene_director_goc import _goc_primary_responder_from_context

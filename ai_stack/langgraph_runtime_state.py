@@ -81,6 +81,9 @@ class RuntimeTurnState(TypedDict, total=False):
     selected_scene_function: str
     pacing_mode: str
     silence_brevity_decision: dict[str, Any]
+    scene_energy_target: dict[str, Any]
+    scene_energy_transition: dict[str, Any]
+    scene_energy_validation: dict[str, Any]
     proposed_state_effects: list[dict[str, Any]]
     validation_outcome: dict[str, Any]
     committed_result: dict[str, Any]

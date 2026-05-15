@@ -22,7 +22,25 @@ from story_runtime_core.content_locale import (
     greeting_imperative_visible_pair,
     resolve_string,
 )
+from story_runtime_core.player_input_intent_contract import (
+    FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES,
+    INTENT_CONTRACT_VERSION,
+    PLAYER_INPUT_KINDS,
+    is_perception_like_player_input_kind,
+    is_question_punctuation_probe_guarded,
+    is_speech_like_player_input_kind,
+    player_input_kind_family,
+)
 from story_runtime_core.branching import (
+    BRANCHING_TIMELINE_DEFAULT_MAX_ACTIVE_TREES,
+    BRANCHING_TIMELINE_EVENT_NODE_SELECTED,
+    BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED,
+    BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_CONFLICT,
+    BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_STARTED,
+    BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+    BRANCHING_TIMELINE_EVENT_TREE_CREATED,
+    BRANCHING_TIMELINE_EVENT_TREE_EXPIRED,
+    BRANCHING_TIMELINE_SCOPE_ACTIVE,
     BRANCHING_TREE_STATUS_COMMITTED,
     BRANCHING_TREE_STATUS_EXPIRED,
     BRANCHING_TREE_STATUS_NOT_APPLICABLE,
@@ -43,6 +61,12 @@ from story_runtime_core.branching import (
     mark_branch_tree_stale,
     simulated_input_for_branch_option,
     build_branching_forecast,
+    append_branch_timeline_event,
+    archive_branch_timeline,
+    compact_branch_timeline,
+    make_branch_timeline_event,
+    make_branch_timeline_record,
+    stable_branch_timeline_id,
 )
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
@@ -64,6 +88,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_SCENE_ENERGY,
     ASPECT_VALIDATION,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
@@ -175,6 +200,7 @@ from app.story_runtime.commit_models import (
     resolve_narrative_commit,
 )
 from app.story_runtime.canonical_turn_lifecycle import TurnLifecycleChain
+from app.story_runtime.branch_timeline_store import JsonBranchTimelineStore
 from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
@@ -830,6 +856,14 @@ def _record_visible_projection_aspect(
         for row in (narrative_policy.get("aspects") or [])
         if isinstance(row, dict) and str(row.get("id") or "").strip()
     ]
+    semantic_profile_aspects = [
+        str(row.get("id") or "").strip()
+        for row in (narrative_policy.get("aspects") or [])
+        if isinstance(row, dict)
+        and str(row.get("id") or "").strip()
+        and isinstance(row.get("semantic_profile"), dict)
+        and row.get("semantic_profile")
+    ]
     missing_narrative_evidence = narrative_validation.get("missing_required_evidence") or []
     if not isinstance(missing_narrative_evidence, list):
         missing_narrative_evidence = []
@@ -851,16 +885,26 @@ def _record_visible_projection_aspect(
                 "candidate_aspects": candidate_aspects,
                 "evidence_required": bool(candidate_aspects),
                 "commit_impact": narrative_commit_impact,
+                "semantic_tracking_enabled": bool(semantic_profile_aspects),
+                "semantic_profile_aspects": semantic_profile_aspects,
+                "theme_tracking_policy_present": bool(semantic_profile_aspects),
             },
             selected={
                 "selected_aspects": narrative_validation.get("selected_aspects") or [],
                 "selection_source": "module_policy" if candidate_aspects else "not_applicable",
+                "selected_theme_aspects": narrative_validation.get("semantic_aspect_ids") or [],
             },
             actual={
                 "realized_aspects": narrative_validation.get("realized_aspects") or [],
                 "missing_required_evidence": missing_narrative_evidence,
                 "evidence": narrative_validation.get("evidence") or [],
                 "visible_when_required": not bool(missing_visible_narrative_evidence),
+                "semantic_classifications": narrative_validation.get("semantic_classifications") or [],
+                "semantic_classification_count": int(narrative_validation.get("semantic_classification_count") or 0),
+                "semantic_weak_alignment_count": int(narrative_validation.get("semantic_weak_alignment_count") or 0),
+                "semantic_required_weak_alignment_count": int(narrative_validation.get("semantic_required_weak_alignment_count") or 0),
+                "selected_theme_aspects": narrative_validation.get("semantic_aspect_ids") or [],
+                "realized_theme_aspects": narrative_validation.get("realized_semantic_aspects") or [],
             },
             reasons=[str(narrative_failure_reason)] if narrative_failure_reason else [],
             source="projection",
@@ -2424,19 +2468,11 @@ def _build_langfuse_path_summary(
         else ""
     )
     _player_input_kind = str(interpreted_input.get("player_input_kind") or "").strip().lower()
-    _allowed_player_input_kinds = {
-        "action", "perception", "speech", "question", "mixed", "unclear", "meta",
-        # Extended taxonomy (PLAYER-INPUT-ACTION-SEMANTICS-ALGORITHM-01)
-        "movement_action", "perception_action", "object_interaction",
-        "social_nonverbal_action", "social_speech_action",
-        "physical_action", "hostile_action", "environment_interaction",
-        "wait_or_observe", "mixed_action_speech", "ambiguous",
-    }
     _semantic_move_kind = str(semantic_move_record.get("move_type") or "").strip()
     _intent_surface_contract_pass = True
     if _player_input_kind:
         _intent_surface_contract_pass = (
-            _player_input_kind in _allowed_player_input_kinds
+            _player_input_kind in PLAYER_INPUT_KINDS
             and isinstance(interpreted_input.get("player_action_committed"), bool)
             and isinstance(interpreted_input.get("player_speech_committed"), bool)
             and isinstance(interpreted_input.get("narrator_response_expected"), bool)
@@ -2450,12 +2486,11 @@ def _build_langfuse_path_summary(
     _semantic_move_alignment_pass = True
     if _semantic_move_kind:
         _semantic_move_alignment_pass = True
-    if _player_input_kind in {"action", "perception", "movement_action", "perception_action"} and _semantic_move_kind:
-        _semantic_move_alignment_pass = _semantic_move_alignment_pass and _semantic_move_kind not in {
-            "probe_inquiry",
-            "provoke",
-            "demand_explanation",
-        }
+    if is_question_punctuation_probe_guarded(_player_input_kind) and _semantic_move_kind:
+        _semantic_move_alignment_pass = (
+            _semantic_move_alignment_pass
+            and _semantic_move_kind not in FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES
+        )
     _npc_action_narration_boundary_pass = not bool(
         (
             validation.get("intent_surface_diagnostics")
@@ -2679,6 +2714,8 @@ def _build_langfuse_path_summary(
         "actor_lane_validation_reason": actor_lane_validation.get("reason"),
         "commit_applied": bool(committed.get("commit_applied")),
         "player_input_kind": str(interpreted_input.get("player_input_kind") or "").strip().lower() or None,
+        "player_input_kind_family": player_input_kind_family(_player_input_kind) if _player_input_kind else None,
+        "intent_contract_version": INTENT_CONTRACT_VERSION,
         "player_action_committed": bool(interpreted_input.get("player_action_committed")),
         "player_speech_committed": bool(interpreted_input.get("player_speech_committed")),
         "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")),
@@ -2738,6 +2775,25 @@ def _build_langfuse_path_summary(
         "planner_rationale_codes": list(scene_plan_record.get("planner_rationale_codes") or [])
         if isinstance(scene_plan_record.get("planner_rationale_codes"), list)
         else [],
+        "scene_energy_target": (
+            graph_state.get("scene_energy_target")
+            if isinstance(graph_state.get("scene_energy_target"), dict)
+            else scene_plan_record.get("scene_energy_target")
+            if isinstance(scene_plan_record.get("scene_energy_target"), dict)
+            else {}
+        ),
+        "scene_energy_transition": (
+            graph_state.get("scene_energy_transition")
+            if isinstance(graph_state.get("scene_energy_transition"), dict)
+            else scene_plan_record.get("scene_energy_transition")
+            if isinstance(scene_plan_record.get("scene_energy_transition"), dict)
+            else {}
+        ),
+        "scene_energy_validation": (
+            graph_state.get("scene_energy_validation")
+            if isinstance(graph_state.get("scene_energy_validation"), dict)
+            else {}
+        ),
         "legacy_keyword_scene_candidates_used": bool(
             multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
         ),
@@ -3513,6 +3569,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     beat = _rec(ASPECT_BEAT)
     beat_selected = _selected(ASPECT_BEAT)
     beat_actual = _actual(ASPECT_BEAT)
+    scene_energy_selected = _selected(ASPECT_SCENE_ENERGY)
+    scene_energy_actual = _actual(ASPECT_SCENE_ENERGY)
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
     narrative_selected = _selected(ASPECT_NARRATIVE_ASPECT)
     narrative_actual = _actual(ASPECT_NARRATIVE_ASPECT)
@@ -3554,6 +3612,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         ),
         ("story.beat.select", ASPECT_BEAT, {"selected": beat_selected, "aspect_record": beat}),
         ("story.beat.realize", ASPECT_BEAT, {"actual": beat_actual, "aspect_record": beat}),
+        (
+            "story.scene_energy.target",
+            ASPECT_SCENE_ENERGY,
+            {
+                "selected": scene_energy_selected,
+                "aspect_record": _rec(ASPECT_SCENE_ENERGY),
+            },
+        ),
+        (
+            "story.scene_energy.validate",
+            ASPECT_SCENE_ENERGY,
+            {
+                "actual": scene_energy_actual,
+                "aspect_record": _rec(ASPECT_SCENE_ENERGY),
+            },
+        ),
         ("story.authority.narrator", ASPECT_NARRATOR_AUTHORITY, _rec(ASPECT_NARRATOR_AUTHORITY)),
         ("story.authority.npc", ASPECT_NPC_AUTHORITY, _rec(ASPECT_NPC_AUTHORITY)),
         (
@@ -3626,6 +3700,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_INPUT,
                         ASPECT_ACTION_RESOLUTION,
                         ASPECT_BEAT,
+                        ASPECT_SCENE_ENERGY,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
@@ -3689,6 +3764,14 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     voice_actual = _actual(ASPECT_VOICE_CONSISTENCY)
     validation_actual = _actual(ASPECT_VALIDATION)
     beat_transition_allowed = _selected(ASPECT_BEAT).get("transition_allowed")
+    scene_energy_target = (
+        scene_energy_selected.get("target")
+        if isinstance(scene_energy_selected.get("target"), dict)
+        else scene_energy_selected
+    )
+    scene_energy_failure_codes = scene_energy_actual.get("failure_codes") or []
+    if not isinstance(scene_energy_failure_codes, list):
+        scene_energy_failure_codes = []
     npc_failure_reason = str(_rec(ASPECT_NPC_AUTHORITY).get("failure_reason") or "")
     violated_capabilities = cap_actual.get("violated_capabilities") or []
     if not isinstance(violated_capabilities, list):
@@ -3711,6 +3794,15 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     missing_required_capabilities = cap_actual.get("missing_required_capabilities") or []
     if not isinstance(missing_required_capabilities, list):
         missing_required_capabilities = []
+    selected_theme_aspects = narrative_actual.get("selected_theme_aspects") or []
+    if not isinstance(selected_theme_aspects, list):
+        selected_theme_aspects = []
+    narrative_semantic_classification_count = int(
+        narrative_actual.get("semantic_classification_count") or 0
+    )
+    narrative_semantic_required_weak_alignment_count = int(
+        narrative_actual.get("semantic_required_weak_alignment_count") or 0
+    )
     voice_spoken_line_count = int(voice_actual.get("spoken_line_count") or 0)
     voice_semantic_classification_count = int(
         voice_actual.get("semantic_classification_count") or 0
@@ -3759,6 +3851,30 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "beat_contract_pass",
             ASPECT_BEAT,
             _runtime_aspect_score_value(_rec(ASPECT_BEAT).get("status") == "passed"),
+        ),
+        (
+            "scene_energy_target_present",
+            ASPECT_SCENE_ENERGY,
+            _runtime_aspect_score_value(bool(scene_energy_target)),
+        ),
+        (
+            "scene_energy_contract_pass",
+            ASPECT_SCENE_ENERGY,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_SCENE_ENERGY).get("status") in {"passed", "not_applicable"}
+            ),
+        ),
+        (
+            "scene_energy_transition_allowed",
+            ASPECT_SCENE_ENERGY,
+            _runtime_aspect_score_value(scene_energy_actual.get("transition_allowed") is not False),
+        ),
+        (
+            "scene_energy_pressure_realized",
+            ASPECT_SCENE_ENERGY,
+            _runtime_aspect_score_value(
+                "scene_energy_missing_required_pressure" not in scene_energy_failure_codes
+            ),
         ),
         (
             "narrator_authority_contract_present",
@@ -3947,6 +4063,40 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "narrative_aspect_contract_pass",
             ASPECT_NARRATIVE_ASPECT,
             _runtime_aspect_score_value(_rec(ASPECT_NARRATIVE_ASPECT).get("status") in {"passed", "not_applicable"}),
+        ),
+        (
+            "theme_tracking_policy_present",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(bool(narrative_expected.get("theme_tracking_policy_present"))),
+        ),
+        (
+            "theme_tracking_selected",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(bool(selected_theme_aspects)),
+        ),
+        (
+            "theme_semantic_classification_present",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(
+                (
+                    not bool(narrative_expected.get("semantic_tracking_enabled"))
+                    or not selected_theme_aspects
+                    or narrative_semantic_classification_count >= len(selected_theme_aspects)
+                )
+            ),
+        ),
+        (
+            "theme_weak_alignment_absent",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(narrative_semantic_required_weak_alignment_count == 0),
+        ),
+        (
+            "theme_tracking_contract_pass",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_NARRATIVE_ASPECT).get("status") in {"passed", "not_applicable"}
+                and narrative_semantic_required_weak_alignment_count == 0
+            ),
         ),
         (
             "voice_consistency_policy_present",
@@ -4349,17 +4499,15 @@ def _emit_langfuse_evidence_observations(
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
     intent_kind = str(path_summary.get("player_input_kind") or "").strip().lower()
-    allowed_intent_kinds = {"action", "perception", "speech", "question", "mixed", "unclear", "meta"}
     semantic_move_kind = str(path_summary.get("semantic_move_kind") or "").strip()
     semantic_alignment_pass = True
     if semantic_move_kind:
         semantic_alignment_pass = True
-    if intent_kind in {"action", "perception"} and semantic_move_kind:
-        semantic_alignment_pass = semantic_alignment_pass and semantic_move_kind not in {
-            "probe_inquiry",
-            "provoke",
-            "demand_explanation",
-        }
+    if is_question_punctuation_probe_guarded(intent_kind) and semantic_move_kind:
+        semantic_alignment_pass = (
+            semantic_alignment_pass
+            and semantic_move_kind not in FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES
+        )
     npc_action_narration_boundary_pass = not bool(
         path_summary.get("npc_narrated_player_action_violation")
     )
@@ -4370,7 +4518,7 @@ def _emit_langfuse_evidence_observations(
     intent_surface_contract_pass = True
     if intent_kind:
         intent_surface_contract_pass = (
-            intent_kind in allowed_intent_kinds
+            intent_kind in PLAYER_INPUT_KINDS
             and isinstance(path_summary.get("player_action_committed"), bool)
             and isinstance(path_summary.get("player_speech_committed"), bool)
             and isinstance(path_summary.get("narrator_response_expected"), bool)
@@ -4602,6 +4750,10 @@ def _emit_langfuse_evidence_observations(
         "degradation_chain": degradation_chain,
         "degradation_summary": degradation_prose_summary,
         "player_input_kind": path_summary.get("player_input_kind"),
+        "player_input_kind_family": path_summary.get("player_input_kind_family")
+        or player_input_kind_family(path_summary.get("player_input_kind")),
+        "intent_contract_version": path_summary.get("intent_contract_version")
+        or INTENT_CONTRACT_VERSION,
         "player_action_committed": path_summary.get("player_action_committed"),
         "player_speech_committed": path_summary.get("player_speech_committed"),
         "narrator_response_expected": path_summary.get("narrator_response_expected"),
@@ -5042,7 +5194,7 @@ def _live_scene_blocks_from_visible_bundle(
             pik = str(frame.get("player_input_kind") or "").strip().lower()
             action_kind = str(frame.get("action_kind") or "").strip().lower()
             capability = NARRATOR_ACTION_CONSEQUENCE_DESCRIBE
-            if pik == "perception":
+            if is_perception_like_player_input_kind(pik):
                 capability = NARRATOR_PERCEPTION_RESULT_DESCRIBE
             elif action_kind == "movement":
                 capability = NARRATOR_LOCATION_TRANSITION_DESCRIBE
@@ -5067,7 +5219,7 @@ def _live_scene_blocks_from_visible_bundle(
                 "origin_aspect": "npc_authority",
                 "origin_beat_id": selected_beat_id,
                 "origin_capability": NPC_DIRECT_ANSWER_ALLOWED
-                if pik in {"speech", "question"}
+                if is_speech_like_player_input_kind(pik)
                 else NPC_SOCIAL_REACTION_OPTIONAL,
                 "authority_owner": "npc" if actor_id else "runtime",
                 "expected_owner": "npc" if actor_id else "system",
@@ -5895,6 +6047,10 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "function_type",
         "pacing_mode",
         "silence_mode",
+        "scene_energy_target",
+        "scene_energy_transition",
+        "scene_energy_validation",
+        "scene_energy_level",
         "spoken_line_count",
         "action_line_count",
         "initiative_summary",
@@ -6023,6 +6179,11 @@ def _build_committed_dramatic_context_summary(
     )
     base_responder = base.get("responder") if isinstance(base.get("responder"), dict) else {}
     base_pacing = base.get("pacing") if isinstance(base.get("pacing"), dict) else {}
+    base_scene_energy = (
+        base.get("scene_energy")
+        if isinstance(base.get("scene_energy"), dict)
+        else {}
+    )
     base_scene = (
         base.get("scene_assessment")
         if isinstance(base.get("scene_assessment"), dict)
@@ -6052,6 +6213,19 @@ def _build_committed_dramatic_context_summary(
             "pacing": {
                 "pacing_mode": planner.get("pacing_mode") or base_pacing.get("pacing_mode"),
                 "silence_mode": planner.get("silence_mode") or base_pacing.get("silence_mode"),
+            },
+            "scene_energy": {
+                "target": planner.get("scene_energy_target")
+                if isinstance(planner.get("scene_energy_target"), dict)
+                else base_scene_energy.get("target") or {},
+                "transition": planner.get("scene_energy_transition")
+                if isinstance(planner.get("scene_energy_transition"), dict)
+                else base_scene_energy.get("transition") or {},
+                "validation_status": (
+                    planner.get("scene_energy_validation", {}).get("status")
+                    if isinstance(planner.get("scene_energy_validation"), dict)
+                    else base_scene_energy.get("validation_status")
+                ),
             },
             "scene_assessment": {
                 "pressure_state": scene_assessment.get("pressure_state")
@@ -6115,6 +6289,14 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
         return {}
     responder = dramatic_context.get("responder") if isinstance(dramatic_context.get("responder"), dict) else {}
     pacing = dramatic_context.get("pacing") if isinstance(dramatic_context.get("pacing"), dict) else {}
+    scene_energy = (
+        dramatic_context.get("scene_energy")
+        if isinstance(dramatic_context.get("scene_energy"), dict)
+        else {}
+    )
+    scene_energy_target = (
+        scene_energy.get("target") if isinstance(scene_energy.get("target"), dict) else {}
+    )
     scene = dramatic_context.get("scene_assessment") if isinstance(dramatic_context.get("scene_assessment"), dict) else {}
     social = dramatic_context.get("social_state") if isinstance(dramatic_context.get("social_state"), dict) else {}
     outcome = dramatic_context.get("dramatic_outcome") if isinstance(dramatic_context.get("dramatic_outcome"), dict) else {}
@@ -6129,6 +6311,8 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
             responder.get("secondary_responder_ids"), limit=4
         ),
         "pacing_mode": pacing.get("pacing_mode"),
+        "scene_energy_level": scene_energy_target.get("energy_level"),
+        "scene_energy_transition": scene_energy_target.get("target_transition"),
         "pressure_state": scene.get("pressure_state"),
         "thread_pressure_state": scene.get("thread_pressure_state"),
         "social_risk_band": social.get("social_risk_band"),
@@ -6386,13 +6570,16 @@ class StoryRuntimeManager:
         context_assembler: Any | None = None,
         session_store: JsonStorySessionStore | None = None,
         branching_tree_store: JsonBranchingTreeStore | None = None,
+        branch_timeline_store: JsonBranchTimelineStore | None = None,
         governed_runtime_config: dict[str, Any] | None = None,
         metrics: StoryRuntimeMetrics | None = None,
     ) -> None:
         self.sessions: dict[str, StorySession] = {}
         self._session_store = session_store
         self._branching_tree_store = branching_tree_store
+        self._branch_timeline_store = branch_timeline_store
         self._branching_trees: dict[str, dict[str, Any]] = {}
+        self._branch_timelines: dict[str, dict[str, Any]] = {}
         self._branching_simulation_session_ids: set[str] = set()
         self._session_turn_locks: dict[str, threading.Lock] = {}
         self._session_locks_guard = threading.Lock()
@@ -6519,6 +6706,10 @@ class StoryRuntimeManager:
             for tree_id, raw in self._branching_tree_store.load_all_raw().items():
                 if isinstance(raw, dict):
                     self._branching_trees[tree_id] = raw
+        if self._branch_timeline_store is not None:
+            for timeline_id, raw in self._branch_timeline_store.load_all_raw().items():
+                if isinstance(raw, dict):
+                    self._branch_timelines[timeline_id] = raw
 
     def _session_turn_lock(self, session_id: str) -> threading.Lock:
         with self._session_locks_guard:
@@ -6538,6 +6729,15 @@ class StoryRuntimeManager:
         self._branching_trees[tree_id] = copy.deepcopy(record)
         if self._branching_tree_store is not None:
             self._branching_tree_store.save(tree_id, record)
+        return copy.deepcopy(record)
+
+    def _persist_branch_timeline_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        timeline_id = str(record.get("timeline_id") or "").strip()
+        if not timeline_id:
+            raise ValueError("branch_timeline_missing_id")
+        self._branch_timelines[timeline_id] = copy.deepcopy(record)
+        if self._branch_timeline_store is not None:
+            self._branch_timeline_store.save(timeline_id, record)
         return copy.deepcopy(record)
 
     # MVP3: Narrative agent configuration and input queue management
@@ -7576,6 +7776,12 @@ class StoryRuntimeManager:
                 "pressure_state": bp.pressure_state,
             }
         gov["dramatic_context_summary"] = dramatic_context_summary
+        if isinstance(graph_state.get("scene_energy_target"), dict):
+            gov["scene_energy_target"] = graph_state.get("scene_energy_target")
+        if isinstance(graph_state.get("scene_energy_transition"), dict):
+            gov["scene_energy_transition"] = graph_state.get("scene_energy_transition")
+        if isinstance(graph_state.get("scene_energy_validation"), dict):
+            gov["scene_energy_validation"] = graph_state.get("scene_energy_validation")
         # Story Runtime Experience packaging: re-pack the visible bundle
         # according to the governed experience policy. The policy is a real
         # first-class runtime value pulled from the resolved config, so
@@ -7718,6 +7924,9 @@ class StoryRuntimeManager:
             "committed_result": graph_state.get("committed_result"),
             "committed_turn_authority": committed_turn_authority,
             "selected_scene_function": graph_state.get("selected_scene_function"),
+            "scene_energy_target": graph_state.get("scene_energy_target"),
+            "scene_energy_transition": graph_state.get("scene_energy_transition"),
+            "scene_energy_validation": graph_state.get("scene_energy_validation"),
             "selected_responder_set": selected_responder_set,
             "visibility_class_markers": graph_state.get("visibility_class_markers"),
             "failure_markers": graph_state.get("failure_markers"),
@@ -8289,6 +8498,9 @@ class StoryRuntimeManager:
             "branching_forecast": event.get("branching_forecast"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
+            "scene_energy_target": event.get("scene_energy_target"),
+            "scene_energy_transition": event.get("scene_energy_transition"),
+            "scene_energy_validation": event.get("scene_energy_validation"),
             "human_input_attribution": event.get("human_input_attribution"),
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "committed_state_after": {
@@ -8622,7 +8834,19 @@ class StoryRuntimeManager:
                 reason="session_changed_during_simulation",
                 current_session_fingerprint=current_fingerprint,
             )
-        return self._persist_branching_tree_record(record)
+        persisted = self._persist_branching_tree_record(record)
+        self._append_branch_timeline_event_for_session(
+            session_id=session_id,
+            event_type=BRANCHING_TIMELINE_EVENT_TREE_CREATED,
+            tree_id=str(persisted.get("tree_id") or ""),
+            session_fingerprint=current_fingerprint,
+            details=self._branch_timeline_tree_details(persisted),
+        )
+        self._enforce_branch_timeline_tree_bounds(
+            session_id=session_id,
+            current_session_fingerprint=current_fingerprint,
+        )
+        return persisted
 
     def list_branching_trees(self, *, session_id: str) -> list[dict[str, Any]]:
         self.get_session(session_id)
@@ -8653,7 +8877,52 @@ class StoryRuntimeManager:
         if not isinstance(record, dict) or record.get("story_session_id") != session_id:
             raise KeyError(tree_id)
         expired = mark_branch_tree_expired(record, reason=reason)
-        return self._persist_branching_tree_record(expired)
+        persisted = self._persist_branching_tree_record(expired)
+        session = self.get_session(session_id)
+        self._append_branch_timeline_event(
+            session=session,
+            event_type=BRANCHING_TIMELINE_EVENT_TREE_EXPIRED,
+            tree_id=tree_id,
+            session_fingerprint=self._branching_session_fingerprint(session),
+            details={"reason": reason, **self._branch_timeline_tree_details(persisted)},
+        )
+        return persisted
+
+    def get_branch_timeline(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+        )
+        return copy.deepcopy(timeline)
+
+    def list_branch_timeline_events(self, *, session_id: str) -> list[dict[str, Any]]:
+        timeline = self.get_branch_timeline(session_id=session_id)
+        events = timeline.get("events") if isinstance(timeline.get("events"), list) else []
+        return [copy.deepcopy(event) for event in events if isinstance(event, dict)]
+
+    def compact_branch_timeline(self, *, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+        )
+        compacted = compact_branch_timeline(timeline)
+        return self._persist_branch_timeline_record(compacted)
+
+    def archive_branch_timeline(
+        self,
+        *,
+        session_id: str,
+        reason: str = "operator_archived",
+    ) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=self._branching_session_fingerprint(session),
+        )
+        archived = archive_branch_timeline(timeline, reason=reason)
+        return self._persist_branch_timeline_record(archived)
 
     def select_branching_tree_node(
         self,
@@ -8681,6 +8950,16 @@ class StoryRuntimeManager:
                     current_session_fingerprint=current_fingerprint,
                 )
                 self._persist_branching_tree_record(stale)
+                self._append_branch_timeline_event(
+                    session=session,
+                    event_type=BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+                    tree_id=tree_id,
+                    session_fingerprint=current_fingerprint,
+                    details={
+                        "reason": "session_changed_since_tree_creation",
+                        **self._branch_timeline_tree_details(stale),
+                    },
+                )
                 raise ValueError("branching_tree_stale")
             if status not in {BRANCHING_TREE_STATUS_SIMULATED, BRANCHING_TREE_STATUS_NOT_APPLICABLE}:
                 raise ValueError(f"branching_tree_not_selectable:{status}")
@@ -8695,6 +8974,31 @@ class StoryRuntimeManager:
                 raise ValueError("branching_node_path_empty")
 
             selection_trace_id = trace_id or f"branching-tree-select-{uuid4().hex}"
+            selected_path_node_ids = [str(item.get("node_id")) for item in path_nodes if item.get("node_id")]
+            self._append_branch_timeline_event(
+                session=session,
+                event_type=BRANCHING_TIMELINE_EVENT_NODE_SELECTED,
+                tree_id=tree_id,
+                node_id=node_id,
+                session_fingerprint=current_fingerprint,
+                details={
+                    "selected_path_node_ids": selected_path_node_ids,
+                    "selected_path_option_ids": list(node.get("path_option_ids") or []),
+                    "uses_normal_commit_path": True,
+                    "adopts_simulated_snapshot": False,
+                },
+            )
+            self._append_branch_timeline_event(
+                session=session,
+                event_type=BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_STARTED,
+                tree_id=tree_id,
+                node_id=node_id,
+                session_fingerprint=current_fingerprint,
+                details={
+                    "selected_path_node_ids": selected_path_node_ids,
+                    "trace_id": selection_trace_id,
+                },
+            )
             replayed_turns: list[dict[str, Any]] = []
             committed_events: list[dict[str, Any]] = []
             replay_conflicts: list[dict[str, Any]] = []
@@ -8734,7 +9038,7 @@ class StoryRuntimeManager:
                 "status": selection_status,
                 "tree_id": tree_id,
                 "selected_node_id": node_id,
-                "selected_path_node_ids": [str(item.get("node_id")) for item in path_nodes if item.get("node_id")],
+                "selected_path_node_ids": selected_path_node_ids,
                 "selected_path_option_ids": list(node.get("path_option_ids") or []),
                 "trace_id": selection_trace_id,
                 "replayed_turn_count": len(replayed_turns),
@@ -8750,6 +9054,36 @@ class StoryRuntimeManager:
                 current_session_fingerprint=after_fingerprint,
             )
             self._persist_branching_tree_record(committed_record)
+            final_event_type = (
+                BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_CONFLICT
+                if replay_conflicts
+                else BRANCHING_TIMELINE_EVENT_SELECTION_REPLAY_COMMITTED
+            )
+            last_committed_event = committed_events[-1] if committed_events else {}
+            self._append_branch_timeline_event(
+                session=session,
+                event_type=final_event_type,
+                tree_id=tree_id,
+                node_id=node_id,
+                canonical_turn_id=(
+                    str(last_committed_event.get("canonical_turn_id"))
+                    if isinstance(last_committed_event, dict) and last_committed_event.get("canonical_turn_id")
+                    else None
+                ),
+                session_fingerprint=after_fingerprint,
+                details={
+                    "selection_status": selection_status,
+                    "replayed_turn_count": len(replayed_turns),
+                    "replay_conflict_count": len(replay_conflicts),
+                    "committed_canonical_turn_ids": [
+                        str(event.get("canonical_turn_id"))
+                        for event in committed_events
+                        if isinstance(event, dict) and event.get("canonical_turn_id")
+                    ],
+                    "uses_normal_commit_path": True,
+                    "adopts_simulated_snapshot": False,
+                },
+            )
             self._mark_branching_trees_stale_for_session(
                 session_id=session_id,
                 except_tree_id=tree_id,
@@ -8763,6 +9097,150 @@ class StoryRuntimeManager:
                 "committed_events": committed_events,
                 "branching_tree": copy.deepcopy(committed_record),
             }
+
+    def _branch_timeline_for_session(
+        self,
+        *,
+        session: StorySession,
+        current_session_fingerprint: dict[str, Any],
+        scope: str = BRANCHING_TIMELINE_SCOPE_ACTIVE,
+        preview: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        timeline_id = stable_branch_timeline_id(
+            story_session_id=session.session_id,
+            scope=scope,
+            preview=preview,
+        )
+        existing = self._branch_timelines.get(timeline_id)
+        if isinstance(existing, dict):
+            updated = copy.deepcopy(existing)
+            updated["current_session_fingerprint"] = copy.deepcopy(current_session_fingerprint)
+            if not updated.get("module_id"):
+                updated["module_id"] = session.module_id
+            if not updated.get("runtime_profile_id"):
+                updated["runtime_profile_id"] = _runtime_profile_id_from_projection(
+                    session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+                )
+            return self._persist_branch_timeline_record(updated)
+        record = make_branch_timeline_record(
+            story_session_id=session.session_id,
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+            scope=scope,
+            root_session_fingerprint=current_session_fingerprint,
+            preview=preview,
+        )
+        return self._persist_branch_timeline_record(record)
+
+    def _append_branch_timeline_event_for_session(
+        self,
+        *,
+        session_id: str,
+        event_type: str,
+        tree_id: str | None = None,
+        node_id: str | None = None,
+        canonical_turn_id: str | None = None,
+        session_fingerprint: dict[str, Any] | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        return self._append_branch_timeline_event(
+            session=session,
+            event_type=event_type,
+            tree_id=tree_id,
+            node_id=node_id,
+            canonical_turn_id=canonical_turn_id,
+            session_fingerprint=session_fingerprint,
+            details=details,
+        )
+
+    def _append_branch_timeline_event(
+        self,
+        *,
+        session: StorySession,
+        event_type: str,
+        tree_id: str | None = None,
+        node_id: str | None = None,
+        canonical_turn_id: str | None = None,
+        session_fingerprint: dict[str, Any] | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        fingerprint = session_fingerprint or self._branching_session_fingerprint(session)
+        timeline = self._branch_timeline_for_session(
+            session=session,
+            current_session_fingerprint=fingerprint,
+        )
+        event = make_branch_timeline_event(
+            event_type=event_type,
+            story_session_id=session.session_id,
+            timeline_id=str(timeline.get("timeline_id") or ""),
+            scope=str(timeline.get("scope") or BRANCHING_TIMELINE_SCOPE_ACTIVE),
+            tree_id=tree_id,
+            node_id=node_id,
+            canonical_turn_id=canonical_turn_id,
+            session_fingerprint=fingerprint,
+            details=details,
+        )
+        updated = append_branch_timeline_event(timeline, event)
+        updated["current_session_fingerprint"] = copy.deepcopy(fingerprint)
+        return self._persist_branch_timeline_record(updated)
+
+    def _branch_timeline_tree_details(self, record: dict[str, Any]) -> dict[str, Any]:
+        summary = record.get("summary") if isinstance(record.get("summary"), dict) else {}
+        return {
+            "tree_status": record.get("status"),
+            "schema_version": record.get("schema_version"),
+            "root_canonical_turn_id": record.get("root_canonical_turn_id"),
+            "root_turn_number": record.get("root_turn_number"),
+            "selectable_node_count": int(summary.get("selectable_node_count") or 0),
+            "simulated_turn_count": int(summary.get("simulated_turn_count") or 0),
+            "max_depth_observed": int(summary.get("max_depth_observed") or 0),
+            "selection_required_to_commit": bool(record.get("selection_required_to_commit")),
+            "selection_replays_normal_commit_path": bool(record.get("selection_replays_normal_commit_path")),
+            "adopts_simulated_snapshot": bool(record.get("adopts_simulated_snapshot")),
+        }
+
+    def _enforce_branch_timeline_tree_bounds(
+        self,
+        *,
+        session_id: str,
+        current_session_fingerprint: dict[str, Any],
+    ) -> None:
+        active_records = [
+            record
+            for record in self._branching_trees.values()
+            if record.get("story_session_id") == session_id
+            and str(record.get("status") or "")
+            in {
+                BRANCHING_TREE_STATUS_SIMULATED,
+                BRANCHING_TREE_STATUS_NOT_APPLICABLE,
+            }
+        ]
+        if len(active_records) <= BRANCHING_TIMELINE_DEFAULT_MAX_ACTIVE_TREES:
+            return
+        active_records.sort(key=lambda row: str(row.get("created_at") or row.get("updated_at") or ""))
+        overflow = active_records[: max(0, len(active_records) - BRANCHING_TIMELINE_DEFAULT_MAX_ACTIVE_TREES)]
+        session = self.get_session(session_id)
+        for record in overflow:
+            tree_id = str(record.get("tree_id") or "")
+            stale = mark_branch_tree_stale(
+                record,
+                reason="branch_timeline_active_tree_bound",
+                current_session_fingerprint=current_session_fingerprint,
+            )
+            self._persist_branching_tree_record(stale)
+            self._append_branch_timeline_event(
+                session=session,
+                event_type=BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+                tree_id=tree_id,
+                session_fingerprint=current_session_fingerprint,
+                details={
+                    "reason": "branch_timeline_active_tree_bound",
+                    **self._branch_timeline_tree_details(stale),
+                },
+            )
 
     def _branching_session_fingerprint(self, session: StorySession) -> dict[str, Any]:
         last_turn = session.history[-1] if session.history else {}
@@ -8817,7 +9295,21 @@ class StoryRuntimeManager:
             reason="session_changed_since_tree_creation",
             current_session_fingerprint=current_fingerprint,
         )
-        return self._persist_branching_tree_record(stale)
+        persisted = self._persist_branching_tree_record(stale)
+        try:
+            self._append_branch_timeline_event_for_session(
+                session_id=session_id,
+                event_type=BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+                tree_id=str(persisted.get("tree_id") or ""),
+                session_fingerprint=current_fingerprint,
+                details={
+                    "reason": "session_changed_since_tree_creation",
+                    **self._branch_timeline_tree_details(persisted),
+                },
+            )
+        except KeyError:
+            pass
+        return persisted
 
     def _mark_branching_trees_stale_for_session(
         self,
@@ -8842,7 +9334,17 @@ class StoryRuntimeManager:
                 reason=reason,
                 current_session_fingerprint=current_session_fingerprint,
             )
-            self._persist_branching_tree_record(stale)
+            persisted = self._persist_branching_tree_record(stale)
+            try:
+                self._append_branch_timeline_event_for_session(
+                    session_id=session_id,
+                    event_type=BRANCHING_TIMELINE_EVENT_TREE_BECAME_STALE,
+                    tree_id=str(persisted.get("tree_id") or ""),
+                    session_fingerprint=current_session_fingerprint,
+                    details={"reason": reason, **self._branch_timeline_tree_details(persisted)},
+                )
+            except KeyError:
+                continue
 
     def _branching_replay_matches_node(
         self,
@@ -9240,6 +9742,12 @@ class StoryRuntimeManager:
             event.setdefault("graph", graph_diag)
         if graph_state.get("selected_scene_function") is not None:
             event.setdefault("selected_scene_function", graph_state.get("selected_scene_function"))
+        if isinstance(graph_state.get("scene_energy_target"), dict):
+            event.setdefault("scene_energy_target", graph_state.get("scene_energy_target"))
+        if isinstance(graph_state.get("scene_energy_transition"), dict):
+            event.setdefault("scene_energy_transition", graph_state.get("scene_energy_transition"))
+        if isinstance(graph_state.get("scene_energy_validation"), dict):
+            event.setdefault("scene_energy_validation", graph_state.get("scene_energy_validation"))
         if selected_responder_set:
             event.setdefault("selected_responder_set", selected_responder_set)
         actor_survival_telemetry = (
@@ -9298,6 +9806,9 @@ class StoryRuntimeManager:
             else graph_state.get("committed_result"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
+            "scene_energy_target": event.get("scene_energy_target"),
+            "scene_energy_transition": event.get("scene_energy_transition"),
+            "scene_energy_validation": event.get("scene_energy_validation"),
             "human_input_attribution": human_att,
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,

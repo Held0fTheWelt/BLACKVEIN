@@ -13,6 +13,11 @@ from typing import Any
 
 import yaml
 
+from story_runtime_core.player_input_intent_contract import (
+    SPEECH_PROJECTION_KINDS,
+    default_commit_flags_for_player_input_kind,
+)
+
 __all__ = [
     "build_player_attributed_visible_line",
     "classify_player_input_from_rules",
@@ -248,12 +253,6 @@ def _normalize_room_direction_fragment(phrase: str, *, lang: str) -> str:
     return p[0].upper() + p[1:] if len(p) > 1 else p.upper()
 
 
-# Kinds for which rendering raw input as quoted speech is permitted.
-_SPEECH_PROJECTION_KINDS: frozenset[str] = frozenset(
-    {"speech", "question", "social_speech_action"}
-)
-
-
 def build_player_attributed_visible_line(
     *,
     name: str,
@@ -292,7 +291,7 @@ def build_player_attributed_visible_line(
     if ik in ("intent_only", "reaction"):
         ik = "speech"
     is_question = raw_s.rstrip().endswith("?")
-    if ik in _SPEECH_PROJECTION_KINDS:
+    if ik in SPEECH_PROJECTION_KINDS:
         key = "player_outcome.speech_question" if (is_question or ik == "question") else "player_outcome.speech_statement"
     elif ik in ("action", "perception", "movement_action", "perception_action"):
         key = "player_outcome.action_display"
@@ -341,83 +340,7 @@ def default_player_intent_commit_flags(player_input_kind: str) -> dict[str, bool
 
 
 def _intent_defaults_from_kind(player_input_kind: str) -> dict[str, Any]:
-    k = (player_input_kind or "").strip().lower()
-    if k in ("action", "movement_action"):
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    if k in ("perception", "perception_action"):
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    if k in ("mixed", "mixed_action_speech"):
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": True,
-            "narrator_response_expected": True,
-            "npc_response_expected": True,
-        }
-    if k in ("speech", "question", "meta"):
-        return {
-            "player_action_committed": False,
-            "player_speech_committed": True,
-            "narrator_response_expected": False,
-            "npc_response_expected": True,
-        }
-    if k == "social_speech_action":
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": True,
-            "narrator_response_expected": False,
-            "npc_response_expected": True,
-        }
-    if k == "social_nonverbal_action":
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": False,
-            "narrator_response_expected": False,
-            "npc_response_expected": True,
-        }
-    if k == "object_interaction":
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    if k in ("physical_action", "hostile_action"):
-        return {
-            "player_action_committed": True,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    if k == "wait_or_observe":
-        return {
-            "player_action_committed": False,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    if k == "ambiguous":
-        return {
-            "player_action_committed": False,
-            "player_speech_committed": False,
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        }
-    return {
-        "player_action_committed": False,
-        "player_speech_committed": False,
-        "narrator_response_expected": True,
-        "npc_response_expected": True,
-    }
+    return default_commit_flags_for_player_input_kind(player_input_kind)
 
 
 def _no_rule_result(rule_id: str) -> dict[str, Any]:
@@ -488,7 +411,7 @@ def classify_player_input_from_rules(
         out: dict[str, Any] = {
             "player_input_kind": pik,
             "semantic_category": pik,
-            "speech_projection_allowed": pik in _SPEECH_PROJECTION_KINDS,
+            "speech_projection_allowed": pik in SPEECH_PROJECTION_KINDS,
             "deterministic_intent_rule": rid,
             "projection_key": pk,
             "captures": captures,

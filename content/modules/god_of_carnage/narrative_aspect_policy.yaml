@@ -48,3 +48,33 @@ narrative_aspect_policy:
           ledger_aspect: npc_authority
           status: passed
           required: false
+    - id: pi12_civilized_violence_pressure
+      enabled: true
+      selection_source: module_policy
+      activation:
+        always: true
+      commit_impact: diagnostic
+      metadata:
+        table_b_refs:
+          - pi_12
+      semantic_policy:
+        enabled: true
+        required: false
+        classifier_version: narrative_aspect_semantic_overlap_v1
+        thresholds:
+          min_aspect_alignment: 0.20
+          min_dimension_alignment: 0.20
+          min_matched_dimensions: 1
+      semantic_profile:
+        social_mask: >-
+          civility civilized polite manners courtesy adult salon mask respect
+          anstand hoeflich erwachsen fassade respekt
+        violence_pressure: >-
+          violence aggression wound damage strike force brutality konflikt
+          gewalt verletzung eskalation
+        material_anchor: >-
+          apartment living room table sofa vase tulips rum coffee threshold
+          wohnzimmer tisch sofa vase tulpen rum kaffee
+        moral_friction: >-
+          blame responsibility hypocrisy superiority shame accusation morality
+          schuld verantwortung heuchelei moral vorwurf beschuldigung

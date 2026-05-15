@@ -14,6 +14,7 @@ import unicodedata
 from typing import Any
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_actor_aliases import resolve_goc_actor_alias
 from ai_stack.goc_semantic_priority_rules import (
     rank_goc_move_candidates,
     resolve_goc_move_from_rules,
@@ -23,6 +24,14 @@ from ai_stack.semantic_move_contract import (
     InterpretationTraceItem,
     RankedMoveCandidate,
     SemanticMoveRecord,
+)
+from story_runtime_core.player_input_intent_contract import (
+    is_action_like_player_input_kind,
+    is_mixed_player_input_kind,
+    is_perception_like_player_input_kind,
+    is_question_punctuation_probe_guarded,
+    player_input_kind_family,
+    question_shape_may_probe,
 )
 
 # Synonym / paraphrase sets — separate from single-token keyword race; matched as token boundaries.
@@ -170,15 +179,7 @@ def _named_target_hint(text: str) -> str | None:
         str | None:
             Returns a value of type ``str | None``; see the function body for structure, error paths, and sentinels.
     """
-    if "annette" in text:
-        return "annette_reille"
-    if "alain" in text:
-        return "alain_reille"
-    if "michel" in text or "michael" in text:
-        return "michel_longstreet"
-    if "veronique" in text or "penelope" in text:
-        return "veronique_vallon"
-    return None
+    return resolve_goc_actor_alias(text)
 
 
 def _secondary_dramatic_features(
@@ -304,10 +305,14 @@ def interpret_goc_semantic_move(
         "syn_escalate": _contains_syn(combined, _ESCALATE_SYN),
         "prior_blame_pressure": "blame_pressure" in prior,
         "prior_alliance_shift": "alliance_shift" in prior,
-        "player_input_kind_is_action": player_input_kind in {"action", "movement_action"},
-        "player_input_kind_is_perception": player_input_kind in {"perception", "perception_action"},
+        "player_input_kind": player_input_kind,
+        "player_input_kind_family": player_input_kind_family(player_input_kind),
+        "player_input_kind_is_action": is_action_like_player_input_kind(player_input_kind),
+        "player_input_kind_is_perception": is_perception_like_player_input_kind(player_input_kind),
         "player_input_kind_is_speech": player_input_kind == "speech",
-        "player_input_kind_is_mixed": player_input_kind == "mixed",
+        "player_input_kind_is_mixed": is_mixed_player_input_kind(player_input_kind),
+        "player_input_kind_question_shape_may_probe": question_shape_may_probe(player_input_kind),
+        "player_input_kind_question_shape_guarded": is_question_punctuation_probe_guarded(player_input_kind),
         "player_action_committed": player_action_committed,
         "player_speech_committed": player_speech_committed,
     }

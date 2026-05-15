@@ -111,6 +111,9 @@ def build_planner_state_projection(state: RuntimeTurnState) -> dict[str, Any]:
         "character_voice_profiles": state.get("character_voice_profiles"),
         "voice_consistency_validation": state.get("voice_consistency_validation"),
         "scene_plan_record": state.get("scene_plan_record"),
+        "scene_energy_target": state.get("scene_energy_target"),
+        "scene_energy_transition": state.get("scene_energy_transition"),
+        "scene_energy_validation": state.get("scene_energy_validation"),
         "note": "Derived projection of RuntimeTurnState planner fields — not a second truth surface.",
     }
 
@@ -193,6 +196,19 @@ def build_bounded_dramatic_context_summary(state: RuntimeTurnState) -> dict[str,
         "pacing": {
             "pacing_mode": state.get("pacing_mode"),
             "silence_mode": silence.get("mode"),
+        },
+        "scene_energy": {
+            "target": state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else {},
+            "transition": state.get("scene_energy_transition")
+            if isinstance(state.get("scene_energy_transition"), dict)
+            else {},
+            "validation_status": (
+                state.get("scene_energy_validation", {}).get("status")
+                if isinstance(state.get("scene_energy_validation"), dict)
+                else None
+            ),
         },
         "scene_assessment": {
             "pressure_state": scene.get("pressure_state"),

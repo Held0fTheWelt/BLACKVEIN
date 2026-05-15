@@ -9,6 +9,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from story_runtime_core.player_input_intent_contract import (
+    is_action_like_player_input_kind,
+    is_mixed_player_input_kind,
+    is_perception_like_player_input_kind,
+    is_speech_like_player_input_kind,
+)
 
 DRAMATIC_CAPABILITY_SCHEMA_VERSION = "dramatic_capability.v1"
 
@@ -116,15 +122,15 @@ def add_unique(items: list[str], value: str | None) -> None:
 def player_capability_for_frame(frame: dict[str, Any], player_input_kind: str) -> str | None:
     kind = str(player_input_kind or "").strip().lower()
     action_kind = str(frame.get("action_kind") or "").strip().lower()
-    if kind == "perception" or action_kind == "perception":
+    if is_perception_like_player_input_kind(kind) or action_kind == "perception":
         return PLAYER_PERCEPTION_REQUEST
-    if kind in {"speech", "question", "social_speech_action"}:
+    if is_speech_like_player_input_kind(kind):
         return PLAYER_SPEECH_REQUEST
     if action_kind == "movement":
         return PLAYER_MOVEMENT_REQUEST
     if action_kind == "object_interaction":
         return PLAYER_OBJECT_INTERACTION_REQUEST
-    if kind in {"action", "mixed", "movement_action", "physical_action", "environment_interaction"}:
+    if is_action_like_player_input_kind(kind) or is_mixed_player_input_kind(kind):
         return PLAYER_ACTION_REQUEST
     return None
 
@@ -133,7 +139,7 @@ def narrator_capability_for_frame(frame: dict[str, Any], player_input_kind: str)
     verb = str(frame.get("verb") or "").strip().lower()
     action_kind = str(frame.get("action_kind") or "").strip().lower()
     kind = str(player_input_kind or "").strip().lower()
-    if kind == "perception" or verb in {"look_at", "listen_to"} or action_kind == "perception":
+    if is_perception_like_player_input_kind(kind) or verb in {"look_at", "listen_to"} or action_kind == "perception":
         return NARRATOR_PERCEPTION_RESULT_DESCRIBE
     if action_kind == "movement" or verb in {"move_to", "return_to"}:
         return NARRATOR_LOCATION_TRANSITION_DESCRIBE

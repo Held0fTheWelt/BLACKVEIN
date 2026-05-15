@@ -442,6 +442,10 @@ class BranchingTreeExpireRequest(BaseModel):
     reason: str = "operator_expired"
 
 
+class BranchTimelineArchiveRequest(BaseModel):
+    reason: str = "operator_archived"
+
+
 class NarrativeReloadRequest(BaseModel):
     module_id: str
     expected_active_version: str
@@ -1005,7 +1009,8 @@ def create_story_branching_tree(
         raise HTTPException(status_code=404, detail="Story session not found") from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"session_id": session_id, "branching_tree": tree}
+    timeline = manager.get_branch_timeline(session_id=session_id)
+    return {"session_id": session_id, "branching_tree": tree, "branch_timeline": timeline}
 
 
 @router.get("/story/sessions/{session_id}/branching/trees", dependencies=[Depends(_require_internal_api_key)])
@@ -1018,6 +1023,55 @@ def list_story_branching_trees(
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Story session not found") from exc
     return {"session_id": session_id, "branching_trees": rows}
+
+
+@router.get("/story/sessions/{session_id}/branching/timeline", dependencies=[Depends(_require_internal_api_key)])
+def get_story_branch_timeline(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        timeline = manager.get_branch_timeline(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branch_timeline": timeline}
+
+
+@router.get("/story/sessions/{session_id}/branching/timeline/events", dependencies=[Depends(_require_internal_api_key)])
+def list_story_branch_timeline_events(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        events = manager.list_branch_timeline_events(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branch_timeline_events": events}
+
+
+@router.post("/story/sessions/{session_id}/branching/timeline/compact", dependencies=[Depends(_require_internal_api_key)])
+def compact_story_branch_timeline(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        timeline = manager.compact_branch_timeline(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branch_timeline": timeline}
+
+
+@router.post("/story/sessions/{session_id}/branching/timeline/archive", dependencies=[Depends(_require_internal_api_key)])
+def archive_story_branch_timeline(
+    session_id: str,
+    payload: BranchTimelineArchiveRequest,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        timeline = manager.archive_branch_timeline(session_id=session_id, reason=payload.reason)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branch_timeline": timeline}
 
 
 @router.get("/story/sessions/{session_id}/branching/trees/{tree_id}", dependencies=[Depends(_require_internal_api_key)])
@@ -1043,7 +1097,7 @@ def select_story_branching_tree_node(
 ) -> dict[str, Any]:
     trace_id = getattr(request.state, "trace_id", None)
     try:
-        return manager.select_branching_tree_node(
+        result = manager.select_branching_tree_node(
             session_id=session_id,
             tree_id=tree_id,
             node_id=payload.node_id,
@@ -1053,6 +1107,8 @@ def select_story_branching_tree_node(
         raise HTTPException(status_code=404, detail="Branching tree or node not found") from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    result["branch_timeline"] = manager.get_branch_timeline(session_id=session_id)
+    return result
 
 
 @router.post("/story/sessions/{session_id}/branching/trees/{tree_id}/expire", dependencies=[Depends(_require_internal_api_key)])
@@ -1070,7 +1126,8 @@ def expire_story_branching_tree(
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Branching tree not found") from exc
-    return {"session_id": session_id, "branching_tree": tree}
+    timeline = manager.get_branch_timeline(session_id=session_id)
+    return {"session_id": session_id, "branching_tree": tree, "branch_timeline": timeline}
 
 
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])

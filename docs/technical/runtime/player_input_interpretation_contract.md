@@ -39,6 +39,40 @@ Interpreter returns a structured object containing:
 - `meta` (out-of-world input)
 - `ambiguous`
 
+## Canonical `player_input_kind` taxonomy
+
+The runtime's fine-grained `player_input_kind` taxonomy is defined in
+`story_runtime_core/player_input_intent_contract.py` and is the shared source
+of truth for interpreter rules, semantic-move alignment, observability scores,
+and tests. Runtime code and gate tests must import that contract instead of
+copying kind lists.
+
+Current contract families:
+
+- speech-like: `speech`, `question`, `reaction`, `intent_only`, `social_speech_action`
+- action-like: `action`, `movement_action`, `object_interaction`, `social_nonverbal_action`, `social_speech_action`, `physical_action`, `hostile_action`, `environment_interaction`, `mixed`, `mixed_action_speech`
+- perception-like: `perception`, `perception_action`
+- non-speech question-shape guarded: `action`, `perception`, `movement_action`, `perception_action`, `object_interaction`, `social_nonverbal_action`, `physical_action`, `hostile_action`, `environment_interaction`, `wait_or_observe`, `ambiguous`, `unclear`
+- control/uncertain: `explicit_command`, `meta`, `unclear`, `ambiguous`
+
+`kind` remains the coarse interpreter category. `player_input_kind` is the
+runtime routing surface used by content locale rules, semantic-move guards,
+scene-director response policy, and Langfuse deterministic scores.
+
+## Intent invariants
+
+- `player_input_kind` values must be checked against the shared taxonomy.
+- Non-speech action/perception/wait surfaces must not become NPC-answer
+  `probe_inquiry` semantics solely because the raw text ends in `?`.
+- Target-name matching for runtime intent must be case-insensitive and
+  accent-folded. For example, GoC actor alias resolution treats `Véronique`
+  and `Veronique` as the same canonical target.
+- `intent_surface_contract_pass` and `semantic_move_alignment_pass` must use
+  the same shared taxonomy as the interpreter and semantic-move pipeline.
+- Tests for these invariants must follow ADR-0039: derive primary assertions
+  from this contract, canonical content, or a named invariant rather than
+  duplicated hardcoded oracle lists.
+
 ## Ambiguity and confidence
 
 - Confidence must be explicit on every interpretation.

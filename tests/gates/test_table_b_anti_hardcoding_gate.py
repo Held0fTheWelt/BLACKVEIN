@@ -83,13 +83,33 @@ MODULE_SPECIFIC_PATTERNS = (
 TABLE_B_CONTROL_PATTERNS = (
     ForbiddenPattern("table_b.pi_11", re.compile(r"\bpi_11\b|Π11", re.IGNORECASE)),
     ForbiddenPattern("table_b.pi_22", re.compile(r"\bpi_22\b|Π22", re.IGNORECASE)),
-    ForbiddenPattern("table_b.scene_energy", re.compile(r"\bscene_energy\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.tension_calibration", re.compile(r"\btension_calibration\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.failure_as_story", re.compile(r"\bfailure_as_story\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.symbolic_resonance", re.compile(r"\bsymbolic_resonance\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.mystery_rationing", re.compile(r"\bmystery_rationing\b", re.IGNORECASE)),
     ForbiddenPattern("table_b.surprise_budget", re.compile(r"\bsurprise_budget\b", re.IGNORECASE)),
 )
+
+SCENE_ENERGY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.scene_energy",
+    re.compile(r"\bscene_energy\b", re.IGNORECASE),
+)
+
+SCENE_ENERGY_CANONICAL_SURFACES = {
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
+    "ai_stack/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/scene_energy_contracts.py",
+    "ai_stack/scene_energy_engine.py",
+    "ai_stack/story_runtime_playability.py",
+    "backend/app/services/inspector_turn_projection_sections_assembly_filled.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
 
 
 # These are not exemptions for new Table B work. They document current
@@ -193,6 +213,24 @@ def test_table_b_control_ids_do_not_drive_production_code() -> None:
             violations.append(f"{rel}: {', '.join(hits)}")
 
     assert not violations, "Table B control literals leaked into production code:\n" + "\n".join(violations)
+
+
+def test_scene_energy_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Scene energy is now a contract aspect, not a legacy Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in SCENE_ENERGY_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (SCENE_ENERGY_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "scene_energy appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
 
 
 def test_module_specific_literals_stay_inside_documented_compatibility_debt() -> None:

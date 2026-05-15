@@ -782,11 +782,27 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                         "expected": {
                             "policy_present": True,
                             "candidate_aspects": ["aspect_alpha"],
+                            "theme_tracking_policy_present": True,
+                            "semantic_tracking_enabled": True,
+                            "semantic_profile_aspects": ["aspect_alpha"],
                         },
-                        "selected": {"selected_aspects": ["aspect_alpha"]},
+                        "selected": {
+                            "selected_aspects": ["aspect_alpha"],
+                            "selected_theme_aspects": ["aspect_alpha"],
+                        },
                         "actual": {
                             "realized_aspects": ["aspect_alpha"],
+                            "realized_theme_aspects": ["aspect_alpha"],
                             "visible_when_required": True,
+                            "semantic_classification_count": 1,
+                            "semantic_weak_alignment_count": 0,
+                            "semantic_classifications": [
+                                {
+                                    "aspect_id": "aspect_alpha",
+                                    "status": "passed",
+                                    "table_b_refs": ["pi_12"],
+                                }
+                            ],
                         },
                     },
                     "voice_consistency": {
@@ -833,6 +849,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "npc_required_initiatives_realized", "value": 1.0},
             {"name": "npc_carry_forward_closed", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
+            {"name": "theme_tracking_policy_present", "value": 1.0},
+            {"name": "theme_tracking_selected", "value": 1.0},
+            {"name": "theme_semantic_classification_present", "value": 1.0},
+            {"name": "theme_weak_alignment_absent", "value": 1.0},
+            {"name": "theme_tracking_contract_pass", "value": 1.0},
             {"name": "voice_semantic_classification_present", "value": 1.0},
             {"name": "voice_cross_actor_confusion_absent", "value": 1.0},
             {"name": "voice_forbidden_markers_absent", "value": 1.0},
@@ -871,6 +892,13 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]
     assert row["narrative_aspect_contract_pass"] == 1.0
+    assert row["theme_tracking_policy_present"] is True
+    assert row["selected_theme_aspects"] == ["aspect_alpha"]
+    assert row["realized_theme_aspects"] == ["aspect_alpha"]
+    assert row["theme_semantic_classification_present"] == 1.0
+    assert row["theme_semantic_classification_count"] == 1
+    assert row["theme_weak_alignment_count"] == 0
+    assert row["theme_tracking_contract_pass"] == 1.0
     assert row["voice_consistency_policy_present"] is True
     assert row["voice_semantic_classification_enabled"] is True
     assert row["voice_semantic_classification_count"] == 1

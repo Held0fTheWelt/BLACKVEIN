@@ -191,6 +191,7 @@ DATA_DIR = BASE_DIR / "app" / "var"
 RUN_STORE_DIR = DATA_DIR / "runs"
 STORY_SESSION_STORE_DIR = DATA_DIR / "story_sessions"
 BRANCHING_TREE_STORE_DIR = DATA_DIR / "branching_trees"
+BRANCH_TIMELINE_STORE_DIR = DATA_DIR / "branch_timelines"
 APP_TITLE = os.getenv("APP_TITLE", "World of Shadows World-Engine Simulator")
 APP_VERSION = "0.3.0"
 
