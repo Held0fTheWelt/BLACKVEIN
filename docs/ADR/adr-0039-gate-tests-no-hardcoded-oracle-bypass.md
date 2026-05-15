@@ -59,6 +59,18 @@ Gates exist to prove that **promotion criteria** hold under change. If a gate te
 - The test would **pass** if the implementation returned **wrong behavior** that still matched the hardcoded string.
 - The test would **fail** if the implementation improved while preserving all **documented** semantics (e.g. rephrased narrator text that still satisfies the same content keys and policies).
 
+### Capability Matrix and Pi / Π vocabulary
+
+For Capability Matrix work, Pi / Π labels are historical cross-reference vocabulary only. They must not become runtime IDs, score names, schema keys, routing keys, or control-flow branches. Production code must use stable semantic names such as `silence_negative_space`, `environment_state`, `dramatic_irony`, `callback_web`, `subtext`, `information_disclosure`, `social_pressure`, and `improvisational_coherence`.
+
+Semantic names are allowed in production when they are contract-backed. Tests must distinguish forbidden Pi-number usage from valid semantic runtime surfaces. When a new Capability Matrix row gains implementation code, update `tests/gates/test_table_b_anti_hardcoding_gate.py` with the legacy label and any reviewed semantic runtime-aspect surface, or document why the row is out of scope.
+
+Capability promotion evidence belongs in:
+
+- `docs/MVPs/capability_matrix_status_and_adr_relations.md` for current truth, ADR relation, semantic name, and maturity.
+- `docs/MVPs/capability_matrix_verification_log.md` for dated verification runs.
+- `docs/MVPs/capability_matrix_live_claim_gates.md` for live/staging/Langfuse/MCP promotion rules.
+
 ---
 
 ## 3. Consequences

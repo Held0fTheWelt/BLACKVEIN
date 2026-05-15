@@ -96,14 +96,14 @@ The engine does **not** replace long-term platform accounts, billing, forums, or
 
 1. Something happens: the player sends text (or a structured command is derived from it).
 2. The system **receives** the turn for a known session.
-3. The engine runs a **pipeline** (the LangGraph turn graph in `ai_stack/langgraph_runtime.py`) that interprets input, pulls context, calls models, and runs **validation** and **commit seams** (`goc_turn_seams.py` helpers).
+3. The engine runs a **pipeline** (the LangGraph turn graph in `ai_stack/langgraph_runtime.py`) that interprets input. Story-play input pulls context, calls models, and runs **validation** and **commit seams** (`goc_turn_seams.py` helpers); Meta/OOC control input takes a diagnostic branch instead.
 4. The engine **resolves** what scene is **allowed** to commit (`resolve_narrative_commit` in `commit_models.py`).
 5. It **updates** `StorySession` (scene id, history, threads, diagnostics).
 6. The **response** goes back through the backend to whatever UI is driving play.
 
 ### What this means in the actual system
 
-`StoryRuntimeManager.execute_turn` (`world-engine/app/story_runtime/manager.py`) increments the turn counter, calls `self.turn_graph.run(...)`, then builds a `StoryNarrativeCommitRecord` via `resolve_narrative_commit`, updates `current_scene_id`, and appends a rich event to `session.history`.
+`StoryRuntimeManager.execute_turn` (`world-engine/app/story_runtime/manager.py`) increments the turn counter, calls `self.turn_graph.run(...)`, then builds a `StoryNarrativeCommitRecord` via `resolve_narrative_commit`, updates or preserves `current_scene_id`, and appends a rich event to `session.history`. Meta/OOC control turns may produce a no-op commit envelope for correlation while the graph marks `commit_not_applicable=true`.
 
 ### Why it matters
 
@@ -206,7 +206,8 @@ flowchart TB
 ### What this means in the actual system
 
 - `StoryRuntimeManager` constructs `RuntimeTurnGraphExecutor` from `ai_stack/langgraph_runtime.py`.
-- The graph includes nodes such as `interpret_input`, `retrieve_context`, `invoke_model`, `validate_seam`, `commit_seam`, `render_visible` (see `RuntimeTurnGraphExecutor._build_graph`).
+- The graph includes nodes such as `interpret_input`, `resolve_player_action`, `retrieve_context`, `invoke_model`, `validate_seam`, `commit_seam`, `render_visible`, and `package_output` (see `RuntimeTurnGraphExecutor._build_graph` in `ai_stack/langgraph_runtime_executor.py`).
+- Meta/OOC input uses the explicit `meta_control_turn` branch: it records diagnostics and skips story retrieval, model invocation, `validate_seam`, and `commit_seam`.
 - Narrative truth for scenes is finalized in `resolve_narrative_commit` (`world-engine/app/story_runtime/commit_models.py`), not by raw model text alone.
 
 ### Why it matters

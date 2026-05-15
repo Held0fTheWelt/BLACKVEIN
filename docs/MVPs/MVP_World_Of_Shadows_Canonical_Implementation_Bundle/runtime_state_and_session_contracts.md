@@ -329,6 +329,38 @@ source fields such as `thread_pressure_state`, `social_risk_band`, and
 `thread_pressure_level`. Generated narration, copied dialogue, frontend card
 shape, and judge labels are never the pass/fail oracle.
 
+### Improvisational Coherence / Pi24
+
+Improvisational coherence is implemented as the generic
+`improvisational_coherence` runtime aspect. It is the bounded acceptance
+contract for the current player contribution: contribution id/kind, selected
+acceptance mode, allowed advance classes, required scene anchors, visible actor
+context, and playable boundary-reason requirements. It consumes interpreted
+input, semantic move records, scene-plan fields, selected responders,
+`scene_energy_target`, `pacing_rhythm_target`, and normalized module policy. It
+does not replace player agency, committed truth, social pressure, or visible
+narration.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.improvisational_coherence` into `runtime_governance_policy.improvisational_coherence`;
+- LangGraph derives `improvisational_coherence_target` after social pressure and before information disclosure;
+- the dramatic generation packet receives only bounded structured context, not raw player text;
+- structured output may emit `improvisational_coherence_events` with contribution id, acceptance mode, advance class, anchor refs, and boundary reason;
+- validation checks acknowledgement, allowed mode/class, scene-anchor preservation, committed-truth safety, forced-player-revision flags, and playable boundary reasons;
+- recoverable failures feed self-correction with bounded `improv_*` failure codes;
+- `turn_aspect_ledger.improvisational_coherence` records policy presence, selected contribution target, actual event evidence, contract pass, and failure codes;
+- Langfuse and MCP expose policy, target, acknowledgement, anchor, boundary, pass/fail, and repair evidence.
+
+The aspect is bounded planner/generation governance, not canon. It may shape
+the current response and retry feedback, but it does not mutate story truth
+outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, ledger/MCP fields, and structured
+`improvisational_coherence_events`. Generated narration, copied dialogue,
+frontend card shape, and judge labels are never the pass/fail oracle.
+
 ### Subtext Interpretation / Pi19
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.

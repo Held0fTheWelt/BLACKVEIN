@@ -16,6 +16,8 @@ All capability reports produced by this system must:
 2. Use `"status": "missing"` for capabilities that are not yet implemented — never static success
 3. Be backed by passing tests named in the `tests` field
 4. Not claim "implemented" for any capability that lacks at least one source anchor
+5. For Capability Matrix rows, use stable semantic runtime names and follow the promotion rules in [`capability_matrix_live_claim_gates.md`](../../MVPs/capability_matrix_live_claim_gates.md)
+6. Keep local verification history in [`capability_matrix_verification_log.md`](../../MVPs/capability_matrix_verification_log.md), not embedded as current truth
 
 The capability evidence report for MVP1 is at `tests/reports/MVP_Live_Runtime_Completion/MVP1_CAPABILITY_EVIDENCE.md` and the test `test_ldss_capability_added_to_e0_report_requires_source_anchor` validates this rule.
 
@@ -31,6 +33,7 @@ Error code for violation: `capability_evidence_missing_source_anchor`
 - LDSS, Narrative Gov, and Langfuse are explicitly marked `missing` in the MVP1 capability report
 - Implemented capabilities (profile resolution, role selection, visitor removal) have concrete source anchors
 - MVP4 must provide real source anchors when it marks diagnostics capabilities as `implemented`
+- Capability Matrix promotions require code, tests, runtime wiring, ADR relation, anti-hardcoding coverage, and any required live/staging/Langfuse/MCP evidence; a local PASS line alone is not enough
 
 ## Diagrams
 

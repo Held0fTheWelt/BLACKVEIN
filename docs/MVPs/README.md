@@ -25,3 +25,9 @@ Each **MVP** lives in its **own folder** under `docs/MVPs/`, with a short `READM
 | `future/` / `FUTURE/` | Forward-looking vision suites (not current delivery MVPs) |
 
 Parent index: [`docs/INDEX.md`](../INDEX.md).
+
+## Cross-cutting capability governance
+
+- [`capability_matrix_status_and_adr_relations.md`](capability_matrix_status_and_adr_relations.md) — current Capability Matrix truth map, ADR relations, semantic names, maturity, RuntimeAspectLedger mapping, and partial boundaries.
+- [`capability_matrix_verification_log.md`](capability_matrix_verification_log.md) — dated verification runs and limitations.
+- [`capability_matrix_live_claim_gates.md`](capability_matrix_live_claim_gates.md) — promotion rules, live/staging/Langfuse/MCP claim gates, Pi / Π vocabulary rules, and anti-hardcoding expectations.

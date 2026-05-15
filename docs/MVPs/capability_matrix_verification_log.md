@@ -252,3 +252,33 @@ The latest closure adds the dedicated `social_pressure` runtime aspect: `thread_
 ADR-0039 discipline for this slice: tests assert normalized policy thresholds, schema versions, metric/band consistency, aspect-ledger projection, MCP matrix fields, and planner-truth rehydration. Generated narrative text is not the primary oracle.
 
 ---
+
+## Local verification snapshot for Π24 / improvisational coherence
+
+Latest local verification recorded for the bounded structured acceptance contract:
+
+- Git SHA at verification time: `7aee14eb` (dirty worktree).
+- Environment scope: local pytest; no live-provider or staging claim.
+- `python -m pytest ai_stack/tests/test_improvisational_coherence_engine.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_improvisational_coherence_aspect ai_stack/tests/test_module_runtime_policy.py::test_module_runtime_policy_loads_goc_without_runtime_hardcoding tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short` -> 5 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` -> 9 passed.
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 4 passed.
+
+ADR-0039 discipline for this slice: tests assert normalized module policy, exported schema/failure constants, ledger projection, MCP matrix fields, and anti-hardcoding coverage for `pi_24` / `Π24` and the reviewed semantic `improvisational_coherence` surfaces. Generated narration, copied scene prose, and generic yes-and judge labels are not primary oracles.
+
+---
+
+## Local verification snapshot for Π25 / meta-control input isolation
+
+Latest local verification recorded for bounded Meta/OOC input handling:
+
+- Git SHA at verification time: `7aee14eb` on `master` (dirty worktree).
+- Environment scope: local py_compile/pytest/docs check; no live-provider or staging claim.
+- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py ai_stack/action_ontology.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph_runtime_executor.py` -> passed.
+- `PYTHONPATH=. pytest story_runtime_core/tests/test_input_interpreter.py ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_langgraph_runtime.py -q -s` -> 38 passed.
+- `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only.
+
+Evidence summary: Meta/OOC input now resolves to `player_input_kind=meta` and routes through LangGraph `meta_control_turn` to `package_output`. The path records `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, `generation_required=false`, and `commit_not_applicable=true`; it skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`.
+
+ADR-0039 discipline for this slice: tests assert shared intent-contract flags, graph node execution/exclusion, adapter invocation mode, repro metadata, and commit applicability fields. Literal input strings are stimuli only; no generated acknowledgement text or story prose is a pass/fail oracle.
+
+---

@@ -71,6 +71,7 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`callback_web_contract.md`](callback_web_contract.md) — bounded Pi17 callback web index and operator evidence
 - [`pacing_rhythm_contract.md`](pacing_rhythm_contract.md) — bounded Pi18 pacing-rhythm cadence contract and structured validation
 - [`consequence_cascade_contract.md`](consequence_cascade_contract.md) — bounded Pi21 consequence cascade over committed truth and branch selections
+- [`improvisational_coherence_contract.md`](improvisational_coherence_contract.md) — bounded Pi24 structured acceptance contract and runtime-aspect diagnostics
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration
 - [`../ai/RAG.md`](../ai/RAG.md) — retrieval in the turn path

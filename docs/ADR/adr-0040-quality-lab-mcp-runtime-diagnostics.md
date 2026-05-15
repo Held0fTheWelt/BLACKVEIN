@@ -27,6 +27,7 @@ All implemented surfaces are read-only and registered in
 - [ADR-0033](adr-0033-live-runtime-commit-semantics.md) — live runtime commit semantics; remains authoritative for runtime truth. Quality Lab must never override deterministic runtime gates defined there.
 - [ADR-0009](adr-0009-evaluation-is-a-promotion-gate.md) — evaluation evidence must not be "string-matched theatre." Quality Lab interprets, never decides promotion.
 - [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — gate tests must not hardcode oracles. Quality Lab test files (`ai_stack/tests/test_quality_lab_*.py`) must derive expected judge names, categories, and severity buckets from the canonical evaluator catalog and `docs/llm-as-a-judge/` directory, never from copy-pasted literal lists.
+- [Capability Matrix live claim gates](../MVPs/capability_matrix_live_claim_gates.md) — Quality Lab may provide diagnostic evidence, but it does not own Capability Matrix truth or promote live claims without the required runtime, staging, Langfuse, MCP, and ADR evidence.
 
 ## Context
 
@@ -107,6 +108,14 @@ candidates, prompt-maintenance suggestions, and repair-wave proposals.
 The toolset is analysis-only. It must not mutate runtime state, Langfuse
 evaluators, prompts, content files, source code, or deterministic runtime
 gates.
+
+Quality Lab is also not the owner of the Capability Matrix. It can inspect and
+summarize runtime metadata, judge evidence, Langfuse traces, MCP exchanges, and
+problem patterns, but Capability Matrix status changes must still follow the
+semantic-name, ADR, anti-hardcoding, verification-log, and live-claim rules in
+the matrix documentation. Quality Lab outputs must use production semantic names
+for scores and runtime metadata; historical Pi / Π labels may appear only as
+explanatory cross-references.
 
 ## Canonical Sources
 

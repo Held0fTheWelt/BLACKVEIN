@@ -135,13 +135,13 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 ### LangGraph — orchestration without owning the session
 
-**Plain:** LangGraph defines the **order of steps** in a turn: interpret, retrieve, align to slice, direct, call the model, normalize, validate, commit, render, package.
+**Plain:** LangGraph defines the **order of steps** in a turn. Story-play input goes through interpretation, retrieval, slice alignment, direction, model call, normalization, validation, commit, render, and package. Meta/OOC control input branches after interpretation into a deterministic acknowledgement path with no story retrieval, model call, or story-state commit.
 
-**Technical:** `RuntimeTurnGraphExecutor` (`ai_stack/langgraph_runtime.py`) compiles a `StateGraph` whose nodes include `interpret_input`, `retrieve_context`, `goc_resolve_canonical_content`, director nodes, `route_model`, `invoke_model`, optional `fallback_model`, `proposal_normalize`, `validate_seam`, `commit_seam`, `render_visible`, `package_output`.
+**Technical:** `RuntimeTurnGraphExecutor` (`ai_stack/langgraph_runtime.py` public surface; `ai_stack/langgraph_runtime_executor.py` graph wiring) compiles a `StateGraph` whose nodes include `interpret_input`, `meta_control_turn`, `resolve_player_action`, `authoritative_action_resolution`, `retrieve_context`, `goc_resolve_canonical_content`, director nodes, runtime-aspect derivation nodes, `synthesize_context`, `assemble_model_context`, `route_model`, `invoke_model`, optional `fallback_model`, `proposal_normalize`, `validate_seam`, `commit_seam`, `render_visible`, `package_output`.
 
 **Why WoS:** A single explicit graph makes operator diagnostics (`graph_diagnostics`, node outcomes, fallback markers) possible.
 
-**Not:** LangGraph does not replace `StoryRuntimeManager`; the host still owns `turn_counter`, `history`, `diagnostics`, `resolve_narrative_commit`, and narrative threads.
+**Not:** LangGraph does not replace `StoryRuntimeManager`; the host still owns `turn_counter`, `history`, `diagnostics`, `resolve_narrative_commit`, and narrative threads. The Meta/OOC branch is not an active meta-narrative layer; it is a non-story control path with structured diagnostics.
 
 **Neighbors:** LangChain inside `invoke_model`; RAG in `retrieve_context`; world-engine calls `turn_graph.run(...)` then persists.
 
@@ -442,12 +442,18 @@ sequenceDiagram
   participant S as GoC_validate_commit_seams
   MGR->>G: run_turn_state
   G->>G: interpret_input
-  G->>R: retrieve_context
-  G->>G: goc_resolve_and_director
-  G->>A: invoke_model_via_LangChain
-  A-->>G: generation_payload
-  G->>S: validate_seam
-  G->>S: commit_seam
+  alt Meta/OOC control input
+    G->>G: meta_control_turn
+    G-->>MGR: final_state_no_generation_no_commit
+  else Story-play input
+    G->>R: retrieve_context
+    G->>G: goc_resolve_director_and_aspect_derivation
+    G->>G: synthesize_and_assemble_context
+    G->>A: invoke_model_via_LangChain
+    A-->>G: generation_payload
+    G->>S: validate_seam
+    G->>S: commit_seam
+  end
   G-->>MGR: final_state
   MGR->>MGR: resolve_narrative_commit
   MGR->>MGR: append_history_and_diagnostics
@@ -466,7 +472,9 @@ sequenceDiagram
 | story_runtime_core | Shared adapters / interpretation |
 | MCP / Admin | Operator tooling and visibility |
 
-**Typical live turn:** Client → Backend → World-engine → LangGraph (RAG + director + model + seams) → Manager persistence → Response with visible bundle and diagnostics.
+**Typical story-play turn:** Client → Backend → World-engine → LangGraph (RAG + director + model + seams) → Manager persistence → Response with visible bundle and diagnostics.
+
+**Meta/OOC control turn:** Client → Backend → World-engine → LangGraph (`interpret_input` → `meta_control_turn` → `package_output`) → Manager diagnostics/history handling without story retrieval, model invocation, or story-state mutation.
 
 **Typical review workflow:** Writers’ Room API → LangChain-backed **draft** outputs for humans—not automatic promotion to live play.
 

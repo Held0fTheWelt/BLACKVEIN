@@ -26,6 +26,7 @@ This ADR contains no personal data. Implementers must follow the repository priv
 
 - [ADR-0008](adr-0008-validation-strategy-explicit-configurable.md) — runtime output validation strategy (orthogonal axis: *how* proposals are checked before commit).
 - [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — evaluation and promotion **gate tests** must not “go green” by hardcoding expected scores, labels, or narrative snippets; evidence must trace to baselines, schemas, or documented scoring rules.
+- [Capability Matrix live claim gates](../MVPs/capability_matrix_live_claim_gates.md) — Capability Matrix promotion and live claims require dated, reproducible evidence; local-only or degraded evidence is not live success.
 - [README.md](README.md) — ADR index.
 
 ## Context
@@ -34,6 +35,8 @@ Preview and staging packages can exist indefinitely without proving narrative or
 
 ## Decision
 A preview package is not promotable only because it exists. Promotion requires passing evaluation gates and manual approval.
+
+Capability Matrix promotion follows the same principle: a row is not promotable only because source code, documentation, a test name, or a local PASS line exists. Runtime wiring, behavior tests, ADR relation, anti-hardcoding coverage, and any required live/staging/Langfuse/MCP evidence must be present before a capability is described as implemented or live-proven.
 
 ## Consequences
 - quality becomes measurable

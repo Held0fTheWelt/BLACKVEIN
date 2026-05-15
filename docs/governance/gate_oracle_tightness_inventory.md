@@ -54,7 +54,7 @@ Other workflows reference `tests/gates/**` as **path triggers** (e.g. `engine-te
 
 ADR-0033 explicitly names backend live-trace contract tests (e.g. `backend/tests/test_observability/test_langfuse_live_c640_gate.py`, `_assert_positive_live_trace_contract`, required score names, `actor_lane_validation_status` whitelist). These are **contractual** and must not be loosened; they are **not** under `tests/gates/` but are part of the same semantic gate family.
 
-Cross-reference: `docs/MVPs/capability_matrix_status_and_adr_relations.md` links capabilities to ADRs including live-runtime semantics.
+Cross-reference: `docs/MVPs/capability_matrix_status_and_adr_relations.md` links current capabilities to ADRs including live-runtime semantics. Dated matrix verification evidence now belongs in `docs/MVPs/capability_matrix_verification_log.md`; live/staging/Langfuse/MCP promotion rules belong in `docs/MVPs/capability_matrix_live_claim_gates.md`.
 
 ---
 

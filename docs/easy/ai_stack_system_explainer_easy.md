@@ -25,7 +25,7 @@ If product language and file names differ, this text points to the **nearest rea
 
 1. The **player** types or clicks in the **frontend**.
 2. The **backend** receives the request, checks **who you are** and **policy**, and forwards **play work** to the **World Engine** (play service).
-3. Inside the engine, a **turn pipeline** runs: interpret input, **look up context**, align to authored story material, call **models** where needed, then **check** and **commit** what is allowed.
+3. Inside the engine, a **turn pipeline** runs: interpret input, then either follow the story-play path (**look up context**, align to authored story material, call **models** where needed, then **check** and **commit** what is allowed) or follow an explicit Meta/OOC control path.
 4. **AI helpers** (retrieval, prompts, structured parsing, graph steps) run **inside** that pipeline—they do **not** silently rewrite the official game state on their own.
 5. The **result** (text, state summaries, errors) travels back through the backend to the **player**.
 
@@ -206,12 +206,12 @@ LangChain **does not** define the **order** of turn steps and **does not** repla
 
 #### Simple explanation
 
-**LangGraph** implements a **state machine**: a fixed **sequence** (and small branches like **fallback**) for one narrative **turn**—interpret, retrieve, resolve content, direct drama, route model, invoke, normalize, validate, commit, render, package.
+**LangGraph** implements a **state machine**: a fixed **sequence** and named branches for one turn. Story-play input moves through interpret, retrieve, resolve content, direct drama, route model, invoke, normalize, validate, commit, render, package. Meta/OOC input takes a small control branch after interpretation and packages diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
 
 #### What this means in the actual system
 
-- `RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` builds a `StateGraph` over `RuntimeTurnState`.
-- Node order matches `docs/technical/integration/LangGraph.md` (interpret → retrieve → … → package_output).
+- `RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` builds a `StateGraph` over `RuntimeTurnState`; graph wiring lives in `ai_stack/langgraph_runtime_executor.py`.
+- Node order and branches match `docs/technical/integration/LangGraph.md` (`interpret_input` → story-play path or `meta_control_turn` → `package_output`).
 
 #### Why it matters
 
@@ -231,11 +231,14 @@ LangGraph is **not** the session host: counters, history append, and `resolve_na
 flowchart TB
   subgraph graph [LangGraph_RuntimeTurnGraphExecutor]
     N1[interpret_input]
+    MC[meta_control_turn]
     N2[retrieve_context]
     N3[invoke_model]
     N4[validate_seam]
     N5[commit_seam]
-    N1 --> N2 --> N3 --> N4 --> N5
+    P[package_output]
+    N1 -->|story_play| N2 --> N3 --> N4 --> N5 --> P
+    N1 -->|meta_control| MC --> P
   end
   subgraph lc [Inside_invoke_model]
     B[LangChain_bridge_templates_parsers]
@@ -402,7 +405,7 @@ flowchart LR
 
 ### Simple explanation
 
-**Order of participation** on a typical **God of Carnage** story turn:
+**Order of participation** on a typical **God of Carnage** story-play turn:
 
 1. **Frontend → backend** — HTTP with auth/session context.
 2. **Backend → world-engine** — internal play API for the turn.
@@ -418,6 +421,8 @@ flowchart LR
    - **render_visible** / **package_output**.
 4. **World-engine** — **`resolve_narrative_commit`** updates **session truth** (scene id, commit record).
 5. **Response** bubbles to **frontend** for display.
+
+For **Meta/OOC input**, step 3 branches from **interpret** to **meta_control_turn** and then **package_output**. The response can carry structured control diagnostics, but it does not create story prose, call the model, or commit new narrative truth.
 
 **Operators** may use **MCP** against **backend** in parallel; that path does not replace steps 3–4.
 
@@ -522,7 +527,7 @@ Stories need **continuity** and **fair consequences**. Separating **gate** (back
 
 ### What this means in the actual system
 
-You can read **one file** for graph order (`ai_stack/langgraph_runtime.py`), **one file** for commit semantics (`commit_models.py`), and **one area** for retrieval policy (`ai_stack/rag.py`).
+You can read **one public surface** for graph exports (`ai_stack/langgraph_runtime.py`), **one executor file** for graph order (`ai_stack/langgraph_runtime_executor.py`), **one file** for commit semantics (`commit_models.py`), and **one area** for retrieval policy (`ai_stack/rag.py`).
 
 ### Why it matters
 

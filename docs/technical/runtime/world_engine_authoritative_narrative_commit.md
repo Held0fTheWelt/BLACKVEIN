@@ -10,6 +10,7 @@ Define how story turns transition from AI/runtime proposals to authoritative com
 
 1. A turn is executed through `StoryRuntimeManager.execute_turn(...)`.
 2. Runtime graph output provides interpreted input, generation metadata (including structured output when parsing succeeds), and diagnostics.
+   - Meta/OOC control turns are a non-story graph branch: `committed_result.commit_not_applicable=true`, `generation_required=false`, and `meta_control_path=true`. Structured `control_events` from this branch do not supply scene progression candidates, player action truth, or story prose. If the manager emits a bounded `narrative_commit` envelope for correlation/current-scene continuity, it is a no-op authoritative record, not a narrative state mutation.
 3. The manager builds **scene progression candidates** from, in strict priority order:
    1. **Explicit travel command** arguments (`interpreted_input` `explicit_command` with `move` / `goto` / `go` / `scene` / `travel` and a known scene id).
    2. **Model structured output** — `generation.metadata.structured_output.proposed_scene_id` when `generation.success` is true and the id is in the known scene set.

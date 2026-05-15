@@ -51,11 +51,14 @@ Canonical handling:
 - Meta input does not commit player action or player speech.
 - Meta input does not request narrator or NPC story response.
 - The turn graph handles meta input through a deterministic control path that
-  skips story action resolution, retrieval, model invocation, and narrative
-  commit.
+  skips story action resolution, retrieval, model invocation, `validate_seam`,
+  and `commit_seam`.
 - Runtime output may expose structured `control_events` for diagnostics or UI
   acknowledgement, but those events are not story prose and must not authorize
   fictional truth.
+- Runtime diagnostics/repro metadata identify this path with
+  `meta_control_path`, `adapter_invocation_mode=meta_control_path`, and
+  `graph_path_summary=meta_control_deterministic`.
 - Tests for this path must assert contract fields and named routing markers
   following ADR-0039, not generated acknowledgement text.
 

@@ -71,7 +71,10 @@ Diagnostics or non-committed views of model or graph output used for review; mus
 Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag.py`, with path- and module-sensitive behavior (e.g. `content/modules/` vs `content/published/` semantics).
 
 **LangGraph (GoC runtime graph)**  
-`RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` orchestrates the GoC slice turn pipeline (interpret → retrieve → canonical resolve → director → model → validate → commit → render → package). See `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the normative node list.
+`RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` (public surface) and `ai_stack/langgraph_runtime_executor.py` (graph wiring) orchestrates the GoC slice turn pipeline. Story-play input follows the retrieval/director/model/validate/commit path; Meta/OOC control input follows `interpret_input` → `meta_control_turn` → `package_output` without story retrieval, model invocation, `validate_seam`, or `commit_seam`. See `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the normative node list.
+
+**Meta control input / Pi25**
+Out-of-world or out-of-character player input represented as `kind=meta`, `player_input_kind=meta`, and `selected_handling_path=meta`. It is a deterministic non-story control path for diagnostics/UI acknowledgement, not in-world self-awareness, adaptive meta-dialogue, or committed story prose.
 
 **LangChain**  
 Adapter invocation bridge for structured runtime output under `ai_stack/langchain_integration/`.
