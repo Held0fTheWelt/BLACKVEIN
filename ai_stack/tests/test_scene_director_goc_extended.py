@@ -1186,6 +1186,17 @@ class TestBuildPacingAndSilence:
         assert silence["mode"] == "normal"
         assert silence["reason"] == "non_goc_slice_default"
 
+    def test_explicit_escalation_player_input_stays_standard_despite_thread_pressure(self):
+        """Angry full-sentence escalation uses standard pacing before thread-pressure override."""
+        pacing, silence = build_pacing_and_silence(
+            player_input="I am so angry I want to fight and shout at Michel now.",
+            interpreted_move={"player_intent": "escalate"},
+            module_id=GOC_MODULE_ID,
+            prior_narrative_thread_state={"thread_pressure_level": 4},
+        )
+        assert pacing == "standard"
+        assert silence["reason"] == "explicit_escalation_player_input"
+
     def test_off_scope_keywords_returns_containment(self):
         """Off-scope keywords trigger containment (lines 586-607)."""
         pacing, silence = build_pacing_and_silence(

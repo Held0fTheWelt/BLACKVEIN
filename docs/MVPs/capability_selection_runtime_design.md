@@ -25,7 +25,28 @@ The local validator planning layer now exposes
 capabilities to planned local validator IDs, observed capabilities to
 non-blocking diagnostic IDs, excluded capabilities to skipped validator IDs, and
 budget-disallowed judge IDs to `judges_disallowed`. The projection always emits
-`execution_changed=false`; actual validator dispatch and gating remain pending.
+`execution_changed=false`.
+
+The dry-run validator dispatch layer now exposes
+`runtime_intelligence_projection.validator_dispatch_report` from
+`ai_stack/capability_validator_dispatch.py`. Default mode is `dry_run`: it
+reports `validators_would_run`, `diagnostics_would_run`, `validators_would_skip`,
+and `judges_would_be_disallowed` without executing validators or changing commit
+or readiness gates. `actually_executed` remains empty and
+`execution_changed=false`.
+
+An explicit opt-in `plan_enforced` mode is available through
+`ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` or test-harness `mode=` overrides.
+It requires a registered local validator registry, does not execute judges, does
+not change commit/readiness gates, and remains `proof_level=local_only`. Missing
+or invalid env values fail closed to `dry_run`. Production validator orchestration
+and commit/readiness integration remain pending.
+
+A semantic validator registry inventory now exists in
+`docs/MVPs/capability_validator_registry_inventory.md` with code-backed rows in
+`ai_stack/capability_validator_registry.py`. `build_default_semantic_validator_registry()`
+returns an empty map; `build_available_semantic_validator_registry()` exposes thin
+adapters only for inventory rows marked `safe_for_local_plan_enforced`.
 
 Current boundaries:
 

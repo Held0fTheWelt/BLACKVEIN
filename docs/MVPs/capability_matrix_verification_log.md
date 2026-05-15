@@ -24,6 +24,12 @@ Evidence summary: `ai_stack/capability_selector.py` implements ADR-0041 local se
 
 ADR-0039 discipline: selector code uses semantic capability names only; focused tests assert legacy Pi-style selector keys are rejected and that projection evidence is local-only, not implementation or live/staging proof.
 
+Legacy quarantine (2026-05-15): `ai_stack/legacy_actor_lane_hydration.py` is documented in the Table-B gate as GoC-only compatibility debt; policy floor reads use `module_runtime_policy.minimum_actor_response_count_from_governance` so the shim does not carry `scene_energy` literals.
+
+ADR-0041 plan-enforced dispatch (2026-05-15): local tests only (`test_capability_validator_dispatch_plan_enforced.py`, `test_capability_validator_dispatch_feature_flag.py`); `default_mode=dry_run`; `live_or_staging_evidence=false`; production projection unchanged unless `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` is explicitly set.
+
+ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_validator_registry_inventory.md`, `ai_stack/capability_validator_registry.py`; default registry empty; `live_or_staging_evidence=false`; no Capability Matrix promotion.
+
 ---
 
 ## Local verification snapshot for Π28 / temporal-control runtime aspect

@@ -1082,6 +1082,27 @@ def build_pacing_and_silence(
                 "dramatic_function": "contain_boundary",
             },
         )
+    escalation_lexicon = (
+        "angry",
+        "furious",
+        "fight",
+        "shout",
+        "attack",
+        "rage",
+        "accus",
+    )
+    player_text = player_input.lower()
+    explicit_escalation = any(token in player_text for token in escalation_lexicon) and not (
+        "multi" in player_text and "pressure" in player_text
+    )
+    if explicit_escalation:
+        return _finalize_pacing_silence(
+            assert_pacing_mode("standard"),
+            {
+                "mode": assert_silence_brevity_mode("normal"),
+                "reason": "explicit_escalation_player_input",
+            },
+        )
     trimmed = player_input.strip()
     words = [w for w in trimmed.replace(".", " ").split() if w]
     thin_fragment = len(trimmed) <= 10 and len(words) <= 2 and "?" not in trimmed
@@ -1243,6 +1264,25 @@ def build_pacing_and_silence(
         pacing = assert_pacing_mode("multi_pressure")
         silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "repair_and_exposure_compete"}
     else:
+        escalation_lexicon = (
+            "angry",
+            "furious",
+            "fight",
+            "shout",
+            "attack",
+            "rage",
+            "accus",
+        )
+        explicit_escalation = any(token in text for token in escalation_lexicon) and not (
+            "multi" in text and "pressure" in text
+        )
+        if explicit_escalation:
+            pacing = assert_pacing_mode("standard")
+            silence = {
+                "mode": assert_silence_brevity_mode("normal"),
+                "reason": "explicit_escalation_player_input",
+            }
+            return _finalize_pacing_silence(pacing, silence)
         thread_feedback = _narrative_thread_feedback_signal(prior_narrative_thread_state)
         thread_pressure = int(thread_feedback.get("thread_pressure_level") or 0)
         dominant_thread_kind = thread_feedback.get("dominant_thread_kind")

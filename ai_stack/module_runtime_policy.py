@@ -482,3 +482,44 @@ def load_module_runtime_policy(
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,
     )
+
+
+def minimum_actor_response_count_from_governance(
+    *,
+    actor_response_floor_target: dict[str, Any] | None = None,
+    pacing_mode: str | None = None,
+    module_runtime_policy: dict[str, Any] | None = None,
+    selected_scene_function: str | None = None,
+) -> int:
+    """Resolve the minimum actor-response floor from policy or a pre-derived target."""
+    if isinstance(actor_response_floor_target, dict):
+        try:
+            return max(0, int(actor_response_floor_target.get("minimum_actor_response_count") or 0))
+        except (TypeError, ValueError):
+            pass
+    policy = module_runtime_policy if isinstance(module_runtime_policy, dict) else {}
+    governance = policy.get("runtime_governance_policy")
+    governance = governance if isinstance(governance, dict) else {}
+    energy_policy = governance.get("scene_energy")
+    energy_policy = energy_policy if isinstance(energy_policy, dict) else {}
+    if not energy_policy.get("enabled"):
+        return 1
+    profiles = energy_policy.get("scene_function_profiles") or {}
+    pacing_profiles = energy_policy.get("pacing_profiles") or {}
+    scene_fn = str(selected_scene_function or "").strip()
+    pacing = str(pacing_mode or "").strip()
+    minimum = 0
+    if scene_fn and isinstance(profiles.get(scene_fn), dict):
+        try:
+            minimum = max(minimum, int(profiles[scene_fn].get("minimum_actor_response_count") or 0))
+        except (TypeError, ValueError):
+            pass
+    if pacing and isinstance(pacing_profiles.get(pacing), dict):
+        try:
+            minimum = max(
+                minimum,
+                int(pacing_profiles[pacing].get("minimum_actor_response_count") or 0),
+            )
+        except (TypeError, ValueError):
+            pass
+    return minimum if minimum > 0 else 1

@@ -148,6 +148,7 @@ META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
@@ -166,6 +167,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/information_disclosure_contracts.py",
     "ai_stack/information_disclosure_engine.py",
@@ -207,6 +209,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/langchain_integration/bridges.py",
     "ai_stack/langgraph_runtime_executor.py",
@@ -223,6 +226,7 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
 
 CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/consequence_cascade_contracts.py",
     "ai_stack/langgraph_runtime_executor.py",
@@ -278,6 +282,11 @@ META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
 # module-specific legacy seams that must be modularized before Table B rows can
 # honestly move beyond partial/proven status.
 KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
+    "ai_stack/legacy_actor_lane_hydration.py": (
+        "GoC-only legacy compatibility shim: hydrates narrative-only model output into "
+        "spoken_lines/action_lines when validator floors require actor lanes; not a generic "
+        "runtime surface."
+    ),
     "ai_stack/canonical_prompt_catalog.py": "Legacy prompt catalog embeds GoC host/guest footing.",
     "ai_stack/diagnostics_envelope.py": "Legacy diagnostics defaults still use the GoC live profile.",
     "ai_stack/langchain_integration/bridges.py": "Schema descriptions include GoC-flavored examples.",

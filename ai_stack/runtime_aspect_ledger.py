@@ -17,9 +17,9 @@ from ai_stack.capability_selector import (
     select_capabilities,
 )
 from ai_stack.capability_validator_dispatch import (
-    DEFAULT_VALIDATOR_DISPATCH_MODE,
     ValidatorDispatchMode,
     build_validator_dispatch_report,
+    resolve_validator_dispatch_mode,
 )
 from ai_stack.capability_validator_plan import build_validator_execution_plan
 
@@ -391,6 +391,57 @@ def build_semantic_validator_execution_plan_projection(
     return _json_safe(payload)
 
 
+def build_semantic_validator_dispatch_report_projection(
+    *,
+    turn_kind: str | None = None,
+    turn_number: int | None = None,
+    raw_player_input: str | None = None,
+    input_kind: str | None = None,
+    active_actor: str | None = None,
+    npc_decision_required: bool | None = None,
+    action_resolution_required: bool | None = None,
+    visible_projection_required: bool | None = None,
+    canonical_scene_seed: bool | None = None,
+    non_lexical_input_present: bool | None = None,
+    knowledge_gap_present: bool | None = None,
+    world_state_change_requested: bool | None = None,
+    dispatch_mode: ValidatorDispatchMode | str | None = None,
+) -> dict[str, Any]:
+    """Build ADR-0041 dry-run dispatch evidence for runtime intelligence projection."""
+    selection_result, derivation_warnings = _select_semantic_capabilities_from_runtime_context(
+        turn_kind=turn_kind,
+        turn_number=turn_number,
+        raw_player_input=raw_player_input,
+        input_kind=input_kind,
+        active_actor=active_actor,
+        npc_decision_required=npc_decision_required,
+        action_resolution_required=action_resolution_required,
+        visible_projection_required=visible_projection_required,
+        canonical_scene_seed=canonical_scene_seed,
+        non_lexical_input_present=non_lexical_input_present,
+        knowledge_gap_present=knowledge_gap_present,
+        world_state_change_requested=world_state_change_requested,
+    )
+    execution_plan = build_validator_execution_plan(selection_result)
+    resolved_mode, mode_warnings = resolve_validator_dispatch_mode(explicit_mode=dispatch_mode)
+    payload = build_validator_dispatch_report(
+        execution_plan,
+        mode=resolved_mode,
+        feature_flag_enabled=resolved_mode is ValidatorDispatchMode.PLAN_ENFORCED,
+    ).to_runtime_projection()["validator_dispatch_report"]
+    warnings = [
+        *(
+            payload.get("warnings")
+            if isinstance(payload.get("warnings"), list)
+            else []
+        ),
+        *mode_warnings,
+        *derivation_warnings,
+    ]
+    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
+    return _json_safe(payload)
+
+
 def _select_semantic_capabilities_from_runtime_context(
     *,
     turn_kind: str | None = None,
@@ -670,6 +721,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         **capability_context
     )
     semantic_validator_execution_plan = build_semantic_validator_execution_plan_projection(
+        **capability_context
+    )
+    semantic_validator_dispatch_report = build_semantic_validator_dispatch_report_projection(
         **capability_context
     )
 
@@ -1116,6 +1170,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
             },
             "capability_selection": semantic_capability_selection,
             "validator_execution_plan": semantic_validator_execution_plan,
+            "validator_dispatch_report": semantic_validator_dispatch_report,
             "authority": {
                 "narrator": {
                     "required": bool(narr_expected.get("required")),

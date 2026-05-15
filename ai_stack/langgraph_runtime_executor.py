@@ -142,6 +142,7 @@ from ai_stack.npc_agency_contracts import (
     npc_actor_ids_from_context,
 )
 from ai_stack.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
+from ai_stack.legacy_actor_lane_hydration import apply_legacy_structured_hydration
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.information_disclosure_engine import (
     derive_information_disclosure,
@@ -1549,6 +1550,16 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
     )
 
 
+def _dramatic_quality_rejection_locked(outcome: dict[str, Any] | None) -> bool:
+    """True when validation already rejected for dramatic alignment/effect (do not override)."""
+    if not isinstance(outcome, dict):
+        return False
+    if str(outcome.get("status") or "").strip().lower() != "rejected":
+        return False
+    reason = str(outcome.get("reason") or "").strip()
+    return reason.startswith("dramatic_alignment") or reason.startswith("dramatic_effect_")
+
+
 def _build_runtime_aspect_validation(
     *,
     state: "RuntimeTurnState",
@@ -1558,6 +1569,7 @@ def _build_runtime_aspect_validation(
 ) -> dict[str, Any]:
     """Evaluate runtime authority/capability aspects as validation inputs."""
     next_outcome = dict(outcome or {})
+    dramatic_rejection_locked = _dramatic_quality_rejection_locked(next_outcome)
     actor_lane_validation = _actor_lane_validation(state, generation)
     if (
         actor_lane_validation.get("status") == "rejected"
@@ -2306,7 +2318,11 @@ def _build_runtime_aspect_validation(
             "hard_boundary_failure": False,
             "recoverable_rejection": True,
         }
-    elif npc_agency_failure is not None:
+    elif (
+        npc_agency_failure is not None
+        and not dramatic_rejection_locked
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
         failure_reason = str(npc_agency_failure.get("failure_reason") or "npc_initiative_validation_failed")
         next_outcome = {
             **next_outcome,
@@ -2382,6 +2398,7 @@ def _build_runtime_aspect_validation(
         }
     elif (
         scene_energy_failure is not None
+        and not dramatic_rejection_locked
         and str(next_outcome.get("status") or "").strip().lower() == "approved"
     ):
         failure_reason = str(scene_energy_failure.get("failure_reason") or "scene_energy_validation_failed")
@@ -7629,6 +7646,10 @@ class RuntimeTurnGraphExecutor:
             meta = dict(meta)
             meta["structured_output"] = cleaned
             generation["metadata"] = meta
+        if isinstance(cleaned, dict):
+            generation = apply_legacy_structured_hydration(state, generation)
+            meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+            cleaned = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else cleaned
         proposed = structured_output_to_proposed_effects(cleaned)
         if isinstance(cleaned, dict):
             schema_version = str(cleaned.get("schema_version") or "").strip()
@@ -7736,7 +7757,7 @@ class RuntimeTurnGraphExecutor:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
         update = _track(state, node_name="validate_seam")
-        generation = dict(state.get("generation") or {})
+        generation = apply_legacy_structured_hydration(state, dict(state.get("generation") or {}))
         proposed = list(state.get("proposed_state_effects") or [])
         silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
 
@@ -7978,6 +7999,7 @@ class RuntimeTurnGraphExecutor:
                 retry_context_synthesis_bundle=retry_context_synthesis_bundle,
                 retry_context_synthesis_prompt=retry_context_synthesis_prompt,
             )
+            generation = apply_legacy_structured_hydration(state, generation)
             validation_eval = _build_runtime_aspect_validation(
                 state=state,
                 generation=generation,
