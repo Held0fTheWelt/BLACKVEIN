@@ -488,3 +488,39 @@ judge execution, Langfuse/MCP live proof, and Capability Matrix promotion remain
 future work.
 
 ---
+
+## Local verification snapshot for ADR-0041 validator execution-plan projection
+
+- Date: 2026-05-15
+- Git SHA at verification time: `2d4ec860` (dirty worktree; local ADR-0041 validator-plan changes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** — no live-provider, staging, live Langfuse, MCP live proof, validator-execution, or judge-execution claim.
+- `python -m pytest ai_stack/tests/test_capability_selector.py -q` -> 12 passed
+- `python -m pytest ai_stack/tests/test_capability_selector_runtime_projection.py -q` -> 6 passed
+- `python -m pytest ai_stack/tests/test_capability_validator_plan.py -q` -> 8 passed
+- `python -m pytest ai_stack/tests/test_capability_validator_runtime_projection.py -q` -> 5 passed
+- `python -m pytest ai_stack/tests/test_runtime_aspect_ledger.py -q` -> 14 passed
+- `python -m pytest world-engine/tests/test_story_runtime_aspect_ledger.py -q` -> 21 passed
+- `python -m pytest tests/gates/test_adr_0039_pi_scope.py -q` -> 7 passed
+- `python -m pytest tests/gates/test_adr0039_* -q` -> 1 passed
+- `python -m pytest tests/gates/test_adr_0039_* -q` -> 7 passed
+- `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q` -> 4 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q` -> 13 passed
+- `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: ADR-0041 now exposes
+`runtime_intelligence_projection.validator_execution_plan` as local-only
+planning evidence. The plan maps enforced semantic capabilities to planned local
+validator IDs, observed semantic capabilities to non-blocking diagnostic IDs,
+excluded capabilities to skipped validator IDs, and budget-disallowed judge IDs
+to `judges_disallowed`. The projection records `execution_changed=false`.
+
+ADR-0039 discipline for this slice: validator-plan IDs are semantic lowercase
+identifiers only, no active Pi / Π runtime keys are introduced, local planning
+evidence is not implementation proof, and no local plan is treated as
+live/staging proof. The Capability Matrix is not promoted by this projection.
+
+Known limitations: actual validator dispatch/gating, prompt assembly
+integration, judge execution, Langfuse/MCP live proof, and Capability Matrix
+promotion remain future work.
+
+---

@@ -16,6 +16,12 @@ from ai_stack.capability_selector import (
     derive_turn_situation_from_runtime_context,
     select_capabilities,
 )
+from ai_stack.capability_validator_dispatch import (
+    DEFAULT_VALIDATOR_DISPATCH_MODE,
+    ValidatorDispatchMode,
+    build_validator_dispatch_report,
+)
+from ai_stack.capability_validator_plan import build_validator_execution_plan
 
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
@@ -311,6 +317,95 @@ def build_semantic_capability_selection_projection(
     world_state_change_requested: bool | None = None,
 ) -> dict[str, Any]:
     """Build ADR-0041 local selector evidence for runtime intelligence projection."""
+    selection_result, derivation_warnings = _select_semantic_capabilities_from_runtime_context(
+        turn_kind=turn_kind,
+        turn_number=turn_number,
+        raw_player_input=raw_player_input,
+        input_kind=input_kind,
+        active_actor=active_actor,
+        npc_decision_required=npc_decision_required,
+        action_resolution_required=action_resolution_required,
+        visible_projection_required=visible_projection_required,
+        canonical_scene_seed=canonical_scene_seed,
+        non_lexical_input_present=non_lexical_input_present,
+        knowledge_gap_present=knowledge_gap_present,
+        world_state_change_requested=world_state_change_requested,
+    )
+    payload = selection_result.to_runtime_aspect_projection()[
+        ASPECT_CAPABILITY_SELECTION
+    ]
+    warnings = [
+        *(
+            payload.get("warnings")
+            if isinstance(payload.get("warnings"), list)
+            else []
+        ),
+        *derivation_warnings,
+    ]
+    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
+    return _json_safe(payload)
+
+
+def build_semantic_validator_execution_plan_projection(
+    *,
+    turn_kind: str | None = None,
+    turn_number: int | None = None,
+    raw_player_input: str | None = None,
+    input_kind: str | None = None,
+    active_actor: str | None = None,
+    npc_decision_required: bool | None = None,
+    action_resolution_required: bool | None = None,
+    visible_projection_required: bool | None = None,
+    canonical_scene_seed: bool | None = None,
+    non_lexical_input_present: bool | None = None,
+    knowledge_gap_present: bool | None = None,
+    world_state_change_requested: bool | None = None,
+) -> dict[str, Any]:
+    """Build ADR-0041 local validator-plan evidence for runtime projection."""
+    selection_result, derivation_warnings = _select_semantic_capabilities_from_runtime_context(
+        turn_kind=turn_kind,
+        turn_number=turn_number,
+        raw_player_input=raw_player_input,
+        input_kind=input_kind,
+        active_actor=active_actor,
+        npc_decision_required=npc_decision_required,
+        action_resolution_required=action_resolution_required,
+        visible_projection_required=visible_projection_required,
+        canonical_scene_seed=canonical_scene_seed,
+        non_lexical_input_present=non_lexical_input_present,
+        knowledge_gap_present=knowledge_gap_present,
+        world_state_change_requested=world_state_change_requested,
+    )
+    payload = build_validator_execution_plan(selection_result).to_runtime_projection()[
+        "validator_execution_plan"
+    ]
+    warnings = [
+        *(
+            payload.get("warnings")
+            if isinstance(payload.get("warnings"), list)
+            else []
+        ),
+        *derivation_warnings,
+    ]
+    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
+    return _json_safe(payload)
+
+
+def _select_semantic_capabilities_from_runtime_context(
+    *,
+    turn_kind: str | None = None,
+    turn_number: int | None = None,
+    raw_player_input: str | None = None,
+    input_kind: str | None = None,
+    active_actor: str | None = None,
+    npc_decision_required: bool | None = None,
+    action_resolution_required: bool | None = None,
+    visible_projection_required: bool | None = None,
+    canonical_scene_seed: bool | None = None,
+    non_lexical_input_present: bool | None = None,
+    knowledge_gap_present: bool | None = None,
+    world_state_change_requested: bool | None = None,
+) -> tuple[Any, tuple[str, ...]]:
     situation, derivation_warnings = derive_turn_situation_from_runtime_context(
         turn_kind=turn_kind,
         turn_number=turn_number,
@@ -325,19 +420,7 @@ def build_semantic_capability_selection_projection(
         knowledge_gap_present=knowledge_gap_present,
         world_state_change_requested=world_state_change_requested,
     )
-    payload = select_capabilities(situation).to_runtime_aspect_projection()[
-        ASPECT_CAPABILITY_SELECTION
-    ]
-    warnings = [
-        *(
-            payload.get("warnings")
-            if isinstance(payload.get("warnings"), list)
-            else []
-        ),
-        *derivation_warnings,
-    ]
-    payload["warnings"] = [str(warning) for warning in warnings if str(warning).strip()]
-    return _json_safe(payload)
+    return select_capabilities(situation), derivation_warnings
 
 
 def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict[str, Any]:
@@ -569,7 +652,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if "raw_player_input" in input_actual
         else src.get("raw_player_input")
     )
-    semantic_capability_selection = build_semantic_capability_selection_projection(
+    capability_context = dict(
         turn_kind=src.get("turn_kind"),
         turn_number=src.get("turn_number"),
         raw_player_input=raw_player_input_signal,
@@ -578,12 +661,16 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         or action_actual.get("input_kind"),
         active_actor=src.get("active_actor"),
         npc_decision_required=npc_decision_required_signal or None,
-        action_resolution_required=False
-        if action_rec.get("applicable") is False
-        else None,
+        action_resolution_required=False if action_rec.get("applicable") is False else None,
         visible_projection_required=True,
         knowledge_gap_present=knowledge_gap_signal,
         world_state_change_requested=world_state_change_signal,
+    )
+    semantic_capability_selection = build_semantic_capability_selection_projection(
+        **capability_context
+    )
+    semantic_validator_execution_plan = build_semantic_validator_execution_plan_projection(
+        **capability_context
     )
 
     return _json_safe(
@@ -1028,6 +1115,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "status": cap_rec.get("status"),
             },
             "capability_selection": semantic_capability_selection,
+            "validator_execution_plan": semantic_validator_execution_plan,
             "authority": {
                 "narrator": {
                     "required": bool(narr_expected.get("required")),

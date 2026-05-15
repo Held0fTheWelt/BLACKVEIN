@@ -148,6 +148,7 @@ META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_plan.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
     "ai_stack/langgraph_runtime_package_output_sections.py",
@@ -165,6 +166,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_plan.py",
     "ai_stack/information_disclosure_contracts.py",
     "ai_stack/information_disclosure_engine.py",
     "ai_stack/langgraph_runtime_executor.py",
@@ -205,6 +207,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_plan.py",
     "ai_stack/langchain_integration/bridges.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_state.py",
@@ -220,6 +223,7 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
 
 CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
+    "ai_stack/capability_validator_plan.py",
     "ai_stack/consequence_cascade_contracts.py",
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_state.py",

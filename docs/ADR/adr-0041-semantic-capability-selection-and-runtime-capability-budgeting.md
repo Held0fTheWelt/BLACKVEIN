@@ -15,10 +15,11 @@ Proposed
 | Local deterministic selector core | Implemented | `ai_stack/capability_selector.py`; focused unit tests in `ai_stack/tests/test_capability_selector.py`. |
 | RuntimeAspectLedger-compatible local projection helper | Implemented | `CapabilitySelectionResult.to_runtime_aspect_projection()` emits local-only `capability_selection` evidence. |
 | Runtime intelligence projection hook | Implemented | `runtime_intelligence_projection.capability_selection` is derived locally from existing turn context; it does not mark the ledger capability aspect as passed and does not affect commit/readiness gates. |
+| Local validator execution-plan projection | Implemented | `runtime_intelligence_projection.validator_execution_plan` maps selected capabilities to planned validator, diagnostic, skipped, and judge-disallowed IDs with `execution_changed=false`. |
 | World-engine prompt/runtime assembly integration | Not implemented | Future phase; no prompt authority or runtime behavior changes in the first implementation. |
-| Selected validator execution/gating integration | Not implemented | Future phase; validators are not wired by selector output yet. |
+| Actual selected validator execution/gating integration | Not implemented | Future phase; validators are not executed, skipped, or gated by selector output yet. |
 | LLM-as-a-Judge execution integration | Not implemented | Judge mode remains budget-gated metadata only; no judge execution is added. |
-| Langfuse/MCP live or staging verification | Not implemented | No live/staging evidence is produced by the local selector core or projection hook. |
+| Langfuse/MCP live or staging verification | Not implemented | No live/staging evidence is produced by the local selector core, capability projection, or validator-plan projection. |
 
 ## Intellectual property rights
 
@@ -85,6 +86,8 @@ Introduce the design contract for a **Semantic Capability Selector**. The first
 implementation is a local deterministic selector core plus a local runtime
 intelligence projection hook only; it does not change prompt authority,
 validator execution, judge execution, generated story content, or commit gates.
+The validator execution plan is planning evidence only; it does not execute,
+skip, or gate real validators.
 
 The future selector must answer for each turn:
 

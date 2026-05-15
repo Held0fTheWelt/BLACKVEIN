@@ -20,10 +20,17 @@ derived from existing turn context. This projection does not set
 `turn_aspect_ledger.capability_selection` to passed, does not change commit or
 readiness status, and does not execute validators or judges.
 
+The local validator planning layer now exposes
+`runtime_intelligence_projection.validator_execution_plan`. It maps enforced
+capabilities to planned local validator IDs, observed capabilities to
+non-blocking diagnostic IDs, excluded capabilities to skipped validator IDs, and
+budget-disallowed judge IDs to `judges_disallowed`. The projection always emits
+`execution_changed=false`; actual validator dispatch and gating remain pending.
+
 Current boundaries:
 
 - Not wired into world-engine prompt assembly.
-- Not wired into selected validator execution.
+- Not wired into selected validator execution or gating.
 - Not wired into judge execution.
 - Not wired into Langfuse/MCP live or staging proof.
 - Not Capability Matrix promotion evidence.
