@@ -2,14 +2,24 @@
    styles.css defines design tokens (--surface, --text-muted, --primary, …). */
 
 .backend-info-callout {
+  position: relative;
   font-size: 0.85rem;
   line-height: 1.45;
   color: var(--text-muted);
-  background: var(--surface);
+  background: linear-gradient(180deg, rgba(20, 24, 36, 0.85), rgba(13, 16, 25, 0.85));
   border: 1px solid var(--border);
-  border-radius: var(--radius, 8px);
-  padding: 0.65rem 1rem;
+  border-radius: var(--radius, 12px);
+  padding: 0.7rem 1rem 0.75rem 1.15rem;
   margin-bottom: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(4, 8, 18, 0.22);
+}
+.backend-info-callout::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--primary);
 }
 
 .manage-main.backend-info-main--wide {

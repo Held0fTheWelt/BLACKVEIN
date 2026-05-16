@@ -3,21 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>World-Engine Login</title>
+  <title>World-Engine Login – BLACKVEIN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/ui.css">
 </head>
 <body class="ui-body ui-login-body">
   <main class="ui-login-wrap" role="main">
     <section class="ui-card ui-login-card">
-      <p class="ui-eyebrow">Administration</p>
-      <h1>World-Engine Login</h1>
+      <div class="ui-brand" style="padding:0 0 0.75rem;border:0;">
+        <span class="ui-brand-mark" aria-hidden="true">◆</span>
+        <span>
+          <span class="ui-brand-title">BLACKVEIN</span>
+          <span class="ui-brand-subtitle">World-Engine · Runtime</span>
+        </span>
+      </div>
+      <p class="ui-eyebrow">Authentication</p>
+      <h1>Operator sign-in</h1>
       <p class="ui-subtle">Use the same backend account credentials as frontend and administration tooling.</p>
       <form method="post" action="/login?next={{ next_path }}" class="ui-form" autocomplete="on" novalidate>
-        <label for="username">Username</label>
-        <input id="username" name="username" type="text" required autocomplete="username">
+        <div>
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" required autocomplete="username">
+        </div>
 
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" required autocomplete="current-password">
+        <div>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required autocomplete="current-password">
+        </div>
 
         {% if error_message %}
         <div class="ui-error" role="alert">{{ error_message }}</div>

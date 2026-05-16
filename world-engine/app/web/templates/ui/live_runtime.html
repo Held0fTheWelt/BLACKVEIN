@@ -1,0 +1,20 @@
+{% extends "ui/base.html" %}
+{% block title %}Live Runtime{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Runtime</p>
+  <h1>Live Runtime</h1>
+  <p class="ui-subtle">Opening readiness, turn loop, scene state, and latest committed turn.</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+{% include "ui/_session_picker.html" %}
+<section class="ui-grid">
+  <article class="ui-card"><h2>Session state</h2><pre id="ui-live-state" class="ui-code">Select a session.</pre></article>
+  <article class="ui-card"><h2>Diagnostics excerpt</h2><pre id="ui-live-diagnostics" class="ui-code">Select a session.</pre></article>
+  <article class="ui-card"><h2>Diagnostics envelope</h2><pre id="ui-live-envelope" class="ui-code">Select a session.</pre></article>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_session.js" defer></script>
+<script src="/static/ui_live_runtime.js" defer></script>
+{% endblock %}

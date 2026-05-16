@@ -1,0 +1,18 @@
+{% extends "ui/base.html" %}
+{% block title %}Traces / Observability{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Observability</p>
+  <h1>Traces / Observability</h1>
+  <p class="ui-subtle">Langfuse and MCP diagnostic evidence (read-only; credentials stay in Admin Tool).</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+<section class="ui-grid">
+  <article class="ui-card"><h2>Langfuse / MCP evidence</h2><pre id="ui-trace-evidence" class="ui-code">Loading...</pre></article>
+  <article class="ui-card"><h2>Observability status</h2><pre id="ui-trace-obs" class="ui-code">Loading...</pre></article>
+</section>
+<p class="ui-subtle">Configure observability credentials in Administration Tool → Observability Settings.</p>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_traces.js" defer></script>
+{% endblock %}

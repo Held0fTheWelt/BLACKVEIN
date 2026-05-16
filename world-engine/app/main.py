@@ -24,7 +24,7 @@ except ImportError:
 
 from fastapi import FastAPI
 from fastapi.requests import Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -33,6 +33,7 @@ import httpx
 from app.api.http import router as http_router
 from app.api.ws import router as ws_router
 from app.auth.tickets import TicketManager
+from app.ui_backend_proxy import backend_proxy_response, user_capabilities
 from app.config import (
     APP_TITLE,
     APP_VERSION,
@@ -209,6 +210,35 @@ def _render_login_page(request: Request, *, error: str | None = None, status_cod
     )
 
 
+def _ui_page_context(request: Request, current_user: dict[str, Any], *, active_page: str) -> dict[str, Any]:
+    caps = user_capabilities(current_user)
+    return {
+        "current_user": current_user,
+        "active_page": active_page,
+        "ui_capabilities": caps,
+    }
+
+
+def _render_ui_page(
+    request: Request,
+    *,
+    template_name: str,
+    active_page: str,
+    extra_context: dict[str, Any] | None = None,
+):
+    current_user, redirect = _authenticated_user_or_redirect(request)
+    if redirect is not None:
+        return redirect
+    context = _ui_page_context(request, current_user or {}, active_page=active_page)
+    if extra_context:
+        context.update(extra_context)
+    return TEMPLATES.TemplateResponse(
+        request=request,
+        name=template_name,
+        context=context,
+    )
+
+
 def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = None) -> None:
     ui_root = web_root or WEB_ROOT
 
@@ -253,7 +283,8 @@ def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = Non
 
         request.session[SESSION_KEY_ACCESS_TOKEN] = access_token
         request.session[SESSION_KEY_REFRESH_TOKEN] = refresh_token
-        request.session[SESSION_KEY_CURRENT_USER] = payload.get("user") or {}
+        me_ok, me_payload, _me_status = _backend_fetch_user(access_token)
+        request.session[SESSION_KEY_CURRENT_USER] = me_payload if me_ok else (payload.get("user") or {})
         return RedirectResponse(url=next_path, status_code=303)
 
     @app.post("/logout")
@@ -261,49 +292,64 @@ def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = Non
         _clear_ui_session(request)
         return RedirectResponse(url="/login", status_code=303)
 
+    @app.api_route("/ui-api/{backend_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+    async def ui_backend_api_proxy(request: Request, backend_path: str):
+        """Same-origin proxy to backend ``/api/v1/*`` using the UI session JWT."""
+        if not request.session.get(SESSION_KEY_ACCESS_TOKEN):
+            return JSONResponse({"error": "Authentication required."}, status_code=401)
+        return await backend_proxy_response(request, backend_path)
+
     @app.get("/dashboard")
     def dashboard(request: Request):
-        current_user, redirect = _authenticated_user_or_redirect(request)
-        if redirect is not None:
-            return redirect
-        return TEMPLATES.TemplateResponse(
-            request=request,
-            name="ui/dashboard.html",
-            context={"current_user": current_user, "active_page": "dashboard"},
+        return _render_ui_page(request, template_name="ui/dashboard.html", active_page="dashboard")
+
+    @app.get("/runs-sessions")
+    def runs_sessions(request: Request):
+        return _render_ui_page(request, template_name="ui/runs_sessions.html", active_page="runs-sessions")
+
+    @app.get("/live-runtime")
+    def live_runtime(request: Request):
+        return _render_ui_page(request, template_name="ui/live_runtime.html", active_page="live-runtime")
+
+    @app.get("/validation-authority")
+    def validation_authority(request: Request):
+        return _render_ui_page(
+            request,
+            template_name="ui/validation_authority.html",
+            active_page="validation-authority",
         )
 
-    @app.get("/engine")
-    def engine_shell(request: Request):
-        current_user, redirect = _authenticated_user_or_redirect(request)
-        if redirect is not None:
-            return redirect
-        return TEMPLATES.TemplateResponse(
-            request=request,
-            name="ui/engine.html",
-            context={"current_user": current_user, "active_page": "engine"},
-        )
+    @app.get("/runtime-ledger")
+    def runtime_ledger(request: Request):
+        return _render_ui_page(request, template_name="ui/runtime_ledger.html", active_page="runtime-ledger")
+
+    @app.get("/narrative-systems")
+    def narrative_systems(request: Request):
+        return _render_ui_page(request, template_name="ui/narrative_systems.html", active_page="narrative-systems")
+
+    @app.get("/traces")
+    def traces_observability(request: Request):
+        return _render_ui_page(request, template_name="ui/traces_observability.html", active_page="traces")
+
+    @app.get("/history")
+    def history_events(request: Request):
+        return _render_ui_page(request, template_name="ui/history_events.html", active_page="history")
 
     @app.get("/runtime-status")
     def runtime_status(request: Request):
-        current_user, redirect = _authenticated_user_or_redirect(request)
-        if redirect is not None:
-            return redirect
-        return TEMPLATES.TemplateResponse(
-            request=request,
-            name="ui/runtime_status.html",
-            context={"current_user": current_user, "active_page": "runtime-status"},
-        )
+        return _render_ui_page(request, template_name="ui/health.html", active_page="runtime-status")
+
+    @app.get("/health")
+    def health_page(request: Request):
+        return _render_ui_page(request, template_name="ui/health.html", active_page="runtime-status")
 
     @app.get("/diagnostics")
     def diagnostics(request: Request):
-        current_user, redirect = _authenticated_user_or_redirect(request)
-        if redirect is not None:
-            return redirect
-        return TEMPLATES.TemplateResponse(
-            request=request,
-            name="ui/diagnostics.html",
-            context={"current_user": current_user, "active_page": "diagnostics"},
-        )
+        return RedirectResponse(url="/health", status_code=303)
+
+    @app.get("/engine")
+    def engine_shell(request: Request):
+        return _render_ui_page(request, template_name="ui/engine.html", active_page="engine")
 
     @app.get("/engine/app")
     def legacy_engine_page(request: Request):
@@ -389,6 +435,9 @@ register_world_engine_ui_routes(app)
 
 
 @app.get("/ops")
-def ops_console() -> FileResponse:
-    """Minimal unauthenticated readiness view for operators (see UX plan: engine-near diagnosis)."""
+def ops_console(request: Request):
+    """Legacy ops health view; requires authenticated UI session (no public diagnostics)."""
+    _current_user, redirect = _authenticated_user_or_redirect(request)
+    if redirect is not None:
+        return redirect
     return FileResponse(WEB_ROOT / "templates" / "ops.html")

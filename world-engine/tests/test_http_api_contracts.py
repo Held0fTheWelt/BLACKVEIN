@@ -35,8 +35,20 @@ class TestHealthEndpoints:
         assert body["status"] == "ok"
 
     @pytest.mark.contract
-    def test_ops_page_returns_html(self, client):
-        """GET /ops serves lightweight operator diagnostics shell."""
+    def test_ops_page_requires_ui_auth(self, client):
+        """GET /ops redirects unauthenticated UI sessions to login."""
+        response = client.get("/ops", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers["location"].startswith("/login")
+
+    @pytest.mark.contract
+    def test_ops_page_returns_html_when_authenticated(self, client, auth_backend_success):
+        """GET /ops serves operator diagnostics shell after UI login."""
+        client.post(
+            "/login",
+            content="username=operator&password=pw",
+            headers={"content-type": "application/x-www-form-urlencoded"},
+        )
         response = client.get("/ops")
         assert response.status_code == 200
         assert "text/html" in response.headers.get("content-type", "")

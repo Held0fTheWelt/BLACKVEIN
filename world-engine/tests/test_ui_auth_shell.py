@@ -11,31 +11,6 @@ def _login_form_data(username: str, password: str) -> str:
     return f"username={username}&password={password}"
 
 
-@pytest.fixture
-def auth_backend_success(monkeypatch):
-    calls: dict[str, Any] = {"login": [], "me": []}
-
-    def _login(username: str, password: str):
-        calls["login"].append({"username": username, "password": password})
-        return (
-            True,
-            {
-                "access_token": "token-ok",
-                "refresh_token": "refresh-ok",
-                "user": {"username": username, "role": "admin"},
-            },
-            200,
-        )
-
-    def _me(token: str):
-        calls["me"].append(token)
-        return True, {"username": "operator", "role": "admin"}, 200
-
-    monkeypatch.setattr(main_module, "_backend_login", _login)
-    monkeypatch.setattr(main_module, "_backend_fetch_user", _me)
-    return calls
-
-
 def test_ui_login_page_renders(client):
     response = client.get("/login")
     assert response.status_code == 200
@@ -64,13 +39,14 @@ def test_successful_login_grants_access_and_renders_shell(client, auth_backend_s
     assert response.status_code == 303
     assert response.headers["location"] == "/dashboard"
     assert auth_backend_success["login"][0]["username"] == "operator"
+    assert len(auth_backend_success["me"]) == 1
 
     dashboard = client.get("/dashboard")
     assert dashboard.status_code == 200
-    assert "Dashboard / Overview" in dashboard.text
-    assert "Existing World-Engine Page" in dashboard.text
-    assert "Session / Runtime Status" in dashboard.text
-    assert "Logs / Diagnostics" in dashboard.text
+    assert "Runtime Dashboard" in dashboard.text
+    assert "Runs / Sessions" in dashboard.text
+    assert "Health" in dashboard.text
+    assert "Legacy Simulator" in dashboard.text
 
 
 def test_failed_login_does_not_grant_access(client, monkeypatch):

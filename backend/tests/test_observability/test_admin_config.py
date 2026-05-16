@@ -11,6 +11,7 @@ from app.services.observability_governance_service import (
     get_observability_credential_for_runtime,
     test_observability_connection as check_observability_connection,
     update_observability_config,
+    verify_langfuse_runtime_connectivity,
     write_observability_credential,
 )
 
@@ -439,6 +440,58 @@ class TestServiceLayerFunctions:
         """get_observability_credential_for_runtime returns None if not configured."""
         retrieved = get_observability_credential_for_runtime("secret_key")
         assert retrieved is None
+
+    def test_observability_connection_uses_backend_credentials(self, db_session, monkeypatch):
+        """Admin test-connection delegates to verify_langfuse_runtime_connectivity."""
+        config_obj = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="https://cloud.langfuse.com",
+        )
+        db.session.add(config_obj)
+        db.session.commit()
+        write_observability_credential(public_key="pk_test", secret_key="sk_test", actor="test")
+
+        monkeypatch.setattr(
+            "app.services.observability_governance_service.verify_langfuse_runtime_connectivity",
+            lambda **_: {
+                "ok": True,
+                "health_status": "connected",
+                "message": "mocked",
+                "credentials_source": "backend_observability_credentials",
+            },
+        )
+        result = check_observability_connection("pytest")
+        assert result["ok"] is True
+        assert result["health_status"] == "connected"
+
+    def test_verify_langfuse_reports_host_mismatch(self, db_session, monkeypatch):
+        """When keys belong to another region host, return host_mismatch with fix instructions."""
+        config_obj = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="https://cloud.langfuse.com",
+        )
+        db.session.add(config_obj)
+        db.session.commit()
+        write_observability_credential(public_key="pk-lf-test", secret_key="sk-lf-test", actor="test")
+
+        monkeypatch.setattr(
+            "app.services.observability_governance_service._resolve_langfuse_base_url_for_credentials",
+            lambda **_: (
+                "https://us.cloud.langfuse.com",
+                "Credentials authenticate against https://us.cloud.langfuse.com, but BASE URL is https://cloud.langfuse.com.",
+                ["demo"],
+            ),
+        )
+        result = verify_langfuse_runtime_connectivity()
+        assert result["ok"] is False
+        assert result["health_status"] == "host_mismatch"
+        assert "us.cloud.langfuse.com" in result["message"]
 
     def test_disable_observability_deactivates_all_credentials(self, db_session):
         """disable_observability deactivates all active credentials."""

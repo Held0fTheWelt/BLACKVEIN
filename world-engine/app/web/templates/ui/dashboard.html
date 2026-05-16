@@ -1,28 +1,19 @@
 {% extends "ui/base.html" %}
-{% block title %}World-Engine Dashboard{% endblock %}
+{% block title %}Runtime Dashboard{% endblock %}
 {% block content %}
 <header class="ui-page-head">
   <p class="ui-eyebrow">World-Engine</p>
-  <h1>Dashboard / Overview</h1>
-  <p class="ui-subtle">Authenticated operator shell for World-Engine runtime access.</p>
+  <h1>Runtime Dashboard</h1>
+  <p class="ui-subtle">Blocker-first summary of live runtime posture (backend-proxied diagnostics).</p>
 </header>
-
+<div id="ui-page-banner" class="ui-banner" hidden></div>
 <section class="ui-grid">
-  <article class="ui-card">
-    <h2>Access Control</h2>
-    <ul class="ui-list">
-      <li>Login is validated through backend <code>/api/v1/auth/login</code>.</li>
-      <li>Protected routes verify token via backend <code>/api/v1/auth/me</code>.</li>
-      <li>Logout clears all World-Engine UI session tokens.</li>
-    </ul>
-  </article>
-  <article class="ui-card">
-    <h2>Available Pages</h2>
-    <ul class="ui-list">
-      <li><a href="/engine">Existing World-Engine Page</a></li>
-      <li><a href="/runtime-status">Session / Runtime Status</a></li>
-      <li><a href="/diagnostics">Logs / Diagnostics</a></li>
-    </ul>
-  </article>
+  <article class="ui-card"><h2>Health</h2><pre id="ui-dash-health" class="ui-code">Loading...</pre></article>
+  <article class="ui-card"><h2>Sessions</h2><pre id="ui-dash-sessions" class="ui-code">Loading...</pre></article>
+  <article class="ui-card"><h2>Runs</h2><pre id="ui-dash-runs" class="ui-code">Loading...</pre></article>
+  <article class="ui-card" data-ui-cap="ai_governance"><h2>Readiness</h2><pre id="ui-dash-readiness" class="ui-code">Loading...</pre></article>
 </section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_dashboard.js" defer></script>
 {% endblock %}

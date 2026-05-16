@@ -385,7 +385,18 @@
       var details = unwrapEnvelope(response);
       var status = details.health_status || "unknown";
       var message = details.message || "No diagnostic message.";
-      showSuccess("Connection test result: " + status + " - " + message);
+      var diag = details.diagnostics || {};
+      var suffix = "";
+      if (diag.public_key_prefix) {
+        suffix += " [key " + diag.public_key_prefix + "]";
+      }
+      if (details.langfuse_projects && details.langfuse_projects.length) {
+        suffix += " [projects: " + details.langfuse_projects.join(", ") + "]";
+      }
+      if (details.resolved_base_url && details.resolved_base_url !== details.base_url) {
+        suffix += " [use base URL " + details.resolved_base_url + "]";
+      }
+      showSuccess("Connection test result: " + status + " - " + message + suffix);
       setTechnicalAudit({
         action: "test_connection",
         tested_at: new Date().toISOString(),

@@ -1,0 +1,23 @@
+{% extends "ui/base.html" %}
+{% block title %}History / Events{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">History</p>
+  <h1>History / Events</h1>
+  <p class="ui-subtle">Run transcript and branch timeline events for a selected session.</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+{% include "ui/_session_picker.html" %}
+<div class="ui-toolbar">
+  <label for="ui-history-run-id">Run id (optional)</label>
+  <input id="ui-history-run-id" class="ui-input" placeholder="run id for transcript">
+</div>
+<section class="ui-grid">
+  <article class="ui-card"><h2>Branch timeline events</h2><pre id="ui-history-timeline" class="ui-code">Select a session.</pre></article>
+  <article class="ui-card"><h2>Run transcript</h2><pre id="ui-history-transcript" class="ui-code">Provide run id.</pre></article>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_session.js" defer></script>
+<script src="/static/ui_history.js" defer></script>
+{% endblock %}

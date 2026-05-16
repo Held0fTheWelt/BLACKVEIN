@@ -1,0 +1,18 @@
+{% extends "ui/base.html" %}
+{% block title %}Health{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Runtime</p>
+  <h1>Health &amp; Readiness</h1>
+  <p class="ui-subtle">Engine-local health plus backend-proxied play-service readiness.</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+<section class="ui-grid">
+  <article class="ui-card"><h2>Local /api/health</h2><pre id="runtime-health" class="ui-code">Loading...</pre></article>
+  <article class="ui-card"><h2>Local /api/health/ready</h2><pre id="runtime-ready" class="ui-code">Loading...</pre></article>
+  <article class="ui-card" data-ui-cap="observe"><h2>Backend world-engine health</h2><pre id="ui-health-backend" class="ui-code">Loading...</pre></article>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_health.js" defer></script>
+{% endblock %}

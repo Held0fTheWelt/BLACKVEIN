@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -149,9 +149,12 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
     main_module.register_world_engine_ui_routes(app, web_root=web_root)
 
     @app.get("/ops")
-    def _ops_console_test():
+    def _ops_console_test(request: Request):
         from fastapi.responses import FileResponse
 
+        _current_user, redirect = main_module._authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
         return FileResponse(web_root / "templates" / "ops.html")
 
     return app
@@ -166,6 +169,45 @@ def app(tmp_path: Path):
 def client(app):
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def auth_backend_success(monkeypatch):
+    """Patch backend login/me for UI auth tests."""
+    from typing import Any
+
+    import app.main as main_module
+
+    calls: dict[str, Any] = {"login": [], "me": []}
+
+    def _login(username: str, password: str):
+        calls["login"].append({"username": username, "password": password})
+        return (
+            True,
+            {
+                "access_token": "token-ok",
+                "refresh_token": "refresh-ok",
+                "user": {"username": username, "role": "admin"},
+            },
+            200,
+        )
+
+    def _me(token: str):
+        calls["me"].append(token)
+        return True, {
+            "username": "operator",
+            "role": "admin",
+            "allowed_features": [
+                "manage.world_engine_observe",
+                "manage.world_engine_operate",
+                "manage.world_engine_author",
+                "manage.ai_runtime_governance",
+            ],
+        }, 200
+
+    monkeypatch.setattr(main_module, "_backend_login", _login)
+    monkeypatch.setattr(main_module, "_backend_fetch_user", _me)
+    return calls
 
 
 @pytest.fixture

@@ -1,0 +1,27 @@
+{% extends "ui/base.html" %}
+{% block title %}Runs / Sessions{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Runtime</p>
+  <h1>Runs / Sessions</h1>
+  <p class="ui-subtle">Inspect play runs and story sessions via authenticated backend proxies.</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+<section class="ui-split">
+  <article class="ui-card">
+    <h2>Runs</h2>
+    <div id="ui-runs-list" class="ui-list-host"></div>
+    <pre id="ui-run-detail" class="ui-code">Select a run.</pre>
+  </article>
+  <article class="ui-card">
+    <h2>Story sessions</h2>
+    {% include "ui/_session_picker.html" %}
+    <div id="ui-sessions-list" class="ui-list-host"></div>
+    <pre id="ui-session-detail" class="ui-code">Select a session.</pre>
+  </article>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_session.js" defer></script>
+<script src="/static/ui_runs_sessions.js" defer></script>
+{% endblock %}

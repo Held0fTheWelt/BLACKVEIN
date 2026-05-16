@@ -1,226 +1,777 @@
+/* =============================================================================
+   World-Engine Runtime UI — unified BLACKVEIN design system
+
+   This stylesheet is intentionally aligned with administration-tool/static/
+   manage.css + styles.css. Tokens, shell layout, typography, code blocks,
+   cards, buttons and side-nav rendering match the Administration Tool so the
+   three surfaces (admin, backend/info, world-engine) read as one product.
+
+   Class names remain the `ui-*` namespace this surface already uses, so no
+   template churn is required.
+   ============================================================================= */
+
 :root {
   color-scheme: dark;
-  --bg: #0b1020;
-  --surface: #141a2b;
-  --surface-soft: #1a2238;
-  --text: #e7ebff;
-  --text-muted: #9da8d1;
-  --border: rgba(255, 255, 255, 0.14);
-  --primary: #7a5c9e;
-  --primary-soft: rgba(122, 92, 158, 0.22);
-  --danger: #ff9dae;
+
+  /* Core palette — mirrors administration-tool styles.css "2026 UI" layer. */
+  --bg: #0b0d12;
+  --surface: #121723;
+  --surface-soft: #171d2b;
+  --surface-elevated: #1c2434;
+  --border: #2a3348;
+  --border-strong: #3a4a68;
+
+  --text: #eff3ff;
+  --text-muted: #a6b0c8;
+  --text-faint: rgba(166, 176, 200, 0.7);
+
+  --primary: #7f63d9;
+  --primary-hover: #9479ef;
+  --primary-soft: rgba(127, 99, 217, 0.16);
+  --primary-glow: rgba(148, 121, 239, 0.55);
+
+  --success: #5dbb87;
+  --warn: #d29922;
+  --danger: #e35a72;
+  --danger-soft: rgba(227, 90, 114, 0.14);
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+
+  --shadow-1: 0 6px 16px rgba(4, 8, 18, 0.22);
+  --shadow-2: 0 16px 38px rgba(4, 8, 18, 0.34);
+  --shadow-card: 0 10px 24px rgba(4, 8, 18, 0.26);
+
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --mono-font: "JetBrains Mono", "Fira Mono", ui-monospace, "Courier New", monospace;
+
+  --side-w: 268px;
+  --side-pad-x: 1.05rem;
+  --side-rail: 3px;
+  --side-grad: linear-gradient(180deg, rgba(127, 99, 217, 0.16), rgba(127, 99, 217, 0.04) 38%, transparent 70%);
+
+  --violet-bright: #a07dcc;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body.ui-body {
   margin: 0;
-  font-family: Inter, Segoe UI, Arial, sans-serif;
-  background: radial-gradient(circle at 15% -10%, rgba(127, 99, 217, 0.24), transparent 38%), var(--bg);
+  min-height: 100vh;
+  font-family: var(--font);
   color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background:
+    radial-gradient(circle at 0% -20%, rgba(127, 99, 217, 0.18), transparent 48%),
+    radial-gradient(circle at 100% -30%, rgba(34, 154, 214, 0.10), transparent 44%),
+    var(--bg);
 }
 
+h1, h2, h3, h4 { letter-spacing: 0.01em; }
+
+a { color: var(--primary-hover); }
+
+/* -----------------------------------------------------------------------------
+   Shell — replicates .manage-shell from the Administration Tool.
+   ----------------------------------------------------------------------------- */
+
 .ui-shell {
-  min-height: 100vh;
   display: grid;
-  grid-template-columns: 270px minmax(0, 1fr);
+  grid-template-columns: var(--side-w) minmax(0, 1fr);
+  min-height: 100vh;
+  position: relative;
+}
+
+.ui-shell-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: 0;
+  padding: 0;
+  background: rgba(4, 6, 12, 0.55);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
 }
 
 .ui-side {
-  border-right: 1px solid var(--border);
-  background: var(--surface);
-  padding: 1.1rem 1rem;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0;
+  padding: 0;
+  background:
+    var(--side-grad),
+    var(--surface);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 30;
 }
 
 .ui-brand {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
+  padding: 1.35rem var(--side-pad-x) 1rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .ui-brand-mark {
   color: var(--primary);
+  font-size: 1.05rem;
+  transform: translateY(-1px);
+  text-shadow: 0 0 12px var(--primary-glow);
 }
 
 .ui-brand-title {
+  font-family: var(--font);
   font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1.1;
 }
 
 .ui-brand-subtitle {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
   color: var(--text-muted);
-  font-size: 0.74rem;
-  letter-spacing: 0.18em;
 }
 
 .ui-nav {
-  display: grid;
-  gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem var(--side-pad-x) 1rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.ui-nav::-webkit-scrollbar { width: 6px; }
+.ui-nav::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+.ui-nav-group { border-bottom: 1px dashed transparent; margin: 0; }
+.ui-nav-group + .ui-nav-group { margin-top: 0.15rem; }
+.ui-nav-group[open] {
+  border-bottom-color: rgba(122, 92, 158, 0.10);
+  padding-bottom: 0.3rem;
+}
+
+.ui-nav-group-head {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.1rem;
+  gap: 0.4rem;
+  user-select: none;
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+.ui-nav-group-head::-webkit-details-marker { display: none; }
+.ui-nav-group-head::marker { content: ""; }
+.ui-nav-group-head:hover { color: var(--text); }
+.ui-nav-group-head::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.ui-nav-group[open] > .ui-nav-group-head::after {
+  transform: rotate(45deg);
+  border-color: var(--primary-hover);
+}
+.ui-nav-group-head:focus-visible {
+  outline: 2px solid var(--violet-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .ui-nav-link {
-  color: var(--text-muted);
-  text-decoration: none;
-  padding: 0.55rem 0.65rem;
-  border-radius: 8px;
+  display: block;
+  position: relative;
+  padding: 0.42rem 0.6rem 0.42rem 0.95rem;
+  margin: 0;
   border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: normal;
+  background: transparent;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
-
+.ui-nav-link::before {
+  content: "";
+  position: absolute;
+  left: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0.25);
+  width: var(--side-rail);
+  height: 60%;
+  background: var(--primary);
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.18s ease;
+}
 .ui-nav-link:hover {
-  background: var(--primary-soft);
+  color: var(--text);
+  background: rgba(148, 121, 239, 0.08);
+}
+.ui-nav-link:hover::before { opacity: 0.5; transform: translateY(-50%) scaleY(0.7); }
+.ui-nav-link:focus-visible {
+  outline: 2px solid var(--violet-bright);
+  outline-offset: 2px;
   color: var(--text);
 }
-
 .ui-nav-link.is-current {
-  background: var(--primary-soft);
-  border-color: rgba(122, 92, 158, 0.5);
   color: #fff;
+  background: rgba(148, 121, 239, 0.16);
+  border-color: rgba(148, 121, 239, 0.32);
+  font-weight: 600;
 }
+.ui-nav-link.is-current::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
+}
+
+.ui-side-note {
+  margin: 0 var(--side-pad-x);
+  padding: 0.7rem 0.8rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: rgba(127, 99, 217, 0.06);
+  border: 1px solid rgba(127, 99, 217, 0.18);
+  border-radius: var(--radius-sm);
+}
+.ui-side-note strong { color: var(--text); }
 
 .ui-side-foot {
   margin-top: auto;
-  border-top: 1px solid var(--border);
-  padding-top: 0.8rem;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
+  padding: 0.9rem var(--side-pad-x) 1.1rem;
+  border-top: 1px solid var(--border);
+  background: rgba(7, 7, 10, 0.45);
+}
+.ui-user {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.ui-side-foot form { margin: 0; }
+
+/* Shell-main column ----------------------------------------------------------- */
+.ui-shell-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.ui-user {
+.ui-topbar {
+  display: none;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(18, 23, 35, 0.92);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.ui-topbar-title {
+  font-family: var(--mono-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--text-muted);
-  font-size: 0.85rem;
+}
+
+.ui-side-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+}
+.ui-side-toggle:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
+.ui-side-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
 }
 
 .ui-main {
-  padding: 1.2rem;
-  max-width: 1500px;
+  padding: clamp(1rem, 1.8vw, 1.75rem);
+  max-width: 1440px;
   width: 100%;
+  margin: 0 auto;
 }
 
+/* -----------------------------------------------------------------------------
+   Page head — replicates .mui-deck-header for the runtime diagnostic pages.
+   ----------------------------------------------------------------------------- */
+
+.ui-page-head {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  margin: calc(-1 * clamp(1rem, 1.8vw, 1.75rem)) calc(-1 * clamp(1rem, 1.8vw, 1.75rem)) 1rem;
+  padding: 1.1rem clamp(1rem, 1.8vw, 1.75rem) 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(14, 18, 28, 0.96), rgba(11, 14, 22, 0.96)),
+    radial-gradient(circle at 8% 0%, rgba(148, 121, 239, 0.16), transparent 50%);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  gap: 0.45rem;
+}
 .ui-page-head h1 {
-  margin: 0.15rem 0 0.35rem;
+  margin: 0;
+  font-size: clamp(1.35rem, 1.7vw, 1.75rem);
+  line-height: 1.15;
+  font-weight: 700;
 }
 
 .ui-eyebrow {
   margin: 0;
-  color: var(--text-muted);
+  font-family: var(--mono-font);
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  font-size: 0.73rem;
-  letter-spacing: 0.12em;
+  color: var(--text-muted);
 }
 
 .ui-subtle {
+  margin: 0;
   color: var(--text-muted);
+  font-size: 0.96rem;
+  line-height: 1.5;
+  max-width: 80ch;
 }
+.ui-subtle strong { color: var(--text); font-weight: 600; }
+
+/* -----------------------------------------------------------------------------
+   Grid + cards
+   ----------------------------------------------------------------------------- */
 
 .ui-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+}
+
+.ui-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .ui-card {
-  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) var(--surface);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
 }
 
-.ui-card h2 {
-  margin-top: 0;
+.ui-card > h2,
+.ui-card > h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+.ui-card > h2::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+  flex-shrink: 0;
 }
 
 .ui-list {
   margin: 0;
   padding-left: 1.1rem;
+  color: var(--text);
 }
+.ui-list li + li { margin-top: 0.35rem; }
 
-.ui-list li + li {
-  margin-top: 0.35rem;
-}
+/* -----------------------------------------------------------------------------
+   Forms / inputs / buttons — mirror admin .btn + form-input behavior.
+   ----------------------------------------------------------------------------- */
 
 .ui-btn {
-  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  padding: 0.55rem 0.85rem;
-  font: inherit;
-  cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) var(--surface-soft);
   color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.ui-btn:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.ui-btn:active { transform: translateY(0); }
+.ui-btn:focus-visible {
+  outline: 2px solid rgba(148, 121, 239, 0.95);
+  outline-offset: 2px;
 }
 
 .ui-btn-primary {
-  background: linear-gradient(135deg, rgba(118, 192, 255, 0.2), rgba(193, 130, 255, 0.18));
+  background: linear-gradient(180deg, #967df0, #7f63d9);
+  border-color: #866ade;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(127, 99, 217, 0.34);
+}
+.ui-btn-primary:hover {
+  background: linear-gradient(180deg, #a089f5, #8b6fe4);
+  border-color: #9b80ee;
+  color: #fff;
 }
 
 .ui-btn-ghost {
   background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
 }
+.ui-btn-ghost:hover {
+  background: rgba(148, 121, 239, 0.12);
+  color: var(--text);
+}
+
+.ui-input,
+.ui-form input,
+.ui-form select,
+.ui-form textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ui-input { width: auto; min-width: 12rem; }
+.ui-input:focus,
+.ui-form input:focus,
+.ui-form select:focus,
+.ui-form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(7, 9, 14, 0.55);
+  box-shadow: 0 0 0 3px rgba(148, 121, 239, 0.18);
+}
+
+.ui-form {
+  display: grid;
+  gap: 0.65rem;
+}
+.ui-form label {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.1rem;
+}
+
+.ui-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  border: 1px solid rgba(227, 90, 114, 0.35);
+}
+
+/* -----------------------------------------------------------------------------
+   Toolbar (e.g. session picker) — small card-like row.
+   ----------------------------------------------------------------------------- */
+
+.ui-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)) var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.ui-toolbar > label {
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* A bare-label + input pairing outside the toolbar (e.g. ledger aspect filter). */
+.ui-main > label {
+  display: block;
+  margin: 0 0 0.3rem;
+  font-family: var(--mono-font);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.ui-main > label + .ui-input {
+  width: 100%;
+  max-width: 28rem;
+  margin-bottom: 1rem;
+}
+
+/* -----------------------------------------------------------------------------
+   Lists (rail-style buttons inside cards — e.g. runs/sessions)
+   ----------------------------------------------------------------------------- */
+
+.ui-list-host {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.ui-list-host::-webkit-scrollbar { width: 6px; }
+.ui-list-host::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+.ui-list-btn {
+  text-align: left;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.ui-list-btn:hover {
+  background: rgba(148, 121, 239, 0.09);
+  border-color: rgba(148, 121, 239, 0.2);
+}
+.ui-list-btn:focus-visible {
+  outline: 2px solid var(--violet-bright);
+  outline-offset: 1px;
+}
+.ui-list-btn.is-active {
+  background: rgba(148, 121, 239, 0.18);
+  border-color: rgba(148, 121, 239, 0.42);
+  font-weight: 600;
+}
+
+/* -----------------------------------------------------------------------------
+   Code blocks — JSON-view aesthetic to match admin .mui-json-pre.
+   ----------------------------------------------------------------------------- */
+
+.ui-code {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #0a0e18;
+  color: var(--text);
+  font-family: var(--mono-font);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  max-height: 26rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.ui-code::-webkit-scrollbar { width: 8px; height: 8px; }
+.ui-code::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+.ui-code::-webkit-scrollbar-track { background: transparent; }
+
+/* -----------------------------------------------------------------------------
+   Banners — accent stripe pattern, consistent with mui-toast accent.
+   ----------------------------------------------------------------------------- */
+
+.ui-banner {
+  position: relative;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.95rem 0.75rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(20, 24, 36, 0.85), rgba(13, 16, 25, 0.85));
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.ui-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--primary);
+}
+.ui-banner[hidden] { display: none; }
+
+.ui-banner-error {
+  color: var(--danger);
+  border-color: rgba(227, 90, 114, 0.35);
+  background: linear-gradient(180deg, rgba(50, 18, 28, 0.85), rgba(28, 12, 18, 0.85));
+}
+.ui-banner-error::before { background: var(--danger); }
+
+.ui-banner-ok {
+  color: var(--success);
+  border-color: rgba(93, 187, 135, 0.32);
+  background: linear-gradient(180deg, rgba(16, 36, 26, 0.85), rgba(10, 22, 16, 0.85));
+}
+.ui-banner-ok::before { background: var(--success); }
+
+/* -----------------------------------------------------------------------------
+   Embed (legacy simulator iframes) — match card chrome.
+   ----------------------------------------------------------------------------- */
+
+.ui-embed-card { padding: 0.65rem; }
+.ui-embed-frame {
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #070b16;
+}
+
+/* -----------------------------------------------------------------------------
+   Login surface — full-bleed centered card.
+   ----------------------------------------------------------------------------- */
 
 .ui-login-body {
   min-height: 100vh;
   display: grid;
   place-items: center;
+  padding: 1.5rem;
 }
 
 .ui-login-wrap {
-  width: min(420px, 100%);
-  padding: 1rem;
+  width: min(440px, 100%);
 }
 
+.ui-login-card {
+  padding: 2rem 1.75rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
 .ui-login-card h1 {
-  margin-top: 0.2rem;
+  margin: 0.15rem 0 0.5rem;
+  font-size: 1.4rem;
 }
+.ui-login-card .ui-subtle { margin-bottom: 1rem; }
+.ui-login-card .ui-form { margin-top: 1rem; }
+.ui-login-card .ui-btn-primary { margin-top: 0.5rem; }
 
-.ui-form {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.ui-form input {
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface-soft);
-  color: var(--text);
-  padding: 0.6rem 0.7rem;
-}
-
-.ui-error {
-  color: var(--danger);
-  font-size: 0.92rem;
-}
-
-.ui-code {
-  margin: 0;
-  padding: 0.8rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #090d17;
-  max-height: 24rem;
-  overflow: auto;
-}
-
-.ui-embed-card {
-  padding: 0.6rem;
-}
-
-.ui-embed-frame {
-  width: 100%;
-  min-height: 70vh;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #070b16;
-}
+/* -----------------------------------------------------------------------------
+   Responsive — collapse rail into off-canvas drawer (mirrors manage-shell).
+   ----------------------------------------------------------------------------- */
 
 @media (max-width: 900px) {
-  .ui-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
+  .ui-shell { grid-template-columns: minmax(0, 1fr); }
+  .ui-topbar { display: flex; }
   .ui-side {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(86vw, var(--side-w));
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-2);
+    z-index: 50;
+  }
+  .ui-shell[data-side-open="true"] .ui-side { transform: translateX(0); }
+  .ui-shell[data-side-open="true"] .ui-shell-scrim { display: block; }
+  .ui-split { grid-template-columns: 1fr; }
+  .ui-page-head {
+    position: static;
+    margin: -1rem -1rem 1rem;
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-side,
+  .ui-nav-link,
+  .ui-nav-link::before,
+  .ui-nav-group-head::after,
+  .ui-btn,
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }

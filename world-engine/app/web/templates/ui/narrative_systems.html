@@ -1,0 +1,19 @@
+{% extends "ui/base.html" %}
+{% block title %}Narrative Systems{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Systems</p>
+  <h1>Narrative Systems</h1>
+  <p class="ui-subtle">Narrative governance summary and per-system runtime evidence.</p>
+</header>
+<div id="ui-page-banner" class="ui-banner" hidden></div>
+{% include "ui/_session_picker.html" %}
+<section class="ui-grid">
+  <article class="ui-card"><h2>Governance summary</h2><pre id="ui-narr-gov" class="ui-code">Loading...</pre></article>
+  <article class="ui-card"><h2>Narrative systems</h2><pre id="ui-narr-systems" class="ui-code">Loading...</pre></article>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="/static/ui_session.js" defer></script>
+<script src="/static/ui_narrative_systems.js" defer></script>
+{% endblock %}

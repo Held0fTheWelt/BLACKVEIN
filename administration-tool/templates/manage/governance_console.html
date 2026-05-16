@@ -2,29 +2,31 @@
 {% block title %}Governance Console{% endblock %}
 
 {% block content %}
-<section class="manage-page mui-manage-page" data-page="governance-console">
-    <header class="manage-page-header mui-page-header">
+<section class="manage-section" data-page="governance-console">
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow mui-eyebrow">AI Governance</p>
+            <p class="mui-deck-eyebrow">AI Governance</p>
             <h1>Governance Console</h1>
-            <p class="manage-lead">
+            <p class="mui-deck-headline">
                 Read-only governance authority surfaces for readiness, ADR-0041 capability control, validator registry,
                 evidence integrity, and RuntimeAspectLedger diagnostics.
             </p>
+            <div class="mui-field-grid mui-field-grid--narrow">
+                <label class="mui-field">
+                    <span class="mui-field-label">Session ID (optional)</span>
+                    <input id="gov-console-session-id" class="form-input" type="text" placeholder="runtime session id" />
+                </label>
+                <label class="mui-field">
+                    <span class="mui-field-label">Aspect filter (ledger)</span>
+                    <input id="gov-console-aspect-filter" class="form-input" type="text" placeholder="e.g. readiness" />
+                </label>
+                <label class="mui-field">
+                    <span class="mui-field-label">Module ID (narrative)</span>
+                    <input id="gov-console-module-id" class="form-input" type="text" placeholder="optional module id" />
+                </label>
+            </div>
         </div>
-        <div class="manage-page-header-actions">
-            <label class="form-field">
-                <span class="form-label">Session ID (optional)</span>
-                <input id="gov-console-session-id" class="form-input" type="text" placeholder="runtime session id" />
-            </label>
-            <label class="form-field">
-                <span class="form-label">Aspect filter (ledger)</span>
-                <input id="gov-console-aspect-filter" class="form-input" type="text" placeholder="e.g. readiness" />
-            </label>
-            <label class="form-field">
-                <span class="form-label">Module ID (narrative)</span>
-                <input id="gov-console-module-id" class="form-input" type="text" placeholder="optional module id" />
-            </label>
+        <div class="mui-deck-actions">
             <button type="button" class="btn btn-primary" id="gov-console-refresh">Refresh</button>
         </div>
     </header>
@@ -85,46 +87,54 @@
         </div>
     </section>
 
-    <div class="mui-deck-grid">
-        <article class="mui-inspector-card">
-            <h2>Runtime Readiness Authority</h2>
-            <p class="muted">Explains `runtime_session_ready`, `can_execute`, degraded/fallback signals, and source-of-truth chain.</p>
-            <pre id="gov-runtime-readiness" class="manage-json-box">Loading...</pre>
+    <div class="mui-card-grid">
+        <article class="mui-card">
+            <p class="mui-card-meta">Authority</p>
+            <h4>Runtime Readiness</h4>
+            <p class="manage-section-subtitle">Explains <code>runtime_session_ready</code>, <code>can_execute</code>, degraded/fallback signals, and source-of-truth chain.</p>
+            <pre id="gov-runtime-readiness" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>ADR-0041 Capability Authority</h2>
-            <p class="muted">Includes dispatch mode, selected turn class/capabilities, validator execution state, and readiness decision inputs.</p>
-            <pre id="gov-adr0041-authority" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">ADR-0041</p>
+            <h4>Capability Authority</h4>
+            <p class="manage-section-subtitle">Dispatch mode, selected turn class/capabilities, validator execution state, and readiness decision inputs.</p>
+            <pre id="gov-adr0041-authority" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Capability Matrix Governance</h2>
-            <p class="muted">Shows maturity and evidence boundary (`local` vs staging/live) with blockers and promotion eligibility.</p>
-            <pre id="gov-capability-matrix" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Maturity</p>
+            <h4>Capability Matrix</h4>
+            <p class="manage-section-subtitle">Maturity and evidence boundary (<code>local</code> vs staging/live) with blockers and promotion eligibility.</p>
+            <pre id="gov-capability-matrix" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Validator Registry</h2>
-            <p class="muted">Unavailable validators must never count as passing. Observer diagnostics remain non-blocking unless policy upgrades them.</p>
-            <pre id="gov-validator-registry" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Validators</p>
+            <h4>Validator Registry</h4>
+            <p class="manage-section-subtitle">Unavailable validators must never count as passing. Observer diagnostics remain non-blocking unless policy upgrades them.</p>
+            <pre id="gov-validator-registry" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Langfuse / MCP Evidence</h2>
-            <p class="muted">Credential readiness != score proof. Local traces are not staging/live evidence by default.</p>
-            <pre id="gov-evidence" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Evidence</p>
+            <h4>Langfuse / MCP</h4>
+            <p class="manage-section-subtitle">Credential readiness ≠ score proof. Local traces are not staging/live evidence by default.</p>
+            <pre id="gov-evidence" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Runtime Aspect Ledger Inspector</h2>
-            <p class="muted">Latest turn ledger + runtime_intelligence_projection with optional aspect filtering and export payload.</p>
-            <pre id="gov-ledger" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Inspector</p>
+            <h4>Runtime Aspect Ledger</h4>
+            <p class="manage-section-subtitle">Latest turn ledger + runtime_intelligence_projection with optional aspect filtering and export payload.</p>
+            <pre id="gov-ledger" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Narrative Runtime Systems</h2>
-            <p class="muted">Maps observed narrative systems to runtime projection status and evidence level.</p>
-            <pre id="gov-narrative-systems" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Narrative</p>
+            <h4>Runtime Systems</h4>
+            <p class="manage-section-subtitle">Maps observed narrative systems to runtime projection status and evidence level.</p>
+            <pre id="gov-narrative-systems" class="mui-json-pre">Loading...</pre>
         </article>
-        <article class="mui-inspector-card">
-            <h2>Feature Flag / Policy Ownership</h2>
-            <p class="muted">Classifies `admin_editable`, `admin_read_only`, `env_only`, `backend_config_owned`, and dangerous exposure risk.</p>
-            <pre id="gov-feature-flags" class="manage-json-box">Loading...</pre>
+        <article class="mui-card">
+            <p class="mui-card-meta">Policy</p>
+            <h4>Feature Flag Ownership</h4>
+            <p class="manage-section-subtitle">Classifies <code>admin_editable</code>, <code>admin_read_only</code>, <code>env_only</code>, <code>backend_config_owned</code>, and dangerous exposure risk.</p>
+            <pre id="gov-feature-flags" class="mui-json-pre">Loading...</pre>
         </article>
     </div>
 </section>

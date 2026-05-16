@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -715,10 +717,165 @@ def get_observability_credential_for_runtime(secret_name: str) -> Optional[str]:
         return None
 
 
-def test_observability_connection(actor: str = "system") -> dict[str, Any]:
-    """Test connection to Langfuse service."""
-    config = get_observability_config()
+_LANGFUSE_EU_BASE_URL = "https://cloud.langfuse.com"
+_LANGFUSE_US_BASE_URL = "https://us.cloud.langfuse.com"
 
+
+def _langfuse_credential_diagnostics(public_key: str, secret_key: str) -> dict[str, Any]:
+    prefix = public_key[:20] + "..." if len(public_key) > 20 else public_key
+    return {
+        "public_key_configured": bool(public_key),
+        "secret_key_configured": bool(secret_key),
+        "public_key_prefix": prefix,
+        "public_key_format_ok": public_key.startswith("pk-"),
+        "secret_key_format_ok": secret_key.startswith("sk-"),
+    }
+
+
+def _alternate_langfuse_base_url(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    if "us.cloud.langfuse.com" in normalized:
+        return _LANGFUSE_EU_BASE_URL
+    return _LANGFUSE_US_BASE_URL
+
+
+def _langfuse_projects_for_host(*, public_key: str, secret_key: str, base_url: str) -> tuple[bool, list[str], str | None]:
+    """Return whether auth succeeds on ``base_url`` and visible project names."""
+    import langfuse
+
+    client = langfuse.Langfuse(public_key=public_key, secret_key=secret_key, base_url=base_url)
+    try:
+        projects = client.api.projects.get()
+        names = [str(getattr(item, "name", "") or "") for item in (projects.data or [])]
+        if not names:
+            return False, [], "auth_check returned no projects for these credentials"
+        return True, names, None
+    except Exception as exc:
+        return False, [], str(exc)
+    finally:
+        try:
+            client.shutdown()
+        except Exception:
+            pass
+
+
+def _resolve_langfuse_base_url_for_credentials(
+    *,
+    public_key: str,
+    secret_key: str,
+    configured_base_url: str,
+) -> tuple[str | None, str | None | str, list[str]]:
+    """Pick the Langfuse host that accepts backend credentials.
+
+    Returns ``(resolved_base_url, host_mismatch_or_auth_error, project_names)``.
+  When auth fails on both hosts, the second value is an error string and the first is None.
+    """
+    configured = configured_base_url.rstrip("/")
+    alternate = _alternate_langfuse_base_url(configured)
+    last_error: str | None = None
+
+    for candidate in (configured, alternate):
+        ok, names, err = _langfuse_projects_for_host(
+            public_key=public_key,
+            secret_key=secret_key,
+            base_url=candidate,
+        )
+        if ok:
+            if candidate != configured:
+                return (
+                    candidate,
+                    (
+                        f"Credentials authenticate against {candidate}, but BASE URL is {configured}. "
+                        f"Set BASE URL to {candidate}, save configuration, then re-test."
+                    ),
+                    names,
+                )
+            return candidate, None, names
+        last_error = err
+
+    return None, last_error or "Langfuse auth failed on configured and alternate region hosts.", []
+
+
+def _parse_langfuse_forbidden_message(response_text: str) -> str | None:
+    """Extract Langfuse ``ForbiddenError`` message from an HTTP response body."""
+    text = (response_text or "").strip()
+    if not text:
+        return None
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return text[:500] if text else None
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+    return text[:500]
+
+
+def _langfuse_otlp_forbidden_detail(*, base_url: str, public_key: str, secret_key: str) -> str | None:
+    """Return Langfuse OTLP 403 body when ingest is forbidden (e.g. usage quota)."""
+    import base64
+
+    import httpx
+    from langfuse._version import __version__ as langfuse_sdk_version
+
+    endpoint = f"{base_url.rstrip('/')}/api/public/otel/v1/traces"
+    basic = base64.b64encode(f"{public_key}:{secret_key}".encode("utf-8")).decode("ascii")
+    headers = {
+        "Authorization": f"Basic {basic}",
+        "Content-Type": "application/x-protobuf",
+        "x-langfuse-sdk-name": "python",
+        "x-langfuse-sdk-version": langfuse_sdk_version,
+        "x-langfuse-public-key": public_key,
+    }
+    try:
+        response = httpx.post(endpoint, headers=headers, content=b"", timeout=20.0)
+    except httpx.HTTPError:
+        return None
+    if response.status_code != 403:
+        return None
+    return _parse_langfuse_forbidden_message(response.text)
+
+
+@contextmanager
+def _capture_otel_export_errors():
+    """Collect OpenTelemetry exporter errors raised during Langfuse flush."""
+    collected: list[str] = []
+
+    class _Collector(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            message = record.getMessage()
+            if "export span batch" in message or "Failed to export" in message:
+                collected.append(message)
+
+    handler = _Collector()
+    otel_logger = logging.getLogger("opentelemetry.exporter.otlp.proto.http.trace_exporter")
+    previous_level = otel_logger.level
+    otel_logger.addHandler(handler)
+    otel_logger.setLevel(logging.ERROR)
+    try:
+        yield collected
+    finally:
+        otel_logger.removeHandler(handler)
+        otel_logger.setLevel(previous_level)
+
+
+def verify_langfuse_runtime_connectivity(
+    *,
+    poll_attempts: int = 20,
+    poll_interval_s: float = 1.0,
+) -> dict[str, Any]:
+    """Verify Langfuse Cloud using governed backend DB credentials (same path as runtime)."""
+    try:
+        import langfuse
+    except ImportError:
+        return {
+            "ok": False,
+            "health_status": "sdk_missing",
+            "message": "langfuse Python package is not installed",
+        }
+
+    config = get_observability_config()
     if not config.get("is_enabled"):
         return {
             "ok": False,
@@ -726,19 +883,206 @@ def test_observability_connection(actor: str = "system") -> dict[str, Any]:
             "message": "Langfuse observability is disabled",
         }
 
-    secret_key = get_observability_credential_for_runtime("secret_key")
-    if not secret_key:
+    public_key = (get_observability_credential_for_runtime("public_key") or "").strip()
+    secret_key = (get_observability_credential_for_runtime("secret_key") or "").strip()
+    diagnostics = _langfuse_credential_diagnostics(public_key, secret_key)
+    base_payload = {
+        "credentials_source": "backend_observability_credentials",
+        "diagnostics": diagnostics,
+    }
+
+    if not public_key or not secret_key:
+        missing = []
+        if not public_key:
+            missing.append("public_key")
+        if not secret_key:
+            missing.append("secret_key")
         return {
+            **base_payload,
             "ok": False,
             "health_status": "credential_missing",
-            "message": "Langfuse credentials not configured",
+            "message": (
+                "Langfuse credentials incomplete in backend storage ("
+                + ", ".join(missing)
+                + "). Re-save both Public Key and Secret Key in the Credentials panel."
+            ),
+        }
+
+    if not diagnostics["public_key_format_ok"] or not diagnostics["secret_key_format_ok"]:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "credential_invalid",
+            "message": (
+                "Stored Langfuse keys do not look valid (expected pk-*/sk-* prefixes). "
+                "Paste fresh keys from Langfuse → Settings → API Keys and save both fields."
+            ),
+        }
+
+    configured_base_url = str(config.get("base_url") or _LANGFUSE_EU_BASE_URL).rstrip("/")
+    environment = str(config.get("environment") or "development")
+    release = str(config.get("release") or "unknown")
+    sample_rate = float(config.get("sample_rate") or 1.0)
+
+    resolved_base_url, host_issue, project_names = _resolve_langfuse_base_url_for_credentials(
+        public_key=public_key,
+        secret_key=secret_key,
+        configured_base_url=configured_base_url,
+    )
+    if resolved_base_url is None:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "auth_failed",
+            "message": (
+                "Backend-stored Langfuse keys failed auth on both EU and US hosts: "
+                f"{host_issue}"
+            ),
+            "base_url": configured_base_url,
+            "alternate_base_url": _alternate_langfuse_base_url(configured_base_url),
+        }
+
+    if host_issue:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "host_mismatch",
+            "message": str(host_issue),
+            "base_url": configured_base_url,
+            "resolved_base_url": resolved_base_url,
+            "langfuse_projects": project_names,
+        }
+
+    base_url = resolved_base_url
+    client = langfuse.Langfuse(
+        public_key=public_key,
+        secret_key=secret_key,
+        base_url=base_url,
+        environment=environment,
+        release=release,
+        sample_rate=sample_rate,
+    )
+
+    trace_id = None
+    export_errors: list[str] = []
+    try:
+        with _capture_otel_export_errors() as export_errors:
+            with client.start_as_current_observation(
+                as_type="span",
+                name="world_of_shadows.connection_test",
+                metadata={"source": "backend_observability_connection_test"},
+            ) as span:
+                trace_id = client.get_current_trace_id()
+                span.update(output={"status": "probe"})
+            client.flush()
+    except Exception as exc:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "export_failed",
+            "message": f"Failed to export Langfuse probe trace with backend credentials: {exc}",
+            "base_url": base_url,
+            "langfuse_projects": project_names,
+        }
+
+    forbidden_exports = [line for line in export_errors if "403" in line or "Forbidden" in line]
+    if forbidden_exports:
+        forbidden_detail = _langfuse_otlp_forbidden_detail(
+            base_url=base_url,
+            public_key=public_key,
+            secret_key=secret_key,
+        )
+        detail_lower = (forbidden_detail or "").lower()
+        if "usage threshold" in detail_lower or "ingestion suspended" in detail_lower:
+            health_status = "usage_limit_exceeded"
+            message = (
+                "Langfuse Cloud suspended trace ingestion for this project (usage/quota limit). "
+                "API keys are valid; upgrade the Langfuse plan or reduce usage, then re-test. "
+                f"Langfuse says: {forbidden_detail}"
+            )
+        else:
+            health_status = "ingest_forbidden"
+            message = (
+                "Langfuse rejected trace ingest (OTLP HTTP 403). Keys authenticate via REST but cannot "
+                "write traces. If keys were recently rotated, re-save both in Credentials. "
+                f"Detail: {forbidden_detail or forbidden_exports[-1]}"
+            )
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": health_status,
+            "message": message,
+            "langfuse_detail": forbidden_detail,
+            "base_url": base_url,
+            "environment": environment,
+            "langfuse_projects": project_names,
+        }
+
+    if not trace_id:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "export_failed",
+            "message": "Langfuse probe did not produce a trace id",
+            "base_url": base_url,
+            "langfuse_projects": project_names,
+        }
+
+    last_error: Exception | None = None
+    fetched = None
+    for _ in range(poll_attempts):
+        try:
+            fetched = client.api.trace.get(trace_id)
+            break
+        except Exception as exc:
+            last_error = exc
+            time.sleep(poll_interval_s)
+
+    trace_url = client.get_trace_url(trace_id=trace_id)
+    try:
+        client.shutdown()
+    except Exception:
+        pass
+
+    if fetched is None:
+        return {
+            **base_payload,
+            "ok": False,
+            "health_status": "ingest_delayed",
+            "message": (
+                f"Probe trace {trace_id} flushed but not yet queryable in Langfuse Cloud: {last_error}"
+            ),
+            "base_url": base_url,
+            "environment": environment,
+            "trace_id": trace_id,
+            "trace_url": trace_url,
+            "langfuse_projects": project_names,
         }
 
     return {
+        **base_payload,
         "ok": True,
         "health_status": "connected",
-        "message": "Connection successful",
+        "message": "Connection successful; probe trace verified in Langfuse Cloud",
+        "base_url": base_url,
+        "environment": environment,
+        "trace_id": trace_id,
+        "trace_url": trace_url,
+        "verified_trace_id": getattr(fetched, "id", trace_id),
+        "langfuse_projects": project_names,
     }
+
+
+def test_observability_connection(actor: str = "system") -> dict[str, Any]:
+    """Test Langfuse using the same backend-stored credentials as runtime tracing."""
+    result = verify_langfuse_runtime_connectivity(poll_attempts=15, poll_interval_s=1.0)
+    logger.info(
+        "Langfuse connection test by %s: %s (%s)",
+        actor,
+        result.get("health_status"),
+        result.get("message"),
+    )
+    return result
 
 
 def update_observability_config(config_dict: dict[str, Any], actor: str = "system") -> dict[str, Any]:
