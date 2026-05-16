@@ -64,6 +64,9 @@ def _require_narrative_governance_feature():
     from app.auth.feature_registry import user_can_access_feature
 
     user = get_current_user()
+    # Let JWT decorators keep canonical 401/invalid-token behavior.
+    if user is None:
+        return None
     if not user_can_access_feature(user, FEATURE_MANAGE_NARRATIVE_GOVERNANCE):
         return jsonify({"ok": False, "error": {"code": "feature_forbidden", "message": "Forbidden"}}), 403
     return None

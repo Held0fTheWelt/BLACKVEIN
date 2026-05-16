@@ -97,4 +97,8 @@ def test_manage_runtime_settings_mount_points(client):
     assert "manage-rs-comparison-lines" in html
     assert "manage-rs-boundedness-lines" in html
     assert "manage-rs-change-lines" in html
+    assert "Recommended combinations" in html
+    assert "run_validation_seam" in html
+    assert "gov-tip" in html
+    assert "Source: ai_engineer_suite_service.py presets" in html
     assert "manage_runtime_settings.js" in html

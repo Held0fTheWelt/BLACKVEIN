@@ -86,3 +86,24 @@ def test_narrative_routes_are_feature_gated(client, moderator_headers, monkeypat
     body = response.get_json()
     assert body["ok"] is False
     assert body["error"]["code"] == "feature_forbidden"
+
+
+def test_feature_flag_governance_marks_adr_flags_env_only():
+    from app.services.governance_console_service import get_feature_flag_governance
+
+    rows = get_feature_flag_governance()["rows"]
+    by_key = {row["setting"]: row for row in rows}
+    adr = by_key["ADR0041_VALIDATOR_DISPATCH_MODE"]
+    assert adr["classification"] == "env_only"
+    assert adr["admin_surface"] == "admin_read_only"
+    assert adr["dangerous_to_expose"] is True
+
+
+def test_validator_registry_unavailable_not_counted_as_passing():
+    from app.services.governance_console_service import get_validator_registry_status
+
+    rows = get_validator_registry_status()["rows"]
+    assert rows, "expected validator registry rows"
+    unavailable = [row for row in rows if not row["available"]]
+    assert unavailable, "expected at least one unavailable validator for guard test"
+    assert all(row["passes_availability_gate"] is False for row in unavailable)

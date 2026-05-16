@@ -642,6 +642,35 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Governance tooltip interactions (hover/focus + click/tap)
+  // ---------------------------------------------------------------------------
+  function closeGovTips(scope, exceptEl) {
+    (scope || document).querySelectorAll(".gov-tip.is-open").forEach(function (tip) {
+      if (exceptEl && tip === exceptEl) return;
+      tip.classList.remove("is-open");
+      tip.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function bindGovTip(tip) {
+    if (!tip || tip.__govTipBound) return;
+    tip.__govTipBound = true;
+    tip.setAttribute("aria-expanded", "false");
+    tip.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var opening = !tip.classList.contains("is-open");
+      closeGovTips(document, opening ? tip : null);
+      tip.classList.toggle("is-open", opening);
+      tip.setAttribute("aria-expanded", opening ? "true" : "false");
+    });
+  }
+
+  function autoBindGovTips(root) {
+    (root || document).querySelectorAll(".gov-tip").forEach(bindGovTip);
+  }
+
+  // ---------------------------------------------------------------------------
   // Inline action result (text appears next to a button after action)
   // ---------------------------------------------------------------------------
   ManageUI.setInlineResult = function (target, kind, message) {
@@ -662,6 +691,11 @@
     autoBindRails(document);
     autoBindDecks(document);
     autoBindDirtyForms(document);
+    autoBindGovTips(document);
+    document.addEventListener("click", function () { closeGovTips(document); });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeGovTips(document);
+    });
   }
 
   if (document.readyState === "loading") {
@@ -677,5 +711,6 @@
     autoBindRails(root);
     autoBindDecks(root);
     autoBindDirtyForms(root);
+    autoBindGovTips(root);
   };
 })();

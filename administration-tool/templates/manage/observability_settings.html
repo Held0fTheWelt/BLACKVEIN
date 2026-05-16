@@ -41,6 +41,25 @@
     <div id="manage-obs-status-row" class="visually-hidden" hidden>
         <p id="manage-obs-status-headline"></p>
     </div>
+    <section class="gov-help-row" aria-label="Langfuse guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>Credential readiness vs proof</h4>
+                <p>Credential-ready means backend can access Langfuse config/keys. It does <strong>not</strong> prove required runtime scores were emitted.</p>
+                <span class="gov-help-source">Source: observability_governance_routes.py + governance evidence contract</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Local trace boundary</h4>
+                <p>A local trace export is local evidence only. Do not claim staging/live proof unless environment and query evidence confirm it.</p>
+                <span class="gov-help-source">Source: ADR-0039 evidence quality rules</span>
+            </article>
+            <article class="gov-help-card gov-help-card--danger">
+                <h4>Danger zone impact</h4>
+                <p>Disable clears configuration/credentials. This is operationally destructive and should be used only for rollback/emergency posture.</p>
+                <span class="gov-help-source">Source: observability_governance_routes.py disable endpoint</span>
+            </article>
+        </div>
+    </section>
 
     <div class="mui-deck" data-mui-deck>
 
@@ -136,7 +155,11 @@
                                 <span class="mui-field-hint">Langfuse API endpoint — <code>https://cloud.langfuse.com</code> (cloud) or <code>http://localhost:3000</code> (self-hosted).</span>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Environment</span>
+                                <span class="mui-field-label gov-inline-label">Environment
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Used as evidence tier context (`development`, `staging`, `production`). Environment label alone is not runtime score proof.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-obs-environment" class="form-input">
                                     <option value="development">development</option>
                                     <option value="staging">staging</option>
@@ -148,12 +171,20 @@
                                 <input type="text" id="manage-obs-release" class="form-input" value="unknown" placeholder="e.g. 1.0.0 or git-abc123f" />
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Sample rate (0.0–1.0)</span>
+                                <span class="mui-field-label gov-inline-label">Sample rate (0.0–1.0)
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Controls trace volume only. Lower rates reduce observability coverage and may hide failures in sparse sessions.</span>
+                                    </span>
+                                </span>
                                 <input type="number" id="manage-obs-sample-rate" class="form-input" min="0" max="1" step="0.1" value="1.0" />
                                 <span class="mui-field-hint">Fraction of traces sent (0 = none, 1 = all).</span>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Redaction mode</span>
+                                <span class="mui-field-label gov-inline-label">Redaction mode
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">`strict` is recommended for governed runtime traces. `none` is test-only and dangerous for sensitive payloads.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-obs-redaction-mode" class="form-input">
                                     <option value="strict" selected>strict (max privacy)</option>
                                     <option value="relaxed">relaxed (fewer masks)</option>

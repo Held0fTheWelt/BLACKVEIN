@@ -38,6 +38,25 @@
     {# Legacy banners — ManageUI auto-binds these to toast notifications and hides them. #}
     <p id="manage-og-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
     <p id="manage-og-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <section class="gov-help-row" aria-label="Operational governance guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>How these controls fit together</h4>
+                <p>Providers + Models + Routes define executable AI paths. Runtime modes only choose how those paths are used at runtime.</p>
+                <span class="gov-help-source">Source: governance_runtime_service.py list/update runtime entities</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Safe operator sequence</h4>
+                <p>1) configure provider credentials, 2) verify model and route wiring, 3) check readiness blockers, 4) then switch generation/provider modes.</p>
+                <span class="gov-help-source">Source: evaluate_runtime_readiness() blockers and suggested_action</span>
+            </article>
+            <article class="gov-help-card gov-help-card--danger">
+                <h4>Promotion warning</h4>
+                <p>Green readiness here is operational posture, not Capability Matrix live promotion. Use evidence policy before any status promotion.</p>
+                <span class="gov-help-source">Source: capability_matrix_live_claim_gates.md</span>
+            </article>
+        </div>
+    </section>
 
     {# Source-of-truth <select> elements for the rails (visually hidden, still tab-focusable for power users). #}
     <div class="mui-rail-source-wrap" aria-hidden="false" style="position:absolute;left:-9999px;">
@@ -337,7 +356,11 @@
                     <div class="mui-inspector-body">
                         <div class="mui-field-grid">
                             <label class="mui-field">
-                                <span class="mui-field-label">Generation</span>
+                                <span class="mui-field-label gov-inline-label">Generation
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">`mock_only` is fallback-safe. Routed or ai-only requires provider/model/route readiness and does not itself prove staging/live quality.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-og-generation-mode" class="form-input">
                                     <option value="mock_only">mock_only</option>
                                     <option value="ai_only">ai_only</option>
@@ -362,7 +385,11 @@
                                 </select>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Provider selection</span>
+                                <span class="mui-field-label gov-inline-label">Provider selection
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Controls local vs remote provider preference. Remote modes require credential readiness; missing credentials should remain blocker state.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-og-provider-selection" class="form-input">
                                     <option value="local_only">local_only</option>
                                     <option value="remote_allowed">remote_allowed</option>
@@ -371,7 +398,11 @@
                                 </select>
                             </label>
                             <label class="mui-field mui-field-full">
-                                <span class="mui-field-label">Runtime profile</span>
+                                <span class="mui-field-label gov-inline-label">Runtime profile
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Policy intent profile for runtime behavior. Verify resolved output below because guardrails may cap requested values.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-og-runtime-profile" class="form-input">
                                     <option value="safe_local">safe_local</option>
                                     <option value="balanced">balanced</option>

@@ -38,3 +38,21 @@ def test_governance_console_template_mounts_all_required_views(client):
     assert "Langfuse / MCP Evidence" in html
     assert "Runtime Aspect Ledger Inspector" in html
     assert "manage_governance_console.js" in html
+
+
+def test_governance_console_includes_adr0041_and_evidence_guidance(client):
+    response = client.get("/manage/governance-console")
+    html = response.get_data(as_text=True)
+    assert "ADR-0041 critical flags" in html
+    assert "cannot upgrade reject" in html
+    assert "Credential readiness != score proof" in html
+    assert "admin_read_only" in html
+    assert "env_only (ADR flags)" in html
+
+
+def test_runtime_config_truth_template_includes_probe_warning(client):
+    response = client.get("/manage/runtime/config-truth")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "`requires_http_probe` is not ready" in html
+    assert "False-green prevention" in html

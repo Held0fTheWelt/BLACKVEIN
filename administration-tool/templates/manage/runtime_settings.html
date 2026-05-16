@@ -37,6 +37,32 @@
     <p id="manage-rs-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
     <p id="manage-sre-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
     <p id="manage-sre-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <section class="gov-help-row" aria-label="Runtime guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>Recommended combinations</h4>
+                <p><strong>Local development:</strong> `safe_local`, `mock_only`, `local_only`, retrieval `disabled` or `sparse_only`.</p>
+                <p><strong>Staging validation:</strong> `balanced` or `quality_first`, provider/model/route readiness green, Langfuse enabled, MCP diagnostics clean.</p>
+                <p><strong>Runtime authority pilot:</strong> ADR-0041 plan-enforced surfaces may be observed, but proof remains `local_only` unless staging evidence exists.</p>
+                <span class="gov-help-source">Source: ai_engineer_suite_service.py presets + governance_runtime_service readiness</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Evidence boundary</h4>
+                <p>Runtime Settings tune behavior. They do <strong>not</strong> promote Capability Matrix maturity or live/staging proof.</p>
+                <p>Use Governance Console evidence panels for `local_only` vs staging/live claims.</p>
+                <span class="gov-help-source">Source: ADR-0039 + capability_matrix_live_claim_gates.md</span>
+            </article>
+            <article class="gov-help-card gov-help-card--danger">
+                <h4>Authority boundary</h4>
+                <p>These controls do not grant commit authority to ADR-0041. `run_validation_seam` remains canonical for commit/validation outcome.</p>
+                <div class="gov-chip-row">
+                    <span class="gov-chip gov-chip--readonly">read-only authority</span>
+                    <span class="gov-chip gov-chip--env">env-owned ADR flags</span>
+                </div>
+                <span class="gov-help-source">Source: runtime_readiness_consumer.py + ADR-0041</span>
+            </article>
+        </div>
+    </section>
 
     <div class="mui-deck" data-mui-deck>
 
@@ -123,7 +149,11 @@
                         <p class="mui-subgroup-title">Execution modes</p>
                         <div class="mui-field-grid">
                             <label class="mui-field">
-                                <span class="mui-field-label">Generation</span>
+                                <span class="mui-field-label gov-inline-label">Generation
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Controls model-generation path. `mock_only` is safest local baseline; routed/ai modes require provider+route readiness and are not live proof by themselves.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-rs-generation-mode" class="form-input">
                                     <option value="mock_only">mock_only</option>
                                     <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
@@ -132,14 +162,22 @@
                                 </select>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Validation</span>
+                                <span class="mui-field-label gov-inline-label">Validation
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Schema checks are baseline. Semantic mode adds richer validation but does not change commit authority boundaries.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-rs-validation-mode" class="form-input">
                                     <option value="schema_only">schema_only</option>
                                     <option value="schema_plus_semantic">schema_plus_semantic</option>
                                 </select>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Provider selection</span>
+                                <span class="mui-field-label gov-inline-label">Provider selection
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">`local_only` keeps runtime offline-safe. Remote modes require configured credentials/routes. Readiness blockers must be green before non-mock claims.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-rs-provider-mode" class="form-input">
                                     <option value="local_only">local_only</option>
                                     <option value="restricted_by_route">restricted_by_route</option>
@@ -148,7 +186,11 @@
                                 </select>
                             </label>
                             <label class="mui-field">
-                                <span class="mui-field-label">Runtime profile</span>
+                                <span class="mui-field-label gov-inline-label">Runtime profile
+                                    <span class="gov-tip" tabindex="0">i
+                                        <span class="gov-tip-pop">Preset intent profile. Effective values may still be bounded by runtime guardrails; verify in Effective config panel.</span>
+                                    </span>
+                                </span>
                                 <select id="manage-rs-runtime-profile" class="form-input">
                                     <option value="safe_local">safe_local</option>
                                     <option value="balanced">balanced</option>
@@ -163,7 +205,11 @@
                             <p class="mui-subgroup-title">Retrieval</p>
                             <div class="mui-field-grid">
                                 <label class="mui-field">
-                                    <span class="mui-field-label">Mode</span>
+                                    <span class="mui-field-label gov-inline-label">Mode
+                                        <span class="gov-tip" tabindex="0">i
+                                            <span class="gov-tip-pop">Retrieval mode changes context sourcing only. It does not prove RAG quality unless traces/scores validate behavior in Langfuse/MCP evidence surfaces.</span>
+                                        </span>
+                                    </span>
                                     <select id="manage-rs-retrieval-mode" class="form-input">
                                         <option value="disabled">disabled</option>
                                         <option value="sparse_only">sparse_only</option>

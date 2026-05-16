@@ -4,7 +4,7 @@
 <section class="manage-section" data-page="runtime-config-truth">
     <header class="mui-deck-header">
         <div>
-            <p class="mui-deck-eyebrow">Runtime · Config Truth</p>
+            <p class="mui-deck-eyebrow">Runtime &middot; Config Truth</p>
             <h1>Configuration Truth</h1>
             <p class="mui-deck-headline">What's configured, what's actually effective, and what the runtime has loaded. Helps identify mismatches between policy and practice.</p>
         </div>
@@ -16,6 +16,25 @@
 
     <p id="config-truth-error" class="form-error mui-legacy-hidden" hidden role="alert"></p>
     <p id="config-truth-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <section class="gov-help-row" aria-label="Runtime config truth guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>How to read this page</h4>
+                <p>Configured = DB intent, Effective = backend resolved values, Loaded = runtime-probed state, Connectivity = HTTP reachability only.</p>
+                <span class="gov-help-source">Source: runtime_config_truth_service.py</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>`requires_http_probe` is not ready</h4>
+                <p>Probe-required states are explicitly unverified and must not be interpreted as healthy or ready.</p>
+                <span class="gov-help-source">Source: runtime_config_truth_service._build_truth_summary()</span>
+            </article>
+            <article class="gov-help-card gov-help-card--danger">
+                <h4>False-green prevention</h4>
+                <p>A green DB/effective config without runtime probe proof is incomplete. Resolve probe endpoints before readiness claims.</p>
+                <span class="gov-help-source">Source: ADR-0039 false-green policy</span>
+            </article>
+        </div>
+    </section>
 
     <!-- Summary Status -->
     <section class="panel config-truth-summary" style="margin-bottom:1rem;">
@@ -198,3 +217,4 @@
 </style>
 
 <script src="{{ url_for('static', filename='manage_runtime_config_truth.js') }}"></script>
+{% endblock %}

@@ -23,7 +23,7 @@
             </label>
             <label class="form-field">
                 <span class="form-label">Module ID (narrative)</span>
-                <input id="gov-console-module-id" class="form-input" type="text" value="god_of_carnage" />
+                <input id="gov-console-module-id" class="form-input" type="text" placeholder="optional module id" />
             </label>
             <button type="button" class="btn btn-primary" id="gov-console-refresh">Refresh</button>
         </div>
@@ -31,38 +31,99 @@
 
     <p id="gov-console-error" class="form-error" hidden role="alert"></p>
     <p id="gov-console-status" class="manage-state manage-state--ok" hidden role="status" aria-live="polite"></p>
+    <section class="gov-help-row" aria-label="Governance console guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>Read-only authority surface</h4>
+                <p>This console is inspection-first. It does not introduce writable controls for ADR-0041 flags, readiness, or capability promotion.</p>
+                <div class="gov-chip-row">
+                    <span class="gov-chip gov-chip--readonly">admin_read_only</span>
+                    <span class="gov-chip gov-chip--env">env_only (ADR flags)</span>
+                </div>
+                <span class="gov-help-source">Source: governance_console_routes.py + governance_console_service.py</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Runtime readiness policy</h4>
+                <p>`run_validation_seam` remains canonical. ADR-0041 can veto readiness in bounded scopes, but cannot upgrade reject → allow and cannot take commit authority.</p>
+                <span class="gov-help-source">Source: runtime_readiness_consumer.py + ADR-0041</span>
+            </article>
+            <article class="gov-help-card gov-help-card--danger">
+                <h4>Evidence promotion rule</h4>
+                <p>Local traces/tests/projections are local proof only. Capability promotion to staging/live requires explicit evidence policy gates and external proof.</p>
+                <span class="gov-help-source">Source: ADR-0039 + capability_matrix_live_claim_gates.md</span>
+            </article>
+        </div>
+    </section>
+
+    <section class="gov-help-row" aria-label="AI runtime recommendations">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>What should I choose?</h4>
+                <p><strong>Local development:</strong> deterministic validators, `safe_local` posture, optional Langfuse, no staging/live claims.</p>
+                <p><strong>Staging validation:</strong> provider credentials + Langfuse + MCP verification + readiness blockers cleared.</p>
+                <p><strong>Runtime authority pilot:</strong> ADR-0041 plan/projection flags with bounded co-authority diagnostics, still local-only until staging evidence exists.</p>
+                <p><strong>Production/live:</strong> only governance-approved flags, no env-only UI mutations, evidence-backed claims.</p>
+                <span class="gov-help-source">Source: ai_engineer_suite_service.py presets + ADR-0041 + capability matrix docs</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>ADR-0041 critical flags</h4>
+                <p>`ADR0041_VALIDATOR_DISPATCH_MODE`, `ADR0041_SCOPED_CO_AUTHORITY_ENABLED`, `ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED`, `ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED`, `ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED`, `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED`, `ADR0041_PLAN_PROJECTION_ENABLED`.</p>
+                <p>All are env-governed and shown as read-only markers in Feature Flag / Policy Ownership.</p>
+                <span class="gov-help-source">Source: runtime_aspect_ledger.py env resolvers</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>Evidence tiers</h4>
+                <p>`local_only`, `runtime_path_participation`, `staging_pending`, `staging_verified`, `live_verified` communicate proof scope; only staging/live tiers support promotion claims.</p>
+                <span class="gov-help-source">Source: capability_matrix_status_and_adr_relations.md</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>ADR-0041 decision fields</h4>
+                <p>`readiness_policy_input`, `readiness_aggregation_decision`, `runtime_readiness_consumer`, `validation_co_authority_decision`, `authority_handoff_candidate`, `partial_transfer_ready` are diagnostic/authority context fields.</p>
+                <p>They can explain readiness-veto context but do not transfer commit authority.</p>
+                <span class="gov-help-source">Source: runtime_aspect_ledger.py + runtime_readiness_consumer.py</span>
+            </article>
+        </div>
+    </section>
 
     <div class="mui-deck-grid">
         <article class="mui-inspector-card">
             <h2>Runtime Readiness Authority</h2>
+            <p class="muted">Explains `runtime_session_ready`, `can_execute`, degraded/fallback signals, and source-of-truth chain.</p>
             <pre id="gov-runtime-readiness" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>ADR-0041 Capability Authority</h2>
+            <p class="muted">Includes dispatch mode, selected turn class/capabilities, validator execution state, and readiness decision inputs.</p>
             <pre id="gov-adr0041-authority" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Capability Matrix Governance</h2>
+            <p class="muted">Shows maturity and evidence boundary (`local` vs staging/live) with blockers and promotion eligibility.</p>
             <pre id="gov-capability-matrix" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Validator Registry</h2>
+            <p class="muted">Unavailable validators must never count as passing. Observer diagnostics remain non-blocking unless policy upgrades them.</p>
             <pre id="gov-validator-registry" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Langfuse / MCP Evidence</h2>
+            <p class="muted">Credential readiness != score proof. Local traces are not staging/live evidence by default.</p>
             <pre id="gov-evidence" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Runtime Aspect Ledger Inspector</h2>
+            <p class="muted">Latest turn ledger + runtime_intelligence_projection with optional aspect filtering and export payload.</p>
             <pre id="gov-ledger" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Narrative Runtime Systems</h2>
+            <p class="muted">Maps observed narrative systems to runtime projection status and evidence level.</p>
             <pre id="gov-narrative-systems" class="manage-json-box">Loading...</pre>
         </article>
         <article class="mui-inspector-card">
             <h2>Feature Flag / Policy Ownership</h2>
+            <p class="muted">Classifies `admin_editable`, `admin_read_only`, `env_only`, `backend_config_owned`, and dangerous exposure risk.</p>
             <pre id="gov-feature-flags" class="manage-json-box">Loading...</pre>
         </article>
     </div>

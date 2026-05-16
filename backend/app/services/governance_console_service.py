@@ -441,8 +441,12 @@ def get_runtime_aspect_ledger_view(*, session_id: str | None = None, aspect_filt
 
 
 def get_narrative_systems_governance(*, module_id: str | None = None, session_id: str | None = None) -> dict[str, Any]:
-    selected_module = str(module_id or "").strip() or "god_of_carnage"
     ctx = _session_context(session_id)
+    selected_module = (
+        str(module_id or "").strip()
+        or str(ctx["state"].get("module_id") or "").strip()
+        or "runtime_module"
+    )
     rip = ctx["runtime_intelligence_projection"]
     summary: dict[str, Any] = {}
     warnings: list[str] = list(ctx["warnings"])
@@ -450,31 +454,13 @@ def get_narrative_systems_governance(*, module_id: str | None = None, session_id
         summary = runtime_gov_summary(selected_module)
     except NarrativeGovernanceError as exc:
         warnings.append(str(exc))
-    systems = [
-        ("beat_state", "Beat state", "diagnostics_only"),
-        ("narrator_authority", "Narrator authority", "runtime"),
-        ("npc_agency", "NPC agency", "runtime"),
-        ("callback_web", "Callback web", "runtime"),
-        ("consequence_cascade", "Consequence cascade", "runtime"),
-        ("relationship_state", "Relationship state", "runtime"),
-        ("social_pressure", "Social pressure", "runtime"),
-        ("narrative_momentum", "Narrative momentum", "runtime"),
-        ("expectation_variation", "Expectation variation", "runtime"),
-        ("temporal_control", "Temporal control", "runtime"),
-        ("symbolic_object_resonance", "Symbolic object resonance", "runtime"),
-        ("sensory_context", "Sensory context", "runtime"),
-        ("dramatic_irony", "Dramatic irony", "runtime"),
-        ("information_disclosure", "Information disclosure", "runtime"),
-        ("silence_negative_space", "Silence/negative space", "diagnostics_only"),
-        ("voice_consistency", "Voice consistency", "runtime"),
-        ("tonal_consistency", "Tonal consistency", "diagnostics_only"),
-        ("thematic_tracking", "Thematic tracking", "diagnostics_only"),
-        ("improvisational_coherence", "Improvisational coherence", "diagnostics_only"),
-        ("meta_narrative_awareness", "Meta narrative awareness", "diagnostics_only"),
-    ]
     rows: list[dict[str, Any]] = []
-    for key, label, impact in systems:
+    projection_keys = sorted(str(key) for key in rip.keys())
+    for key in projection_keys:
+        label = str(key).replace("_", " ").strip().title() or "Runtime Aspect"
         present = key in rip
+        payload = rip.get(key)
+        impact = "runtime" if isinstance(payload, dict) else "diagnostics_only"
         rows.append(
             {
                 "system_id": key,
@@ -489,6 +475,8 @@ def get_narrative_systems_governance(*, module_id: str | None = None, session_id
                 "policy_file": None,
             }
         )
+    if not rows:
+        warnings.append("No runtime_intelligence_projection systems available for selected session/module.")
     return {
         "module_id": selected_module,
         "session_id": ctx["session_id"],
@@ -501,6 +489,30 @@ def get_narrative_systems_governance(*, module_id: str | None = None, session_id
 def get_feature_flag_governance() -> dict[str, Any]:
     mode, mode_warnings = resolve_validator_dispatch_mode()
     rows = [
+        {
+            "setting": "manage.ai_runtime_governance",
+            "value": True,
+            "classification": "backend_config_owned",
+            "admin_surface": "admin_editable",
+            "dangerous_to_expose": False,
+            "warnings": [],
+        },
+        {
+            "setting": "manage.narrative_governance",
+            "value": True,
+            "classification": "backend_config_owned",
+            "admin_surface": "admin_editable",
+            "dangerous_to_expose": False,
+            "warnings": [],
+        },
+        {
+            "setting": "manage.mcp_operations",
+            "value": True,
+            "classification": "backend_config_owned",
+            "admin_surface": "admin_editable",
+            "dangerous_to_expose": False,
+            "warnings": [],
+        },
         {
             "setting": "ADR0041_VALIDATOR_DISPATCH_MODE",
             "value": mode.value,
