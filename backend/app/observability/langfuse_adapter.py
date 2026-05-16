@@ -18,7 +18,10 @@ import logging
 from datetime import datetime
 from contextvars import ContextVar
 
-from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+from story_runtime_core.langfuse_tracing_environment import (
+    local_langfuse_evidence_metadata,
+    resolve_langfuse_environment,
+)
 from story_runtime_core.observability_tree_policy import (
     normalize_enabled_observation_trees,
     should_emit_observation,
@@ -239,6 +242,15 @@ class LangfuseAdapter:
             metadata=metadata,
         )
 
+    @staticmethod
+    def _with_local_evidence_metadata(metadata: Optional[dict[str, Any]]) -> dict[str, Any]:
+        """Attach opt-in local-only Langfuse evidence metadata."""
+        md = dict(metadata or {})
+        local_meta = local_langfuse_evidence_metadata()
+        if local_meta:
+            md.update(local_meta)
+        return md
+
     def start_trace(
         self,
         name: str,
@@ -268,7 +280,7 @@ class LangfuseAdapter:
             return None
 
         try:
-            trace_metadata = dict(metadata or {})
+            trace_metadata = self._with_local_evidence_metadata(metadata)
             trace_metadata.update({
                 "session_id": session_id,
                 "run_id": run_id,
@@ -377,7 +389,8 @@ class LangfuseAdapter:
         try:
             span_input = self._sanitize_metadata(input_data) if input_data and self.config.capture_prompts else None
             span_output = self._sanitize_metadata(output_data) if output_data and self.config.capture_outputs else None
-            span_metadata = self._sanitize_metadata(metadata) if metadata else None
+            span_metadata_raw = self._with_local_evidence_metadata(metadata)
+            span_metadata = self._sanitize_metadata(span_metadata_raw) if span_metadata_raw else None
 
             # v4 API: create nested span
             span = target_trace.start_observation(
@@ -429,7 +442,7 @@ class LangfuseAdapter:
             return
 
         try:
-            gen_metadata = metadata or {}
+            gen_metadata = self._with_local_evidence_metadata(metadata)
             gen_metadata.update({
                 "model": model,
                 "provider": provider,
@@ -488,7 +501,7 @@ class LangfuseAdapter:
             return
 
         try:
-            ret_metadata = metadata or {}
+            ret_metadata = self._with_local_evidence_metadata(metadata)
             ret_metadata["document_count"] = len(retrieved_documents) if retrieved_documents else 0
 
             input_data = None
@@ -542,7 +555,7 @@ class LangfuseAdapter:
             return
 
         try:
-            val_metadata = metadata or {}
+            val_metadata = self._with_local_evidence_metadata(metadata)
             val_metadata["status"] = status
 
             # v4 API: use guardrail observation type
@@ -592,7 +605,7 @@ class LangfuseAdapter:
                 name=name,
                 value=value,
                 comment=comment,
-                metadata=self._sanitize_metadata(metadata) if metadata else None,
+                metadata=self._sanitize_metadata(self._with_local_evidence_metadata(metadata)),
                 data_type=ScoreDataType.NUMERIC,
             )
         except Exception as e:
@@ -627,7 +640,8 @@ class LangfuseAdapter:
                 return None
 
             span_input = self._sanitize_metadata(input) if input and self.config.capture_prompts else None
-            span_metadata = self._sanitize_metadata(metadata) if metadata else None
+            span_metadata_raw = self._with_local_evidence_metadata(metadata)
+            span_metadata = self._sanitize_metadata(span_metadata_raw) if span_metadata_raw else None
 
             child_span = parent.start_observation(
                 as_type="span",
@@ -685,7 +699,8 @@ class LangfuseAdapter:
             out["reason"] = "no_active_langfuse_parent_observation"
             return out
         try:
-            span_metadata = self._sanitize_metadata(metadata) if metadata else None
+            span_metadata_raw = self._with_local_evidence_metadata(metadata)
+            span_metadata = self._sanitize_metadata(span_metadata_raw) if span_metadata_raw else None
             span_input = (
                 self._sanitize_metadata(input_data)
                 if input_data and self.config.capture_prompts

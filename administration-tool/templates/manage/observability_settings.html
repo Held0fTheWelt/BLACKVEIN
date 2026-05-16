@@ -152,7 +152,7 @@
                             <label class="mui-field mui-field-full">
                                 <span class="mui-field-label">Base URL</span>
                                 <input type="url" id="manage-obs-base-url" class="form-input" value="https://cloud.langfuse.com" />
-                                <span class="mui-field-hint">Langfuse API endpoint — <code>https://cloud.langfuse.com</code> (cloud) or <code>http://localhost:3000</code> (self-hosted).</span>
+                                <span class="mui-field-hint">Backend Langfuse API endpoint — <code>https://cloud.langfuse.com</code> (cloud), <code>http://langfuse-web:3000</code> from Docker, or <code>http://localhost:3000</code> only when the backend runs on the host.</span>
                             </label>
                             <label class="mui-field">
                                 <span class="mui-field-label gov-inline-label">Environment
@@ -263,7 +263,7 @@
                             <label class="mui-field mui-field-full">
                                 <span class="mui-field-label">Public key (pk_…)</span>
                                 <input type="password" id="manage-obs-public-key" class="form-input" autocomplete="new-password" />
-                                <span class="mui-field-hint">From <code>https://cloud.langfuse.com/settings/api-keys</code></span>
+                                <span class="mui-field-hint">From the selected Langfuse project's API key settings.</span>
                             </label>
                             <label class="mui-field mui-field-full">
                                 <span class="mui-field-label">Secret key (sk_…)</span>

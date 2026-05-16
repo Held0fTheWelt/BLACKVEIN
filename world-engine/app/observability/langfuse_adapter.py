@@ -12,7 +12,10 @@ from contextvars import ContextVar
 from types import SimpleNamespace
 from typing import Any, Iterator, Optional
 
-from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+from story_runtime_core.langfuse_tracing_environment import (
+    local_langfuse_evidence_metadata,
+    resolve_langfuse_environment,
+)
 from story_runtime_core.observability_tree_policy import (
     classify_observation_tree,
     normalize_enabled_observation_trees,
@@ -478,6 +481,9 @@ class LangfuseAdapter:
                 "observation_tree_id",
                 classify_observation_tree(observation_name, as_type=as_type, metadata=md),
             )
+        local_meta = local_langfuse_evidence_metadata()
+        if local_meta:
+            md.update(local_meta)
         return md
 
     def is_observation_enabled(
@@ -864,6 +870,9 @@ class LangfuseAdapter:
         if active_session_id:
             md.setdefault("session_id", active_session_id)
             md.setdefault("langfuse_session_id", active_session_id)
+        local_meta = local_langfuse_evidence_metadata()
+        if local_meta:
+            md.update(local_meta)
         return md
 
     def create_child_span(

@@ -186,6 +186,26 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     assert "session_id" not in cc_kw
 
 
+def test_langfuse_metadata_policy_marks_local_evidence(monkeypatch):
+    from app.observability import langfuse_adapter as lf_mod
+
+    monkeypatch.setenv("WOS_LANGFUSE_LOCAL_EVIDENCE", "1")
+    monkeypatch.setenv("LANGFUSE_ENVIRONMENT", "local")
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+
+    md = lf_mod.LangfuseAdapter._with_observation_policy_metadata(
+        adapter,
+        {"environment": "live", "trace_origin": "live_ui"},
+        observation_name="story.graph.path_summary",
+        as_type="span",
+    )
+
+    assert md["environment"] == "local"
+    assert md["evidence_scope"] == "local_langfuse"
+    assert md["proof_level"] == "local_only"
+    assert md["live_or_staging_evidence"] is False
+
+
 def _aspect_test_ledger() -> dict[str, Any]:
     ledger = initialize_runtime_aspect_ledger(
         session_id="story-session-aspect",
@@ -2862,6 +2882,48 @@ def test_self_correction_evidence_derived_from_graph_state():
     assert summary["self_correction_trigger_source"] == "runtime_aspect"
     assert summary["runtime_aspect_failure_before_retry"] == failure
     assert summary["self_correction_resolved_failure"] is True
+
+
+def test_path_summary_marks_local_langfuse_evidence(monkeypatch):
+    monkeypatch.setenv("WOS_LANGFUSE_LOCAL_EVIDENCE", "1")
+    monkeypatch.setenv("LANGFUSE_ENVIRONMENT", "local")
+    session = StorySession(
+        session_id="session-local-langfuse",
+        module_id="god_of_carnage",
+        runtime_projection={
+            "module_id": "god_of_carnage",
+            "human_actor_id": "annette",
+            "selected_player_role": "annette",
+            "npc_actor_ids": ["alain_reille"],
+        },
+    )
+    summary = _build_langfuse_path_summary(
+        session=session,
+        graph_state={
+            "nodes_executed": ["retrieve_context", "invoke_model", "validate_seam", "commit_seam"],
+            "generation": {"attempted": True, "success": True, "metadata": {"adapter": "openai"}},
+            "retrieval": {
+                "status": "ok",
+                "hit_count": 2,
+                "authority_level": "canonical",
+                "provenance": [{"source": "content/modules/god_of_carnage/module.yaml"}],
+            },
+            "validation_outcome": {"status": "approved", "reason": "seam_ok"},
+            "committed_result": {"commit_applied": True},
+            "quality_class": "healthy",
+        },
+        event={"turn_number": 1, "turn_kind": "scene", "visible_output_bundle": {}},
+    )
+
+    assert summary["environment"] == "local"
+    assert summary["evidence_scope"] == "local_langfuse"
+    assert summary["proof_level"] == "local_only"
+    assert summary["live_or_staging_evidence"] is False
+    assert summary["runtime_quality"] == "healthy"
+    assert summary["retrieval_authority_level"] == "canonical"
+    assert summary["retrieval_provenance"] == [
+        {"source": "content/modules/god_of_carnage/module.yaml"}
+    ]
 
 
 def test_parser_evidence_D_self_correction_attempt_surfaces_in_score_metadata(monkeypatch):

@@ -4,7 +4,10 @@ Bootstrap and run the World of Shadows stack via docker compose.
 
 Usage:
   python docker-up.py init-env     Create .env with generated secrets
-  python docker-up.py up            Start containers with full bootstrap
+  python docker-up.py up            Start containers with local Langfuse observability
+  python docker-up.py --no-langfuse up
+                                   Start app containers without local Langfuse
+  python docker-up.py langfuse-up   Explicit alias for local Langfuse observability startup
   python docker-up.py build         Build images only
   python docker-up.py restart       Restart running containers
   python docker-up.py stop          Stop containers
@@ -35,6 +38,7 @@ from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_COMPOSE = REPO_ROOT / "docker-compose.yml"
+LANGFUSE_COMPOSE = REPO_ROOT / "docker-compose.langfuse.yml"
 ENV_FILE = REPO_ROOT / ".env"
 ENV_EXAMPLE = REPO_ROOT / ".env.example"
 
@@ -48,6 +52,14 @@ REQUIRED_SECRETS = {
     "FRONTEND_SECRET_KEY": 24,
     # Backend GET /api/v1/internal/runtime-config and play-service fetch must share this token (docker-compose).
     "INTERNAL_RUNTIME_CONFIG_TOKEN": 24,
+    # Local Langfuse self-hosting secrets (used only when docker-compose.langfuse.yml is included).
+    "NEXTAUTH_SECRET": 32,
+    "SALT": 24,
+    "ENCRYPTION_KEY": 32,
+    "LANGFUSE_DB_PASSWORD": 24,
+    "CLICKHOUSE_PASSWORD": 24,
+    "MINIO_ROOT_PASSWORD": 24,
+    "REDIS_PASSWORD": 24,
 }
 
 # Keys that have default/fallback values and don't need generation
@@ -58,6 +70,29 @@ OPTIONAL_WITH_DEFAULTS = {
     "ANTHROPIC_BASE_URL": "https://api.anthropic.com",
     "ANTHROPIC_VERSION": "2023-06-01",
     "REDIS_URL": "redis://redis:6379/0",
+    "LANGFUSE_HOST": "http://langfuse-web:3000",
+    "LANGFUSE_BASE_URL": "http://langfuse-web:3000",
+    "LANGFUSE_ENVIRONMENT": "local",
+    "LANGFUSE_RELEASE": "local-dev",
+    "LANGFUSE_SAMPLE_RATE": "1.0",
+    "LANGFUSE_CAPTURE_PROMPTS": "true",
+    "LANGFUSE_CAPTURE_OUTPUTS": "true",
+    "LANGFUSE_CAPTURE_RETRIEVAL": "true",
+    "LANGFUSE_REDACTION_MODE": "strict",
+    "WOS_LANGFUSE_TRACING_ENVIRONMENT": "local",
+    "WOS_LANGFUSE_LOCAL_EVIDENCE": "1",
+    "WOS_LANGFUSE_EVIDENCE_SCOPE": "local_langfuse",
+    "WOS_LANGFUSE_PROOF_LEVEL": "local_only",
+    "WOS_LANGFUSE_EVIDENCE_ENVIRONMENT": "local",
+    "WOS_LANGFUSE_LIVE_OR_STAGING_EVIDENCE": "false",
+    "WOS_LANGFUSE_BOOTSTRAP_OVERWRITE": "false",
+    "NEXTAUTH_URL": "http://localhost:3000",
+    "CLICKHOUSE_USER": "langfuse",
+    "MINIO_ROOT_USER": "langfuse",
+    "LANGFUSE_WEB_PORT": "3000",
+    "LANGFUSE_MINIO_API_PORT": "9090",
+    "LANGFUSE_MINIO_CONSOLE_PORT": "9091",
+    "LANGFUSE_TELEMETRY_ENABLED": "true",
 }
 
 # Slots materialized in .env as empty strings when missing (same lifecycle as provider API keys).
@@ -76,6 +111,14 @@ OPTIONAL_SECRET_KEYS = (
 def _generate_secret(num_bytes: int) -> str:
     """Generate a strong random secret (URL-safe base64)."""
     return secrets.token_urlsafe(num_bytes)
+
+
+def _generate_secret_for_key(key: str, num_bytes: int) -> str:
+    """Generate a key-specific secret value accepted by local infrastructure."""
+    if key == "ENCRYPTION_KEY":
+        # Langfuse self-hosting expects a 256-bit hex key (`openssl rand -hex 32`).
+        return secrets.token_hex(32)
+    return _generate_secret(num_bytes)
 
 
 def _platform_secret_needs_generation(raw: str | None) -> bool:
@@ -169,7 +212,7 @@ def _ensure_env_secrets(force: bool = False) -> bool:
     for key, num_bytes in REQUIRED_SECRETS.items():
         cur = env_to_write.get(key, "")
         if force or key not in env_to_write or _platform_secret_needs_generation(cur):
-            env_to_write[key] = _generate_secret(num_bytes)
+            env_to_write[key] = _generate_secret_for_key(key, num_bytes)
             updated = True
 
     # Ensure optional defaults are present
@@ -221,9 +264,38 @@ def _compose_executable() -> list[str]:
     sys.exit(1)
 
 
+def _env_truthy(name: str) -> bool:
+    return (os.environ.get(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_falsey(name: str) -> bool:
+    return (os.environ.get(name) or "").strip().lower() in {"0", "false", "no", "off"}
+
+
+def _value_truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _with_langfuse_enabled(args: argparse.Namespace) -> bool:
+    if bool(getattr(args, "no_langfuse", False)):
+        return False
+    if bool(getattr(args, "with_langfuse", False)):
+        return True
+    if _env_falsey("WOS_DOCKER_WITH_LANGFUSE"):
+        return False
+    # Local observability is part of the default setup. Operators can opt out with
+    # --no-langfuse or WOS_DOCKER_WITH_LANGFUSE=0 for app-only workflows.
+    return True
+
+
 def _compose_prefix(args: argparse.Namespace) -> list[str]:
     cmd = _compose_executable()
-    files = args.file if args.file else [str(DEFAULT_COMPOSE)]
+    files = list(args.file) if args.file else [str(DEFAULT_COMPOSE)]
+    if _with_langfuse_enabled(args):
+        langfuse_file = str(LANGFUSE_COMPOSE)
+        resolved_files = {_resolve_compose_path(f) for f in files}
+        if LANGFUSE_COMPOSE.resolve() not in resolved_files:
+            files.append(langfuse_file)
     for f in files:
         p = _resolve_compose_path(f)
         if not p.is_file():
@@ -265,15 +337,15 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
 
 
 def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
-    _ensure_dotenv_before_compose(compose_args)
     cmd = _compose_prefix(args) + compose_args
-    if args.dry_run:
+    if getattr(args, "dry_run", False):
         print(" ".join(shlex_quote(a) for a in cmd))
         return 0
+    _ensure_dotenv_before_compose(compose_args)
     print("$", " ".join(cmd), flush=True)
     exit_code = subprocess.call(cmd, cwd=REPO_ROOT)
     if exit_code == 0 and compose_args and compose_args[0] == "up":
-        gate_code = _bootstrap_gate_after_up()
+        gate_code = _bootstrap_gate_after_up(local_langfuse=_with_langfuse_enabled(args))
         if gate_code != 0:
             return gate_code
     return exit_code
@@ -350,7 +422,7 @@ def _initialize_admin_user_in_backend() -> None:
             ) from e
 
 
-def _initialize_langfuse_in_backend() -> None:
+def _initialize_langfuse_in_backend(*, local_langfuse: bool = False) -> None:
     """Initialize Langfuse configuration in the backend database from optional environment credentials.
 
     Runtime settings normally come from the backend database/admin UI. This bootstrap only imports
@@ -374,18 +446,22 @@ def _initialize_langfuse_in_backend() -> None:
 
     try:
         init_url = "http://localhost:8000/api/v1/internal/observability/initialize"
+        base_url = env_dict.get("LANGFUSE_BASE_URL") or env_dict.get("LANGFUSE_HOST") or "https://cloud.langfuse.com"
+        if local_langfuse:
+            base_url = "http://langfuse-web:3000"
         payload = {
             "enabled": True,
             "public_key": public_key,
             "secret_key": secret_key,
-            "base_url": env_dict.get("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
-            "environment": env_dict.get("LANGFUSE_ENVIRONMENT", "development"),
-            "release": env_dict.get("LANGFUSE_RELEASE", "unknown"),
+            "base_url": base_url,
+            "environment": env_dict.get("LANGFUSE_ENVIRONMENT", "local" if local_langfuse else "development"),
+            "release": env_dict.get("LANGFUSE_RELEASE", "local-dev" if local_langfuse else "unknown"),
             "sample_rate": float(env_dict.get("LANGFUSE_SAMPLE_RATE", "1.0")),
             "capture_prompts": env_dict.get("LANGFUSE_CAPTURE_PROMPTS", "true").lower() == "true",
             "capture_outputs": env_dict.get("LANGFUSE_CAPTURE_OUTPUTS", "true").lower() == "true",
             "capture_retrieval": env_dict.get("LANGFUSE_CAPTURE_RETRIEVAL", "false").lower() == "true",
             "redaction_mode": env_dict.get("LANGFUSE_REDACTION_MODE", "strict"),
+            "overwrite_existing": _value_truthy(env_dict.get("WOS_LANGFUSE_BOOTSTRAP_OVERWRITE")),
         }
 
         import json
@@ -401,7 +477,11 @@ def _initialize_langfuse_in_backend() -> None:
             response_data = json.loads(response.read().decode("utf-8"))
 
             if response.status == 200 and response_data.get("ok"):
-                print("[OK] Langfuse observability initialized in database.", file=sys.stderr)
+                response_payload = response_data.get("data") if isinstance(response_data, dict) else {}
+                if isinstance(response_payload, dict) and response_payload.get("skipped_existing"):
+                    print("[OK] Langfuse observability already configured; bootstrap import skipped.", file=sys.stderr)
+                else:
+                    print("[OK] Langfuse observability initialized in database.", file=sys.stderr)
             else:
                 raise RuntimeError(f"Backend rejected Langfuse initialization: {response_data.get('error', {}).get('message', 'Unknown error')}")
 
@@ -415,7 +495,7 @@ def _initialize_langfuse_in_backend() -> None:
         raise RuntimeError(f"Langfuse initialization failed: {str(e)}")
 
 
-def _bootstrap_gate_after_up() -> int:
+def _bootstrap_gate_after_up(*, local_langfuse: bool = False) -> int:
     """Check backend health, create admin user, initialize Langfuse, and guide bootstrap.
 
     Exit codes (per ADR-0030):
@@ -465,7 +545,7 @@ def _bootstrap_gate_after_up() -> int:
 
     # Step 3: Import Langfuse credentials from .env when explicitly provided.
     try:
-        _initialize_langfuse_in_backend()
+        _initialize_langfuse_in_backend(local_langfuse=local_langfuse)
     except RuntimeError as e:
         print(f"ERROR: Langfuse initialization failed: {str(e)}", file=sys.stderr)
         print("Recovery: Check LANGFUSE_* credentials in .env, remove them, or manage Langfuse in backend settings:\n  python docker-up.py up\n", file=sys.stderr)
@@ -524,6 +604,12 @@ def cmd_up(args: argparse.Namespace, services: list[str]) -> int:
     return _run(args, _up_args(args, services))
 
 
+def cmd_langfuse_up(args: argparse.Namespace, services: list[str]) -> int:
+    """Start the stack with local Langfuse Compose override enabled."""
+    setattr(args, "with_langfuse", True)
+    return cmd_up(args, services)
+
+
 def cmd_build(args: argparse.Namespace, services: list[str]) -> int:
     build_args: list[str] = ["build"]
     if getattr(args, "no_cache", False):
@@ -572,7 +658,8 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
         print(f"\n{'[OK] Created' if not ENV_FILE.is_file() else '[OK] Updated'} {ENV_FILE}")
         print(f"\nNext steps:")
         print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic; optional HF_TOKEN for Hub)")
-        print(f"  2. Run: python docker-up.py up")
+        print(f"  2. Run: python docker-up.py up  (starts app + local Langfuse)")
+        print(f"     App-only fallback: python docker-up.py --no-langfuse up")
         print(f"\nOther secrets (SECRET_KEY, JWT_SECRET_KEY, etc.) are auto-generated and should not be changed.")
         return 0
 
@@ -671,7 +758,20 @@ def main() -> None:
     common.add_argument(
         "--dry-run",
         action="store_true",
+        default=argparse.SUPPRESS,
         help="Print commands only; do not run.",
+    )
+    common.add_argument(
+        "--with-langfuse",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help=f"Include {LANGFUSE_COMPOSE.name} for local observability (default).",
+    )
+    common.add_argument(
+        "--no-langfuse",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help=f"Do not include {LANGFUSE_COMPOSE.name}; start app-only stack.",
     )
 
     parser = argparse.ArgumentParser(
@@ -718,6 +818,15 @@ def main() -> None:
     )
     p_up.add_argument("services", nargs="*", help="Optional: only these services.")
     p_up.set_defaults(_handler=cmd_up)
+
+    p_langfuse_up = sub.add_parser(
+        "langfuse-up",
+        aliases=["observability-up"],
+        help="Start stack with local Langfuse observability override.",
+        parents=[common],
+    )
+    p_langfuse_up.add_argument("services", nargs="*", help="Optional: only these services.")
+    p_langfuse_up.set_defaults(_handler=cmd_langfuse_up)
 
     p_build = sub.add_parser(
         "build",

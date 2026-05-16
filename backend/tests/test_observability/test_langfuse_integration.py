@@ -230,6 +230,93 @@ class TestLangfuseInitializationEndpoint:
         assert resp_data["ok"] is True
         assert resp_data["data"]["initialized"] is True
 
+    def test_internal_initialize_endpoint_preserves_existing_credentials_by_default(self, client, db_session):
+        """Bootstrap imports must not overwrite admin-managed Langfuse settings on restart."""
+        config = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="http://langfuse-web:3000",
+            environment="local",
+            release="admin-managed",
+        )
+        db.session.add(config)
+        db.session.commit()
+        write_observability_credential(
+            public_key="pk_existing",
+            secret_key="sk_existing",
+            actor="test_admin",
+        )
+
+        resp = client.post(
+            "/api/v1/internal/observability/initialize",
+            json={
+                "enabled": True,
+                "base_url": "https://cloud.langfuse.com",
+                "environment": "production",
+                "release": "env-import",
+                "public_key": "pk_env",
+                "secret_key": "sk_env",
+            },
+        )
+
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert data["initialized"] is False
+        assert data["skipped_existing"] is True
+
+        from app.services.observability_governance_service import get_observability_credential_for_runtime
+
+        assert get_observability_credential_for_runtime("public_key") == "pk_existing"
+        assert get_observability_credential_for_runtime("secret_key") == "sk_existing"
+        saved = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
+        assert saved.base_url == "http://langfuse-web:3000"
+        assert saved.environment == "local"
+        assert saved.release == "admin-managed"
+
+    def test_internal_initialize_endpoint_can_overwrite_when_explicit(self, client, db_session):
+        """Explicit overwrite keeps recovery/env re-import available."""
+        config = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="http://langfuse-web:3000",
+        )
+        db.session.add(config)
+        db.session.commit()
+        write_observability_credential(
+            public_key="pk_existing",
+            secret_key="sk_existing",
+            actor="test_admin",
+        )
+
+        resp = client.post(
+            "/api/v1/internal/observability/initialize",
+            json={
+                "enabled": True,
+                "base_url": "http://langfuse-web:3000",
+                "environment": "local",
+                "release": "env-import",
+                "public_key": "pk_env",
+                "secret_key": "sk_env",
+                "overwrite_existing": True,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert data["initialized"] is True
+        assert "skipped_existing" not in data
+
+        from app.services.observability_governance_service import get_observability_credential_for_runtime
+
+        assert get_observability_credential_for_runtime("public_key") == "pk_env"
+        assert get_observability_credential_for_runtime("secret_key") == "sk_env"
+        saved = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
+        assert saved.release == "env-import"
+
 
 class TestLangfuseAdapterIntegration:
     """Tests for the backend Langfuse adapter."""

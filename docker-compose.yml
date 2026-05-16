@@ -5,6 +5,11 @@
 # Then set OPENAI_API_KEY in .env if you plan to use AI features.
 #
 # Services: backend (API), frontend (player UI), administration-tool, play-service (world-engine), redis (runtime governance storage).
+# Local Langfuse observability is integrated through docker-up.py and starts by default:
+#   python docker-up.py up
+# App-only escape hatch:
+#   python docker-up.py --no-langfuse up
+# This layers docker-compose.langfuse.yml and wires backend/play-service to http://langfuse-web:3000.
 #
 # Startup order (important): backend must be up before play-service can fetch governed runtime config.
 # Do NOT make backend depend on play-service healthy — that deadlocks the stack. play-service, frontend,
@@ -92,7 +97,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5002:5002"
-    env_file: .env
     depends_on:
       backend:
         condition: service_healthy

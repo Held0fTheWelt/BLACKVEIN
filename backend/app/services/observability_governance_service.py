@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from flask import current_app
 from story_runtime_core.observability_tree_policy import (
@@ -730,6 +731,10 @@ def get_observability_credential_for_runtime(secret_name: str) -> Optional[str]:
 
 _LANGFUSE_EU_BASE_URL = "https://cloud.langfuse.com"
 _LANGFUSE_US_BASE_URL = "https://us.cloud.langfuse.com"
+_LANGFUSE_CLOUD_HOSTS = {
+    "cloud.langfuse.com",
+    "us.cloud.langfuse.com",
+}
 
 
 def _langfuse_credential_diagnostics(public_key: str, secret_key: str) -> dict[str, Any]:
@@ -748,6 +753,21 @@ def _alternate_langfuse_base_url(base_url: str) -> str:
     if "us.cloud.langfuse.com" in normalized:
         return _LANGFUSE_EU_BASE_URL
     return _LANGFUSE_US_BASE_URL
+
+
+def _is_langfuse_cloud_base_url(base_url: str) -> bool:
+    parsed = urlparse(base_url.rstrip("/"))
+    return (parsed.hostname or "").lower() in _LANGFUSE_CLOUD_HOSTS
+
+
+def _candidate_langfuse_base_urls(configured_base_url: str) -> list[str]:
+    configured = configured_base_url.rstrip("/")
+    if not _is_langfuse_cloud_base_url(configured):
+        return [configured]
+    alternate = _alternate_langfuse_base_url(configured)
+    if alternate == configured:
+        return [configured]
+    return [configured, alternate]
 
 
 def _langfuse_projects_for_host(*, public_key: str, secret_key: str, base_url: str) -> tuple[bool, list[str], str | None]:
@@ -776,16 +796,16 @@ def _resolve_langfuse_base_url_for_credentials(
     secret_key: str,
     configured_base_url: str,
 ) -> tuple[str | None, str | None | str, list[str]]:
-    """Pick the Langfuse host that accepts backend credentials.
+    """Pick the configured Langfuse host that accepts backend credentials.
 
     Returns ``(resolved_base_url, host_mismatch_or_auth_error, project_names)``.
-  When auth fails on both hosts, the second value is an error string and the first is None.
+    For Langfuse Cloud only, also checks the alternate EU/US region. Self-hosted
+    URLs are tested exactly as configured.
     """
     configured = configured_base_url.rstrip("/")
-    alternate = _alternate_langfuse_base_url(configured)
     last_error: str | None = None
 
-    for candidate in (configured, alternate):
+    for candidate in _candidate_langfuse_base_urls(configured):
         ok, names, err = _langfuse_projects_for_host(
             public_key=public_key,
             secret_key=secret_key,
@@ -804,7 +824,11 @@ def _resolve_langfuse_base_url_for_credentials(
             return candidate, None, names
         last_error = err
 
-    return None, last_error or "Langfuse auth failed on configured and alternate region hosts.", []
+    if _is_langfuse_cloud_base_url(configured):
+        fallback = "configured and alternate Langfuse Cloud region hosts"
+    else:
+        fallback = f"configured Langfuse Base URL {configured}"
+    return None, last_error or f"Langfuse auth failed on {fallback}.", []
 
 
 def _parse_langfuse_forbidden_message(response_text: str) -> str | None:
@@ -876,7 +900,7 @@ def verify_langfuse_runtime_connectivity(
     poll_attempts: int = 20,
     poll_interval_s: float = 1.0,
 ) -> dict[str, Any]:
-    """Verify Langfuse Cloud using governed backend DB credentials (same path as runtime)."""
+    """Verify Langfuse using governed backend DB credentials (same path as runtime)."""
     try:
         import langfuse
     except ImportError:
@@ -941,17 +965,26 @@ def verify_langfuse_runtime_connectivity(
         configured_base_url=configured_base_url,
     )
     if resolved_base_url is None:
-        return {
+        auth_message = (
+            "Backend-stored Langfuse keys failed auth on configured and alternate Langfuse Cloud "
+            f"region hosts: {host_issue}"
+            if _is_langfuse_cloud_base_url(configured_base_url)
+            else (
+                "Backend-stored Langfuse keys failed auth/connectivity against configured "
+                f"Base URL {configured_base_url}: {host_issue}"
+            )
+        )
+        payload = {
             **base_payload,
             "ok": False,
             "health_status": "auth_failed",
-            "message": (
-                "Backend-stored Langfuse keys failed auth on both EU and US hosts: "
-                f"{host_issue}"
-            ),
+            "message": auth_message,
             "base_url": configured_base_url,
-            "alternate_base_url": _alternate_langfuse_base_url(configured_base_url),
+            "tested_base_urls": _candidate_langfuse_base_urls(configured_base_url),
         }
+        if _is_langfuse_cloud_base_url(configured_base_url):
+            payload["alternate_base_url"] = _alternate_langfuse_base_url(configured_base_url)
+        return payload
 
     if host_issue:
         return {
@@ -1007,7 +1040,7 @@ def verify_langfuse_runtime_connectivity(
         if "usage threshold" in detail_lower or "ingestion suspended" in detail_lower:
             health_status = "usage_limit_exceeded"
             message = (
-                "Langfuse Cloud suspended trace ingestion for this project (usage/quota limit). "
+                "Langfuse suspended trace ingestion for this project (usage/quota limit). "
                 "API keys are valid; upgrade the Langfuse plan or reduce usage, then re-test. "
                 f"Langfuse says: {forbidden_detail}"
             )
@@ -1061,7 +1094,7 @@ def verify_langfuse_runtime_connectivity(
             "ok": False,
             "health_status": "ingest_delayed",
             "message": (
-                f"Probe trace {trace_id} flushed but not yet queryable in Langfuse Cloud: {last_error}"
+                f"Probe trace {trace_id} flushed but not yet queryable in Langfuse: {last_error}"
             ),
             "base_url": base_url,
             "environment": environment,
@@ -1074,7 +1107,7 @@ def verify_langfuse_runtime_connectivity(
         **base_payload,
         "ok": True,
         "health_status": "connected",
-        "message": "Connection successful; probe trace verified in Langfuse Cloud",
+        "message": "Connection successful; probe trace verified in Langfuse",
         "base_url": base_url,
         "environment": environment,
         "trace_id": trace_id,

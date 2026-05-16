@@ -174,6 +174,14 @@ def internal_observability_initialize():
                 display_name="Langfuse",
             )
             db.session.add(config)
+        elif config.credential_configured and not bool(body.get("overwrite_existing", False)):
+            return ok({
+                "initialized": False,
+                "skipped_existing": True,
+                "service_id": "langfuse",
+                "is_enabled": config.is_enabled,
+                "credential_configured": config.credential_configured,
+            })
 
         # Update configuration from payload
         config.is_enabled = body.get("enabled", False)

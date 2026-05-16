@@ -125,3 +125,44 @@ def test_build_llm_judge_interpretation_includes_operator_fields():
 def test_canonical_doc_path_constant_points_at_csv_table():
     assert LLM_AS_A_JUDGE_DOC_RELATIVE_PATH.endswith(".csv")
     assert "llm-as-a-judge" in LLM_AS_A_JUDGE_DOC_RELATIVE_PATH
+
+
+def test_local_langfuse_judge_transfer_bundle_retargets_filters_to_local():
+    from ai_stack.langfuse_evaluator_transfer import (
+        TRANSFER_BUNDLE_SCHEMA_VERSION,
+        build_local_langfuse_judge_transfer_bundle,
+    )
+
+    bundle = build_local_langfuse_judge_transfer_bundle(environment="local")
+
+    assert bundle["schema_version"] == TRANSFER_BUNDLE_SCHEMA_VERSION
+    assert bundle["target"] == {
+        "environment": "local",
+        "evidence_scope": "local_langfuse",
+        "proof_level": "local_only",
+        "live_or_staging_evidence": False,
+    }
+    assert bundle["judge_count"] == len(WOS_CATEGORICAL_JUDGES_ORDER)
+    first = bundle["judges"][0]
+    assert first["local_only"] is True
+    assert first["live_or_staging_evidence"] is False
+    assert first["langfuse_ui_bootstrap"]["observation_filters"]["Environment"] == ["local"]
+    assert first["langfuse_ui_bootstrap"]["trace_metadata_filters"]["proof_level"] == "local_only"
+    assert first["runtime_gate"] is False
+    assert first["replaces_deterministic_gates"] is False
+
+
+def test_local_langfuse_judge_transfer_markdown_lists_judges():
+    from ai_stack.langfuse_evaluator_transfer import (
+        build_local_langfuse_judge_transfer_bundle,
+        render_local_langfuse_judge_transfer_markdown,
+    )
+
+    md = render_local_langfuse_judge_transfer_markdown(
+        build_local_langfuse_judge_transfer_bundle(environment="local", include_prompts=False)
+    )
+
+    assert "Local Langfuse Judge Transfer Bundle" in md
+    assert "`opening_experience_judge`" in md
+    assert "`player_turn_playability_judge`" in md
+    assert "validation_outcome" in md

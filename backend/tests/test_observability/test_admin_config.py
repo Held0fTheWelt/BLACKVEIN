@@ -6,6 +6,8 @@ import pytest
 from app.extensions import db
 from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
 from app.services.observability_governance_service import (
+    _candidate_langfuse_base_urls,
+    _resolve_langfuse_base_url_for_credentials,
     disable_observability,
     get_observability_config,
     get_observability_credential_for_runtime,
@@ -524,6 +526,62 @@ class TestServiceLayerFunctions:
         assert result["ok"] is False
         assert result["health_status"] == "host_mismatch"
         assert "us.cloud.langfuse.com" in result["message"]
+
+    def test_self_hosted_langfuse_connection_uses_configured_base_url_only(self, monkeypatch):
+        """Local/self-hosted Langfuse tests must not fall back to EU/US Cloud hosts."""
+        calls: list[str] = []
+
+        def fake_projects_for_host(*, public_key, secret_key, base_url):
+            calls.append(base_url)
+            return False, [], "[Errno 111] Connection refused"
+
+        monkeypatch.setattr(
+            "app.services.observability_governance_service._langfuse_projects_for_host",
+            fake_projects_for_host,
+        )
+
+        resolved, issue, projects = _resolve_langfuse_base_url_for_credentials(
+            public_key="pk-lf-local",
+            secret_key="sk-lf-local",
+            configured_base_url="http://localhost:3000",
+        )
+
+        assert resolved is None
+        assert projects == []
+        assert calls == ["http://localhost:3000"]
+        assert "Connection refused" in str(issue)
+
+    def test_cloud_langfuse_connection_still_checks_alternate_region(self, monkeypatch):
+        """Cloud credentials still get the EU/US mismatch hint."""
+        calls: list[str] = []
+
+        def fake_projects_for_host(*, public_key, secret_key, base_url):
+            calls.append(base_url)
+            if base_url == "https://us.cloud.langfuse.com":
+                return True, ["demo"], None
+            return False, [], "Forbidden"
+
+        monkeypatch.setattr(
+            "app.services.observability_governance_service._langfuse_projects_for_host",
+            fake_projects_for_host,
+        )
+
+        resolved, issue, projects = _resolve_langfuse_base_url_for_credentials(
+            public_key="pk-lf-cloud",
+            secret_key="sk-lf-cloud",
+            configured_base_url="https://cloud.langfuse.com",
+        )
+
+        assert calls == ["https://cloud.langfuse.com", "https://us.cloud.langfuse.com"]
+        assert resolved == "https://us.cloud.langfuse.com"
+        assert "Set BASE URL" in str(issue)
+        assert projects == ["demo"]
+
+    def test_candidate_langfuse_base_urls_do_not_rewrite_docker_service_names(self):
+        """Docker-network Langfuse hosts are self-hosted endpoints, not Cloud regions."""
+        assert _candidate_langfuse_base_urls("http://langfuse-web:3000") == [
+            "http://langfuse-web:3000"
+        ]
 
     def test_disable_observability_deactivates_all_credentials(self, db_session):
         """disable_observability deactivates all active credentials."""

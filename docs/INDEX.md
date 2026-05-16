@@ -38,6 +38,7 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 
 - Root: [`docs/dev/README.md`](dev/README.md)
 - Onboarding, contributing, local workflow: [`onboarding.md`](dev/onboarding.md), [`contributing.md`](dev/contributing.md), [`local-development-and-test-workflow.md`](dev/local-development-and-test-workflow.md)
+- Local observability: [`docs/local-langfuse-docker.md`](local-langfuse-docker.md)
 - Seams (shortcuts to technical docs): [`docs/dev/architecture/`](dev/architecture/)
 - Contracts index: [`docs/dev/contracts/normative-contracts-index.md`](dev/contracts/normative-contracts-index.md)
 

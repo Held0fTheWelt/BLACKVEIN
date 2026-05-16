@@ -73,6 +73,7 @@ from story_runtime_core.callbacks import (
     build_callback_web_record,
     stable_callback_web_id,
 )
+from story_runtime_core.langfuse_tracing_environment import local_langfuse_evidence_metadata
 from story_runtime_core.consequences import (
     build_consequence_cascade_record,
     build_graph_consequence_cascade_export,
@@ -2991,6 +2992,9 @@ def _build_langfuse_path_summary(
     canonical_player_flow = bool(trace_classification.get("canonical_player_flow", False))
     test_case_id = trace_classification.get("test_case_id")
     environment = _observability_environment_for_session(session)
+    local_evidence_meta = local_langfuse_evidence_metadata()
+    if local_evidence_meta.get("environment"):
+        environment = str(local_evidence_meta.get("environment") or "local")
 
     _spr = (
         str((session.runtime_projection or {}).get("selected_player_role") or "").strip()
@@ -3119,6 +3123,31 @@ def _build_langfuse_path_summary(
         and branching_forecast.get("inactive_branches_authoritative") is False
         and branching_forecast.get("mutates_canonical_state") is False
     )
+    _capability_projection = (
+        turn_aspect_ledger.get("capability")
+        if isinstance(turn_aspect_ledger, dict) and isinstance(turn_aspect_ledger.get("capability"), dict)
+        else {}
+    )
+    _capability_selection_projection = (
+        turn_aspect_ledger.get("capability_selection")
+        if isinstance(turn_aspect_ledger, dict)
+        and isinstance(turn_aspect_ledger.get("capability_selection"), dict)
+        else {}
+    )
+    _validator_dispatch_report = (
+        turn_aspect_ledger.get("validator_dispatch_report")
+        if isinstance(turn_aspect_ledger, dict)
+        and isinstance(turn_aspect_ledger.get("validator_dispatch_report"), dict)
+        else {}
+    )
+    _readiness_policy_input = (
+        graph_state.get("readiness_policy_input")
+        if isinstance(graph_state.get("readiness_policy_input"), dict)
+        else turn_aspect_ledger.get("readiness_policy_input")
+        if isinstance(turn_aspect_ledger, dict)
+        and isinstance(turn_aspect_ledger.get("readiness_policy_input"), dict)
+        else None
+    )
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
@@ -3236,10 +3265,25 @@ def _build_langfuse_path_summary(
         "retrieval_domain": retrieval.get("domain"),
         "retrieval_context_attached": bool(graph_state.get("context_text") or generation.get("retrieval_context_attached")),
         "retrieval_top_hit_score": retrieval.get("top_hit_score"),
+        "retrieval_documents_used": retrieval.get("documents_used"),
+        "retrieval_provenance": retrieval.get("provenance"),
+        "retrieval_authority_level": retrieval.get("authority_level")
+        or retrieval.get("governance_authority_level"),
         "retrieval_corpus_fingerprint": retrieval.get("corpus_fingerprint"),
         "retrieval_index_version": retrieval.get("index_version"),
         "retrieval_degradation_mode": retrieval.get("degradation_mode"),
         "retrieval_governance_summary": retrieval.get("retrieval_governance_summary"),
+        "selected_capabilities": (
+            _capability_projection.get("selected_capabilities")
+            or _capability_selection_projection.get("selected_capabilities")
+            or []
+        ),
+        "validator_dispatch_mode": (
+            _validator_dispatch_report.get("dispatch_mode")
+            or _validator_dispatch_report.get("mode")
+            or graph_state.get("validator_dispatch_mode")
+        ),
+        "readiness_policy_input": _readiness_policy_input,
         "validation_status": validation.get("status"),
         "validation_reason": validation.get("reason"),
         "intent_surface_diagnostics": (
@@ -3543,6 +3587,18 @@ def _build_langfuse_path_summary(
         "test_case_id": test_case_id,
         "runtime_mode": runtime_mode,
     }
+    if local_evidence_meta:
+        summary.update(local_evidence_meta)
+        summary["langfuse_environment"] = summary.get("environment")
+    _quality = str(summary.get("quality_class") or "").strip().lower()
+    if bool(summary.get("fallback_model_called")) or bool(summary.get("generation_fallback_used")):
+        summary["runtime_quality"] = "fallback"
+    elif _quality == "healthy":
+        summary["runtime_quality"] = "healthy"
+    elif _quality:
+        summary["runtime_quality"] = "degraded"
+    else:
+        summary["runtime_quality"] = None
     opening_norm = graph_state.get("_opening_narration_normalization")
     if isinstance(opening_norm, dict):
         for key in (
@@ -3860,6 +3916,10 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "canonical_player_flow": path_summary.get("canonical_player_flow"),
         "runtime_mode": path_summary.get("runtime_mode"),
         "generation_mode": path_summary.get("generation_mode"),
+        "evidence_scope": path_summary.get("evidence_scope"),
+        "proof_level": path_summary.get("proof_level"),
+        "live_or_staging_evidence": path_summary.get("live_or_staging_evidence"),
+        "runtime_quality": path_summary.get("runtime_quality"),
         "player_input_kind": path_summary.get("player_input_kind"),
         "semantic_move_kind": path_summary.get("semantic_move_kind"),
         "subtext_function": path_summary.get("subtext_function"),
@@ -3883,13 +3943,20 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "retrieval_status": path_summary.get("retrieval_status"),
                 "retrieval_hit_count": path_summary.get("retrieval_hit_count"),
                 "quality_class": path_summary.get("quality_class"),
+                "runtime_quality": path_summary.get("runtime_quality"),
                 "degradation_signals": path_summary.get("degradation_signals"),
                 "trace_origin": path_summary.get("trace_origin"),
                 "execution_tier": path_summary.get("execution_tier"),
                 "environment": path_summary.get("environment"),
+                "evidence_scope": path_summary.get("evidence_scope"),
+                "proof_level": path_summary.get("proof_level"),
+                "live_or_staging_evidence": path_summary.get("live_or_staging_evidence"),
                 "canonical_player_flow": path_summary.get("canonical_player_flow"),
                 "runtime_mode": path_summary.get("runtime_mode"),
                 "generation_mode": path_summary.get("generation_mode"),
+                "selected_capabilities": path_summary.get("selected_capabilities"),
+                "validator_dispatch_mode": path_summary.get("validator_dispatch_mode"),
+                "readiness_policy_input": path_summary.get("readiness_policy_input"),
                 "turn_aspect_ledger_present": path_summary.get("turn_aspect_ledger_present"),
                 "branching_forecast_present": path_summary.get("branching_forecast_present"),
                 "branch_option_count": path_summary.get("branch_option_count"),
@@ -4056,6 +4123,9 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "domain": path_summary.get("retrieval_domain"),
                 "context_attached": path_summary.get("retrieval_context_attached"),
                 "top_hit_score": path_summary.get("retrieval_top_hit_score"),
+                "documents_used": path_summary.get("retrieval_documents_used"),
+                "provenance": path_summary.get("retrieval_provenance"),
+                "authority_level": path_summary.get("retrieval_authority_level"),
                 "corpus_fingerprint": path_summary.get("retrieval_corpus_fingerprint"),
                 "index_version": path_summary.get("retrieval_index_version"),
                 "degradation_mode": path_summary.get("retrieval_degradation_mode"),

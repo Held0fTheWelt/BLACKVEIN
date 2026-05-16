@@ -41,3 +41,5 @@ def test_manage_observability_settings_contains_expected_mount_points(client):
     assert "gov-tip" in html
     assert "Technical audit: full configuration JSON" in html
     assert "manage_observability_settings.js" in html
+    assert "http://langfuse-web:3000" in html
+    assert "only when the backend runs on the host" in html

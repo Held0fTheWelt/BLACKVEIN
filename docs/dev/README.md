@@ -7,6 +7,7 @@ Entry point for **contributors**: workflows, layout, and links into **technical*
 - [Onboarding](onboarding.md)
 - [Contributing and repo layout](contributing.md)
 - [Local development and test workflow](local-development-and-test-workflow.md)
+- [Local Langfuse Docker observability](../local-langfuse-docker.md)
 - [Runtime authority (developer seam)](architecture/runtime-authority-and-session-lifecycle.md)
 - [AI stack, RAG, LangGraph, and GoC seams](architecture/ai-stack-rag-langgraph-and-goc-seams.md)
 - [Content modules and compiler pipeline](architecture/content-modules-and-compiler-pipeline.md)
