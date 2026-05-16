@@ -1462,6 +1462,74 @@ def test_langfuse_score_metadata_surfaces_primary_vs_final_for_ldss_opening_fall
     adapter.record_generation.assert_not_called()
 
 
+def test_langfuse_generation_records_primary_attempt_when_ldss_fallback_commits(monkeypatch):
+    """Opening fallback traces still need Model I/O for the rejected primary attempt."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        "session_id": "session-primary-generation-fallback",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "adapter": "ldss_fallback",
+        "api_model": "gpt-5.4-mini",
+        "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "selected_provider": "openai",
+        "selected_model": "gpt_5_4_mini",
+        "primary_attempt_adapter": "openai",
+        "primary_attempt_model": "gpt-5.4-mini",
+        "primary_attempt_provider": "openai",
+        "primary_attempt_invocation_mode": "langchain_structured_primary",
+        "primary_attempt_api_success": True,
+        "primary_attempt_structured_output_present": True,
+        "primary_attempt_raw_output_sha256": "abc123",
+        "primary_attempt_raw_output_excerpt": "{\"narration_summary\":[\"Park edge opening\"]}",
+        "final_adapter": "ldss_fallback",
+        "final_adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "fallback_reason": "summary_only_opening",
+        "generation_fallback_used": True,
+        "usage_details": {"input": 10, "output": 5, "total": 15},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["non_factual_staging"],
+        "degradation_summary": "summary_only_opening",
+    }
+    graph_state = {"model_prompt": "Opening prompt."}
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {
+                    "adapter": "ldss_fallback",
+                    "model": "ldss_deterministic",
+                    "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+                },
+            }
+        },
+        "visible_output_bundle": {
+            "scene_blocks": [{"type": "narrator", "text": "Fallback opening."}],
+        },
+    }
+
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+
+    adapter.record_generation.assert_called_once()
+    rg_kw = adapter.record_generation.call_args.kwargs
+    assert rg_kw["model"] == "gpt-5.4-mini"
+    assert rg_kw["provider"] == "openai"
+    assert rg_kw["completion"] == "{\"narration_summary\":[\"Park edge opening\"]}"
+    assert rg_kw["usage_details"] == {"input": 10, "output": 5, "total": 15}
+    assert rg_kw["metadata"]["generation_observation_source"] == "primary_attempt"
+    assert rg_kw["metadata"]["final_adapter"] == "ldss_fallback"
+
+
 def test_langfuse_phase_spans_surface_primary_vs_final_for_ldss_opening_fallback(monkeypatch):
     """ADR-0033 §13.10: ``story.phase.model_invoke`` and ``model_fallback`` carry
     enough metadata for operators to reconstruct primary attempt + final commit.

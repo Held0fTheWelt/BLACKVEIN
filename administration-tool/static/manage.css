@@ -1281,6 +1281,23 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     color: var(--text-muted);
 }
 
+.manage-obs-tree-summary {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+#manage-obs-observation-trees option {
+    padding: 0.25rem 0.45rem;
+}
+
+#manage-obs-observation-trees option:checked {
+    background: rgba(148, 121, 239, 0.35);
+    color: var(--text);
+}
+
 .form-label,
 .field-label,
 .form-group > label,

@@ -199,6 +199,286 @@ def test_record_wos_nested_span_observation_uses_active_parent() -> None:
     assert parent.child.ended is True
 
 
+def _adapter_with_observation_trees(trees: list[str]) -> LangfuseAdapter:
+    from types import SimpleNamespace
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development", enabled_observation_trees=trees)
+    adapter._enabled_observation_trees = list(trees)
+    adapter._clients = {"development": object()}
+    return adapter
+
+
+def test_is_enabled_refreshes_stale_disabled_adapter_from_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = False
+    adapter._public_key = ""
+    adapter._secret_key = ""
+    adapter._base_url = "https://cloud.langfuse.com"
+    adapter._release = "unknown"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(
+        environment="development",
+        release="unknown",
+        sample_rate=1.0,
+        enabled_observation_trees=["minimal"],
+    )
+    adapter._enabled_observation_trees = ["minimal"]
+    adapter._clients = {}
+    adapter._last_backend_config_refresh_monotonic = 0.0
+    adapter._backend_config_refresh_interval_s = 30.0
+
+    monkeypatch.setattr(
+        adapter,
+        "_fetch_credentials_from_backend",
+        lambda: {
+            "enabled": True,
+            "public_key": "pk-live",
+            "secret_key": "sk-live",
+            "base_url": "https://cloud.langfuse.com",
+            "environment": "production",
+            "release": "r1",
+            "sample_rate": 1.0,
+            "enabled_observation_trees": ["minimal", "graph_path"],
+        },
+    )
+    monkeypatch.setattr(adapter, "_get_client", lambda _environment: object())
+
+    assert adapter.is_enabled() is True
+    assert adapter.is_ready is True
+    assert adapter._public_key == "pk-live"
+    assert adapter._config.environment == "production"
+    assert adapter._enabled_observation_trees == ["minimal", "graph_path"]
+
+
+def test_is_enabled_force_refreshes_recent_not_ready_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = False
+    adapter._public_key = ""
+    adapter._secret_key = ""
+    adapter._base_url = "https://cloud.langfuse.com"
+    adapter._release = "unknown"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(
+        environment="development",
+        release="unknown",
+        sample_rate=1.0,
+        enabled_observation_trees=["minimal"],
+    )
+    adapter._enabled_observation_trees = ["minimal"]
+    adapter._clients = {}
+    adapter._last_backend_config_refresh_monotonic = 999999999.0
+    adapter._backend_config_refresh_interval_s = 30.0
+    calls = []
+
+    def _fetch_credentials():
+        calls.append(1)
+        return {
+            "enabled": True,
+            "public_key": "pk-live",
+            "secret_key": "sk-live",
+            "base_url": "https://cloud.langfuse.com",
+            "environment": "production",
+            "release": "r1",
+            "sample_rate": 1.0,
+            "enabled_observation_trees": ["minimal", "graph_path"],
+        }
+
+    monkeypatch.setattr(adapter, "_fetch_credentials_from_backend", _fetch_credentials)
+    monkeypatch.setattr(adapter, "_get_client", lambda _environment: object())
+
+    assert adapter.is_enabled() is True
+    assert calls == [1]
+
+
+def test_refresh_backend_config_updates_observation_trees_without_flushing_client() -> None:
+    from types import SimpleNamespace
+
+    class _Client:
+        def __init__(self) -> None:
+            self.flushed = False
+
+        def flush(self) -> None:
+            self.flushed = True
+
+    client = _Client()
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-live"
+    adapter._secret_key = "sk-live"
+    adapter._base_url = "https://cloud.langfuse.com"
+    adapter._release = "r1"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(
+        environment="production",
+        release="r1",
+        sample_rate=1.0,
+        enabled_observation_trees=["minimal"],
+    )
+    adapter._enabled_observation_trees = ["minimal"]
+    adapter._clients = {"production": client}
+    adapter._last_backend_config_refresh_monotonic = 0.0
+    adapter._backend_config_refresh_interval_s = 30.0
+    adapter._fetch_credentials_from_backend = lambda: {
+        "enabled": True,
+        "public_key": "pk-live",
+        "secret_key": "sk-live",
+        "base_url": "https://cloud.langfuse.com",
+        "environment": "production",
+        "release": "r1",
+        "sample_rate": 1.0,
+        "enabled_observation_trees": ["minimal", "scores"],
+    }
+
+    adapter.refresh_backend_config(force=True)
+
+    assert adapter._enabled_observation_trees == ["minimal", "scores"]
+    assert client.flushed is False
+
+
+def test_start_trace_force_refreshes_tree_policy_into_root_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    class _Client:
+        def __init__(self) -> None:
+            self.kwargs: dict[str, object] | None = None
+
+        def start_observation(self, **kwargs):
+            self.kwargs = kwargs
+            return SimpleNamespace(trace_id="0123456789abcdef0123456789abcdef", id="root-obs", name=kwargs["name"])
+
+    client = _Client()
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-live"
+    adapter._secret_key = "sk-live"
+    adapter._base_url = "https://cloud.langfuse.com"
+    adapter._release = "r1"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(
+        environment="staging",
+        release="r1",
+        sample_rate=1.0,
+        enabled_observation_trees=["retrieval"],
+    )
+    adapter._enabled_observation_trees = ["retrieval"]
+    adapter._clients = {"staging": client}
+    adapter._last_backend_config_refresh_monotonic = 999999999.0
+    adapter._backend_config_refresh_interval_s = 30.0
+    adapter._fetch_credentials_from_backend = lambda: {
+        "enabled": True,
+        "public_key": "pk-live",
+        "secret_key": "sk-live",
+        "base_url": "https://cloud.langfuse.com",
+        "environment": "staging",
+        "release": "r1",
+        "sample_rate": 1.0,
+        "enabled_observation_trees": ["minimal", "graph_path", "retrieval"],
+    }
+    monkeypatch.setattr(adapter, "_get_client", lambda _environment: client)
+
+    try:
+        span = adapter.start_trace(
+            name="world-engine.session.create",
+            session_id="",
+            metadata={"trace_origin": "live_ui", "execution_tier": "live"},
+        )
+    finally:
+        lf_mod._active_langfuse_client.set(None)
+        lf_mod._active_langfuse_session_id.set(None)
+        lf_mod._active_span_context.set(None)
+        lf_mod._span_context_registry.clear()
+
+    assert span is not None
+    assert client.kwargs is not None
+    md = client.kwargs["metadata"]
+    assert isinstance(md, dict)
+    assert md["enabled_observation_trees"] == ["minimal", "graph_path", "retrieval"]
+    assert md["observation_tree_policy_version"] == "observability_tree_policy.v1"
+
+
+def test_observation_tree_policy_keeps_minimal_path_span() -> None:
+    from unittest.mock import MagicMock
+
+    adapter = _adapter_with_observation_trees(["minimal"])
+    parent = MagicMock()
+    child = MagicMock()
+    parent.start_observation.return_value = child
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        out = adapter.create_child_span(name="story.graph.path_summary")
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    assert out is child
+    parent.start_observation.assert_called_once()
+    metadata = parent.start_observation.call_args.kwargs["metadata"]
+    assert metadata["enabled_observation_trees"] == ["minimal"]
+    assert metadata["observation_tree_id"] == "minimal"
+
+
+def test_observation_tree_policy_skips_unselected_child_span() -> None:
+    from unittest.mock import MagicMock
+
+    adapter = _adapter_with_observation_trees(["minimal"])
+    parent = MagicMock()
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        out = adapter.create_child_span(name="story.phase.model_route")
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    assert out is None
+    parent.start_observation.assert_not_called()
+
+
+def test_observation_tree_policy_skips_unselected_generation() -> None:
+    from unittest.mock import MagicMock
+
+    adapter = _adapter_with_observation_trees(["minimal"])
+    parent = MagicMock()
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        out = adapter.record_generation(
+            name="story.model.generation",
+            model="mock",
+            provider="mock",
+            prompt="hello",
+            completion="world",
+        )
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    assert out is None
+    parent.start_observation.assert_not_called()
+
+
+def test_observation_tree_policy_skips_scores_when_scores_tree_disabled() -> None:
+    from unittest.mock import MagicMock
+
+    adapter = _adapter_with_observation_trees(["minimal"])
+    parent = MagicMock()
+    parent.trace_id = "0123456789abcdef0123456789abcdef"
+
+    token = lf_mod._active_span_context.set(parent)
+    try:
+        adapter.add_score(name="turn_aspect_ledger_present", value=1.0)
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    parent.score.assert_not_called()
+
+
 def test_record_adr0041_langfuse_scores_are_local_only_scores() -> None:
     from types import SimpleNamespace
     from unittest.mock import MagicMock
@@ -213,6 +493,7 @@ def test_record_adr0041_langfuse_scores_are_local_only_scores() -> None:
     adapter._public_key = "pk-test"
     adapter._secret_key = "sk-test"
     adapter._config = SimpleNamespace(environment="development")
+    adapter._enabled_observation_trees = ["scores"]
     adapter._clients = {"development": client}
 
     token = lf_mod._active_span_context.set(parent)

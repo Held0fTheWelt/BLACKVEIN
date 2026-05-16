@@ -12,6 +12,11 @@ from enum import Enum
 from typing import Any, Optional
 
 from flask import current_app
+from story_runtime_core.observability_tree_policy import (
+    DEFAULT_ENABLED_OBSERVATION_TREES,
+    normalize_enabled_observation_trees,
+    observation_tree_catalog,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -573,6 +578,8 @@ def get_observability_config() -> dict[str, Any]:
             "capture_outputs": True,
             "capture_retrieval": False,
             "redaction_mode": "strict",
+            "enabled_observation_trees": list(DEFAULT_ENABLED_OBSERVATION_TREES),
+            "observation_tree_catalog": observation_tree_catalog(),
             "credential_configured": False,
             "credential_fingerprint": None,
             "health_status": "unconfigured",
@@ -605,6 +612,10 @@ def get_observability_config() -> dict[str, Any]:
         "capture_outputs": config.capture_outputs,
         "capture_retrieval": config.capture_retrieval,
         "redaction_mode": config.redaction_mode,
+        "enabled_observation_trees": normalize_enabled_observation_trees(
+            getattr(config, "enabled_observation_trees", None)
+        ),
+        "observation_tree_catalog": observation_tree_catalog(),
         "credential_configured": credential_configured,
         "credential_fingerprint": config.credential_fingerprint,
         "health_status": health_status,
@@ -1117,6 +1128,10 @@ def update_observability_config(config_dict: dict[str, Any], actor: str = "syste
         config.capture_retrieval = config_dict["capture_retrieval"]
     if "redaction_mode" in config_dict:
         config.redaction_mode = config_dict["redaction_mode"]
+    if "enabled_observation_trees" in config_dict:
+        config.enabled_observation_trees = normalize_enabled_observation_trees(
+            config_dict.get("enabled_observation_trees")
+        )
 
     db.session.commit()
     logger.info(f"Observability configuration updated by {actor}")

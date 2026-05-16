@@ -33,6 +33,8 @@ class TestObservabilityConfigStatus:
         assert data["credential_configured"] is False
         assert data["health_status"] == "unconfigured"
         assert data["service_id"] == "langfuse"
+        assert data["enabled_observation_trees"] == ["minimal"]
+        assert any(item["id"] == "minimal" for item in data["observation_tree_catalog"])
 
     def test_status_has_no_plaintext_secrets(self, client, admin_jwt, db_session):
         """Status response never includes plaintext credentials."""
@@ -150,6 +152,36 @@ class TestObservabilityConfigUpdate:
         assert data["capture_prompts"] is False
         assert data["capture_outputs"] is False
         assert data["capture_retrieval"] is True
+
+    def test_update_observation_tree_selection(self, client, admin_jwt):
+        """Can update granular Langfuse observation tree selection."""
+        payload = {"enabled_observation_trees": ["minimal", "narrator", "scores", "unknown"]}
+        resp = client.post(
+            "/api/v1/admin/observability/update",
+            json=payload,
+            headers={"Authorization": f"Bearer {admin_jwt}"},
+        )
+        assert resp.status_code == 200
+        resp_data = resp.get_json()
+        assert resp_data["ok"] is True
+        assert resp_data["data"]["enabled_observation_trees"] == ["minimal", "narrator", "scores"]
+        assert {item["id"] for item in resp_data["data"]["observation_tree_catalog"]} >= {
+            "minimal",
+            "graph_path",
+            "model_io",
+            "retrieval",
+            "runtime_aspects",
+            "scene_projection",
+            "narrator",
+            "scores",
+            "evidence",
+        }
+
+        resp2 = client.get(
+            "/api/v1/admin/observability/status",
+            headers={"Authorization": f"Bearer {admin_jwt}"},
+        )
+        assert resp2.get_json()["data"]["enabled_observation_trees"] == ["minimal", "narrator", "scores"]
 
     def test_validate_base_url(self, client, admin_jwt):
         """Base URL can be updated (no validation currently enforced)."""

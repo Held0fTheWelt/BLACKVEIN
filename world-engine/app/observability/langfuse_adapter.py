@@ -6,12 +6,18 @@ import json
 import logging
 import math
 import os
+import time
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from types import SimpleNamespace
 from typing import Any, Iterator, Optional
 
 from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+from story_runtime_core.observability_tree_policy import (
+    classify_observation_tree,
+    normalize_enabled_observation_trees,
+    should_emit_observation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +236,7 @@ class LangfuseAdapter:
     """Singleton Langfuse adapter for world-engine story execution tracing."""
 
     _instance: Optional[LangfuseAdapter] = None
+    _OBSERVATION_TREE_POLICY_VERSION = "observability_tree_policy.v1"
 
     def __init__(self):
         _apply_langfuse_debug_env()
@@ -240,50 +247,19 @@ class LangfuseAdapter:
         self._base_url = "https://cloud.langfuse.com"
         self._release = "unknown"
         self._sample_rate = 1.0
+        self._enabled_observation_trees = normalize_enabled_observation_trees(None)
         self._config = SimpleNamespace(
             environment=os.getenv("LANGFUSE_ENVIRONMENT", "development"),
             release=os.getenv("LANGFUSE_RELEASE", "unknown"),
             sample_rate=float(os.getenv("LANGFUSE_SAMPLE_RATE", "1.0")),
+            enabled_observation_trees=list(self._enabled_observation_trees),
         )
+        self._last_backend_config_refresh_monotonic = 0.0
+        self._backend_config_refresh_interval_s = self._read_backend_config_refresh_interval()
 
         # Fetch runtime observability settings from the backend database.
         try:
-            credentials = self._fetch_credentials_from_backend()
-            if not credentials:
-                logger.info("[LANGFUSE] Credentials not configured in backend")
-                return
-            if not credentials.get("enabled"):
-                logger.info("[LANGFUSE] Disabled in backend settings")
-                return
-
-            public_key = credentials.get("public_key", "").strip()
-            secret_key = credentials.get("secret_key", "").strip()
-            base_url = credentials.get("base_url", "https://cloud.langfuse.com").strip()
-            environment = credentials.get("environment") or os.getenv("LANGFUSE_ENVIRONMENT", "development")
-            release = credentials.get("release") or os.getenv("LANGFUSE_RELEASE", "unknown")
-            sample_rate = float(credentials.get("sample_rate") or os.getenv("LANGFUSE_SAMPLE_RATE", "1.0"))
-            self._config.environment = environment
-            self._config.release = release
-            self._config.sample_rate = sample_rate
-
-            if not public_key or not secret_key:
-                logger.info("[LANGFUSE] Credentials incomplete (missing key)")
-                return
-
-            self._public_key = public_key
-            self._secret_key = secret_key
-            self._base_url = base_url
-            self._release = release
-            self._sample_rate = sample_rate
-            self.is_ready = True
-            logger.info("[LANGFUSE] ✓ Credentials loaded; Langfuse clients are created per trace environment")
-            _align_langfuse_otel_resource_environment(str(self._config.environment))
-            _install_langfuse_ingestion_error_bridge()
-            try:
-                # First Langfuse() for this public_key pins OTEL resource; use backend observability env only.
-                self._get_client(str(self._config.environment).strip() or "development")
-            except Exception:
-                logger.debug("[LANGFUSE] Eager Langfuse client init failed", exc_info=True)
+            self.refresh_backend_config(force=True)
         except ImportError as e:
             logger.warning(f"[LANGFUSE] SDK not available: {e}")
         except Exception as e:
@@ -292,6 +268,8 @@ class LangfuseAdapter:
     @property
     def client(self) -> Any | None:
         """Default-environment client (backward compatibility)."""
+        if hasattr(self, "_last_backend_config_refresh_monotonic"):
+            self.refresh_backend_config()
         if not self.is_ready:
             return None
         return self._get_client(self._config.environment)
@@ -319,7 +297,7 @@ class LangfuseAdapter:
                 return None
         return self._clients.get(env_key)
 
-    def _fetch_credentials_from_backend(self) -> Optional[dict[str, str]]:
+    def _fetch_credentials_from_backend(self) -> Optional[dict[str, Any]]:
         """Fetch Langfuse credentials from backend database."""
         try:
             import httpx
@@ -342,21 +320,181 @@ class LangfuseAdapter:
                         "environment": data.get("environment", "development"),
                         "release": data.get("release", "unknown"),
                         "sample_rate": data.get("sample_rate", 1.0),
+                        "enabled_observation_trees": data.get("enabled_observation_trees"),
                     }
                 logger.warning("[LANGFUSE] Backend credential endpoint returned %s", response.status_code)
         except Exception as e:
             logger.error("[LANGFUSE] Failed to fetch credentials from backend: %s", e, exc_info=True)
         return None
 
+    @staticmethod
+    def _read_backend_config_refresh_interval() -> float:
+        raw = os.getenv("WOS_LANGFUSE_CONFIG_REFRESH_SECONDS", "30")
+        try:
+            return max(0.0, float(raw))
+        except (TypeError, ValueError):
+            logger.warning("[LANGFUSE] Invalid WOS_LANGFUSE_CONFIG_REFRESH_SECONDS=%r; using 30 seconds", raw)
+            return 30.0
+
+    @staticmethod
+    def _coerce_sample_rate(value: Any) -> float:
+        fallback = os.getenv("LANGFUSE_SAMPLE_RATE", "1.0")
+        try:
+            return float(value if value is not None and value != "" else fallback)
+        except (TypeError, ValueError):
+            logger.warning("[LANGFUSE] Invalid sample_rate=%r; using %r", value, fallback)
+            try:
+                return float(fallback)
+            except (TypeError, ValueError):
+                return 1.0
+
+    def _flush_and_clear_clients(self) -> None:
+        for env_key, client in list(getattr(self, "_clients", {}).items()):
+            try:
+                client.flush()
+            except Exception:
+                logger.debug("[LANGFUSE] Failed to flush client before config refresh (%r)", env_key, exc_info=True)
+        self._clients.clear()
+
+    def _mark_not_ready(self, reason: str) -> None:
+        if getattr(self, "is_ready", False) or getattr(self, "_clients", None):
+            self._flush_and_clear_clients()
+        self.is_ready = False
+        logger.info("[LANGFUSE] Adapter not ready: %s", reason)
+
+    def _apply_backend_credentials(self, credentials: dict[str, Any]) -> None:
+        enabled_observation_trees = normalize_enabled_observation_trees(
+            credentials.get("enabled_observation_trees")
+        )
+        previous_trees = list(getattr(self, "_enabled_observation_trees", []))
+        tree_config_changed = list(enabled_observation_trees) != previous_trees
+        self._enabled_observation_trees = list(enabled_observation_trees)
+        self._config.enabled_observation_trees = list(enabled_observation_trees)
+
+        if not credentials.get("enabled"):
+            self._mark_not_ready("disabled in backend settings")
+            return
+
+        public_key = str(credentials.get("public_key") or "").strip()
+        secret_key = str(credentials.get("secret_key") or "").strip()
+        base_url = str(credentials.get("base_url") or "https://cloud.langfuse.com").strip()
+        environment = credentials.get("environment") or os.getenv("LANGFUSE_ENVIRONMENT", "development")
+        release = credentials.get("release") or os.getenv("LANGFUSE_RELEASE", "unknown")
+        sample_rate = self._coerce_sample_rate(credentials.get("sample_rate"))
+
+        self._config.environment = environment
+        self._config.release = release
+        self._config.sample_rate = sample_rate
+
+        if not public_key or not secret_key:
+            self._mark_not_ready("credentials incomplete (missing key)")
+            return
+
+        client_config_changed = (
+            public_key != self._public_key
+            or secret_key != self._secret_key
+            or base_url != self._base_url
+            or release != self._release
+            or sample_rate != self._sample_rate
+        )
+        was_ready = bool(getattr(self, "is_ready", False))
+        if client_config_changed and self._clients:
+            self._flush_and_clear_clients()
+
+        self._public_key = public_key
+        self._secret_key = secret_key
+        self._base_url = base_url
+        self._release = str(release)
+        self._sample_rate = sample_rate
+        self.is_ready = True
+
+        if not was_ready or client_config_changed or tree_config_changed:
+            logger.info(
+                "[LANGFUSE] Credentials loaded/refreshed; environment=%r, trees=%s",
+                str(self._config.environment),
+                ",".join(self._enabled_observation_trees),
+            )
+        _align_langfuse_otel_resource_environment(str(self._config.environment))
+        _install_langfuse_ingestion_error_bridge()
+        try:
+            # First Langfuse() for this public_key pins OTEL resource; use backend observability env only.
+            self._get_client(str(self._config.environment).strip() or "development")
+        except Exception:
+            logger.debug("[LANGFUSE] Eager Langfuse client init failed", exc_info=True)
+
+    def refresh_backend_config(self, *, force: bool = False) -> None:
+        """Refresh backend-driven Langfuse settings so the long-lived engine process does not stay stale."""
+        now = time.monotonic()
+        last = float(getattr(self, "_last_backend_config_refresh_monotonic", 0.0) or 0.0)
+        interval = float(getattr(self, "_backend_config_refresh_interval_s", 30.0) or 0.0)
+        if not force and last > 0.0 and (now - last) < interval:
+            return
+
+        self._last_backend_config_refresh_monotonic = now
+        credentials = self._fetch_credentials_from_backend()
+        if not credentials:
+            logger.info("[LANGFUSE] Credentials not configured in backend")
+            return
+        self._apply_backend_credentials(credentials)
+
     @classmethod
     def get_instance(cls) -> LangfuseAdapter:
         if cls._instance is None:
             cls._instance = LangfuseAdapter()
+        elif hasattr(cls._instance, "_last_backend_config_refresh_monotonic"):
+            cls._instance.refresh_backend_config()
         return cls._instance
 
     def is_enabled(self) -> bool:
         """Check if Langfuse is ready to trace."""
-        return self.is_ready and self.client is not None
+        if hasattr(self, "_last_backend_config_refresh_monotonic"):
+            self.refresh_backend_config(force=not bool(getattr(self, "is_ready", False)))
+        if not self.is_ready:
+            return False
+        return self._get_client(self._config.environment) is not None
+
+    def _effective_observation_trees(self) -> list[str]:
+        return normalize_enabled_observation_trees(
+            getattr(
+                self,
+                "_enabled_observation_trees",
+                getattr(getattr(self, "_config", None), "enabled_observation_trees", None),
+            )
+        )
+
+    def _with_observation_policy_metadata(
+        self,
+        metadata: Optional[dict[str, Any]],
+        *,
+        observation_name: str | None = None,
+        as_type: str | None = None,
+    ) -> dict[str, Any]:
+        md = dict(metadata or {})
+        enabled_trees = self._effective_observation_trees()
+        md.setdefault("enabled_observation_trees", list(enabled_trees))
+        md.setdefault("observation_tree_policy_version", self._OBSERVATION_TREE_POLICY_VERSION)
+        if observation_name:
+            md.setdefault(
+                "observation_tree_id",
+                classify_observation_tree(observation_name, as_type=as_type, metadata=md),
+            )
+        return md
+
+    def is_observation_enabled(
+        self,
+        name: str,
+        *,
+        as_type: str | None = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> bool:
+        """Return whether an optional child observation is enabled by policy."""
+        missing = object()
+        configured = getattr(self, "_enabled_observation_trees", missing)
+        if configured is missing:
+            configured = getattr(getattr(self, "_config", None), "enabled_observation_trees", missing)
+        if configured is missing:
+            return True
+        return should_emit_observation(configured, name, as_type=as_type, metadata=metadata)
 
     def start_trace(
         self,
@@ -367,12 +505,14 @@ class LangfuseAdapter:
         trace_id: Optional[str] = None,
     ) -> Optional[Any]:
         """Start a new trace root span (Langfuse SDK v4.x API)."""
+        if hasattr(self, "_last_backend_config_refresh_monotonic"):
+            self.refresh_backend_config(force=True)
         if not self.is_enabled():
             logger.info(f"[LANGFUSE] start_trace skipped: adapter not enabled")
             return None
 
         try:
-            trace_metadata = dict(metadata or {})
+            trace_metadata = self._with_observation_policy_metadata(metadata)
             trace_metadata.setdefault("session_id", session_id)
             env = resolve_langfuse_environment(
                 trace_metadata.get("trace_origin"),
@@ -421,11 +561,13 @@ class LangfuseAdapter:
         metadata: Optional[dict[str, Any]] = None,
     ) -> Optional[Any]:
         """Create a v4 span inside an existing Langfuse trace."""
+        if hasattr(self, "_last_backend_config_refresh_monotonic"):
+            self.refresh_backend_config(force=True)
         if not self.is_enabled():
             logger.info("[LANGFUSE] start_span_in_trace skipped: adapter not enabled")
             return None
         try:
-            md = dict(metadata or {})
+            md = self._with_observation_policy_metadata(metadata)
             env = resolve_langfuse_environment(
                 md.get("trace_origin"),
                 md.get("execution_tier"),
@@ -569,6 +711,9 @@ class LangfuseAdapter:
         if not self.is_enabled():
             out["reason"] = "langfuse_disabled_or_not_ready"
             return out
+        if not self.is_observation_enabled(name, as_type="span", metadata=metadata):
+            out["reason"] = "observation_tree_disabled"
+            return out
 
         parent = self.resolve_parent_observation_for_nested_span()
         if parent is None:
@@ -581,7 +726,13 @@ class LangfuseAdapter:
                 name=name,
                 input=_langfuse_sanitize_value(input_data or {}),
                 output=_langfuse_sanitize_value(output_data or {}),
-                metadata=self._metadata_with_active_session(metadata),
+                metadata=self._metadata_with_active_session(
+                    self._with_observation_policy_metadata(
+                        metadata,
+                        observation_name=name,
+                        as_type="span",
+                    )
+                ),
             )
             _span_context_registry[id(child)] = (
                 _active_langfuse_client.get(),
@@ -622,6 +773,9 @@ class LangfuseAdapter:
         out: dict[str, Any] = {"emitted": False, "scores_attempted": len(scores)}
         if not self.is_enabled():
             out["reason"] = "langfuse_disabled_or_not_ready"
+            return out
+        if not self.is_observation_enabled("adr0041_langfuse_scores", as_type="score"):
+            out["reason"] = "observation_tree_disabled"
             return out
         if self.resolve_parent_observation_for_nested_span() is None:
             out["reason"] = "no_active_langfuse_parent_observation"
@@ -726,6 +880,9 @@ class LangfuseAdapter:
         if not self.is_enabled():
             logger.debug(f"[LANGFUSE] create_child_span skipped: adapter not enabled")
             return None
+        if not self.is_observation_enabled(name, as_type=as_type, metadata=metadata):
+            logger.debug("[LANGFUSE] create_child_span skipped by observation tree policy: %s", name)
+            return None
 
         parent_span = _active_span_context.get()
         if not parent_span:
@@ -741,7 +898,13 @@ class LangfuseAdapter:
                 name=name,
                 input=safe_in,
                 output=safe_out,
-                metadata=self._metadata_with_active_session(metadata),
+                metadata=self._metadata_with_active_session(
+                    self._with_observation_policy_metadata(
+                        metadata,
+                        observation_name=name,
+                        as_type=as_type,
+                    )
+                ),
                 level=level,  # type: ignore[arg-type]
                 status_message=status_message,
             )
@@ -789,6 +952,9 @@ class LangfuseAdapter:
         """Record a Langfuse generation observation under the active story span."""
         if not self.is_enabled():
             return None
+        if not self.is_observation_enabled(name, as_type="generation", metadata=metadata):
+            logger.debug("[LANGFUSE] generation skipped by observation tree policy: %s", name)
+            return None
         parent_span = _active_span_context.get()
         if not parent_span:
             logger.warning(f"[LANGFUSE] No active parent span to record generation '{name}'")
@@ -801,6 +967,11 @@ class LangfuseAdapter:
                 "provider": provider,
                 "provided_model_name": (provided_model_name or model or "").strip() or None,
             }
+            gen_metadata = self._with_observation_policy_metadata(
+                gen_metadata,
+                observation_name=name,
+                as_type="generation",
+            )
             gen_metadata = self._metadata_with_active_session(gen_metadata)
             if prompt_name:
                 gen_metadata["langfuse_prompt_name"] = prompt_name
@@ -852,6 +1023,9 @@ class LangfuseAdapter:
         """Record a Langfuse retriever observation under the active story span."""
         if not self.is_enabled():
             return None
+        if not self.is_observation_enabled(name, as_type="retriever", metadata=metadata):
+            logger.debug("[LANGFUSE] retrieval skipped by observation tree policy: %s", name)
+            return None
         parent_span = _active_span_context.get()
         if not parent_span:
             logger.warning(f"[LANGFUSE] No active parent span to record retrieval '{name}'")
@@ -861,10 +1035,16 @@ class LangfuseAdapter:
                 as_type="retriever",
                 name=name,
                 input=_langfuse_sanitize_value({"query": query} if query else {}),
-                metadata=self._metadata_with_active_session({
-                    **(metadata or {}),
-                    "document_count": len(documents or []),
-                }),
+                metadata=self._metadata_with_active_session(
+                    self._with_observation_policy_metadata(
+                        {
+                            **(metadata or {}),
+                            "document_count": len(documents or []),
+                        },
+                        observation_name=name,
+                        as_type="retriever",
+                    )
+                ),
             )
             retrieval.update(output=_langfuse_sanitize_value({"documents": documents or []}))
             retrieval.end()
@@ -1187,6 +1367,9 @@ class LangfuseAdapter:
     ) -> None:
         """Attach a deterministic score to the active story trace/span."""
         if not self.is_enabled():
+            return
+        if not self.is_observation_enabled(name, as_type="score", metadata=metadata):
+            logger.debug("[LANGFUSE] score skipped by observation tree policy: %s", name)
             return
         parent_span = _active_span_context.get()
         if not parent_span:

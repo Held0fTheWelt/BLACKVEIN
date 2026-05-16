@@ -19,6 +19,7 @@ from app.services.observability_governance_service import (
     update_observability_config,
     write_observability_credential,
 )
+from story_runtime_core.observability_tree_policy import normalize_enabled_observation_trees
 
 # Same handler set as ``tools.mcp_server`` Langfuse verify tools (explicit allow-list).
 _LANGFUSE_VERIFY_TOOL_NAMES: frozenset[str] = frozenset(
@@ -184,6 +185,9 @@ def internal_observability_initialize():
         config.capture_outputs = body.get("capture_outputs", True)
         config.capture_retrieval = body.get("capture_retrieval", False)
         config.redaction_mode = body.get("redaction_mode", "strict")
+        config.enabled_observation_trees = normalize_enabled_observation_trees(
+            body.get("enabled_observation_trees")
+        )
 
         # Write credentials if provided
         public_key = body.get("public_key", "").strip()
@@ -249,6 +253,7 @@ def internal_langfuse_credentials():
                 "public_key": None,
                 "secret_key": None,
                 "base_url": "https://cloud.langfuse.com",
+                "enabled_observation_trees": normalize_enabled_observation_trees(None),
             })
 
         # Get credentials
@@ -267,6 +272,9 @@ def internal_langfuse_credentials():
             "capture_outputs": config.capture_outputs,
             "capture_retrieval": config.capture_retrieval,
             "redaction_mode": config.redaction_mode,
+            "enabled_observation_trees": normalize_enabled_observation_trees(
+                getattr(config, "enabled_observation_trees", None)
+            ),
         })
 
     except Exception as e:

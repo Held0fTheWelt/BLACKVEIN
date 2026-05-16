@@ -55,6 +55,7 @@ class TestLangfuseCredentialsEndpoint:
             display_name="Langfuse",
             is_enabled=True,
             base_url="https://cloud.langfuse.com",
+            enabled_observation_trees=["minimal", "graph_path", "model_io", "retrieval"],
         )
         db.session.add(config)
         db.session.commit()
@@ -86,6 +87,7 @@ class TestLangfuseCredentialsEndpoint:
         assert data["capture_outputs"] is True
         assert data["capture_retrieval"] is False
         assert data["redaction_mode"] == "strict"
+        assert data["enabled_observation_trees"] == ["minimal", "graph_path", "model_io", "retrieval"]
 
     def test_internal_credentials_endpoint_returns_empty_when_enabled_but_no_secret(self, client, app, db_session):
         """When enabled but no secret key, credentials are marked as not ready."""
@@ -188,6 +190,7 @@ class TestLangfuseInitializationEndpoint:
             "capture_outputs": True,
             "capture_retrieval": False,
             "redaction_mode": "strict",
+            "enabled_observation_trees": ["minimal", "model_io", "scores"],
             "public_key": "pk_bootstrap_1234",
             "secret_key": "sk_bootstrap_5678",
         }
@@ -209,6 +212,8 @@ class TestLangfuseInitializationEndpoint:
 
         assert public_key == "pk_bootstrap_1234"
         assert secret_key == "sk_bootstrap_5678"
+        config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
+        assert config.enabled_observation_trees == ["minimal", "model_io", "scores"]
 
     def test_internal_initialize_endpoint_creates_config_with_minimal_payload(self, client, db_session):
         """Bootstrap endpoint works with minimal payload."""
@@ -254,6 +259,7 @@ class TestLangfuseAdapterIntegration:
         assert config.public_key == "pk_test_database"
         assert config.secret_key == "sk_test_database"
         assert config.is_valid is True
+        assert config.enabled_observation_trees == ["minimal"]
 
     def test_langfuse_adapter_methods_exist(self):
         """LangfuseAdapter has all required methods for tracing."""

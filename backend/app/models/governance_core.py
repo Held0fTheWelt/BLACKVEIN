@@ -7,6 +7,11 @@ from typing import Any
 
 from app.extensions import db
 from app.utils.time_utils import utc_now as _utc_now
+from story_runtime_core.observability_tree_policy import DEFAULT_ENABLED_OBSERVATION_TREES
+
+
+def _default_observation_trees() -> list[str]:
+    return list(DEFAULT_ENABLED_OBSERVATION_TREES)
 
 
 class BootstrapConfig(db.Model):
@@ -263,6 +268,7 @@ class ObservabilityConfig(db.Model):
     capture_retrieval = db.Column(db.Boolean, nullable=False, default=False)
 
     redaction_mode = db.Column(db.String(32), nullable=False, default="strict")
+    enabled_observation_trees = db.Column(db.JSON, nullable=False, default=_default_observation_trees)
 
     credential_configured = db.Column(db.Boolean, nullable=False, default=False)
     credential_fingerprint = db.Column(db.String(256), nullable=True)

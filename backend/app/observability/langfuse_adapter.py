@@ -19,6 +19,10 @@ from datetime import datetime
 from contextvars import ContextVar
 
 from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+from story_runtime_core.observability_tree_policy import (
+    normalize_enabled_observation_trees,
+    should_emit_observation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +61,9 @@ class LangfuseConfig:
         self.capture_outputs = bool(db_config.get("capture_outputs", True))
         self.capture_retrieval = bool(db_config.get("capture_retrieval", False))
         self.redaction_mode = str(db_config.get("redaction_mode") or "strict")
+        self.enabled_observation_trees = normalize_enabled_observation_trees(
+            db_config.get("enabled_observation_trees")
+        )
 
     @staticmethod
     def _get_config_from_db() -> dict[str, Any]:
@@ -75,6 +82,7 @@ class LangfuseConfig:
                     "capture_outputs": config.capture_outputs,
                     "capture_retrieval": config.capture_retrieval,
                     "redaction_mode": config.redaction_mode,
+                    "enabled_observation_trees": getattr(config, "enabled_observation_trees", None),
                 }
         except Exception:
             pass
@@ -214,6 +222,23 @@ class LangfuseAdapter:
 
         return sanitized
 
+    def is_observation_enabled(
+        self,
+        name: str,
+        *,
+        as_type: str | None = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> bool:
+        """Return whether an optional child observation is enabled by policy."""
+        if not hasattr(self.config, "enabled_observation_trees"):
+            return True
+        return should_emit_observation(
+            getattr(self.config, "enabled_observation_trees", None),
+            name,
+            as_type=as_type,
+            metadata=metadata,
+        )
+
     def start_trace(
         self,
         name: str,
@@ -342,6 +367,8 @@ class LangfuseAdapter:
         """
         if not self.is_enabled():
             return None
+        if not self.is_observation_enabled(name, as_type="span", metadata=metadata):
+            return None
 
         target_trace = trace or self._active_trace
         if not target_trace:
@@ -393,6 +420,8 @@ class LangfuseAdapter:
             trace: Target trace (defaults to active trace)
         """
         if not self.is_enabled():
+            return
+        if not self.is_observation_enabled(name, as_type="generation", metadata=metadata):
             return
 
         target_trace = trace or self._active_trace
@@ -451,6 +480,8 @@ class LangfuseAdapter:
         """
         if not self.is_enabled():
             return
+        if not self.is_observation_enabled("retrieval", as_type="retriever", metadata=metadata):
+            return
 
         target_trace = trace or self._active_trace
         if not target_trace:
@@ -503,6 +534,8 @@ class LangfuseAdapter:
         """
         if not self.is_enabled():
             return
+        if not self.is_observation_enabled(f"validation_{name}", as_type="guardrail", metadata=metadata):
+            return
 
         target_trace = trace or self._active_trace
         if not target_trace:
@@ -544,6 +577,8 @@ class LangfuseAdapter:
         """
         if not self.is_enabled():
             return
+        if not self.is_observation_enabled(name, as_type="score", metadata=metadata):
+            return
 
         target_trace = trace or self._active_trace
         if not target_trace:
@@ -582,6 +617,8 @@ class LangfuseAdapter:
             Child span object if enabled, None otherwise.
         """
         if not self.is_enabled():
+            return None
+        if not self.is_observation_enabled(name, as_type="span", metadata=metadata):
             return None
 
         try:
@@ -640,6 +677,9 @@ class LangfuseAdapter:
         if not self.is_enabled():
             out["reason"] = "langfuse_disabled_or_not_ready"
             return out
+        if not self.is_observation_enabled(name, as_type="span", metadata=metadata):
+            out["reason"] = "observation_tree_disabled"
+            return out
         parent = self.resolve_parent_observation_for_nested_span()
         if parent is None:
             out["reason"] = "no_active_langfuse_parent_observation"
@@ -696,6 +736,9 @@ class LangfuseAdapter:
         out: dict[str, Any] = {"emitted": False, "scores_attempted": len(scores)}
         if not self.is_enabled() or not self._active_trace:
             out["reason"] = "no_active_root_trace_for_scoring"
+            return out
+        if not self.is_observation_enabled("adr0041_langfuse_scores", as_type="score"):
+            out["reason"] = "observation_tree_disabled"
             return out
         meta_base = {
             "score_origin": "adr0041_runtime_intelligence",

@@ -24,6 +24,11 @@
   var captureOutputsInput = null;
   var captureRetrievalInput = null;
   var redactionModeInput = null;
+  var observationTreesInput = null;
+  var observationTreesSelectedText = null;
+  var observationTreesMinimalBtn = null;
+  var observationTreesAllBtn = null;
+  var observationTreesNoneBtn = null;
 
   var publicKeyInput = null;
   var secretKeyInput = null;
@@ -124,6 +129,11 @@
     captureOutputsInput = byId("manage-obs-capture-outputs");
     captureRetrievalInput = byId("manage-obs-capture-retrieval");
     redactionModeInput = byId("manage-obs-redaction-mode");
+    observationTreesInput = byId("manage-obs-observation-trees");
+    observationTreesSelectedText = byId("manage-obs-observation-trees-selected");
+    observationTreesMinimalBtn = byId("manage-obs-trees-minimal");
+    observationTreesAllBtn = byId("manage-obs-trees-all");
+    observationTreesNoneBtn = byId("manage-obs-trees-none");
 
     publicKeyInput = byId("manage-obs-public-key");
     secretKeyInput = byId("manage-obs-secret-key");
@@ -146,6 +156,53 @@
       success &&
       configJson
     );
+  }
+
+  function defaultObservationTrees() {
+    return ["minimal"];
+  }
+
+  function selectedObservationTrees() {
+    if (!observationTreesInput) return defaultObservationTrees();
+    return Array.prototype.slice.call(observationTreesInput.options)
+      .filter(function (option) { return option.selected; })
+      .map(function (option) { return option.value; });
+  }
+
+  function selectedObservationTreeLabels() {
+    if (!observationTreesInput) return [];
+    return Array.prototype.slice.call(observationTreesInput.options)
+      .filter(function (option) { return option.selected; })
+      .map(function (option) { return option.textContent || option.value; });
+  }
+
+  function updateObservationTreesSelectionSummary() {
+    if (!observationTreesSelectedText) return;
+    var labels = selectedObservationTreeLabels();
+    if (!labels.length) {
+      observationTreesSelectedText.textContent = "Selected: none (root trace only)";
+      return;
+    }
+    observationTreesSelectedText.textContent = "Selected: " + labels.join(", ");
+  }
+
+  function setSelectedObservationTrees(values) {
+    if (!observationTreesInput) return;
+    var selected = {};
+    (Array.isArray(values) ? values : defaultObservationTrees()).forEach(function (value) {
+      selected[String(value)] = true;
+    });
+    Array.prototype.slice.call(observationTreesInput.options).forEach(function (option) {
+      option.selected = !!selected[option.value];
+    });
+    updateObservationTreesSelectionSummary();
+  }
+
+  function allObservationTreeValues() {
+    if (!observationTreesInput) return defaultObservationTrees();
+    return Array.prototype.slice.call(observationTreesInput.options).map(function (option) {
+      return option.value;
+    });
   }
 
   function classToggle(node, className, value) {
@@ -175,6 +232,7 @@
     captureOutputsInput.checked = currentConfig.capture_outputs !== false;
     captureRetrievalInput.checked = currentConfig.capture_retrieval === true;
     redactionModeInput.value = currentConfig.redaction_mode || "strict";
+    setSelectedObservationTrees(currentConfig.enabled_observation_trees || defaultObservationTrees());
 
     if (currentConfig.credential_configured) {
       credentialStatus.textContent =
@@ -296,6 +354,7 @@
       capture_outputs: !!captureOutputsInput.checked,
       capture_retrieval: !!captureRetrievalInput.checked,
       redaction_mode: redactionModeInput.value,
+      enabled_observation_trees: selectedObservationTrees(),
     };
 
     setBusy(saveConfigBtn, "Saving...", true);
@@ -453,6 +512,24 @@
     saveCredentialBtn.addEventListener("click", saveCredential);
     testConnBtn.addEventListener("click", testConnection);
     disableBtn.addEventListener("click", disableObservability);
+    if (observationTreesInput) {
+      observationTreesInput.addEventListener("change", updateObservationTreesSelectionSummary);
+    }
+    if (observationTreesMinimalBtn) {
+      observationTreesMinimalBtn.addEventListener("click", function () {
+        setSelectedObservationTrees(defaultObservationTrees());
+      });
+    }
+    if (observationTreesAllBtn) {
+      observationTreesAllBtn.addEventListener("click", function () {
+        setSelectedObservationTrees(allObservationTreeValues());
+      });
+    }
+    if (observationTreesNoneBtn) {
+      observationTreesNoneBtn.addEventListener("click", function () {
+        setSelectedObservationTrees([]);
+      });
+    }
   }
 
   function init() {

@@ -31,6 +31,11 @@ def test_manage_observability_settings_contains_expected_mount_points(client):
     assert "manage-obs-test-connection" in html
     assert "manage-obs-disable" in html
     assert "manage-obs-config-json" in html
+    assert "manage-obs-observation-trees" in html
+    assert "manage-obs-observation-trees-selected" in html
+    assert "manage-obs-trees-minimal" in html
+    assert "manage-obs-trees-all" in html
+    assert "manage-obs-trees-none" in html
     assert "Credential readiness vs proof" in html
     assert "local evidence only" in html
     assert "gov-tip" in html

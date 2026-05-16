@@ -5854,6 +5854,15 @@ def _emit_langfuse_evidence_observations(
         generation = {}
     gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     adapter_name = str(gen_meta.get("adapter") or "").strip()
+    primary_adapter_name = str(path_summary.get("primary_attempt_adapter") or "").strip()
+    deterministic_adapters = {"mock", "ldss_fallback", "ldss_deterministic"}
+    primary_attempt_api_success = path_summary.get("primary_attempt_api_success") is True
+    record_primary_attempt_generation = (
+        primary_attempt_api_success
+        and bool(primary_adapter_name)
+        and primary_adapter_name not in deterministic_adapters
+    )
+    record_final_generation = bool(adapter_name) and adapter_name not in deterministic_adapters
     usage_details = path_summary.get("usage_details") if isinstance(path_summary.get("usage_details"), dict) else {}
     _ud_in = int(usage_details.get("input") or 0)
     _ud_out = int(usage_details.get("output") or 0)
@@ -5863,24 +5872,59 @@ def _emit_langfuse_evidence_observations(
     usage_for_lf = (
         {"input": _ud_in, "output": _ud_out, "total": _ud_tot} if (_ud_in or _ud_out or _ud_tot) else None
     )
-    model_name = str(path_summary.get("api_model") or path_summary.get("selected_model") or gen_meta.get("model") or "unknown").strip()
-    provider = str(path_summary.get("selected_provider") or adapter_name or "unknown").strip()
+    model_name = str(
+        (
+            path_summary.get("primary_attempt_model")
+            if record_primary_attempt_generation and not record_final_generation
+            else None
+        )
+        or path_summary.get("api_model")
+        or path_summary.get("selected_model")
+        or gen_meta.get("model")
+        or "unknown"
+    ).strip()
+    provider = str(
+        (
+            path_summary.get("primary_attempt_provider")
+            if record_primary_attempt_generation and not record_final_generation
+            else None
+        )
+        or path_summary.get("selected_provider")
+        or primary_adapter_name
+        or adapter_name
+        or "unknown"
+    ).strip()
     _lat_ev = path_summary.get("generation_latency_ms")
     _lat_ev_f = float(_lat_ev) if isinstance(_lat_ev, (int, float)) else None
     _tps_ev = path_summary.get("tokens_per_second_output")
     _tps_ev_f = float(_tps_ev) if isinstance(_tps_ev, (int, float)) else None
     _ttft_ev = path_summary.get("time_to_first_token_ms")
     _ttft_ev_f = float(_ttft_ev) if isinstance(_ttft_ev, (int, float)) else None
-    _provided = str(path_summary.get("provided_model_name") or gen_meta.get("model") or model_name).strip()
+    _provided = str(
+        path_summary.get("provided_model_name")
+        or (
+            path_summary.get("primary_attempt_model")
+            if record_primary_attempt_generation and not record_final_generation
+            else None
+        )
+        or gen_meta.get("model")
+        or model_name
+    ).strip()
     _prompt_name_ev = path_summary.get("langfuse_prompt_name")
-    if adapter_name and adapter_name not in {"mock", "ldss_fallback", "ldss_deterministic"}:
+    if record_final_generation or record_primary_attempt_generation:
+        completion_text = (
+            generation.get("model_raw_text")
+            or generation.get("content")
+            or path_summary.get("primary_attempt_raw_output_excerpt")
+            or ""
+        )
         try:
             adapter.record_generation(
                 name="story.model.generation",
                 model=model_name,
                 provider=provider,
                 prompt=str(graph_state.get("model_prompt") or "")[:20000],
-                completion=str(generation.get("model_raw_text") or generation.get("content") or "")[:20000],
+                completion=str(completion_text)[:20000],
                 usage_details=usage_for_lf,
                 provided_model_name=_provided or None,
                 prompt_name=str(_prompt_name_ev).strip() if _prompt_name_ev else None,
@@ -5895,7 +5939,21 @@ def _emit_langfuse_evidence_observations(
                     "opening_turn": int(path_summary.get("turn_number") or 0) == 0,
                     "turn_kind": path_summary.get("turn_kind"),
                     "adapter": adapter_name,
+                    "generation_observation_source": (
+                        "primary_attempt" if record_primary_attempt_generation and not record_final_generation else "final"
+                    ),
+                    "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
+                    "primary_attempt_model": path_summary.get("primary_attempt_model"),
+                    "primary_attempt_provider": path_summary.get("primary_attempt_provider"),
+                    "primary_attempt_invocation_mode": path_summary.get("primary_attempt_invocation_mode"),
+                    "primary_attempt_api_success": path_summary.get("primary_attempt_api_success"),
+                    "primary_attempt_structured_output_present": path_summary.get(
+                        "primary_attempt_structured_output_present"
+                    ),
+                    "primary_attempt_raw_output_sha256": path_summary.get("primary_attempt_raw_output_sha256"),
                     "adapter_invocation_mode": path_summary.get("adapter_invocation_mode"),
+                    "final_adapter": path_summary.get("final_adapter"),
+                    "final_adapter_invocation_mode": path_summary.get("final_adapter_invocation_mode"),
                     "route_id": path_summary.get("route_id"),
                     "route_family": path_summary.get("route_family"),
                     "selected_model": path_summary.get("selected_model"),

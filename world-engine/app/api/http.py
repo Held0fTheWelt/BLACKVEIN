@@ -579,6 +579,8 @@ def create_story_session(
         try:
             from app.observability.langfuse_adapter import LangfuseAdapter
             adapter = LangfuseAdapter.get_instance()
+            if hasattr(adapter, "refresh_backend_config"):
+                adapter.refresh_backend_config(force=True)
             previous_active_span = adapter.get_active_span()
             adapter.set_active_span(None)
             logger.info(f"[HTTP] Adapter loaded for session create: is_ready={adapter.is_ready}, is_enabled={adapter.is_enabled()}")
@@ -587,7 +589,7 @@ def create_story_session(
             adapter = None
 
         default_lf = os.getenv("LANGFUSE_ENVIRONMENT", "development")
-        if adapter and adapter.is_ready:
+        if adapter and adapter.is_enabled():
             default_lf = str(adapter.config.environment or default_lf)
         lf_tracing_env = resolve_langfuse_environment(
             trace_classification.get("trace_origin"),
@@ -595,7 +597,7 @@ def create_story_session(
             default=default_lf,
         )
 
-        if adapter and adapter.is_ready and adapter.is_enabled():
+        if adapter and adapter.is_enabled():
             if langfuse_trace_id:
                 root_span = adapter.start_span_in_trace(
                     trace_id=langfuse_trace_id,
@@ -756,6 +758,8 @@ def execute_story_turn(
     try:
         from app.observability.langfuse_adapter import LangfuseAdapter
         adapter = LangfuseAdapter.get_instance()
+        if hasattr(adapter, "refresh_backend_config"):
+            adapter.refresh_backend_config(force=True)
         previous_active_span = adapter.get_active_span()
         adapter.set_active_span(None)
         logger.info(f"[HTTP] Adapter loaded: is_ready={adapter.is_ready}, is_enabled={adapter.is_enabled()}")
@@ -764,7 +768,7 @@ def execute_story_turn(
         adapter = None
 
     default_lf = os.getenv("LANGFUSE_ENVIRONMENT", "development")
-    if adapter and adapter.is_ready:
+    if adapter and adapter.is_enabled():
         default_lf = str(adapter.config.environment or default_lf)
     lf_tracing_env = resolve_langfuse_environment(
         trace_classification.get("trace_origin"),
@@ -772,7 +776,7 @@ def execute_story_turn(
         default=default_lf,
     )
 
-    if adapter and adapter.is_ready and adapter.is_enabled():
+    if adapter and adapter.is_enabled():
         if langfuse_trace_id:
             logger.info(f"[HTTP] Received Langfuse trace_id from Backend: {langfuse_trace_id}")
             try:
