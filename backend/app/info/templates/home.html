@@ -19,55 +19,43 @@
 <section>
   <h2>Themen &amp; Interaktionsmöglichkeiten</h2>
   <p>Wähle eine Karte, um zu verstehen, <strong>was</strong> du mit dem Backend machen kannst, <strong>für wen</strong> das gedacht ist und <strong>wo</strong> die Details stehen.</p>
-  <ul class="topic-grid" aria-label="Backend-Themen">
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.api_overview') }}"><strong>API</strong>
-          <p class="topic-card-desc">Alle REST-Bereiche unter <code>/api/v1</code>, Auth-Stile, Rate-Limits — Einstieg vor dem Explorer.</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.api_explorer') }}"><strong>API Explorer</strong>
-          <p class="topic-card-desc">Durchsuchbare OpenAPI-Ansicht (Redoc), Tags filtern, Spec unter <code>/backend/openapi.yaml</code>.</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.engine_integration') }}"><strong>Engine</strong>
-          <p class="topic-card-desc">Tickets, Runs, Join-Context: wie das Backend den Play-Service anstößt (ohne Live-State zu besitzen).</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.ai_integration') }}"><strong>AI</strong>
-          <p class="topic-card-desc">Runtime-Adapter, Writers-Room, Improvement — wo Vorschläge entstehen vs. wo autoritative Narration läuft.</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.auth_security') }}"><strong>Auth</strong>
-          <p class="topic-card-desc">JWT, Cookies, CORS, CSRF-Grenzen zwischen Browser-Clients und JSON-API.</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        <a href="{{ url_for('info.operations_health') }}"><strong>Ops</strong>
-          <p class="topic-card-desc">Health-Checks, Umgebung, Runbooks, Trace-Header für Support.</p></a>
-      </div>
-    </li>
-    <li>
-      <div class="topic-card">
-        {% if docs_site_url %}
-        <a href="{{ docs_site_url }}/api/REFERENCE/"><strong>Dokumentation (MkDocs)</strong>
-          <p class="topic-card-desc">Volltextsuche über die gesamte API-Referenz und angrenzende Guides.</p></a>
-        {% else %}
-        <span class="topic-card"><strong>Dokumentation (MkDocs)</strong>
-          <p class="topic-card-desc">Lokal: <code>python -m mkdocs serve</code>. Setze <code>DOCS_SITE_URL</code> für einen Link von hier auf die gebaute Site.</p></span>
-        {% endif %}
-      </div>
-    </li>
-  </ul>
+  <div class="card-grid" aria-label="Backend-Themen">
+    <a href="{{ url_for('info.api_overview') }}" class="card card-link">
+      <h3>API</h3>
+      <p>Alle REST-Bereiche unter <code>/api/v1</code>, Auth-Stile, Rate-Limits — Einstieg vor dem Explorer.</p>
+    </a>
+    <a href="{{ url_for('info.api_explorer') }}" class="card card-link">
+      <h3>API Explorer</h3>
+      <p>Durchsuchbare OpenAPI-Ansicht (Redoc), Tags filtern, Spec unter <code>/backend/openapi.yaml</code>.</p>
+    </a>
+    <a href="{{ url_for('info.engine_integration') }}" class="card card-link">
+      <h3>Engine</h3>
+      <p>Tickets, Runs, Join-Context: wie das Backend den Play-Service anstößt (ohne Live-State zu besitzen).</p>
+    </a>
+    <a href="{{ url_for('info.ai_integration') }}" class="card card-link">
+      <h3>AI</h3>
+      <p>Runtime-Adapter, Writers-Room, Improvement — wo Vorschläge entstehen vs. wo autoritative Narration läuft.</p>
+    </a>
+    <a href="{{ url_for('info.auth_security') }}" class="card card-link">
+      <h3>Auth</h3>
+      <p>JWT, Cookies, CORS, CSRF-Grenzen zwischen Browser-Clients und JSON-API.</p>
+    </a>
+    <a href="{{ url_for('info.operations_health') }}" class="card card-link">
+      <h3>Ops</h3>
+      <p>Health-Checks, Umgebung, Runbooks, Trace-Header für Support.</p>
+    </a>
+    {% if docs_site_url %}
+    <a href="{{ docs_site_url }}/api/REFERENCE/" class="card card-link" rel="noopener noreferrer">
+      <h3>Dokumentation (MkDocs)</h3>
+      <p>Volltextsuche über die gesamte API-Referenz und angrenzende Guides.</p>
+    </a>
+    {% else %}
+    <div class="card">
+      <h3>Dokumentation (MkDocs)</h3>
+      <p class="muted">Lokal: <code>python -m mkdocs serve</code>. Setze <code>DOCS_SITE_URL</code> für einen Link von hier auf die gebaute Site.</p>
+    </div>
+    {% endif %}
+  </div>
 </section>
 <section>
   <h2>Schnellzugriff</h2>
@@ -83,23 +71,7 @@
     <li><span class="path">docs/api/openapi-taxonomy.md</span> — Tags &amp; Zuordnung zu diesen Seiten.</li>
     <li><span class="path">docs/operations/RUNBOOK.md</span> — Compose, Ports, Betrieb.</li>
   </ul>
-  <h3>Externe UIs (wenn konfiguriert)</h3>
-  <ul>
-    {% if frontend_url %}
-      <li><a href="{{ frontend_url }}/" rel="noopener noreferrer">Player-Frontend</a> — <code>FRONTEND_URL</code></li>
-    {% else %}
-      <li class="muted">Player-Frontend: <code>FRONTEND_URL</code> setzen für einen klickbaren Link.</li>
-    {% endif %}
-    {% if admin_tool_url %}
-      <li><a href="{{ admin_tool_url }}/" rel="noopener noreferrer">Administration tool</a> — <code>ADMINISTRATION_TOOL_URL</code></li>
-    {% else %}
-      <li class="muted">Administration tool: optional <code>ADMINISTRATION_TOOL_URL</code>.</li>
-    {% endif %}
-    {% if play_service_public_url %}
-      <li><a href="{{ play_service_public_url }}" rel="noopener noreferrer">Play-Service (öffentliche Basis-URL)</a> — <code>PLAY_SERVICE_PUBLIC_URL</code></li>
-    {% else %}
-      <li class="muted">Play-Service: <code>PLAY_SERVICE_PUBLIC_URL</code> / <code>PLAY_SERVICE_INTERNAL_URL</code> für Integration.</li>
-    {% endif %}
-  </ul>
+  <h3>Weitere Oberflächen</h3>
+  <p class="muted">Schnellzugriff in der linken Navigation (Player-Frontend, Administration-Tool mit Login, Play-Service), sofern <code>FRONTEND_URL</code>, <code>ADMINISTRATION_TOOL_URL</code> bzw. <code>PLAY_SERVICE_PUBLIC_URL</code> gesetzt sind.</p>
 </section>
 {% endblock %}

@@ -1317,34 +1317,25 @@ def mvp4_get_session_regression(session_id: str):
 @jwt_required()
 @require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def mvp4_toggle_langfuse(session_id: str):
-    """Enable/disable Langfuse tracing for session."""
-    def _do():
-        from app.services import log_activity
-
-        body = _body()
-        enabled = body.get("enabled", False)
-        reason = body.get("reason", "")
-
-        # In Phase B, would update session_config in database
-        # Phase A: Just log and return success
-
-        log_activity(
-            actor=_actor_identifier(),
-            category="mvp4_governance",
-            action="langfuse_toggle",
-            status="success",
-            message=f"Langfuse {'enabled' if enabled else 'disabled'} for session {session_id}",
-            metadata={"session_id": session_id, "enabled": enabled, "reason": reason},
-            tags=["mvp4", "langfuse"],
-        )
-
-        return {
+    """Request scoped Langfuse toggle (read-only status until persistence is implemented)."""
+    body = _body()
+    requested_enabled = bool(body.get("enabled", False))
+    reason = str(body.get("reason") or "").strip()
+    return fail(
+        "langfuse_toggle_not_wired",
+        "Session-level Langfuse toggle is not wired to persisted runtime state yet.",
+        501,
+        {
             "session_id": session_id,
-            "langfuse_enabled": enabled,
-            "toggled_at": datetime.now(timezone.utc).isoformat(),
-        }
-
-    return _handle("langfuse_toggle", _do)
+            "requested_enabled": requested_enabled,
+            "reason": reason,
+            "mutated": False,
+            "operator_action_required": (
+                "Use observability governance configuration and runtime evidence endpoints "
+                "until session-scoped persistence is implemented."
+            ),
+        },
+    )
 
 
 # Object Admission Overrides

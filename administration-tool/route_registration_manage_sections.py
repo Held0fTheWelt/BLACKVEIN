@@ -309,6 +309,11 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
         """Runtime configuration truth — configured vs. effective vs. loaded."""
         return render_template("manage/runtime_config_truth.html")
 
+    @app.route("/manage/governance-console")
+    def manage_governance_console():
+        """Central governance console (read-only authority and evidence surfaces)."""
+        return render_template("manage/governance_console.html")
+
 
 def register_manage_observability_pages(app: Flask) -> None:
     @app.route("/manage/observability-settings")

@@ -1,0 +1,18 @@
+{% extends "ui/base.html" %}
+{% block title %}World-Engine Simulator{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Runtime Surface</p>
+  <h1>Existing World-Engine Page</h1>
+  <p class="ui-subtle">The existing simulator is embedded unchanged in the authenticated shell.</p>
+</header>
+
+<section class="ui-card ui-embed-card">
+  <iframe
+    src="/engine/app"
+    title="World-Engine Simulator"
+    class="ui-embed-frame"
+    loading="lazy">
+  </iframe>
+</section>
+{% endblock %}

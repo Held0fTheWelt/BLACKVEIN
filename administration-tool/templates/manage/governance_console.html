@@ -1,0 +1,74 @@
+{% extends "manage/base.html" %}
+{% block title %}Governance Console{% endblock %}
+
+{% block content %}
+<section class="manage-page mui-manage-page" data-page="governance-console">
+    <header class="manage-page-header mui-page-header">
+        <div>
+            <p class="manage-eyebrow mui-eyebrow">AI Governance</p>
+            <h1>Governance Console</h1>
+            <p class="manage-lead">
+                Read-only governance authority surfaces for readiness, ADR-0041 capability control, validator registry,
+                evidence integrity, and RuntimeAspectLedger diagnostics.
+            </p>
+        </div>
+        <div class="manage-page-header-actions">
+            <label class="form-field">
+                <span class="form-label">Session ID (optional)</span>
+                <input id="gov-console-session-id" class="form-input" type="text" placeholder="runtime session id" />
+            </label>
+            <label class="form-field">
+                <span class="form-label">Aspect filter (ledger)</span>
+                <input id="gov-console-aspect-filter" class="form-input" type="text" placeholder="e.g. readiness" />
+            </label>
+            <label class="form-field">
+                <span class="form-label">Module ID (narrative)</span>
+                <input id="gov-console-module-id" class="form-input" type="text" value="god_of_carnage" />
+            </label>
+            <button type="button" class="btn btn-primary" id="gov-console-refresh">Refresh</button>
+        </div>
+    </header>
+
+    <p id="gov-console-error" class="form-error" hidden role="alert"></p>
+    <p id="gov-console-status" class="manage-state manage-state--ok" hidden role="status" aria-live="polite"></p>
+
+    <div class="mui-deck-grid">
+        <article class="mui-inspector-card">
+            <h2>Runtime Readiness Authority</h2>
+            <pre id="gov-runtime-readiness" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>ADR-0041 Capability Authority</h2>
+            <pre id="gov-adr0041-authority" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Capability Matrix Governance</h2>
+            <pre id="gov-capability-matrix" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Validator Registry</h2>
+            <pre id="gov-validator-registry" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Langfuse / MCP Evidence</h2>
+            <pre id="gov-evidence" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Runtime Aspect Ledger Inspector</h2>
+            <pre id="gov-ledger" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Narrative Runtime Systems</h2>
+            <pre id="gov-narrative-systems" class="manage-json-box">Loading...</pre>
+        </article>
+        <article class="mui-inspector-card">
+            <h2>Feature Flag / Policy Ownership</h2>
+            <pre id="gov-feature-flags" class="manage-json-box">Loading...</pre>
+        </article>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_governance_console.js') }}"></script>
+{% endblock %}

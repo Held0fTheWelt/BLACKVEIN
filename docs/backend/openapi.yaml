@@ -1451,6 +1451,158 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/admin/governance/adr0041-authority-state:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/adr0041-authority-state
+      operationId: get_api_v1_admin_governance_adr0041_authority_state
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/capability-matrix:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/capability-matrix
+      operationId: get_api_v1_admin_governance_capability_matrix
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/evidence/langfuse-mcp:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/evidence/langfuse-mcp
+      operationId: get_api_v1_admin_governance_evidence_langfuse_mcp
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/feature-flags:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/feature-flags
+      operationId: get_api_v1_admin_governance_feature_flags
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/narrative-systems:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/narrative-systems
+      operationId: get_api_v1_admin_governance_narrative_systems
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/runtime-aspect-ledger:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/runtime-aspect-ledger
+      operationId: get_api_v1_admin_governance_runtime_aspect_ledger
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/runtime-readiness-authority:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/runtime-readiness-authority
+      operationId: get_api_v1_admin_governance_runtime_readiness_authority
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/governance/validators/registry:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/governance/validators/registry
+      operationId: get_api_v1_admin_governance_validators_registry
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/logs:
     get:
       tags:
@@ -6124,22 +6276,6 @@ paths:
       - GameBootstrap
       summary: GET /game/content/experiences
       operationId: get_api_v1_game_content_experiences
-      parameters:
-      - name: lifecycle
-        in: query
-        required: false
-        schema:
-          type: string
-        description: Optional filter by `game_experience_templates.content_lifecycle` when the value is accepted by the backend.
-      - name: status
-        in: query
-        required: false
-        schema:
-          type: string
-          enum:
-          - published
-          - draft
-        description: Optional publication filter (`published` => `is_published=true`, `draft` => unpublished rows).
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).
@@ -8038,37 +8174,9 @@ paths:
       - SiteContent
       summary: GET /site/settings
       operationId: get_api_v1_site_settings
-      description: >-
-        Public read-only site settings. Includes slogan rotation and operator UI defaults.
-        Canonical operator keys are `content_module_id` and `default_runtime_template_id`;
-        legacy keys `default_content_module_id` and `default_experience_template_id` return the same values.
       responses:
         '200':
-          description: >-
-            JSON with `slogan_rotation_interval_seconds`, `slogan_rotation_enabled`,
-            `content_module_id`, `default_runtime_template_id`, and legacy `default_*` mirrors.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                properties:
-                  slogan_rotation_interval_seconds:
-                    type: integer
-                  slogan_rotation_enabled:
-                    type: boolean
-                  content_module_id:
-                    type: string
-                    description: Default content module id for operator surfaces (site_settings).
-                  default_runtime_template_id:
-                    type: string
-                    description: Default experience template id for operator surfaces (site_settings).
-                  default_content_module_id:
-                    type: string
-                    description: Legacy alias of `content_module_id`.
-                  default_experience_template_id:
-                    type: string
-                    description: Legacy alias of `default_runtime_template_id`.
+          description: Success (see docs/api/REFERENCE.md for response shapes).
         '401':
           description: Unauthorized — missing or invalid JWT where required.
         '403':
@@ -8084,33 +8192,6 @@ paths:
       - SiteContent
       summary: PUT /site/settings
       operationId: put_api_v1_site_settings
-      description: >-
-        Admin JWT only. Updates slogan rotation and/or operator defaults.
-        Accepts canonical `content_module_id` / `default_runtime_template_id` or legacy `default_*` keys.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: true
-              properties:
-                slogan_rotation_interval_seconds:
-                  type: integer
-                slogan_rotation_enabled:
-                  type: boolean
-                content_module_id:
-                  type: string
-                  description: Upserts site_settings `default_content_module_id` when non-empty and valid.
-                default_runtime_template_id:
-                  type: string
-                  description: Upserts site_settings `default_experience_template_id` when non-empty and valid.
-                default_content_module_id:
-                  type: string
-                  description: Legacy alias for `content_module_id`.
-                default_experience_template_id:
-                  type: string
-                  description: Legacy alias for `default_runtime_template_id`.
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).

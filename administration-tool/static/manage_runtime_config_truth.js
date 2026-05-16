@@ -5,6 +5,13 @@
  * and network connectivity state.
  */
 (function() {
+    function apiData(res) {
+        if (res && res.data !== undefined && Object.prototype.hasOwnProperty.call(res, "ok")) {
+            return res.data || {};
+        }
+        return res || {};
+    }
+
     function escapeHtml(s) {
         if (s == null) return "";
         return String(s)
@@ -16,10 +23,10 @@
 
     function statusBadgeClass(status) {
         var base = "config-truth-status-badge";
-        if (status === "configured") return base + " config-truth-status-badge--configured";
-        if (status === "loaded") return base + " config-truth-status-badge--loaded";
-        if (status === "error") return base + " config-truth-status-badge--error";
-        if (status === "requires_http_probe") return base + " config-truth-status-badge--requires-probe";
+        if (status === "configured") return base + " configured";
+        if (status === "loaded") return base + " loaded";
+        if (status === "error") return base + " error";
+        if (status === "requires_http_probe") return base + " requires-probe";
         return base;
     }
 
@@ -137,47 +144,45 @@
         var btn = document.getElementById("config-truth-refresh");
         if (btn) btn.disabled = true;
 
-        fetch("/api/v1/admin/runtime/config-truth", {
-            method: "GET",
-            headers: { "Accept": "application/json" }
-        })
-            .then(function(r) {
-                if (!r.ok) throw new Error("HTTP " + r.status);
-                return r.json();
-            })
+        if (!window.ManageAuth || typeof window.ManageAuth.apiFetchWithAuth !== "function") {
+            showMessage("ManageAuth API bridge unavailable", true);
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        window.ManageAuth.apiFetchWithAuth("/api/v1/admin/runtime/config-truth")
             .then(function(resp) {
-                if (resp.success && resp.data) {
-                    var data = resp.data;
-
-                    // Render summary
-                    var summaryEl = document.getElementById("config-truth-summary-content");
-                    if (summaryEl) {
-                        summaryEl.innerHTML = renderSummary(data.summary);
-                    }
-
-                    // Render sections
-                    var configEl = document.getElementById("config-truth-configured");
-                    if (configEl) configEl.innerHTML = renderSection(data.backend_configured);
-
-                    var effectiveEl = document.getElementById("config-truth-effective");
-                    if (effectiveEl) effectiveEl.innerHTML = renderSection(data.backend_effective);
-
-                    var worldEngineEl = document.getElementById("config-truth-world-engine");
-                    if (worldEngineEl) worldEngineEl.innerHTML = renderSection(data.world_engine_state);
-
-                    var playServiceEl = document.getElementById("config-truth-play-service");
-                    if (playServiceEl) playServiceEl.innerHTML = renderSection(data.play_service_connectivity);
-
-                    // Render raw JSON
-                    var jsonEl = document.getElementById("config-truth-json");
-                    if (jsonEl) {
-                        jsonEl.textContent = JSON.stringify(data, null, 2);
-                    }
-
-                    showMessage("Config truth loaded", false);
-                } else {
-                    showMessage("No data returned", true);
+                var data = apiData(resp);
+                if (!data || typeof data !== "object") {
+                    throw new Error("No data returned");
                 }
+
+                // Render summary
+                var summaryEl = document.getElementById("config-truth-summary-content");
+                if (summaryEl) {
+                    summaryEl.innerHTML = renderSummary(data.summary);
+                }
+
+                // Render sections
+                var configEl = document.getElementById("config-truth-configured");
+                if (configEl) configEl.innerHTML = renderSection(data.backend_configured);
+
+                var effectiveEl = document.getElementById("config-truth-effective");
+                if (effectiveEl) effectiveEl.innerHTML = renderSection(data.backend_effective);
+
+                var worldEngineEl = document.getElementById("config-truth-world-engine");
+                if (worldEngineEl) worldEngineEl.innerHTML = renderSection(data.world_engine_state);
+
+                var playServiceEl = document.getElementById("config-truth-play-service");
+                if (playServiceEl) playServiceEl.innerHTML = renderSection(data.play_service_connectivity);
+
+                // Render raw JSON
+                var jsonEl = document.getElementById("config-truth-json");
+                if (jsonEl) {
+                    jsonEl.textContent = JSON.stringify(data, null, 2);
+                }
+
+                showMessage("Config truth loaded", false);
             })
             .catch(function(err) {
                 showMessage("Failed to load config truth: " + err.message, true);
@@ -188,21 +193,46 @@
     }
 
     function showMessage(msg, isError) {
-        var el = document.getElementById(isError ? "config-truth-error" : "config-truth-success");
-        if (!el) {
-            var errorEl = document.getElementById("config-truth-error");
-            if (errorEl && isError) {
+        var errorEl = document.getElementById("config-truth-error");
+        var successEl = document.getElementById("config-truth-success");
+        if (errorEl) {
+            errorEl.hidden = true;
+            errorEl.style.display = "none";
+            errorEl.textContent = "";
+        }
+        if (successEl) {
+            successEl.hidden = true;
+            successEl.style.display = "none";
+            successEl.textContent = "";
+        }
+        if (isError) {
+            if (errorEl) {
                 errorEl.textContent = msg;
-                errorEl.style.display = "block";
+                errorEl.hidden = false;
+                errorEl.style.display = "";
             }
+            return;
+        }
+        if (successEl) {
+            successEl.textContent = msg;
+            successEl.hidden = false;
+            successEl.style.display = "";
         }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
+        if (!window.ManageAuth || typeof window.ManageAuth.ensureAuth !== "function") {
+            showMessage("ManageAuth unavailable", true);
+            return;
+        }
         var btn = document.getElementById("config-truth-refresh");
         if (btn) {
             btn.addEventListener("click", loadTruth);
         }
-        loadTruth();
+        window.ManageAuth.ensureAuth()
+            .then(loadTruth)
+            .catch(function(err) {
+                showMessage("Authentication check failed: " + (err && err.message ? err.message : "unauthorized"), true);
+            });
     });
 })();

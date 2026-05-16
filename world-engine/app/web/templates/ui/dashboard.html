@@ -1,0 +1,28 @@
+{% extends "ui/base.html" %}
+{% block title %}World-Engine Dashboard{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">World-Engine</p>
+  <h1>Dashboard / Overview</h1>
+  <p class="ui-subtle">Authenticated operator shell for World-Engine runtime access.</p>
+</header>
+
+<section class="ui-grid">
+  <article class="ui-card">
+    <h2>Access Control</h2>
+    <ul class="ui-list">
+      <li>Login is validated through backend <code>/api/v1/auth/login</code>.</li>
+      <li>Protected routes verify token via backend <code>/api/v1/auth/me</code>.</li>
+      <li>Logout clears all World-Engine UI session tokens.</li>
+    </ul>
+  </article>
+  <article class="ui-card">
+    <h2>Available Pages</h2>
+    <ul class="ui-list">
+      <li><a href="/engine">Existing World-Engine Page</a></li>
+      <li><a href="/runtime-status">Session / Runtime Status</a></li>
+      <li><a href="/diagnostics">Logs / Diagnostics</a></li>
+    </ul>
+  </article>
+</section>
+{% endblock %}

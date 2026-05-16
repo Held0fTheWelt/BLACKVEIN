@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World-Engine Login</title>
+  <link rel="stylesheet" href="/static/ui.css">
+</head>
+<body class="ui-body ui-login-body">
+  <main class="ui-login-wrap" role="main">
+    <section class="ui-card ui-login-card">
+      <p class="ui-eyebrow">Administration</p>
+      <h1>World-Engine Login</h1>
+      <p class="ui-subtle">Use the same backend account credentials as frontend and administration tooling.</p>
+      <form method="post" action="/login?next={{ next_path }}" class="ui-form" autocomplete="on" novalidate>
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required autocomplete="username">
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password">
+
+        {% if error_message %}
+        <div class="ui-error" role="alert">{{ error_message }}</div>
+        {% endif %}
+
+        <button type="submit" class="ui-btn ui-btn-primary">Log in</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

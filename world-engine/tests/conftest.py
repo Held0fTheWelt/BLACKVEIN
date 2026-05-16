@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.middleware.sessions import SessionMiddleware
 
 # Explicitly load pytest-asyncio plugin for async test support
 pytest_plugins = ("pytest_asyncio",)
@@ -125,11 +126,13 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
 
     ws_module = importlib.import_module("app.api.ws")
     ws_module = importlib.reload(ws_module)
+    main_module = importlib.import_module("app.main")
 
     from app.middleware.trace_middleware import install_trace_middleware
 
     app = FastAPI()
     install_trace_middleware(app)
+    app.add_middleware(SessionMiddleware, secret_key="world-engine-ui-test-secret", same_site="lax", https_only=False)
     app.state.manager = runtime_manager_module.RuntimeManager(
         store_root=tmp_path,
         store_backend=store_backend,
@@ -143,6 +146,7 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
     app.include_router(ws_module.router)
 
     web_root = ROOT / "app" / "web"
+    main_module.register_world_engine_ui_routes(app, web_root=web_root)
 
     @app.get("/ops")
     def _ops_console_test():

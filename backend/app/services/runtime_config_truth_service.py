@@ -178,6 +178,13 @@ def _build_truth_summary() -> dict[str, Any]:
     if play_service.get("play_service_reachable") is False:
         summary["issues"].append("Play-service not reachable")
 
+    # Probe-required states are explicitly non-ready. They are unknown until
+    # live HTTP checks are executed and must not surface as healthy.
+    if world_engine.get("status") == "requires_http_probe":
+        summary["issues"].append("World-engine loaded state unverified (requires HTTP probe)")
+    if play_service.get("status") == "requires_http_probe":
+        summary["issues"].append("Play-service connectivity unverified (requires HTTP probe)")
+
     if not summary["issues"]:
         summary["status"] = "ready"
     elif len(summary["issues"]) == 1:

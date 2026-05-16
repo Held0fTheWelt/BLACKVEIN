@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}World-Engine UI{% endblock %}</title>
+  <link rel="stylesheet" href="/static/ui.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="ui-body">
+  <div class="ui-shell">
+    <aside class="ui-side" aria-label="World-Engine navigation">
+      <div class="ui-brand">
+        <span class="ui-brand-mark">◆</span>
+        <div>
+          <div class="ui-brand-title">BLACKVEIN</div>
+          <div class="ui-brand-subtitle">WORLD-ENGINE</div>
+        </div>
+      </div>
+      <nav class="ui-nav">
+        <a class="ui-nav-link{% if active_page == 'dashboard' %} is-current{% endif %}" href="/dashboard">Dashboard / Overview</a>
+        <a class="ui-nav-link{% if active_page == 'engine' %} is-current{% endif %}" href="/engine">Existing World-Engine Page</a>
+        <a class="ui-nav-link{% if active_page == 'runtime-status' %} is-current{% endif %}" href="/runtime-status">Session / Runtime Status</a>
+        <a class="ui-nav-link{% if active_page == 'diagnostics' %} is-current{% endif %}" href="/diagnostics">Logs / Diagnostics</a>
+      </nav>
+      <div class="ui-side-foot">
+        <div class="ui-user">{{ (current_user.username if current_user else "Unknown") }}{% if current_user and current_user.role %} ({{ current_user.role }}){% endif %}</div>
+        <form method="post" action="/logout">
+          <button type="submit" class="ui-btn ui-btn-ghost">Log out</button>
+        </form>
+      </div>
+    </aside>
+    <main class="ui-main" role="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

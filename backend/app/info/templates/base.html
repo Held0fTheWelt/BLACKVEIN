@@ -2,31 +2,162 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Backend{% endblock %} · World of Shadows</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('info.static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('info.static', filename='manage.css') }}">
   <link rel="stylesheet" href="{{ url_for('info.static', filename='backend-info.css') }}">
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <div class="banner">System / backend service — not the player or admin UI.</div>
-  <div class="wrap{% block wrap_modifiers %}{% endblock %}">
-    <header>
-      <h1>{% block heading %}Backend{% endblock %}</h1>
-      <p class="subtitle">{% block subheading %}{% endblock %}</p>
-      <nav class="info-nav" aria-label="Backend information sections">
-        {% for href, label in nav_items %}
-          <a href="{{ href }}">{{ label }}</a>
-        {% endfor %}
+<body class="manage-body"
+      data-content-module-id="{{ content_module_id | default('') | e }}"
+      data-default-template-id="{{ default_runtime_template_id | default('') | e }}">
+  <a class="skip-link" href="#main">Zum Inhalt springen</a>
+  <div class="manage-shell" data-side-open="false">
+    <button type="button" class="manage-shell-scrim" id="manage-shell-scrim" aria-hidden="true" tabindex="-1"></button>
+    <aside class="manage-shell-side" id="manage-side" aria-label="Backend-Dokumentation">
+      <div class="manage-side-head">
+        <a href="{{ url_for('info.backend_home') }}" class="manage-logo">
+          <span class="manage-logo-mark" aria-hidden="true">◇</span>
+          <span class="manage-logo-word">World of Shadows</span>
+        </a>
+        <span class="manage-side-subtitle">Backend · technische Oberfläche</span>
+      </div>
+
+      <nav class="manage-side-nav" id="manage-nav" aria-label="Themen">
+        <details class="manage-side-group" data-group="backend-doc" open>
+          <summary class="manage-side-group-head">
+            <span class="manage-side-group-label">Dokumentation</span>
+            <span class="manage-side-group-marker" aria-hidden="true"></span>
+          </summary>
+          <ul class="manage-side-list">
+            {% for href, label in nav_items %}
+              <li><a href="{{ href }}" class="manage-nav-link">{{ label }}</a></li>
+            {% endfor %}
+          </ul>
+        </details>
+
+        {% if frontend_url or admin_tool_url or play_service_public_url %}
+        <details class="manage-side-group" data-group="external" open>
+          <summary class="manage-side-group-head">
+            <span class="manage-side-group-label">Weitere Oberflächen</span>
+            <span class="manage-side-group-marker" aria-hidden="true"></span>
+          </summary>
+          <ul class="manage-side-list">
+            {% if frontend_url %}
+              <li><a class="manage-nav-link" href="{{ frontend_url }}/" rel="noopener noreferrer">Player-Frontend</a></li>
+            {% endif %}
+            {% if admin_tool_url %}
+              <li><a class="manage-nav-link" href="{{ admin_tool_url }}/manage/login" rel="noopener noreferrer">Administration-Tool (Login)</a></li>
+            {% endif %}
+            {% if play_service_public_url %}
+              <li><a class="manage-nav-link" href="{{ play_service_public_url }}" rel="noopener noreferrer">Play-Service</a></li>
+            {% endif %}
+          </ul>
+        </details>
+        {% endif %}
       </nav>
-    </header>
-    <main>
-      {% block body %}{% endblock %}
-    </main>
-    <footer>
-      Repository layout: <span class="path">backend/</span> (API + this info surface),
-      <span class="path">frontend/</span> (player UI),
-      <span class="path">administration-tool/</span> (management UI),
-      <span class="path">world-engine/</span> (play service runtime).
-    </footer>
+
+      <div class="manage-side-foot" id="backend-info-side-foot">
+        <span class="manage-user-info">Öffentliche Lesefläche — keine Anmeldung (nicht das Verwaltungs-UI).</span>
+      </div>
+    </aside>
+
+    <div class="manage-shell-main">
+      <header class="manage-topbar" aria-hidden="false">
+        <button type="button" class="manage-side-toggle" id="manage-side-toggle" aria-controls="manage-side" aria-expanded="false" aria-label="Navigation ein- und ausblenden">
+          <span class="manage-side-toggle-bar"></span>
+          <span class="manage-side-toggle-bar"></span>
+          <span class="manage-side-toggle-bar"></span>
+        </button>
+        <a href="{{ url_for('info.backend_home') }}" class="manage-topbar-logo">World of Shadows</a>
+      </header>
+
+      <main id="main" class="manage-main{% block main_class %}{% endblock %}" role="main">
+        <div class="backend-info-callout" role="status">
+          System / backend service — not the player or admin UI; keine Authentifizierung auf diesen Seiten.
+        </div>
+        <div class="backend-info-content">
+          <section class="manage-section">
+            <header class="manage-section-header">
+              <div>
+                <p class="manage-eyebrow">Backend service</p>
+                <h1 class="page-header">{% block heading %}Backend{% endblock %}</h1>
+                <p class="manage-lead">{% block subheading %}{% endblock %}</p>
+              </div>
+            </header>
+            {% block body %}{% endblock %}
+            {% block footer %}
+            <footer class="backend-info-footer muted">
+              Repository: <span class="path">backend/</span> (API + diese Infoseite),
+              <span class="path">frontend/</span> (Spieler-UI),
+              <span class="path">administration-tool/</span> (Verwaltung),
+              <span class="path">world-engine/</span> (Play-Service).
+            </footer>
+            {% endblock %}
+          </section>
+        </div>
+      </main>
+    </div>
   </div>
+
+  <script>
+    (function backendInfoSidebarShell() {
+      const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+      const navLinks = document.querySelectorAll(".manage-nav-link");
+      let currentLink = null;
+      navLinks.forEach((link) => {
+        const href = (link.getAttribute("href") || "").replace(/\/+$/, "");
+        if (!href) return;
+        if (href === pathname) {
+          link.classList.add("is-current");
+          link.setAttribute("aria-current", "page");
+          currentLink = link;
+        }
+      });
+      if (currentLink) {
+        const group = currentLink.closest(".manage-side-group");
+        if (group && !group.open) group.open = true;
+      }
+
+      const shell = document.querySelector(".manage-shell");
+      const toggle = document.getElementById("manage-side-toggle");
+      const scrim = document.getElementById("manage-shell-scrim");
+      const side = document.getElementById("manage-side");
+      if (!shell || !toggle || !side) return;
+
+      function setOpen(open) {
+        shell.dataset.sideOpen = open ? "true" : "false";
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) {
+          side.removeAttribute("inert");
+        } else if (window.matchMedia("(max-width: 900px)").matches) {
+          if (side.contains(document.activeElement)) toggle.focus();
+        }
+      }
+      toggle.addEventListener("click", () => {
+        const open = shell.dataset.sideOpen !== "true";
+        setOpen(open);
+      });
+      if (scrim) scrim.addEventListener("click", () => setOpen(false));
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && shell.dataset.sideOpen === "true"
+            && window.matchMedia("(max-width: 900px)").matches) {
+          setOpen(false);
+          toggle.focus();
+        }
+      });
+      side.addEventListener("click", (event) => {
+        const link = event.target.closest("a.manage-nav-link");
+        if (link && window.matchMedia("(max-width: 900px)").matches) {
+          setOpen(false);
+        }
+      });
+    })();
+  </script>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,22 @@
+{% extends "ui/base.html" %}
+{% block title %}World-Engine Runtime Status{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Runtime</p>
+  <h1>Session / Runtime Status</h1>
+  <p class="ui-subtle">Live readiness data from World-Engine health endpoints.</p>
+</header>
+
+<section class="ui-grid">
+  <article class="ui-card">
+    <h2>Health</h2>
+    <pre id="runtime-health" class="ui-code">Loading...</pre>
+  </article>
+  <article class="ui-card">
+    <h2>Ready</h2>
+    <pre id="runtime-ready" class="ui-code">Loading...</pre>
+  </article>
+</section>
+
+<script src="/static/ui_runtime_status.js" defer></script>
+{% endblock %}

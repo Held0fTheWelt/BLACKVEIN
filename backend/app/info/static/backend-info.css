@@ -1,57 +1,78 @@
-/* Backend information surface — minimal, CSP-friendly (no inline styles). */
-:root {
-  --bg: #0f1419;
-  --panel: #1a2332;
-  --text: #e7ecf3;
-  --muted: #8b9cb3;
-  --accent: #5b9fd4;
-  --border: #2a3a4d;
-  --warn: #c9a227;
-}
+/* Backend info surface — layout tweaks on top of administration-tool styles.css + manage.css.
+   styles.css defines design tokens (--surface, --text-muted, --primary, …). */
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.55;
-  font-size: 15px;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-.banner {
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1.25rem;
+.backend-info-callout {
   font-size: 0.85rem;
-  color: var(--warn);
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 0.65rem 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.wrap {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
-}
-
-.wrap.wrap-wide {
+.manage-main.backend-info-main--wide {
   max-width: min(120rem, 100%);
 }
 
-.redoc-wrap {
-  min-height: 70vh;
-  margin-top: 1rem;
+.backend-info-content .manage-section {
+  margin-top: 0;
+}
+
+.backend-info-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.backend-info-content .path {
+  font-family: var(--mono-font, "JetBrains Mono", monospace);
+  font-size: 0.88em;
+  background: var(--surface);
+  padding: 0.12em 0.35em;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.backend-info-content code {
+  font-family: var(--mono-font, "JetBrains Mono", monospace);
+  font-size: 0.88em;
+  background: var(--surface);
+  padding: 0.12em 0.35em;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.backend-info-content .muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.backend-info-content .info-section {
+  margin-bottom: 1.75rem;
+}
+
+.backend-info-content section > h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.backend-info-content section > h3 {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.35rem;
+  color: var(--text-muted);
+}
+
+.backend-info-content section ul {
+  margin: 0.35rem 0;
+  padding-left: 1.25rem;
+}
+
+.backend-info-content section li {
+  margin: 0.25rem 0;
 }
 
 table.doc-table {
@@ -70,143 +91,31 @@ table.doc-table td {
 }
 
 table.doc-table th {
-  background: var(--panel);
-  color: var(--muted);
+  background: var(--surface);
+  color: var(--text-muted);
   font-weight: 600;
 }
 
-.topic-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: 0.75rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.topic-card {
-  display: block;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.1rem;
-  min-height: 5.5rem;
-}
-
-.topic-card strong {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-size: 1rem;
-}
-
-.topic-card .topic-card-desc {
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
-  margin: 0;
-}
-
-.topic-card a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.topic-card a:hover {
-  color: var(--accent);
-}
-
-.info-section {
-  margin-bottom: 1.75rem;
-}
-
-header h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.subtitle {
-  color: var(--muted);
-  margin: 0 0 1.5rem;
-  font-size: 0.95rem;
-}
-
-nav.info-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  margin: 1.25rem 0 2rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-nav.info-nav a {
-  font-weight: 500;
-}
-
-main section {
-  margin-bottom: 1.75rem;
-}
-
-main h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
-  color: var(--text);
-}
-
-main h3 {
-  font-size: 1rem;
-  margin: 1.25rem 0 0.35rem;
-  color: var(--muted);
-}
-
-main ul {
-  margin: 0.35rem 0;
-  padding-left: 1.25rem;
-}
-
-main li {
-  margin: 0.25rem 0;
-}
-
-code,
-.path {
-  font-family: ui-monospace, "Cascadia Code", monospace;
-  font-size: 0.88em;
-  background: var(--panel);
-  padding: 0.12em 0.35em;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-}
-
-.card-list {
+.backend-info-content .card-list {
   list-style: none;
   padding: 0;
   margin: 0.5rem 0 0;
 }
 
-.card-list li {
-  background: var(--panel);
+.backend-info-content .card-list li {
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius, 8px);
   padding: 0.75rem 1rem;
   margin: 0.5rem 0;
 }
 
-.card-list a {
+.backend-info-content .card-list a {
   font-weight: 600;
+  color: var(--primary);
 }
 
-.muted {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-footer {
-  margin-top: 2.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.85rem;
+.redoc-wrap {
+  min-height: 70vh;
+  margin-top: 1rem;
 }

@@ -1,0 +1,23 @@
+{% extends "ui/base.html" %}
+{% block title %}World-Engine Diagnostics{% endblock %}
+{% block content %}
+<header class="ui-page-head">
+  <p class="ui-eyebrow">Diagnostics</p>
+  <h1>Logs / Diagnostics</h1>
+  <p class="ui-subtle">Operator diagnostics from the existing lightweight ops page.</p>
+</header>
+
+<section class="ui-card ui-embed-card">
+  <iframe
+    src="/ops"
+    title="World-Engine Ops Diagnostics"
+    class="ui-embed-frame"
+    loading="lazy">
+  </iframe>
+</section>
+
+<section class="ui-card">
+  <h2>Note</h2>
+  <p class="ui-subtle">Advanced per-run diagnostics remain available in the Administration Tool World-Engine control surfaces.</p>
+</section>
+{% endblock %}

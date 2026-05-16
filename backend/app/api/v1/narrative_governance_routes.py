@@ -9,7 +9,8 @@ from uuid import uuid4
 from flask import g, jsonify, request
 
 from app.api.v1 import api_v1_bp
-from app.auth.permissions import require_jwt_moderator_or_admin
+from app.auth.feature_registry import FEATURE_MANAGE_NARRATIVE_GOVERNANCE
+from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
 from app.config.route_constants import route_status_codes
 from app.extensions import limiter
 from app.models import (
@@ -53,6 +54,19 @@ from app.services.narrative_governance_service import (
     upsert_evaluation_coverage,
     upsert_notification_rule,
 )
+
+
+@api_v1_bp.before_request
+def _require_narrative_governance_feature():
+    """Feature-gate all /admin/narrative/* APIs consistently with other admin surfaces."""
+    if not request.path.startswith("/api/v1/admin/narrative/"):
+        return None
+    from app.auth.feature_registry import user_can_access_feature
+
+    user = get_current_user()
+    if not user_can_access_feature(user, FEATURE_MANAGE_NARRATIVE_GOVERNANCE):
+        return jsonify({"ok": False, "error": {"code": "feature_forbidden", "message": "Forbidden"}}), 403
+    return None
 
 
 def _meta() -> dict[str, str]:

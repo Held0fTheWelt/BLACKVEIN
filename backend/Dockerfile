@@ -35,4 +35,5 @@ RUN mkdir -p /app/instance && chmod +x /app/docker-entrypoint.sh && chown -R app
 USER appuser
 EXPOSE 8000
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "run:app"]
+# Default limit_request_field_size is 8190; large Cookie headers (e.g. many localhost dev cookies) trigger 431.
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--limit-request-field_size", "32768", "--access-logfile", "-", "run:app"]

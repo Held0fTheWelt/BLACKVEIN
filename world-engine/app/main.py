@@ -4,6 +4,8 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
+from typing import Any
+from urllib.parse import parse_qs, quote, urlsplit
 
 import app.config  # noqa: F401 — load_dotenv so WOS_REPO_ROOT from .env is visible
 
@@ -21,8 +23,12 @@ except ImportError:
     pass
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.requests import Request
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+import httpx
 
 from app.api.http import router as http_router
 from app.api.ws import router as ws_router
@@ -58,6 +64,253 @@ from app.story_runtime.consequence_cascade_store import JsonConsequenceCascadeSt
 from app.story_runtime.story_session_store import JsonStorySessionStore
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
+TEMPLATES = Jinja2Templates(directory=str(WEB_ROOT / "templates"))
+AUTH_LOGIN_PATH = "/api/v1/auth/login"
+AUTH_ME_PATH = "/api/v1/auth/me"
+SESSION_KEY_ACCESS_TOKEN = "world_engine_access_token"
+SESSION_KEY_REFRESH_TOKEN = "world_engine_refresh_token"
+SESSION_KEY_CURRENT_USER = "world_engine_current_user"
+
+
+def _ui_session_secret() -> str:
+    """Resolve a dedicated UI session secret without embedding credentials in templates/JS."""
+    secret = (
+        os.getenv("WORLD_ENGINE_UI_SESSION_SECRET")
+        or os.getenv("PLAY_SERVICE_SECRET")
+        or os.getenv("PLAY_SERVICE_SHARED_SECRET")
+        or ""
+    ).strip()
+    if secret:
+        return secret
+    if os.getenv("FLASK_ENV") == "test":
+        return "world-engine-ui-test-secret"
+    raise RuntimeError(
+        "WORLD_ENGINE_UI_SESSION_SECRET or PLAY_SERVICE_SECRET must be configured for the World-Engine UI."
+    )
+
+
+def _backend_base_url() -> str:
+    return (BACKEND_RUNTIME_CONFIG_URL or "").strip().rstrip("/")
+
+
+def _safe_next_path(raw_next: str | None, default: str = "/dashboard") -> str:
+    candidate = (raw_next or "").strip()
+    if not candidate:
+        return default
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return default
+    parsed = urlsplit(candidate)
+    if parsed.scheme or parsed.netloc:
+        return default
+    if candidate.startswith("/login"):
+        return default
+    return candidate
+
+
+def _clear_ui_session(request: Request) -> None:
+    request.session.pop(SESSION_KEY_ACCESS_TOKEN, None)
+    request.session.pop(SESSION_KEY_REFRESH_TOKEN, None)
+    request.session.pop(SESSION_KEY_CURRENT_USER, None)
+
+
+def _backend_login(username: str, password: str) -> tuple[bool, dict[str, Any], int]:
+    base_url = _backend_base_url()
+    if not base_url:
+        return False, {"message": "Backend authentication service is not configured."}, 503
+    try:
+        with httpx.Client(timeout=6.0) as client:
+            response = client.post(
+                f"{base_url}{AUTH_LOGIN_PATH}",
+                json={"username": username, "password": password},
+                headers={"Accept": "application/json"},
+            )
+    except httpx.HTTPError:
+        return False, {"message": "Authentication service is currently unavailable."}, 503
+
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = {}
+
+    if response.status_code >= 400:
+        return False, payload if isinstance(payload, dict) else {}, response.status_code
+    return True, payload if isinstance(payload, dict) else {}, response.status_code
+
+
+def _backend_fetch_user(access_token: str) -> tuple[bool, dict[str, Any], int]:
+    base_url = _backend_base_url()
+    if not base_url:
+        return False, {"message": "Backend authentication service is not configured."}, 503
+    try:
+        with httpx.Client(timeout=6.0) as client:
+            response = client.get(
+                f"{base_url}{AUTH_ME_PATH}",
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+            )
+    except httpx.HTTPError:
+        return False, {"message": "Authentication service is currently unavailable."}, 503
+
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = {}
+
+    if response.status_code >= 400:
+        return False, payload if isinstance(payload, dict) else {}, response.status_code
+    return True, payload if isinstance(payload, dict) else {}, response.status_code
+
+
+def _login_redirect(request: Request) -> RedirectResponse:
+    next_path = quote(request.url.path, safe="/")
+    return RedirectResponse(url=f"/login?next={next_path}", status_code=303)
+
+
+def _authenticated_user_or_redirect(request: Request) -> tuple[dict[str, Any] | None, RedirectResponse | None]:
+    access_token = request.session.get(SESSION_KEY_ACCESS_TOKEN)
+    if not access_token:
+        return None, _login_redirect(request)
+    ok, payload, status = _backend_fetch_user(str(access_token))
+    if not ok:
+        _clear_ui_session(request)
+        redirect = _login_redirect(request)
+        if status == 503:
+            # Service unavailable is treated as unauthenticated in the UI boundary.
+            return None, redirect
+        return None, redirect
+    request.session[SESSION_KEY_CURRENT_USER] = payload
+    return payload, None
+
+
+async def _extract_login_credentials(request: Request) -> tuple[str, str]:
+    content_type = (request.headers.get("content-type") or "").lower()
+    if "application/json" in content_type:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            return "", ""
+        return str(payload.get("username") or "").strip(), str(payload.get("password") or "")
+
+    raw_body = (await request.body()).decode("utf-8", errors="ignore")
+    parsed = parse_qs(raw_body, keep_blank_values=True)
+    username = (parsed.get("username", [""])[0] or "").strip()
+    password = parsed.get("password", [""])[0] or ""
+    return username, password
+
+
+def _render_login_page(request: Request, *, error: str | None = None, status_code: int = 200):
+    safe_next = _safe_next_path(request.query_params.get("next"))
+    return TEMPLATES.TemplateResponse(
+        request=request,
+        name="ui/login.html",
+        context={
+            "error_message": error,
+            "next_path": safe_next,
+        },
+        status_code=status_code,
+    )
+
+
+def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = None) -> None:
+    ui_root = web_root or WEB_ROOT
+
+    @app.get("/")
+    def root_entry(request: Request):
+        if request.session.get(SESSION_KEY_ACCESS_TOKEN):
+            return RedirectResponse(url="/dashboard", status_code=303)
+        return RedirectResponse(url="/login", status_code=303)
+
+    @app.get("/login")
+    def login_page(request: Request):
+        if request.session.get(SESSION_KEY_ACCESS_TOKEN):
+            return RedirectResponse(url="/dashboard", status_code=303)
+        return _render_login_page(request)
+
+    @app.post("/login")
+    async def login_submit(request: Request):
+        username, password = await _extract_login_credentials(request)
+        next_path = _safe_next_path(request.query_params.get("next"))
+        if not username or not password:
+            return _render_login_page(
+                request,
+                error="Username and password are required.",
+                status_code=400,
+            )
+
+        ok, payload, status = _backend_login(username, password)
+        if not ok:
+            # Return a generic/safe message; never expose internals.
+            if status == 401:
+                error = "Invalid username or password."
+            elif status == 503:
+                error = "Authentication service is temporarily unavailable."
+            else:
+                error = "Login failed."
+            return _render_login_page(request, error=error, status_code=401 if status == 401 else 400)
+
+        access_token = str(payload.get("access_token") or "").strip()
+        refresh_token = str(payload.get("refresh_token") or "").strip()
+        if not access_token:
+            return _render_login_page(request, error="Login failed.", status_code=400)
+
+        request.session[SESSION_KEY_ACCESS_TOKEN] = access_token
+        request.session[SESSION_KEY_REFRESH_TOKEN] = refresh_token
+        request.session[SESSION_KEY_CURRENT_USER] = payload.get("user") or {}
+        return RedirectResponse(url=next_path, status_code=303)
+
+    @app.post("/logout")
+    def logout(request: Request):
+        _clear_ui_session(request)
+        return RedirectResponse(url="/login", status_code=303)
+
+    @app.get("/dashboard")
+    def dashboard(request: Request):
+        current_user, redirect = _authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
+        return TEMPLATES.TemplateResponse(
+            request=request,
+            name="ui/dashboard.html",
+            context={"current_user": current_user, "active_page": "dashboard"},
+        )
+
+    @app.get("/engine")
+    def engine_shell(request: Request):
+        current_user, redirect = _authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
+        return TEMPLATES.TemplateResponse(
+            request=request,
+            name="ui/engine.html",
+            context={"current_user": current_user, "active_page": "engine"},
+        )
+
+    @app.get("/runtime-status")
+    def runtime_status(request: Request):
+        current_user, redirect = _authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
+        return TEMPLATES.TemplateResponse(
+            request=request,
+            name="ui/runtime_status.html",
+            context={"current_user": current_user, "active_page": "runtime-status"},
+        )
+
+    @app.get("/diagnostics")
+    def diagnostics(request: Request):
+        current_user, redirect = _authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
+        return TEMPLATES.TemplateResponse(
+            request=request,
+            name="ui/diagnostics.html",
+            context={"current_user": current_user, "active_page": "diagnostics"},
+        )
+
+    @app.get("/engine/app")
+    def legacy_engine_page(request: Request):
+        _current_user, redirect = _authenticated_user_or_redirect(request)
+        if redirect is not None:
+            return redirect
+        return FileResponse(ui_root / "templates" / "index.html")
 
 
 @asynccontextmanager
@@ -123,14 +376,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=APP_TITLE, version=APP_VERSION, lifespan=lifespan)
 install_trace_middleware(app)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_ui_session_secret(),
+    same_site="lax",
+    https_only=(os.getenv("FLASK_ENV") in {"production", "staging"} or os.getenv("ENV") in {"production", "staging"}),
+)
 app.include_router(http_router)
 app.include_router(ws_router)
 app.mount("/static", StaticFiles(directory=WEB_ROOT / "static"), name="static")
-
-
-@app.get("/")
-def index() -> FileResponse:
-    return FileResponse(WEB_ROOT / "templates" / "index.html")
+register_world_engine_ui_routes(app)
 
 
 @app.get("/ops")
