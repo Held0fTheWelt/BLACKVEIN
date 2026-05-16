@@ -1,0 +1,102 @@
+# Data-driven access policy for actions, places, objects, scene nodes, and character lanes.
+# Use this for "not accessible" content decisions instead of burying them in prose.
+
+content_access_policy:
+  id: goc_content_access_policy_v1
+  authority: module_authorial_access_policy
+  default_decision: allow_unless_blocked_or_gated
+
+  scopes:
+    - action
+    - location
+    - object
+    - scene_node
+    - character_lane
+    - narration_surface
+
+  decisions:
+    hard_deny:
+      meaning: "Never allow this as a committed player or AI action."
+      runtime_expectation: reject_or_recover_before_commit
+    gated:
+      meaning: "Allowed only when listed requirements are met."
+      runtime_expectation: resolve_with_narrator_or_scene_transition
+    narrator_only:
+      meaning: "Can be described by the narrator, but not directly entered or manipulated."
+      runtime_expectation: block_as_player_affordance
+
+  blocked_entities:
+    - id: no_return_to_park_after_opening
+      scope: location
+      target_id: park_edge
+      decision: narrator_only
+      reason: "The park is opening memory/prologue material, not a live navigation destination."
+
+    - id: no_live_basketball_court_navigation
+      scope: location
+      target_id: basketball_court
+      decision: narrator_only
+      reason: "The court can be shown in the opening only."
+
+    - id: no_live_playground_navigation
+      scope: location
+      target_id: playground
+      decision: narrator_only
+      reason: "The playground is opening background texture, not a live navigation destination."
+
+    - id: no_live_bicycle_manipulation
+      scope: object
+      target_id: bicycle_rack
+      decision: narrator_only
+      reason: "The kicked bicycle is prologue evidence and must not become a player toy."
+
+    - id: no_player_controls_other_child
+      scope: action
+      target_id: control_child_actor
+      decision: hard_deny
+      reason: "The player cannot rewrite or puppeteer the children in the prologue."
+
+    - id: no_forced_selected_player_speech
+      scope: character_lane
+      target_id: selected_player_character
+      decision: hard_deny
+      reason: "AI must not speak, confess, apologize, decide, or emote privately for the selected player character."
+
+    - id: no_source_script_reenactment
+      scope: narration_surface
+      target_id: copyrighted_source_dialogue
+      decision: hard_deny
+      reason: "Use transformed module facts, not long source-text reproduction."
+
+  gated_entities:
+    - id: apartment_entry_navigation
+      scope: location
+      target_id: apartment_entry
+      decision: gated
+      requirements:
+        - current_scene_node_allows_exit_or_entry
+        - narrator_transition_required
+
+    - id: kitchen_navigation
+      scope: location
+      target_id: kitchen
+      decision: gated
+      requirements:
+        - current_scene_phase_allows_adjacent_room
+        - narrator_consequence_required
+
+    - id: bathroom_navigation
+      scope: location
+      target_id: bathroom
+      decision: gated
+      requirements:
+        - retreat_or_bodily_stress_signal
+        - narrator_consequence_required
+
+    - id: exit_attempt_node
+      scope: scene_node
+      target_id: exit_attempt
+      decision: gated
+      requirements:
+        - phase_5_or_valid_closure_pressure
+        - transition_safeguard_passed

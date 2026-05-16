@@ -9,6 +9,10 @@ from .models import CanonicalCompileOutput, RetrievalChunk, RetrievalCorpusSeed,
 
 
 def _resolve_start_scene_id(module: ContentModule) -> str:
+    scene_graph = module.scene_graph if isinstance(module.scene_graph, dict) else {}
+    graph_start = str(scene_graph.get("default_start_node_id") or "").strip()
+    if graph_start:
+        return graph_start
     if not module.scene_phases:
         raise ValueError(f"Module '{module.metadata.module_id}' has no scene phases.")
     return min(module.scene_phases.items(), key=lambda kv: kv[1].sequence)[0]
@@ -16,22 +20,57 @@ def _resolve_start_scene_id(module: ContentModule) -> str:
 
 def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
     scenes: list[dict] = []
-    for scene_id, phase in sorted(module.scene_phases.items(), key=lambda item: item[1].sequence):
-        scenes.append(
-            {
-                "id": scene_id,
-                "scene_id": scene_id,
-                "name": phase.name,
-                "sequence": phase.sequence,
-                "description": phase.description,
-                "content_focus": list(phase.content_focus),
-                "engine_tasks": list(phase.engine_tasks),
-                "active_triggers": list(phase.active_triggers),
-                "enforced_constraints": list(phase.enforced_constraints or []),
-                "turn_estimate": phase.turn_estimate,
-                "exit_condition": phase.exit_condition,
-            }
+    scene_graph = module.scene_graph if isinstance(module.scene_graph, dict) else {}
+    graph_nodes = scene_graph.get("nodes") if isinstance(scene_graph.get("nodes"), list) else []
+    if graph_nodes:
+        phase_by_id = module.scene_phases
+        sorted_nodes = sorted(
+            [row for row in graph_nodes if isinstance(row, dict)],
+            key=lambda row: int(row.get("sequence") or 0),
         )
+        for node in sorted_nodes:
+            scene_id = str(node.get("id") or "").strip()
+            if not scene_id:
+                continue
+            phase_id = str(node.get("phase_id") or "").strip()
+            phase = phase_by_id.get(phase_id)
+            scenes.append(
+                {
+                    "id": scene_id,
+                    "scene_id": scene_id,
+                    "name": str(node.get("title") or scene_id),
+                    "sequence": int(node.get("sequence") or len(scenes) + 1),
+                    "description": str(node.get("summary") or ""),
+                    "phase_id": phase_id or None,
+                    "location_id": node.get("location_id"),
+                    "scene_function": node.get("scene_function"),
+                    "visibility": node.get("visibility"),
+                    "required_event_ids": list(node.get("required_event_ids") or []),
+                    "content_focus": list(phase.content_focus) if phase else [],
+                    "engine_tasks": [str(node.get("scene_function") or "scene_node")] + (list(phase.engine_tasks) if phase else []),
+                    "active_triggers": list(phase.active_triggers) if phase else [],
+                    "enforced_constraints": list(phase.enforced_constraints or []) if phase else [],
+                    "turn_estimate": phase.turn_estimate if phase else None,
+                    "exit_condition": phase.exit_condition if phase else None,
+                }
+            )
+    else:
+        for scene_id, phase in sorted(module.scene_phases.items(), key=lambda item: item[1].sequence):
+            scenes.append(
+                {
+                    "id": scene_id,
+                    "scene_id": scene_id,
+                    "name": phase.name,
+                    "sequence": phase.sequence,
+                    "description": phase.description,
+                    "content_focus": list(phase.content_focus),
+                    "engine_tasks": list(phase.engine_tasks),
+                    "active_triggers": list(phase.active_triggers),
+                    "enforced_constraints": list(phase.enforced_constraints or []),
+                    "turn_estimate": phase.turn_estimate,
+                    "exit_condition": phase.exit_condition,
+                }
+            )
 
     triggers: list[dict] = []
     for trigger_id, trigger in sorted(module.trigger_definitions.items()):
@@ -88,6 +127,8 @@ def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
                 "id": character.id,
                 "name": character.name,
                 "role": character.role,
+                "actor_id": character.actor_id or character.runtime_actor_id or character.id,
+                "runtime_actor_id": character.runtime_actor_id or character.actor_id or character.id,
                 "baseline_attitude": character.baseline_attitude,
                 "extras": dict(character.extras),
             }
@@ -105,8 +146,12 @@ def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
         escalation_axes=dict(module.escalation_axes),
         opening_scene_sequence=dict(module.opening_scene_sequence),
         hard_forbidden_rules=dict(module.hard_forbidden_rules),
+        scene_graph=dict(module.scene_graph),
+        locations=dict(module.locations),
+        content_access_policy=dict(module.content_access_policy),
         character_ids=sorted(module.characters.keys()),
         characters=characters,
+        character_documents=dict(module.character_documents),
         transition_hints=[
             {
                 "from": transition.from_phase,
@@ -193,6 +238,42 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "language": "en",
         "runtime_locale_available": False,
     },
+    {
+        "field": "scene_graph",
+        "source_path": "content/modules/{module_id}/scene_graph.yaml",
+        "content_kind": "scene_graph",
+        "authority": "module_canonical",
+        "use_for": ("scene_director_navigation", "retrieval_scene_context", "runtime_projection"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "locations",
+        "source_path": "content/modules/{module_id}/locations.yaml",
+        "content_kind": "locations",
+        "authority": "module_canonical",
+        "use_for": ("affordance_resolution", "scene_director_navigation", "player_local_context"),
+        "language": "en",
+        "runtime_locale_available": True,
+    },
+    {
+        "field": "content_access_policy",
+        "source_path": "content/modules/{module_id}/knowledge/content_access_policy.yaml",
+        "content_kind": "content_access_policy",
+        "authority": "module_canonical",
+        "use_for": ("hard_forbidden_gate", "affordance_resolution", "scene_director_navigation"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "character_documents",
+        "source_path": "content/modules/{module_id}/characters/*.yaml",
+        "content_kind": "character_documents",
+        "authority": "module_canonical",
+        "use_for": ("character_mind", "character_voice", "scene_director_responder_selection"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
 )
 
 
@@ -220,15 +301,44 @@ def _knowledge_text_excerpt(field: str, payload: dict) -> str:
 def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
     chunks: list[RetrievalChunk] = []
     module_id = module.metadata.module_id
-    for scene_id, phase in sorted(module.scene_phases.items(), key=lambda item: item[1].sequence):
-        chunks.append(
-            RetrievalChunk(
-                chunk_id=f"scene:{scene_id}",
-                kind="scene",
-                text=f"{phase.name}: {phase.description}",
-                metadata={"scene_id": scene_id, "sequence": phase.sequence},
+    scene_nodes = (
+        module.scene_graph.get("nodes")
+        if isinstance(module.scene_graph, dict) and isinstance(module.scene_graph.get("nodes"), list)
+        else []
+    )
+    if scene_nodes:
+        for node in sorted(
+            [row for row in scene_nodes if isinstance(row, dict)],
+            key=lambda row: int(row.get("sequence") or 0),
+        ):
+            scene_id = str(node.get("id") or "").strip()
+            if not scene_id:
+                continue
+            chunks.append(
+                RetrievalChunk(
+                    chunk_id=f"scene_node:{scene_id}",
+                    kind="scene",
+                    text=f"{node.get('title') or scene_id}: {node.get('summary') or ''}",
+                    metadata={
+                        "scene_id": scene_id,
+                        "sequence": node.get("sequence"),
+                        "phase_id": node.get("phase_id"),
+                        "location_id": node.get("location_id"),
+                        "scene_function": node.get("scene_function"),
+                        "source_path": f"content/modules/{module_id}/scene_graph.yaml",
+                    },
+                )
             )
-        )
+    else:
+        for scene_id, phase in sorted(module.scene_phases.items(), key=lambda item: item[1].sequence):
+            chunks.append(
+                RetrievalChunk(
+                    chunk_id=f"scene:{scene_id}",
+                    kind="scene",
+                    text=f"{phase.name}: {phase.description}",
+                    metadata={"scene_id": scene_id, "sequence": phase.sequence},
+                )
+            )
     for trigger_id, trigger in sorted(module.trigger_definitions.items()):
         chunks.append(
             RetrievalChunk(

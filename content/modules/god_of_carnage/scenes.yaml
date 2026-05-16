@@ -1,11 +1,13 @@
-# Scene Structure for God of Carnage
-# Five-phase structure: polite opening → moral negotiation → faction shifts → emotional derailment → loss of control
+# Phase layer for God of Carnage.
+# Primary scene nodes live in scene_graph.yaml; this file only defines coarse escalation phases.
 #
 # Session start: canonical two-part opening handover (premise → room) lives in
 # direction/opening_sequence.yaml (ADR-0035). phase_1 begins after that handover.
 
 session_opening:
+  opening_document: direction/opening.md
   direction_file: direction/opening_sequence.yaml
+  scene_graph_file: scene_graph.yaml
   adr_reference: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
   first_scene_phase: phase_1
 

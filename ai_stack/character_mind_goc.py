@@ -33,7 +33,7 @@ def resolve_runtime_actor_id(
 
     Resolution precedence:
 
-    1. Explicit ``actor_id`` published on the YAML characters row for this
+    1. Explicit ``actor_id`` / ``runtime_actor_id`` published on the YAML characters row for this
        key (the preferred, module-agnostic source).
     2. Module-specific fallback (the God of Carnage short-key → actor-id
        map) when ``module_id`` selects a known module.
@@ -49,7 +49,7 @@ def resolve_runtime_actor_id(
     if isinstance(yaml_characters, dict):
         row = yaml_characters.get(k)
         if isinstance(row, dict):
-            rid = row.get("actor_id")
+            rid = row.get("actor_id") or row.get("runtime_actor_id")
             if isinstance(rid, str) and rid.strip():
                 return rid.strip()
     mid = (module_id or "").strip().lower()

@@ -205,6 +205,32 @@ def test_langchain_runtime_invocation_parses_actor_level_schema_fields() -> None
     assert result.parser_error is None
 
 
+def test_runtime_structured_output_preserves_opening_gate_evidence() -> None:
+    payload = {
+        "schema_version": "runtime_actor_turn_v1",
+        "narration_summary": ["A park incident.", "The adults meet.", "The room waits."],
+        "opening_event_ids": ["event_01_triggering_incident", "event_02_adult_consequence"],
+        "opening_must_establish_coverage": ["triggering_incident", "adult_consequence"],
+        "opening_render_policy_evidence": {"summary_only": False},
+        "runtime_gate_detections": [],
+        "spoken_lines": [],
+        "action_lines": [],
+    }
+
+    parsed = bridges.RuntimeTurnStructuredOutput.model_validate(payload)
+    dumped = parsed.model_dump(mode="json")
+
+    assert dumped["opening_event_ids"] == [
+        "event_01_triggering_incident",
+        "event_02_adult_consequence",
+    ]
+    assert dumped["opening_must_establish_coverage"] == [
+        "triggering_incident",
+        "adult_consequence",
+    ]
+    assert dumped["opening_render_policy_evidence"] == {"summary_only": False}
+
+
 def test_langchain_runtime_invocation_normalizes_legacy_and_new_responder_fields() -> None:
     adapter = LegacyResponderScopeAdapter()
     result = invoke_runtime_adapter_with_langchain(

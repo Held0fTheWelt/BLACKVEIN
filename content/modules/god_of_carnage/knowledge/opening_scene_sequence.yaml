@@ -38,17 +38,25 @@ opening_scene_sequence:
       establishes:
         - triggering_incident
       narrator_task: >-
-        Dramatize the event that makes the meeting necessary. Show it as a concrete remembered or
-        prologue scene, not as legal exposition.
+        Dramatize the event that makes the meeting necessary as a concrete prologue at the edge
+        of a Paris park, beside a basketball court, not as legal exposition.
       must_show:
-        - the child-level conflict
-        - the physical consequence
-        - the moment when play or argument turns serious
+        - a dozen boys gathered near the basketball court
+        - gray autumn sky, bare trees, a playground, bicycles, and ordinary Paris-suburb background life
+        - two boys playing while the others talk excitedly at the edge
+        - the argument between the two boys
+        - one boy grabbing a stick
+        - the other boy calling after him without the words being audible
+        - the boy with the stick stopping, turning back, and striking
+        - the injured boy doubling over
+        - the other boys helping the injured boy up and shouting after the attacker
+        - the attacker kicking over a bicycle before disappearing
         - why adults can no longer ignore it
       must_not:
         - assign final moral blame
         - over-explain motives
         - turn the scene into courtroom summary
+        - reduce the incident to a one-sentence backstory report
 
     - id: event_02_adult_consequence
       title: "The incident reaches the adults"
@@ -57,11 +65,12 @@ opening_scene_sequence:
         - adult_consequence
         - reason_for_meeting
       narrator_task: >-
-        Show how the incident moves from the children's world into the adult world.
+        Show how the park incident moves from the children's world into the adult world.
       must_show:
         - the need for an adult meeting
         - the attempt to remain civilized
         - the first pressure beneath politeness
+        - the practical reason the parents have to discuss the injury rather than dismissing it as rough play
 
     - id: event_03_arrival_threshold
       title: "Arrival and threshold"

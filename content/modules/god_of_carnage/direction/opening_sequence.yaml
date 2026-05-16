@@ -1,14 +1,14 @@
-# Session opening handover — God of Carnage (canonical content)
-# Normative story material for how the FIRST session narrative should be composed.
+# Session opening handover — God of Carnage (runtime-facing summary)
+# Human-editable opening brief lives in direction/opening.md.
 # Product contract: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
 # Dramaturgic reference (licensed where applicable): resources/carnage-2011.pdf
 #
 # Machine-oriented opening blueprint (narration_mode, hard prohibitions, narrative_events) lives in
 # knowledge/opening_scene_sequence.yaml and knowledge/hard_forbidden_rules.yaml (English module truth).
 
-opening_sequence_version: "1.0.0"
+opening_sequence_version: "1.1.0"
 module_id: god_of_carnage
-setting_anchor: "Paris apartment, evening — hosts and guests meet over the incident between their children"
+setting_anchor: "Paris park edge prologue into a Paris apartment, evening — hosts and guests meet over the incident between their children"
 
 # Two movements before phase_1 “polite table” dialogue accelerates.
 # Each part may map to one or more typed scene blocks (narrator / actor_line / actor_action)
@@ -19,16 +19,22 @@ parts:
     id: opening_part_1
     title: "Background / shared premise"
     dramaturgic_job: |
-      Show the schoolyard humiliation that forces this meeting: two boys, a stick, the
-      injury, the parents’ decision to “be civilised” about it. Let the audience feel the
-      gap between playground bluntness and the adult appointment — without yet turning the
-      apartment into a courtroom in direct speech.
+      Show the incident that forces this meeting as a brief scenic prologue at the edge of a
+      Paris park: a dozen boys around a basketball court under a gray autumn sky, bare trees,
+      a playground and bicycles nearby. Two boys play, argue, and separate; one takes a stick,
+      turns back when the other calls after him, strikes, then leaves while the others help the
+      injured boy and shout after him. Let the audience feel the gap between child-world
+      bluntness and the adult appointment — without yet turning the apartment into a courtroom
+      in direct speech.
     paris_module_notes: |
-      Film script opens on the playground, then the apartment; keep the Reza spine —
+      Open with the park/basketball-court incident, then the apartment; keep the Reza spine —
       bourgeois parents laundering violence through procedure — not a generic "conflict
-      resolution meeting."
+      resolution meeting." The incident is not a vague schoolyard rumor: it has weather,
+      objects, witnesses, a stick, a bicycle kicked over, and a boy disappearing from view.
     suggested_block_emphasis:
       - "narrator — sensory and factual restraint; no omniscient moral verdict"
+      - "narrator — concrete exterior image: park edge, basketball court, playground, bicycles, autumn sky"
+      - "actor_action — the stick, the strike, the injured boy folding, the bicycle kicked over"
       - "optional environment_interaction — objects that carry the weight (coat, phone, papers)"
     narrator_bar:
       must: |
@@ -69,7 +75,8 @@ parts:
 
 # Canonical fact seeds (non-dialogue); generation may adapt wording; do not contradict runtime.
 premise_fact_seeds:
-  - "Two couples meet as parents after a physical incident between their children."
+  - "At the edge of a Paris park, near a basketball court, two boys argued; one took a stick, struck the other, and left while other boys helped the injured child."
+  - "The exterior prologue includes a gray autumn sky, bare trees, a playground, bicycles, and a small group of boys calling after one another."
   - "The hosts feel a written or agreed account of the facts may be necessary; guests may want to leave quickly."
   - "Everyone is performing civility while already judging the other side."
 

@@ -19,8 +19,12 @@ class RuntimeProjection(BaseModel):
     escalation_axes: dict[str, Any] = Field(default_factory=dict)
     opening_scene_sequence: dict[str, Any] = Field(default_factory=dict)
     hard_forbidden_rules: dict[str, Any] = Field(default_factory=dict)
+    scene_graph: dict[str, Any] = Field(default_factory=dict)
+    locations: dict[str, Any] = Field(default_factory=dict)
+    content_access_policy: dict[str, Any] = Field(default_factory=dict)
     character_ids: list[str] = Field(default_factory=list)
     characters: list[dict[str, Any]] = Field(default_factory=list)
+    character_documents: dict[str, Any] = Field(default_factory=dict)
     transition_hints: list[dict[str, Any]] = Field(default_factory=list)
 
 

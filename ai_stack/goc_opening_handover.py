@@ -57,24 +57,18 @@ def role_display_name(*, human_actor_id: str | None, selected_player_role: str |
 
 
 def deterministic_part1_premise(*, output_language: str | None) -> str:
-    """Background / shared premise: schoolyard, two boys, stick, injury, civilised procedure."""
+    """Background / shared premise: park court, two boys, stick, injury, civilised procedure."""
     lang = _lang_norm(output_language)
-    seeds = premise_fact_seeds_from_yaml()
-    seed_tail = ""
-    if seeds:
-        seed_tail = " " + seeds[0]
     if lang == "de":
         return sanitize_gm_narration_beat_line(
-            "Auf dem Schulhof: zwei Jungen, ein Stock, ein blutiger Moment, der nicht klein bleiben will. "
-            "Die Eltern haben vereinbart, es »zivilisiert« zu klären — ein Termin unter Erwachsenen, "
-            "nicht Faustrecht auf dem Asphalt; die Kluft zwischen Spielplatz-Direktheit und höflichem Verfahren ist schon spürbar."
-            + seed_tail
+            "Am Rand eines Pariser Parks: grauer Herbsthimmel, kahle Bäume, ein Basketballplatz, Spielgerät und Fahrräder. "
+            "Unter den Jungen kippt ein Streit; einer greift nach einem Stock, dreht sich um und schlägt zu, bevor er beim Weggehen noch ein Fahrrad umtritt. "
+            "Die Eltern haben vereinbart, es »zivilisiert« zu klären — die Kluft zwischen kindlicher Gewalt und höflichem Verfahren ist schon spürbar."
         )
     return sanitize_gm_narration_beat_line(
-        "On the schoolyard: two boys, a stick, an injury that refuses to stay small. "
-        "Their parents agreed to settle it the civilised way — an adult appointment, not playground justice; "
-        "the gap between blunt playground truth and polite procedure already hangs in the air."
-        + seed_tail
+        "At the edge of a Paris park: gray autumn sky, bare trees, a basketball court, playground equipment, and bicycles. "
+        "A quarrel between boys turns; one grabs a stick, turns back, strikes, and kicks over a bicycle as he leaves. "
+        "Their parents agreed to settle it the civilised way — the gap between child-world violence and polite procedure already hangs in the air."
     )
 
 
@@ -181,8 +175,13 @@ def schoolyard_incident_present(text: str) -> bool:
         for k in (
             "schoolyard",
             "playground",
+            "park",
+            "basketball",
+            "court",
             "schulhof",
             "spielplatz",
+            "park",
+            "basketball",
             "hof",
             "yard",
             "cour",

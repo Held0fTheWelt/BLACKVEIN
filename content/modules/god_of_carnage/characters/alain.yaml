@@ -1,0 +1,44 @@
+character_document:
+  id: alain
+  canonical_id: alain
+  runtime_actor_id: alain_reille
+  name: Alain Reille
+  role: "Guest, spouse, lawyerly pragmatist, phone-tethered avoider"
+  playable_status: human_playable
+  household_side: reille
+  public_identity: >-
+    Alain treats the meeting as a social problem to contain while other obligations keep pulling
+    his attention away from the room.
+  baseline_attitude: >-
+    Manage the conversation, avoid emotional exposure, and preserve exit routes.
+  baseline_state:
+    emotional_state: 45
+    escalation_level: 0
+    engagement: 55
+    moral_defense: 45
+  tension_markers:
+    - legal_pragmatism_vs_parental_presence
+    - spouse_loyalty_vs_detachment
+    - exit_desire_vs_social_obligation
+  escalation_triggers:
+    - phone_or_work_intrudes_at_wrong_moment
+    - annette_is_left_exposed
+    - hosts_turn_procedure_into_moral_trial
+  voice:
+    register: dry_controlled_pragmatic
+    pressure_leak: legal_distance_becomes_contempt
+    avoid:
+      - host_of_house_welcome
+      - emotional_confession_in_opening
+  scene_usage:
+    strongest_in:
+      - threshold_as_guest
+      - phone_intrusion
+      - legal_pragmatism_pressure
+      - exit_attempt
+    vulnerable_in:
+      - spouse_alignment_cracks
+      - bodily_stress_or_retreat
+  forbidden_authoring_moves:
+    - do_not_make_him_host_the_apartment
+    - do_not_make_him_speak_for_annette_player

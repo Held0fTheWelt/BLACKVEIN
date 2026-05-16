@@ -131,7 +131,27 @@ def load_goc_characters_yaml() -> dict[str, Any]:
     path = goc_module_yaml_dir() / "characters.yaml"
     data = _safe_load_yaml_mapping(path)
     ch = data.get("characters")
-    return ch if isinstance(ch, dict) else {}
+    if isinstance(ch, dict) and ch:
+        return ch
+    docs = load_goc_character_documents_yaml()
+    return {
+        char_id: {
+            "id": str(doc.get("canonical_id") or doc.get("id") or char_id),
+            "name": str(doc.get("name") or char_id),
+            "role": str(doc.get("role") or ""),
+            "baseline_attitude": str(
+                doc.get("baseline_attitude")
+                or doc.get("baseline_posture")
+                or doc.get("public_identity")
+                or ""
+            ),
+            **({"actor_id": doc.get("runtime_actor_id")} if doc.get("runtime_actor_id") else {}),
+            **({"runtime_actor_id": doc.get("runtime_actor_id")} if doc.get("runtime_actor_id") else {}),
+            **({"playable_status": doc.get("playable_status")} if doc.get("playable_status") else {}),
+        }
+        for char_id, doc in docs.items()
+        if isinstance(doc, dict)
+    }
 
 
 def load_goc_character_voice_yaml() -> dict[str, Any]:
@@ -176,12 +196,49 @@ def load_goc_opening_sequence_yaml() -> dict[str, Any]:
     return _safe_load_yaml_mapping(path)
 
 
+def load_goc_opening_document_text() -> str:
+    """Load the human-editable opening document for authoring/review context."""
+    path = goc_module_yaml_dir() / "direction" / "opening.md"
+    if not path.is_file():
+        return ""
+    return path.read_text(encoding="utf-8")
+
+
 def load_goc_scene_phases_yaml() -> dict[str, Any]:
     """Load scenes.yaml phase definitions as canonical runtime law."""
     path = goc_module_yaml_dir() / "scenes.yaml"
     data = _safe_load_yaml_mapping(path)
     phases = data.get("scene_phases")
     return phases if isinstance(phases, dict) else {}
+
+
+def load_goc_scene_graph_yaml() -> dict[str, Any]:
+    """Load scene_graph.yaml as the authored scene-node graph."""
+    path = goc_module_yaml_dir() / "scene_graph.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "scene_graph")
+
+
+def load_goc_locations_yaml() -> dict[str, Any]:
+    """Load locations.yaml as the authored location/accessibility surface."""
+    path = goc_module_yaml_dir() / "locations.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "locations")
+
+
+def load_goc_character_documents_yaml() -> dict[str, Any]:
+    """Load per-character authoring documents from characters/*.yaml."""
+    char_dir = goc_module_yaml_dir() / "characters"
+    if not char_dir.is_dir():
+        return {}
+    docs: dict[str, Any] = {}
+    for path in sorted(char_dir.glob("*.yaml")):
+        data = _safe_load_yaml_mapping(path)
+        inner = data.get("character_document") or data.get("character") or data
+        if not isinstance(inner, dict):
+            continue
+        char_id = str(inner.get("id") or inner.get("canonical_id") or path.stem).strip()
+        if char_id:
+            docs[char_id] = inner
+    return docs
 
 
 def load_goc_relationships_yaml() -> dict[str, Any]:
@@ -315,6 +372,11 @@ def load_goc_hard_forbidden_rules_yaml() -> dict[str, Any]:
     return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "hard_forbidden_rules")
 
 
+def load_goc_content_access_policy_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "content_access_policy.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "content_access_policy")
+
+
 @lru_cache(maxsize=1)
 def load_goc_yaml_slice_bundle() -> dict[str, Any]:
     """Bundle of YAML-backed slice surfaces used by the director
@@ -334,10 +396,13 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
     return {
         "characters": load_goc_characters_yaml(),
         "character_voice": load_goc_character_voice_yaml(),
+        "character_documents": load_goc_character_documents_yaml(),
         "voice_consistency": load_goc_voice_consistency_yaml(),
         "scene_guidance": load_goc_scene_guidance_yaml(),
         "opening_sequence": load_goc_opening_sequence_yaml(),
+        "opening_document_excerpt": load_goc_opening_document_text()[:2400],
         "scene_phases": load_goc_scene_phases_yaml(),
+        "scene_graph": load_goc_scene_graph_yaml(),
         "relationship_axes": relationships["relationship_axes"],
         "relationships": relationships["relationships"],
         "stability_constraints": relationships["stability_constraints"],
@@ -353,6 +418,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "escalation_interaction_model": escalation["interaction_model"],
         "system_prompt_excerpt": load_goc_system_prompt_text()[:2400],
         "scene_affordances": scene_aff,
+        "locations": load_goc_locations_yaml(),
         "apartment_layout": load_goc_apartment_layout_yaml(),
         "apartment_objects": load_goc_apartment_objects_yaml(),
         "premise_and_backstory": load_goc_premise_and_backstory_yaml(),
@@ -361,6 +427,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "narrator_sensory_palette": load_goc_narrator_sensory_palette_yaml(),
         "opening_scene_sequence": load_goc_opening_scene_sequence_yaml(),
         "hard_forbidden_rules": load_goc_hard_forbidden_rules_yaml(),
+        "content_access_policy": load_goc_content_access_policy_yaml(),
     }
 
 

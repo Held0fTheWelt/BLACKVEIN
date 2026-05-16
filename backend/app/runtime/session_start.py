@@ -49,9 +49,10 @@ class SessionStartResult(BaseModel):
 
 
 def _resolve_initial_scene(module: ContentModule) -> tuple[str, ScenePhase]:
-    """Find the entry phase from module scene_phases using sequence order.
+    """Find the entry scene from the module scene graph, then phase layer.
 
-    The initial scene is the phase with the lowest sequence value.
+    The scene graph is the primary node surface when present. The phase layer
+    remains usable for modules that have not split scenes into authored nodes.
     No hardcoded IDs; purely data-driven based on ContentModule structure.
 
     Args:
@@ -63,11 +64,36 @@ def _resolve_initial_scene(module: ContentModule) -> tuple[str, ScenePhase]:
     Raises:
         SessionStartError: If module has no scene phases
     """
+    raw_scene_graph = getattr(module, "scene_graph", {})
+    scene_graph = raw_scene_graph if isinstance(raw_scene_graph, dict) else {}
+    graph_start = str(scene_graph.get("default_start_node_id") or "").strip()
+    graph_nodes = scene_graph.get("nodes") if isinstance(scene_graph.get("nodes"), list) else []
+    if graph_start:
+        node = next(
+            (
+                row for row in graph_nodes
+                if isinstance(row, dict) and str(row.get("id") or "").strip() == graph_start
+            ),
+            {},
+        )
+        phase_id = str(node.get("phase_id") or "").strip() if isinstance(node, dict) else ""
+        if phase_id in module.scene_phases:
+            return graph_start, module.scene_phases[phase_id]
+        return graph_start, ScenePhase(
+            id=graph_start,
+            name=str(node.get("title") or graph_start) if isinstance(node, dict) else graph_start,
+            sequence=int(node.get("sequence") or 1) if isinstance(node, dict) else 1,
+            description=str(node.get("summary") or "") if isinstance(node, dict) else "",
+            content_focus=[],
+            engine_tasks=[],
+            active_triggers=[],
+        )
+
     if not module.scene_phases:
         raise SessionStartError(
             "no_start_scene",
             module.metadata.module_id,
-            "Module has no scene phases defined",
+            "Module has no scene graph start node or scene phases defined",
         )
 
     return min(module.scene_phases.items(), key=lambda kv: kv[1].sequence)

@@ -168,6 +168,47 @@ class ModuleFileLoader:
             for yaml_file in knowledge_files:
                 result[yaml_file.stem] = self.load_file(yaml_file)
 
+        character_dir = module_root / "characters"
+        if character_dir.is_dir():
+            try:
+                character_files = sorted(character_dir.glob("*.yaml"))
+            except (PermissionError, OSError) as e:
+                raise ModuleFileReadError(
+                    message="Failed to read module characters directory",
+                    module_id="unknown",
+                    file_path=str(character_dir),
+                    errors=[str(e)],
+                )
+            character_documents: dict[str, Any] = {}
+            for yaml_file in character_files:
+                payload = self.load_file(yaml_file)
+                if isinstance(payload, dict):
+                    inner = payload.get("character_document") or payload.get("character") or payload
+                    if isinstance(inner, dict):
+                        char_id = str(inner.get("id") or inner.get("canonical_id") or yaml_file.stem).strip()
+                        if char_id:
+                            character_documents[char_id] = inner
+            if character_documents:
+                result["character_documents"] = character_documents
+                result["characters"] = {
+                    char_id: {
+                        "id": str(doc.get("canonical_id") or doc.get("id") or char_id),
+                        "name": str(doc.get("name") or char_id),
+                        "role": str(doc.get("role") or doc.get("dramatic_role") or ""),
+                        "actor_id": str(doc.get("runtime_actor_id") or doc.get("actor_id") or ""),
+                        "runtime_actor_id": str(doc.get("runtime_actor_id") or doc.get("actor_id") or ""),
+                        "baseline_attitude": str(
+                            doc.get("baseline_attitude")
+                            or doc.get("baseline_posture")
+                            or doc.get("public_identity")
+                            or ""
+                        ),
+                        "extras": dict(doc),
+                    }
+                    for char_id, doc in character_documents.items()
+                    if isinstance(doc, dict)
+                }
+
         # Unwrap nested dictionaries where YAML files wrap content under a root key.
         #
         # Most YAML files are structured as:
@@ -211,6 +252,9 @@ class ModuleFileLoader:
             "narrator_sensory_palette": "narrator_sensory_palette",
             "opening_scene_sequence": "opening_scene_sequence",
             "hard_forbidden_rules": "hard_forbidden_rules",
+            "scene_graph": "scene_graph",
+            "locations": "locations",
+            "content_access_policy": "content_access_policy",
         }
 
         # Iterate over a copy of items to avoid "dictionary keys changed during iteration" error

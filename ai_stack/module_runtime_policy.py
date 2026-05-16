@@ -66,6 +66,30 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return raw if isinstance(raw, dict) else {}
 
 
+def _read_character_documents(module_dir: Path) -> dict[str, Any]:
+    char_dir = module_dir / "characters"
+    if not char_dir.is_dir():
+        return {}
+    chars: dict[str, Any] = {}
+    for path in sorted(char_dir.glob("*.yaml")):
+        payload = _read_yaml(path)
+        doc = payload.get("character_document") or payload.get("character") or payload
+        if not isinstance(doc, dict):
+            continue
+        char_id = str(doc.get("id") or doc.get("canonical_id") or path.stem).strip()
+        if not char_id:
+            continue
+        chars[char_id] = {
+            "id": char_id,
+            "actor_id": doc.get("runtime_actor_id") or doc.get("actor_id") or char_id,
+            "runtime_actor_id": doc.get("runtime_actor_id") or doc.get("actor_id") or char_id,
+            "name": doc.get("name") or char_id,
+            "role": doc.get("role"),
+            **doc,
+        }
+    return {"characters": chars} if chars else {}
+
+
 def _unwrap(payload: dict[str, Any], key: str) -> dict[str, Any]:
     nested = payload.get(key)
     return nested if isinstance(nested, dict) else payload
@@ -84,6 +108,7 @@ def _actors_from_characters(characters_payload: dict[str, Any]) -> dict[str, Any
             continue
         out[actor_id] = {
             "id": actor_id,
+            "runtime_actor_id": value.get("runtime_actor_id") or value.get("actor_id") or actor_id,
             "display_name": value.get("name") or value.get("display_name") or actor_id,
             "role": value.get("role"),
             "profile": _json_safe(value),
@@ -365,7 +390,8 @@ def load_module_runtime_policy(
     root = Path(content_modules_root) if content_modules_root else _repo_root() / "content" / "modules"
     module_dir = root / mid
     module_yaml = _read_yaml(module_dir / "module.yaml")
-    characters = _read_yaml(module_dir / "characters.yaml")
+    character_documents = _read_character_documents(module_dir)
+    characters = character_documents or _read_yaml(module_dir / "characters.yaml")
     layout = _read_yaml(module_dir / "apartment_layout.yaml")
     objects = _read_yaml(module_dir / "apartment_objects.yaml")
     actor_pressure = _read_yaml(module_dir / "actor_pressure_profiles.yaml")
@@ -476,6 +502,7 @@ def load_module_runtime_policy(
     sources = []
     for label, payload in (
         ("module", module_yaml),
+        ("character_documents", character_documents),
         ("characters", characters),
         ("apartment_layout", layout),
         ("apartment_objects", objects),

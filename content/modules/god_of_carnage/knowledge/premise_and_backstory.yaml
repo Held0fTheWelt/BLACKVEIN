@@ -10,10 +10,21 @@ premise_and_backstory:
 
   canonical_facts:
     - id: playground_incident
-      fact: "A child was injured; versions of negligence differ between families."
+      fact: >-
+        At the edge of a Paris park, near a basketball court, two boys argued; one grabbed a
+        stick, struck the other, kicked over a bicycle as he left, and the surrounding boys helped
+        the injured child up while calling after him.
       authority: canonical_module
       player_visibility: public_diegetic
       subtext: "Each family protects its self-image as competent parents."
+
+    - id: park_prologue_environment
+      fact: >-
+        The remembered prologue carries ordinary public details: gray autumn sky, bare trees, a
+        playground, bicycles, boys clustered at the edge of play, and background Paris-suburb life.
+      authority: canonical_module
+      player_visibility: public_diegetic
+      subtext: "The violence is small in scale but public enough that no family can keep it private."
 
     - id: host_guest_asymmetry
       fact: >-

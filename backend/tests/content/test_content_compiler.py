@@ -18,6 +18,12 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
     assert output.runtime_projection.escalation_axes
     assert output.runtime_projection.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
     assert "hard_forbidden_detection" in output.runtime_projection.hard_forbidden_rules
+    assert output.runtime_projection.start_scene_id == "prologue_park_edge"
+    assert len(output.runtime_projection.scenes) > 10
+    assert output.runtime_projection.scene_graph.get("id") == "goc_scene_graph_v1"
+    assert output.runtime_projection.locations.get("places")
+    assert output.runtime_projection.content_access_policy.get("blocked_entities")
+    assert set(output.runtime_projection.character_documents.keys()) == {"veronique", "michel", "annette", "alain"}
     assert output.runtime_projection.characters
     assert any(row.get("engine_tasks") for row in output.runtime_projection.scenes)
     assert any(row.get("active_triggers") for row in output.runtime_projection.scenes)
@@ -46,6 +52,10 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
         "apartment_objects",
         "actor_pressure_profiles",
         "phase_beat_policy",
+        "scene_graph",
+        "locations",
+        "content_access_policy",
+        "character_documents",
     }
     missing = required - set(by_kind.keys())
     assert not missing, f"retrieval seed missing knowledge content_kinds: {sorted(missing)}"
@@ -66,7 +76,10 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
     assert by_kind["apartment_objects"].metadata["runtime_locale_available"] is True
     assert by_kind["opening_scene_sequence"].metadata["runtime_locale_available"] is False
     assert by_kind["hard_forbidden_rules"].metadata["runtime_locale_available"] is False
+    assert by_kind["locations"].metadata["runtime_locale_available"] is True
 
     # Opening + hard-forbidden must list their downstream consumers explicitly.
     assert "opening_realization" in by_kind["opening_scene_sequence"].metadata["use_for"]
     assert "hard_forbidden_gate" in by_kind["hard_forbidden_rules"].metadata["use_for"]
+    assert "scene_director_navigation" in by_kind["scene_graph"].metadata["use_for"]
+    assert "affordance_resolution" in by_kind["content_access_policy"].metadata["use_for"]

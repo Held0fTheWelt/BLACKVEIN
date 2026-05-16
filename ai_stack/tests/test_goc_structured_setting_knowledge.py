@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from ai_stack.goc_yaml_authority import (
     clear_goc_yaml_slice_cache,
     load_goc_apartment_layout_yaml,
@@ -20,6 +22,10 @@ def test_yaml_slice_bundle_exposes_structured_setting_keys() -> None:
     clear_goc_yaml_slice_cache()
     bundle = load_goc_yaml_slice_bundle()
     for key in (
+        "character_documents",
+        "scene_graph",
+        "locations",
+        "content_access_policy",
         "scene_affordances",
         "apartment_layout",
         "apartment_objects",
@@ -33,6 +39,10 @@ def test_yaml_slice_bundle_exposes_structured_setting_keys() -> None:
         assert key in bundle
     assert bundle["opening_scene_sequence"].get("id") == "goc_opening_sequence_v1"
     assert "hard_forbidden" in (bundle.get("hard_forbidden_rules") or {})
+    assert len((bundle.get("scene_graph") or {}).get("nodes") or []) > 10
+    assert (bundle.get("locations") or {}).get("places")
+    assert (bundle.get("content_access_policy") or {}).get("blocked_entities")
+    assert set((bundle.get("character_documents") or {}).keys()) == {"veronique", "michel", "annette", "alain"}
     assert bundle["apartment_layout"].get("setting_id") == "vallon_paris_evening_apartment"
     assert "phase_1" in (bundle.get("phase_beat_policy") or {}).get("phases", {})
 
@@ -91,8 +101,11 @@ def test_p2_1_english_only_knowledge_files_contain_no_german_authoring_strings()
     english_only_files = [
         knowledge_dir / "opening_scene_sequence.yaml",
         knowledge_dir / "hard_forbidden_rules.yaml",
+        knowledge_dir / "content_access_policy.yaml",
         knowledge_dir / "premise_and_backstory.yaml",
         knowledge_dir / "narrator_sensory_palette.yaml",
+        knowledge_dir.parent / "locations.yaml",
+        knowledge_dir.parent / "scene_graph.yaml",
         knowledge_dir.parent / "apartment_layout.yaml",
         knowledge_dir.parent / "actor_pressure_profiles.yaml",
         knowledge_dir.parent / "phase_beat_policy.yaml",
@@ -138,6 +151,47 @@ def test_p2_2_direction_and_knowledge_opening_handovers_are_consistent() -> None
     )
 
 
+def test_opening_incident_content_is_concrete_in_direction_and_knowledge() -> None:
+    module_dir = Path(__file__).resolve().parents[2] / "content" / "modules" / "god_of_carnage"
+    opening_doc = (module_dir / "direction" / "opening.md").read_text(encoding="utf-8").lower()
+    direction_text = (module_dir / "direction" / "opening_sequence.yaml").read_text(encoding="utf-8").lower()
+    knowledge_text = (module_dir / "knowledge" / "opening_scene_sequence.yaml").read_text(encoding="utf-8").lower()
+    premise_text = (module_dir / "knowledge" / "premise_and_backstory.yaml").read_text(encoding="utf-8").lower()
+
+    for token in ("paris park", "basketball", "bicycle", "stick"):
+        assert token in opening_doc
+        assert token in direction_text
+        assert token in knowledge_text or token in premise_text
+
+
+def test_scene_graph_and_modular_character_documents_are_primary_surfaces() -> None:
+    clear_goc_yaml_slice_cache()
+    bundle = load_goc_yaml_slice_bundle()
+    graph = bundle.get("scene_graph") or {}
+    docs = bundle.get("character_documents") or {}
+    locations = bundle.get("locations") or {}
+    access = bundle.get("content_access_policy") or {}
+
+    nodes = graph.get("nodes") or []
+    assert len(nodes) >= 12
+    assert graph.get("default_start_node_id") == "prologue_park_edge"
+    assert graph.get("first_playable_node_id") == "first_playable_courtesy_gap"
+    assert all(isinstance(row, dict) and row.get("location_id") for row in nodes)
+    assert set(docs) == {"veronique", "michel", "annette", "alain"}
+    assert all((doc.get("scene_usage") or {}) for doc in docs.values())
+    assert {doc.get("runtime_actor_id") for doc in docs.values()} == {
+        "veronique_vallon",
+        "michel_longstreet",
+        "annette_reille",
+        "alain_reille",
+    }
+    assert (bundle.get("characters") or {}).get("annette", {}).get("actor_id") == "annette_reille"
+    assert {row.get("id") for row in (locations.get("places") or [])}.issuperset(
+        {"park_edge", "basketball_court", "vallon_living_room", "bathroom", "kitchen"}
+    )
+    assert set(access.get("scopes") or []).issuperset({"action", "location", "object", "scene_node"})
+
+
 def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state() -> None:
     """P0.1: _goc_resolve_canonical_content surfaces all 9 knowledge keys + _loaded flags onto runtime state."""
     clear_goc_yaml_slice_cache()
@@ -148,6 +202,10 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
     assert isinstance(update.get("opening_scene_sequence"), dict) and update["opening_scene_sequence"]
     assert isinstance(update.get("hard_forbidden_rules"), dict) and update["hard_forbidden_rules"]
     for key in (
+        "character_documents",
+        "scene_graph",
+        "locations",
+        "content_access_policy",
         "apartment_layout",
         "apartment_objects",
         "premise_and_backstory",
@@ -163,6 +221,10 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
     for flag in (
         "opening_scene_sequence_loaded",
         "hard_forbidden_rules_loaded",
+        "character_documents_loaded",
+        "scene_graph_loaded",
+        "locations_loaded",
+        "content_access_policy_loaded",
         "apartment_layout_loaded",
         "apartment_objects_loaded",
         "premise_and_backstory_loaded",

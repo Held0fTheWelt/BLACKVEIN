@@ -1,0 +1,86 @@
+# Location surface for God of Carnage.
+# This expands the usable place vocabulary beyond the initial apartment-only MVP.
+
+locations:
+  id: goc_locations_v1
+  authority: module_authorial_locations
+  default_access_policy: knowledge/content_access_policy.yaml
+
+  places:
+    - id: park_edge
+      name: "Paris park edge"
+      category: exterior_memory
+      playable_access: opening_narration_only
+      sensory_tags: [gray_sky, bare_trees, autumn_air, public_space]
+
+    - id: basketball_court
+      name: "Basketball court"
+      category: exterior_memory
+      playable_access: opening_narration_only
+      sensory_tags: [asphalt, ball_noise, boys_clustered, distant_traffic]
+
+    - id: playground
+      name: "Playground"
+      category: exterior_memory
+      playable_access: opening_narration_only
+      sensory_tags: [metal_equipment, children_nearby, public_after_school]
+
+    - id: bicycle_rack
+      name: "Bicycles near the court"
+      category: exterior_memory_object_cluster
+      playable_access: opening_narration_only
+      sensory_tags: [bicycle_frames, kicked_bicycle, small_public_damage]
+
+    - id: offscreen_parent_world
+      name: "Adult consequence bridge"
+      category: offscreen_transition
+      playable_access: narrator_bridge_only
+      sensory_tags: [phone_call, report, appointment_pressure]
+
+    - id: apartment_entry
+      name: "Apartment entry and doorway"
+      category: interior_threshold
+      playable_access: gated_scene_navigation
+      sensory_tags: [coats, doorframe, guest_obligation]
+
+    - id: hallway
+      name: "Hallway"
+      category: interior_transition
+      playable_access: gated_scene_navigation
+      sensory_tags: [narrow_space, overheard_room, exit_pressure]
+
+    - id: vallon_living_room
+      name: "Vallon living room"
+      category: primary_play_space
+      playable_access: active
+      sensory_tags: [art_books, tulips, seating, social_display]
+
+    - id: coffee_table
+      name: "Coffee table"
+      category: object_zone
+      playable_access: active
+      sensory_tags: [papers, cups, dessert, negotiated_facts]
+
+    - id: kitchen
+      name: "Kitchen"
+      category: adjacent_room
+      playable_access: gated_scene_navigation
+      sensory_tags: [coffee_machine, dishes, offscreen_pause]
+
+    - id: bathroom
+      name: "Bathroom"
+      category: adjacent_room
+      playable_access: gated_scene_navigation
+      sensory_tags: [mirror, water, temporary_retreat]
+
+    - id: window
+      name: "Window / outside view"
+      category: perception_anchor
+      playable_access: perception_only
+      sensory_tags: [city_light, distance, outside_air]
+
+    - id: building_stairwell
+      name: "Building stairwell"
+      category: exit_route
+      playable_access: exit_gate_only
+      sensory_tags: [echo, door_closer, leaving_pressure]

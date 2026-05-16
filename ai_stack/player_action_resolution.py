@@ -111,7 +111,26 @@ def _extract_german_imperative_object_phrase(raw_text: str, verb: str) -> str | 
 
 def _load_characters_blob(module_id: str, *, content_modules_root: Path | None = None) -> dict[str, Any]:
     root = resolve_content_modules_root(content_modules_root)
-    path = root / str(module_id).strip() / "characters.yaml"
+    module_dir = root / str(module_id).strip()
+    char_dir = module_dir / "characters"
+    if char_dir.is_dir():
+        out: dict[str, Any] = {}
+        for path in sorted(char_dir.glob("*.yaml")):
+            try:
+                payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            blob = payload.get("character_document") or payload.get("character") or payload
+            if not isinstance(blob, dict):
+                continue
+            char_id = str(blob.get("id") or blob.get("canonical_id") or path.stem).strip()
+            if char_id:
+                out[char_id] = blob
+        if out:
+            return out
+    path = module_dir / "characters.yaml"
     if not path.exists():
         return {}
     try:

@@ -117,6 +117,17 @@ class TestNarrativeRuntimeAgentCore:
         if narrator_block_indices and ruhepunkt_indices:
             assert max(narrator_block_indices) < min(ruhepunkt_indices)
 
+    def test_stream_does_not_repeat_to_default_max_when_initiatives_are_finite(self, narrator_agent, sample_agent_input):
+        """Regression: two pending initiatives should not become ten identical narrator blocks."""
+        events = list(narrator_agent.stream_narrator_blocks(sample_agent_input))
+
+        narrator_blocks = [e for e in events if e.event_kind == NarrativeEventKind.NARRATOR_BLOCK]
+        ruhepunkt = next(e for e in events if e.event_kind == NarrativeEventKind.RUHEPUNKT_REACHED)
+
+        assert len(narrator_blocks) == 2
+        assert ruhepunkt.data["block_count"] == 2
+        assert ruhepunkt.data["remaining_initiatives"] == 0
+
     def test_ruhepunkt_signal_emitted_when_initiatives_exhausted(self, narrator_agent, sample_agent_input):
         """Ruhepunkt signal emitted when remaining initiatives reach 0."""
         events = list(narrator_agent.stream_narrator_blocks(sample_agent_input))

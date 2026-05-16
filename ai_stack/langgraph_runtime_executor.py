@@ -298,6 +298,17 @@ def _runtime_profile_id_from_host_template(host_experience_template: dict[str, A
     return None
 
 
+def _is_engine_opening_turn(state: dict[str, Any] | None) -> bool:
+    payload = state if isinstance(state, dict) else {}
+    turn_kind = str(payload.get("turn_input_class") or "").strip().lower()
+    initiator = str(payload.get("turn_initiator_type") or "").strip().lower()
+    try:
+        turn_number = int(payload.get("turn_number") or 0)
+    except (TypeError, ValueError):
+        turn_number = 0
+    return turn_kind == "opening" and (initiator in {"", "engine", "system"} or turn_number <= 0)
+
+
 def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
     """Bind model output to ``session_output_language`` for non-opening turns (opening prompt already binds)."""
     if str(state.get("turn_input_class") or "").strip().lower() == "opening":
@@ -4935,6 +4946,84 @@ class RuntimeTurnGraphExecutor:
             RuntimeTurnState:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
+        if _is_engine_opening_turn(state):
+            raw_pi = str(state.get("player_input") or "").strip()
+            interp_dict: dict[str, Any] = {
+                "raw_text": "",
+                "normalized_text": "",
+                "kind": "opening",
+                "confidence": 1.0,
+                "ambiguity": None,
+                "intent": "engine_opening_establishment",
+                "selected_handling_path": "engine_opening",
+                "runtime_delivery_hint": "narrative_body",
+                "source": "engine_opening_prompt",
+                "actor_id": None,
+                "selected_player_role": None,
+                "original_text": "",
+                "player_input_actor_id": None,
+                "player_input_visible_block_present": False,
+                "player_input_kind": "opening",
+                "projection_key": None,
+                "projection_captures": {},
+                "semantic_category": "engine_opening_establishment",
+                "speech_projection_allowed": False,
+                "player_action_committed": False,
+                "player_speech_committed": False,
+                "narrator_response_expected": True,
+                "npc_response_expected": False,
+                "input_kind": "opening",
+                "engine_opening_prompt_redacted": bool(raw_pi),
+                "engine_opening_prompt_char_count": len(raw_pi),
+            }
+            broad_nlu_listening = derive_broad_nlu_listening(
+                interpreted_input=interp_dict,
+                semantic_move_record=None,
+            )
+            update = _track(state, node_name="interpret_input")
+            update["interpreted_input"] = interp_dict
+            update["broad_nlu_listening"] = broad_nlu_listening
+            update["interpreted_move"] = {
+                "player_intent": "engine_opening_establishment",
+                "move_class": "opening",
+                "player_input_kind": "opening",
+                "narrator_response_expected": True,
+                "npc_response_expected": False,
+            }
+            update["task_type"] = "narrative_formulation"
+            turn_number = int(state.get("turn_number") or 0)
+            update["turn_aspect_ledger"] = set_aspect_record(
+                state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+                ASPECT_INPUT,
+                make_aspect_record(
+                    applicable=False,
+                    status="not_applicable",
+                    expected={
+                        "turn_number": turn_number,
+                        "turn_kind": "opening",
+                        "real_player_turn_evidence_lane": False,
+                    },
+                    actual={
+                        "raw_player_input": None,
+                        "input_kind": "opening",
+                        "player_input_kind": "opening",
+                        "semantic_kind": "opening",
+                        "engine_opening_prompt_redacted": bool(raw_pi),
+                        "engine_opening_prompt_char_count": len(raw_pi),
+                        "narrator_response_expected": True,
+                        "npc_response_expected": False,
+                        "real_player_turn_evidence_lane": False,
+                    },
+                    reasons=["engine_opening_turn_not_player_input"],
+                    source="runtime",
+                ),
+            )
+            update["turn_aspect_ledger"] = set_aspect_record(
+                update["turn_aspect_ledger"],
+                ASPECT_BROAD_NLU_LISTENING,
+                build_broad_nlu_listening_aspect_record(broad_nlu_listening),
+            )
+            return update
         interpretation = self.interpreter(state["player_input"])
         task_type = "classification" if interpretation.kind.value in {"explicit_command", "meta"} else "narrative_formulation"
         interp_dict = interpretation.model_dump(mode="json")
@@ -5943,6 +6032,10 @@ class RuntimeTurnGraphExecutor:
                 update["opening_scene_sequence"] = opening_scene_sequence
                 update["hard_forbidden_rules"] = hard_forbidden_rules
                 _structured_knowledge_keys = (
+                    "character_documents",
+                    "scene_graph",
+                    "locations",
+                    "content_access_policy",
                     "apartment_layout",
                     "apartment_objects",
                     "premise_and_backstory",
@@ -5975,6 +6068,10 @@ class RuntimeTurnGraphExecutor:
                 update["knowledge_runtime_loaded"] = {
                     "opening_scene_sequence_loaded": bool(opening_scene_sequence),
                     "hard_forbidden_rules_loaded": bool(hard_forbidden_rules),
+                    "character_documents_loaded": bool(isinstance(yaml_slice.get("character_documents"), dict) and yaml_slice.get("character_documents")),
+                    "scene_graph_loaded": bool(isinstance(yaml_slice.get("scene_graph"), dict) and yaml_slice.get("scene_graph")),
+                    "locations_loaded": bool(isinstance(yaml_slice.get("locations"), dict) and yaml_slice.get("locations")),
+                    "content_access_policy_loaded": bool(isinstance(yaml_slice.get("content_access_policy"), dict) and yaml_slice.get("content_access_policy")),
                     "apartment_layout_loaded": bool(isinstance(yaml_slice.get("apartment_layout"), dict) and yaml_slice.get("apartment_layout")),
                     "apartment_objects_loaded": bool(isinstance(yaml_slice.get("apartment_objects"), dict) and yaml_slice.get("apartment_objects")),
                     "premise_and_backstory_loaded": bool(isinstance(yaml_slice.get("premise_and_backstory"), dict) and yaml_slice.get("premise_and_backstory")),
@@ -6040,9 +6137,10 @@ class RuntimeTurnGraphExecutor:
                 "module_slice": module_id,
             }
             update["scene_assessment"] = placeholder
+            semantic_player_input = "" if _is_engine_opening_turn(state) else state.get("player_input") or ""
             sem_e = interpret_goc_semantic_move(
                 module_id=module_id,
-                player_input=state.get("player_input") or "",
+                player_input=semantic_player_input,
                 interpreted_input=interpreted_input,
                 interpreted_move=interpreted_move,
                 prior_continuity_classes=pc_early,
@@ -6073,9 +6171,10 @@ class RuntimeTurnGraphExecutor:
                 "module_slice": module_id,
             }
             update["scene_assessment"] = unresolved
+            semantic_player_input = "" if _is_engine_opening_turn(state) else state.get("player_input") or ""
             sem_u = interpret_goc_semantic_move(
                 module_id=module_id,
-                player_input=state.get("player_input") or "",
+                player_input=semantic_player_input,
                 interpreted_input=interpreted_input,
                 interpreted_move=interpreted_move,
                 prior_continuity_classes=pc_early,
@@ -6142,9 +6241,10 @@ class RuntimeTurnGraphExecutor:
                 "selected_statuses": cascade_state.get("selected_statuses") or [],
             }
         pc = prior_continuity_classes(prior)
+        semantic_player_input = "" if _is_engine_opening_turn(state) else state.get("player_input") or ""
         sem_model = interpret_goc_semantic_move(
             module_id=module_id,
-            player_input=state.get("player_input") or "",
+            player_input=semantic_player_input,
             interpreted_input=interpreted_input,
             interpreted_move=interpreted_move,
             prior_continuity_classes=pc,
@@ -6188,7 +6288,8 @@ class RuntimeTurnGraphExecutor:
         update = _track(state, node_name="director_select_dramatic_parameters")
         module_id = state.get("module_id") or ""
         interpreted_move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
-        player_input = state.get("player_input") or ""
+        engine_opening_turn = _is_engine_opening_turn(state)
+        player_input = "" if engine_opening_turn else state.get("player_input") or ""
         pacing, silence = build_pacing_and_silence(
             player_input=player_input,
             interpreted_move=interpreted_move,
@@ -6240,6 +6341,14 @@ class RuntimeTurnGraphExecutor:
             if isinstance(state.get("prior_narrative_thread_state"), dict)
             else None,
         )
+        if engine_opening_turn:
+            responders = []
+            scene_fn = "establish_pressure"
+            resolution = {
+                "selection_source": "engine_opening_turn",
+                "candidates": ["establish_pressure"],
+                "reason": "opening_prompt_is_engine_instruction_not_player_move",
+            }
         merged_sa = {**base_sa, "multi_pressure_resolution": resolution}
         update["scene_assessment"] = merged_sa
         update["selected_responder_set"] = responders
@@ -6360,6 +6469,10 @@ class RuntimeTurnGraphExecutor:
         _content_sources: list[str] = []
         for _src_key, _src_flag in (
             ("actor_pressure_profiles", "actor_pressure_profiles_loaded"),
+            ("character_documents", "character_documents_loaded"),
+            ("scene_graph", "scene_graph_loaded"),
+            ("locations", "locations_loaded"),
+            ("content_access_policy", "content_access_policy_loaded"),
             ("phase_beat_policy", "phase_beat_policy_loaded"),
             ("hard_forbidden_rules", "hard_forbidden_rules_loaded"),
             ("opening_scene_sequence", "opening_scene_sequence_loaded"),

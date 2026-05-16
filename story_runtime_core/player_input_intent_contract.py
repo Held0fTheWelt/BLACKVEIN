@@ -34,6 +34,7 @@ PLAYER_INPUT_KINDS: frozenset[str] = frozenset(
         "environment_interaction",
         "wait_or_observe",
         "mixed_action_speech",
+        "opening",
     }
 )
 
@@ -85,6 +86,7 @@ QUESTION_PUNCTUATION_PROBE_GUARDED_KINDS: frozenset[str] = frozenset(
         "environment_interaction",
         "wait_or_observe",
         "ambiguous",
+        "opening",
         "unclear",
     }
 )
@@ -172,6 +174,8 @@ def player_input_kind_family(kind: Any) -> str:
         return "speech"
     if k == "wait_or_observe":
         return "wait_or_observe"
+    if k == "opening":
+        return "opening"
     if k in {"meta", "explicit_command", "unclear", "ambiguous"}:
         return k
     return "unknown"
@@ -235,7 +239,7 @@ def default_commit_flags_for_player_input_kind(kind: Any) -> dict[str, bool]:
             "narrator_response_expected": True,
             "npc_response_expected": False,
         }
-    if k in {"wait_or_observe", "ambiguous"}:
+    if k in {"wait_or_observe", "ambiguous", "opening"}:
         return {
             "player_action_committed": False,
             "player_speech_committed": False,

@@ -17,12 +17,13 @@ class TestResolveInitialScene:
     """Tests for _resolve_initial_scene helper."""
 
     def test_resolve_initial_scene_god_of_carnage(self, content_modules_root):
-        """Initial scene is phase_1 (lowest sequence)."""
+        """Initial scene is the authored scene-graph start node."""
         from app.content.module_loader import load_module
 
         module = load_module("god_of_carnage", root_path=content_modules_root)
         scene_id, phase = _resolve_initial_scene(module)
-        assert scene_id == "phase_1"
+        assert scene_id == "prologue_park_edge"
+        assert phase.id == "prologue_park_edge"
         assert phase.sequence == 1
 
     def test_resolve_initial_scene_no_phases(self, valid_module_root):
@@ -95,15 +96,15 @@ class TestSessionStart:
 
         assert session.module_id == "god_of_carnage"
         assert session.module_version is not None
-        assert session.current_scene_id == "phase_1"
+        assert session.current_scene_id == "prologue_park_edge"
         assert session.status == SessionStatus.ACTIVE
         assert session.turn_counter == 0
         assert session.canonical_state is not None
 
     def test_session_start_initial_scene_by_sequence(self, content_modules_root):
-        """Initial scene is determined by lowest sequence value."""
+        """Initial scene is determined by the scene graph start node."""
         result = start_session("god_of_carnage", root_path=content_modules_root)
-        assert result.session.current_scene_id == "phase_1"
+        assert result.session.current_scene_id == "prologue_park_edge"
 
     def test_session_start_canonical_state_has_characters(
         self, content_modules_root
@@ -151,7 +152,7 @@ class TestSessionStart:
         event = result.events[2]
         assert event.event_type == "initial_scene_resolved"
         assert "scene_id" in event.payload
-        assert event.payload["scene_id"] == "phase_1"
+        assert event.payload["scene_id"] == "prologue_park_edge"
 
     def test_session_start_initial_turn(self, content_modules_root):
         """Initial turn is turn 1 in PENDING status."""
@@ -180,10 +181,7 @@ class TestSessionStart:
     ):
         """Initial scene is data-driven, not hardcoded to phase_1 by name."""
         result = start_session("god_of_carnage", root_path=content_modules_root)
-        # The initial scene is determined by sequence, not by the phase name
-        # This test verifies the mechanism: if we had phases with different sequence
-        # orders, the one with sequence=1 would be chosen regardless of name.
-        # For god_of_carnage, phase_1 has sequence=1, so it's the initial scene.
+        # The initial scene is determined by scene_graph.default_start_node_id.
         assert result.session.current_scene_id in result.session.canonical_state[
             "characters"
         ] or "characters" in result.session.canonical_state
@@ -204,7 +202,7 @@ class TestSessionStart:
         result = start_session("god_of_carnage", root_path=content_modules_root)
         event = result.events[2]
         assert event.event_type == "initial_scene_resolved"
-        assert event.payload["scene_id"] == "phase_1"
+        assert event.payload["scene_id"] == "prologue_park_edge"
         assert "scene_name" in event.payload
         assert "sequence" in event.payload
         assert event.payload["sequence"] == 1

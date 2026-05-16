@@ -336,6 +336,46 @@ class RuntimeTurnStructuredOutput(BaseModel):
         ),
     )
     responder_actor_ids: list[str] = Field(default_factory=list)
+    opening_event_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Opening turn only: ordered ids from the opening_scene_sequence contract that this output realizes. "
+            "Validation reads this field as deterministic coverage evidence."
+        ),
+    )
+    opening_events_covered: list[str] = Field(
+        default_factory=list,
+        description="Opening turn compatibility alias for opening_event_ids.",
+    )
+    covered_event_ids: list[str] = Field(
+        default_factory=list,
+        description="Generic compatibility alias for opening/opening_event_coverage covered event ids.",
+    )
+    opening_event_coverage: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Opening turn only: optional nested coverage evidence, including covered_event_ids and "
+            "must_establish_coverage."
+        ),
+    )
+    opening_must_establish_coverage: list[str] | dict[str, bool] = Field(
+        default_factory=list,
+        description="Opening turn only: must_establish ids covered by the generated scenic opening.",
+    )
+    must_establish_coverage: list[str] | dict[str, bool] = Field(
+        default_factory=list,
+        description="Compatibility alias for opening_must_establish_coverage.",
+    )
+    opening_render_policy_evidence: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Opening turn only: local evidence for scenic dramatization vs summary-only rendering."
+        ),
+    )
+    runtime_gate_detections: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Structured ids for hard-forbidden runtime gate detections, when any are present.",
+    )
 
     responder_id: str | None = None
     narrative_response: str = Field(default="", description="Deprecated. Copy of narration_summary for legacy callers only.")

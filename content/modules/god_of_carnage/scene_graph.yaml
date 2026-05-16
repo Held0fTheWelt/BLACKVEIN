@@ -1,0 +1,250 @@
+# Scene graph for God of Carnage.
+# This is the primary authored scene-node surface. `scenes.yaml` remains the coarse phase layer.
+
+scene_graph:
+  id: goc_scene_graph_v1
+  authority: module_authorial_scene_graph
+  primary_opening_document: direction/opening.md
+  phase_layer: scenes.yaml
+  default_start_node_id: prologue_park_edge
+  first_playable_node_id: first_playable_courtesy_gap
+
+  nodes:
+    - id: prologue_park_edge
+      phase_id: opening
+      sequence: 1
+      title: "Paris park edge"
+      location_id: park_edge
+      scene_function: opening_prologue_establish
+      visibility: narrator_only
+      required_event_ids:
+        - event_01_triggering_incident
+      summary: "The exterior world is established: park edge, court, playground, bikes, autumn sky."
+
+    - id: basketball_court_cluster
+      phase_id: opening
+      sequence: 2
+      title: "Boys around the court"
+      location_id: basketball_court
+      scene_function: opening_group_pressure
+      visibility: narrator_only
+      required_event_ids:
+        - event_01_triggering_incident
+      summary: "A dozen boys cluster around the court while two boys keep playing."
+
+    - id: boys_argument
+      phase_id: opening
+      sequence: 3
+      title: "Argument between the boys"
+      location_id: basketball_court
+      scene_function: opening_conflict_turns
+      visibility: narrator_only
+      required_event_ids:
+        - event_01_triggering_incident
+      summary: "The two boys argue; the surrounding boys react before adults enter the story."
+
+    - id: stick_and_turn
+      phase_id: opening
+      sequence: 4
+      title: "Stick, call, turn"
+      location_id: park_edge
+      scene_function: opening_irreversible_beat
+      visibility: narrator_only
+      required_event_ids:
+        - event_01_triggering_incident
+      summary: "One boy takes a stick; the other calls after him; the boy stops and turns."
+
+    - id: strike_and_aftermath
+      phase_id: opening
+      sequence: 5
+      title: "Strike and aftermath"
+      location_id: park_edge
+      scene_function: opening_consequence
+      visibility: narrator_only
+      required_event_ids:
+        - event_01_triggering_incident
+        - event_02_adult_consequence
+      summary: "The strike lands, the injured boy folds over, the others help him, and the attacker kicks a bicycle over as he leaves."
+
+    - id: adult_meeting_pressure
+      phase_id: opening
+      sequence: 6
+      title: "The incident reaches adults"
+      location_id: offscreen_parent_world
+      scene_function: consequence_bridge
+      visibility: narrator_only
+      required_event_ids:
+        - event_02_adult_consequence
+      summary: "The child-world incident becomes a reason for an adult meeting."
+
+    - id: apartment_threshold
+      phase_id: opening
+      sequence: 7
+      title: "Apartment threshold"
+      location_id: apartment_entry
+      scene_function: move_to_stage
+      visibility: narrator_only
+      required_event_ids:
+        - event_03_arrival_threshold
+      summary: "Guests cross into the Vallon apartment and politeness becomes performance."
+
+    - id: living_room_arrival
+      phase_id: phase_1
+      sequence: 8
+      title: "Living room arrival"
+      location_id: vallon_living_room
+      scene_function: establish_play_space
+      visibility: narrator_and_actor_action
+      required_event_ids:
+        - event_04_apartment_as_stage
+      summary: "Seating, art books, tulips, coffee, dessert, and host/guest positions become playable."
+
+    - id: selected_role_anchor
+      phase_id: phase_1
+      sequence: 9
+      title: "Selected role anchor"
+      location_id: vallon_living_room
+      scene_function: player_anchor
+      visibility: narrator_only
+      required_event_ids:
+        - event_05_role_anchor
+      summary: "The selected player character is present without forced speech or inner decision."
+
+    - id: first_playable_courtesy_gap
+      phase_id: phase_1
+      sequence: 10
+      title: "First playable courtesy gap"
+      location_id: vallon_living_room
+      scene_function: handover_to_play
+      visibility: playable
+      required_event_ids:
+        - event_06_first_playable_moment
+      summary: "The first opening silence or polite phrase becomes playable."
+
+    - id: written_statement_negotiation
+      phase_id: phase_1
+      sequence: 11
+      title: "Written statement negotiation"
+      location_id: coffee_table
+      scene_function: establish_procedure
+      visibility: playable
+      summary: "The adults try to agree on facts and wording without naming the deeper accusation."
+
+    - id: coffee_and_courtesy
+      phase_id: phase_1
+      sequence: 12
+      title: "Coffee and courtesy"
+      location_id: vallon_living_room
+      scene_function: ritual_civility
+      visibility: playable
+      summary: "Hospitality objects carry pressure while everyone tries to remain civilized."
+
+    - id: parenting_principles
+      phase_id: phase_2
+      sequence: 13
+      title: "Parenting principles"
+      location_id: vallon_living_room
+      scene_function: moral_negotiation
+      visibility: playable
+      summary: "Responsibility, education, and parental judgment become explicit pressure."
+
+    - id: blame_pressure
+      phase_id: phase_2
+      sequence: 14
+      title: "Blame pressure"
+      location_id: vallon_living_room
+      scene_function: raise_pressure
+      visibility: playable
+      summary: "The discussion begins to test whether either family will accept a version of blame."
+
+    - id: phone_intrusion
+      phase_id: phase_2
+      sequence: 15
+      title: "Phone intrusion"
+      location_id: vallon_living_room
+      scene_function: divided_attention
+      visibility: playable
+      summary: "Outside obligations interrupt the meeting and expose priorities."
+
+    - id: spouse_alignment_cracks
+      phase_id: phase_3
+      sequence: 16
+      title: "Spouse alignment cracks"
+      location_id: vallon_living_room
+      scene_function: alliance_shift
+      visibility: playable
+      summary: "Each couple risks turning disagreement inward."
+
+    - id: hospitality_breakdown
+      phase_id: phase_4
+      sequence: 17
+      title: "Hospitality breakdown"
+      location_id: vallon_living_room
+      scene_function: emotional_derailment
+      visibility: playable
+      summary: "The objects and rituals of hosting stop protecting anyone."
+
+    - id: exit_attempt
+      phase_id: phase_5
+      sequence: 18
+      title: "Exit attempt"
+      location_id: apartment_entry
+      scene_function: closure_pressure
+      visibility: playable
+      summary: "Leaving becomes either escape, defeat, or a new form of accusation."
+
+  edges:
+    - from: prologue_park_edge
+      to: basketball_court_cluster
+      condition: start_opening
+    - from: basketball_court_cluster
+      to: boys_argument
+      condition: group_pressure_visible
+    - from: boys_argument
+      to: stick_and_turn
+      condition: argument_turns_serious
+    - from: stick_and_turn
+      to: strike_and_aftermath
+      condition: physical_consequence
+    - from: strike_and_aftermath
+      to: adult_meeting_pressure
+      condition: injury_requires_adults
+    - from: adult_meeting_pressure
+      to: apartment_threshold
+      condition: meeting_arranged
+    - from: apartment_threshold
+      to: living_room_arrival
+      condition: guests_enter
+    - from: living_room_arrival
+      to: selected_role_anchor
+      condition: room_established
+    - from: selected_role_anchor
+      to: first_playable_courtesy_gap
+      condition: player_anchor_complete
+    - from: first_playable_courtesy_gap
+      to: written_statement_negotiation
+      condition: polite_opening_continues
+    - from: written_statement_negotiation
+      to: coffee_and_courtesy
+      condition: hospitality_pressure
+    - from: coffee_and_courtesy
+      to: parenting_principles
+      condition: substantive_disagreement
+    - from: parenting_principles
+      to: blame_pressure
+      condition: culpability_named_or_implied
+    - from: blame_pressure
+      to: phone_intrusion
+      condition: divided_attention_available
+    - from: blame_pressure
+      to: spouse_alignment_cracks
+      condition: alliance_shift
+    - from: phone_intrusion
+      to: spouse_alignment_cracks
+      condition: interruption_exposes_priorities
+    - from: spouse_alignment_cracks
+      to: hospitality_breakdown
+      condition: civility_fails
+    - from: hospitality_breakdown
+      to: exit_attempt
+      condition: closure_pressure

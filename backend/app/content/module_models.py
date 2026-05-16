@@ -49,6 +49,8 @@ class CharacterDefinition(BaseModel):
     id: str = Field(..., description="Character identifier")
     name: str = Field(..., description="Character name")
     role: str = Field(..., description="Character role in module")
+    actor_id: str | None = Field(default=None, description="Runtime actor identifier used by the engine")
+    runtime_actor_id: str | None = Field(default=None, description="Canonical runtime actor identifier")
     baseline_attitude: str = Field(..., description="Initial character attitude")
     extras: dict[str, Any] = Field(default_factory=dict, description="Module-specific attributes")
 
@@ -191,6 +193,10 @@ class ContentModule(BaseModel):
         narrator_sensory_palette: English-authored sensory and mood scaffolding (runtime localization separate)
         opening_scene_sequence: Opening narrative blueprint (contracts, events, handover)
         hard_forbidden_rules: Machine-oriented hard prohibitions and detection hooks
+        scene_graph: Authored scene-node graph beyond phase buckets
+        locations: Authored accessible/offscreen locations and locality metadata
+        character_documents: Per-character authoring documents keyed by character id
+        content_access_policy: Data-driven action/location/object/scene access policy
     """
 
     metadata: ModuleMetadata = Field(..., description="Module metadata")
@@ -236,6 +242,22 @@ class ContentModule(BaseModel):
     hard_forbidden_rules: dict[str, Any] = Field(
         default_factory=dict,
         description="Hard runtime prohibitions, severities, and optional detection hooks",
+    )
+    scene_graph: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Authored scene-node graph: nodes, edges, pacing, locations, and access gates",
+    )
+    locations: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Authored location surface beyond the apartment layout, with access and narration metadata",
+    )
+    character_documents: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Per-character authoring documents keyed by canonical character id",
+    )
+    content_access_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Data-driven hard/soft access policy for actions, locations, objects, scenes, and character lanes",
     )
 
     def character_map(self) -> dict[str, CharacterDefinition]:

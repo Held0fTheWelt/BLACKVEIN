@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.goc_opening_handover import (
+    deterministic_part1_premise,
     enforce_opening_handover_on_beats,
     generic_conflict_resolution_detected,
     opening_part_1_premise_present,
@@ -37,4 +38,25 @@ def test_opening_part_1_requires_schoolyard_and_civilised():
     assert opening_part_1_premise_present(
         "On the playground two boys used a stick; parents agreed to a civilised sit-down."
     )
+    assert schoolyard_incident_present(
+        "At the edge of a Paris park, near a basketball court, boys argued over a stick."
+    )
     assert not opening_part_1_premise_present("Two families meet in a Paris salon.")
+
+
+def test_deterministic_opening_premise_uses_park_basketball_bicycle_details():
+    beat = deterministic_part1_premise(output_language="en").lower()
+
+    assert "paris park" in beat
+    assert "basketball" in beat
+    assert "bicycle" in beat
+    assert "stick" in beat
+
+
+def test_deterministic_opening_premise_stays_in_german_when_requested():
+    beat = deterministic_part1_premise(output_language="de").lower()
+
+    assert "pariser parks" in beat
+    assert "basketballplatz" in beat
+    assert "fahrrad" in beat
+    assert "their parents" not in beat

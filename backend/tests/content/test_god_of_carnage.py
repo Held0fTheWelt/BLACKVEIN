@@ -70,20 +70,27 @@ class TestW1ContentFilesLoadable:
         required_paths = [
             root / "module.yaml",
             root / "characters.yaml",
+            root / "characters" / "veronique.yaml",
+            root / "characters" / "michel.yaml",
+            root / "characters" / "annette.yaml",
+            root / "characters" / "alain.yaml",
             root / "relationships.yaml",
             root / "scenes.yaml",
+            root / "scene_graph.yaml",
             root / "transitions.yaml",
             root / "triggers.yaml",
             root / "endings.yaml",
             root / "escalation_axes.yaml",
             root / "apartment_layout.yaml",
             root / "apartment_objects.yaml",
+            root / "locations.yaml",
             root / "actor_pressure_profiles.yaml",
             root / "phase_beat_policy.yaml",
             root / "knowledge" / "premise_and_backstory.yaml",
             root / "knowledge" / "narrator_sensory_palette.yaml",
             root / "knowledge" / "opening_scene_sequence.yaml",
             root / "knowledge" / "hard_forbidden_rules.yaml",
+            root / "knowledge" / "content_access_policy.yaml",
         ]
 
         for filepath in required_paths:
@@ -103,6 +110,10 @@ class TestW1ContentFilesLoadable:
         assert "phase_1" in (module.phase_beat_policy.get("phases") or {})
         assert module.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
         assert "hard_forbidden" in (module.hard_forbidden_rules or {})
+        assert len((module.scene_graph.get("nodes") or [])) > 10
+        assert (module.locations.get("places") or [])
+        assert module.content_access_policy.get("blocked_entities")
+        assert set(module.character_documents.keys()) == {"veronique", "michel", "annette", "alain"}
         assert module.premise_and_backstory.get("authoring_language") == "en"
 
     def test_all_yaml_files_parse(self, god_of_carnage_module_root):
@@ -116,6 +127,9 @@ class TestW1ContentFilesLoadable:
         knowledge_dir = god_of_carnage_module_root / "knowledge"
         if knowledge_dir.is_dir():
             yaml_files.extend(sorted(knowledge_dir.glob("*.yaml")))
+        characters_dir = god_of_carnage_module_root / "characters"
+        if characters_dir.is_dir():
+            yaml_files.extend(sorted(characters_dir.glob("*.yaml")))
         assert len(yaml_files) >= 8, "Should have at least 8 YAML files"
 
         for yaml_file in yaml_files:

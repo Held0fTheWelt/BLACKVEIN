@@ -63,6 +63,25 @@ def test_single_runtime_graph_executes_validation_and_commit_seams(tmp_path: Pat
     assert "director_assess_scene" in nodes
 
 
+def test_runtime_graph_path_has_no_repeated_nodes(tmp_path: Path) -> None:
+    g = _graph(tmp_path)
+    result = g.run(
+        session_id="s-auth-no-loop",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="I watch Michel avoid the point and keep the pressure there.",
+        trace_id="t-auth-no-loop",
+    )
+
+    gd = result.get("graph_diagnostics") or {}
+    nodes = gd.get("nodes_executed") or result.get("nodes_executed") or []
+    assert nodes
+    assert len(nodes) == len(set(nodes))
+    assert gd.get("topology_invariants", {}).get("duplicate_nodes") == []
+    assert gd.get("topology_invariants", {}).get("node_path_has_repeated_nodes") is False
+    assert nodes[-1] == "package_output"
+
+
 def test_planner_records_are_projection_not_committed_truth(tmp_path: Path) -> None:
     g = _graph(tmp_path)
     result = g.run(
@@ -168,3 +187,33 @@ def test_opening_langgraph_validation_outcome_untouched_when_co_authority_normal
 
     assert result["validation_outcome"] == vo_snapshot
     assert "validation_co_authority_decision" not in result["validation_outcome"]
+
+
+def test_engine_opening_prompt_is_not_interpreted_as_player_move(tmp_path: Path) -> None:
+    g = _graph(tmp_path)
+    prompt_like_opening_instruction = (
+        'IMPORTANT: Write ALL player-visible narrative in German. Use separate narrator-visible '
+        'blocks and emit "opening_event_ids"; escalate no conflict here.'
+    )
+
+    result = g.run(
+        session_id="s-opening-input-guard",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input=prompt_like_opening_instruction,
+        trace_id="t-opening-input-guard",
+        turn_number=0,
+        turn_initiator_type="engine",
+        turn_input_class="opening",
+    )
+
+    interp = result.get("interpreted_input") or {}
+    assert interp.get("player_input_kind") == "opening"
+    assert interp.get("player_action_committed") is False
+    assert interp.get("player_speech_committed") is False
+    assert interp.get("original_text") == ""
+    assert interp.get("engine_opening_prompt_redacted") is True
+
+    semantic = result.get("semantic_move_record") or {}
+    assert semantic.get("move_type") != "escalation_threat"
+    assert result.get("selected_scene_function") == "establish_pressure"

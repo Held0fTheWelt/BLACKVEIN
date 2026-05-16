@@ -151,6 +151,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["transition_weights"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
+    assert "character_documents" in policy["content_sources"]
     assert "actor_pressure_profiles" in policy["content_sources"]
     assert "narrative_aspect_policy" in policy["content_sources"]
     assert "information_disclosure_policy" in policy["content_sources"]

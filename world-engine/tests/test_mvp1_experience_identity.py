@@ -289,19 +289,22 @@ class TestTemplateIdBypassRejection:
 class TestStoryTruthBoundary:
 
     def test_goc_solo_runtime_projection_is_derived_from_canonical_content(self):
-        """Role IDs in god_of_carnage_solo template must all exist in characters.yaml (FIX-006)."""
+        """Role IDs in god_of_carnage_solo template must all exist in characters/*.yaml (FIX-006)."""
         import yaml
         from app.content.builtins import load_builtin_templates
-        chars_path = REPO_ROOT / "content" / "modules" / "god_of_carnage" / "characters.yaml"
-        assert chars_path.is_file(), f"characters.yaml not found at {chars_path}"
-        raw = chars_path.read_text(encoding="utf-8")
-        data = yaml.safe_load(raw) or {}
-        canonical_ids = set((data.get("characters") or {}).keys())
+        char_dir = REPO_ROOT / "content" / "modules" / "god_of_carnage" / "characters"
+        assert char_dir.is_dir(), f"characters directory not found at {char_dir}"
+        canonical_ids = set()
+        for path in sorted(char_dir.glob("*.yaml")):
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            doc = data.get("character_document") or data.get("character") or data
+            if isinstance(doc, dict):
+                canonical_ids.add(str(doc.get("id") or doc.get("canonical_id") or path.stem))
         templates = load_builtin_templates()
         goc_solo = templates["god_of_carnage_solo"]
         for role in goc_solo.roles:
             assert role.id in canonical_ids, (
-                f"Role id {role.id!r} in god_of_carnage_solo template is not in canonical characters.yaml. "
+                f"Role id {role.id!r} in god_of_carnage_solo template is not in canonical characters/*.yaml. "
                 f"Canonical ids: {sorted(canonical_ids)}"
             )
 
@@ -313,7 +316,7 @@ class TestStoryTruthBoundary:
 class TestContentResolvedRoleMapping:
 
     def test_role_slug_map_uses_content_resolved_actor_ids(self):
-        """Canonical actors must be resolved from characters.yaml, not hardcoded (FIX-007)."""
+        """Canonical actors must be resolved from characters/*.yaml, not hardcoded (FIX-007)."""
         from app.runtime.profiles import _resolve_goc_content, resolve_runtime_profile
         actor_ids, content_hash = _resolve_goc_content()
         assert "annette" in actor_ids
@@ -326,7 +329,7 @@ class TestContentResolvedRoleMapping:
         assert slugs == {"annette", "alain"}
 
     def test_selected_player_role_not_canonical_character(self):
-        """A role slug not in characters.yaml must be rejected (FIX-007)."""
+        """A role slug not in characters/*.yaml must be rejected (FIX-007)."""
         from app.runtime.profiles import RuntimeProfileError, resolve_runtime_profile, validate_selected_player_role
         profile = resolve_runtime_profile("god_of_carnage_solo")
         with pytest.raises(RuntimeProfileError) as exc_info:

@@ -2372,6 +2372,18 @@ def update_scope_settings(scope: str, payload: dict, actor: str) -> dict:
     return read_scope_settings(scope)
 
 
+def delete_scope_setting(scope: str, setting_key: str, actor: str) -> bool:
+    """Remove one scope setting row when present (returns True if deleted)."""
+    setting_id = _slug(f"{scope}_{setting_key}")
+    row = db.session.get(SystemSettingRecord, setting_id)
+    if row is None:
+        return False
+    db.session.delete(row)
+    _audit("setting_deleted", scope, setting_key, actor, "Setting removed.", {"scope": scope})
+    db.session.commit()
+    return True
+
+
 def ingest_usage_event(payload: dict, actor: str) -> dict:
     event = AIUsageEvent(
         usage_event_id=payload.get("usage_event_id") or f"evt_{uuid4().hex}",

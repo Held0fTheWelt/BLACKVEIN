@@ -88,11 +88,23 @@ def package_runtime_graph_output(
     )
     vo = validation
     dramatic_context_summary = build_bounded_dramatic_context_summary(state)
+    nodes_executed = list(update["nodes_executed"])
+    seen_nodes: set[str] = set()
+    repeated_nodes: list[str] = []
+    for node_name in nodes_executed:
+        if node_name in seen_nodes and node_name not in repeated_nodes:
+            repeated_nodes.append(str(node_name))
+        seen_nodes.add(str(node_name))
     gd = {
         "graph_name": graph_name,
         "graph_version": graph_version,
-        "nodes_executed": update["nodes_executed"],
+        "nodes_executed": nodes_executed,
         "node_outcomes": update["node_outcomes"],
+        "topology_invariants": {
+            "node_count": len(nodes_executed),
+            "duplicate_nodes": repeated_nodes,
+            "node_path_has_repeated_nodes": bool(repeated_nodes),
+        },
         "fallback_path_taken": fallback_taken,
         "execution_health": execution_health,
         "errors": graph_errors,

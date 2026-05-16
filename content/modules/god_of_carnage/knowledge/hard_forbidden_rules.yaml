@@ -2,6 +2,7 @@
 
 hard_forbidden_rules:
   authoring_language: en
+  linked_access_policy: knowledge/content_access_policy.yaml
 
   rule_severity:
     hard_forbidden:
@@ -10,6 +11,20 @@ hard_forbidden_rules:
       meaning: "Allowed only with explicit runtime reason."
     style_preference:
       meaning: "Soft guidance for better prose."
+
+  configurable_access_denials:
+    source: knowledge/content_access_policy.yaml
+    supported_scopes:
+      - action
+      - location
+      - object
+      - scene_node
+      - character_lane
+      - narration_surface
+    note: >-
+      Author module-specific "not accessible" decisions in content_access_policy rather than
+      adding ad-hoc prose to prompts. Hard-forbidden runtime detection can promote those ids into
+      reject/recover behavior as adapters are wired.
 
   hard_forbidden:
     player_agency_violations:

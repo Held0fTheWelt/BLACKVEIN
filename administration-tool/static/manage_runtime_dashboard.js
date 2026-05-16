@@ -29,25 +29,57 @@
     return "Request failed";
   }
 
+  function appendOperatorRow(ul, row, ordered) {
+    var li = document.createElement("li");
+    li.className = ordered ? "" : "manage-og-blocker-item";
+    if (typeof row === "string") {
+      li.textContent = row;
+    } else if (row && typeof row === "object") {
+      var msg = document.createElement("div");
+      msg.className = ordered ? "" : "manage-og-blocker-msg";
+      var domain = row.domain || "domain";
+      var text = row.message || "";
+      if (row.code && text.indexOf("[") !== 0) {
+        text = "[" + row.code + "] " + text;
+      }
+      msg.textContent = domain + ": " + text;
+      li.appendChild(msg);
+      if (row.suggested_action) {
+        var next = document.createElement("div");
+        next.className = "manage-og-blocker-next";
+        next.textContent = (ordered ? "Next: " : "Suggested next step: ") + row.suggested_action;
+        li.appendChild(next);
+      }
+    } else {
+      li.textContent = String(row);
+    }
+    ul.appendChild(li);
+  }
+
   function fillList(id, lines, ordered) {
     var node = document.getElementById(id);
     if (!node) return;
     node.innerHTML = "";
     (lines || []).forEach(function (line) {
-      var li = document.createElement("li");
-      if (typeof line === "string") {
-        li.textContent = line;
-      } else if (line && typeof line === "object") {
-        li.textContent = (line.domain || "domain") + ": " + (line.message || "");
-      } else {
-        li.textContent = String(line);
-      }
-      node.appendChild(li);
+      appendOperatorRow(node, line, ordered);
     });
     if (!lines || !lines.length) {
       var empty = document.createElement("li");
       empty.textContent = ordered ? "No actions listed." : "No active blockers.";
       node.appendChild(empty);
+    }
+  }
+
+  function updateBlockersRailBadge(blockerCount, warningCount) {
+    var rail = document.querySelector('.mui-rail-btn[data-deck-target="blockers"] .mui-rail-badge');
+    if (!rail) return;
+    rail.className = "mui-rail-badge";
+    if (blockerCount > 0) {
+      rail.classList.add("mui-rail-badge--fail");
+    } else if (warningCount > 0) {
+      rail.classList.add("mui-rail-badge--warn");
+    } else {
+      rail.classList.add("mui-rail-badge--ok");
     }
   }
 
@@ -67,6 +99,9 @@
     var active = summary.active_runtime || {};
     var settingsLayer = summary.settings_layer || {};
     lines.push("AI-only valid: " + (summary.ai_only_valid ? "yes" : "no"));
+    if (summary.task_routes_green != null) {
+      lines.push("Task routes (operator green): " + (summary.task_routes_green ? "yes" : "no"));
+    }
     lines.push("Providers: " + (providers.total || 0) + " total, " + (providers.eligible_non_mock || 0) + " eligible non-mock");
     lines.push("Routes: " + (routes.total || 0) + " total, " + (routes.ai_ready || 0) + " AI-ready");
     lines.push("RAG: " + (rag.chunk_count || 0) + " chunks, embedding backend " + (rag.embedding_backend_available ? "available" : "unavailable"));
@@ -107,6 +142,7 @@
       renderDomainStatus(payload.domain_status || []);
       fillList("manage-rd-degraded", payload.degraded_or_warning || [], false);
       renderLinks(payload.links || []);
+      updateBlockersRailBadge((payload.blockers || []).length, (payload.degraded_or_warning || []).length);
       setJson("manage-rd-json", payload);
     });
   }

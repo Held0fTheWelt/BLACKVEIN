@@ -15,7 +15,7 @@ from typing import Any
 
 # Guest role slugs: the two Reilles who enter the apartment.
 # Determined by narrative design (guests = selectable human roles).
-# Actor IDs are verified against characters.yaml at runtime via _resolve_goc_content().
+# Actor IDs are verified against per-character documents at runtime via _resolve_goc_content().
 _GOC_GUEST_ROLE_SLUGS: frozenset[str] = frozenset({"annette", "alain"})
 
 # Fallback values used when content file is unreachable (test isolation, container startup).
@@ -24,7 +24,7 @@ _GOC_CONTENT_HASH_FALLBACK: str = "sha256:fallback"
 
 
 def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], str]:
-    """Read canonical actor IDs and content hash from characters.yaml.
+    """Read canonical actor IDs and content hash from characters/*.yaml.
 
     Args:
         allow_fallback: If True, fall back to hardcoded values if file is unreachable (test isolation).
@@ -38,20 +38,42 @@ def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], st
         from app.repo_root import resolve_wos_repo_root
         import yaml  # pyyaml is in root pyproject.toml dependencies
         repo_root = resolve_wos_repo_root(start=Path(__file__).resolve().parent)
-        chars_path = repo_root / "content" / "modules" / "god_of_carnage" / "characters.yaml"
-        raw = chars_path.read_bytes()
-        content_hash = f"sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
-        data = yaml.safe_load(raw) or {}
-        actor_ids = list((data.get("characters") or {}).keys())
+        module_dir = repo_root / "content" / "modules" / "god_of_carnage"
+        char_dir = module_dir / "characters"
+        hasher = hashlib.sha256()
+        actor_ids: list[str] = []
+        if char_dir.is_dir():
+            for path in sorted(char_dir.glob("*.yaml")):
+                raw = path.read_bytes()
+                hasher.update(path.name.encode("utf-8"))
+                hasher.update(raw)
+                data = yaml.safe_load(raw) or {}
+                doc = data.get("character_document") or data.get("character") or data
+                if not isinstance(doc, dict):
+                    continue
+                actor_id = str(doc.get("id") or doc.get("canonical_id") or path.stem).strip()
+                if actor_id:
+                    actor_ids.append(actor_id)
+        content_hash = f"sha256:{hasher.hexdigest()[:16]}" if actor_ids else _GOC_CONTENT_HASH_FALLBACK
         if not actor_ids:
-            return _GOC_CANONICAL_ACTORS_FALLBACK, content_hash
+            if allow_fallback:
+                index_path = module_dir / "characters.yaml"
+                if index_path.exists():
+                    raw = index_path.read_bytes()
+                    content_hash = f"sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
+                return _GOC_CANONICAL_ACTORS_FALLBACK, content_hash
+            raise RuntimeProfileError(
+                code="runtime_profile_not_content_module",
+                message="Canonical content god_of_carnage/characters/*.yaml is missing or unreadable. "
+                        "Runtime profile resolution requires canonical content authority.",
+            )
         return actor_ids, content_hash
     except Exception as exc:
         # FIX-004: Fail live profile resolution if canonical content is missing.
         if not allow_fallback:
             raise RuntimeProfileError(
                 code="runtime_profile_not_content_module",
-                message="Canonical content god_of_carnage/characters.yaml is missing or unreadable. "
+                message="Canonical content god_of_carnage/characters/*.yaml is missing or unreadable. "
                         "Runtime profile resolution requires canonical content authority.",
                 cause=str(exc),
             )
@@ -139,7 +161,7 @@ def resolve_runtime_profile(runtime_profile_id: str | None) -> RuntimeProfile:
     """Resolve a runtime profile id to its RuntimeProfile.
 
     Selectable roles and canonical actor list are resolved from
-    content/modules/god_of_carnage/characters.yaml (FIX-007).
+    content/modules/god_of_carnage/characters/*.yaml (FIX-007).
     Falls back to hardcoded list if file is unreachable.
 
     Raises RuntimeProfileError for missing or unknown profile ids.

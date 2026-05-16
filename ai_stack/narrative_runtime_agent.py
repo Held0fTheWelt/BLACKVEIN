@@ -154,6 +154,13 @@ class NarrativeRuntimeAgent:
 
             # Analyze NPC motivation pressure and remaining initiatives
             motivation_analysis = self._analyze_motivation_pressure(agent_input)
+            initial_remaining_initiatives = max(
+                0, int(motivation_analysis.get("remaining_initiatives") or 0)
+            )
+            max_blocks_this_turn = min(
+                self.config.max_narrator_blocks,
+                initial_remaining_initiatives,
+            )
 
             # Stream narrator blocks while initiatives pending
             # Lazy import to avoid circular dependency with backend modules
@@ -164,7 +171,7 @@ class NarrativeRuntimeAgent:
                 adapter = None
 
             while (
-                block_count < self.config.max_narrator_blocks
+                block_count < max_blocks_this_turn
                 and motivation_analysis["remaining_initiatives"] > 0
             ):
                 # Get parent span from context and create narrator block span
@@ -265,9 +272,22 @@ class NarrativeRuntimeAgent:
                     yield self._emit_narrator_event(narrator_block, block_sequence=block_count)
                     block_count += 1
 
-                    # Check ruhepunkt after each block (optional: recalculate pressure)
+                    # One narrator block accounts for one pending initiative in this deterministic
+                    # stream. Re-reading the unchanged NPCAgencyPlan here would recreate the same
+                    # pressure forever until max_narrator_blocks, which produced repeated narrator
+                    # blocks in live traces.
                     if block_count % self.config.ruhepunkt_check_interval == 0:
-                        motivation_analysis = self._analyze_motivation_pressure(agent_input)
+                        remaining = max(0, initial_remaining_initiatives - block_count)
+                        motivation_analysis = {
+                            **motivation_analysis,
+                            "remaining_initiatives": remaining,
+                            "pressure_score": min(1.0, remaining * 0.1 + 0.3) if remaining > 0 else 0.0,
+                            "motivation_summary": (
+                                f"{remaining} unresolved initiatives after narrator coverage"
+                                if remaining > 0
+                                else "All NPC initiatives covered by narrator stream"
+                            ),
+                        }
 
                 except Exception as e:
                     if narrator_span:

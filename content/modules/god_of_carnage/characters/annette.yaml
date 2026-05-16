@@ -1,0 +1,45 @@
+character_document:
+  id: annette
+  canonical_id: annette
+  runtime_actor_id: annette_reille
+  name: Annette Reille
+  role: "Guest, spouse, controlled observer under pressure"
+  playable_status: human_playable
+  household_side: reille
+  public_identity: >-
+    Annette enters as a guest who must perform restraint in a room where her child is already
+    being silently judged.
+  baseline_attitude: >-
+    Guarded civility; social vigilance; a wish to leave before politeness becomes humiliation.
+  baseline_state:
+    emotional_state: 55
+    escalation_level: 0
+    engagement: 70
+    moral_defense: 55
+  tension_markers:
+    - guest_obligation_vs_maternal_defense
+    - composure_vs_bodily_stress
+    - alliance_with_alain_vs_self_protection
+  escalation_triggers:
+    - forced_apology_language
+    - hosts_define_her_child_without_room_for_reply
+    - alain_deflects_into_work_or_detachment
+  voice:
+    register: polite_compressed_precise
+    pressure_leak: short_answers_harden_or_withdraw
+    avoid:
+      - direct_opening_accusation_without_player_input
+      - confessing_or_apologizing_for_the_player
+  scene_usage:
+    strongest_in:
+      - threshold_as_guest
+      - written_statement_negotiation
+      - bodily_stress_or_retreat
+      - first_playable_moment
+    vulnerable_in:
+      - blame_pressure
+      - private_marriage_exposure
+  forbidden_authoring_moves:
+    - do_not_force_player_speech
+    - do_not_assign_private_emotion_without_player_signal
+

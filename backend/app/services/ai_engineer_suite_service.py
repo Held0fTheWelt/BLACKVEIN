@@ -20,6 +20,7 @@ from ai_stack.semantic_embedding import embedding_backend_probe
 from app.governance.errors import governance_error
 from app.services.game_service import GameServiceError, get_story_diagnostics, list_story_sessions
 from app.services.governance_runtime_service import (
+    delete_scope_setting,
     evaluate_runtime_readiness,
     get_runtime_modes,
     list_audit_events,
@@ -870,6 +871,21 @@ def list_settings_changes(*, limit: int = 25) -> dict[str, Any]:
     return {"items": filtered, "total_returned": len(filtered)}
 
 
+def _effective_retrieval_execution_mode(
+    *,
+    runtime_modes: dict[str, Any] | None = None,
+    retrieval_settings: dict[str, Any] | None = None,
+) -> str:
+    """Canonical retrieval mode: runtime bootstrap first, then legacy scope copy."""
+    modes = runtime_modes if runtime_modes is not None else get_runtime_modes()
+    scope = retrieval_settings if retrieval_settings is not None else read_scope_settings("retrieval")
+    for candidate in (modes.get("retrieval_execution_mode"), scope.get("retrieval_execution_mode")):
+        text = str(candidate or "").strip()
+        if text:
+            return text
+    return "disabled"
+
+
 def get_rag_operations_status() -> dict[str, Any]:
     retriever, _, corpus = _build_rag_stack()
     probe = embedding_backend_probe()
@@ -887,9 +903,13 @@ def get_rag_operations_status() -> dict[str, Any]:
     degraded_reasons.extend(list(corpus.rag_dense_load_reason_codes or ()))
     if corpus.rag_dense_rebuild_reason:
         degraded_reasons.append(corpus.rag_dense_rebuild_reason)
-    mode_runtime = runtime_modes.get("retrieval_execution_mode")
+    mode_effective = _effective_retrieval_execution_mode(
+        runtime_modes=runtime_modes,
+        retrieval_settings=retrieval_settings,
+    )
+    scope_mode_legacy = str(retrieval_settings.get("retrieval_execution_mode") or "").strip() or None
     operational_state = "healthy"
-    if mode_runtime == "disabled":
+    if mode_effective == "disabled":
         operational_state = "configured_disabled"
     elif len(corpus.chunks) == 0:
         operational_state = "blocked"
@@ -906,7 +926,7 @@ def get_rag_operations_status() -> dict[str, Any]:
                 "fix_path": "/manage/rag-operations",
             }
         )
-    if mode_runtime == "disabled":
+    if mode_effective == "disabled":
         guidance.append(
             {
                 "severity": "info",
@@ -916,7 +936,7 @@ def get_rag_operations_status() -> dict[str, Any]:
                 "fix_path": "/manage/runtime-settings",
             }
         )
-    if not probe.available and mode_runtime != "disabled":
+    if not probe.available and mode_effective != "disabled":
         guidance.append(
             {
                 "severity": "degraded",
@@ -947,9 +967,12 @@ def get_rag_operations_status() -> dict[str, Any]:
             # retrieval_mode_bootstrap_setting: the value from the governed DB bootstrap record.
             # This IS wired to the live turn path via governed_runtime_config → RuntimeRetrievalConfig.
             "retrieval_mode_bootstrap_setting": runtime_modes.get("retrieval_execution_mode"),
+            "mode_effective": mode_effective,
             # mode_runtime kept as alias for backwards-compat with existing admin UI JS.
-            "mode_runtime": runtime_modes.get("retrieval_execution_mode"),
-            "mode_setting": retrieval_settings.get("retrieval_execution_mode"),
+            "mode_runtime": mode_effective,
+            "mode_setting": scope_mode_legacy,
+            "mode_scope_legacy": scope_mode_legacy,
+            "mode_scope_drift": bool(scope_mode_legacy and scope_mode_legacy != mode_effective),
             "retrieval_profile": retrieval_settings.get("retrieval_profile") or "runtime_turn_support",
             "retrieval_top_k": retrieval_settings.get("retrieval_top_k") or 4,
             "retrieval_min_score": retrieval_settings.get("retrieval_min_score"),
@@ -990,8 +1013,10 @@ def get_rag_operations_status() -> dict[str, Any]:
         },
         "degraded_reasons": sorted(set(r for r in degraded_reasons if r)),
         "comparison": {
-            "retrieval_mode_runtime": mode_runtime,
-            "retrieval_mode_setting": retrieval_settings.get("retrieval_execution_mode"),
+            "retrieval_mode_runtime": mode_effective,
+            "retrieval_mode_effective": mode_effective,
+            "retrieval_mode_setting": scope_mode_legacy,
+            "retrieval_mode_scope_legacy": scope_mode_legacy,
             "dense_index_attached": bool(getattr(retriever, "_embedding_index", None) is not None),
             "expected_healthy": {
                 "embedding_backend_available": True,
@@ -1016,8 +1041,8 @@ def run_rag_query_probe(payload: dict[str, Any]) -> dict[str, Any]:
     retrieval_settings = read_scope_settings("retrieval")
     requested_max = int(payload.get("max_chunks") or retrieval_settings.get("retrieval_top_k") or 4)
     max_chunks = max(1, min(requested_max, 12))
-    mode_setting = str(retrieval_settings.get("retrieval_execution_mode") or "").strip().lower()
-    use_sparse_only = bool(payload.get("use_sparse_only")) or mode_setting == "sparse_only"
+    mode_effective = _effective_retrieval_execution_mode(retrieval_settings=retrieval_settings)
+    use_sparse_only = bool(payload.get("use_sparse_only")) or mode_effective == "sparse_only"
     domain_raw = str(payload.get("domain") or RetrievalDomain.RUNTIME.value).strip().lower()
     try:
         domain = RetrievalDomain(domain_raw)
@@ -1121,8 +1146,10 @@ def get_rag_settings() -> dict[str, Any]:
     runtime_modes = get_runtime_modes()
     retrieval_settings = read_scope_settings("retrieval")
     return {
-        "retrieval_execution_mode": retrieval_settings.get("retrieval_execution_mode")
-        or runtime_modes.get("retrieval_execution_mode"),
+        "retrieval_execution_mode": _effective_retrieval_execution_mode(
+            runtime_modes=runtime_modes,
+            retrieval_settings=retrieval_settings,
+        ),
         "embeddings_enabled": retrieval_settings.get("embeddings_enabled"),
         "retrieval_top_k": retrieval_settings.get("retrieval_top_k") or 4,
         "retrieval_min_score": retrieval_settings.get("retrieval_min_score"),
@@ -1139,6 +1166,7 @@ def update_rag_settings(payload: dict[str, Any], actor: str) -> dict[str, Any]:
         runtime_patch["retrieval_execution_mode"] = cleaned["retrieval_execution_mode"]
     if runtime_patch:
         update_runtime_modes(runtime_patch, actor)
+        delete_scope_setting("retrieval", "retrieval_execution_mode", actor)
     persisted = {k: v for k, v in cleaned.items() if k != "retrieval_execution_mode"}
     if persisted:
         update_scope_settings("retrieval", persisted, actor)
@@ -1328,21 +1356,194 @@ def update_orchestration_settings(payload: dict[str, Any], actor: str) -> dict[s
     return get_orchestration_settings()
 
 
+def _dashboard_operator_row(
+    *,
+    domain: str,
+    message: str,
+    suggested_action: str = "",
+    code: str = "",
+    fix_path: str = "",
+) -> dict[str, str]:
+    row: dict[str, str] = {"domain": domain, "message": message.strip()}
+    action = suggested_action.strip().replace("**", "")
+    if action:
+        row["suggested_action"] = action
+    if code:
+        row["code"] = code
+    if fix_path:
+        row["fix_path"] = fix_path
+    return row
+
+
+def _merge_governance_blockers(governance: dict[str, Any]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for blocker in governance.get("blockers") or []:
+        if not isinstance(blocker, dict):
+            continue
+        code = str(blocker.get("code") or "").strip()
+        entity_id = blocker.get("entity_id")
+        message = str(blocker.get("message") or code or "Governance readiness issue.").strip()
+        if entity_id:
+            message = f"[{entity_id}] {message}"
+        elif code and not message.startswith("["):
+            message = f"[{code}] {message}"
+        rows.append(
+            _dashboard_operator_row(
+                domain="governance",
+                code=code,
+                message=message,
+                suggested_action=str(blocker.get("suggested_action") or ""),
+                fix_path="/manage/ai-runtime-governance",
+            )
+        )
+    return rows
+
+
+def _merge_world_engine_rows(world_engine: dict[str, Any]) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    blockers: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+    for blocker in world_engine.get("blockers") or []:
+        if not isinstance(blocker, dict):
+            continue
+        blockers.append(
+            _dashboard_operator_row(
+                domain="world_engine",
+                code=str(blocker.get("code") or "").strip(),
+                message=str(blocker.get("message") or "World-engine control-plane blocker."),
+                suggested_action=str(blocker.get("suggested_action") or ""),
+                fix_path="/manage/world-engine-control-center",
+            )
+        )
+    for warning in world_engine.get("warnings") or []:
+        if not isinstance(warning, dict):
+            continue
+        warnings.append(
+            _dashboard_operator_row(
+                domain="world_engine",
+                code=str(warning.get("code") or "").strip(),
+                message=str(warning.get("message") or "World-engine warning."),
+                suggested_action=str(warning.get("suggested_action") or ""),
+                fix_path="/manage/world-engine-control-center",
+            )
+        )
+    return blockers, warnings
+
+
+def _append_guidance_rows(
+    target: list[dict[str, str]],
+    *,
+    domain: str,
+    guidance: list[Any],
+    severities: set[str],
+    default_fix_path: str,
+) -> None:
+    for row in guidance or []:
+        if not isinstance(row, dict):
+            continue
+        severity = str(row.get("severity") or "").strip().lower()
+        if severity not in severities:
+            continue
+        message = str(row.get("message") or "").strip()
+        if not message:
+            continue
+        target.append(
+            _dashboard_operator_row(
+                domain=domain,
+                message=message,
+                suggested_action=str(row.get("next_step") or row.get("suggested_action") or ""),
+                fix_path=str(row.get("fix_path") or default_fix_path).strip(),
+            )
+        )
+
+
+def _build_dashboard_next_actions(
+    *,
+    blockers: list[dict[str, str]],
+    degraded_or_warning: list[dict[str, str]],
+    governance: dict[str, Any],
+    ai_only_valid: bool,
+) -> list[str]:
+    seen: set[str] = set()
+    actions: list[str] = []
+
+    def _add(text: str) -> None:
+        cleaned = text.strip().replace("**", "")
+        if not cleaned or cleaned in seen:
+            return
+        seen.add(cleaned)
+        actions.append(cleaned)
+
+    for item in governance.get("next_actions") or []:
+        _add(str(item))
+
+    for row in blockers + degraded_or_warning:
+        _add(str(row.get("suggested_action") or ""))
+
+    if blockers or degraded_or_warning:
+        return actions[:12]
+
+    if ai_only_valid:
+        _add("AI-only preconditions are met; switch generation_execution_mode to ai_only when you intend live model generation.")
+    else:
+        _add("No blocking or warning signals on this snapshot.")
+    return actions[:12]
+
+
 def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
     governance = evaluate_runtime_readiness()
     rag = get_rag_operations_status()
     orchestration = get_orchestration_status(trace_id=trace_id)
     world_engine = build_world_engine_control_center_snapshot(current_app._get_current_object(), trace_id=trace_id)
     blockers: list[dict[str, str]] = []
-    if not governance.get("ai_only_valid"):
-        blockers.append({"domain": "governance", "message": governance.get("readiness_headline") or "Governance readiness is blocked."})
+    blockers.extend(_merge_governance_blockers(governance))
+    if not blockers and not governance.get("ai_only_valid"):
+        blockers.append(
+            _dashboard_operator_row(
+                domain="governance",
+                message=str(governance.get("readiness_headline") or "Governance readiness requires attention."),
+                suggested_action="Open AI Runtime Governance and review provider, model, and route readiness rows.",
+                fix_path="/manage/ai-runtime-governance",
+            )
+        )
     if str(rag.get("operational_state")) == "blocked":
-        blockers.append({"domain": "rag", "message": "RAG is blocked and cannot provide runtime retrieval context."})
+        before = len(blockers)
+        _append_guidance_rows(
+            blockers,
+            domain="rag",
+            guidance=rag.get("guidance") or [],
+            severities={"blocked"},
+            default_fix_path="/manage/rag-operations",
+        )
+        if len(blockers) == before:
+            blockers.append(
+                _dashboard_operator_row(
+                    domain="rag",
+                    message="RAG is blocked and cannot provide runtime retrieval context.",
+                    suggested_action="Run corpus refresh and a retrieval probe in RAG Operations.",
+                    fix_path="/manage/rag-operations",
+                )
+            )
     langgraph = orchestration.get("langgraph") or {}
     if str(orchestration.get("overall_state")) == "blocked" or not langgraph.get("dependency_available"):
-        blockers.append({"domain": "orchestration", "message": "LangGraph runtime dependency is unavailable."})
-    if (world_engine.get("status") or {}).get("control_plane_ok") is False:
-        blockers.append({"domain": "world_engine", "message": "World-engine control plane has blocking posture issues."})
+        before = len(blockers)
+        _append_guidance_rows(
+            blockers,
+            domain="orchestration",
+            guidance=orchestration.get("guidance") or [],
+            severities={"blocked"},
+            default_fix_path="/manage/ai-orchestration",
+        )
+        if len(blockers) == before:
+            blockers.append(
+                _dashboard_operator_row(
+                    domain="orchestration",
+                    message="LangGraph runtime dependency is unavailable.",
+                    suggested_action="Review orchestration diagnostics in AI Orchestration before enabling strict runtime paths.",
+                    fix_path="/manage/ai-orchestration",
+                )
+            )
+    world_blockers, world_warnings = _merge_world_engine_rows(world_engine)
+    blockers.extend(world_blockers)
     effective = _effective_config_payload()
     governance_state = str(governance.get("readiness_severity") or "unknown")
     if governance_state not in {"healthy", "degraded", "blocked", "configured_disabled", "unknown"}:
@@ -1391,25 +1592,34 @@ def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
             "fix_path": "/manage/world-engine-control-center",
         },
     ]
-    degraded_or_warning: list[dict[str, str]] = []
-    for row in rag.get("guidance") or []:
-        if str(row.get("severity")) in {"degraded", "warn", "info"}:
-            degraded_or_warning.append({"domain": "rag", "message": str(row.get("message") or "")})
-    for row in orchestration.get("guidance") or []:
-        if str(row.get("severity")) in {"degraded", "warn", "info"}:
-            degraded_or_warning.append({"domain": "orchestration", "message": str(row.get("message") or "")})
-    if int(world_status.get("warning_count") or 0) > 0:
-        degraded_or_warning.append(
-            {
-                "domain": "world_engine",
-                "message": "World-engine snapshot includes warnings; inspect control-center warning rows.",
-            }
-        )
+    degraded_or_warning: list[dict[str, str]] = list(world_warnings)
+    _append_guidance_rows(
+        degraded_or_warning,
+        domain="rag",
+        guidance=rag.get("guidance") or [],
+        severities={"degraded", "warn", "info"},
+        default_fix_path="/manage/rag-operations",
+    )
+    _append_guidance_rows(
+        degraded_or_warning,
+        domain="orchestration",
+        guidance=orchestration.get("guidance") or [],
+        severities={"degraded", "warn", "info"},
+        default_fix_path="/manage/ai-orchestration",
+    )
+    ai_only_valid = bool(governance.get("ai_only_valid"))
+    next_actions = _build_dashboard_next_actions(
+        blockers=blockers,
+        degraded_or_warning=degraded_or_warning,
+        governance=governance,
+        ai_only_valid=ai_only_valid,
+    )
     return {
         "summary": {
             "provider_readiness": governance.get("provider_summary", {}),
             "model_route_readiness": governance.get("route_summary", {}),
-            "ai_only_valid": bool(governance.get("ai_only_valid")),
+            "ai_only_valid": ai_only_valid,
+            "task_routes_green": bool(governance.get("task_routes_green")),
             "rag": {
                 "chunk_count": (rag.get("corpus") or {}).get("chunk_count", 0),
                 "embedding_backend_available": (rag.get("embedding_backend") or {}).get("available", False),
@@ -1433,12 +1643,7 @@ def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
         "domain_status": domain_status,
         "blockers": blockers,
         "degraded_or_warning": degraded_or_warning,
-        "next_actions": [
-            "Use AI Runtime Governance to clear provider/model/route blockers.",
-            "Use RAG Operations query probe to validate retrieval quality and route.",
-            "Use AI Orchestration to inspect LangGraph/LangChain runtime posture.",
-            "Use World-Engine Control Center for play-service control-plane fixes.",
-        ],
+        "next_actions": next_actions,
         "links": [
             {"label": "AI Runtime Governance", "path": "/manage/ai-runtime-governance"},
             {"label": "World-Engine Control Center", "path": "/manage/world-engine-control-center"},

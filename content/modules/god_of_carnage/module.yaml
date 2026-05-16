@@ -36,15 +36,21 @@ content:
 
 # Module organization references
 files:
-  - characters.yaml              # Character definitions and properties
+  - characters.yaml              # Character document index; per-character authority lives in characters/*.yaml
+  - characters/veronique.yaml
+  - characters/michel.yaml
+  - characters/annette.yaml
+  - characters/alain.yaml
   - relationships.yaml           # Relationship axes and dynamics
   - escalation_axes.yaml         # Escalation dimensions and measurement
-  - scenes.yaml                  # Scene structure and sequence
+  - scenes.yaml                  # Coarse phase layer
+  - scene_graph.yaml             # Primary authored scene-node graph
   - transitions.yaml             # Scene transition conditions
   - triggers.yaml                # Trigger definitions and recognition set
   - endings.yaml                 # End state conditions and closure rules
   - direction/system_prompt.md           # LLM system prompt guidance
   - direction/scene_guidance.yaml        # Per-scene constraints and context
+  - direction/opening.md                 # Human-editable opening authoring document
   - direction/opening_sequence.yaml      # Session opening: two-part handover + narrator bar (ADR-0035)
   - direction/character_voice.yaml       # Character voice and tone guidance
   - locale/module_strings.yaml           # Shell / diegetic player-visible strings per session_output_language
@@ -53,12 +59,14 @@ files:
   - locale/model_directives/session_output_language_en.md
   - apartment_layout.yaml              # Rooms, adjacency, visibility, privacy, offscreen rules (English)
   - apartment_objects.yaml             # Object placement and materiality (English; ids align with locale affordances)
+  - locations.yaml                     # Expanded place/accessibility surface
   - actor_pressure_profiles.yaml       # Per-character pressure (English)
   - phase_beat_policy.yaml             # Allowed beats and forbidden early escalations (English)
   - knowledge/premise_and_backstory.yaml
   - knowledge/narrator_sensory_palette.yaml
   - knowledge/opening_scene_sequence.yaml
   - knowledge/hard_forbidden_rules.yaml
+  - knowledge/content_access_policy.yaml
 
 # Quality principles
 quality_principles:
