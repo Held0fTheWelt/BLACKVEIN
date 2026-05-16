@@ -51,3 +51,17 @@ def test_fallback_parse_dotenv(monkeypatch, tmp_path: Path) -> None:
     import os
 
     assert os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN") == "fallback-val"
+
+
+def test_fallback_parse_dotenv_loads_mcp_langfuse_base_url(monkeypatch, tmp_path: Path) -> None:
+    from tools.mcp_server import repo_dotenv
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("LANGFUSE_MCP_BASE_URL=http://localhost:3000\n", encoding="utf-8")
+    monkeypatch.delenv("LANGFUSE_MCP_BASE_URL", raising=False)
+
+    repo_dotenv._fallback_parse_dotenv(env_file)
+
+    import os
+
+    assert os.environ.get("LANGFUSE_MCP_BASE_URL") == "http://localhost:3000"

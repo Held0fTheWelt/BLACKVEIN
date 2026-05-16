@@ -33,6 +33,7 @@ Runtime containers call Langfuse by Docker service name:
 ```env
 LANGFUSE_HOST=http://langfuse-web:3000
 LANGFUSE_BASE_URL=http://langfuse-web:3000
+LANGFUSE_MCP_BASE_URL=http://localhost:3000
 ```
 
 Browser access uses the host port:
@@ -106,11 +107,14 @@ The backend remains the configuration authority. `docker-up.py` imports `LANGFUS
 Only server-side services receive Langfuse credentials:
 
 ```text
-backend
-play-service
+backend -> LANGFUSE_HOST=http://langfuse-web:3000
+play-service/world-engine -> LANGFUSE_HOST=http://langfuse-web:3000
+wos-mcp stdio on host -> LANGFUSE_MCP_BASE_URL=http://localhost:3000
 ```
 
 Frontend services do not receive `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`, or `LANGFUSE_HOST`.
+
+`wos-mcp` usually runs as a host-side stdio process from Cursor/Codex/Claude rather than inside Docker. It therefore cannot resolve Docker DNS names like `langfuse-web`; it uses `LANGFUSE_MCP_BASE_URL` or automatically maps `http://langfuse-web:3000` to the published local URL when running outside a container.
 
 When keys are missing, backend/world-engine stay in no-op observability mode. When Langfuse is unreachable, the SDK errors are diagnostic only; runtime execution continues and no healthy success score is fabricated.
 

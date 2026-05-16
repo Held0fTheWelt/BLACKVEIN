@@ -72,6 +72,7 @@ OPTIONAL_WITH_DEFAULTS = {
     "REDIS_URL": "redis://redis:6379/0",
     "LANGFUSE_HOST": "http://langfuse-web:3000",
     "LANGFUSE_BASE_URL": "http://langfuse-web:3000",
+    "LANGFUSE_MCP_BASE_URL": "http://localhost:3000",
     "LANGFUSE_ENVIRONMENT": "local",
     "LANGFUSE_RELEASE": "local-dev",
     "LANGFUSE_SAMPLE_RATE": "1.0",
@@ -643,16 +644,6 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
     """Initialize or update local .env with stable secrets."""
     force = getattr(args, "force", False)
 
-    if ENV_FILE.is_file() and not force:
-        existing = _read_env_file(ENV_FILE)
-        missing = [
-            k for k in REQUIRED_SECRETS if k not in existing or _platform_secret_needs_generation(existing.get(k))
-        ]
-        if not missing:
-            print(f"[OK] {ENV_FILE} already exists with all required secrets.")
-            print(f"  To regenerate secrets, use: python docker-up.py init-env --force")
-            return 0
-
     created = _ensure_env_secrets(force=force)
     if created or force:
         print(f"\n{'[OK] Created' if not ENV_FILE.is_file() else '[OK] Updated'} {ENV_FILE}")
@@ -663,6 +654,8 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
         print(f"\nOther secrets (SECRET_KEY, JWT_SECRET_KEY, etc.) are auto-generated and should not be changed.")
         return 0
 
+    print(f"[OK] {ENV_FILE} already exists with all required secrets and defaults.")
+    print(f"  To regenerate secrets, use: python docker-up.py init-env --force")
     return 0
 
 

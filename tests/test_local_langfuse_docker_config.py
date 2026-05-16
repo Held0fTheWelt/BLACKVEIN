@@ -83,6 +83,7 @@ def test_env_examples_include_langfuse_placeholders_without_real_keys() -> None:
 
     for key in (
         "LANGFUSE_HOST=http://langfuse-web:3000",
+        "LANGFUSE_MCP_BASE_URL=http://localhost:3000",
         "LANGFUSE_PUBLIC_KEY=",
         "LANGFUSE_SECRET_KEY=",
         "NEXTAUTH_SECRET=CHANGEME",
@@ -116,6 +117,7 @@ def test_docker_up_has_first_class_langfuse_entrypoint() -> None:
     assert "return True" in text
     assert "_bootstrap_gate_after_up(local_langfuse=_with_langfuse_enabled(args))" in text
     assert 'base_url = "http://langfuse-web:3000"' in text
+    assert '"LANGFUSE_MCP_BASE_URL": "http://localhost:3000"' in text
     assert '"overwrite_existing": _value_truthy(env_dict.get("WOS_LANGFUSE_BOOTSTRAP_OVERWRITE"))' in text
 
 

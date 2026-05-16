@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
@@ -43,6 +44,7 @@ _HASHED_BODY_KEYS = frozenset(
 )
 _MAX_VALUE_LEN = 500
 _MAX_RESULT_LEN = 2000
+_DOCKER_LANGFUSE_HOSTS = frozenset({"langfuse-web", "langfuse"})
 
 
 def _hash_body_value(value: Any) -> dict[str, Any]:
@@ -101,6 +103,36 @@ def _extract_parent_trace_id(meta: dict[str, Any] | None) -> str | None:
     return None
 
 
+def _running_inside_container() -> bool:
+    return os.path.exists("/.dockerenv") or os.environ.get("WOS_MCP_RUNNING_IN_DOCKER", "").strip() == "1"
+
+
+def _is_docker_langfuse_url(base_url: str) -> bool:
+    parsed = urlparse(str(base_url or "").strip())
+    return (parsed.hostname or "").lower() in _DOCKER_LANGFUSE_HOSTS
+
+
+def _host_langfuse_base_url() -> str:
+    port = os.environ.get("LANGFUSE_WEB_PORT", "3000").strip() or "3000"
+    return f"http://localhost:{port}"
+
+
+def _resolve_mcp_langfuse_base_url(base_url: str | None) -> str:
+    """Resolve the Langfuse API URL from the MCP process perspective.
+
+    Backend/world-engine run inside Docker and should use ``http://langfuse-web:3000``.
+    The default wos-mcp stdio process runs on the host, where the same service is
+    reachable through the published port instead.
+    """
+    override = os.environ.get("LANGFUSE_MCP_BASE_URL", "").strip()
+    if override:
+        return override.rstrip("/")
+    candidate = str(base_url or "").strip() or "https://cloud.langfuse.com"
+    if _is_docker_langfuse_url(candidate) and not _running_inside_container():
+        return _host_langfuse_base_url()
+    return candidate.rstrip("/")
+
+
 class McpLangfuseTracer:
     """Best-effort Langfuse tracing for MCP tool calls.
 
@@ -120,9 +152,11 @@ class McpLangfuseTracer:
         self._public_key = os.environ.get("LANGFUSE_PUBLIC_KEY", "").strip()
         self._secret_key = os.environ.get("LANGFUSE_SECRET_KEY", "").strip()
         self._base_url = (
-            os.environ.get("LANGFUSE_BASE_URL", "").strip()
-            or os.environ.get("LANGFUSE_HOST", "").strip()
-            or "https://cloud.langfuse.com"
+            _resolve_mcp_langfuse_base_url(
+                os.environ.get("LANGFUSE_BASE_URL", "").strip()
+                or os.environ.get("LANGFUSE_HOST", "").strip()
+                or "https://cloud.langfuse.com"
+            )
         )
         # Backend credential source (mirrors world-engine adapter + MCP runtime variants)
         self._backend_url = (
@@ -189,7 +223,7 @@ class McpLangfuseTracer:
                 if pk and sk:
                     self._public_key = pk
                     self._secret_key = sk
-                    self._base_url = str(data.get("base_url") or self._base_url)
+                    self._base_url = _resolve_mcp_langfuse_base_url(str(data.get("base_url") or self._base_url))
                     self._backend_url = backend_url
                     if runtime_token:
                         self._internal_token = runtime_token

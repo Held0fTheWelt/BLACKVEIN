@@ -24,6 +24,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 | `INTERNAL_RUNTIME_CONFIG_TOKEN` | from `.env` (see above) | Same internal runtime trust token as backend internal APIs (`X-Internal-Config-Token`); optional if unset |
 | `BACKEND_BASE_URL` | `http://localhost:8000` | Backend API endpoint (override for your deploy) |
 | `BACKEND_BEARER_TOKEN` | (empty) | Bearer for MCP-protected session routes (`/api/v1/sessions/...`) |
+| `LANGFUSE_MCP_BASE_URL` | `http://localhost:3000` for local stdio MCP | Host-side MCP Langfuse API URL. Use this when backend/world-engine use Docker DNS (`http://langfuse-web:3000`) but MCP runs outside Docker. |
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
 | `WOS_MCP_OPERATING_PROFILE` | `healthy` | `healthy` allows `write_capable` tools; `review_safe` / `test_isolated` deny them |
 | `WOS_MCP_SUITE` | `all` | `wos-admin` \| `wos-author` \| `wos-ai` \| `wos-runtime-read` \| `wos-runtime-control` \| `all` |

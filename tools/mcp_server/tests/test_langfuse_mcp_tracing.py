@@ -8,6 +8,7 @@ import pytest
 from tools.mcp_server.langfuse_tracing import (
     McpLangfuseTracer,
     _extract_parent_trace_id,
+    _resolve_mcp_langfuse_base_url,
     _sanitize_arguments,
     _sanitize_result,
 )
@@ -215,6 +216,50 @@ def test_fetch_credentials_uses_runtime_backend_url_env(monkeypatch):
     assert endpoint.startswith("http://backend-runtime:8000/")
     assert tracer._public_key == "pk-runtime"
     assert tracer._secret_key == "sk-runtime"
+
+
+def test_mcp_base_url_override_wins_over_shared_runtime_env(monkeypatch):
+    monkeypatch.setenv("LANGFUSE_MCP_BASE_URL", "http://localhost:3001")
+    monkeypatch.setenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
+    monkeypatch.setenv("LANGFUSE_HOST", "http://langfuse-web:3000")
+
+    tracer = McpLangfuseTracer()
+
+    assert tracer._base_url == "http://localhost:3001"
+
+
+def test_docker_langfuse_url_maps_to_host_when_mcp_runs_outside_container(monkeypatch):
+    import tools.mcp_server.langfuse_tracing as mod
+
+    monkeypatch.delenv("LANGFUSE_MCP_BASE_URL", raising=False)
+    monkeypatch.setenv("LANGFUSE_WEB_PORT", "3002")
+    monkeypatch.setattr(mod, "_running_inside_container", lambda: False)
+
+    assert _resolve_mcp_langfuse_base_url("http://langfuse-web:3000") == "http://localhost:3002"
+
+
+def test_fetch_credentials_uses_mcp_base_url_for_host_stdio(monkeypatch):
+    monkeypatch.setenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "tok-abc")
+    monkeypatch.setenv("BACKEND_BASE_URL", "http://backend:8000")
+    monkeypatch.setenv("LANGFUSE_MCP_BASE_URL", "http://localhost:3000")
+    tracer = McpLangfuseTracer()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "data": {
+            "enabled": True,
+            "public_key": "pk-backend",
+            "secret_key": "sk-backend",
+            "base_url": "http://langfuse-web:3000",
+        }
+    }
+    with patch("tools.mcp_server.langfuse_tracing.requests.get", return_value=mock_resp):
+        tracer._fetch_credentials_from_backend()
+
+    assert tracer._public_key == "pk-backend"
+    assert tracer._secret_key == "sk-backend"
+    assert tracer._base_url == "http://localhost:3000"
 
 
 def test_fetch_credentials_uses_token_alias_env(monkeypatch):
