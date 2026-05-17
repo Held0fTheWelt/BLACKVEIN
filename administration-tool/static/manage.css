@@ -56,7 +56,7 @@
     color: var(--text);
 }
 
-.manage-auth-bar {
+.manage-header .manage-auth-bar {
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -1060,7 +1060,7 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     color: #fff;
 }
 
-.manage-auth-bar {
+.manage-header .manage-auth-bar {
     margin-left: auto;
     padding-left: 0.35rem;
 }
@@ -1623,7 +1623,7 @@ textarea:focus-visible {
 }
 
 @media (max-width: 960px) {
-    .manage-auth-bar {
+    .manage-header .manage-auth-bar {
         width: 100%;
         justify-content: flex-end;
     }
@@ -1863,6 +1863,7 @@ textarea:focus-visible {
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1 1 auto;
+    min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--border-strong, var(--border)) transparent;
 }
@@ -1996,12 +1997,16 @@ textarea:focus-visible {
 /* Foot — auth bar pinned to the bottom of the rail. */
 .manage-shell .manage-side-foot {
     margin-top: auto;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 0.55rem;
     padding: 1rem var(--side-pad-x) 1.1rem;
     border-top: 1px solid var(--border);
-    background: rgba(7, 7, 10, 0.45);
+    background: var(--surface);
+    position: relative;
+    z-index: 1;
 }
 .manage-shell .manage-side-foot .manage-user-info {
     color: var(--text);

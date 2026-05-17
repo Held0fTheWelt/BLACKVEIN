@@ -192,6 +192,7 @@ a { color: var(--primary-hover); }
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1 1 auto;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
@@ -307,12 +308,16 @@ a { color: var(--primary-hover); }
 
 .ui-side-foot {
   margin-top: auto;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.55rem;
   padding: 1rem var(--side-pad-x) 1.1rem;
   border-top: 1px solid var(--border);
-  background: rgba(7, 7, 10, 0.45);
+  background: var(--surface);
+  position: relative;
+  z-index: 1;
 }
 .ui-side-user {
   color: var(--text);
