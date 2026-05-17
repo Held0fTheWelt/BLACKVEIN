@@ -6,6 +6,28 @@ locations:
   authority: module_authorial_locations
   default_access_policy: knowledge/content_access_policy.yaml
 
+  setting:
+    name: "Vallon apartment"
+    type: upscale_private_apartment
+    district_context: paris_working_district
+    topology_source: apartment_layout.yaml
+    default_scene_location_id: vallon_living_room
+    scene_location_assignment_field: location_id
+
+  assignment_policy:
+    scene_nodes_may_reference_place_ids: true
+    live_playable_location_ids:
+      - building_stairwell
+      - vallon_living_room
+      - hallway
+      - kitchen
+      - bathroom
+      - pantry
+      - study
+    locked_non_playable_location_ids:
+      - bedroom_one_locked
+      - bedroom_two_locked
+
   places:
     - id: park_edge
       name: "Paris park edge"
@@ -44,16 +66,38 @@ locations:
       sensory_tags: [coats, doorframe, guest_obligation]
 
     - id: hallway
-      name: "Hallway"
+      name: "Small interior hallway"
       category: interior_transition
       playable_access: gated_scene_navigation
-      sensory_tags: [narrow_space, overheard_room, exit_pressure]
+      sensory_tags: [narrow_space, doors, overheard_room, exit_pressure]
+      room_profile:
+        role: inner_corridor
+        connected_place_ids:
+          - vallon_living_room
+          - kitchen
+          - bathroom
+          - pantry
+          - study
+          - bedroom_one_locked
+          - bedroom_two_locked
+      inventory_policy: door_and_threshold_inventory
+      plausible_actions: [look_at, listen_to, move_to_adjacent_room, pause_at_door]
+      forbidden_actions: [enter_locked_bedroom]
 
     - id: vallon_living_room
       name: "Vallon living room"
       category: primary_play_space
       playable_access: active
       sensory_tags: [art_books, tulips, seating, social_display]
+      room_profile:
+        role: social_stage
+        connected_place_ids:
+          - building_stairwell
+          - hallway
+          - kitchen
+      inventory_policy: authored_salient_objects
+      plausible_actions: [look_at, listen_to, sit_down, stand_up, move_to_adjacent_room]
+      forbidden_actions: [leave_without_exit_pressure, access_locked_bedrooms]
 
     - id: coffee_table
       name: "Coffee table"
@@ -66,12 +110,79 @@ locations:
       category: adjacent_room
       playable_access: gated_scene_navigation
       sensory_tags: [coffee_machine, dishes, offscreen_pause]
+      room_profile:
+        role: service_and_cooling_off
+        connected_place_ids:
+          - vallon_living_room
+          - hallway
+      inventory_policy: domestic_service_objects
+      plausible_actions: [look_at, listen_to, take_minor_service_item, handle_coffee]
+      forbidden_actions: [discover_unseeded_weapon, invent_hidden_person]
 
     - id: bathroom
       name: "Bathroom"
       category: adjacent_room
       playable_access: gated_scene_navigation
       sensory_tags: [mirror, water, temporary_retreat]
+      room_profile:
+        role: private_regroup
+        connected_place_ids:
+          - hallway
+      inventory_policy: bathroom_fixtures_only
+      plausible_actions: [look_at, wash_hands, pause]
+      forbidden_actions: [overhear_precise_living_room_dialogue, discover_unseeded_evidence]
+
+    - id: pantry
+      name: "Small pantry"
+      category: service_storage
+      playable_access: gated_scene_navigation
+      sensory_tags: [shelves, domestic_storage, narrow_pause]
+      room_profile:
+        role: service_storage
+        connected_place_ids:
+          - hallway
+      inventory_policy: optional_minor_inventory
+      plausible_actions: [look_at, take_minor_service_item]
+      forbidden_actions: [find_major_plot_object, hide_without_consequence]
+
+    - id: study
+      name: "Study"
+      category: private_work_room
+      playable_access: gated_scene_navigation
+      sensory_tags: [desk, papers, books, private_host_space]
+      room_profile:
+        role: private_work_room
+        connected_place_ids:
+          - hallway
+      inventory_policy: authored_or_optional_work_inventory
+      plausible_actions: [look_at, listen_to, inspect_work_surface]
+      forbidden_actions: [read_private_documents_without_scene_gate, invent_decisive_hidden_evidence]
+
+    - id: bedroom_one_locked
+      name: "Locked bedroom one"
+      category: locked_private_room
+      playable_access: locked_non_playable
+      sensory_tags: [closed_door, private_boundary]
+      room_profile:
+        role: locked_private_bedroom
+        connected_place_ids:
+          - hallway
+      inventory_policy: hidden_not_authored_for_play
+      plausible_actions: [notice_locked_door]
+      forbidden_actions: [enter_room, open_locked_door, search_room]
+
+    - id: bedroom_two_locked
+      name: "Locked bedroom two"
+      category: locked_private_room
+      playable_access: locked_non_playable
+      sensory_tags: [closed_door, private_boundary]
+      room_profile:
+        role: locked_private_bedroom
+        connected_place_ids:
+          - hallway
+      inventory_policy: hidden_not_authored_for_play
+      plausible_actions: [notice_locked_door]
+      forbidden_actions: [enter_room, open_locked_door, search_room]
 
     - id: window
       name: "Window / outside view"
@@ -80,7 +191,14 @@ locations:
       sensory_tags: [city_light, distance, outside_air]
 
     - id: building_stairwell
-      name: "Building stairwell"
+      name: "Building stairwell and elevator hallway"
       category: exit_route
-      playable_access: exit_gate_only
-      sensory_tags: [echo, door_closer, leaving_pressure]
+      playable_access: gated_scene_navigation
+      sensory_tags: [echo, elevator, door_closer, leaving_pressure]
+      room_profile:
+        role: common_building_threshold
+        connected_place_ids:
+          - vallon_living_room
+      inventory_policy: sparse_threshold
+      plausible_actions: [listen_to, wait, enter_apartment, attempt_exit]
+      forbidden_actions: [summon_unestablished_neighbors, access_private_apartment_without_scene_gate]

@@ -2449,12 +2449,11 @@ body.is-typing .matrix-layer__glow {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    UNIFIED MATRIX SHELL — Better Tomorrow design system applied to every
-   non-landing, non-play view. The matrix-layer canvas drops in behind the
+   non-landing view. The matrix-layer canvas drops in behind the
    site chrome; surfaces become translucent so the rain reads through.
 
    Scope: body.wos-shell. The landing (home) shares the same base background,
-   but keeps its own matrix, hero and artwork overlays. session_shell.html opts
-   out via body.play-active.
+   but keeps its own matrix, hero and artwork overlays.
    ───────────────────────────────────────────────────────────────────────────── */
 
 body.wos-shell {
@@ -2999,8 +2998,8 @@ body.dashboard.wos-shell .dash-sidebar {
    navigation. Desktop navigation lives in the left rail; the topbar exists
    only as the mobile drawer trigger.
 
-   Activated by body.wos-shell (default). Home, dashboard, and play-shell
-   override the {% block shell %} so they keep their bespoke layouts.
+   Activated by body.wos-shell (default). Home keeps its own bespoke layout;
+   dashboard and play-shell are embedded in this shell.
 
    Hides the legacy `.site-header` whenever the new shell is on, since the
    sidebar replaces the horizontal nav completely.
@@ -3373,18 +3372,6 @@ body.wos-shell .site-header { display: none; }
 /* Landing overrides the shell entirely; app pages, including dashboard, use it. */
 body.landing .fr-shell { display: none; }
 
-/* Play-active opts out of the sidebar shell but keeps content rendering. The
-   sidebar/topbar/scrim are hidden, the grid flattens, and the main keeps the
-   classic .container width so .play-shell measurements don't shift. */
-body.play-active .fr-shell {
-    display: block;
-    grid-template-columns: none;
-}
-body.play-active .fr-shell-scrim,
-body.play-active .fr-side,
-body.play-active .fr-topbar { display: none; }
-body.play-active .fr-shell-main { display: block; }
 body.play-active .fr-main {
-    padding: 1.25rem 1.5rem 2.5rem;
     max-width: 1200px;
 }

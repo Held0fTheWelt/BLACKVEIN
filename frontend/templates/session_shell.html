@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Play Session — Better Tomorrow{% endblock %}
-{% block body_class %}play-active{% endblock %}
-{% block matrix_layer %}{% endblock %}
-{% block matrix_scripts %}{% endblock %}
-{% block sidebar %}{% endblock %}
-{% block topbar %}{% endblock %}
-{% block shell_scripts %}{% endblock %}
+{% block body_class %}wos-shell play-active{% endblock %}
+{% block topbar_title %}Play Session{% endblock %}
 {% block content %}
 <div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}" data-show-play-diagnostics="{{ 'true' if show_play_diagnostics else 'false' }}">
   {% if show_play_diagnostics %}
@@ -187,6 +183,9 @@
   {% endif %}
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script type="application/json" id="play-shell-bootstrap">{{ play_bootstrap_json | safe }}</script>
 <script src="{{ url_for('static', filename='play_block_display_text.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_block_renderer.js') }}" defer></script>

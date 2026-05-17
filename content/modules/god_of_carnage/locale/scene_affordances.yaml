@@ -2,6 +2,18 @@ scene_affordances:
   current_area: vallon_living_room
   inferred_area_policy: residential_apartment
   locations:
+    - id: building_stairwell
+      aliases: ["Treppenhaus", "Fahrstuhl", "Aufzug", "Hausflur", "Gebaeudeflur", "building_stairwell", "stairwell", "elevator hallway"]
+      access: gated_scene_navigation
+      narrator_detail_policy: establish_entry_or_exit_gate
+      privacy: public_common_area
+      entry_sensory_detail:
+        de: "Vor der Wohnung liegt der Hausflur mit Treppenhaus und Aufzug; hinter der Tür wartet der Salon."
+        en: "Outside the apartment is the building hallway with stairwell and elevator; beyond the door, the salon waits."
+      available_affordances:
+        - look_at
+        - listen_to
+        - move_to
     - id: vallon_living_room
       aliases: ["Wohnzimmer", "Salon", "Wohnsalon", "living_room", "salon", "vallon_living_room"]
       access: present
@@ -13,39 +25,67 @@ scene_affordances:
       available_affordances:
         - look_at
         - listen_to
+        - move_to
         - sit_down
     - id: hallway
-      aliases: ["Flur", "Gang", "hallway"]
-      access: adjacent_or_implied
+      aliases: ["Flur", "kleiner Flur", "Gang", "Innenflur", "hallway", "inner hallway"]
+      access: adjacent
       narrator_detail_policy: establish_entry
       privacy: semiprivate
       entry_sensory_detail:
-        de: "Der Flur ist still; das gedämpfte Stimmengewirr aus dem Salon ist noch zu hören."
-        en: "The hallway is quiet; the muffled voices from the salon still carry through."
+        de: "Der kleine Flur sammelt die Türen zur Küche, zum Bad, zur Vorratskammer, zum Arbeitszimmer und zu den verschlossenen Schlafzimmern."
+        en: "The small hallway gathers the doors to the kitchen, bathroom, pantry, study, and the locked bedrooms."
       available_affordances:
         - look_at
         - listen_to
+        - move_to
     - id: bathroom
       aliases: ["Bad", "Badezimmer", "Toilette", "bathroom"]
-      access: inferred_offscreen
+      access: offscreen_private
       narrator_detail_policy: offscreen_consequence
       privacy: private
       entry_sensory_detail:
-        de: "Ein kurzer Moment der Stille — das Badezimmer bietet Abstand vom Geschehen."
-        en: "A brief moment of quiet — the bathroom offers distance from the unfolding scene."
+        de: "Das Bad liegt hinter dem kleinen Flur; Spiegel, Wasser und gedämpfte Stimmen geben kurz Abstand."
+        en: "The bathroom sits off the small hallway; mirror, water, and muffled voices give a brief distance."
       available_affordances:
         - look_at
     - id: kitchen
       aliases: ["Küche", "Kueche", "kitchen"]
-      access: inferred_offscreen
+      access: attached_offscreen
       narrator_detail_policy: offscreen_consequence
       privacy: semiprivate
       entry_sensory_detail:
-        de: "Aus der Küche klingt das leise Klirren von Gläsern; der Abstand zum Salon ist spürbar."
-        en: "From the kitchen comes the faint clink of glasses; the distance from the salon is palpable."
+        de: "Die Küche ist vom Salon aus angeschlossen und über den kleinen Flur erreichbar; Gläser klingen leise."
+        en: "The kitchen is attached to the salon and also reachable through the small hallway; glasses clink faintly."
       available_affordances:
         - look_at
+        - listen_to
+        - move_to
         - take
+    - id: pantry
+      aliases: ["Vorratskammer", "Speisekammer", "Abstellkammer", "pantry", "small pantry"]
+      access: offscreen_service
+      narrator_detail_policy: offscreen_consequence
+      privacy: semiprivate
+      entry_sensory_detail:
+        de: "Die kleine Vorratskammer ist eng und zweckmäßig; Regale, Vorräte und Türangeln begrenzen jede Fluchtphantasie."
+        en: "The small pantry is narrow and practical; shelves, supplies, and hinges limit any fantasy of escape."
+      available_affordances:
+        - look_at
+        - listen_to
+        - take
+    - id: study
+      aliases: ["Arbeitszimmer", "Büro", "Buero", "study", "office", "work room"]
+      access: offscreen_private
+      narrator_detail_policy: offscreen_consequence
+      privacy: private_host_space
+      entry_sensory_detail:
+        de: "Das Arbeitszimmer liegt am Flur; ein Schreibtisch und private Ordnung machen den Raum sofort weniger gastlich."
+        en: "The study sits off the hallway; a desk and private order make the room immediately less hospitable."
+      available_affordances:
+        - look_at
+        - listen_to
+        - move_to
   objects:
     - id: window
       aliases: ["Fenster", "window"]

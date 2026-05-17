@@ -401,6 +401,10 @@ def test_play_shell_renders_canonical_story_entries_without_ticket_or_backend_se
     assert b'id="play-input-dock"' in r.data
     assert b'name="player_input"' in r.data
     assert b'data-typewriter-shell="true"' in r.data
+    assert b'id="matrix-layer"' in r.data
+    assert b'id="fr-side"' in r.data
+    assert b'id="fr-side-toggle"' in r.data
+    assert b"Play Session" in r.data
     assert b'id="play-runtime-status"' not in r.data
     assert b'id="runtime-selected-responder"' not in r.data
     assert b'id="runtime-validation-status"' not in r.data

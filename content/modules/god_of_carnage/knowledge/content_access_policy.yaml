@@ -50,6 +50,24 @@ content_access_policy:
       decision: narrator_only
       reason: "The kicked bicycle is prologue evidence and must not become a player toy."
 
+    - id: no_enter_locked_bedroom_one
+      scope: location
+      target_id: bedroom_one_locked
+      decision: hard_deny
+      reason: "This bedroom is known as a locked private door off the hallway, not a playable room."
+
+    - id: no_enter_locked_bedroom_two
+      scope: location
+      target_id: bedroom_two_locked
+      decision: hard_deny
+      reason: "This bedroom is known as a locked private door off the hallway, not a playable room."
+
+    - id: no_open_locked_bedroom_doors
+      scope: action
+      target_id: open_locked_bedroom_door
+      decision: hard_deny
+      reason: "Locked bedroom doors may be noticed, but not opened, entered, or searched."
+
     - id: no_player_controls_other_child
       scope: action
       target_id: control_child_actor
@@ -69,6 +87,14 @@ content_access_policy:
       reason: "Use transformed module facts, not long source-text reproduction."
 
   gated_entities:
+    - id: building_stairwell_navigation
+      scope: location
+      target_id: building_stairwell
+      decision: gated
+      requirements:
+        - current_scene_node_allows_exit_or_entry
+        - narrator_transition_required
+
     - id: apartment_entry_navigation
       scope: location
       target_id: apartment_entry
@@ -91,6 +117,23 @@ content_access_policy:
       decision: gated
       requirements:
         - retreat_or_bodily_stress_signal
+        - narrator_consequence_required
+
+    - id: pantry_navigation
+      scope: location
+      target_id: pantry
+      decision: gated
+      requirements:
+        - current_scene_phase_allows_adjacent_room
+        - narrator_consequence_required
+
+    - id: study_navigation
+      scope: location
+      target_id: study
+      decision: gated
+      requirements:
+        - current_scene_phase_allows_adjacent_room
+        - privacy_boundary_acknowledged
         - narrator_consequence_required
 
     - id: exit_attempt_node
