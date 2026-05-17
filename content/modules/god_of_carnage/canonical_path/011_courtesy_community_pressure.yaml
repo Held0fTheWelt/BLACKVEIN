@@ -18,6 +18,27 @@ canonical_path_step:
     - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
     - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
     - knowledge/opening_quote_anchors.yaml#quote_our_kid
+  dialogue_profile:
+    speech_function: courtesy_frame_pressure
+    line_shape: short_courtesy_exchange
+    speech_required: true
+    beats:
+      - beat_pattern_ref: paraphrase_required_with_facts
+        actor_ref: veronique
+        intent: frame_the_meeting_as_civilized_community
+        quote_anchor_id: quote_sense_of_community
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one short line that makes civility do social work"
+        required_facts:
+          - community_frame_active
+      - beat_pattern_ref: paraphrase_required_with_facts
+        actor_ref: annette
+        intent: concede_parental_form_without_accepting_moral_trial
+        quote_anchor_id: quote_our_kid
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one short guest-side line or refusal"
+        required_facts:
+          - guest_concession_possible_but_limited
 
   theme_threads:
     - civility_as_performance

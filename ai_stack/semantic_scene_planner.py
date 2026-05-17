@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from typing import Any, Final
 
+from ai_stack.director_capability_manager import (
+    DIRECTOR_CAPABILITY_MANAGER_PLAN_SCHEMA_VERSION,
+    audit_director_capability_paths,
+)
 from ai_stack.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
@@ -250,133 +254,6 @@ _BEAT_TEMPLATES_BY_NARRATIVE_FUNCTION: Final[
 _HARD_TRANSITION_SCENE_FUNCTIONS: Final[frozenset[str]] = frozenset(
     {"escalate_conflict", "redirect_blame", "reveal_surface"}
 )
-
-_DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
-    "opening_008_statement_on_table": {
-        "speech_function": "statement_procedure",
-        "line_shape": "short_statement_procedure_exchange",
-        "speech_required": True,
-        "beats": (
-            {
-                "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_ref": "veronique",
-                "intent": "introduce_written_statement_as_shared_ground",
-                "quote_anchor_id": "quote_carrying",
-                "paraphrase_policy": "structural_paraphrase_required",
-                "minimum_visible": "a short procedural line that puts the written account in play",
-                "required_facts": ("statement_in_play", "wording_has_consequence"),
-            },
-        ),
-    },
-    "opening_009_wording_dispute_armed_carrying": {
-        "speech_function": "wording_dispute",
-        "line_shape": "short_contested_exchange",
-        "speech_required": True,
-        "beats": (
-            {
-                "beat_pattern_ref": "single_word_challenge",
-                "actor_ref": "alain",
-                "intent": "isolate_the_accusatory_word",
-                "quote_anchor_id": "quote_armed",
-                "quote_use": "exact_anchor_allowed",
-                "required_facts": ("challenge_target_word: armed",),
-                "minimum_visible": "one word as a question, at most three words",
-                "forces_response_chain": {
-                    "target_actor_ref": "veronique",
-                    "target_intent": "offer_compromise_word_carrying",
-                    "required_state_change": "statement_word_replaced",
-                    "target_pattern_ref": "paraphrase_required_with_facts",
-                    "max_delay_seconds": 6,
-                },
-            },
-            {
-                "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_ref": "veronique",
-                "intent": "offer_compromise_word_carrying",
-                "quote_anchor_id": "quote_carrying",
-                "quote_use": "exact_anchor_allowed",
-                "paraphrase_policy": "short_anchor_quote_allowed",
-                "minimum_visible": "a short correction that offers the softer word",
-                "required_facts": ("replacement_word: carrying", "statement_word_replaced"),
-                "forced_by_previous_beat": True,
-            },
-        ),
-    },
-    "opening_010_injury_detail_dental_consequence": {
-        "speech_function": "injury_detail_concretization",
-        "line_shape": "short_factual_consequence_exchange",
-        "speech_required": True,
-        "beats": (
-            {
-                "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_ref": "veronique",
-                "intent": "make_dental_consequence_concrete",
-                "quote_anchor_id": "quote_root_canal",
-                "paraphrase_policy": "short_anchor_quote_allowed",
-                "minimum_visible": "one factual line that makes the injury concrete",
-                "required_facts": ("injury_consequence: dental",),
-            },
-        ),
-    },
-    "opening_011_courtesy_community_pressure": {
-        "speech_function": "courtesy_frame_pressure",
-        "line_shape": "short_courtesy_exchange",
-        "speech_required": True,
-        "beats": (
-            {
-                "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_ref": "veronique",
-                "intent": "frame_the_meeting_as_civilized_community",
-                "quote_anchor_id": "quote_sense_of_community",
-                "paraphrase_policy": "short_anchor_quote_allowed",
-                "minimum_visible": "one short line that makes civility do social work",
-                "required_facts": ("community_frame_active",),
-            },
-            {
-                "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_ref": "annette",
-                "intent": "concede_parental_form_without_accepting_moral_trial",
-                "quote_anchor_id": "quote_our_kid",
-                "paraphrase_policy": "short_anchor_quote_allowed",
-                "minimum_visible": "one short guest-side line or refusal",
-                "required_facts": ("guest_concession_possible_but_limited",),
-            },
-        ),
-    },
-    "opening_012_tulips_and_hospitality": {
-        "speech_function": "hospitality_small_talk_pressure",
-        "line_shape": "safe_object_small_talk",
-        "speech_required": False,
-        "beats": (
-            {
-                "beat_pattern_ref": "amiable_echo",
-                "actor_ref": "michel",
-                "intent": "use_safe_object_compliment_to_delay_conflict",
-                "quote_anchor_id": "quote_tulips_gorgeous",
-                "quote_use": "exact_anchor_allowed",
-                "minimum_visible": "a brief object compliment",
-                "required_facts": ("safe_small_talk_available",),
-            },
-        ),
-    },
-    "opening_015_phone_exit_pressure": {
-        "speech_function": "phone_exit_pressure",
-        "line_shape": "interruption_with_prevented_exit",
-        "speech_required": True,
-        "beats": (
-            {
-                "beat_pattern_ref": "phone_interruption_recurrent",
-                "actor_ref": "alain",
-                "intent": "let_phone_pressure_interrupt_without_solving_exit",
-                "quote_anchor_id": None,
-                "paraphrase_policy": "verbatim_forbidden",
-                "minimum_visible": "a short interruption or phone-driven withdrawal",
-                "required_facts": ("phone_pressure_available", "exit_pressure_prevented"),
-            },
-        ),
-    },
-}
-
 
 def _clean(value: Any) -> str:
     return str(value or "").strip()
@@ -670,6 +547,7 @@ def _content_frame(
         "object_focus_ids": object_ids,
         "object_refs": object_refs,
         "quote_anchor_refs": _unique_clean(_as_list(step.get("quote_anchor_refs"))),
+        "dialogue_profile": _as_dict(step.get("dialogue_profile")),
         "theme_threads": _unique_clean(_as_list(step.get("theme_threads"))),
         "action_beats": _unique_clean(_as_list(_as_dict(step.get("path_point")).get("action_beats"))),
         "player_windows": _unique_clean(_as_list(_as_dict(step.get("path_point")).get("player_windows"))),
@@ -731,8 +609,7 @@ def _speech_profile_for_frame(
     actor_lane_context: dict[str, Any] | None,
     opening_quote_anchors: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    step_id = _clean(content_frame.get("canonical_path_step_id"))
-    profile = _DIALOGUE_STEP_PROFILES.get(step_id, {})
+    profile = _as_dict(content_frame.get("dialogue_profile"))
     mode = _clean(content_frame.get("canonical_path_mode")).lower()
     cues = _speech_cues(content_frame)
     quote_refs = _as_list(content_frame.get("quote_anchor_refs"))
@@ -820,8 +697,7 @@ def _dialogue_plan(
     if not speech_policy.get("speech_recommended") or not speech_policy.get("npc_speech_allowed"):
         return []
     actor_id_by_ref = _actor_id_index(character_documents)
-    step_id = _clean(content_frame.get("canonical_path_step_id"))
-    profile = _DIALOGUE_STEP_PROFILES.get(step_id, {})
+    profile = _as_dict(content_frame.get("dialogue_profile"))
     profile_beats = list(profile.get("beats") or [])
     if not profile_beats:
         actor_id = _select_dialogue_actor(
@@ -1173,13 +1049,22 @@ def _director_capability_manager_plan(
         suppressed.append(NPC_DIRECT_ANSWER_ALLOWED)
     if narrative_scene_function in {"contain_out_of_scope", "narrate_sensory_focus"} and not dialogue_plan:
         suppressed.append(NPC_SOCIAL_REACTION_OPTIONAL)
+    dispatch_audit = audit_director_capability_paths(
+        selected_capabilities=selected,
+        capability_steps=steps,
+        suppressed_capabilities=suppressed,
+    )
+    executable = list(dispatch_audit.get("executable_capabilities") or [])
+    required = [cap for cap in required if cap in executable]
+    optional = [cap for cap in optional if cap in executable]
 
     return {
-        "schema_version": "director_capability_manager_plan.v1",
+        "schema_version": DIRECTOR_CAPABILITY_MANAGER_PLAN_SCHEMA_VERSION,
         "manager_contract": "dramatic_capability_manager",
         "selection_source": "semantic_scene_director",
         "execution_strategy": "selective_capability_gate",
         "run_only_selected_capabilities": True,
+        "dispatch_status": dispatch_audit.get("status"),
         "decision_basis": {
             "narrative_scene_function": narrative_scene_function,
             "realization_mode": realization_mode,
@@ -1193,15 +1078,22 @@ def _director_capability_manager_plan(
             "dialogue_beat_count": len(dialogue_plan),
             "quote_anchor_refs": list(content_frame.get("quote_anchor_refs") or []),
         },
-        "selected_capabilities": selected,
+        "selected_capabilities": executable,
         "required_capabilities": required,
         "optional_capabilities": optional,
         "suppressed_capabilities": _unique_clean(suppressed),
         "capability_steps": steps,
-        "requested_visible_functions": selected,
+        "capability_dispatch_paths": list(dispatch_audit.get("paths") or []),
+        "capability_dispatch_audit": dispatch_audit,
+        "dispatch_queue": list(dispatch_audit.get("dispatch_queue") or []),
+        "requested_capabilities_before_audit": selected,
+        "requested_visible_functions": executable,
         "realization_mode": realization_mode,
         "tree_pruning": {
             "skip_unselected_runtime_branches": True,
+            "recursive_dispatch_allowed": False,
+            "queue_expansion_allowed": False,
+            "paths_checked_individually": True,
             "reason": "scene_director_selected_minimal_visible_capability_set",
         },
     }

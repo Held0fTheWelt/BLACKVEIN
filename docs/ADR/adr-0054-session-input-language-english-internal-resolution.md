@@ -82,8 +82,13 @@ The canonical player session path SHALL carry both language values:
    `create_story_session`.
 4. World-Engine stores it on `StorySession.session_input_language`.
 5. Opening and player turns pass it into the LangGraph runtime state.
-6. LangGraph passes it into the language adapter contract.
-7. Player action resolution preserves `session_input_language`,
+6. LangGraph starts player-turn processing at `translate_player_input`, which
+   creates the language adapter contract before `interpret_input` or retrieval
+   can process the request. The ordering invariant is normative in
+   [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md).
+7. `interpret_input`, retrieval, semantic move interpretation, and player action
+   resolution consume the resulting `input_translation` / semantic payloads.
+8. Player action resolution preserves `session_input_language`,
    `session_output_language`, `internal_resolution_language`, and
    `normalized_english_text` on the player action frame.
 
@@ -167,6 +172,10 @@ Implemented as of 2026-05-17:
 
 Updated on 2026-05-18:
 
+- `ai_stack/langgraph_runtime_executor.py` now enters player turns through
+  `translate_player_input` before `interpret_input`; successful semantic model
+  output is attached as `semantic_action` / `semantic_move`, and retrieval
+  prefers `normalized_english_text`.
 - `ai_stack/semantic_move_interpretation_goc.py` reads bounded AI semantic move
   payloads and runtime silence signals only; phrase synsets and priority-rule
   stacks were removed.
@@ -176,6 +185,10 @@ Updated on 2026-05-18:
 - `story_runtime_core/input_interpreter.py` and
   `backend/app/runtime/input_interpreter.py` are thin structural previews, not
   verb/reaction/question classifiers.
+- `backend/app/api/v1/session_routes.py` exposes a non-authoritative
+  `backend_semantic_translation_preview` before its legacy structural preview
+  and forwards session input/output language when it has to create a
+  World-Engine story session.
 - Deleted obsolete runtime helpers:
   `ai_stack/goc_semantic_priority_rules.py`,
   `ai_stack/scene_director_goc_legacy_keyword_candidates.py`,
@@ -205,12 +218,16 @@ Targeted verification completed on 2026-05-17 and refreshed on 2026-05-18:
   language.
 - [ADR-0037](adr-0037-content-locale-story-runtime.md) - semantic language
   adapter and removal of locale lookup content.
+- [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md) - semantic
+  translation ingress before input interpretation, retrieval, and action
+  resolution.
 
 ## Flow
 
 ```mermaid
 flowchart LR
-  P["Player input\nsession_input_language"] --> A["Language Adapter\nsemantic contract"]
+  P["Player input\nsession_input_language"] --> T["LangGraph ingress\ntranslate_player_input"]
+  T --> A["Language Adapter\nsemantic contract"]
   A --> N["AI normalization\ninternal_resolution_language = en"]
   N --> G["Ground against\nEnglish-authored content catalog"]
   G --> S["Semantic payloads\ncontent IDs + bounded labels"]

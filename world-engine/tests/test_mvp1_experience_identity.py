@@ -143,14 +143,14 @@ class TestRoleSelection:
         role = validate_selected_player_role("annette", profile)
         canonical_id = profile.role_slug_to_canonical_actor_id(role)
         assert canonical_id is not None
-        assert canonical_id == "annette"
+        assert canonical_id == "annette_reille"
 
     def test_alain_role_slug_resolves_to_canonical_actor(self):
         from app.runtime.profiles import resolve_runtime_profile, validate_selected_player_role
         profile = resolve_runtime_profile("god_of_carnage_solo")
         role = validate_selected_player_role("alain", profile)
         canonical_id = profile.role_slug_to_canonical_actor_id(role)
-        assert canonical_id == "alain"
+        assert canonical_id == "alain_reille"
 
 
 # ---------------------------------------------------------------------------
@@ -205,12 +205,12 @@ class TestValidStart:
         profile = resolve_runtime_profile("god_of_carnage_solo")
         role = validate_selected_player_role("annette", profile)
         ownership = build_actor_ownership(role, profile)
-        assert ownership["human_actor_id"] == "annette"
-        assert "alain" in ownership["npc_actor_ids"]
-        assert "veronique" in ownership["npc_actor_ids"]
-        assert "michel" in ownership["npc_actor_ids"]
-        assert ownership["actor_lanes"]["annette"] == "human"
-        assert ownership["actor_lanes"]["alain"] == "npc"
+        assert ownership["human_actor_id"] == "annette_reille"
+        assert "alain_reille" in ownership["npc_actor_ids"]
+        assert "veronique_vallon" in ownership["npc_actor_ids"]
+        assert "michel_longstreet" in ownership["npc_actor_ids"]
+        assert ownership["actor_lanes"]["annette_reille"] == "human"
+        assert ownership["actor_lanes"]["alain_reille"] == "npc"
         assert ownership["visitor_present"] is False
 
     def test_valid_alain_start(self):
@@ -218,12 +218,12 @@ class TestValidStart:
         profile = resolve_runtime_profile("god_of_carnage_solo")
         role = validate_selected_player_role("alain", profile)
         ownership = build_actor_ownership(role, profile)
-        assert ownership["human_actor_id"] == "alain"
-        assert "annette" in ownership["npc_actor_ids"]
-        assert "veronique" in ownership["npc_actor_ids"]
-        assert "michel" in ownership["npc_actor_ids"]
-        assert ownership["actor_lanes"]["alain"] == "human"
-        assert ownership["actor_lanes"]["annette"] == "npc"
+        assert ownership["human_actor_id"] == "alain_reille"
+        assert "annette_reille" in ownership["npc_actor_ids"]
+        assert "veronique_vallon" in ownership["npc_actor_ids"]
+        assert "michel_longstreet" in ownership["npc_actor_ids"]
+        assert ownership["actor_lanes"]["alain_reille"] == "human"
+        assert ownership["actor_lanes"]["annette_reille"] == "npc"
         assert ownership["visitor_present"] is False
 
     def test_annette_human_role_exists_in_template(self):
@@ -319,10 +319,10 @@ class TestContentResolvedRoleMapping:
         """Canonical actors must be resolved from characters/*.yaml, not hardcoded (FIX-007)."""
         from app.runtime.profiles import _resolve_goc_content, resolve_runtime_profile
         actor_ids, content_hash = _resolve_goc_content()
-        assert "annette" in actor_ids
-        assert "alain" in actor_ids
-        assert "veronique" in actor_ids
-        assert "michel" in actor_ids
+        assert "annette_reille" in actor_ids
+        assert "alain_reille" in actor_ids
+        assert "veronique_vallon" in actor_ids
+        assert "michel_longstreet" in actor_ids
         assert content_hash.startswith("sha256:")
         profile = resolve_runtime_profile("god_of_carnage_solo")
         slugs = {r.role_slug for r in profile.selectable_player_roles}
@@ -371,16 +371,16 @@ class TestLiveStartBehavior:
         assert body.get("runtime_profile_id") == "god_of_carnage_solo"
         assert body.get("runtime_module_id") == "solo_story_runtime"
         assert body.get("selected_player_role") == "annette"
-        assert body.get("human_actor_id") == "annette"
+        assert body.get("human_actor_id") == "annette_reille"
         npc_ids = body.get("npc_actor_ids", [])
-        assert "alain" in npc_ids
-        assert "veronique" in npc_ids
-        assert "michel" in npc_ids
+        assert "alain_reille" in npc_ids
+        assert "veronique_vallon" in npc_ids
+        assert "michel_longstreet" in npc_ids
         assert "visitor" not in npc_ids
         assert body.get("visitor_present") is False
         actor_lanes = body.get("actor_lanes", {})
-        assert actor_lanes.get("annette") == "human"
-        assert actor_lanes.get("alain") == "npc"
+        assert actor_lanes.get("annette_reille") == "human"
+        assert actor_lanes.get("alain_reille") == "npc"
         run = body.get("run", {})
         assert run.get("template_id") == "god_of_carnage_solo"
 
@@ -397,14 +397,14 @@ class TestLiveStartBehavior:
         )
         assert response.status_code == 200
         body = response.json()
-        assert body.get("human_actor_id") == "alain"
+        assert body.get("human_actor_id") == "alain_reille"
         npc_ids = body.get("npc_actor_ids", [])
-        assert "annette" in npc_ids
+        assert "annette_reille" in npc_ids
         assert "visitor" not in npc_ids
         assert body.get("visitor_present") is False
         actor_lanes = body.get("actor_lanes", {})
-        assert actor_lanes.get("alain") == "human"
-        assert actor_lanes.get("annette") == "npc"
+        assert actor_lanes.get("alain_reille") == "human"
+        assert actor_lanes.get("annette_reille") == "npc"
 
 
 # ---------------------------------------------------------------------------
@@ -435,8 +435,8 @@ class TestLiveRuntimeStateInspection:
         run_id = run_dict["id"]
 
         # Verify response metadata
-        assert body.get("human_actor_id") == "annette"
-        assert "alain" in body.get("npc_actor_ids", [])
+        assert body.get("human_actor_id") == "annette_reille"
+        assert "alain_reille" in body.get("npc_actor_ids", [])
         assert body.get("visitor_present") is False
 
         # Verify nested runtime state
@@ -480,8 +480,8 @@ class TestLiveRuntimeStateInspection:
         run_dict = body.get("run", {})
 
         # Verify response metadata
-        assert body.get("human_actor_id") == "alain"
-        assert "annette" in body.get("npc_actor_ids", [])
+        assert body.get("human_actor_id") == "alain_reille"
+        assert "annette_reille" in body.get("npc_actor_ids", [])
         assert body.get("visitor_present") is False
 
         # Verify nested runtime state
@@ -814,13 +814,13 @@ class TestSessionOutputLanguage:
             "start_scene_id": "scene_1",
             "scenes": [],
             "selected_player_role": "annette",
-            "human_actor_id": "annette",
-            "npc_actor_ids": ["alain", "veronique", "michel"],
+            "human_actor_id": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
             "actor_lanes": {
-                "annette": "human",
-                "alain": "npc",
-                "veronique": "npc",
-                "michel": "npc",
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
             },
         }
 
@@ -865,13 +865,13 @@ class TestSessionOutputLanguage:
     def _full_projection(self):
         proj = self._projection()
         proj.update({
-            "human_actor_id": "annette",
-            "npc_actor_ids": ["alain", "veronique", "michel"],
+            "human_actor_id": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
             "actor_lanes": {
-                "annette": "human",
-                "alain": "npc",
-                "veronique": "npc",
-                "michel": "npc",
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
             },
         })
         return proj

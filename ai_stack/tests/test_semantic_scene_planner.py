@@ -6,6 +6,7 @@ from ai_stack.semantic_scene_planner import (
     SEMANTIC_SCENE_PLANNER_VERSION,
     build_semantic_scene_plan_enrichment,
 )
+from ai_stack.goc_yaml_authority import load_goc_canonical_path_yaml
 
 
 def test_scene_planner_builds_pressure_target_beats_and_obligation() -> None:
@@ -168,31 +169,7 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
             "canonical_path_step_id": step_id,
             "scene_node_id": "written_statement_negotiation",
         },
-        canonical_path={
-            "steps": [
-                {
-                    "id": step_id,
-                    "sequence": 9,
-                    "mode": "procedure_pressure",
-                    "name": "Wording dispute: armed/carrying",
-                    "location_ref": {"location_id": "living_room", "source": "locations/living_room.yaml"},
-                    "object_refs": [{"object_id": "written_statement"}],
-                    "quote_anchor_refs": [
-                        "knowledge/opening_quote_anchors.yaml#quote_armed",
-                        "knowledge/opening_quote_anchors.yaml#quote_carrying",
-                    ],
-                    "path_point": {
-                        "present": {
-                            "named_characters": ["veronique", "michel", "annette", "alain"]
-                        },
-                        "action_beats": ["accusatory word challenged"],
-                        "player_windows": ["object to accusatory word"],
-                        "narrator_tasks": ["keep every spoken line short"],
-                    },
-                    "next_point": {"step_id": "opening_010_injury_detail_dental_consequence"},
-                }
-            ]
-        },
+        canonical_path=load_goc_canonical_path_yaml(),
         scene_graph={
             "nodes": [
                 {
@@ -202,8 +179,8 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
                 }
             ]
         },
-        locations={"places": [{"id": "living_room", "inventory_object_ids": ["written_statement"]}]},
-        objects={"object_documents": {"written_statement": {"id": "written_statement"}}},
+        locations={"places": [{"id": "living_room", "inventory_object_ids": ["coffee_table"]}]},
+        objects={"object_documents": {"coffee_table": {"id": "coffee_table"}}},
         content_access_policy={"blocked_entities": [], "gated_entities": []},
         character_documents={
             "veronique": {"actor_id": "veronique_vallon"},
@@ -238,7 +215,7 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
     )
 
     assert enrichment["content_frame"]["canonical_path_step_id"] == step_id
-    assert enrichment["content_frame"]["object_focus_ids"] == ["written_statement"]
+    assert enrichment["content_frame"]["object_focus_ids"] == ["coffee_table"]
     assert enrichment["speech_policy"]["speech_required"] is True
     assert enrichment["speech_policy"]["speech_function"] == "wording_dispute"
     assert enrichment["quote_moment_policy"]["mode"] == "moment_locked"
@@ -258,8 +235,20 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
 
     manager_plan = enrichment["capability_manager_plan"]
     assert manager_plan["run_only_selected_capabilities"] is True
+    assert manager_plan["dispatch_status"] == "passed"
     assert manager_plan["decision_basis"]["canonical_path_step_id"] == step_id
     assert manager_plan["decision_basis"]["speech_required"] is True
     assert "npc.social_reaction.optional" in manager_plan["required_capabilities"]
     assert "npc.direct_answer.allowed" in manager_plan["selected_capabilities"]
+    audit = manager_plan["capability_dispatch_audit"]
+    assert audit["status"] == "passed"
+    assert audit["loop_guard"]["recursive_dispatch_allowed"] is False
+    assert audit["loop_guard"]["queue_expansion_allowed"] is False
+    assert audit["dispatch_queue"] == manager_plan["selected_capabilities"]
+    assert len(audit["paths"]) == len(manager_plan["selected_capabilities"])
+    for path in audit["paths"]:
+        assert path["status"] == "passed"
+        assert path["cycle_detected"] is False
+        assert path["terminal_node"] == "terminal"
+        assert path["depth"] <= audit["max_path_depth"]
     assert "capability_manager:selective_capability_gate" in enrichment["planner_rationale_codes"]

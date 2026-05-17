@@ -15,6 +15,19 @@ canonical_path_step:
   quote_anchor_refs:
     - knowledge/opening_quote_anchors.yaml#quote_root_canal
     - knowledge/opening_quote_anchors.yaml#quote_observation_period
+  dialogue_profile:
+    speech_function: injury_detail_concretization
+    line_shape: short_factual_consequence_exchange
+    speech_required: true
+    beats:
+      - beat_pattern_ref: paraphrase_required_with_facts
+        actor_ref: veronique
+        intent: make_dental_consequence_concrete
+        quote_anchor_id: quote_root_canal
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one factual line that makes the injury concrete"
+        required_facts:
+          - "injury_consequence: dental"
 
   theme_threads:
     - body_enters_the_room_as_fact

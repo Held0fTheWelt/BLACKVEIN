@@ -127,6 +127,11 @@ describe('TypewriterEngine', () => {
       expect(engine.config.skippable).toBe(true);
     });
 
+    test('should expose a boot beat profile for runtime bootstrap', () => {
+      expect(window.TYPEWRITER_BEAT_PROFILES.boot.cursor).toBe('boot');
+      expect(window.TYPEWRITER_BEAT_PROFILES.boot.atmosphere).toBe('beat--boot');
+    });
+
     test('should allow config updates', () => {
       engine.setConfig({
         characters_per_second: 50,
@@ -216,6 +221,23 @@ describe('TypewriterEngine', () => {
 
       const state = engine.getQueueState();
       expect(state.current_block_id).toBe('block-1');
+    });
+
+    test('should honor per-block delivery cps override', () => {
+      const blockEl = document.createElement('div');
+      blockEl.setAttribute('data-block-id', 'boot-1');
+      container.appendChild(blockEl);
+
+      engine.startDelivery({
+        id: 'boot-1',
+        text: 'Boot',
+        delivery: { characters_per_second: 4 },
+      });
+
+      engine.clock.advanceBy(500);
+
+      expect(blockEl.textContent).toBe('Bo');
+      expect(engine.getQueueState().current_block_id).toBe('boot-1');
     });
 
     test('should replace active block when a newer block arrives', () => {

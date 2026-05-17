@@ -25,6 +25,8 @@ from ai_stack.goc_frozen_vocab import (
 )
 from ai_stack.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
 from ai_stack.goc_yaml_authority import (
+    goc_actor_display_name,
+    goc_actor_identity,
     select_goc_director_surface_hints_for_turn,
     thin_edge_staging_line_from_guidance,
 )
@@ -35,14 +37,6 @@ from ai_stack.goc_knowledge_runtime_gates import (
     text_from_generation_and_effects,
 )
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
-
-_GOC_ACTOR_DISPLAY_NAMES = {
-    "veronique_vallon": "Veronique",
-    "annette_reille": "Annette",
-    "michel_longstreet": "Michel",
-    "alain_reille": "Alain",
-}
-
 
 def _goc_structured_rows_filtered_for_human_lane(
     rows: Any,
@@ -129,7 +123,7 @@ def _coerce_actor_lines(value: Any, *, actor_key: str) -> list[str]:
             if not text:
                 continue
             actor = str(item.get(actor_key) or "").strip()
-            actor = _GOC_ACTOR_DISPLAY_NAMES.get(actor, actor)
+            actor = goc_actor_display_name(actor, first_name=True) if actor else actor
             tone = str(item.get("tone") or "").strip()
             prefix = f"{actor}: " if actor else ""
             suffix = f" ({tone})" if tone else ""
@@ -938,7 +932,11 @@ def run_visible_render(
         gm_lines: list[str] = []
         if content:
             gm_lines.append(content)
-        responder_name = _GOC_ACTOR_DISPLAY_NAMES.get(responder_actor_id)
+        responder_name = (
+            goc_actor_display_name(responder_actor_id, first_name=True)
+            if responder_actor_id and goc_actor_identity(responder_actor_id)
+            else ""
+        )
         player_rc = str(rc.get("player_input") or "").strip()
         live_human_lane = bool(human_actor_id or selected_player_role)
         # Opening dramaturgy only: do not key off ``turn_number`` here — graph state can

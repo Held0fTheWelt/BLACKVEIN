@@ -12,7 +12,7 @@ The previous GoC solo template had a single HUMAN role (`visitor`) that was auto
 
 1. The player must choose `annette` or `alain` before session creation. This choice is mandatory.
 
-2. The chosen role becomes the human-controlled actor. The world-engine's `_bootstrap_instance` accepts `preferred_role_id` to select the role.
+2. The chosen role is preserved as `selected_player_role` (`annette`/`alain`) and resolves through content identity to the canonical human-controlled `human_actor_id` (`annette_reille`/`alain_reille`). The live story-session contract must compare the resolved actor identity, not raw string equality.
 
 3. All other canonical God of Carnage characters (`alain`/`annette`, `veronique`, `michel`, depending on choice) become NPC dramatic actors.
 
@@ -30,16 +30,17 @@ The previous GoC solo template had a single HUMAN role (`visitor`) that was auto
 ## Consequences
 
 - Sessions where neither annette nor alain is selected are rejected at the API level
+- `selected_player_role` remains the player-facing role slug while `human_actor_id` is the canonical runtime actor ID
 - The two human-selectable lobby seats (annette, alain) both exist in the template; the unselected one remains an empty lobby seat
 - MVP2 receives `human_actor_id` and `npc_actor_ids` from the `CreateRunResponse`
 
 ## Diagrams
 
-Mandatory **`annette` / `alain`** selection drives **`human_actor_id`**; all other canonical characters become **NPC** lanes for MVP2.
+Mandatory **`annette` / `alain`** selection resolves through content identity to **`human_actor_id`**; all other canonical characters become **NPC** lanes for MVP2.
 
 ```mermaid
 flowchart LR
-  CH[Player chooses annette or alain] --> H[human_actor_id]
+  CH[Player chooses annette or alain] --> H[human_actor_id annette_reille or alain_reille]
   CH --> NPC[npc_actor_ids — other canonical roles]
   H --> LAN[actor_lanes handoff]
   NPC --> LAN
@@ -57,6 +58,8 @@ flowchart LR
 - `test_session_creation_without_selected_player_role_fails` — PASS
 - `test_session_creation_invalid_role_fails` — PASS
 - `test_role_slug_must_resolve_to_canonical_actor` — PASS
+- `test_runtime_projection_accepts_role_slug_resolving_to_human_actor_id` — PASS
+- `test_runtime_projection_rejects_role_slug_resolving_to_different_human_actor_id` — PASS
 - `test_annette_human_role_exists_in_template` — PASS
 - `test_alain_human_role_exists_in_template` — PASS
 

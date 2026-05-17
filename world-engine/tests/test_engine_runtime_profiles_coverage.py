@@ -14,6 +14,7 @@ from app.runtime.profiles import (
     assert_runtime_module_contains_no_story_truth,
     validate_selected_player_role,
 )
+from ai_stack.goc_yaml_authority import goc_actor_ids_from_content
 from tests.test_runtime_engine import _build_test_solo_template
 
 
@@ -41,7 +42,7 @@ def test_resolve_goc_content_empty_characters_uses_fallback(
     )
     actor_ids, content_hash = _resolve_goc_content(allow_fallback=True)
 
-    assert actor_ids == ["annette", "alain", "veronique", "michel"]
+    assert actor_ids == goc_actor_ids_from_content()
     assert content_hash.startswith("sha256:")
 
 
@@ -54,8 +55,8 @@ def test_resolve_goc_content_uses_fallback_when_file_unreadable_and_allowed(
         lambda *, start: Path("/definitely/missing/wos-root"),
     )
     actor_ids, content_hash = _resolve_goc_content(allow_fallback=True)
-    assert actor_ids == ["annette", "alain", "veronique", "michel"]
-    assert content_hash == "sha256:fallback"
+    assert actor_ids == goc_actor_ids_from_content()
+    assert content_hash.startswith("sha256:")
 
 
 @pytest.mark.contract
@@ -82,7 +83,7 @@ def test_validate_selected_player_role_requires_canonical_mapping() -> None:
     )
     with pytest.raises(RuntimeProfileError) as exc_info:
         validate_selected_player_role("annette", profile)
-    assert exc_info.value.code == "selected_player_role_not_canonical_character"
+    assert exc_info.value.code == "invalid_selected_player_role"
 
 
 @pytest.mark.contract

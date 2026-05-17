@@ -15,6 +15,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from .goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from .goc_yaml_authority import goc_actor_identity
 
 
 def _accent_fold(s: str) -> str:
@@ -485,11 +486,12 @@ def sanitize_gm_narration_beat_line(line: str) -> str:
 
 
 def _role_token_for_legibility(*, human_actor_id: str | None, selected_player_role: str | None) -> str | None:
-    blob = f"{human_actor_id or ''} {selected_player_role or ''}".lower()
-    if "annette" in blob:
-        return "annette"
-    if "alain" in blob:
-        return "alain"
+    for ref in (human_actor_id, selected_player_role):
+        ident = goc_actor_identity(ref)
+        if ident and str(ident.get("playable_status") or "").strip() == "human_playable":
+            token = str(ident.get("character_key") or "").strip()
+            if token:
+                return token
     return None
 
 

@@ -42,6 +42,7 @@ from app.observability.audit_log import log_world_engine_bridge
 from app.observability.langfuse_adapter import LangfuseAdapter
 from app.runtime.input_interpreter import interpret_player_input
 from app.config.route_constants import route_session_config, route_status_codes
+from story_runtime_core.language_adapter import prepare_player_input_semantic_resolution
 
 
 def _trace_classification(*, canonical_player_flow: bool, runtime_mode: str = "solo_story") -> dict[str, Any]:
@@ -522,10 +523,28 @@ def execute_session_turn(session_id):
     if not player_input:
         return jsonify({"error": "player_input is required"}), 400
     player_input_sha256 = hashlib.sha256(player_input.encode("utf-8")).hexdigest()
-    local_interpretation = interpret_player_input(player_input)
 
     state = runtime_session.current_runtime_state
     metadata = state.metadata if isinstance(state.metadata, dict) else {}
+    session_output_language = str(
+        data.get("session_output_language")
+        or metadata.get("session_output_language")
+        or "de"
+    ).strip().lower()[:2] or "de"
+    session_input_language = str(
+        data.get("session_input_language")
+        or metadata.get("session_input_language")
+        or session_output_language
+    ).strip().lower()[:2] or session_output_language
+    semantic_translation_preview = prepare_player_input_semantic_resolution(
+        player_input,
+        module_id=state.module_id,
+        lang_hint=session_output_language,
+        session_input_language=session_input_language,
+        session_output_language=session_output_language,
+        content_modules_root=None,
+    )
+    local_interpretation = interpret_player_input(player_input)
     engine_story_session_id = metadata.get("world_engine_story_session_id")
     trace_id = g.get("trace_id") or get_trace_id()
     langfuse_trace_id = g.get("langfuse_trace_id") or get_langfuse_trace_id()
@@ -545,6 +564,8 @@ def execute_session_turn(session_id):
                 runtime_projection=compiled.runtime_projection.model_dump(mode="json"),
                 trace_id=trace_id,
                 langfuse_trace_id=langfuse_trace_id,
+                session_input_language=session_input_language,
+                session_output_language=session_output_language,
                 trace_origin=str(trace_meta.get("trace_origin")),
                 execution_tier=str(trace_meta.get("execution_tier")),
                 canonical_player_flow=bool(trace_meta.get("canonical_player_flow")),
@@ -666,6 +687,7 @@ def execute_session_turn(session_id):
         "turn": turn.get("turn"),
         "state": current_state,
         "diagnostics": diagnostics,
+        "backend_semantic_translation_preview": semantic_translation_preview,
         "backend_interpretation_preview": local_interpretation.model_dump(mode="json"),
         "warnings": [
             "backend_proxying_to_world_engine_story_runtime",

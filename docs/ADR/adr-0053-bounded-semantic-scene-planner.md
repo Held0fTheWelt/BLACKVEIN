@@ -15,6 +15,7 @@ Implemented and tested for the God of Carnage runtime path.
 - The planner consumes the expanded GoC content surfaces: `canonical_path`, `scene_graph`, `locations`, `objects`, `content_access_policy`, `opening_quote_anchors`, and `direction/beat_library`.
 - The dramatic generation packet exposes the enriched `scene_plan` as model-visible bounded direction, including speech and capability-manager decisions.
 - The runtime capability aspect records the director-selected capability-manager plan so validation can see what the director intended to execute.
+- `ai_stack/director_capability_manager.py` audits the selected dramatic capabilities as individual bounded dispatch paths. Each selected capability must have one terminal path, pass cycle detection, stay within the path-depth limit, and enter the runtime as an audited dispatch queue rather than a recursive tree walk.
 - Validation and commit seams remain authoritative; planner output is advisory until validation/commit.
 - Scene-function and responder selection no longer use legacy keyword scene candidates or raw actor-name matching. Missing semantic move input degrades through `semantic_move_required`.
 
@@ -132,7 +133,7 @@ planner selects direction -> model realizes proposal -> validation checks -> com
 
 11. `quote_moment_policy` allows exact quote anchors only as rare, moment-locked short anchors. The default remains paraphrase or transformation. Exact quote use requires a matching canonical path step, a beat that needs source pressure, speaker/context match, and a not-recently-used check.
 
-12. `capability_manager_plan` is the director's dynamic execution gate. It records decision inputs, selected capabilities, required capabilities, optional capabilities, suppressed capabilities, and per-capability steps. The runtime should use it to activate only the chosen dramatic capability branches for the turn instead of running every possible branch.
+12. `capability_manager_plan` is the director's dynamic execution gate. It records decision inputs, selected capabilities, required capabilities, optional capabilities, suppressed capabilities, and per-capability steps. The runtime should use it to activate only the chosen dramatic capability branches for the turn instead of running every possible branch. Every selected capability must also pass a bounded dispatch-path audit: one path per capability, no recursive dispatch, no queue expansion during execution, terminal node required, and per-path cycle/depth checks before the capability enters the executable dispatch queue.
 
 13. Planner fields must use machine-readable, inspectable labels. They must not contain free-form psychological claims, long prose plans, hidden-truth assertions, or generated narrative text as authority.
 
@@ -154,6 +155,7 @@ planner selects direction -> model realizes proposal -> validation checks -> com
 - The director can now recognize content-authored speech moments and produce a bounded dialogue plan rather than leaving speech to generic responder heuristics.
 - Exact source quotes are available only as short moment-locked anchors, which supports precision without continuous verbatim use.
 - Runtime capability selection becomes inspectable and selective: the director can choose the minimal dramatic capability set for the turn.
+- Capability dispatch is finite by contract: attached capabilities are checked path-by-path, and invalid, unknown, suppressed, over-deep, or cyclic paths are rejected before execution hints are exposed.
 - The model receives more concrete dramatic direction without gaining truth authority.
 - Operator/debug surfaces can inspect why a turn was shaped a certain way through structured planner fields.
 - The implementation advances the semantic dramatic planner roadmap while preserving the existing LangGraph topology and commit seams.
@@ -162,7 +164,7 @@ planner selects direction -> model realizes proposal -> validation checks -> com
 
 - `ScenePlanRecord` is larger and downstream consumers must continue treating it as advisory.
 - Overly broad planner labels could become pseudo-truth if future code reads them as committed facts.
-- Capability-manager output can become misleading if future capabilities are added without updating the director's selection rules.
+- Capability-manager output can become misleading if future capabilities are added without updating the director's selection rules and dispatch path registry.
 - Dialogue-plan beats can become too mechanical if the beat library is treated as prose template authority rather than structured direction.
 - The current implementation is still short-horizon and GoC-specific; it should not be marketed as full dramatic intelligence or long-horizon story planning.
 - Missing semantic move payloads now produce a neutral fallback; upstream AI
@@ -174,6 +176,7 @@ planner selects direction -> model realizes proposal -> validation checks -> com
 - Add policy/YAML-backed mappings if target functions, actor directives, pressure functions, or beat templates need authoring control.
 - Expand dramatic-effect validation to inspect `scene_target`, `actor_directives`, `handover_policy`, `dramatic_beats`, and `continuity_obligation` more deeply.
 - Expand validator coverage for `speech_policy`, `dialogue_plan`, `quote_moment_policy`, and `capability_manager_plan`.
+- Keep the capability dispatch-path registry in lockstep with any newly introduced dramatic capability; unknown capabilities should fail closed.
 - Move more dialogue-step profiles from code into authored content once the shape stabilizes.
 - Only generalize beyond GoC after the GoC planner remains stable under regression and live/staging evidence.
 - If future modules need different scene-function mappings, author those as
@@ -221,6 +224,7 @@ flowchart TD
 Current verification:
 
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/goc_yaml_authority.py ai_stack/scene_plan_contract.py ai_stack/semantic_scene_planner.py ai_stack/langgraph_runtime_executor.py`
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_director_capability_manager.py -q --tb=short`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_scene_planner.py ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_goc_structured_setting_knowledge.py -q --tb=short` - 23 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_planner_graph_authority.py -q --tb=short` - 7 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_scene_director_goc_extended.py ai_stack/tests/test_scene_direction_subdecision_matrix.py -q --tb=short` - 159 passed
@@ -233,6 +237,7 @@ Failure modes that require ADR review:
 - `ScenePlanRecord` becomes a second canonical session state store.
 - Generated prose becomes the primary oracle for planner tests.
 - The capability manager plan is ignored and every dramatic branch runs regardless of director selection.
+- A selected capability can recurse, expand the dispatch queue, or execute without an individual terminal path audit.
 - Exact quote anchors are used continuously rather than only at moment-locked beats.
 - Raw player text, actor names, or off-scope topic words route scene candidates
   without an AI semantic move payload.
@@ -245,6 +250,7 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 - [MVP Semantic Dramatic Planner roadmap](../MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md)
 - [Canonical GoC turn contract](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - `ai_stack/semantic_scene_planner.py`
+- `ai_stack/director_capability_manager.py`
 - `ai_stack/scene_plan_contract.py`
 - `ai_stack/goc_yaml_authority.py`
 - `ai_stack/scene_director_goc.py`

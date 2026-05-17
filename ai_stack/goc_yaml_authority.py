@@ -8,6 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+import unicodedata
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.goc_scene_identity import (
@@ -511,6 +512,10 @@ def goc_actor_identity(
 ) -> dict[str, str]:
     ref = str(actor_id_or_ref or "").strip()
     ref_low = ref.lower()
+    ref_folded = "".join(
+        ch for ch in unicodedata.normalize("NFKD", ref_low)
+        if not unicodedata.combining(ch)
+    )
     index = goc_actor_identity_index(yaml_slice)
     if ref in index:
         return dict(index[ref])
@@ -521,7 +526,16 @@ def goc_actor_identity(
             str(row.get("name") or "").strip(),
             str(row.get("first_name") or "").strip(),
         }
-        if ref and (ref in aliases or ref_low in {alias.lower() for alias in aliases if alias}):
+        alias_lows = {alias.lower() for alias in aliases if alias}
+        alias_folded = {
+            "".join(
+                ch for ch in unicodedata.normalize("NFKD", alias.lower())
+                if not unicodedata.combining(ch)
+            )
+            for alias in aliases
+            if alias
+        }
+        if ref and (ref in aliases or ref_low in alias_lows or ref_folded in alias_folded):
             return dict(row)
     return {}
 

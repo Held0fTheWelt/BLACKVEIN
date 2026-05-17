@@ -96,6 +96,7 @@ function _shellDisplayText(block) {
  * via setConfig({ beat_profiles: {…} }) for runtime tuning. */
 const DEFAULT_BEAT_PROFILES = {
   default:     { cps: 44, jitter: 0.12, cursor: 'default',  atmosphere: 'beat--default',  pause_before: 0,   pause_after: 250 },
+  boot:        { cps: 76, jitter: 0.04, cursor: 'boot',     atmosphere: 'beat--boot',     pause_before: 80,  pause_after: 220 },
   role_anchor: { cps: 28, jitter: 0.08, cursor: 'anchor',   atmosphere: 'beat--anchor',   pause_before: 320, pause_after: 480 },
   tension:     { cps: 62, jitter: 0.18, cursor: 'tension',  atmosphere: 'beat--tension',  pause_before: 0,   pause_after: 180 },
   escalation:  { cps: 62, jitter: 0.18, cursor: 'tension',  atmosphere: 'beat--tension',  pause_before: 0,   pause_after: 180 },
@@ -200,7 +201,12 @@ class TypewriterEngine {
       return;
     }
     const profile = this._profileFor(block);
-    const cps = (options && options.cps_override) || this.config.characters_per_second || profile.cps || 44;
+    const deliveryCps = Number(block && block.delivery && block.delivery.characters_per_second);
+    const cps = (options && options.cps_override)
+      || (Number.isFinite(deliveryCps) && deliveryCps > 0 ? deliveryCps : null)
+      || this.config.characters_per_second
+      || profile.cps
+      || 44;
     const base_interval = 1000 / cps;
     const cinematic = !!this.config.cinematic && !this.test_mode;
     const lead_in = cinematic

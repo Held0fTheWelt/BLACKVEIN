@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
+from ai_stack.goc_yaml_authority import goc_actor_display_name, goc_actor_identity
 from ai_stack.prompt_store import render_prompt
 
 
@@ -37,11 +38,39 @@ def _social_state_record(last_diagnostic: dict[str, Any] | None) -> dict[str, An
     return {}
 
 
+def _responder_label(responder_actor: str | None) -> str:
+    return goc_actor_display_name(responder_actor, first_name=True) if responder_actor else "Someone"
+
+
+def _actor_blob(responder_actor: str | None) -> str:
+    ident = goc_actor_identity(responder_actor)
+    return " ".join(
+        str(ident.get(key) or "")
+        for key in (
+            "actor_id",
+            "character_key",
+            "name",
+            "role",
+            "playable_status",
+            "household_side",
+        )
+    ).lower()
+
+
+def _actor_has(responder_actor: str | None, *terms: str) -> bool:
+    blob = _actor_blob(responder_actor)
+    return bool(blob) and all(str(term or "").lower() in blob for term in terms)
+
+
+def _actor_has_any(responder_actor: str | None, *terms: str) -> bool:
+    blob = _actor_blob(responder_actor)
+    return bool(blob) and any(str(term or "").lower() in blob for term in terms)
+
+
 def _responder_social_side(responder_actor: str | None) -> str:
-    actor = (responder_actor or "").strip().lower()
-    if actor in {"veronique", "michel"}:
+    if _actor_has(responder_actor, "host"):
         return "host side"
-    if actor in {"annette", "alain"}:
+    if _actor_has(responder_actor, "guest"):
         return "guest side"
     return "room side"
 
@@ -257,7 +286,7 @@ def _continued_wound_now(*, open_pressures: list[str], social_state: dict[str, A
 
 def _role_pressure_now(*, social_state: dict[str, Any], responder_actor: str | None) -> str:
     asym = str(social_state.get("responder_asymmetry_code") or "")
-    actor = responder_actor.title() if responder_actor else "Someone"
+    actor = _responder_label(responder_actor)
     if asym == "blame_on_host_spouse_axis":
         return f"{actor} is carrying host-side pressure; the room is reading this as a boundary problem, not a neutral act."
     if asym == "blame_under_repair_tension":
@@ -286,16 +315,16 @@ def _dominant_social_reading_now(*, current_scene_id: str, open_pressures: list[
 
 def _social_axis_now(*, open_pressures: list[str], social_state: dict[str, Any], responder_actor: str | None) -> str:
     asym = str(social_state.get("responder_asymmetry_code") or "")
-    actor = responder_actor.title() if responder_actor else "Someone"
+    actor = _responder_label(responder_actor)
     if asym == "blame_on_host_spouse_axis":
         return f"The host side and spouse axis are carrying the weight; {actor} is taking the room's boundary reading."
     if asym == "blame_under_repair_tension":
         return "The spouse axis is still carrying embarrassment while the room pretends to repair itself."
     if asym == "alliance_reposition_active" or _contains_any(open_pressures, "alliance"):
         return "Cross-couple strain is carrying more of the pressure than ordinary blame."
-    if responder_actor and responder_actor.lower() in {"annette", "alain"}:
+    if _responder_social_side(responder_actor) == "guest side":
         return f"The guest side is carrying more of the visible reading through {actor}."
-    if responder_actor and responder_actor.lower() in {"veronique", "michel"}:
+    if _responder_social_side(responder_actor) == "host side":
         return f"The host side is carrying more of the visible reading through {actor}."
     return "The room is sorting pressure through social sides rather than neutrally."
 
@@ -306,9 +335,9 @@ def _host_guest_pressure_now(*, open_pressures: list[str], social_state: dict[st
         return "Host-side pressure is carrying more of the room; the guests have more room to watch than absorb."
     if asym == "alliance_reposition_active" or _contains_any(open_pressures, "alliance"):
         return "Pressure is bouncing across host and guest lines rather than staying parked on one side."
-    if responder_actor and responder_actor.lower() in {"annette", "alain"}:
+    if _responder_social_side(responder_actor) == "guest side":
         return "Guest-side pressure is more visible than host-side calm right now."
-    if responder_actor and responder_actor.lower() in {"veronique", "michel"}:
+    if _responder_social_side(responder_actor) == "host side":
         return "Host-side pressure is more visible than guest-side ease right now."
     return "Pressure is moving across host and guest lines rather than staying evenly shared."
 
@@ -571,9 +600,9 @@ def _social_geometry_now(*, open_pressures: list[str], social_state: dict[str, A
         return "The spouse axis is carrying more embarrassment than the room is willing to admit outright."
     if current_scene_id == "hallway_threshold" or _contains_any(open_pressures, "exit", "departure"):
         return "Departure pressure is running through the couples as much as between them."
-    if responder_actor and responder_actor.lower() in {"annette", "alain"}:
+    if _responder_social_side(responder_actor) == "guest side":
         return "The guest side is carrying more of the visible reading than the host side right now."
-    if responder_actor and responder_actor.lower() in {"veronique", "michel"}:
+    if _responder_social_side(responder_actor) == "host side":
         return "The host side is carrying more of the visible reading than the guest side right now."
     return "Pressure is moving across the room's sides rather than staying evenly shared."
 
@@ -745,9 +774,8 @@ def _response_voice_phrase_now(*, social_state: dict[str, Any], responder_actor:
 
 
 def _response_performance_signature_now(*, responder_actor: str | None, selected_scene_function: str, current_scene_id: str, open_pressures: list[str], consequences: list[str]) -> str:
-    actor = (responder_actor or "").strip().lower()
     values = open_pressures + consequences
-    if actor == "veronique":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "moral", "ideal"):
         if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
             return "a principle-first rebuke that uses civility as correction"
         if _contains_any(values, "book", "art"):
@@ -755,7 +783,7 @@ def _response_performance_signature_now(*, responder_actor: str | None, selected
         if selected_scene_function == "repair_or_stabilize":
             return "a strained appeal to principle that keeps the room answerable"
         return "a wounded moral indictment that refuses to let the hurt sound private"
-    if actor == "michel":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "practical", "conflict", "spouse"):
         if selected_scene_function == "withhold_or_evade":
             return "a practical retreat that tries to slide pressure sideways"
         if _contains_any(values, "flower", "tulip"):
@@ -765,7 +793,7 @@ def _response_performance_signature_now(*, responder_actor: str | None, selected
         if selected_scene_function == "repair_or_stabilize":
             return "a smoothing deflection that buys calm by giving ground"
         return "a pragmatic sidestep that keeps loyalty blurred"
-    if actor == "annette":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "injured", "mother", "pressure holder", "observer"):
         if current_scene_id == "bathroom_recovery" or _contains_any(values, "cleanup", "bathroom", "vomit", "contamination"):
             return "a contemptuous dismantling that makes concern sound naive"
         if selected_scene_function == "repair_or_stabilize":
@@ -773,7 +801,7 @@ def _response_performance_signature_now(*, responder_actor: str | None, selected
         if _contains_any(values, "book", "art"):
             return "a cutting contradiction that treats principle as performance"
         return "a contemptuous dismantling that strips courtesy down to appetite"
-    if actor == "alain":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "lawyer", "pragmatist", "procedure"):
         if selected_scene_function == "withhold_or_evade" or _contains_any(values, "phone"):
             return "a tired evasive hedge dressed up as mediation"
         if selected_scene_function == "repair_or_stabilize":
@@ -783,27 +811,26 @@ def _response_performance_signature_now(*, responder_actor: str | None, selected
 
 
 def _response_mask_slip_now(*, responder_actor: str | None, selected_scene_function: str, current_scene_id: str, open_pressures: list[str], consequences: list[str]) -> str:
-    actor = (responder_actor or "").strip().lower()
     values = open_pressures + consequences
-    if actor == "veronique":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "moral", "ideal"):
         if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
             return "civility hardening into correction"
         if _contains_any(values, "book", "art"):
             return "principle hardening into judgment"
         return "principle covering visible hurt"
-    if actor == "michel":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "practical", "conflict", "spouse"):
         if _contains_any(values, "flower", "tulip", "rum", "drink", "glass", "hosting", "table", "coffee table") or selected_scene_function == "repair_or_stabilize":
             return "smoothing starting to read as capitulation"
         if selected_scene_function == "withhold_or_evade":
             return "practical calm slipping into retreat"
         return "conciliation keeping loyalty blurred"
-    if actor == "annette":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "injured", "mother", "pressure holder", "observer"):
         if current_scene_id == "bathroom_recovery" or _contains_any(values, "cleanup", "bathroom", "vomit", "contamination"):
             return "intellectual distance hardening into contempt"
         if _contains_any(values, "book", "art"):
             return "wit exposing morality as pose"
         return "provocation stripping courtesy bare"
-    if actor == "alain":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "lawyer", "pragmatist", "procedure"):
         if selected_scene_function == "withhold_or_evade" or _contains_any(values, "phone"):
             return "mediation thinning into evasion"
         if selected_scene_function == "repair_or_stabilize":
@@ -813,21 +840,20 @@ def _response_mask_slip_now(*, responder_actor: str | None, selected_scene_funct
 
 
 def _response_recentering_pull_now(*, responder_actor: str | None, selected_scene_function: str, current_scene_id: str, open_pressures: list[str], consequences: list[str]) -> str:
-    actor = (responder_actor or "").strip().lower()
     values = open_pressures + consequences
-    if actor == "veronique":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "moral", "ideal"):
         if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
             return "pull the moment back under principle instead of letting the exit close it"
         return "pull the room back toward answerability instead of comfort"
-    if actor == "michel":
+    if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "practical", "conflict", "spouse"):
         if _contains_any(values, "flower", "tulip", "rum", "drink", "glass", "hosting", "table", "coffee table"):
             return "pull the room back toward manners instead of open alignment"
         return "pull the room toward accommodation instead of a clean side"
-    if actor == "annette":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "injured", "mother", "pressure holder", "observer"):
         if _contains_any(values, "book", "art"):
             return "pull the room back to exposed contradiction instead of letting manners cover it"
         return "pull the room toward exposure instead of polite cover"
-    if actor == "alain":
+    if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "lawyer", "pragmatist", "procedure"):
         if selected_scene_function == "withhold_or_evade" or _contains_any(values, "phone"):
             return "pull the room toward manageability without ever resolving it"
         return "pull the room toward temporary calm without mastering it"
@@ -1050,7 +1076,6 @@ def _response_rhythm_pressure_hook_now(*, previous_reply_context: dict[str, Any]
         open_pressures=open_pressures,
         consequences=consequences,
     )
-    actor = (responder_actor or "").strip().lower()
     previous_exchange = str(previous_reply_context.get("exchange_label") or "").strip() if isinstance(previous_reply_context, dict) else ""
     previous_surface = str(previous_reply_context.get("surface_token") or "").strip() if isinstance(previous_reply_context, dict) else ""
     earlier_exchange = str(earlier_reply_context.get("exchange_label") or "").strip() if isinstance(earlier_reply_context, dict) else ""
@@ -1060,16 +1085,16 @@ def _response_rhythm_pressure_hook_now(*, previous_reply_context: dict[str, Any]
 
     if current_exchange == "evasive pressure":
         if same_surface and previous_exchange in {"accusation", "status judgment", "exposure"}:
-            if actor == "alain":
+            if _actor_has(responder_actor, "guest") and _actor_has_any(responder_actor, "lawyer", "pragmatist", "procedure"):
                 return f"buying a beat on the same {current_surface} instead of answering it"
-            if actor == "michel":
+            if _actor_has(responder_actor, "host") and _actor_has_any(responder_actor, "practical", "conflict", "spouse"):
                 return f"talking across the same {current_surface} instead of settling it"
             return f"letting a beat hang on the same {current_surface} instead of answering it"
         if same_surface and previous_exchange in {"failed repair", "brittle repair", "containment"}:
             return f"letting the same {current_surface} hang for a beat instead of settling it"
 
     if previous_exchange == "evasive pressure" and current_exchange in {"accusation", "status judgment", "exposure", "failed repair", "brittle repair", "containment"} and same_surface:
-        if actor in {"annette", "veronique"}:
+        if _actor_has_any(responder_actor, "moral", "ideal", "injured", "mother", "pressure holder", "observer"):
             return f"cutting back in before the dodge on the same {current_surface} can go quiet"
         return f"cutting back across the dodge on the same {current_surface} before it can settle"
 

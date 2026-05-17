@@ -15,10 +15,11 @@ Accepted
 - `frontend/static/play_block_renderer.js`: block rendering with `block_type` semantic distinction; optional `narration_beat` on narrator blocks for presentation (e.g. opening **role anchor** uses extra CSS class).
 - `frontend/static/style.css`: distinct lane chrome per `block_type` (including `player_input_outcome`, narrator role-anchor accent).
 - `frontend/static/play_shell.js`: orchestrates renderer + typewriter + controls.
+- `frontend/static/play_runtime_bootstrap.js`: shell-owned DOS-style startup bootstrap. It can prepend a player-visible `system_boot` block with `narration_beat: "boot"` before the first Director-owned story slice, deriving readiness lines from the bootstrap payload (`runtime_session_ready`, `can_execute`, `session_loop`, `shell_state_view`, `visible_scene_output`, and optional scene/capability plan fields). This block is a runtime UI handoff, not committed narrative content.
 - Legacy fallback: if `typewriter_slice_start_index` absent, last block is animated (pre-2026-05 behavior preserved).
 - `appendNarratorBlock()` finalizes in-flight typewriter before starting delivery for streamed blocks.
 - No debug surface in player UI (operator diagnostics stay in Langfuse / explicit diagnostic endpoints).
-- Jest tests: `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js`, `frontend/tests/test_block_renderer.js`.
+- Jest tests: `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js`, `frontend/tests/test_block_renderer.js`, `frontend/tests/test_runtime_bootstrap.js`.
 
 **World-Engine — committed visible block shaping (God of Carnage live path):**
 - **Invariant (no fixed card count):** The number of NPC transcript cards per turn is **not** a product constant; it emerges from structured rows, split/merge policy, validation, and prune rules. Tests assert **invariants** (no megablock jam, no colon stutter, no redundant action lane), not a fixed DOM node count.
@@ -77,6 +78,8 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 10. **Direct narrator-tail cleanup (presentation-only):** The player-facing card builder may remove a **directly adjacent** story-lane NPC card when a preceding narrator card already fully subsumes that NPC visible text under the redundancy guardrails; this affects only the rendered player-card projection (`visible_scene_output.blocks`) and does **not** modify committed semantic runtime `scene_blocks`.
 
+11. **Runtime bootstrap is shell-owned, not narrative-owned:** On initial page bootstrap only, the shell may prepend a `system_boot` block before `visible_scene_output.blocks` and set the displayed payload's `typewriter_slice_start_index` to `0` so the boot and then the narrative slice type sequentially. The required command line is `C:\WOS> START DIRECTOR_TICK`; subsequent warmup lines report system readiness for manager/dispatcher/capability/content/session surfaces from the payload when present and fall back to explicit `STANDBY` / `PENDING` / `WAITING` states when not present. This boot block must not be persisted as a story-window entry and must not be injected for ordinary turn updates unless a caller explicitly requests a bootstrap mode.
+
 ## Consequences
 
 ### Positive
@@ -122,7 +125,7 @@ flowchart LR
 - Backend: `tests/test_game_routes.py` (Langfuse player-input hash on canonical turn; ADR-0033 §13.6).
 - Backend: `tests/test_session_routes.py` (`test_execute_turn_langfuse_correlates_player_input_hash`; operator path §13.6).
 - World-Engine: `tests/test_trace_middleware.py` (`test_world_engine_turn_execute_langfuse_correlates_player_input_hash`; ADR-0033 §13.6).
-- Frontend: Jest — `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; `typewriter_slice_start_index` sequential delivery when present; **deferred slice DOM mount** + `revealAll` / accessibility mount missing blocks; legacy last-block fallback when absent). Run via `npm test` in `frontend/`, orchestrated after pytest by `python tests/run_tests.py --suite frontend` or `--mvp5`.
+- Frontend: Jest — `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; `typewriter_slice_start_index` sequential delivery when present; **deferred slice DOM mount** + `revealAll` / accessibility mount missing blocks; legacy last-block fallback when absent), `frontend/tests/test_runtime_bootstrap.js` (DOS boot block construction, no duplicate boot injection, explicit opt-out modes). Run via `npm test` in `frontend/`, orchestrated after pytest by `python tests/run_tests.py --suite frontend` or `--mvp5`.
 - World-Engine: `world-engine/tests/test_goc_multi_speaker_actor_line_split.py`, `world-engine/tests/test_goc_player_input_greeting_imperative.py` (split / prune / two-card player transcript).
 
 CI environments that run shell gates must install frontend npm devDependencies so Jest can execute.
@@ -137,6 +140,7 @@ CI environments that run shell gates must install frontend npm devDependencies s
 - `world-engine/app/story_runtime/manager.py` (`_finalize_visible_blocks_with_goc_actor_split`, `_player_input_scene_blocks_for_story_window`, `_annotate_goc_opening_narration_beats`)
 - `ai_stack/goc_npc_transcript_projection.py`, `ai_stack/story_runtime_experience.py`, `ai_stack/goc_turn_seams.py` (`run_visible_render` diagnostics)
 - `frontend/static/play_shell.js`
+- `frontend/static/play_runtime_bootstrap.js`
 - `frontend/static/play_blocks_orchestrator.js`
 - `frontend/static/play_typewriter_engine.js`
 - `frontend/static/play_block_renderer.js`

@@ -61,25 +61,25 @@ class TestBackendWorldEngineHandoffContract:
     """Verify Contract 1: Backend sends complete actor ownership to world-engine."""
 
     def test_create_story_session_payload_includes_human_actor_id(self):
-        """POST /api/story/sessions must include human_actor_id."""
+        """POST /api/story/sessions must include the canonical human_actor_id."""
         # Live backend→world-engine call
         session_id = self._create_story_session_annette()
         response = self._fetch_story_state(session_id)
-        assert response["runtime_projection"]["human_actor_id"] == "annette"
+        assert response["runtime_projection"]["human_actor_id"] == "annette_reille"
 
     def test_create_story_session_payload_includes_npc_actor_ids(self):
         """POST /api/story/sessions must include npc_actor_ids."""
         session_id = self._create_story_session_alain()
         response = self._fetch_story_state(session_id)
-        assert "veronique" in response["runtime_projection"]["npc_actor_ids"]
-        assert "michel" in response["runtime_projection"]["npc_actor_ids"]
+        assert "veronique_vallon" in response["runtime_projection"]["npc_actor_ids"]
+        assert "michel_longstreet" in response["runtime_projection"]["npc_actor_ids"]
 
     def test_create_story_session_payload_includes_actor_lanes(self):
         """POST /api/story/sessions must include actor_lanes."""
         session_id = self._create_story_session_annette()
         response = self._fetch_story_state(session_id)
-        assert response["runtime_projection"]["actor_lanes"]["annette"] == "human"
-        assert response["runtime_projection"]["actor_lanes"]["veronique"] == "npc"
+        assert response["runtime_projection"]["actor_lanes"]["annette_reille"] == "human"
+        assert response["runtime_projection"]["actor_lanes"]["veronique_vallon"] == "npc"
 
     def test_create_story_session_payload_includes_runtime_profile_id(self):
         """POST /api/story/sessions must include runtime_profile_id."""
@@ -100,19 +100,21 @@ class TestBackendWorldEngineHandoffContract:
         response = self._fetch_story_state(session_id)
         assert response["runtime_projection"]["content_module_id"] == "god_of_carnage"
 
-    def test_human_actor_id_matches_selected_player_role(self):
-        """human_actor_id must equal selected_player_role."""
-        for role in ["annette", "alain"]:
+    def test_human_actor_id_resolves_from_selected_player_role(self):
+        """human_actor_id must resolve from selected_player_role through content identity."""
+        expected = {"annette": "annette_reille", "alain": "alain_reille"}
+        for role, actor_id in expected.items():
             session_id = self._create_story_session(role)
             response = self._fetch_story_state(session_id)
-            assert response["runtime_projection"]["human_actor_id"] == role
+            assert response["runtime_projection"]["selected_player_role"] == role
+            assert response["runtime_projection"]["human_actor_id"] == actor_id
 
     def test_actor_lanes_maps_all_canonical_actors(self):
         """actor_lanes must map all canonical actors, not partial set."""
         session_id = self._create_story_session_annette()
         response = self._fetch_story_state(session_id)
         lanes = response["runtime_projection"]["actor_lanes"]
-        assert set(lanes.keys()) == {"annette", "alain", "veronique", "michel"}
+        assert set(lanes.keys()) == {"annette_reille", "alain_reille", "veronique_vallon", "michel_longstreet"}
 
     def test_actor_lanes_exclude_visitor(self):
         """actor_lanes must NOT include visitor."""
@@ -483,4 +485,3 @@ A contract is **verified** when:
 - `tests/run_tests.py` — Test runner and suite configuration
 - `tests/TESTING.md` — Testing guidelines and pytest markers
 - `.github/workflows/` — CI/CD pipeline configuration
-

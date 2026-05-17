@@ -45,7 +45,6 @@ def _content_actor_aliases(actor_id: str) -> set[str]:
         if val:
             aliases.add(val)
     return aliases
-}
 
 
 def goc_shell_display_firstname(actor_id: str) -> str:

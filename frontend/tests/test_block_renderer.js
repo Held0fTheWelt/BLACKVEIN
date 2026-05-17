@@ -216,6 +216,19 @@ describe('BlockRenderer', () => {
       expect(el.textContent).toBe('');
     });
 
+    test('should render runtime system boot as player-visible shell output', () => {
+      const el = renderer.render({
+        id: 'runtime-dos-boot',
+        block_type: 'system_boot',
+        narration_beat: 'boot',
+        text: 'C:\\WOS> START DIRECTOR_TICK',
+      });
+      expect(el.getAttribute('data-player-visible')).toBe('true');
+      expect(el.getAttribute('data-narration-beat')).toBe('boot');
+      expect(el.className).toContain('scene-block--system_boot');
+      expect(el.textContent).toBe('C:\\WOS> START DIRECTOR_TICK');
+    });
+
     test('should add role-anchor class and data-narration-beat for opening role anchor narrator', () => {
       const el = renderer.render({
         id: 'turn-0-live-block-3',

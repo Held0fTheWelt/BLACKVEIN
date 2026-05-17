@@ -13,6 +13,15 @@ natural-language meaning is resolved by the AI semantic adapter using
 `session_input_language`, internal English normalization, and the
 content-derived semantic catalog.
 
+In the canonical LangGraph turn path, raw player text enters
+`translate_player_input` before `interpret_input`. That node prepares the
+semantic language-adapter contract, asks the configured model for bounded
+`semantic_action` / `semantic_move` payloads when available, and records
+`input_translation` diagnostics. Later graph nodes consume the normalized
+English evidence instead of re-grounding German or other session input directly
+against English-authored content. This ordering rule is captured in
+[ADR-0055](../../ADR/adr-0055-semantic-player-input-translation-ingress.md).
+
 ## Input
 
 - `raw_text`: original player text.
@@ -190,7 +199,10 @@ normalizing input to English and grounding it against content.
   inside the World-Engine turn graph (`interpreted_input` on the turn envelope),
   after semantic AI resolution has had access to the session language contract
   and content-derived catalog.
-- The backend may expose `backend_interpretation_preview` on session routes for debugging; it is **not** a second runtime truth and may be compared to the graph output for drift checks only.
+- The backend may expose `backend_semantic_translation_preview` and
+  `backend_interpretation_preview` on session routes for debugging; these are
+  **not** a second runtime truth and may be compared to the graph output for
+  drift checks only.
 
 ## Command compatibility policy
 
@@ -212,10 +224,14 @@ Natural language input is treated as the default story-play path end-to-end:
 1. Frontend shell form (`/play/<run_id>/execute`) submits `operator_input`.
 2. Frontend route forwards the text to backend session turns as `player_input`.
 3. Backend route (`POST /api/v1/sessions/<session_id>/turns`) may create a thin
-   structural preview and proxies execution to the World-Engine story runtime.
+   semantic-contract/structural preview and proxies execution to the
+   World-Engine story runtime.
 4. World-Engine runtime executes the turn through `RuntimeTurnGraphExecutor`,
-   where semantic AI resolution, normalized English grounding evidence, and
-   interpreted input affect routing, model prompt shaping, and execution
-   behavior.
+   whose first node is `translate_player_input`; only after that does
+   `interpret_input` build the runtime intent surface.
+5. Retrieval, action resolution, scene direction, model prompt shaping, and
+   diagnostics use `normalized_english_text` and bounded semantic payloads when
+   present, while preserving the original player input for visible echo and
+   audit evidence.
 
 Slash-command input remains supported (`/look`, `/inspect`, `!` forms), but it is handled as an explicit command specialization within the same turn execution pipeline.

@@ -224,6 +224,7 @@ from ai_stack.runtime_cost_attribution import (
 )
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.goc_yaml_authority import goc_actor_identity
 from ai_stack.goc_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
@@ -326,6 +327,17 @@ def _require_non_empty_string(value: Any, field_name: str) -> str:
     return text
 
 
+def _resolve_goc_runtime_actor_id(actor_ref: str) -> str:
+    ref = str(actor_ref or "").strip()
+    if not ref:
+        return ""
+    identity = goc_actor_identity(ref)
+    actor_id = str(identity.get("actor_id") or "").strip()
+    if actor_id:
+        return actor_id
+    return str(canonicalize_goc_actor_id(ref) or ref).strip()
+
+
 def _validate_runtime_projection_contract(module_id: str, runtime_projection: dict[str, Any]) -> None:
     if module_id != GOD_OF_CARNAGE_MODULE_ID:
         return
@@ -344,9 +356,11 @@ def _validate_runtime_projection_contract(module_id: str, runtime_projection: di
         runtime_projection.get("selected_player_role"),
         "selected_player_role",
     )
-    if selected_player_role != human_actor_id:
+    resolved_selected_actor_id = _resolve_goc_runtime_actor_id(selected_player_role)
+    resolved_human_actor_id = _resolve_goc_runtime_actor_id(human_actor_id)
+    if resolved_selected_actor_id != resolved_human_actor_id:
         raise StorySessionContractError(
-            "selected_player_role must match human_actor_id for the canonical single-human live runtime path."
+            "selected_player_role must resolve to human_actor_id for the canonical single-human live runtime path."
         )
 
     raw_npc_actor_ids = runtime_projection.get("npc_actor_ids")
@@ -355,7 +369,7 @@ def _validate_runtime_projection_contract(module_id: str, runtime_projection: di
     npc_actor_ids = [str(item).strip() for item in raw_npc_actor_ids if str(item).strip()]
     if not npc_actor_ids:
         raise StorySessionContractError("npc_actor_ids must contain non-empty actor ids.")
-    if human_actor_id in npc_actor_ids:
+    if resolved_human_actor_id in {_resolve_goc_runtime_actor_id(actor_id) for actor_id in npc_actor_ids}:
         raise StorySessionContractError("human_actor_id cannot also appear in npc_actor_ids.")
 
     actor_lanes = runtime_projection.get("actor_lanes")

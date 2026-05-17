@@ -27,6 +27,20 @@ canonical_path_step:
   quote_anchor_refs:
     - knowledge/opening_quote_anchors.yaml#quote_carrying
     - knowledge/opening_quote_anchors.yaml#quote_armed
+  dialogue_profile:
+    speech_function: statement_procedure
+    line_shape: short_statement_procedure_exchange
+    speech_required: true
+    beats:
+      - beat_pattern_ref: paraphrase_required_with_facts
+        actor_ref: veronique
+        intent: introduce_written_statement_as_shared_ground
+        quote_anchor_id: quote_carrying
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "a short procedural line that puts the written account in play"
+        required_facts:
+          - statement_in_play
+          - wording_has_consequence
 
   path_point:
     present:

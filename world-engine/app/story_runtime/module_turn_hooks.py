@@ -4,41 +4,30 @@ from __future__ import annotations
 
 from typing import Any
 
+from ai_stack.goc_yaml_authority import goc_actor_display_name, goc_actor_identity
+
 GOD_OF_CARNAGE_MODULE_ID = "god_of_carnage"
 
 
 def goc_player_role_display_name(selected_player_role: str | None) -> str | None:
-    """Explicit GoC compatibility display mapping for legacy short role ids."""
-    role = str(selected_player_role or "").strip().lower()
-    if role == "annette":
-        return "Annette Reille"
-    if role == "alain":
-        return "Alain Reille"
+    """Resolve legacy short role ids through the GoC content character documents."""
+    role = str(selected_player_role or "").strip()
+    ident = goc_actor_identity(role)
+    if ident and str(ident.get("playable_status") or "").strip() == "human_playable":
+        return str(ident.get("name") or "").strip() or None
     return None
 
 
 def goc_shell_actor_firstname(actor_id: str) -> str:
-    """Explicit GoC compatibility display mapping for actor shell text."""
+    """Resolve actor shell text through the GoC content character documents."""
     aid = str(actor_id or "").strip()
-    short = {
-        "veronique_vallon": "Véronique",
-        "annette_reille": "Annette",
-        "michel_longstreet": "Michel",
-        "alain_reille": "Alain",
-    }
-    return short.get(aid, aid.replace("_", " ").title() if aid else "Actor")
+    return goc_actor_display_name(aid, first_name=True)
 
 
 def goc_npc_shell_legal_name(responder_id: str) -> str:
-    """Explicit GoC compatibility display mapping for NPC diagnostic labels."""
+    """Resolve NPC diagnostic labels through the GoC content character documents."""
     rid = str(responder_id or "").strip()
-    names = {
-        "veronique_vallon": "Véronique Vallon",
-        "annette_reille": "Annette Reille",
-        "alain_reille": "Alain Reille",
-        "michel_longstreet": "Michel Longstreet",
-    }
-    return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
+    return goc_actor_display_name(rid)
 
 
 def goc_host_experience_template(runtime_projection: Any) -> dict[str, Any] | None:

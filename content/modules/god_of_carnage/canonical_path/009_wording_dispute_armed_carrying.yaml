@@ -15,6 +15,36 @@ canonical_path_step:
   quote_anchor_refs:
     - knowledge/opening_quote_anchors.yaml#quote_armed
     - knowledge/opening_quote_anchors.yaml#quote_carrying
+  dialogue_profile:
+    speech_function: wording_dispute
+    line_shape: short_contested_exchange
+    speech_required: true
+    beats:
+      - beat_pattern_ref: single_word_challenge
+        actor_ref: alain
+        intent: isolate_the_accusatory_word
+        quote_anchor_id: quote_armed
+        quote_use: exact_anchor_allowed
+        required_facts:
+          - "challenge_target_word: armed"
+        minimum_visible: "one word as a question, at most three words"
+        forces_response_chain:
+          target_actor_ref: veronique
+          target_intent: offer_compromise_word_carrying
+          required_state_change: statement_word_replaced
+          target_pattern_ref: paraphrase_required_with_facts
+          max_delay_seconds: 6
+      - beat_pattern_ref: paraphrase_required_with_facts
+        actor_ref: veronique
+        intent: offer_compromise_word_carrying
+        quote_anchor_id: quote_carrying
+        quote_use: exact_anchor_allowed
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "a short correction that offers the softer word"
+        required_facts:
+          - "replacement_word: carrying"
+          - statement_word_replaced
+        forced_by_previous_beat: true
 
   theme_threads:
     - euphemism_vs_accuracy

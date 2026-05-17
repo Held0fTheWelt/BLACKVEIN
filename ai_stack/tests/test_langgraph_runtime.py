@@ -51,6 +51,35 @@ class SuccessAdapter(BaseModelAdapter):
         return ModelCallResult(content="ok", success=True, metadata={"adapter": self.adapter_name})
 
 
+class SemanticTranslationAdapter(BaseModelAdapter):
+    adapter_name = "openai"
+
+    def __init__(self, semantic_action: dict, semantic_move: dict | None = None) -> None:
+        self.semantic_action = dict(semantic_action)
+        self.semantic_move = dict(semantic_move or {})
+        self.prompts: list[str] = []
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
+        self.prompts.append(prompt)
+        if "Resolve the player input before any story turn processing." in prompt:
+            payload = {"semantic_action": dict(self.semantic_action)}
+            if self.semantic_move:
+                payload["semantic_move"] = dict(self.semantic_move)
+            return ModelCallResult(
+                content=json.dumps(payload),
+                success=True,
+                metadata={"adapter": self.adapter_name, "model_name": model_name},
+            )
+        return ModelCallResult(content="ok", success=True, metadata={"adapter": self.adapter_name})
+
+
 class PromptCaptureAdapter(BaseModelAdapter):
     adapter_name = "mock"
 
@@ -191,6 +220,24 @@ def _build_graph_no_mock_fallback(tmp_path: Path) -> RuntimeTurnGraphExecutor:
     )
 
 
+def _build_graph_with_semantic_translation(tmp_path: Path, semantic_action: dict) -> RuntimeTurnGraphExecutor:
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("God of Carnage graph semantic translation sample.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    registry = build_default_registry()
+    routing = RoutingPolicy(registry)
+    translator = SemanticTranslationAdapter(semantic_action)
+    return RuntimeTurnGraphExecutor(
+        interpreter=interpret_player_input,
+        routing=routing,
+        registry=registry,
+        adapters={"mock": SuccessAdapter(), "openai": translator, "ollama": translator},
+        retriever=ContextRetriever(corpus),
+        assembler=ContextPackAssembler(),
+    )
+
+
 def test_runtime_turn_graph_propagates_trace_and_host_versions(tmp_path: Path) -> None:
     graph = _build_graph(tmp_path)
     result = graph.run(
@@ -212,16 +259,16 @@ def test_runtime_turn_graph_appends_interpretation_summary_to_model_prompt(tmp_p
         session_id="session_1",
         module_id="god_of_carnage",
         current_scene_id="scene_1",
-        player_input="open door wow",
+        player_input='"No, and do not dodge this."',
     )
     prompt = result.get("model_prompt") or ""
     assert "Runtime interpretation (structured):" in prompt
-    assert "- kind: mixed" in prompt
-    assert "- ambiguity: conflicting_action_reaction" in prompt
+    assert "- kind: speech" in prompt
+    assert "- ambiguity: None" in prompt
     assert "- runtime_delivery_hint:" in prompt
     interp = result.get("interpreted_input") or {}
-    assert interp.get("kind") == "mixed"
-    assert interp.get("ambiguity") == "conflicting_action_reaction"
+    assert interp.get("kind") == "speech"
+    assert interp.get("ambiguity") is None
 
 
 def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: Path) -> None:
@@ -402,7 +449,20 @@ def test_runtime_turn_graph_missing_mock_fallback_is_explicit_degraded(tmp_path:
 
 
 def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Path) -> None:
-    graph = _build_graph(tmp_path)
+    graph = _build_graph_with_semantic_translation(
+        tmp_path,
+        {
+            "normalized_english_text": "Go to the bathroom.",
+            "player_input_kind": "movement_action",
+            "action_kind": "movement",
+            "verb": "move_to",
+            "target_query_english": "bathroom",
+            "resolved_target_id": "bathroom",
+            "resolved_target_type": "location",
+            "commit_policy": "commit_action",
+            "confidence": "high",
+        },
+    )
     result = graph.run(
         session_id="session-action-1",
         module_id="god_of_carnage",
@@ -428,11 +488,19 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     )
     frame = result.get("player_action_frame") or {}
     aff = result.get("affordance_resolution") or {}
+    translation = result.get("input_translation") or {}
+    interpreted = result.get("interpreted_input") or {}
+    assert translation.get("status") == "resolved"
+    assert translation.get("normalized_english_text") == "Go to the bathroom."
+    assert interpreted.get("normalized_english_text") == "Go to the bathroom."
     assert frame.get("verb") == "move_to"
     assert frame.get("player_input_kind") == "movement_action"
     assert frame.get("resolved_target_id") == "bathroom"
+    assert frame.get("normalized_english_text") == "Go to the bathroom."
     assert aff.get("affordance_status") in {"allowed_offscreen", "allowed", "partial"}
     nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
+    assert nodes.index("translate_player_input") < nodes.index("interpret_input")
+    assert nodes.index("interpret_input") < nodes.index("resolve_player_action")
     assert "resolve_player_action" in nodes
     assert "authoritative_action_resolution" in nodes
     meta = (result.get("generation") or {}).get("metadata") or {}
@@ -467,7 +535,18 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
 
 
 def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:
-    graph = _build_graph(tmp_path)
+    graph = _build_graph_with_semantic_translation(
+        tmp_path,
+        {
+            "normalized_english_text": "Go to Mordor.",
+            "player_input_kind": "movement_action",
+            "action_kind": "movement",
+            "verb": "move_to",
+            "target_query_english": "Mordor",
+            "commit_policy": "needs_clarification",
+            "confidence": "low",
+        },
+    )
     result = graph.run(
         session_id="session-action-unknown",
         module_id="god_of_carnage",
@@ -490,6 +569,9 @@ def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledg
     ledger = result.get("turn_aspect_ledger") or {}
     action_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_ACTION_RESOLUTION) or {}
     actual = action_aspect.get("actual") or {}
+    translation = result.get("input_translation") or {}
+    assert translation.get("status") == "resolved"
+    assert translation.get("normalized_english_text") == "Go to Mordor."
     assert action_aspect.get("status") == "passed"
     assert actual.get("player_input_kind") == "movement_action"
     assert actual.get("verb") == "move_to"

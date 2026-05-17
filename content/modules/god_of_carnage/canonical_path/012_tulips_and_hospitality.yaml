@@ -20,6 +20,19 @@ canonical_path_step:
       source: objects/appartment_vallon/kitchen/glasses.yaml
   quote_anchor_refs:
     - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+  dialogue_profile:
+    speech_function: hospitality_small_talk_pressure
+    line_shape: safe_object_small_talk
+    speech_required: false
+    beats:
+      - beat_pattern_ref: amiable_echo
+        actor_ref: michel
+        intent: use_safe_object_compliment_to_delay_conflict
+        quote_anchor_id: quote_tulips_gorgeous
+        quote_use: exact_anchor_allowed
+        minimum_visible: "a brief object compliment"
+        required_facts:
+          - safe_small_talk_available
 
   theme_threads:
     - object_small_talk_as_delay

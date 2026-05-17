@@ -24,6 +24,43 @@ def _goc_projection(**overrides):
     return projection
 
 
+def _goc_annette_canonical_projection(**overrides):
+    projection = {
+        "module_id": "god_of_carnage",
+        "runtime_profile_id": "god_of_carnage_solo",
+        "runtime_module_id": "solo_story_runtime",
+        "runtime_mode": "solo_story",
+        "start_scene_id": "scene_1",
+        "scenes": [],
+        "selected_player_role": "annette",
+        "human_actor_id": "annette_reille",
+        "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+        "actor_lanes": {
+            "annette_reille": "human",
+            "alain_reille": "npc",
+            "veronique_vallon": "npc",
+            "michel_longstreet": "npc",
+        },
+    }
+    projection.update(overrides)
+    return projection
+
+
+def test_story_session_create_accepts_role_slug_with_canonical_human_actor(client, internal_api_key):
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": _goc_annette_canonical_projection(),
+        },
+    )
+
+    assert create_response.status_code == 200
+    body = create_response.json()
+    assert body["session_id"]
+
+
 def test_story_sessions_list_empty_then_populated(client, internal_api_key):
     list_empty = client.get("/api/story/sessions", headers=_headers(internal_api_key))
     assert list_empty.status_code == 200
@@ -380,4 +417,3 @@ def test_story_turn_rejected_recoverable_stays_http_200(client, internal_api_key
     turn = response.json()["turn"]
     assert turn["ok"] is False
     assert turn["turn_status"] == "rejected_recoverable"
-

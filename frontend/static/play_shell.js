@@ -62,11 +62,29 @@
     return null;
   }
 
-  function applyRuntimePayload(rawPayload) {
+  function payloadWithRuntimeBoot(payload, options) {
+    if (!options || !options.dos_boot) return payload;
+    const bootstrap = window.PlayRuntimeBootstrap;
+    if (!bootstrap || typeof bootstrap.withDosBootPayload !== "function") {
+      return payload;
+    }
+    return bootstrap.withDosBootPayload(payload);
+  }
+
+  function shouldUseRuntimeBoot(payload) {
+    const bootstrap = window.PlayRuntimeBootstrap;
+    if (!bootstrap || typeof bootstrap.shouldUseDosBoot !== "function") {
+      return true;
+    }
+    return bootstrap.shouldUseDosBoot(payload);
+  }
+
+  function applyRuntimePayload(rawPayload, options) {
     const payload = parsePayload(rawPayload);
     if (!payload) return false;
 
-    const blocks = extractBlocksFromPayload(payload);
+    const displayPayload = payloadWithRuntimeBoot(payload, options || {});
+    const blocks = extractBlocksFromPayload(displayPayload);
 
     if (!blocks) return false;
 
@@ -74,7 +92,7 @@
       mvp5Ready = initializeMVP5();
     }
     if (mvp5Ready && orchestrator) {
-      orchestrator.loadTurn(payload);
+      orchestrator.loadTurn(displayPayload);
       return true;
     }
 
@@ -94,14 +112,16 @@
   const bootstrapEl = document.getElementById("play-shell-bootstrap");
   if (bootstrapEl) {
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
-    const applied = applyRuntimePayload(bootstrapPayload);
-    const blocks = extractBlocksFromPayload(bootstrapPayload);
+    const bootstrapOptions = { dos_boot: shouldUseRuntimeBoot(bootstrapPayload) };
+    const applied = applyRuntimePayload(bootstrapPayload, bootstrapOptions);
+    const displayPayload = payloadWithRuntimeBoot(bootstrapPayload, bootstrapOptions);
+    const blocks = extractBlocksFromPayload(displayPayload);
     if (!applied && blocks && blocks.length) {
       if (!mvp5Ready) {
         mvp5Ready = initializeMVP5();
       }
       if (mvp5Ready && orchestrator) {
-        orchestrator.loadTurn(bootstrapPayload);
+        orchestrator.loadTurn(displayPayload);
       }
     }
   }

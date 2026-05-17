@@ -123,6 +123,7 @@ from ai_stack.dramatic_irony_runtime import (
     validate_dramatic_irony_realization,
 )
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
+from ai_stack.director_capability_manager import executable_capabilities_from_manager_plan
 from ai_stack.dramatic_capability_contracts import (
     AI_CONTROLLED_HUMAN_ACTOR_REASON,
     NPC_ACTION_GESTURE_OPTIONAL,
@@ -2373,11 +2374,12 @@ def _build_runtime_aspect_validation(
         else {}
     )
     if director_capability_plan.get("run_only_selected_capabilities"):
+        manager_executable_capabilities = executable_capabilities_from_manager_plan(director_capability_plan)
         for key in ("requested_capabilities", "selected_capabilities"):
             existing = capability_selection.get(key)
             if not isinstance(existing, list):
                 existing = []
-            for cap in director_capability_plan.get("selected_capabilities") or []:
+            for cap in manager_executable_capabilities:
                 text = str(cap or "").strip()
                 if text and text not in existing:
                     existing.append(text)
@@ -2387,10 +2389,13 @@ def _build_runtime_aspect_validation(
             existing_required = []
         for cap in director_capability_plan.get("required_capabilities") or []:
             text = str(cap or "").strip()
-            if text and text not in existing_required:
+            if text and text in manager_executable_capabilities and text not in existing_required:
                 existing_required.append(text)
         capability_selection["required_capabilities"] = existing_required
         capability_selection["director_capability_manager_plan"] = director_capability_plan
+        capability_selection["director_capability_dispatch_audit"] = director_capability_plan.get(
+            "capability_dispatch_audit"
+        )
         capability_selection["suppressed_capabilities"] = [
             str(cap).strip()
             for cap in director_capability_plan.get("suppressed_capabilities") or []
@@ -2413,7 +2418,7 @@ def _build_runtime_aspect_validation(
         )
         npc_spoken_for_manager = int(npc_actual_for_manager.get("spoken_line_count") or 0) > 0
         npc_action_for_manager = int(npc_actual_for_manager.get("action_line_count") or 0) > 0
-        for cap in director_capability_plan.get("selected_capabilities") or []:
+        for cap in manager_executable_capabilities:
             text = str(cap or "").strip()
             if not text or text in realized_caps:
                 continue
@@ -5465,14 +5470,48 @@ class RuntimeTurnGraphExecutor:
                 build_broad_nlu_listening_aspect_record(broad_nlu_listening),
             )
             return update
-        interpretation = self.interpreter(state["player_input"])
+        translation = state.get("input_translation") if isinstance(state.get("input_translation"), dict) else {}
+        translation_shell = (
+            translation.get("semantic_resolution_shell")
+            if isinstance(translation.get("semantic_resolution_shell"), dict)
+            else {}
+        )
+        translation_contract = (
+            translation.get("semantic_resolution_contract")
+            if isinstance(translation.get("semantic_resolution_contract"), dict)
+            else {}
+        )
+        semantic_action = (
+            translation.get("semantic_action")
+            if isinstance(translation.get("semantic_action"), dict)
+            else {}
+        )
+        semantic_move = (
+            translation.get("semantic_move")
+            if isinstance(translation.get("semantic_move"), dict)
+            else {}
+        )
+        raw_pi = str(state.get("player_input") or "").strip()
+        normalized_english_text = str(
+            translation.get("normalized_english_text")
+            or semantic_action.get("normalized_english_text")
+            or semantic_action.get("english_text")
+            or semantic_action.get("internal_english_text")
+            or ""
+        ).strip()
+        raw_interpretation = self.interpreter(raw_pi)
+        if raw_interpretation.kind.value in {"explicit_command", "meta"} or not normalized_english_text:
+            interpretation_text = raw_pi
+            interpretation = raw_interpretation
+        else:
+            interpretation_text = normalized_english_text
+            interpretation = self.interpreter(interpretation_text)
         task_type = "classification" if interpretation.kind.value in {"explicit_command", "meta"} else "narrative_formulation"
         interp_dict = interpretation.model_dump(mode="json")
         alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
         human_actor_id = str(alc.get("human_actor_id") or "").strip()
         selected_player_role = str(alc.get("selected_player_role") or "").strip()
         actor_for_event = human_actor_id or selected_player_role or None
-        raw_pi = str(state.get("player_input") or "").strip()
         kind_raw = str(interp_dict.get("kind") or "").strip().lower()
         interp_intent = str(interp_dict.get("intent") or "").strip().lower()
         interp_ambiguity = str(interp_dict.get("ambiguity") or "").strip().lower()
@@ -5522,8 +5561,17 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["player_speech_committed"] = True
                 intent_fields["narrator_response_expected"] = False
                 intent_fields["npc_response_expected"] = True
+            intent_fields["semantic_resolution_required"] = False
+            intent_fields["semantic_resolution_contract"] = translation_contract or {}
+            intent_fields["semantic_catalog_available"] = bool(translation.get("semantic_catalog_available"))
+            intent_fields["session_input_language"] = session_input_lang
+            intent_fields["session_output_language"] = session_output_lang
+            intent_fields["input_translation_status"] = translation.get("status")
+            if normalized_english_text:
+                intent_fields["normalized_english_text"] = normalized_english_text
+                intent_fields["input_translation_applied"] = True
         else:
-            hit = prepare_player_input_semantic_resolution(
+            hit = translation_shell if translation_shell else prepare_player_input_semantic_resolution(
                 raw_pi,
                 module_id=module_for_adapter,
                 lang_hint=session_output_lang,
@@ -5531,7 +5579,60 @@ class RuntimeTurnGraphExecutor:
                 session_output_language=session_output_lang,
                 content_modules_root=None,
             )
-            if bool(hit.get("semantic_resolution_required")):
+            if semantic_action:
+                pik = str(
+                    semantic_action.get("player_input_kind")
+                    or hit.get("player_input_kind")
+                    or "unclear"
+                ).strip().lower()
+                intent_fields["player_input_kind"] = pik
+                intent_fields["projection_key"] = hit.get("projection_key")
+                intent_fields["projection_captures"] = hit.get("captures") or {}
+                flags = default_player_intent_commit_flags(pik)
+                commit_policy = str(semantic_action.get("commit_policy") or "").strip().lower()
+                if commit_policy in {"needs_clarification", "no_commit", "recover_or_reject"}:
+                    flags["player_action_committed"] = False
+                    flags["player_speech_committed"] = False
+                    flags["narrator_response_expected"] = True
+                    flags["npc_response_expected"] = False
+                elif commit_policy == "commit_speech":
+                    flags["player_action_committed"] = False
+                    flags["player_speech_committed"] = True
+                    flags["narrator_response_expected"] = False
+                    flags["npc_response_expected"] = True
+                for key, value in flags.items():
+                    intent_fields[key] = bool(semantic_action.get(key, value))
+                family = player_input_kind_family(pik)
+                if is_speech_like_player_input_kind(pik):
+                    json_kind = "speech"
+                elif is_mixed_player_input_kind(pik):
+                    json_kind = "mixed"
+                elif family in {"action", "perception", "social_nonverbal_action", "wait_or_observe"}:
+                    json_kind = "action"
+                else:
+                    json_kind = kind_raw
+                intent_fields["semantic_category"] = semantic_action.get("semantic_category") or pik
+                intent_fields["speech_projection_allowed"] = bool(
+                    semantic_action.get("speech_projection_allowed", pik in SPEECH_PROJECTION_KINDS)
+                )
+                intent_fields["semantic_resolution_required"] = False
+                intent_fields["semantic_resolution_contract"] = translation_contract or hit.get("semantic_resolution_contract") or {}
+                intent_fields["semantic_catalog_available"] = bool(
+                    translation.get("semantic_catalog_available") or hit.get("semantic_catalog_available")
+                )
+                intent_fields["semantic_action"] = dict(semantic_action)
+                intent_fields["ai_semantic_resolution"] = dict(semantic_action)
+                if semantic_move:
+                    intent_fields["semantic_move"] = dict(semantic_move)
+                intent_fields["session_input_language"] = session_input_lang
+                intent_fields["session_output_language"] = session_output_lang
+                intent_fields["input_translation_status"] = translation.get("status")
+                if normalized_english_text:
+                    intent_fields["normalized_english_text"] = normalized_english_text
+                    intent_fields["input_translation_applied"] = True
+                interp_dict["kind"] = json_kind
+                kind_raw = json_kind
+            elif bool(hit.get("semantic_resolution_required")):
                 pik = str(hit.get("player_input_kind") or "unclear").strip().lower()
                 intent_fields["player_input_kind"] = pik
                 intent_fields["projection_key"] = hit.get("projection_key")
@@ -5553,10 +5654,11 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["semantic_category"] = hit.get("semantic_category") or pik
                 intent_fields["speech_projection_allowed"] = bool(hit.get("speech_projection_allowed"))
                 intent_fields["semantic_resolution_required"] = bool(hit.get("semantic_resolution_required"))
-                intent_fields["semantic_resolution_contract"] = hit.get("semantic_resolution_contract") or {}
+                intent_fields["semantic_resolution_contract"] = translation_contract or hit.get("semantic_resolution_contract") or {}
                 intent_fields["semantic_catalog_available"] = bool(hit.get("semantic_catalog_available"))
                 intent_fields["session_input_language"] = session_input_lang
                 intent_fields["session_output_language"] = session_output_lang
+                intent_fields["input_translation_status"] = translation.get("status")
                 interp_dict["kind"] = json_kind
                 kind_raw = json_kind
             else:
@@ -5580,6 +5682,15 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["projection_captures"] = {}
                 flags = default_player_intent_commit_flags(pik)
                 intent_fields.update(flags)
+                intent_fields["semantic_resolution_required"] = False
+                intent_fields["semantic_resolution_contract"] = translation_contract or {}
+                intent_fields["semantic_catalog_available"] = bool(translation.get("semantic_catalog_available"))
+                intent_fields["session_input_language"] = session_input_lang
+                intent_fields["session_output_language"] = session_output_lang
+                intent_fields["input_translation_status"] = translation.get("status")
+                if normalized_english_text:
+                    intent_fields["normalized_english_text"] = normalized_english_text
+                    intent_fields["input_translation_applied"] = True
                 if silence_negative_space_active:
                     intent_fields["silence_negative_space_signal"] = True
                     intent_fields["silence_negative_space_signal_source"] = (
@@ -5600,13 +5711,20 @@ class RuntimeTurnGraphExecutor:
         update["interpreted_input"] = interp_dict
         update["broad_nlu_listening"] = broad_nlu_listening
         move_class = str(interp_dict.get("kind") or "unknown")
-        update["interpreted_move"] = {
+        interpreted_move_payload = {
             "player_intent": str(interp_dict.get("intent") or "unspecified"),
             "move_class": move_class,
             "player_input_kind": str(interp_dict.get("player_input_kind") or "").strip().lower() or None,
             "narrator_response_expected": bool(interp_dict.get("narrator_response_expected")),
             "npc_response_expected": bool(interp_dict.get("npc_response_expected")),
         }
+        if isinstance(interp_dict.get("semantic_action"), dict):
+            interpreted_move_payload["semantic_action"] = dict(interp_dict["semantic_action"])
+        if isinstance(interp_dict.get("semantic_move"), dict):
+            interpreted_move_payload["semantic_move"] = dict(interp_dict["semantic_move"])
+        if normalized_english_text:
+            interpreted_move_payload["normalized_english_text"] = normalized_english_text
+        update["interpreted_move"] = interpreted_move_payload
         update["task_type"] = task_type
         turn_number = int(state.get("turn_number") or 0)
         update["turn_aspect_ledger"] = set_aspect_record(
@@ -5627,6 +5745,9 @@ class RuntimeTurnGraphExecutor:
                     "semantic_kind": interp_dict.get("kind"),
                     "action_text": interp_dict.get("action_text"),
                     "speech_text": interp_dict.get("speech_text"),
+                    "normalized_english_text_present": bool(interp_dict.get("normalized_english_text")),
+                    "input_translation_status": interp_dict.get("input_translation_status"),
+                    "semantic_resolution_required": bool(interp_dict.get("semantic_resolution_required")),
                     "narrator_response_expected": bool(interp_dict.get("narrator_response_expected")),
                     "npc_response_expected": bool(interp_dict.get("npc_response_expected")),
                     "real_player_turn_evidence_lane": turn_number > 0,
@@ -5774,7 +5895,18 @@ class RuntimeTurnGraphExecutor:
         retrieval_plan_dict = retrieval_plan.to_dict()
         memory_indexes = build_runtime_memory_indexes_from_state(state)
         query_context, query_signal = _retrieval_continuity_query_context(state)
-        query_str = f"{state['player_input']}\nscene:{state['current_scene_id']}\nmodule:{state['module_id']}"
+        interp_for_query = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        translation_for_query = state.get("input_translation") if isinstance(state.get("input_translation"), dict) else {}
+        normalized_query = str(
+            interp_for_query.get("normalized_english_text")
+            or translation_for_query.get("normalized_english_text")
+            or ""
+        ).strip()
+        raw_query = str(state.get("player_input") or "")
+        query_head = normalized_query or raw_query
+        query_str = f"{query_head}\nscene:{state['current_scene_id']}\nmodule:{state['module_id']}"
+        if normalized_query and normalized_query != raw_query:
+            query_str = f"{query_str}\nraw_player_input:{raw_query}"
         if query_context:
             query_str = f"{query_str}\n{query_context}"
         capability_audit: list[dict[str, Any]] = []
@@ -5912,7 +6044,9 @@ class RuntimeTurnGraphExecutor:
             f"- selected_handling_path: {interp.get('selected_handling_path')}\n"
             f"- runtime_delivery_hint: {interp.get('runtime_delivery_hint')}\n"
         )
-        base = state["player_input"]
+        base = raw_query
+        if normalized_query and normalized_query != raw_query:
+            base = f"{base}\n\nInternal normalized English input:\n{normalized_query}"
         if context_text:
             base = f"{base}\n\n{context_text}"
         prompt = f"{base}\n\n{interpretation_block}"
@@ -7123,15 +7257,7 @@ class RuntimeTurnGraphExecutor:
             if isinstance(scene_plan_dict.get("capability_manager_plan"), dict)
             else {}
         )
-        manager_selected_capabilities = [
-            str(item).strip()
-            for item in (
-                capability_manager_plan.get("requested_visible_functions")
-                or capability_manager_plan.get("selected_capabilities")
-                or []
-            )
-            if str(item).strip()
-        ]
+        manager_selected_capabilities = executable_capabilities_from_manager_plan(capability_manager_plan)
         expected_realization: list[str] = []
         interp_for_beat = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
         if capability_manager_plan.get("run_only_selected_capabilities") and manager_selected_capabilities:

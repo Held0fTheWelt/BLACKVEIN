@@ -267,6 +267,82 @@ def build_scene_assessment(
     return assessment
 
 
+def _content_actor_rows(yaml_slice: dict[str, Any] | None) -> list[dict[str, str]]:
+    rows = [dict(row) for row in goc_actor_identity_index(yaml_slice).values()]
+    voice = (
+        yaml_slice.get("character_voice")
+        if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("character_voice"), dict)
+        else {}
+    )
+    for row in rows:
+        character_key = str(row.get("character_key") or "").strip()
+        vrow = voice.get(character_key) if isinstance(voice.get(character_key), dict) else {}
+        formal_role = vrow.get("formal_role") if isinstance(vrow.get("formal_role"), str) else ""
+        if formal_role:
+            row["formal_role"] = formal_role
+    return rows
+
+
+def _actor_row_blob(row: dict[str, str]) -> str:
+    return " ".join(
+        str(row.get(key) or "")
+        for key in (
+            "actor_id",
+            "character_key",
+            "name",
+            "role",
+            "formal_role",
+            "playable_status",
+            "household_side",
+        )
+    ).lower()
+
+
+def _select_actor_row(
+    rows: list[dict[str, str]],
+    *,
+    require: tuple[str, ...] = (),
+    prefer: tuple[str, ...] = (),
+) -> dict[str, str]:
+    if not rows:
+        return {}
+    candidates = [
+        row for row in rows
+        if all(term.lower() in _actor_row_blob(row) for term in require)
+    ]
+    if not candidates:
+        candidates = list(rows)
+
+    def rank(row: dict[str, str]) -> tuple[int, str]:
+        blob = _actor_row_blob(row)
+        score = sum(1 for term in prefer if term.lower() in blob)
+        return (-score, str(row.get("character_key") or row.get("actor_id") or ""))
+
+    return sorted(candidates, key=rank)[0]
+
+
+def _actor_reason(row: dict[str, str], prefix: str) -> str:
+    role = str(row.get("formal_role") or row.get("role") or row.get("character_key") or "").strip()
+    return f"{prefix}:{role}" if role else prefix
+
+
+def _content_actor_id_from_ref(ref: str | None, yaml_slice: dict[str, Any] | None) -> str:
+    raw = str(ref or "").strip()
+    if not raw:
+        return ""
+    raw_low = raw.lower()
+    for row in _content_actor_rows(yaml_slice):
+        aliases = {
+            str(row.get("actor_id") or "").strip(),
+            str(row.get("character_key") or "").strip(),
+            str(row.get("name") or "").strip(),
+            str(row.get("first_name") or "").strip(),
+        }
+        if raw in aliases or raw_low in {alias.lower() for alias in aliases if alias}:
+            return str(row.get("actor_id") or "").strip()
+    return ""
+
+
 def _yaml_default_responder(
     *,
     yaml_slice: dict[str, Any] | None,
@@ -290,40 +366,38 @@ def _yaml_default_responder(
         tuple[str, str]:
             Returns a value of type ``tuple[str, str]``; see the function body for structure, error paths, and sentinels.
     """
-    voice = {}
-    chars = {}
-    if yaml_slice and isinstance(yaml_slice.get("character_voice"), dict):
-        voice = yaml_slice["character_voice"]
-    if yaml_slice and isinstance(yaml_slice.get("characters"), dict):
-        chars = yaml_slice["characters"]
-    veronique = voice.get("veronique") if isinstance(voice.get("veronique"), dict) else {}
-    michel = voice.get("michel") if isinstance(voice.get("michel"), dict) else {}
-    annette = voice.get("annette") if isinstance(voice.get("annette"), dict) else {}
-    alain = voice.get("alain") if isinstance(voice.get("alain"), dict) else {}
-    veronique_role = (
-        veronique.get("formal_role") if isinstance(veronique.get("formal_role"), str) else "host_moral_idealist"
-    )
-    michel_role = michel.get("formal_role") if isinstance(michel.get("formal_role"), str) else "pragmatist_host_spouse"
-    annette_role = annette.get("formal_role") if isinstance(annette.get("formal_role"), str) else "guest_cynic"
-    alain_role = alain.get("formal_role") if isinstance(alain.get("formal_role"), str) else "guest_mediator"
+    rows = _content_actor_rows(yaml_slice)
     phase_key = guidance_phase_key_for_scene_id(scene_id) if scene_id.strip() else GOC_DEFAULT_GUIDANCE_PHASE_KEY
 
+    def choose(
+        *,
+        require: tuple[str, ...] = (),
+        prefer: tuple[str, ...] = (),
+        reason_prefix: str = "yaml_voice_bias",
+    ) -> tuple[str, str]:
+        row = _select_actor_row(rows, require=require, prefer=prefer)
+        return str(row.get("actor_id") or "").strip(), _actor_reason(row, reason_prefix)
+
     if "repair_attempt" in prior_classes:
-        return "alain_reille", f"yaml_voice_bias:{alain_role}"
+        return choose(require=("guest",), prefer=("lawyer", "pragmatist", "procedure", "mediation"))
     if "blame_pressure" in prior_classes:
-        return "michel_longstreet", f"yaml_voice_bias:{michel_role}"
+        return choose(require=("host",), prefer=("practical", "conflict-containment", "spouse", "pragmatist"))
     if "revealed_fact" in prior_classes:
-        return "annette_reille", f"yaml_voice_bias:{annette_role}"
+        return choose(require=("guest",), prefer=("injured", "mother", "pressure holder", "controlled observer"))
     if selected_scene_function == "repair_or_stabilize":
-        return "alain_reille", f"yaml_voice_bias:{alain_role}"
+        return choose(require=("guest",), prefer=("lawyer", "pragmatist", "procedure", "mediation"))
     if selected_scene_function == "probe_motive":
-        return "annette_reille", f"yaml_voice_bias:{annette_role}"
+        return choose(require=("guest",), prefer=("injured", "mother", "pressure holder", "controlled observer"))
     if phase_key == "phase_1_polite_opening":
-        return "veronique_vallon", f"yaml_voice_bias:{veronique_role}"
+        return choose(require=("host",), prefer=("moral", "ideal", "civilized", "welcome"))
     if phase_key == "phase_3_faction_shifts":
-        return "michel_longstreet", f"yaml_voice_bias:{michel_role}"
-    _ = chars  # kept to show characters.yaml is loaded for future tie-break extension.
-    return "annette_reille", "default_pressure_bearer"
+        return choose(require=("host",), prefer=("spouse", "practical", "containment", "pragmatist"))
+    row = _select_actor_row(
+        rows,
+        require=("guest",),
+        prefer=("pressure holder", "controlled", "human_playable", "injured"),
+    )
+    return str(row.get("actor_id") or "").strip(), "default_pressure_bearer"
 
 
 def semantic_move_to_scene_candidates(
@@ -453,10 +527,14 @@ def _narrative_thread_feedback_signal(
     }
 
 
-def _actor_from_thread_entities(entities: list[str]) -> str | None:
+def _actor_from_thread_entities(
+    entities: list[str],
+    *,
+    yaml_slice: dict[str, Any] | None,
+) -> str | None:
     for raw in entities:
-        actor_id = str(raw or "").strip()
-        if actor_id in GOC_CANONICAL_ACTOR_IDS:
+        actor_id = _content_actor_id_from_ref(str(raw or "").strip(), yaml_slice)
+        if actor_id:
             return actor_id
     return None
 
@@ -491,11 +569,13 @@ def _goc_primary_responder_from_context(
         tuple[str, str]:
             Returns a value of type ``tuple[str, str]``; see the function body for structure, error paths, and sentinels.
     """
-    if hint and hint in GOC_CANONICAL_ACTOR_IDS:
-        return hint, "semantic_target_actor_hint"
+    hinted_actor_id = _content_actor_id_from_ref(hint, yaml_slice)
+    if hinted_actor_id:
+        return hinted_actor_id, "semantic_target_actor_hint"
     tf = thread_feedback if isinstance(thread_feedback, dict) else {}
     actor_from_thread = _actor_from_thread_entities(
-        tf.get("related_entities") if isinstance(tf.get("related_entities"), list) else []
+        tf.get("related_entities") if isinstance(tf.get("related_entities"), list) else [],
+        yaml_slice=yaml_slice,
     )
     if actor_from_thread:
         return actor_from_thread, "narrative_thread_related_entity_focus"
@@ -503,7 +583,14 @@ def _goc_primary_responder_from_context(
         scene_fn == "scene_pivot"
         and tf.get("dominant_thread_kind") == "progression_blocked"
     ):
-        return "alain_reille", "narrative_thread_bias:progression_blocked_mediation"
+        row = _select_actor_row(
+            _content_actor_rows(yaml_slice),
+            require=("guest",),
+            prefer=("lawyer", "pragmatist", "procedure", "mediation"),
+        )
+        return str(row.get("actor_id") or "").strip(), _actor_reason(
+            row, "narrative_thread_bias:progression_blocked_mediation"
+        )
 
     actor, reason = _yaml_default_responder(
         yaml_slice=yaml_slice,
@@ -512,9 +599,23 @@ def _goc_primary_responder_from_context(
         selected_scene_function=scene_fn,
     )
     if scene_fn == "redirect_blame" and "dignity_injury" in prior_classes:
-        return "veronique_vallon", "pressure_identity_bias:dignity_injury_host_reaction"
+        row = _select_actor_row(
+            _content_actor_rows(yaml_slice),
+            require=("host",),
+            prefer=("moral", "ideal", "civilized", "responsibility"),
+        )
+        return str(row.get("actor_id") or "").strip(), _actor_reason(
+            row, "pressure_identity_bias:dignity_injury_host_reaction"
+        )
     if scene_fn == "scene_pivot" and "alliance_shift" in implied.values():
-        return "michel_longstreet", "pressure_identity_bias:alliance_shift_reposition"
+        row = _select_actor_row(
+            _content_actor_rows(yaml_slice),
+            require=("host",),
+            prefer=("spouse", "practical", "containment", "pragmatist"),
+        )
+        return str(row.get("actor_id") or "").strip(), _actor_reason(
+            row, "pressure_identity_bias:alliance_shift_reposition"
+        )
     return actor, reason
 
 
@@ -541,15 +642,7 @@ def _append_responder(
 
 
 def _content_actor_ids(yaml_slice: dict[str, Any] | None) -> list[str]:
-    chars = yaml_slice.get("characters") if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("characters"), dict) else {}
-    out: list[str] = []
-    for row in chars.values():
-        if not isinstance(row, dict):
-            continue
-        actor_id = str(row.get("actor_id") or row.get("runtime_actor_id") or "").strip()
-        if actor_id and actor_id not in out:
-            out.append(actor_id)
-    return out
+    return goc_actor_ids_from_content(yaml_slice)
 
 
 def _first_available_actor_id(actor_ids: list[str], *, excluded: set[str]) -> str:

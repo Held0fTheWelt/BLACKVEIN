@@ -16,3 +16,4 @@ loadStaticScript('play_typewriter_engine.js');
 loadStaticScript('play_block_renderer.js');
 loadStaticScript('play_blocks_orchestrator.js');
 loadStaticScript('play_controls.js');
+loadStaticScript('play_runtime_bootstrap.js');

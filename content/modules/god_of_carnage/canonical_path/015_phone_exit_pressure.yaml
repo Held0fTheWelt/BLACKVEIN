@@ -21,6 +21,20 @@ canonical_path_step:
       source: objects/building/elevator.yaml
     - object_id: apartment_door
       source: objects/building/apartment_door.yaml
+  dialogue_profile:
+    speech_function: phone_exit_pressure
+    line_shape: interruption_with_prevented_exit
+    speech_required: true
+    beats:
+      - beat_pattern_ref: phone_interruption_recurrent
+        actor_ref: alain
+        intent: let_phone_pressure_interrupt_without_solving_exit
+        quote_anchor_id:
+        paraphrase_policy: verbatim_forbidden
+        minimum_visible: "a short interruption or phone-driven withdrawal"
+        required_facts:
+          - phone_pressure_available
+          - exit_pressure_prevented
 
   theme_threads:
     - divided_attention

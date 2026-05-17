@@ -12,22 +12,63 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
-# Guest role slugs: the two Reilles who enter the apartment.
-# Determined by narrative design (guests = selectable human roles).
-# Actor IDs are verified against per-character documents at runtime via _resolve_goc_content().
-_GOC_GUEST_ROLE_SLUGS: frozenset[str] = frozenset({"annette", "alain"})
-
-# Fallback values used when content file is unreachable (test isolation, container startup).
-_GOC_CANONICAL_ACTORS_FALLBACK: list[str] = ["annette", "alain", "veronique", "michel"]
 _GOC_CONTENT_HASH_FALLBACK: str = "sha256:fallback"
 
 
+def _load_goc_character_documents_from_root(repo_root: Path) -> tuple[dict[str, dict[str, Any]], str]:
+    import yaml  # pyyaml is in root pyproject.toml dependencies
+
+    module_dir = repo_root / "content" / "modules" / "god_of_carnage"
+    char_dir = module_dir / "characters"
+    hasher = hashlib.sha256()
+    docs: dict[str, dict[str, Any]] = {}
+    if not char_dir.is_dir():
+        return {}, _GOC_CONTENT_HASH_FALLBACK
+    for path in sorted(char_dir.rglob("*.yaml")):
+        raw = path.read_bytes()
+        hasher.update(str(path.relative_to(module_dir)).encode("utf-8"))
+        hasher.update(raw)
+        data = yaml.safe_load(raw) or {}
+        doc = data.get("character_document") or data.get("character")
+        if not isinstance(doc, dict):
+            continue
+        character_key = str(doc.get("id") or doc.get("canonical_id") or path.stem).strip()
+        if character_key:
+            docs[character_key] = doc
+    content_hash = f"sha256:{hasher.hexdigest()[:16]}" if docs else _GOC_CONTENT_HASH_FALLBACK
+    return docs, content_hash
+
+
+def _goc_actor_ids_from_docs(docs: dict[str, dict[str, Any]]) -> list[str]:
+    actor_ids: list[str] = []
+    for character_key, doc in docs.items():
+        actor_id = str(
+            doc.get("actor_id")
+            or doc.get("runtime_actor_id")
+            or doc.get("id")
+            or doc.get("canonical_id")
+            or character_key
+        ).strip()
+        if actor_id and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
+    return actor_ids
+
+
+def _goc_content_fallback_from_module_authority() -> tuple[list[str], str]:
+    try:
+        from ai_stack.goc_yaml_authority import goc_module_yaml_dir
+
+        docs, content_hash = _load_goc_character_documents_from_root(goc_module_yaml_dir().parents[2])
+        return _goc_actor_ids_from_docs(docs), content_hash
+    except Exception:
+        return [], _GOC_CONTENT_HASH_FALLBACK
+
+
 def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], str]:
-    """Read canonical actor IDs and content hash from characters/*.yaml.
+    """Read runtime actor IDs and content hash from character documents.
 
     Args:
-        allow_fallback: If True, fall back to hardcoded values if file is unreachable (test isolation).
+        allow_fallback: If True, retry via the canonical content-module authority if the app root is isolated.
                        If False (default, live mode), raise error if content cannot be read.
 
     Returns (actor_ids, content_hash).
@@ -36,32 +77,13 @@ def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], st
     """
     try:
         from app.repo_root import resolve_wos_repo_root
-        import yaml  # pyyaml is in root pyproject.toml dependencies
+
         repo_root = resolve_wos_repo_root(start=Path(__file__).resolve().parent)
-        module_dir = repo_root / "content" / "modules" / "god_of_carnage"
-        char_dir = module_dir / "characters"
-        hasher = hashlib.sha256()
-        actor_ids: list[str] = []
-        if char_dir.is_dir():
-            for path in sorted(char_dir.glob("*.yaml")):
-                raw = path.read_bytes()
-                hasher.update(path.name.encode("utf-8"))
-                hasher.update(raw)
-                data = yaml.safe_load(raw) or {}
-                doc = data.get("character_document") or data.get("character") or data
-                if not isinstance(doc, dict):
-                    continue
-                actor_id = str(doc.get("id") or doc.get("canonical_id") or path.stem).strip()
-                if actor_id:
-                    actor_ids.append(actor_id)
-        content_hash = f"sha256:{hasher.hexdigest()[:16]}" if actor_ids else _GOC_CONTENT_HASH_FALLBACK
+        docs, content_hash = _load_goc_character_documents_from_root(repo_root)
+        actor_ids = _goc_actor_ids_from_docs(docs)
         if not actor_ids:
             if allow_fallback:
-                index_path = module_dir / "characters.yaml"
-                if index_path.exists():
-                    raw = index_path.read_bytes()
-                    content_hash = f"sha256:{hashlib.sha256(raw).hexdigest()[:16]}"
-                return _GOC_CANONICAL_ACTORS_FALLBACK, content_hash
+                return _goc_content_fallback_from_module_authority()
             raise RuntimeProfileError(
                 code="runtime_profile_not_content_module",
                 message="Canonical content god_of_carnage/characters/*.yaml is missing or unreadable. "
@@ -77,18 +99,25 @@ def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], st
                         "Runtime profile resolution requires canonical content authority.",
                 cause=str(exc),
             )
-        return _GOC_CANONICAL_ACTORS_FALLBACK, _GOC_CONTENT_HASH_FALLBACK
+        return _goc_content_fallback_from_module_authority()
 
 
 def _build_selectable_roles(actor_ids: list[str]) -> list[dict[str, str]]:
     """Build selectable player roles from content-resolved actor IDs."""
-    return [
-        {"role_slug": a, "canonical_actor_id": a, "display_name": a.capitalize()}
-        for a in actor_ids if a in _GOC_GUEST_ROLE_SLUGS
-    ]
+    from ai_stack.goc_yaml_authority import goc_actor_identity
 
-
-_SELECTABLE_ROLE_SLUGS: frozenset[str] = _GOC_GUEST_ROLE_SLUGS
+    out: list[dict[str, str]] = []
+    for actor_id in actor_ids:
+        ident = goc_actor_identity(actor_id)
+        if str(ident.get("playable_status") or "").strip() != "human_playable":
+            continue
+        role_slug = str(ident.get("character_key") or actor_id).strip()
+        out.append({
+            "role_slug": role_slug,
+            "canonical_actor_id": actor_id,
+            "display_name": str(ident.get("name") or role_slug).strip(),
+        })
+    return out
 
 
 class RuntimeProfileError(ValueError):
@@ -161,8 +190,7 @@ def resolve_runtime_profile(runtime_profile_id: str | None) -> RuntimeProfile:
     """Resolve a runtime profile id to its RuntimeProfile.
 
     Selectable roles and canonical actor list are resolved from
-    content/modules/god_of_carnage/characters/*.yaml (FIX-007).
-    Falls back to hardcoded list if file is unreachable.
+    content/modules/god_of_carnage/characters/ documents (FIX-007).
 
     Raises RuntimeProfileError for missing or unknown profile ids.
     """
@@ -210,7 +238,7 @@ def validate_selected_player_role(selected_player_role: str | None, profile: Run
 
     role = selected_player_role.strip()
 
-    if role not in _SELECTABLE_ROLE_SLUGS:
+    if role not in allowed:
         raise RuntimeProfileError(
             code="invalid_selected_player_role",
             message=(
@@ -238,7 +266,7 @@ def validate_selected_player_role(selected_player_role: str | None, profile: Run
 def build_actor_ownership(selected_player_role: str, profile: RuntimeProfile) -> dict[str, Any]:
     """Build human_actor_id, npc_actor_ids, and actor_lanes from selected role.
 
-    Uses content-resolved canonical actors.
+    Uses content-resolved runtime actor IDs.
     """
     human_actor_id = profile.role_slug_to_canonical_actor_id(selected_player_role)
     if human_actor_id is None:
@@ -247,9 +275,8 @@ def build_actor_ownership(selected_player_role: str, profile: RuntimeProfile) ->
             message=f"Role slug {selected_player_role!r} has no canonical actor mapping.",
         )
 
-    # Resolve all canonical actors from content (FIX-007)
-    canonical_actors, content_hash = _resolve_goc_content()
-    npc_actor_ids = [a for a in canonical_actors if a != human_actor_id]
+    actor_ids, content_hash = _resolve_goc_content()
+    npc_actor_ids = [a for a in actor_ids if a != human_actor_id]
 
     actor_lanes: dict[str, str] = {human_actor_id: "human"}
     for npc_id in npc_actor_ids:
