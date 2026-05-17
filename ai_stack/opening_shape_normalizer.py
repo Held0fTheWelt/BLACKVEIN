@@ -1,4 +1,4 @@
-"""Turn-0 opening narration: normalize model output into three GM strings for projection.
+"""Turn-0 opening narration: normalize model output into GM strings for projection.
 
 Returns ``(beats, meta)`` where ``beats`` is ``None`` when this normalizer does not apply.
 ``None`` must not be interpreted as an empty narration list.
@@ -107,7 +107,7 @@ def normalize_opening_narration_beats(
         return None, None
 
     if len(coerced) >= 3:
-        beats = [sanitize_gm_narration_beat_line(b) for b in coerced[:3]]
+        beats = [sanitize_gm_narration_beat_line(b) for b in coerced]
         beats, hand_meta = enforce_opening_handover_on_beats(
             beats,
             output_language=output_language,
@@ -118,6 +118,7 @@ def normalize_opening_narration_beats(
             "opening_narration_normalized": True,
             "opening_narration_source": "model_list_three_plus",
             "opening_narration_beat_count": len(beats),
+            "opening_narration_extra_beats_preserved": max(0, len(beats) - 3),
             "narration_summary_input_kind": "list" if input_was_list else "string",
             **hand_meta,
         }

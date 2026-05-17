@@ -1911,7 +1911,7 @@ def _finalize_visible_bundle_opening_gm_narration(
     packaged_bundle: Any,
     commit_turn_number: int,
 ) -> Any:
-    """After experience packaging, restore three GM opening beats for GoC turn 0 when needed."""
+    """After experience packaging, restore model-authored GM opening beats for GoC turn 0 when needed."""
     graph_state.pop("_opening_narration_normalization", None)
     if commit_turn_number != 0 or session.module_id != GOD_OF_CARNAGE_MODULE_ID:
         return packaged_bundle
@@ -1943,7 +1943,7 @@ def _finalize_visible_bundle_opening_gm_narration(
     if beats is None or len(beats) < 3:
         return packaged_bundle
     out = dict(packaged_bundle)
-    out["gm_narration"] = beats[:3]
+    out["gm_narration"] = beats[:12]
     return out
 
 
@@ -9113,6 +9113,9 @@ class StoryRuntimeManager:
         opening_scene_sequence_id = ""
         opening_event_ids: list[str] = []
         opening_must_establish: list[str] = []
+        opening_min_visible_blocks = 0
+        opening_preferred_visible_blocks = 0
+        opening_max_visible_blocks = 0
         hard_forbidden_reject_on: list[str] = []
         hard_forbidden_recover_on: list[str] = []
         handover = ""
@@ -9139,6 +9142,23 @@ class StoryRuntimeManager:
                 or anchor
             ).strip() or anchor
             opening_scene_sequence_id = str(opening_policy.get("id") or "").strip()
+            narration_mode = (
+                opening_policy.get("narration_mode")
+                if isinstance(opening_policy.get("narration_mode"), dict)
+                else {}
+            )
+            try:
+                opening_min_visible_blocks = int(narration_mode.get("min_visible_blocks") or 0)
+            except (TypeError, ValueError):
+                opening_min_visible_blocks = 0
+            try:
+                opening_preferred_visible_blocks = int(narration_mode.get("preferred_visible_blocks") or 0)
+            except (TypeError, ValueError):
+                opening_preferred_visible_blocks = 0
+            try:
+                opening_max_visible_blocks = int(narration_mode.get("max_visible_blocks") or 0)
+            except (TypeError, ValueError):
+                opening_max_visible_blocks = 0
             contract = (
                 opening_policy.get("opening_contract")
                 if isinstance(opening_policy.get("opening_contract"), dict)
@@ -9190,6 +9210,13 @@ class StoryRuntimeManager:
             if handover
             else "After the required opening evidence, hand over to the configured starting scene. "
         )
+        visible_min = max(opening_min_visible_blocks, min(len(opening_event_ids), 6) if opening_event_ids else 0, 6)
+        visible_preferred = max(opening_preferred_visible_blocks, visible_min)
+        visible_max = (
+            opening_max_visible_blocks
+            if opening_max_visible_blocks >= visible_preferred
+            else max(visible_preferred, 12)
+        )
         return (
             f"{base}\n\n"
             f"Session opening uses the module runtime policy. Anchor: {anchor}. "
@@ -9200,7 +9227,10 @@ class StoryRuntimeManager:
             f"Opening knowledge contract {opening_scene_sequence_id or 'opening_scene_sequence'} requires events "
             f"{opening_event_ids} "
             f"and must_establish {opening_must_establish}. "
-            'Return "narration_summary" as a list of exactly three strings so opening evidence can be projected into visible blocks. '
+            f'Return "narration_summary" as a list of at least {visible_min} and ideally '
+            f"{visible_preferred} strings (max {visible_max}) so opening evidence can be projected into visible blocks. "
+            "Use the first three strings as: premise/incident, apartment room-and-ritual, selected role anchor. "
+            "Use the remaining strings to make consequence, arrival threshold, apartment-as-stage, and first playable moment visible. "
             'Emit structured coverage evidence as "opening_event_ids" with the covered event ids; '
             'semantic rule hits, when present, must use "runtime_gate_detections" ids. '
             f"Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}. "

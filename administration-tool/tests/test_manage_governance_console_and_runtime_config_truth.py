@@ -38,6 +38,8 @@ def test_governance_console_template_mounts_all_required_views(client):
     assert "Langfuse / MCP Evidence" in html
     assert "Runtime Aspect Ledger Inspector" in html
     assert "manage_governance_console.js" in html
+    assert "gov-console-card-grid" in html
+    assert 'class="manage-psc-json" data-json-viewer' in html
 
 
 def test_governance_console_includes_adr0041_and_evidence_guidance(client):

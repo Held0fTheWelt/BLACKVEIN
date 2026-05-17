@@ -1,9 +1,10 @@
 """God of Carnage turn-0 opening dramaturgy handover (OPENING-DRAMATURGY-HANDOVER-01).
 
 Canonical content: ``content/modules/god_of_carnage/direction/opening_sequence.yaml``.
-Runtime enforces three narrator slots (premise → room/ritual → role anchor) plus
-polite first-NPC surface; the model may style wording, but missing slots are filled
-deterministically without weakening ``opening_shape_contract_pass``.
+Runtime enforces the first three narrator slots (premise -> room/ritual -> role
+anchor) plus polite first-NPC surface; the model may style wording, but missing
+slots are filled deterministically without weakening ``opening_shape_contract_pass``.
+Additional authored opening beats after those first three are preserved.
 """
 
 from __future__ import annotations
@@ -350,10 +351,11 @@ def enforce_opening_handover_on_beats(
     human_actor_id: str | None,
     selected_player_role: str | None,
 ) -> tuple[list[str], dict[str, Any]]:
-    """Ensure three narrator beats satisfy dramaturgy slots; replace weak beats with YAML-backed templates."""
+    """Ensure the first three narrator beats satisfy dramaturgy slots; preserve later beats."""
     if len(beats) < 3:
         return beats, {"opening_handover_applied": False}
-    out = swap_beats_toward_canonical_order([sanitize_gm_narration_beat_line(x) for x in beats[:3]])
+    sanitized = [sanitize_gm_narration_beat_line(x) for x in beats if str(x or "").strip()]
+    out = swap_beats_toward_canonical_order(sanitized[:3])
     filled: list[str] = []
     reasons: list[str] = []
     p1 = out[0]
@@ -381,7 +383,7 @@ def enforce_opening_handover_on_beats(
         sanitize_gm_narration_beat_line(p1),
         sanitize_gm_narration_beat_line(p2),
         sanitize_gm_narration_beat_line(p3),
-    ]
+    ] + sanitized[3:]
     meta = {
         "opening_handover_applied": True,
         "opening_handover_version": OPENING_HANDOVER_VERSION,

@@ -299,8 +299,9 @@ class RuntimeTurnStructuredOutput(BaseModel):
         description=(
             "Brief scene-level summary derived from actor lanes (spoken_lines, action_lines, "
             "initiative_events). Narration is a prose projection of actor realization, not the source of truth—"
-            "actor lanes hold primary authority. On opening turn (turn 0) for God of Carnage, prefer exactly "
-            "three strings: narrator_intro, role_anchor, scene_setup (see session opening prompt). "
+            "actor lanes hold primary authority. On opening turn (turn 0) for God of Carnage, prefer 6-8 "
+            "strings so authored opening events become separate visible narrator blocks; the first three should "
+            "be premise/incident, apartment room-and-ritual, and selected role anchor (see session opening prompt). "
             "On later turns a single string remains normal."
         ),
     )

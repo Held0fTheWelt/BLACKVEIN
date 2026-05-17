@@ -925,8 +925,8 @@ class TestSessionOutputLanguage:
             f"Opening prompt must contain 'English' directive for session_output_language=en. Got: {prompt[:200]}"
         )
 
-    def test_opening_prompt_requests_three_string_narration_summary_list(self):
-        """Turn-0 GoC opening must steer the model toward narration_summary as three strings."""
+    def test_opening_prompt_requests_policy_sized_narration_summary_list(self):
+        """Turn-0 GoC opening must steer the model toward policy-sized narration_summary blocks."""
         from app.story_runtime import StoryRuntimeManager
         mgr = StoryRuntimeManager(session_store=None, adapters={})
         session = mgr.create_session(
@@ -936,4 +936,5 @@ class TestSessionOutputLanguage:
         )
         prompt = mgr._build_opening_prompt(session)
         assert "narration_summary" in prompt
-        assert "list of exactly three strings" in prompt
+        assert "list of at least 6 and ideally 8 strings" in prompt
+        assert "first three strings" in prompt

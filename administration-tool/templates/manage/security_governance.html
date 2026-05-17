@@ -281,6 +281,10 @@
                 <input type="checkbox" id="manage-sg-field-storage-restore-test" />
                 <span>Require restore-test evidence for backups and snapshots</span>
             </label>
+            <div class="mui-field mui-field-full">
+                <button type="button" class="btn" id="manage-sg-save-local-dev-storage">Save local DEV posture</button>
+                <span class="mui-field-hint">Keeps the production evidence contract available, but stores this deployment as local development with no production at-rest encryption claim.</span>
+            </div>
             <label class="mui-field mui-field-full">
                 <span class="mui-field-label">Storage evidence JSON</span>
                 <textarea id="manage-sg-field-storage-evidence-json" class="form-input" rows="14" spellcheck="false"></textarea>

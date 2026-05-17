@@ -122,6 +122,34 @@ def test_security_governance_patch_persists_operator_policy(client, admin_header
     )
 
 
+def test_security_governance_patch_persists_local_development_storage_posture(client, admin_headers):
+    patch_response = client.patch(
+        "/api/v1/admin/security/governance",
+        headers=admin_headers,
+        json={
+            "storage_encryption_profile": "local_development",
+            "require_storage_encryption_evidence": False,
+            "require_backup_encryption_evidence": False,
+            "storage_encryption_evidence": {},
+            "operator_notes": "Local DEV stack; no production at-rest encryption claim.",
+        },
+    )
+
+    assert patch_response.status_code == 200
+    data = patch_response.get_json()["data"]
+    assert data["settings"]["storage_encryption_profile"] == "local_development"
+    assert data["settings"]["require_storage_encryption_evidence"] is False
+    assert data["settings"]["require_backup_encryption_evidence"] is False
+    assert data["settings"]["operator_notes"] == "Local DEV stack; no production at-rest encryption claim."
+    assert data["storage_encryption_governance"]["status"] == "local_allowed"
+
+    get_response = client.get("/api/v1/admin/security/governance", headers=admin_headers)
+    assert get_response.status_code == 200
+    persisted = get_response.get_json()["data"]
+    assert persisted["settings"]["storage_encryption_profile"] == "local_development"
+    assert persisted["storage_encryption_governance"]["status"] == "local_allowed"
+
+
 def test_security_governance_patch_rejects_unknown_fields(client, admin_headers):
     response = client.patch(
         "/api/v1/admin/security/governance",

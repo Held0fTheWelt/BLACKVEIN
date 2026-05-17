@@ -13,6 +13,8 @@ import httpx
 _log = logging.getLogger(__name__)
 
 _OPENAI_ERROR_BODY_MAX = 2000
+_DEFAULT_REASONING_TEXT_MAX_OUTPUT_TOKENS = 1200
+_DEFAULT_REASONING_JSON_MAX_OUTPUT_TOKENS = 4096
 
 
 def openai_http_error_excerpt(response: httpx.Response | None, *, limit: int = _OPENAI_ERROR_BODY_MAX) -> str:
@@ -151,6 +153,39 @@ class OpenAIChatAdapter(BaseModelAdapter):
         return "return valid json" in text or "format instructions" in text
 
     @staticmethod
+    def _reasoning_max_output_tokens(*, json_mode: bool) -> int:
+        default = (
+            _DEFAULT_REASONING_JSON_MAX_OUTPUT_TOKENS
+            if json_mode
+            else _DEFAULT_REASONING_TEXT_MAX_OUTPUT_TOKENS
+        )
+        env_names = (
+            ("OPENAI_REASONING_JSON_MAX_OUTPUT_TOKENS", "OPENAI_REASONING_MAX_OUTPUT_TOKENS")
+            if json_mode
+            else ("OPENAI_REASONING_MAX_OUTPUT_TOKENS",)
+        )
+        for env_name in env_names:
+            raw = (os.getenv(env_name) or "").strip()
+            if not raw:
+                continue
+            try:
+                return max(256, min(32768, int(raw)))
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _responses_incomplete_reason(payload: dict[str, Any]) -> str:
+        status = str(payload.get("status") or "").strip().lower()
+        details = payload.get("incomplete_details")
+        reason = ""
+        if isinstance(details, dict):
+            reason = str(details.get("reason") or "").strip().lower()
+        if status == "incomplete":
+            return reason or "incomplete"
+        return reason
+
+    @staticmethod
     def _extract_responses_text(payload: dict[str, Any]) -> str:
         """Collect visible model text from a Responses API JSON body.
 
@@ -257,9 +292,9 @@ class OpenAIChatAdapter(BaseModelAdapter):
         # JSON mode still works without explicit reasoning controls for the probe path.
         if reasoning_model and not json_mode:
             payload["reasoning"] = {"effort": "minimal"}
-            payload["max_output_tokens"] = 1200
+            payload["max_output_tokens"] = self._reasoning_max_output_tokens(json_mode=False)
         elif reasoning_model and json_mode:
-            payload["max_output_tokens"] = 1200
+            payload["max_output_tokens"] = self._reasoning_max_output_tokens(json_mode=True)
         if json_mode:
             payload["text"] = {"format": {"type": "json_object"}}
         response = client.post(
@@ -270,6 +305,8 @@ class OpenAIChatAdapter(BaseModelAdapter):
         response.raise_for_status()
         response_payload = response.json()
         message = self._extract_responses_text(response_payload)
+        response_status = str(response_payload.get("status") or "").strip()
+        incomplete_reason = self._responses_incomplete_reason(response_payload)
         # #region agent log
         if isinstance(response_payload, dict):
             out = response_payload.get("output")
@@ -289,6 +326,8 @@ class OpenAIChatAdapter(BaseModelAdapter):
                         "output_item_types": out_types,
                         "extracted_len": len(message),
                         "has_output_text_key": "output_text" in response_payload,
+                        "response_status": response_status,
+                        "incomplete_reason": incomplete_reason,
                     },
                     "runId": "pre-fix",
                 }
@@ -296,27 +335,39 @@ class OpenAIChatAdapter(BaseModelAdapter):
         # #endregion
         usage = response_payload.get("usage") if isinstance(response_payload.get("usage"), dict) else {}
         prompt_tokens, completion_tokens, total_tokens = self._usage_details(usage)
+        metadata = {
+            "adapter": self.adapter_name,
+            "adapter_api": "responses",
+            "model": chosen_model,
+            "base_url": self.base_url,
+            "timeout_seconds": request_timeout,
+            "usage_available": bool(usage),
+            "usage_source": "provider_response" if usage else "provider_response_missing_usage",
+            "usage_details": {
+                "input": prompt_tokens,
+                "output": completion_tokens,
+                "total": total_tokens,
+            },
+            "tokens_prompt": prompt_tokens,
+            "tokens_completion": completion_tokens,
+            "tokens_total": total_tokens,
+            "response_id": response_payload.get("id"),
+            "max_output_tokens": payload.get("max_output_tokens"),
+        }
+        if response_status:
+            metadata["response_status"] = response_status
+        if incomplete_reason:
+            metadata["incomplete_reason"] = incomplete_reason
+            metadata["error"] = f"openai_response_incomplete:{incomplete_reason}"
+            return ModelCallResult(
+                content=message,
+                success=False,
+                metadata=metadata,
+            )
         return ModelCallResult(
             content=message,
             success=True,
-            metadata={
-                "adapter": self.adapter_name,
-                "adapter_api": "responses",
-                "model": chosen_model,
-                "base_url": self.base_url,
-                "timeout_seconds": request_timeout,
-                "usage_available": bool(usage),
-                "usage_source": "provider_response" if usage else "provider_response_missing_usage",
-                "usage_details": {
-                    "input": prompt_tokens,
-                    "output": completion_tokens,
-                    "total": total_tokens,
-                },
-                "tokens_prompt": prompt_tokens,
-                "tokens_completion": completion_tokens,
-                "tokens_total": total_tokens,
-                "response_id": response_payload.get("id"),
-            },
+            metadata=metadata,
         )
 
     def _generate_with_chat_completions_api(
@@ -343,7 +394,9 @@ class OpenAIChatAdapter(BaseModelAdapter):
             payload["temperature"] = 0.3
         if self._uses_reasoning_controls(chosen_model):
             payload["reasoning_effort"] = "minimal"
-            payload["max_completion_tokens"] = 1200
+            payload["max_completion_tokens"] = self._reasoning_max_output_tokens(
+                json_mode=self._json_mode_requested(prompt)
+            )
         if self._json_mode_requested(prompt):
             payload["response_format"] = {"type": "json_object"}
         response = client.post(
@@ -353,29 +406,38 @@ class OpenAIChatAdapter(BaseModelAdapter):
         )
         response.raise_for_status()
         response_payload = response.json()
-        message = response_payload["choices"][0]["message"]["content"]
+        choice = response_payload["choices"][0]
+        message = choice["message"]["content"]
+        finish_reason = str(choice.get("finish_reason") or "").strip()
         usage = response_payload.get("usage") if isinstance(response_payload.get("usage"), dict) else {}
         prompt_tokens, completion_tokens, total_tokens = self._usage_details(usage)
+        metadata = {
+            "adapter": self.adapter_name,
+            "adapter_api": "chat_completions",
+            "model": chosen_model,
+            "base_url": self.base_url,
+            "timeout_seconds": request_timeout,
+            "usage_available": bool(usage),
+            "usage_source": "provider_response" if usage else "provider_response_missing_usage",
+            "usage_details": {
+                "input": prompt_tokens,
+                "output": completion_tokens,
+                "total": total_tokens,
+            },
+            "tokens_prompt": prompt_tokens,
+            "tokens_completion": completion_tokens,
+            "tokens_total": total_tokens,
+            "max_completion_tokens": payload.get("max_completion_tokens"),
+        }
+        if finish_reason:
+            metadata["finish_reason"] = finish_reason
+        if finish_reason in {"length", "content_filter"}:
+            metadata["error"] = f"openai_chat_completion_incomplete:{finish_reason}"
+            return ModelCallResult(content=message, success=False, metadata=metadata)
         return ModelCallResult(
             content=message,
             success=True,
-            metadata={
-                "adapter": self.adapter_name,
-                "adapter_api": "chat_completions",
-                "model": chosen_model,
-                "base_url": self.base_url,
-                "timeout_seconds": request_timeout,
-                "usage_available": bool(usage),
-                "usage_source": "provider_response" if usage else "provider_response_missing_usage",
-                "usage_details": {
-                    "input": prompt_tokens,
-                    "output": completion_tokens,
-                    "total": total_tokens,
-                },
-                "tokens_prompt": prompt_tokens,
-                "tokens_completion": completion_tokens,
-                "tokens_total": total_tokens,
-            },
+            metadata=metadata,
         )
 
     def generate(

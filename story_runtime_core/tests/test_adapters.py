@@ -56,7 +56,7 @@ def test_openai_adapter_omits_temperature_for_gpt5_models():
     assert "instructions" not in payload
     assert "temperature" not in payload
     assert "reasoning" not in payload
-    assert payload["max_output_tokens"] == 1200
+    assert payload["max_output_tokens"] == 4096
     assert payload["text"] == {"format": {"type": "json_object"}}
 
 
@@ -182,6 +182,56 @@ def test_openai_adapter_non_json_gpt5_includes_reasoning_on_responses():
     assert payload["max_output_tokens"] == 1200
 
 
+def test_openai_adapter_allows_env_override_for_reasoning_json_output_budget(monkeypatch):
+    monkeypatch.setenv("OPENAI_REASONING_JSON_MAX_OUTPUT_TOKENS", "8192")
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"output_text": "{\"ok\": true}"}
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        result = OpenAIChatAdapter(api_key="sk-test").generate(
+            "Return valid JSON.",
+            model_name="gpt-5.4-mini",
+        )
+
+    assert result.success is True
+    payload = client.post.call_args.kwargs["json"]
+    assert payload["max_output_tokens"] == 8192
+
+
+def test_openai_adapter_responses_incomplete_returns_failure():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "id": "resp_cut",
+        "status": "incomplete",
+        "incomplete_details": {"reason": "max_output_tokens"},
+        "output_text": "{\"partial\":",
+        "usage": {"input_tokens": 11, "output_tokens": 4096, "total_tokens": 4107},
+    }
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        result = OpenAIChatAdapter(api_key="sk-test").generate(
+            "Return valid JSON.",
+            model_name="gpt-5.4-mini",
+        )
+
+    assert result.success is False
+    assert result.content == "{\"partial\":"
+    assert result.metadata["error"] == "openai_response_incomplete:max_output_tokens"
+    assert result.metadata["response_status"] == "incomplete"
+    assert result.metadata["incomplete_reason"] == "max_output_tokens"
+    assert result.metadata["tokens_completion"] == 4096
+
+
 def test_openai_adapter_http_400_returns_provider_error_excerpt():
     err_resp = Mock()
     err_resp.status_code = 400
@@ -223,6 +273,27 @@ def test_openai_adapter_force_chat_completions_env(monkeypatch):
     assert result.success is True
     assert result.metadata["adapter_api"] == "chat_completions"
     assert client.post.call_args.args[0].endswith("/chat/completions")
+
+
+def test_openai_adapter_chat_length_finish_returns_failure():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "choices": [{"message": {"content": "{\"partial\":"}, "finish_reason": "length"}],
+        "usage": {"prompt_tokens": 3, "completion_tokens": 1200, "total_tokens": 1203},
+    }
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        result = OpenAIChatAdapter(api_key="sk-test").generate("hello", model_name="gpt-4o-mini")
+
+    assert result.success is False
+    assert result.metadata["error"] == "openai_chat_completion_incomplete:length"
+    assert result.metadata["finish_reason"] == "length"
+    assert result.metadata["tokens_completion"] == 1200
 
 
 def test_openai_responses_request_includes_instructions_when_retrieval_present():

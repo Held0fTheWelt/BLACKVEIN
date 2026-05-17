@@ -337,6 +337,23 @@
     });
   }
 
+  function savePayload(payload, successMessage) {
+    setMessage("Saving security governance...", false);
+    return api(ENDPOINT, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }).then(function (updated) {
+      render(updated);
+      return api(ENDPOINT);
+    }).then(function (fresh) {
+      render(fresh);
+      setMessage(successMessage || "Security governance saved.", false);
+      return fresh;
+    }).catch(function (err) {
+      setMessage("Security governance save failed: " + parseError(err), true);
+    });
+  }
+
   function save() {
     var payload;
     try {
@@ -345,25 +362,27 @@
       setMessage("Security governance save failed: " + parseError(err), true);
       return Promise.resolve();
     }
-    setMessage("Saving security governance...", false);
-    return api(ENDPOINT, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }).then(function (updated) {
-      render(updated);
-      setMessage("Security governance saved.", false);
-      return updated;
-    }).catch(function (err) {
-      setMessage("Security governance save failed: " + parseError(err), true);
-    });
+    return savePayload(payload, "Security governance saved.");
+  }
+
+  function saveLocalDevStoragePosture() {
+    return savePayload({
+      storage_encryption_profile: "local_development",
+      require_storage_encryption_evidence: false,
+      require_backup_encryption_evidence: false,
+      storage_encryption_evidence: {},
+      operator_notes: "Local DEV stack; no production at-rest encryption claim.",
+    }, "Local DEV storage posture saved.");
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     if (!document.querySelector('[data-page="security-governance"]')) return;
     var refresh = byId("manage-sg-refresh");
     var saveBtn = byId("manage-sg-save");
+    var saveLocalDevBtn = byId("manage-sg-save-local-dev-storage");
     if (refresh) refresh.addEventListener("click", load);
     if (saveBtn) saveBtn.addEventListener("click", save);
+    if (saveLocalDevBtn) saveLocalDevBtn.addEventListener("click", saveLocalDevStoragePosture);
     if (!window.ManageAuth || typeof window.ManageAuth.ensureAuth !== "function") {
       setMessage("ManageAuth unavailable.", true);
       return;

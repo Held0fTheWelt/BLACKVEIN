@@ -85,6 +85,9 @@ def test_storage_layer_governance_adr_records_admin_and_diagnosis() -> None:
     assert "RUN_STORE_BACKEND=json_aead" in text
     assert "WORLD_ENGINE_JSON_AEAD_KEY" in text
     assert "world-engine/app/runtime/json_at_rest.py" in text
+    assert "No additional functional change is required in the base `docker-compose.yml`" in text
+    assert "DATABASE_URI" in text
+    assert "docker-compose.redis-production.yml" in text
     assert "storage_layer_encryption" in text
     assert "backups_snapshots" in text
     assert "does not replace deployment controls" in text

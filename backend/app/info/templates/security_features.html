@@ -109,6 +109,7 @@
   <p>Der aktuelle Stand ist absichtlich konservativ: <strong>vollständige at-rest Verschlüsselung ist nur mit komplettem Storage-Layer-Evidence-Pack belegbar</strong>. Das Evidence-Pack ist jetzt im Security-Governance-Backend und im Administration-Tool implementiert; lokales Compose verschlüsselt SQLite-, Redis-, JSON-, Docker-Volume- und Backup-Daten weiterhin nicht automatisch.</p>
   <div class="info-lead-block">
     <p><strong>Kanonischer Nachweis:</strong> <code>ADR-0047</code> entscheidet die Evidence-Grenze; <code>ADR-0051</code> implementiert die Storage-Layer-Governance; <code>docs/security/AT_REST_ENCRYPTION.md</code> trennt implementierte Kontrollen, offene Persistenzflächen und den Plan zur Vervollständigung.</p>
+    <p><strong>Compose-Stand:</strong> In <code>docker-compose.yml</code> ist keine weitere funktionale Änderung nötig. Backend-DB-Konfiguration kommt über <code>env_file: .env</code> und damit über <code>DATABASE_URI</code>; der Play-Service hat <code>RUN_STORE_BACKEND</code>, <code>RUN_STORE_URL</code> und <code>WORLD_ENGINE_JSON_AEAD_KEY</code>. Production-Verschlüsselung entsteht durch Managed Services, verschlüsselte Volumes oder den <code>json_aead</code>-Store plus Evidence, nicht durch lokale Compose-Named-Volumes.</p>
   </div>
   <table class="doc-table" aria-label="At-rest Verschlüsselungsstatus">
     <thead><tr><th>Status</th><th>Persistenzfläche</th><th>Beleg / Grenze</th><th>Nächster Schritt</th></tr></thead>
@@ -140,8 +141,8 @@
       <tr>
         <td><span class="info-status-chip info-status-chip--partial">offen</span></td>
         <td>Redis AOF und Runtime Stores</td>
-        <td><code>redis-data:/data</code> und SQLAlchemy <code>payload_json</code> brauchen Storage-Layer-Evidence; world-engine kann statt plain JSON jetzt <code>RUN_STORE_BACKEND=json_aead</code> mit <code>WORLD_ENGINE_JSON_AEAD_KEY</code> nutzen.</td>
-        <td>Production-Redis/DB auf verschlüsselte Managed Services oder verschlüsselte Volumes legen; JSON Store durch SQL-Store ablösen oder mit AEAD betreiben.</td>
+        <td><code>redis-data:/data</code> und SQLAlchemy <code>payload_json</code> brauchen Storage-Layer-Evidence; <code>docker-compose.redis-production.yml</code> liefert TLS/ACL/Separation, aber nicht automatisch verschlüsselte Volumes. World-engine kann statt plain JSON <code>RUN_STORE_BACKEND=json_aead</code> mit Secret-Store-Key <code>WORLD_ENGINE_JSON_AEAD_KEY</code> nutzen.</td>
+        <td>Production-Redis/DB auf verschlüsselte Managed Services oder verschlüsselte Volumes legen; JSON Store durch <code>RUN_STORE_BACKEND=sqlalchemy</code> auf verschlüsselter DB ablösen oder mit AEAD betreiben.</td>
       </tr>
       <tr>
         <td><span class="info-status-chip info-status-chip--partial">offen</span></td>

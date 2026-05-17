@@ -135,13 +135,18 @@ def test_security_features_page_explains_local_evidence_boundary(client):
     assert b"ADR-0047" in r.data
     assert b"ADR-0051" in r.data
     assert b"docs/security/AT_REST_ENCRYPTION.md" in r.data
+    assert b"docker-compose.yml" in r.data
+    assert b"keine weitere funktionale" in r.data
+    assert b"DATABASE_URI" in r.data
     assert b"storage_encryption_evidence" in r.data
     assert b"storage_layer_encryption" in r.data
     assert b"/manage/security-governance" in r.data
     assert b"backend/instance/wos.db" in r.data
     assert b"redis-data:/data" in r.data
+    assert b"docker-compose.redis-production.yml" in r.data
     assert b"RUN_STORE_BACKEND=json" in r.data
     assert b"RUN_STORE_BACKEND=json_aead" in r.data
+    assert b"RUN_STORE_BACKEND=sqlalchemy" in r.data
     assert b"WORLD_ENGINE_JSON_AEAD_KEY" in r.data
     assert b"langfuse-postgres-data" in r.data
     assert b"Encrypted Backup Output" in r.data

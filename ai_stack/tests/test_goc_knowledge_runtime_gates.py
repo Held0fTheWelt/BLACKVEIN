@@ -126,6 +126,18 @@ def test_summary_only_opening_is_recoverable_not_committable() -> None:
     assert outcome["opening_summary_only_absent"] is False
 
 
+def test_six_narrator_opening_with_event_coverage_is_not_summary_only() -> None:
+    structured = _full_opening_structured()
+    structured["spoken_lines"] = []
+    structured["action_lines"] = []
+
+    outcome = _validate_opening(structured)
+
+    assert outcome["reason"] != "summary_only_opening"
+    assert outcome["opening_summary_only_absent"] is True
+    assert outcome["opening_event_coverage_pass"] is True
+
+
 def test_npc_exposition_of_room_is_rejected() -> None:
     outcome = _validate_opening(
         {

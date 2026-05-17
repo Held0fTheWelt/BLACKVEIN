@@ -32,13 +32,15 @@ def test_wrong_module_returns_none():
     assert beats is None and meta is None
 
 
-def test_three_list_strings_strips_leaked_beat_prefixes():
+def test_model_list_preserves_extra_opening_beats():
     beats, meta = normalize_opening_narration_beats(
         [
             "narrator_intro: On the schoolyard two boys and a stick left an injury; parents chose a civilised meeting.",
             "scene_setup: In the Paris apartment tulips, espresso, folded coats, and art books stage the ritual before dessert.",
             "role_anchor: You are Annette Reille, arriving as a guest beside Alain — not a spectator.",
-            "extra ignored",
+            "The threshold remains visible as everyone enters the room.",
+            "The host and guest positions settle around the table.",
+            "The first playable silence opens.",
         ],
         selected_player_role="annette",
         human_actor_id="annette_reille",
@@ -47,11 +49,13 @@ def test_three_list_strings_strips_leaked_beat_prefixes():
         output_language="en",
         existing_actor_lines=None,
     )
-    assert beats and len(beats) == 3
+    assert beats and len(beats) == 6
     assert "schoolyard" in beats[0].lower()
     assert "paris" in beats[1].lower() or "tulip" in beats[1].lower()
     assert "You are" in beats[2] and "Annette" in beats[2]
+    assert "first playable" in beats[-1].lower()
     assert meta and meta.get("opening_narration_source") == "model_list_three_plus"
+    assert meta.get("opening_narration_extra_beats_preserved") == 3
 
 
 def test_single_string_split_paragraphs():

@@ -71,6 +71,8 @@ def test_manage_security_governance_exposes_storage_layer_controls(client):
     assert "manage-sg-field-backup-evidence-required" in html
     assert "manage-sg-field-storage-key-custody" in html
     assert "manage-sg-field-storage-restore-test" in html
+    assert "manage-sg-save-local-dev-storage" in html
+    assert "Save local DEV posture" in html
     assert "manage-sg-field-storage-evidence-json" in html
     assert "manage-sg-storage-effective-list" in html
     assert "manage-sg-storage-checks" in html
@@ -91,4 +93,7 @@ def test_manage_security_governance_js_uses_backend_governance_endpoint():
     assert "storage_encryption_profile" in text
     assert "storage_encryption_evidence" in text
     assert "require_storage_key_custody_evidence" in text
+    assert "saveLocalDevStoragePosture" in text
+    assert "manage-sg-save-local-dev-storage" in text
+    assert "Local DEV stack; no production at-rest encryption claim." in text
     assert "manage-sg-storage-checks" in text
