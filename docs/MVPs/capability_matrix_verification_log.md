@@ -548,7 +548,7 @@ Latest local verification recorded for bounded Meta/OOC input handling:
 
 - Git SHA at verification time: `7aee14eb` on `master` (dirty worktree).
 - Environment scope: local py_compile/pytest/docs check; no live-provider or staging claim.
-- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py ai_stack/action_ontology.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph_runtime_executor.py` -> passed.
+- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py story_runtime_core/language_adapter.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph_runtime_executor.py` -> passed.
 - `PYTHONPATH=. pytest story_runtime_core/tests/test_input_interpreter.py ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_langgraph_runtime.py -q -s` -> 38 passed.
 - `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only.
 

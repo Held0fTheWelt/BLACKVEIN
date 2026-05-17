@@ -93,7 +93,7 @@ ADR-0039 governs **runtime behavior and decision surfaces**, not only tests and 
 - **`backend`** — player-session bundle and readiness derivation (`evaluate_session_opening_readiness`, ADR-0041 veto-only consumer).
 - **`frontend` Play Shell** — must **not manufacture** readiness, live, or healthy semantics; display only fields the backend/runtime bundle proves.
 - **`administration-tool`** — operator UI and proxy to backend/world-engine; **display and approved control actions only**; must **not** treat local dashboard or proxy payload as canonical runtime, commit, or live health without the same fields from authoritative services.
-- **`story_runtime_core`** — first-class: `interpret_player_input` / locale rules (**preview** shaping only), **`recovery/no_dead_end`** (**diagnostic** evidence contract only), branching / callback / consequence helpers (**diagnostic** unless explicitly wired through world-engine commit). This package must **not** bypass canonical validation or commit authority.
+- **`story_runtime_core`** — first-class: `interpret_player_input` / semantic language adapter (**preview** shaping only), **`recovery/no_dead_end`** (**diagnostic** evidence contract only), branching / callback / consequence helpers (**diagnostic** unless explicitly wired through world-engine commit). This package must **not** bypass canonical validation or commit authority.
 
 **Normative inventory:** [`docs/MVPs/adr0039_runtime_surface_governance_inventory.md`](../MVPs/adr0039_runtime_surface_governance_inventory.md) (YAML front matter, gate-enforced). Code is authoritative over prose; update the inventory when surfaces change.
 

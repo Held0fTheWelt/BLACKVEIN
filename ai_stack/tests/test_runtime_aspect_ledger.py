@@ -475,7 +475,7 @@ def test_runtime_projection_exposes_sensory_context_aspect() -> None:
         "source": "scene_affordances",
         "source_field": "objects.window.perception_detail.de",
         "source_ref": "scene_affordances.objects.window.perception_detail",
-        "locale": "de",
+        "language": "de",
         "text": "canonical text loaded by sensory context target",
         "required": True,
     }

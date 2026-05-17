@@ -111,7 +111,7 @@ Current contract families:
 - command/uncertain: `explicit_command`, `unclear`, `ambiguous`
 
 `kind` remains the coarse interpreter category. `player_input_kind` is the
-runtime routing surface used by content locale rules, semantic-move guards,
+runtime routing surface used by the semantic language adapter, semantic-move guards,
 scene-director response policy, and Langfuse deterministic scores.
 
 ## Intent invariants

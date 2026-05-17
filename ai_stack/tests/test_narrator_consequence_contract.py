@@ -4,7 +4,7 @@ Verifies that the narrator consequence pipeline produces:
   - a LocalContextTransition with correct transition_type, to_area, new_area_established
   - a NarratorConsequencePlan with authored consequence_text (not a template restatement)
   - an updated player_local_context that advances the player into the new situation
-  - content-derived consequence text without module locale files
+  - content-derived consequence text without module language lookup files
   - multi-turn context persistence (player_local_context carries forward)
 
 All test inputs and assertions are in English. Consequence text is loaded from

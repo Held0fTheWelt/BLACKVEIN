@@ -320,6 +320,7 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     assert captured_story_kwargs["langfuse_trace_id"] == captured_run_kwargs["langfuse_trace_id"]
     assert len(captured_story_kwargs["langfuse_trace_id"]) == 32
 
+    assert captured_story_kwargs.get("session_input_language") == "de"
     assert captured_story_kwargs.get("session_output_language") == "de"
 
     with app.app_context():
@@ -327,6 +328,7 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
         assert len(slots) == 1
         assert slots[0].kind == "canonical_player_session"
         assert slots[0].metadata_json["runtime_session_id"] == "story-session-1"
+    assert slots[0].metadata_json["session_input_language"] == "de"
     assert slots[0].metadata_json["session_output_language"] == "de"
 
 

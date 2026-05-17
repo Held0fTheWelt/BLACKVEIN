@@ -38,7 +38,8 @@ content/modules/god_of_carnage/module.yaml
 runtime_intelligence.sensory_context
 
 content/modules/god_of_carnage/knowledge/narrator_sensory_palette.yaml
-content/modules/god_of_carnage/locale/scene_affordances.yaml
+content/modules/god_of_carnage/locations/**/*.yaml
+content/modules/god_of_carnage/objects/**/*.yaml
 ```
 
 `ModuleRuntimePolicy` normalizes the policy into
@@ -91,7 +92,7 @@ The core schemas are:
 - `rationale_codes`
 
 Each selected layer carries `layer_id`, `layer_kind`, `source`, `source_field`,
-`source_ref`, optional locale, optional text, and `required`.
+`source_ref`, optional language, optional text, and `required`.
 
 `SensoryContextValidation` records deterministic realization evidence:
 

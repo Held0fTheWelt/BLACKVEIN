@@ -6,7 +6,7 @@ import pytest
 
 from story_runtime_core.language_adapter import (
     build_player_attributed_visible_line,
-    classify_player_input_from_rules,
+    prepare_player_input_semantic_resolution,
     clear_language_adapter_caches,
     infer_verb_and_action_kind,
     resolve_content_modules_root,
@@ -29,7 +29,7 @@ def _root() -> object:
 )
 def test_player_language_requires_ai_semantic_resolution(raw: str, lang: str) -> None:
     root = _root()
-    hit = classify_player_input_from_rules(
+    hit = prepare_player_input_semantic_resolution(
         raw,
         module_id="god_of_carnage",
         lang_hint=lang,
@@ -42,10 +42,10 @@ def test_player_language_requires_ai_semantic_resolution(raw: str, lang: str) ->
     assert hit["semantic_resolution_contract"]["policy"]["infer_meaning_from_player_utterance_and_content_catalog"] is True
 
 
-def test_neutral_visible_line_does_not_restate_action_as_locale_template() -> None:
+def test_neutral_visible_line_does_not_restate_action_as_language_template() -> None:
     root = _root()
     raw = "Ich stehe auf und sage: Das reicht."
-    hit = classify_player_input_from_rules(
+    hit = prepare_player_input_semantic_resolution(
         raw,
         module_id="god_of_carnage",
         lang_hint="de",

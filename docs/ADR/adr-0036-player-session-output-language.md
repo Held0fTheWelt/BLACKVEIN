@@ -63,7 +63,7 @@ This ADR contains no personal data. Implementers must follow repository privacy 
 
 2. **Missing control surface:** Today the play launcher exposes **template** and **Play As** (role). There is no first-class **output language** choice, so the stack cannot consistently steer the model or validate “wrong language” drift.
 
-3. **Scope for v1:** The product needs **German** and **English** as the first supported **player-visible output languages** for generation. Additional locales are out of scope for this ADR but must remain **extensible** (registry or enum, not hard-coded `if` trees scattered across services).
+3. **Scope for v1:** The product needs **German** and **English** as the first supported **player-visible output languages** for generation. Additional languages are out of scope for this ADR but must remain **extensible** (registry or enum, not hard-coded `if` trees scattered across services).
 
 ## Decision
 
@@ -77,7 +77,7 @@ This ADR contains no personal data. Implementers must follow repository privacy 
 
 - At **game start** (same step as template selection and **Play As**), the player SHALL choose **`session_output_language`** explicitly.
 - **Default value (v1):** `de` (German-first product). If player does not choose, backend defaults to `de`.
-- Browser locale MAY inform the UI default (suggested pre-selection), but does not override explicit backend default of `de`.
+- Browser language MAY inform the UI default (suggested pre-selection), but does not override explicit backend default of `de`.
 - The launcher MUST persist the chosen/resolved language tag on the session so it is not lost on resume.
 
 #### D2a — Frontend implementation contract

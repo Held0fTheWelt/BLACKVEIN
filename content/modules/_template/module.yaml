@@ -70,5 +70,5 @@ files:
 quality_principles:
   - "Keep character ids, runtime actor ids, relationship ids, scene ids, and location ids stable."
   - "Put story truth in module files; keep engine logic generic."
-  - "Let the engine language adapter handle player-visible language; do not create locale files or action maps."
+  - "Let the engine language adapter handle player-visible language; do not create language lookup files or action maps."
   - "Do not duplicate location descriptions outside locations/; reference location ids instead."

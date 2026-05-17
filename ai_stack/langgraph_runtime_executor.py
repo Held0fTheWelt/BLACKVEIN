@@ -283,9 +283,9 @@ from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
 from story_runtime_core.language_adapter import (
-    classify_player_input_from_rules,
     default_player_intent_commit_flags,
     load_session_language_model_directive,
+    prepare_player_input_semantic_resolution,
 )
 
 
@@ -5092,7 +5092,7 @@ class RuntimeTurnGraphExecutor:
         )
         session_output_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
         session_input_lang = str(state.get("session_input_language") or session_output_lang).strip().lower()[:2] or session_output_lang
-        module_for_rules = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
+        module_for_adapter = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
         input_kind_map = {
             "speech": "speech",
             "action": "action",
@@ -5128,16 +5128,15 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["narrator_response_expected"] = False
                 intent_fields["npc_response_expected"] = True
         else:
-            hit = classify_player_input_from_rules(
+            hit = prepare_player_input_semantic_resolution(
                 raw_pi,
-                module_id=module_for_rules,
+                module_id=module_for_adapter,
                 lang_hint=session_output_lang,
                 session_input_language=session_input_lang,
                 session_output_language=session_output_lang,
                 content_modules_root=None,
             )
-            rid = str(hit.get("deterministic_intent_rule") or "")
-            if rid not in ("no_rules", "no_rule_match"):
+            if bool(hit.get("semantic_resolution_required")):
                 pik = str(hit.get("player_input_kind") or "unclear").strip().lower()
                 intent_fields["player_input_kind"] = pik
                 intent_fields["projection_key"] = hit.get("projection_key")
@@ -5155,9 +5154,14 @@ class RuntimeTurnGraphExecutor:
                     json_kind = "action"
                 else:
                     json_kind = kind_raw
-                # Also propagate semantic fields from rules hit
+                # Propagate the AI semantic-resolution contract into action resolution.
                 intent_fields["semantic_category"] = hit.get("semantic_category") or pik
                 intent_fields["speech_projection_allowed"] = bool(hit.get("speech_projection_allowed"))
+                intent_fields["semantic_resolution_required"] = bool(hit.get("semantic_resolution_required"))
+                intent_fields["semantic_resolution_contract"] = hit.get("semantic_resolution_contract") or {}
+                intent_fields["semantic_catalog_available"] = bool(hit.get("semantic_catalog_available"))
+                intent_fields["session_input_language"] = session_input_lang
+                intent_fields["session_output_language"] = session_output_lang
                 interp_dict["kind"] = json_kind
                 kind_raw = json_kind
             else:

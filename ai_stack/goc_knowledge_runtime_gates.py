@@ -655,7 +655,7 @@ _PHASE_ONE_PREMATURE_NPC_MARKERS: tuple[tuple[str, ...], ...] = (
     ("how dare you",),
     ("ridiculous",),
     ("monstrous",),
-    # German markers — same dramatic functions in runtime locale.
+    # German markers — same dramatic functions in session output language.
     ("rechtlich",),
     ("juristisch",),
     ("rechtsfrage",),

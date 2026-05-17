@@ -25,7 +25,7 @@ SESSION_LOOP_LOG_LEVELS = {
 }
 
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
-from story_runtime_core.content_locale import (
+from story_runtime_core.language_adapter import (
     build_player_attributed_visible_line,
     greeting_imperative_addressee_fragment,
     greeting_imperative_visible_pair,
@@ -8416,8 +8416,8 @@ def _build_ldss_scene_envelope(
         current_scene_id=session.current_scene_id,
         runtime_profile_id=str(_runtime_profile_id_from_projection(proj) or session.module_id),
         content_module_id=session.module_id,
-        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
-        # language so the deterministic fallback renders locale-correct opening text.
+        # STAGING-OPENING-LANGUAGE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
+        # language so the deterministic fallback renders language-correct opening text.
         session_output_language=getattr(session, "session_output_language", "de") or "de",
     )
 
@@ -10803,6 +10803,7 @@ class StoryRuntimeManager:
                 turn_input_class="opening",
                 live_player_truth_surface=True,
                 actor_lane_context=actor_lane_ctx,
+                session_input_language=session.session_input_language,
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
                 validation_execution_mode=self._validation_execution_mode(),
@@ -11005,6 +11006,7 @@ class StoryRuntimeManager:
         *,
         module_id: str,
         runtime_projection: dict[str, Any],
+        session_input_language: str | None = None,
         session_output_language: str = "de",
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
@@ -11015,6 +11017,7 @@ class StoryRuntimeManager:
         session = self._create_story_session_record(
             module_id=module_id,
             runtime_projection=runtime_projection,
+            session_input_language=session_input_language or session_output_language,
             session_output_language=session_output_language,
             content_provenance=content_provenance,
             session_id=session_id,
@@ -11032,6 +11035,7 @@ class StoryRuntimeManager:
         *,
         module_id: str,
         runtime_projection: dict[str, Any],
+        session_input_language: str | None = None,
         session_output_language: str = "de",
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
@@ -11043,6 +11047,7 @@ class StoryRuntimeManager:
         session = self._create_story_session_record(
             module_id=module_id,
             runtime_projection=runtime_projection,
+            session_input_language=session_input_language or session_output_language,
             session_output_language=session_output_language,
             content_provenance=content_provenance,
             session_id=session_id,
@@ -12266,6 +12271,7 @@ class StoryRuntimeManager:
                 turn_initiator_type="player",
                 live_player_truth_surface=True,
                 actor_lane_context=self._extract_actor_lane_context(session),
+                session_input_language=session.session_input_language,
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
                 validation_execution_mode=self._validation_execution_mode(),

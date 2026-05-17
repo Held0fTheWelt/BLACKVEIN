@@ -475,7 +475,9 @@ def resolve_player_action(
         status, policy, tid, ttyp, source, access = _resolve_query(target_query, affordance_model)
 
     ai_policy = str(semantic.get("commit_policy") or "").strip()
-    if ai_policy in {"commit_action", "commit_speech", "no_commit", "needs_clarification", "recover_or_reject"}:
+    if status in {"unknown_target", "ambiguous"}:
+        policy = "needs_clarification"
+    elif ai_policy in {"commit_action", "commit_speech", "no_commit", "needs_clarification", "recover_or_reject"}:
         policy = ai_policy
     confidence = str(semantic.get("confidence") or ("high" if tid else "low")).strip() or "low"
     rt = _resolved_target(

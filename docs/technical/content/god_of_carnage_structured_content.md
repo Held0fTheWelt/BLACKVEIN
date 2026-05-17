@@ -4,14 +4,15 @@ Status: implementation-facing reference (GOC-KNOWLEDGE-RUNTIME-INTEGRATION).
 
 ## Module-authoring language
 
-- Authored module content is **English**. Runtime locale output may be German (or
-  any other language) via `session_output_language` / `locale/*` data.
+- Authored module content is **English**. Player input declares
+  `session_input_language`; player-visible output declares
+  `session_output_language`.
 - The English knowledge layer lives in:
   - `content/modules/god_of_carnage/knowledge/` (machine-readable runtime contracts)
   - `content/modules/god_of_carnage/module.yaml`
   - `content/modules/god_of_carnage/{apartment_layout,apartment_objects,actor_pressure_profiles,phase_beat_policy,memory_policy}.yaml`
-- Runtime-localized strings live in `content/modules/god_of_carnage/locale/`
-  (e.g. `locale/scene_affordances.yaml`).
+- Runtime language realization is handled by the universal semantic language
+  adapter. The module must not define language lookup directories or phrase maps.
 
 ## Authority precedence
 
@@ -70,7 +71,7 @@ Turn 0 (`turn_input_class == "opening"`) is validated against
   "use_for": [...downstream consumers...],
   "module_id": "god_of_carnage",
   "language": "en",
-  "runtime_locale_available": bool
+  "runtime_language_adapter_available": bool
 }
 ```
 

@@ -181,7 +181,7 @@ class LDSSInput:
     admitted_objects: list[dict[str, Any]] = field(default_factory=list)
     contract: str = "ldss_input.v1"
     # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: explicit session
-    # output language so deterministic LDSS fallback projects locale-correct visible text.
+    # output language so deterministic LDSS fallback projects language-correct visible text.
     session_output_language: str = "de"
 
     @property
@@ -701,7 +701,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
         ))
         block_idx += 1
 
-    # Primary NPC actor_line — locale-aware (P1) + phase-1-polite (P2)
+        # Primary NPC actor_line — output-language-aware (P1) + phase-1-polite (P2)
     if effective_primary:
         label, line_text = _goc_npc_line_for(lang, effective_primary, turn)
         target = human_id if human_id else (secondary or None)
@@ -715,7 +715,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
         ))
         block_idx += 1
 
-    # Secondary NPC actor_action — locale-aware
+            # Secondary NPC actor_action — output-language-aware
     if secondary:
         label2 = _GOC_DISPLAY_NAMES.get(secondary, secondary.capitalize())
         action_text = _goc_npc_action_for(lang, secondary)

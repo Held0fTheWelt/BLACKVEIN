@@ -21,11 +21,13 @@ def test_interaction_surface_is_content_derived_and_map_free() -> None:
     assert surface["authority"] == "derived_from_content_files"
     assert surface["adapter_policy"]["engine_maps_allowed"] is False
     assert surface["semantic_resolution_contract"]["policy"]["no_hardcoded_language_maps"] is True
+    assert surface["semantic_resolution_contract"]["policy"]["translate_input_to_internal_english_before_grounding"] is True
+    assert surface["semantic_resolution_contract"]["input"]["internal_resolution_language"] == "en"
     assert {row.get("id") for row in surface["locations"]}.issuperset({"living_room", "kitchen"})
     assert {row.get("id") for row in surface["objects"]}.issuperset({"coffee_table", "elevator"})
 
 
-def test_visible_line_is_neutral_attribution_not_locale_template() -> None:
+def test_visible_line_is_neutral_attribution_not_language_template() -> None:
     clear_language_adapter_caches()
     root = resolve_content_modules_root()
     got = build_player_attributed_visible_line(
@@ -71,6 +73,21 @@ def test_session_language_directive_requires_semantic_ai_resolution() -> None:
         lang="en",
         content_modules_root=root,
     )
+    assert "session_input_language=en" in text
     assert "session_output_language=en" in text
+    assert "translate/normalize it to English" in text
     assert "lookup maps" in text
     assert "grounded content catalog" in text
+
+
+def test_session_language_directive_allows_input_language_distinct_from_output_language() -> None:
+    clear_language_adapter_caches()
+    root = resolve_content_modules_root()
+    text = load_session_language_model_directive(
+        module_id="god_of_carnage",
+        lang="en",
+        session_input_language="de",
+        content_modules_root=root,
+    )
+    assert "session_input_language=de" in text
+    assert "session_output_language=en" in text

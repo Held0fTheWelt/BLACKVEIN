@@ -49,7 +49,7 @@ God of Carnage maps content into generic policy fields:
 - `memory_policy.yaml` → `ModuleRuntimePolicy.memory_policy`
 - `phase_beat_policy.yaml` and `knowledge/opening_scene_sequence.yaml` → phase/beat/opening policy
 - `knowledge/hard_forbidden_rules.yaml` → hard-forbidden and recovery policy
-- `apartment_layout.yaml`, `apartment_objects.yaml`, and `locale/scene_affordances.yaml` → location/object/affordance policy
+- `locations/**/*.yaml`, `objects/**/*.yaml`, and `apartment_layout.yaml` → location/object/affordance policy
 - `actor_pressure_profiles.yaml` → actor pressure profile data for scene planning
 
 Runtime algorithms consume the generic policy shape. GoC-specific values may

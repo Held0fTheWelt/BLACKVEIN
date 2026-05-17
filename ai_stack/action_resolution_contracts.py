@@ -7,12 +7,12 @@ Alias matching uses Unicode folding — no phrase-specific runtime branches.
 from __future__ import annotations
 
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
 def fold_unicode(text: str) -> str:
-    """Fold accents/umlauts for locale-agnostic alias comparison (NFKD + strip marks)."""
+    """Fold accents/umlauts for language-agnostic content id comparison."""
     s = str(text or "").strip().lower()
     if not s:
         return ""

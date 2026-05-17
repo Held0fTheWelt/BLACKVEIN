@@ -26,13 +26,13 @@ __all__ = [
     "build_interaction_surface",
     "build_player_attributed_visible_line",
     "build_semantic_resolution_contract",
-    "classify_player_input_from_rules",
     "clear_language_adapter_caches",
     "default_player_intent_commit_flags",
     "greeting_imperative_addressee_fragment",
     "greeting_imperative_visible_pair",
     "infer_verb_and_action_kind",
     "load_session_language_model_directive",
+    "prepare_player_input_semantic_resolution",
     "resolve_content_modules_root",
     "resolve_string",
 ]
@@ -350,7 +350,7 @@ def build_interaction_surface(
     return _interaction_surface_cached(str(module_dir.resolve()))
 
 
-def classify_player_input_from_rules(
+def prepare_player_input_semantic_resolution(
     raw_text: str,
     *,
     module_id: str,

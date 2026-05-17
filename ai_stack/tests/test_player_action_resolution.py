@@ -104,6 +104,40 @@ def test_ai_semantic_movement_resolves_content_location() -> None:
     assert frame["validation_surface"] == "ai_semantic_resolution"
 
 
+def test_ai_semantic_resolution_preserves_internal_english_normalization() -> None:
+    interpreted = _semantic_interpreted(
+        verb="move_to",
+        action_kind="movement",
+        target_query="kitchen",
+        target_id="kitchen",
+        target_type="location",
+    )
+    interpreted["semantic_resolution_contract"] = {
+        "input": {
+            "session_input_language": "de",
+            "session_output_language": "de",
+            "internal_resolution_language": "en",
+        }
+    }
+    interpreted["semantic_action"]["normalized_english_text"] = "Go to the kitchen"
+    interpreted["semantic_action"]["target_query_english"] = "kitchen"
+
+    out = resolve_player_action(
+        raw_text="Gehe in die Küche",
+        interpreted_input=interpreted,
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+
+    frame = out["player_action_frame"]
+    assert frame["normalized_english_text"] == "Go to the kitchen"
+    assert frame["internal_resolution_language"] == "en"
+    assert frame["session_input_language"] == "de"
+    assert frame["session_output_language"] == "de"
+    assert frame["target_query"] == "kitchen"
+
+
 def test_ai_semantic_stairwell_resolution_is_prevented_not_forbidden() -> None:
     out = resolve_player_action(
         raw_text="Gehe ins Treppenhaus",

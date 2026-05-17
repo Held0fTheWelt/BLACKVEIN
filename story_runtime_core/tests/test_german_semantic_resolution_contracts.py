@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from story_runtime_core.language_adapter import classify_player_input_from_rules, resolve_content_modules_root
+from story_runtime_core.language_adapter import prepare_player_input_semantic_resolution, resolve_content_modules_root
 
 MODULE = "god_of_carnage"
 LANG = "de"
@@ -20,7 +20,7 @@ LANG = "de"
     ],
 )
 def test_german_return_movement_is_not_rule_mapped(raw: str) -> None:
-    hit = classify_player_input_from_rules(
+    hit = prepare_player_input_semantic_resolution(
         raw,
         module_id=MODULE,
         lang_hint=LANG,

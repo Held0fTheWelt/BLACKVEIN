@@ -886,6 +886,19 @@ class TestSessionOutputLanguage:
             session_output_language="en",
         )
         assert session.session_output_language == "en"
+        assert session.session_input_language == "en"
+
+    def test_story_session_stores_input_language(self):
+        from app.story_runtime import StoryRuntimeManager
+        mgr = StoryRuntimeManager(session_store=None, adapters={})
+        session = mgr.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=self._full_projection(),
+            session_input_language="de",
+            session_output_language="en",
+        )
+        assert session.session_input_language == "de"
+        assert session.session_output_language == "en"
 
     def test_story_session_default_language_is_de(self):
         """StorySession.session_output_language defaults to de when not specified (ADR-0036)."""
@@ -896,6 +909,7 @@ class TestSessionOutputLanguage:
             runtime_projection=self._full_projection(),
         )
         assert session.session_output_language == "de"
+        assert session.session_input_language == "de"
 
     def test_opening_prompt_contains_german_directive_for_de(self):
         """_build_opening_prompt must include German language directive when session_output_language=de (ADR-0036)."""

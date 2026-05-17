@@ -6,7 +6,7 @@ import pytest
 
 from story_runtime_core.language_adapter import (
     build_player_attributed_visible_line,
-    classify_player_input_from_rules,
+    prepare_player_input_semantic_resolution,
     clear_language_adapter_caches,
     resolve_content_modules_root,
 )
@@ -21,7 +21,7 @@ def setup_module(_m: object) -> None:
 
 
 def _classify(text: str) -> dict:
-    return classify_player_input_from_rules(
+    return prepare_player_input_semantic_resolution(
         text,
         module_id=MODULE,
         lang_hint=LANG,
@@ -47,7 +47,10 @@ def test_german_input_requests_semantic_ai_resolution(text: str) -> None:
     assert hit["semantic_resolution_required"] is True
     assert hit["projection_key"] is None
     assert hit["captures"] == {}
+    assert hit["semantic_resolution_contract"]["input"]["session_input_language"] == LANG
     assert hit["semantic_resolution_contract"]["input"]["session_output_language"] == LANG
+    assert hit["semantic_resolution_contract"]["input"]["internal_resolution_language"] == "en"
+    assert hit["semantic_resolution_contract"]["policy"]["translate_input_to_internal_english_before_grounding"] is True
 
 
 def test_german_projection_is_plain_attribution_until_semantics_exist() -> None:

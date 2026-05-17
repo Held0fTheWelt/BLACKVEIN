@@ -237,6 +237,7 @@ class TestSessionOutputLanguageValidation:
                     json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"},
                     headers=auth_headers,
                 )
+        assert captured.get("session_input_language") == "de"
         assert captured.get("session_output_language") == "de"
 
     def test_explicit_de_accepted(self, client, auth_headers):
@@ -256,6 +257,7 @@ class TestSessionOutputLanguageValidation:
                     json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "de"},
                     headers=auth_headers,
                 )
+        assert captured.get("session_input_language") == "de"
         assert captured.get("session_output_language") == "de"
 
     def test_en_accepted(self, client, auth_headers):
@@ -275,6 +277,7 @@ class TestSessionOutputLanguageValidation:
                     json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "en"},
                     headers=auth_headers,
                 )
+        assert captured.get("session_input_language") == "en"
         assert captured.get("session_output_language") == "en"
 
     def test_unsupported_language_returns_400(self, client, auth_headers):
@@ -298,6 +301,31 @@ class TestSessionOutputLanguageValidation:
         data = response.get_json()
         assert data.get("code") == "invalid_output_language"
 
+    def test_explicit_session_input_language_forwarded(self, client, auth_headers):
+        captured = {}
+
+        def fake_create_run(**kwargs):
+            return self._fake_run_payload("input_lang_run")
+
+        def fake_ensure(*args, **kwargs):
+            captured.update(kwargs)
+            raise Exception("stop_here")
+
+        with patch("app.api.v1.game_routes.create_play_run", side_effect=fake_create_run):
+            with patch("app.api.v1.game_routes._ensure_player_session", side_effect=fake_ensure):
+                client.post(
+                    "/api/v1/game/player-sessions",
+                    json={
+                        "runtime_profile_id": "god_of_carnage_solo",
+                        "selected_player_role": "annette",
+                        "session_output_language": "en",
+                        "session_input_language": "de",
+                    },
+                    headers=auth_headers,
+                )
+        assert captured.get("session_input_language") == "de"
+        assert captured.get("session_output_language") == "en"
+
     def test_language_forwarded_to_ensure_player_session(self, client, auth_headers):
         captured = {}
 
@@ -315,6 +343,7 @@ class TestSessionOutputLanguageValidation:
                     json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "en"},
                     headers=auth_headers,
                 )
+        assert captured.get("session_input_language") == "en"
         assert captured.get("session_output_language") == "en"
 
 
@@ -361,5 +390,4 @@ class TestDockerUpGate:
         assert "bootstrap_required" in content, (
             "docker-up.py gate subcommand must check for bootstrap_required"
         )
-
 

@@ -1,29 +1,33 @@
-# ADR-0037: Content-Backed Locale for Story Runtime Shell
+# ADR-0037: Semantic Language Adapter for Story Runtime Shell
 
 ## Status
 
-Accepted
+Superseded by the universal semantic language adapter.
 
 ## Context
 
-Player-visible shell strings, greeting-imperative patterns, and non-opening model language directives were embedded in Python (`world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime_executor.py`), which violates the product rule that **authorable prose and locale-specific patterns live in the content module**, not the engine.
+The old implementation treated player language as a module-owned lookup
+problem: module string files, phrase rules, and per-language directives tried to
+map utterances into runtime actions. That created a second description database
+beside locations, objects, characters, and canonical path content.
 
 ## Decision
 
-1. **Single resolver** — `story_runtime_core.content_locale` loads YAML/MD only from `content/modules/<module_id>/locale/` (see `resolve_string`, `load_session_language_model_directive`, greeting helpers).
-
-2. **God of Carnage v1** — [`content/modules/god_of_carnage/locale/module_strings.yaml`](../../content/modules/god_of_carnage/locale/module_strings.yaml), [`player_input_rules.yaml`](../../content/modules/god_of_carnage/locale/player_input_rules.yaml), and [`locale/model_directives/session_output_language_{de,en}.md`](../../content/modules/god_of_carnage/locale/model_directives/) are listed in [`module.yaml`](../../content/modules/god_of_carnage/module.yaml) `files:`.
-
-3. **Discovery** — `resolve_content_modules_root()` uses `WOS_REPO_ROOT` when set, else walks parents from `story_runtime_core` for a checkout containing `content/modules/`.
-
-4. **Regression guard** — `scripts/check_runtime_shell_locale_drift.py` fails CI if banned legacy substrings reappear in the two engine paths above.
+1. `story_runtime_core.language_adapter` exposes a content-derived semantic
+   catalog and an AI resolution contract.
+2. Player input supplies `session_input_language`; player-visible output uses
+   `session_output_language`.
+3. The AI normalizes player input into English for internal grounding against
+   English-authored content, then produces visible narration in the requested
+   output language.
+4. Content modules must not ship language lookup directories, phrase-rule files,
+   action maps, or duplicate description databases.
 
 ## Consequences
 
-- **Positive:** Shell copy and model directives are diffable with module content; ADR-0036 remains the selector (`session_output_language`), not the string store.
-- **Negative:** Runtime requires a resolvable `content/modules` tree (same constraint as other content-driven features).
-
-## Relation
-
-- [ADR-0036](adr-0036-player-session-output-language.md) — output language selection unchanged.
-- Supersedes unused `story_runtime_core/player_input_intent.py` experiment (removed).
+- Meaning is resolved semantically against authored locations, objects,
+  characters, and policy surfaces.
+- Unknown or underspecified actions remain clarification requests instead of
+  being guessed by code-level phrase rules.
+- Runtime language support scales through the AI adapter contract rather than
+  per-module lookup tables.

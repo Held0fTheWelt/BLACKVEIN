@@ -62,7 +62,7 @@ class SensoryContextLayer(BaseModel):
     source: str
     source_field: str
     source_ref: str
-    locale: str | None = None
+    language: str | None = None
     text: str | None = None
     required: bool = True
 

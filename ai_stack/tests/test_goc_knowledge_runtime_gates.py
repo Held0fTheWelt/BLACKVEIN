@@ -226,8 +226,8 @@ def test_turn0_opening_npc_lines_follow_phase_one_policy() -> None:
 
 
 def test_turn0_opening_npc_line_in_german_also_triggers_phase_one_constraint() -> None:
-    """P2: detector must catch German runtime locale variants too (e.g. 'Wie könnt ihr'),
-    not only English markers, since runtime locale may be German."""
+    """P2: detector must catch German runtime language variants too (e.g. 'Wie könnt ihr'),
+    not only English markers, since session output language may be German."""
     outcome = _validate_opening(
         {
             **_full_opening_structured(),

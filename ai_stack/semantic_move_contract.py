@@ -12,8 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 InterpretationTraceStep = Literal[
     "normalize_input",
     "read_interpreted_signals",
-    "score_feature_vector",
-    "apply_priority_rules",
+    "read_ai_semantic_move",
     "emit_record",
 ]
 
@@ -125,7 +124,7 @@ class SubtextRecord(BaseModel):
     sincerity_band: SincerityBand = "unknown"
     evidence_codes: list[str] = Field(
         default_factory=list,
-        description="Bounded rule/feature codes; no prose oracle.",
+        description="Bounded semantic evidence codes; no prose oracle.",
     )
     policy_source: str = ""
     policy_rule_id: str = ""
@@ -206,11 +205,11 @@ class SemanticMoveRecord(BaseModel):
     interpreter_kind: str | None = Field(default=None, description="Echo of interpreted_input.kind for audit.")
     feature_snapshot: dict[str, bool | int | str] = Field(
         default_factory=dict,
-        description="Deterministic feature flags used by priority rules (bounded keys).",
+        description="Bounded semantic adapter flags and runtime signals.",
     )
     ranked_move_candidates: list[RankedMoveCandidate] = Field(
         default_factory=list,
-        description="Primary-first ranked interpretation candidates from the semantic rule stack.",
+        description="Primary-first ranked interpretation candidates from AI semantic resolution.",
     )
     secondary_move_type: str | None = Field(
         default=None,

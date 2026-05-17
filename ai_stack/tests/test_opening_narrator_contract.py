@@ -88,7 +88,7 @@ def test_regular_turn_keeps_single_narrator_structure() -> None:
 
 
 # ---------------------------------------------------------------------------
-# STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: locale enforcement
+# STAGING-OPENING-LANGUAGE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: output language enforcement
 # ---------------------------------------------------------------------------
 
 
@@ -100,7 +100,7 @@ def test_ldss_opening_fallback_respects_german_session_output_language() -> None
     narrator_texts = [b.text for b in blocks if b.block_type == "narrator"]
     assert narrator_texts, "Opening must emit narrator blocks"
     combined = " ".join(narrator_texts)
-    # German runtime locale must use German orthography / common German articles.
+    # German session output language must use German orthography / common German articles.
     assert any(ch in combined for ch in "äöüÄÖÜß"), (
         f"German session must include German-specific characters; got: {combined!r}"
     )

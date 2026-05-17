@@ -73,7 +73,7 @@ def _runtime_policy_sensory_context(module_runtime_policy: dict[str, Any] | None
     return normalize_sensory_context_policy(policy)
 
 
-def _locale_language(session_output_language: str | None) -> str:
+def _output_language(session_output_language: str | None) -> str:
     value = _clean_text(session_output_language).lower()
     return value[:2] if value else "de"
 
@@ -260,9 +260,9 @@ def _source_kind_from_ref(source_ref: str, fallback: str) -> str:
     return fallback
 
 
-def _localized_detail(row: dict[str, Any], field: str, locale: str) -> str | None:
+def _language_detail(row: dict[str, Any], field: str, language: str) -> str | None:
     detail_map = row.get(field) if isinstance(row.get(field), dict) else {}
-    value = detail_map.get(locale) or detail_map.get("de") or detail_map.get("en")
+    value = detail_map.get(language) or detail_map.get("de") or detail_map.get("en")
     text = _clean_text(value)
     return text or None
 
@@ -275,7 +275,7 @@ def _layer(
     source_field: str,
     source_ref: str,
     text: str | None,
-    locale: str | None = None,
+    language: str | None = None,
     required: bool = True,
 ) -> SensoryContextLayer | None:
     if not layer_id or layer_kind not in SENSORY_CONTEXT_LAYER_KINDS:
@@ -287,7 +287,7 @@ def _layer(
         source_field=source_field,
         source_ref=source_ref,
         text=text,
-        locale=locale,
+        language=language,
         required=required,
     )
 
@@ -330,7 +330,7 @@ def derive_sensory_context(
             "rationale_codes": ["sensory_context_policy_disabled"],
         }
 
-    locale = _locale_language(session_output_language)
+    language = _output_language(session_output_language)
     location_id = _current_location_id(
         current_scene_id=current_scene_id,
         scene_affordances=scene_affordances,
@@ -365,7 +365,7 @@ def derive_sensory_context(
             source_field=f"global_mood.{mood}",
             source_ref=f"narrator_sensory_palette.global_mood.{mood}",
             text=mood_text,
-            locale=None,
+            language=None,
             required=False,
         )
         if mood_layer:
@@ -387,7 +387,7 @@ def derive_sensory_context(
             source_field=f"rooms.{location_id}.ambient_ref" if room_ref else f"rooms.{location_id}.ambient",
             source_ref=room_source_ref,
             text=room_text,
-            locale=None,
+            language=None,
             required=True,
         )
         if room_layer:
@@ -396,7 +396,7 @@ def derive_sensory_context(
             rationale.append("sensory_context_room_ambient")
         loc_row = locations.get(location_id)
         if isinstance(loc_row, dict):
-            entry_text = _localized_detail(loc_row, "entry_sensory_detail", locale)
+            entry_text = _language_detail(loc_row, "entry_sensory_detail", language)
             entry_source_ref = _clean_text(loc_row.get("entry_sensory_source_ref")) or (
                 f"scene_affordances.locations.{location_id}.entry_sensory_detail"
             )
@@ -407,7 +407,7 @@ def derive_sensory_context(
                 source_field=f"locations.{location_id}.entry_sensory_source_ref",
                 source_ref=entry_source_ref,
                 text=entry_text,
-                locale=locale,
+                language=language,
                 required=bool(local_context_transition),
             )
             if entry_layer:
@@ -429,7 +429,7 @@ def derive_sensory_context(
             source_field=f"objects.{object_id}.glance_ref" if object_ref else f"objects.{object_id}.glance",
             source_ref=object_source_ref,
             text=object_text,
-            locale=None,
+            language=None,
             required=True,
         )
         if obj_layer:
@@ -438,7 +438,7 @@ def derive_sensory_context(
             rationale.append("sensory_context_object_focus")
         obj_row = objects.get(object_id)
         if isinstance(obj_row, dict):
-            perception_text = _localized_detail(obj_row, "perception_detail", locale)
+            perception_text = _language_detail(obj_row, "perception_detail", language)
             perception_source_ref = _clean_text(obj_row.get("perception_source_ref")) or (
                 f"scene_affordances.objects.{object_id}.perception_detail"
             )
@@ -449,7 +449,7 @@ def derive_sensory_context(
                 source_field=f"objects.{object_id}.perception_source_ref",
                 source_ref=perception_source_ref,
                 text=perception_text,
-                locale=locale,
+                language=language,
                 required=True,
             )
             if perception_layer:

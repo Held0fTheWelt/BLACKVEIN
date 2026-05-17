@@ -154,12 +154,12 @@ surfaces:
   - surface_id: story_runtime_core_input_interpretation
     primary_files:
       - story_runtime_core/input_interpreter.py
-      - story_runtime_core/content_locale.py
+      - story_runtime_core/language_adapter.py
       - story_runtime_core/models.py
     symbols:
       - interpret_player_input
-      - classify_player_input_from_rules
-    runtime_role: Deterministic interpretation and locale rules shaping player input before engine graph
+      - prepare_player_input_semantic_resolution
+    runtime_role: AI semantic resolution contract shaping player input before engine graph
     authority_level: preview
     can_mutate_validation_outcome: false
     can_mutate_commit: false
@@ -286,7 +286,7 @@ This inventory names **decision surfaces** where runtime truth, readiness, commi
 
 The shared package **`story_runtime_core/`** is part of the same runtime governance boundary as `ai_stack`, `world-engine`, backend play routes, the Play Shell, and the **`administration-tool/`** operator surface:
 
-- **Input interpretation and locale** (`interpret_player_input`, `content_locale`) shape proposals and commands; they must not be treated as validation seam approval or commit.
+- **Input interpretation and semantic language adaptation** (`interpret_player_input`, `language_adapter`) shape proposals and commands; they must not be treated as validation seam approval or commit.
 - **Recovery** (`recovery/no_dead_end.py`) emits structured evidence classes only; playable recovery must not be promoted to live or staging success without engine and observability proof.
 - **Branching / consequences / callbacks** are planner- or diagnostic-side unless explicitly integrated into the canonical commit path by World-Engine; they must not bypass `run_validation_seam` or narrative commit authority.
 
