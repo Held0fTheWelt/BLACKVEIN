@@ -7,7 +7,7 @@ phase_1_polite_opening:
 
   narrative_context: |
     Véronique and Michel have invited Annette and Alain into their Paris apartment for the
-    reckoning after their boys fought in the schoolyard — insults, a stick, the injury that
+    reckoning after their boys fought near the Parc Montsouris court — insults, a stick, the injury that
     forced this bourgeois ritual of “talking it through.” The table is set for an evening
     dinner that is also a tribunal: coffee, something sweet, careful seating, smiles that
     cost effort. Each couple performs reasonableness while taking the other’s measure; every
@@ -19,7 +19,7 @@ phase_1_polite_opening:
 
   ai_guidance:
     - "Hosts (Véronique, Michel) and guests (Annette, Alain) trade ritual courtesy; every line is a probe under the smile"
-    - "The schoolyard fight surfaces only in glances, euphemism, or deferred topics — not a second full recap if opening_sequence already landed premise"
+    - "The Parc Montsouris incident surfaces only in glances, euphemism, or deferred topics — not a second full recap if opening_sequence already landed premise"
     - "Véronique’s composure as moral host; Michel’s jokes or deflection as peace-keeping — never early prosecution in plain speech"
     - "Annette’s intellectual edge and cynicism show only as polite questions or feigned agreement; Alain’s mediation as tact and procedure, not opening attack"
     - "Use the meal frame (coffee, pour, seat, tulips on the table) as rhythm and subtext; short beats, no keynote speeches"

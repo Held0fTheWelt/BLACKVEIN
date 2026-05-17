@@ -1,0 +1,22 @@
+location:
+  id: park_edge
+  name: "Parc Montsouris edge"
+  category: exterior_memory
+  playable_access: opening_narration_only
+  description: >-
+    The public-park edge of the opening incident: grey sky, autumn air,
+    sloping lawns, paths, mature trees, and the sense that the lower park and
+    lake continue beyond the boys' immediate line of sight.
+  entrances_exits:
+    visible_routes:
+      - park_paths
+      - boulevard_jourdan_edge
+      - cite_universitaire_rer_edge
+    connected_place_ids:
+      - basketball_court
+      - playground
+      - bicycle_rack
+  inventory_policy: public_park_background_only
+  sensory_tags: [gray_sky, bare_trees, autumn_air, sloping_lawns, lake_below, cite_universitaire_edge, public_space]
+  plausible_actions: [look_at, notice_route, recall_incident]
+  forbidden_actions: [enter_live_play_from_apartment, invent_witness_without_seed]

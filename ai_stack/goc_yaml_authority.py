@@ -52,6 +52,16 @@ def goc_knowledge_yaml_dir() -> Path:
     return goc_module_yaml_dir() / "knowledge"
 
 
+def goc_characters_yaml_dir() -> Path:
+    """Directory for character, relationship, and voice authority YAML."""
+    return goc_module_yaml_dir() / "characters"
+
+
+def goc_locations_yaml_dir() -> Path:
+    """Directory for location authority YAML."""
+    return goc_module_yaml_dir() / "locations"
+
+
 def load_goc_canonical_module_yaml() -> dict[str, Any]:
     """Load authoritative module.yaml for god_of_carnage from the
     repository tree.
@@ -118,9 +128,16 @@ def _safe_load_yaml_mapping(path: Path) -> dict[str, Any]:
     return merged
 
 
+def _safe_load_first_yaml_mapping(paths: list[Path]) -> dict[str, Any]:
+    for path in paths:
+        data = _safe_load_yaml_mapping(path)
+        if data:
+            return data
+    return {}
+
+
 def load_goc_characters_yaml() -> dict[str, Any]:
-    """Load content/modules/god_of_carnage/characters.yaml (canonical
-    slice).
+    """Load the compact canonical character roster or derive it from documents.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -128,8 +145,12 @@ def load_goc_characters_yaml() -> dict[str, Any]:
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    path = goc_module_yaml_dir() / "characters.yaml"
-    data = _safe_load_yaml_mapping(path)
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_characters_yaml_dir() / "index.yaml",
+            goc_module_yaml_dir() / "characters.yaml",
+        ]
+    )
     ch = data.get("characters")
     if isinstance(ch, dict) and ch:
         return ch
@@ -155,7 +176,7 @@ def load_goc_characters_yaml() -> dict[str, Any]:
 
 
 def load_goc_character_voice_yaml() -> dict[str, Any]:
-    """Load direction/character_voice.yaml.
+    """Load character voice guidance.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -163,16 +184,24 @@ def load_goc_character_voice_yaml() -> dict[str, Any]:
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    path = goc_module_yaml_dir() / "direction" / "character_voice.yaml"
-    data = _safe_load_yaml_mapping(path)
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_characters_yaml_dir() / "character_voice.yaml",
+            goc_module_yaml_dir() / "direction" / "character_voice.yaml",
+        ]
+    )
     ch = data.get("characters")
     return ch if isinstance(ch, dict) else {}
 
 
 def load_goc_voice_consistency_yaml() -> dict[str, Any]:
     """Load the global voice consistency policy from character_voice.yaml."""
-    path = goc_module_yaml_dir() / "direction" / "character_voice.yaml"
-    data = _safe_load_yaml_mapping(path)
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_characters_yaml_dir() / "character_voice.yaml",
+            goc_module_yaml_dir() / "direction" / "character_voice.yaml",
+        ]
+    )
     policy = data.get("voice_consistency")
     return policy if isinstance(policy, dict) else {}
 
@@ -219,20 +248,45 @@ def load_goc_scene_graph_yaml() -> dict[str, Any]:
 
 
 def load_goc_locations_yaml() -> dict[str, Any]:
-    """Load locations.yaml as the authored location/accessibility surface."""
-    path = goc_module_yaml_dir() / "locations.yaml"
-    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "locations")
+    """Load authored location/accessibility surface from index plus location files."""
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_locations_yaml_dir() / "index.yaml",
+            goc_locations_yaml_dir() / "locations.yaml",
+            goc_module_yaml_dir() / "locations.yaml",
+        ]
+    )
+    locations = _unwrap_top_level_mapping(data, "locations")
+    if not locations:
+        return {}
+
+    existing_places = locations.get("places") if isinstance(locations.get("places"), list) else []
+    merged: dict[str, Any] = {}
+    for place in existing_places:
+        if not isinstance(place, dict):
+            continue
+        place_id = str(place.get("id") or "").strip()
+        if place_id:
+            merged[place_id] = place
+
+    for place_id, place in _load_goc_location_documents_yaml().items():
+        merged[place_id] = place
+
+    if merged:
+        locations = dict(locations)
+        locations["places"] = list(merged.values())
+    return locations
 
 
 def load_goc_character_documents_yaml() -> dict[str, Any]:
     """Load per-character authoring documents from characters/*.yaml."""
-    char_dir = goc_module_yaml_dir() / "characters"
+    char_dir = goc_characters_yaml_dir()
     if not char_dir.is_dir():
         return {}
     docs: dict[str, Any] = {}
     for path in sorted(char_dir.glob("*.yaml")):
         data = _safe_load_yaml_mapping(path)
-        inner = data.get("character_document") or data.get("character") or data
+        inner = data.get("character_document") or data.get("character")
         if not isinstance(inner, dict):
             continue
         char_id = str(inner.get("id") or inner.get("canonical_id") or path.stem).strip()
@@ -241,10 +295,33 @@ def load_goc_character_documents_yaml() -> dict[str, Any]:
     return docs
 
 
+def _load_goc_location_documents_yaml() -> dict[str, Any]:
+    loc_dir = goc_locations_yaml_dir()
+    if not loc_dir.is_dir():
+        return {}
+    docs: dict[str, Any] = {}
+    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml", "apartment_objects.yaml"}
+    for path in sorted(loc_dir.rglob("*.yaml")):
+        if path.name in reserved:
+            continue
+        data = _safe_load_yaml_mapping(path)
+        inner = data.get("location") or data.get("place")
+        if not isinstance(inner, dict):
+            continue
+        place_id = str(inner.get("id") or path.stem).strip()
+        if place_id:
+            docs[place_id] = inner
+    return docs
+
+
 def load_goc_relationships_yaml() -> dict[str, Any]:
-    """Load relationships.yaml without dropping pairwise relationship data."""
-    path = goc_module_yaml_dir() / "relationships.yaml"
-    data = _safe_load_yaml_mapping(path)
+    """Load relationship authority without dropping pairwise relationship data."""
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_characters_yaml_dir() / "relationships.yaml",
+            goc_module_yaml_dir() / "relationships.yaml",
+        ]
+    )
     return {
         "relationship_axes": data.get("relationship_axes") if isinstance(data.get("relationship_axes"), dict) else {},
         "relationships": data.get("relationships") if isinstance(data.get("relationships"), dict) else {},
@@ -333,13 +410,27 @@ def load_goc_scene_affordances_block() -> dict[str, Any]:
 
 
 def load_goc_apartment_layout_yaml() -> dict[str, Any]:
-    path = goc_module_yaml_dir() / "apartment_layout.yaml"
-    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "apartment_layout")
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_locations_yaml_dir() / "appartment" / "apartment_layout.yaml",
+            goc_locations_yaml_dir() / "apartment" / "apartment_layout.yaml",
+            goc_locations_yaml_dir() / "apartment_layout.yaml",
+            goc_module_yaml_dir() / "apartment_layout.yaml",
+        ]
+    )
+    return _unwrap_top_level_mapping(data, "apartment_layout")
 
 
 def load_goc_apartment_objects_yaml() -> dict[str, Any]:
-    path = goc_module_yaml_dir() / "apartment_objects.yaml"
-    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "apartment_objects")
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_locations_yaml_dir() / "appartment" / "apartment_objects.yaml",
+            goc_locations_yaml_dir() / "apartment" / "apartment_objects.yaml",
+            goc_locations_yaml_dir() / "apartment_objects.yaml",
+            goc_module_yaml_dir() / "apartment_objects.yaml",
+        ]
+    )
+    return _unwrap_top_level_mapping(data, "apartment_objects")
 
 
 def load_goc_premise_and_backstory_yaml() -> dict[str, Any]:
@@ -348,8 +439,13 @@ def load_goc_premise_and_backstory_yaml() -> dict[str, Any]:
 
 
 def load_goc_actor_pressure_profiles_yaml() -> dict[str, Any]:
-    path = goc_module_yaml_dir() / "actor_pressure_profiles.yaml"
-    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "actor_pressure_profiles")
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_characters_yaml_dir() / "actor_pressure_profiles.yaml",
+            goc_module_yaml_dir() / "actor_pressure_profiles.yaml",
+        ]
+    )
+    return _unwrap_top_level_mapping(data, "actor_pressure_profiles")
 
 
 def load_goc_phase_beat_policy_yaml() -> dict[str, Any]:

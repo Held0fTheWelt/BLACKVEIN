@@ -119,7 +119,7 @@ document.addEventListener('narrator-block-received', (event) => {
 ```
 
 **Implementation**: `frontend/static/play_narrative_stream.js` emits event  
-**Integration**: `play_shell_mvp5.js` listens and processes  
+**Integration**: `play_shell.js` listens and processes  
 **Stability**: Existing event, no breaking changes
 
 ---
@@ -270,7 +270,7 @@ Code Artifacts:
 ├── frontend/static/play_typewriter_engine.js
 ├── frontend/static/play_blocks_orchestrator.js
 ├── frontend/static/play_controls.js
-├── frontend/static/play_shell_mvp5.js
+├── frontend/static/play_shell.js
 ├── frontend/static/style.css (MVP5 styling)
 ├── frontend/tests/test_*.js (unit tests)
 └── tests/e2e/test_final_goc_annette_alain_e2e.py

@@ -13,7 +13,7 @@
       "source_path": "ai_stack/goc_opening_handover.py",
       "source_symbol": "deterministic_part1_premise",
       "variables": [],
-      "template": "Am Rand eines Pariser Parks: grauer Herbsthimmel, kahle Bäume, ein Basketballplatz, Spielgerät und Fahrräder. Unter den Jungen kippt ein Streit; einer greift nach einem Stock, dreht sich um und schlägt zu, bevor er beim Weggehen noch ein Fahrrad umtritt. Die Eltern haben vereinbart, es »zivilisiert« zu klären — die Kluft zwischen kindlicher Gewalt und höflichem Verfahren ist schon spürbar."
+      "template": "Am Rand des Parc Montsouris nahe dem Basketballplatz am Boulevard Jourdan: grauer Herbsthimmel, kahle Bäume, Wege und Fahrräder. Unter den Jungen kippt ein Streit; einer greift nach einem Stock, dreht sich um und schlägt zu, bevor er beim Weggehen noch ein Fahrrad umtritt. Die Eltern haben vereinbart, es »zivilisiert« zu klären — die Kluft zwischen kindlicher Gewalt und höflichem Verfahren ist schon spürbar."
     },
     {
       "prompt_key": "goc.opening.premise.en",
@@ -26,7 +26,7 @@
       "source_path": "ai_stack/goc_opening_handover.py",
       "source_symbol": "deterministic_part1_premise",
       "variables": [],
-      "template": "At the edge of a Paris park: gray autumn sky, bare trees, a basketball court, playground equipment, and bicycles. A quarrel between boys turns; one grabs a stick, turns back, strikes, and kicks over a bicycle as he leaves. Their parents agreed to settle it the civilised way — the gap between child-world violence and polite procedure already hangs in the air."
+      "template": "At the edge of Parc Montsouris near the Boulevard Jourdan basketball court: gray autumn sky, bare trees, paths, and bicycles. A quarrel between boys turns; one grabs a stick, turns back, strikes, and kicks over a bicycle as he leaves. Their parents agreed to settle it the civilised way — the gap between child-world violence and polite procedure already hangs in the air."
     },
     {
       "prompt_key": "goc.opening.room.de",

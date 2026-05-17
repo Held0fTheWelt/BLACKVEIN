@@ -1,0 +1,21 @@
+location:
+  id: study
+  name: "Study"
+  category: private_work_room
+  playable_access: gated_scene_navigation
+  description: >-
+    A private work room reached through the hallway, with desk, papers, books,
+    and the heightened boundary of host privacy.
+  room_profile:
+    role: private_work_room
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: study_to_hallway
+        to_place_id: hallway
+        kind: private_work_room_door
+  inventory_policy: authored_or_optional_work_inventory
+  sensory_tags: [desk, papers, books, private_host_space]
+  plausible_actions: [look_at, listen_to, inspect_work_surface]
+  forbidden_actions: [read_private_documents_without_scene_gate, invent_decisive_hidden_evidence]

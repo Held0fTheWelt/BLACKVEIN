@@ -204,7 +204,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
     },
     {
         "field": "apartment_layout",
-        "source_path": "content/modules/{module_id}/apartment_layout.yaml",
+        "source_path": "content/modules/{module_id}/locations/appartment/apartment_layout.yaml",
         "content_kind": "apartment_layout",
         "authority": "module_canonical",
         "use_for": ("affordance_resolution", "player_local_context"),
@@ -213,7 +213,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
     },
     {
         "field": "apartment_objects",
-        "source_path": "content/modules/{module_id}/apartment_objects.yaml",
+        "source_path": "content/modules/{module_id}/locations/appartment/apartment_objects.yaml",
         "content_kind": "apartment_objects",
         "authority": "module_canonical",
         "use_for": ("affordance_resolution", "narrator_packet"),
@@ -222,7 +222,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
     },
     {
         "field": "actor_pressure_profiles",
-        "source_path": "content/modules/{module_id}/actor_pressure_profiles.yaml",
+        "source_path": "content/modules/{module_id}/characters/actor_pressure_profiles.yaml",
         "content_kind": "actor_pressure_profiles",
         "authority": "module_canonical",
         "use_for": ("scene_director_responder_selection", "narrator_packet"),
@@ -249,7 +249,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
     },
     {
         "field": "locations",
-        "source_path": "content/modules/{module_id}/locations.yaml",
+        "source_path": "content/modules/{module_id}/locations/index.yaml",
         "content_kind": "locations",
         "authority": "module_canonical",
         "use_for": ("affordance_resolution", "scene_director_navigation", "player_local_context"),

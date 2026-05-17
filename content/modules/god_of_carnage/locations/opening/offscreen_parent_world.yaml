@@ -1,0 +1,16 @@
+location:
+  id: offscreen_parent_world
+  name: "Adult consequence bridge"
+  category: offscreen_transition
+  playable_access: narrator_bridge_only
+  description: >-
+    The non-playable adult layer that turns a park incident into an apartment
+    meeting: phone calls, reports, appointment pressure, and parental accounts.
+  entrances_exits:
+    connected_place_ids:
+      - park_edge
+      - vallon_living_room
+  inventory_policy: information_only
+  sensory_tags: [phone_call, report, appointment_pressure]
+  plausible_actions: [summarize_report, bridge_to_apartment]
+  forbidden_actions: [stage_new_scene, invent_authoritative_police_record]

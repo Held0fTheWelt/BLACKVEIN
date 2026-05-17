@@ -99,7 +99,7 @@ Failed: 0
 | BlocksOrchestrator | `frontend/static/play_blocks_orchestrator.js` | ✅ CREATED | State coordination, accessibility mode |
 | PlayControls | `frontend/static/play_controls.js` | ✅ CREATED | Skip/Reveal event handlers |
 | Narrator Streaming | `frontend/static/play_narrative_stream.js` | ✅ EXTENDED | Custom event emission (narrator-block-received) |
-| Initialization | `frontend/static/play_shell_mvp5.js` | ✅ CREATED | Module bootstrap, HTTP + WebSocket integration |
+| Initialization | `frontend/static/play_shell.js` | ✅ CONSOLIDATED | Module bootstrap, HTTP + WebSocket integration |
 
 ### Test Files ✅
 
@@ -181,7 +181,7 @@ python_files: test_*.py, test_*.js
 ### HTTP Integration ✅
 - **Endpoint**: POST `/api/v1/sessions/{session_id}/execute`
 - **Response Schema**: Includes `visible_scene_output.blocks[]` with block structure
-- **Integration Point**: `play_shell_mvp5.js` loads via bootstrap, processes via orchestrator
+- **Integration Point**: `play_shell.js` loads via bootstrap, processes via orchestrator
 
 ### WebSocket Integration ✅
 - **Event**: `narrator-block-received` custom DOM event
@@ -221,7 +221,7 @@ python_files: test_*.py, test_*.js
 
 ### ✅ No Legacy Fallback
 **Requirement**: Block renderer only, legacy blob not used  
-**Implementation**: play_shell_mvp5.js replaces old play_shell.js behavior  
+**Implementation**: `play_shell.js` owns the block renderer initialization path  
 **Evidence**: no_legacy_fallback E2E validation passes
 
 ### ✅ No Visitor References

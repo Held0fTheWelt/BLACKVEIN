@@ -66,6 +66,14 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return raw if isinstance(raw, dict) else {}
 
 
+def _read_first_yaml(paths: list[Path]) -> dict[str, Any]:
+    for path in paths:
+        payload = _read_yaml(path)
+        if payload:
+            return payload
+    return {}
+
+
 def _read_character_documents(module_dir: Path) -> dict[str, Any]:
     char_dir = module_dir / "characters"
     if not char_dir.is_dir():
@@ -73,7 +81,7 @@ def _read_character_documents(module_dir: Path) -> dict[str, Any]:
     chars: dict[str, Any] = {}
     for path in sorted(char_dir.glob("*.yaml")):
         payload = _read_yaml(path)
-        doc = payload.get("character_document") or payload.get("character") or payload
+        doc = payload.get("character_document") or payload.get("character")
         if not isinstance(doc, dict):
             continue
         char_id = str(doc.get("id") or doc.get("canonical_id") or path.stem).strip()
@@ -88,6 +96,43 @@ def _read_character_documents(module_dir: Path) -> dict[str, Any]:
             **doc,
         }
     return {"characters": chars} if chars else {}
+
+
+def _read_locations(module_dir: Path) -> dict[str, Any]:
+    locations = _unwrap(
+        _read_first_yaml(
+            [
+                module_dir / "locations" / "index.yaml",
+                module_dir / "locations" / "locations.yaml",
+                module_dir / "locations.yaml",
+            ]
+        ),
+        "locations",
+    )
+    loc_dir = module_dir / "locations"
+    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml", "apartment_objects.yaml"}
+    merged: dict[str, Any] = {}
+    for row in locations.get("places") if isinstance(locations.get("places"), list) else []:
+        if not isinstance(row, dict):
+            continue
+        rid = str(row.get("id") or "").strip()
+        if rid:
+            merged[rid] = row
+    if loc_dir.is_dir():
+        for path in sorted(loc_dir.rglob("*.yaml")):
+            if path.name in reserved:
+                continue
+            payload = _read_yaml(path)
+            row = payload.get("location") or payload.get("place")
+            if not isinstance(row, dict):
+                continue
+            rid = str(row.get("id") or path.stem).strip()
+            if rid:
+                merged[rid] = row
+    if merged:
+        locations = dict(locations)
+        locations["places"] = list(merged.values())
+    return locations
 
 
 def _unwrap(payload: dict[str, Any], key: str) -> dict[str, Any]:
@@ -138,13 +183,18 @@ def _location_model(
     *,
     layout_payload: dict[str, Any],
     locale_payload: dict[str, Any],
+    locations_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     layout = _unwrap(layout_payload, "apartment_layout")
     locale = _unwrap(locale_payload, "scene_affordances")
+    authored_locations = _unwrap(locations_payload or {}, "locations")
     rooms = layout.get("rooms") if isinstance(layout.get("rooms"), list) else []
     locations = locale.get("locations") if isinstance(locale.get("locations"), list) else []
+    authored_places = (
+        authored_locations.get("places") if isinstance(authored_locations.get("places"), list) else []
+    )
     by_id: dict[str, Any] = {}
-    for row in rooms + locations:
+    for row in rooms + authored_places + locations:
         if not isinstance(row, dict):
             continue
         rid = str(row.get("id") or "").strip()
@@ -391,10 +441,35 @@ def load_module_runtime_policy(
     module_dir = root / mid
     module_yaml = _read_yaml(module_dir / "module.yaml")
     character_documents = _read_character_documents(module_dir)
-    characters = character_documents or _read_yaml(module_dir / "characters.yaml")
-    layout = _read_yaml(module_dir / "apartment_layout.yaml")
-    objects = _read_yaml(module_dir / "apartment_objects.yaml")
-    actor_pressure = _read_yaml(module_dir / "actor_pressure_profiles.yaml")
+    characters = character_documents or _read_first_yaml(
+        [
+            module_dir / "characters" / "index.yaml",
+            module_dir / "characters.yaml",
+        ]
+    )
+    layout = _read_first_yaml(
+            [
+                module_dir / "locations" / "appartment" / "apartment_layout.yaml",
+                module_dir / "locations" / "apartment" / "apartment_layout.yaml",
+                module_dir / "locations" / "apartment_layout.yaml",
+                module_dir / "apartment_layout.yaml",
+            ]
+    )
+    objects = _read_first_yaml(
+            [
+                module_dir / "locations" / "appartment" / "apartment_objects.yaml",
+                module_dir / "locations" / "apartment" / "apartment_objects.yaml",
+                module_dir / "locations" / "apartment_objects.yaml",
+                module_dir / "apartment_objects.yaml",
+            ]
+    )
+    locations = _read_locations(module_dir)
+    actor_pressure = _read_first_yaml(
+        [
+            module_dir / "characters" / "actor_pressure_profiles.yaml",
+            module_dir / "actor_pressure_profiles.yaml",
+        ]
+    )
     phase_policy_raw = _read_yaml(module_dir / "phase_beat_policy.yaml")
     phase_policy = _unwrap(phase_policy_raw, "phase_beat_policy")
     opening_policy = _unwrap(
@@ -506,6 +581,7 @@ def load_module_runtime_policy(
         ("characters", characters),
         ("apartment_layout", layout),
         ("apartment_objects", objects),
+        ("locations", locations),
         ("actor_pressure_profiles", actor_pressure),
         ("phase_beat_policy", phase_policy),
         ("opening_scene_sequence", opening_policy),
@@ -551,7 +627,11 @@ def load_module_runtime_policy(
         runtime_profile_id=str(runtime_profile_id).strip() if runtime_profile_id else None,
         actor_roster=actor_roster,
         playable_roles=playable_roles,
-        location_model=_location_model(layout_payload=layout, locale_payload=scene_affordances),
+        location_model=_location_model(
+            layout_payload=layout,
+            locale_payload=scene_affordances,
+            locations_payload=locations,
+        ),
         object_model=_object_model(objects_payload=objects, locale_payload=scene_affordances),
         phase_policy=phase_policy,
         beat_policy={

@@ -1,0 +1,18 @@
+location:
+  id: playground
+  name: "Parc Montsouris playground"
+  category: exterior_memory
+  playable_access: opening_narration_only
+  description: >-
+    A nearby children's area in the same park world, useful as ambient public
+    texture rather than a second incident location.
+  entrances_exits:
+    visible_routes:
+      - park_paths
+    connected_place_ids:
+      - park_edge
+      - basketball_court
+  inventory_policy: playground_background_only
+  sensory_tags: [metal_equipment, children_nearby, public_after_school, park_services_nearby]
+  plausible_actions: [notice_children_nearby, keep_as_background]
+  forbidden_actions: [move_opening_blow_here, invent_new_child_victim]

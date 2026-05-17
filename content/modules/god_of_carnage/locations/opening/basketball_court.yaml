@@ -1,0 +1,21 @@
+location:
+  id: basketball_court
+  name: "Parc Montsouris basketball court"
+  category: exterior_memory
+  playable_access: opening_narration_only
+  description: >-
+    The court near Boulevard Jourdan where the boys cluster before the blow:
+    asphalt, ball noise, traffic at the park edge, and the public indifference
+    of a normal after-school hour.
+  entrances_exits:
+    visible_routes:
+      - park_paths
+      - boulevard_jourdan_edge
+    connected_place_ids:
+      - park_edge
+      - playground
+      - bicycle_rack
+  inventory_policy: public_sports_area_background_only
+  sensory_tags: [asphalt, ball_noise, boys_clustered, boulevard_jourdan, distant_rer, distant_traffic]
+  plausible_actions: [look_at, track_child_movement, recall_incident]
+  forbidden_actions: [turn_into_playable_present_scene, add_unseeded_adult_intervention]

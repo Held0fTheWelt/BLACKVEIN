@@ -182,7 +182,6 @@ def test_frontend_turn_projection():
                 }
             ],
             shell_state_view={},
-            diagnostics_deep=False,
         )[0]
 
         # Verify key fields are extracted
@@ -235,7 +234,6 @@ def test_frontend_turn_projection():
             view = _normalize_story_entries_for_shell(
                 [{"role": "runtime", "turn_number": 0, "text": "Welcome to the narrative."}],
                 shell_state_view={},
-                diagnostics_deep=False,
             )[0]
             print(f"  ✓ Minimal response handled gracefully")
             print(f"    - role: {view.get('role')}")

@@ -1,0 +1,19 @@
+location:
+  id: bedroom_one_locked
+  name: "Locked bedroom one"
+  category: locked_private_room
+  playable_access: locked_non_playable
+  description: "A closed private bedroom door off the hallway; the room beyond is not playable."
+  room_profile:
+    role: locked_private_bedroom
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: bedroom_one_to_hallway
+        to_place_id: hallway
+        kind: locked_private_door
+  inventory_policy: hidden_not_authored_for_play
+  sensory_tags: [closed_door, private_boundary]
+  plausible_actions: [notice_locked_door]
+  forbidden_actions: [enter_room, open_locked_door, search_room]

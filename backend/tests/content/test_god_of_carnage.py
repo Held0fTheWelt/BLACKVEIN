@@ -69,22 +69,24 @@ class TestW1ContentFilesLoadable:
         root = god_of_carnage_module_root
         required_paths = [
             root / "module.yaml",
-            root / "characters.yaml",
+            root / "characters" / "index.yaml",
             root / "characters" / "veronique.yaml",
             root / "characters" / "michel.yaml",
             root / "characters" / "annette.yaml",
             root / "characters" / "alain.yaml",
-            root / "relationships.yaml",
+            root / "characters" / "relationships.yaml",
             root / "scenes.yaml",
             root / "scene_graph.yaml",
             root / "transitions.yaml",
             root / "triggers.yaml",
             root / "endings.yaml",
             root / "escalation_axes.yaml",
-            root / "apartment_layout.yaml",
-            root / "apartment_objects.yaml",
-            root / "locations.yaml",
-            root / "actor_pressure_profiles.yaml",
+            root / "locations" / "index.yaml",
+            root / "locations" / "opening" / "park_edge.yaml",
+            root / "locations" / "building" / "building_stairwell.yaml",
+            root / "locations" / "appartment" / "apartment_layout.yaml",
+            root / "locations" / "appartment" / "apartment_objects.yaml",
+            root / "characters" / "actor_pressure_profiles.yaml",
             root / "phase_beat_policy.yaml",
             root / "knowledge" / "premise_and_backstory.yaml",
             root / "knowledge" / "narrator_sensory_palette.yaml",
@@ -130,6 +132,9 @@ class TestW1ContentFilesLoadable:
         characters_dir = god_of_carnage_module_root / "characters"
         if characters_dir.is_dir():
             yaml_files.extend(sorted(characters_dir.glob("*.yaml")))
+        locations_dir = god_of_carnage_module_root / "locations"
+        if locations_dir.is_dir():
+            yaml_files.extend(sorted(locations_dir.rglob("*.yaml")))
         assert len(yaml_files) >= 8, "Should have at least 8 YAML files"
 
         for yaml_file in yaml_files:

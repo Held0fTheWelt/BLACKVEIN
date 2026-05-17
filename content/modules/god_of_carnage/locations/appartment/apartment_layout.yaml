@@ -157,6 +157,9 @@ apartment_layout:
         - pause_at_door
       forbidden_actions:
         - enter_locked_bedroom
+      prevented_actions:
+        - enter elevator
+        - enter stairwell
       offscreen_presence_policy: footsteps_and_door_cues_ok
 
     - id: kitchen

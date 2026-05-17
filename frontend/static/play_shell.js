@@ -7,17 +7,10 @@
   }
   console.log("[PLAY_SHELL] Shell element found, initializing...");
 
-  var showPlayDiagnostics = false;
   var orchestrator = null;
   var typewriterEngine = null;
   var blockRenderer = null;
   var playControls = null;
-
-  function escapeHtml(value) {
-    const d = document.createElement("div");
-    d.textContent = value == null ? "" : String(value);
-    return d.innerHTML;
-  }
 
   function initializeMVP5() {
     const transcriptRoot = document.getElementById("turn-transcript");
@@ -45,80 +38,6 @@
 
   var mvp5Ready = false;
 
-  function setElementHidden(el, hidden) {
-    if (!el) return;
-    if (hidden) {
-      el.setAttribute("hidden", "hidden");
-    } else {
-      el.removeAttribute("hidden");
-    }
-  }
-
-  function applyShellStateView(shell) {
-    if (!shell || typeof shell !== "object") return;
-    var openingEl = document.getElementById("play-shell-opening-label");
-    if (openingEl) {
-      openingEl.textContent = shell.opening_committed ? "committed" : "pending";
-    }
-    var pt = document.getElementById("play-shell-player-turns");
-    if (pt && shell.player_committed_turns != null) {
-      pt.textContent = String(shell.player_committed_turns);
-    }
-    var tt = document.getElementById("play-shell-total-canonical-turns");
-    if (tt && shell.total_canonical_turns != null) {
-      tt.textContent = String(shell.total_canonical_turns);
-    }
-    var lid = document.getElementById("play-shell-latest-canonical-turn-id");
-    if (lid) {
-      var v = shell.latest_canonical_turn_id;
-      lid.textContent = v != null && String(v).trim() ? String(v).trim() : "—";
-    }
-  }
-
-  function renderRuntimeStatus(status) {
-    const s = status || {};
-    const responderEl = document.getElementById("runtime-selected-responder");
-    if (responderEl) {
-      responderEl.innerHTML =
-        "Responder: <code>" + escapeHtml(s.selected_responder_id || "n/a") + "</code>";
-    }
-    const validationEl = document.getElementById("runtime-validation-status");
-    if (validationEl) {
-      validationEl.innerHTML =
-        "Validation: <code>" + escapeHtml(s.validation_status || "unknown") + "</code>";
-    }
-    const qualityEl = document.getElementById("runtime-quality-class");
-    if (qualityEl) {
-      qualityEl.innerHTML = "Quality: <code>" + escapeHtml(s.quality_class || "unknown") + "</code>";
-    }
-    const degSummaryEl = document.getElementById("runtime-degradation-summary");
-    if (degSummaryEl) {
-      const ds = String(s.degradation_summary || "").trim() || "none";
-      degSummaryEl.innerHTML = "Degradation summary: <code>" + escapeHtml(ds) + "</code>";
-      setElementHidden(degSummaryEl, !ds || ds === "none");
-    }
-    const passEl = document.getElementById("runtime-passivity-line");
-    if (passEl) {
-      const t = String(s.latest_display_passivity_line || "").trim();
-      passEl.textContent = t;
-      setElementHidden(passEl, !t);
-    }
-    const vitEl = document.getElementById("runtime-vitality-line");
-    if (vitEl) {
-      const t = String(s.latest_display_vitality_line || "").trim();
-      vitEl.textContent = t;
-      setElementHidden(vitEl, !t);
-    }
-    const bannerEl = document.getElementById("runtime-degraded-banner");
-    if (bannerEl) {
-      const degraded = Boolean(s.degraded);
-      const reasons = Array.isArray(s.degraded_reasons) ? s.degraded_reasons : [];
-      const reasonText = reasons.length ? " \u00b7 " + reasons.join(", ") : "";
-      bannerEl.textContent = "Degraded runtime path" + reasonText;
-      setElementHidden(bannerEl, !degraded);
-    }
-  }
-
   function extractBlocksFromPayload(payload) {
     if (!payload || typeof payload !== "object") return null;
     if (payload.visible_scene_output && Array.isArray(payload.visible_scene_output.blocks)) {
@@ -126,26 +45,6 @@
     }
     if (payload.data && payload.data.visible_scene_output && Array.isArray(payload.data.visible_scene_output.blocks)) {
       return payload.data.visible_scene_output.blocks;
-    }
-    return null;
-  }
-
-  function extractRuntimeStatusFromPayload(payload) {
-    if (!payload || typeof payload !== "object") return null;
-    if (payload.runtime_status_view && typeof payload.runtime_status_view === "object") {
-      return payload.runtime_status_view;
-    }
-    if (payload.data && payload.data.runtime_status_view && typeof payload.data.runtime_status_view === "object") {
-      return payload.data.runtime_status_view;
-    }
-    return null;
-  }
-
-  function extractShowDiagnosticsFromPayload(payload) {
-    if (!payload || typeof payload !== "object") return null;
-    if (typeof payload.show_play_diagnostics === "boolean") return payload.show_play_diagnostics;
-    if (payload.data && typeof payload.data.show_play_diagnostics === "boolean") {
-      return payload.data.show_play_diagnostics;
     }
     return null;
   }
@@ -163,42 +62,19 @@
     return null;
   }
 
-  function applyShowDiagnosticsFromPayload(payload) {
-    const v = extractShowDiagnosticsFromPayload(payload);
-    if (typeof v === "boolean") {
-      showPlayDiagnostics = v;
-      if (shell) {
-        shell.setAttribute("data-show-play-diagnostics", v ? "true" : "false");
-      }
-    }
-  }
-
   function applyRuntimePayload(rawPayload) {
     const payload = parsePayload(rawPayload);
     if (!payload) return false;
-    applyShowDiagnosticsFromPayload(payload);
-    if (payload.shell_state_view) {
-      applyShellStateView(payload.shell_state_view);
-    }
 
-    const runtimeStatus = extractRuntimeStatusFromPayload(payload);
     const blocks = extractBlocksFromPayload(payload);
 
-    if (!blocks && !runtimeStatus) return false;
+    if (!blocks) return false;
 
-    if (blocks) {
-      if (!mvp5Ready) {
-        mvp5Ready = initializeMVP5();
-      }
-      if (mvp5Ready && orchestrator) {
-        orchestrator.loadTurn(payload);
-        renderRuntimeStatus(runtimeStatus || undefined);
-        return true;
-      }
+    if (!mvp5Ready) {
+      mvp5Ready = initializeMVP5();
     }
-
-    if (runtimeStatus) {
-      renderRuntimeStatus(runtimeStatus);
+    if (mvp5Ready && orchestrator) {
+      orchestrator.loadTurn(payload);
       return true;
     }
 
@@ -219,7 +95,6 @@
   if (bootstrapEl) {
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
     const applied = applyRuntimePayload(bootstrapPayload);
-    const initialStatus = extractRuntimeStatusFromPayload(bootstrapPayload);
     const blocks = extractBlocksFromPayload(bootstrapPayload);
     if (!applied && blocks && blocks.length) {
       if (!mvp5Ready) {
@@ -228,10 +103,6 @@
       if (mvp5Ready && orchestrator) {
         orchestrator.loadTurn(bootstrapPayload);
       }
-    }
-    renderRuntimeStatus(initialStatus || undefined);
-    if (extractShowDiagnosticsFromPayload(bootstrapPayload) === null && shell) {
-      showPlayDiagnostics = shell.getAttribute("data-show-play-diagnostics") === "true";
     }
   }
 
@@ -265,19 +136,10 @@
           if (executeStatus) executeStatus.textContent = (res.data && res.data.error) || "Turn failed.";
           return;
         }
-        if (typeof res.data.show_play_diagnostics === "boolean") {
-          showPlayDiagnostics = res.data.show_play_diagnostics;
-          if (shell) {
-            shell.setAttribute("data-show-play-diagnostics", showPlayDiagnostics ? "true" : "false");
-          }
-        }
         applyRuntimePayload(res.data);
         ta.value = "";
         if (executeStatus) {
-          const degraded = Boolean(res.data.runtime_status_view && res.data.runtime_status_view.degraded);
-          executeStatus.textContent = degraded
-            ? "Story updated (degraded runtime path)."
-            : "Story updated.";
+          executeStatus.textContent = "Story updated.";
         }
       })
       .catch(function () {

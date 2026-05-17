@@ -120,5 +120,5 @@ After each turn, output:
 
 ---
 
-For detailed character voices, see `character_voice.yaml`.
+For detailed character voices, see `characters/character_voice.yaml`.
 For per-scene guidance, see `scene_guidance.yaml`.

@@ -36,7 +36,9 @@ def _canonical_module_doc() -> dict:
 
 
 def _canonical_characters_doc() -> dict:
-    char_file = _GOC_MODULE_ROOT / "characters.yaml"
+    char_file = _GOC_MODULE_ROOT / "characters" / "index.yaml"
+    if not char_file.exists():
+        char_file = _GOC_MODULE_ROOT / "characters.yaml"
     with open(char_file, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -47,7 +49,13 @@ def _canonical_god_of_carnage_title() -> str:
 
 
 def _canonical_character_ids() -> set[str]:
-    return set((_canonical_characters_doc().get("characters") or {}).keys())
+    doc = _canonical_characters_doc()
+    characters = doc.get("characters")
+    if isinstance(characters, dict):
+        return set(characters.keys())
+    index = doc.get("characters_index") if isinstance(doc.get("characters_index"), dict) else {}
+    documents = index.get("documents") if isinstance(index.get("documents"), dict) else {}
+    return set(documents.keys())
 
 
 def _canonical_player_character_count() -> int:
@@ -158,8 +166,8 @@ class TestMVP02RulesEnforced:
 
     def test_canonical_module_has_runtime_profile_characters(self):
         """Canonical module must define every runtime-profile actor as story truth."""
-        char_file = _GOC_MODULE_ROOT / "characters.yaml"
-        assert char_file.exists(), "characters.yaml not found in canonical module"
+        char_file = _GOC_MODULE_ROOT / "characters" / "index.yaml"
+        assert char_file.exists(), "characters/index.yaml not found in canonical module"
         present = _canonical_character_ids()
         required = set(GOD_OF_CARNAGE_RUNTIME_ACTOR_IDS)
         assert required.issubset(present), f"Missing characters: {required - present}"
@@ -176,9 +184,9 @@ class TestMVP02RulesEnforced:
 
     def test_canonical_module_visitor_is_absent(self):
         """visitor must not be defined as a character in the canonical module."""
-        char_file = _GOC_MODULE_ROOT / "characters.yaml"
-        assert char_file.exists(), "characters.yaml not found in canonical module"
-        characters = _canonical_characters_doc().get("characters", {})
+        char_file = _GOC_MODULE_ROOT / "characters" / "index.yaml"
+        assert char_file.exists(), "characters/index.yaml not found in canonical module"
+        characters = _canonical_character_ids()
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in characters, "visitor must not exist as a canonical character"
 
     def test_canonical_module_has_scenes(self):

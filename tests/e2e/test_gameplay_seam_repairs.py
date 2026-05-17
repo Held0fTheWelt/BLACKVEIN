@@ -212,7 +212,6 @@ class TestFrontendTurnProjection:
         normalized = _normalize_story_entries_for_shell(
             story_entries,
             shell_state_view={"player_shell_context": {"responder_id": "alain"}},
-            diagnostics_deep=False,
         )
 
         assert len(normalized) == 1
@@ -230,7 +229,6 @@ class TestFrontendTurnProjection:
         normalized = _normalize_story_entries_for_shell(
             [{"role": "runtime", "turn_number": 1, "text": "Welcome."}],
             shell_state_view={},
-            diagnostics_deep=False,
         )
         assert len(normalized) == 1
         assert normalized[0]["text"] == "Welcome."

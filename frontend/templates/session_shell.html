@@ -3,147 +3,13 @@
 {% block body_class %}wos-shell play-active{% endblock %}
 {% block topbar_title %}Play Session{% endblock %}
 {% block content %}
-<div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}" data-show-play-diagnostics="{{ 'true' if show_play_diagnostics else 'false' }}">
-  {% if show_play_diagnostics %}
-  <section class="panel panel--compact play-shell-meta">
-    <h1 class="play-shell-title">Better Tomorrow</h1>
-    <p class="runtime-meta">
-      Canonical player run <code>{{ session_id }}</code>
-      {% if runtime_session_id %} · story session <code>{{ runtime_session_id }}</code>{% endif %}
-    </p>
-    {% if not runtime_session_ready %}
-      <p class="runtime-meta runtime-warn">The story runtime is not ready yet. Return to Play Start and create a new player session.</p>
-    {% endif %}
-  </section>
-  {% endif %}
-
+<div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}">
   <div class="play-game-surface">
     <section id="play-story-window" class="play-story-window" aria-labelledby="play-story-heading">
       <div class="play-story-window__chrome">
         <h2 id="play-story-heading" class="play-story-window__header">Story</h2>
-        {% if show_play_diagnostics %}
-        <p class="play-story-window__hint runtime-meta">The scene output and every turn below come from the authoritative World-Engine story runtime.</p>
-        <div id="play-runtime-status" class="play-runtime-status">
-          <p id="runtime-selected-responder" class="runtime-meta">
-            {% if runtime_status_view.npc_responder_display_name %}
-              NPC responder: <strong>{{ runtime_status_view.npc_responder_display_name }}</strong>
-              <span class="runtime-meta runtime-meta--subtle">(<code>{{ runtime_status_view.selected_responder_id or "n/a" }}</code>)</span>
-            {% else %}
-              NPC responder: <code>{{ runtime_status_view.selected_responder_id or "n/a" }}</code>
-            {% endif %}
-          </p>
-          {% if runtime_status_view.player_identity_line %}
-          <p id="runtime-player-identity" class="runtime-meta">{{ runtime_status_view.player_identity_line }}</p>
-          {% endif %}
-          <p id="runtime-validation-status" class="runtime-meta">
-            Validation:
-            <code>{{ runtime_status_view.validation_status or "unknown" }}</code>
-          </p>
-          <p id="runtime-quality-class" class="runtime-meta">
-            Quality:
-            <code>{{ runtime_status_view.quality_class or "unknown" }}</code>
-          </p>
-          <p id="runtime-degradation-summary" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.degradation_summary or runtime_status_view.degradation_summary == 'none' %}hidden{% endif %}>
-            Degradation summary: <code>{{ runtime_status_view.degradation_summary or "none" }}</code>
-          </p>
-          <p id="runtime-passivity-line" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.latest_display_passivity_line %}hidden{% endif %}>
-            {{ runtime_status_view.latest_display_passivity_line }}
-          </p>
-          <p id="runtime-vitality-line" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.latest_display_vitality_line %}hidden{% endif %}>
-            {{ runtime_status_view.latest_display_vitality_line }}
-          </p>
-          <p id="runtime-degraded-banner" class="play-runtime-banner play-runtime-banner--warn" {% if not runtime_status_view.degraded %}hidden{% endif %}>
-            Degraded runtime path
-            {% if runtime_status_view.degraded_reasons %}
-              · {{ runtime_status_view.degraded_reasons | join(", ") }}
-            {% endif %}
-          </p>
-        </div>
-        {% endif %}
       </div>
       <div id="turn-transcript" class="play-story-window__body play-transcript" data-typewriter-shell="true" aria-live="polite" aria-relevant="additions">
-      {% if show_play_diagnostics and story_entries %}
-        {% for entry in story_entries %}
-        <article class="play-turn-card" data-entry-id="{{ entry.entry_id or loop.index0 }}">
-          <header class="play-turn-card__meta">
-            {% if entry.turn_number is not none %}Turn {{ entry.turn_number }} · {% endif %}{{ entry.speaker or "World of Shadows" }}
-          </header>
-          {% if entry.role == "player" %}
-            <p class="runtime-player-line"><strong>You:</strong> {{ entry.text }}</p>
-          {% elif entry.text %}
-            <div class="play-story-output">
-              <div class="play-story-text play-turn-card__narration play-narration--reveal">{{ entry.text }}</div>
-            </div>
-          {% endif %}
-          {% if entry.spoken_lines %}
-            <h3 class="play-dialogue-label">Spoken</h3>
-            <ul class="runtime-spoken play-dialogue-list">
-              {% for line in entry.spoken_lines %}
-              <li>{{ line }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if entry.action_lines %}
-            <h3 class="play-dialogue-label">Action</h3>
-            <ul class="runtime-actions play-dialogue-list">
-              {% for line in entry.action_lines %}
-              <li>{{ line }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if entry.committed_consequences %}
-            <h3 class="play-dialogue-label">Consequences</h3>
-            <ul class="runtime-consequences">
-              {% for consequence in entry.committed_consequences %}
-              <li>{{ consequence }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if entry.role == "runtime" and entry.responder_id %}
-            <p class="runtime-meta">NPC responder: <code>{{ entry.responder_id }}</code></p>
-          {% endif %}
-          {% if entry.role == "runtime" %}
-            <p class="runtime-meta">
-              Quality <code>{{ entry.quality_class or "unknown" }}</code>
-              {% if entry.degradation_signals %}
-                · signals: {{ entry.degradation_signals | join(", ") }}
-              {% endif %}
-            </p>
-            {% if entry.display_render_support_warning %}
-            <p class="play-runtime-warn">{{ entry.display_render_support_warning }}</p>
-            {% endif %}
-            {% if entry.display_passivity_line %}
-            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_passivity_line }}</p>
-            {% endif %}
-            {% if entry.display_vitality_line %}
-            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_vitality_line }}</p>
-            {% endif %}
-            {% if entry.display_actor_turn_line %}
-            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_actor_turn_line }}</p>
-            {% endif %}
-            {% if entry.display_dramatic_context_compact %}
-            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_dramatic_context_compact }}</p>
-            {% endif %}
-            {% if show_play_diagnostics and entry.display_dramatic_context_items %}
-            <details class="play-runtime-diagnostics__details">
-              <summary class="runtime-meta">Dramatic context (diagnostics)</summary>
-              <dl class="play-runtime-diagnostics__dl">
-                {% for row in entry.display_dramatic_context_items %}
-                <dt>{{ row.label }}</dt>
-                <dd>{{ row.value }}</dd>
-                {% endfor %}
-              </dl>
-            </details>
-            {% endif %}
-          {% endif %}
-          {% if entry.role == "runtime" and entry.degraded %}
-            <p class="play-turn-warning">
-              Degraded runtime path{% if entry.degraded_reasons %}: {{ entry.degraded_reasons | join(", ") }}{% endif %}
-            </p>
-          {% endif %}
-        </article>
-        {% endfor %}
-      {% endif %}
       </div>
     </section>
 
@@ -160,27 +26,6 @@
       </form>
     </section>
   </div>
-
-  {% if show_play_diagnostics %}
-  <section class="panel panel--compact">
-    <h2>Runtime Boundary</h2>
-    <p class="runtime-meta">The WebSocket/ticket live-room simulator is not part of this canonical player path. Operator diagnostics remain separate from the story surface.</p>
-    {% if shell_state_view %}
-      <p class="runtime-meta" id="play-shell-runtime-boundary-meta">
-        Module <code>{{ shell_state_view.module_id }}</code>
-        · scene <code>{{ shell_state_view.current_scene_id }}</code>
-        · opening <span id="play-shell-opening-label">{% if shell_state_view.opening_committed %}committed{% else %}pending{% endif %}</span>
-        · player turns <code id="play-shell-player-turns">{{ shell_state_view.player_committed_turns }}</code>
-        · total <code id="play-shell-total-canonical-turns">{{ shell_state_view.total_canonical_turns }}</code>
-        {% if shell_state_view.latest_canonical_turn_id %}
-          · latest <code id="play-shell-latest-canonical-turn-id">{{ shell_state_view.latest_canonical_turn_id }}</code>
-        {% else %}
-          · latest <code id="play-shell-latest-canonical-turn-id">—</code>
-        {% endif %}
-      </p>
-    {% endif %}
-  </section>
-  {% endif %}
 </div>
 
 {% endblock %}

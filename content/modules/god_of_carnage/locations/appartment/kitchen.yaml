@@ -1,0 +1,26 @@
+location:
+  id: kitchen
+  name: "Kitchen"
+  category: adjacent_room
+  playable_access: gated_scene_navigation
+  description: >-
+    A connected domestic service room reachable from the living room or the
+    small hallway, useful for coffee, glasses, brief retreats, and offscreen
+    domestic sound.
+  room_profile:
+    role: service_and_cooling_off
+    connected_place_ids:
+      - vallon_living_room
+      - hallway
+  entrances_exits:
+    exits:
+      - id: kitchen_to_living_room
+        to_place_id: vallon_living_room
+        kind: attached_room
+      - id: kitchen_to_hallway
+        to_place_id: hallway
+        kind: service_threshold
+  inventory_policy: domestic_service_objects
+  sensory_tags: [coffee_machine, dishes, offscreen_pause]
+  plausible_actions: [look_at, listen_to, take_minor_service_item, handle_coffee]
+  forbidden_actions: [discover_unseeded_weapon, invent_hidden_person]

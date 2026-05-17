@@ -122,7 +122,7 @@ def _load_characters_blob(module_id: str, *, content_modules_root: Path | None =
                 continue
             if not isinstance(payload, dict):
                 continue
-            blob = payload.get("character_document") or payload.get("character") or payload
+            blob = payload.get("character_document") or payload.get("character")
             if not isinstance(blob, dict):
                 continue
             char_id = str(blob.get("id") or blob.get("canonical_id") or path.stem).strip()
@@ -130,7 +130,9 @@ def _load_characters_blob(module_id: str, *, content_modules_root: Path | None =
                 out[char_id] = blob
         if out:
             return out
-    path = module_dir / "characters.yaml"
+    path = module_dir / "characters" / "index.yaml"
+    if not path.exists():
+        path = module_dir / "characters.yaml"
     if not path.exists():
         return {}
     try:

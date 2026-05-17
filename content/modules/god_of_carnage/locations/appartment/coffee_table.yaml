@@ -1,0 +1,19 @@
+location:
+  id: coffee_table
+  name: "Coffee table"
+  category: object_zone
+  playable_access: active
+  description: >-
+    The living-room object zone where documents, cups, dessert, and negotiated
+    facts become visible social props.
+  room_profile:
+    role: object_zone
+    connected_place_ids:
+      - vallon_living_room
+  entrances_exits:
+    connected_place_ids:
+      - vallon_living_room
+  inventory_policy: authored_salient_objects
+  sensory_tags: [papers, cups, dessert, negotiated_facts]
+  plausible_actions: [look_at, place_object, take_minor_service_item]
+  forbidden_actions: [discover_unseeded_document, destroy_without_consequence]

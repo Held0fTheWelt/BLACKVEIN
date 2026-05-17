@@ -182,12 +182,26 @@ class ModuleFileLoader:
             character_documents: dict[str, Any] = {}
             for yaml_file in character_files:
                 payload = self.load_file(yaml_file)
-                if isinstance(payload, dict):
-                    inner = payload.get("character_document") or payload.get("character") or payload
-                    if isinstance(inner, dict):
-                        char_id = str(inner.get("id") or inner.get("canonical_id") or yaml_file.stem).strip()
-                        if char_id:
-                            character_documents[char_id] = inner
+                if not isinstance(payload, dict):
+                    continue
+                if "relationship_axes" in payload or yaml_file.stem == "relationships":
+                    result["relationships"] = payload
+                    continue
+                if "actor_pressure_profiles" in payload:
+                    result["actor_pressure_profiles"] = payload
+                    continue
+                if yaml_file.stem == "character_voice":
+                    continue
+                if "characters" in payload:
+                    result["characters"] = payload
+                    continue
+                if "characters_index" in payload:
+                    continue
+                inner = payload.get("character_document") or payload.get("character")
+                if isinstance(inner, dict):
+                    char_id = str(inner.get("id") or inner.get("canonical_id") or yaml_file.stem).strip()
+                    if char_id:
+                        character_documents[char_id] = inner
             if character_documents:
                 result["character_documents"] = character_documents
                 result["characters"] = {
@@ -208,6 +222,55 @@ class ModuleFileLoader:
                     for char_id, doc in character_documents.items()
                     if isinstance(doc, dict)
                 }
+
+        locations_dir = module_root / "locations"
+        if locations_dir.is_dir():
+            try:
+                location_files = sorted(locations_dir.rglob("*.yaml"))
+            except (PermissionError, OSError) as e:
+                raise ModuleFileReadError(
+                    message="Failed to read module locations directory",
+                    module_id="unknown",
+                    file_path=str(locations_dir),
+                    errors=[str(e)],
+                )
+            location_documents: dict[str, Any] = {}
+            for yaml_file in location_files:
+                payload = self.load_file(yaml_file)
+                if not isinstance(payload, dict):
+                    continue
+                if yaml_file.parent == locations_dir and yaml_file.stem in {"index", "locations"}:
+                    result["locations"] = payload
+                    continue
+                if yaml_file.stem == "apartment_layout":
+                    result["apartment_layout"] = payload
+                    continue
+                if yaml_file.stem == "apartment_objects":
+                    result["apartment_objects"] = payload
+                    continue
+                inner = payload.get("location") or payload.get("place")
+                if isinstance(inner, dict):
+                    place_id = str(inner.get("id") or yaml_file.stem).strip()
+                    if place_id:
+                        location_documents[place_id] = inner
+            if location_documents:
+                locations_payload = result.get("locations") if isinstance(result.get("locations"), dict) else {}
+                locations_inner = (
+                    locations_payload.get("locations")
+                    if isinstance(locations_payload.get("locations"), dict)
+                    else locations_payload
+                )
+                locations_inner = dict(locations_inner) if isinstance(locations_inner, dict) else {}
+                merged_places: dict[str, Any] = {}
+                for row in locations_inner.get("places") if isinstance(locations_inner.get("places"), list) else []:
+                    if not isinstance(row, dict):
+                        continue
+                    place_id = str(row.get("id") or "").strip()
+                    if place_id:
+                        merged_places[place_id] = row
+                merged_places.update(location_documents)
+                locations_inner["places"] = list(merged_places.values())
+                result["locations"] = {"locations": locations_inner}
 
         # Unwrap nested dictionaries where YAML files wrap content under a root key.
         #

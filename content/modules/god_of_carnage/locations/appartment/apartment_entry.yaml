@@ -1,0 +1,25 @@
+location:
+  id: apartment_entry
+  name: "Apartment entry and doorway"
+  category: interior_threshold
+  playable_access: gated_scene_navigation
+  description: >-
+    The immediate entry threshold where coats, greetings, and social obligation
+    pass into the living room.
+  room_profile:
+    role: threshold_zone
+    connected_place_ids:
+      - building_stairwell
+      - vallon_living_room
+  entrances_exits:
+    exits:
+      - id: entry_to_stairwell
+        to_place_id: building_stairwell
+        kind: apartment_door_threshold
+      - id: entry_to_living_room
+        to_place_id: vallon_living_room
+        kind: interior_threshold
+  inventory_policy: coat_and_threshold_inventory
+  sensory_tags: [coats, doorframe, guest_obligation]
+  plausible_actions: [look_at, greet, enter_apartment, attempt_exit]
+  forbidden_actions: [linger_without_social_consequence, access_private_rooms]
