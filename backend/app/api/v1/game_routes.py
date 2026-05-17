@@ -660,6 +660,7 @@ def _persist_player_session_binding(
     template_title: str | None,
     module_id: str,
     runtime_session_id: str,
+    session_input_language: str = _DEFAULT_OUTPUT_LANGUAGE,
     session_output_language: str = _DEFAULT_OUTPUT_LANGUAGE,
 ) -> GameSaveSlot:
     return upsert_save_slot_for_user(
@@ -677,6 +678,7 @@ def _persist_player_session_binding(
             "runtime_session_id": runtime_session_id,
             "world_engine_story_session_id": runtime_session_id,
             "continuity_owner": "backend_game_player_session_bridge",
+            "session_input_language": session_input_language,
             "session_output_language": session_output_language,
         },
     )
@@ -804,6 +806,7 @@ def _ensure_player_session(
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
     selected_player_role: str | None = None,
+    session_input_language: str | None = None,
     session_output_language: str = _DEFAULT_OUTPUT_LANGUAGE,
 ) -> dict[str, Any]:
     clean_run_id = (run_id or "").strip()
@@ -870,9 +873,11 @@ def _ensure_player_session(
     )
     provenance["run_id"] = clean_run_id
     trace_meta = _trace_classification(canonical_player_flow=True, runtime_mode="solo_story")
+    effective_input_language = (session_input_language or session_output_language or _DEFAULT_OUTPUT_LANGUAGE).strip().lower()
     created = create_story_session(
         module_id=module_id,
         runtime_projection=runtime_projection,
+        session_input_language=effective_input_language,
         session_output_language=session_output_language,
         user_id=str(user.id),
         trace_id=trace_id or g.get("trace_id"),
@@ -894,6 +899,7 @@ def _ensure_player_session(
         template_title=template_title,
         module_id=module_id,
         runtime_session_id=runtime_session_id,
+        session_input_language=effective_input_language,
         session_output_language=session_output_language,
     )
     state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
@@ -1098,6 +1104,16 @@ def game_player_session_create():
                 "code": "unsupported_language",
                 "allowed": sorted(_ALLOWED_OUTPUT_LANGUAGES),
             }), route_status_codes.bad_request
+        raw_input_language = data.get("session_input_language")
+        if raw_input_language is not None and not isinstance(raw_input_language, str):
+            return jsonify({"error": "session_input_language must be a string.", "code": "invalid_input_language"}), route_status_codes.bad_request
+        session_input_language = (raw_input_language or "").strip().lower() or session_output_language
+        if session_input_language not in _ALLOWED_OUTPUT_LANGUAGES:
+            return jsonify({
+                "error": f"session_input_language {raw_input_language!r} is not supported.",
+                "code": "unsupported_input_language",
+                "allowed": sorted(_ALLOWED_OUTPUT_LANGUAGES),
+            }), route_status_codes.bad_request
         if not run_id:
             if not template_id and not runtime_profile_id:
                 return jsonify({"error": "template_id, runtime_profile_id, or run_id is required."}), route_status_codes.bad_request
@@ -1123,6 +1139,7 @@ def game_player_session_create():
             trace_id=trace_id,
             langfuse_trace_id=langfuse_trace_id,
             selected_player_role=selected_player_role,
+            session_input_language=session_input_language,
             session_output_language=session_output_language,
         )
         return jsonify(bundle), route_status_codes.ok

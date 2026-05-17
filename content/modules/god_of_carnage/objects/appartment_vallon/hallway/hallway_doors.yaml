@@ -6,13 +6,14 @@ object:
   placement_location_id: hallway
   playable_access: topology_clarifier
   description: >-
-    A tight run of interior doors: kitchen, bathroom, pantry, study, and two locked bedrooms.
+    A tight run of interior doors along the hall: kitchen, dining room, master bedroom,
+    pantry, study, locked hallway bathroom at the far end, and two locked bedrooms.
   interaction_notes:
     look_at: "Clarifies topology without granting access to locked rooms."
   risk_tags:
     - privacy_boundary
   plausible_actions: [look_at, listen_to, move_to_adjacent_room]
-  forbidden_actions: [enter_locked_bedroom]
+  forbidden_actions: [enter_locked_bedroom, enter_locked_hallway_bathroom]
   symbolic_roles:
     - privacy_boundary
     - withheld_space

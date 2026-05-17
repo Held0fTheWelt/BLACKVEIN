@@ -23,14 +23,21 @@ locations:
       - living_room
       - hallway
       - kitchen
+      - dining_room
+      - bedroom
       - bathroom
       - pantry
       - study
     prevented_location_ids:
       - building_stairwell
     locked_non_playable_location_ids:
+      - hallway_bathroom_locked
       - bedroom_one_locked
       - bedroom_two_locked
+  topology_authority_note: >-
+    Adjacency, visibility, and access rules live in appartment_vallon/apartment_layout.yaml
+    (room_location_files). Each apartment room has a matching place file below for prose
+    and inventory.
 
   place_files:
     - locations/opening/park_edge.yaml
@@ -42,7 +49,10 @@ locations:
     - locations/appartment_vallon/living_room.yaml
     - locations/appartment_vallon/hallway.yaml
     - locations/appartment_vallon/kitchen.yaml
+    - locations/appartment_vallon/dining_room.yaml
+    - locations/appartment_vallon/bedroom.yaml
     - locations/appartment_vallon/bathroom.yaml
+    - locations/appartment_vallon/hallway_bathroom_locked.yaml
     - locations/appartment_vallon/pantry.yaml
     - locations/appartment_vallon/study.yaml
     - locations/appartment_vallon/bedroom_one_locked.yaml

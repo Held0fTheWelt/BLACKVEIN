@@ -1,21 +1,20 @@
-"""P0 regression: action resolution via ontology + entity registry (no phrase-specific engine branches)."""
+"""P0 regression: action resolution requires AI semantics and content grounding."""
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
 
-from ai_stack.action_ontology import clear_action_ontology_cache
 from ai_stack.player_action_resolution import resolve_player_action
+from story_runtime_core.language_adapter import clear_language_adapter_caches
 
 
 @pytest.fixture(autouse=True)
-def _clear_ontology_cache():
-    clear_action_ontology_cache()
+def _clear_language_adapter_cache():
+    clear_language_adapter_caches()
     yield
-    clear_action_ontology_cache()
+    clear_language_adapter_caches()
 
 
 def _root() -> Path:
@@ -36,16 +35,68 @@ def _projection() -> dict:
     }
 
 
-def test_gehe_kueche_resolves_kitchen_offscreen() -> None:
+def _semantic(
+    *,
+    raw_kind: str = "action",
+    verb: str,
+    action_kind: str,
+    target_query: str | None,
+    target_id: str | None,
+    target_type: str | None,
+    source_query: str | None = None,
+    source_id: str | None = None,
+    actor_id: str = "annette_reille",
+    commit_policy: str = "commit_action",
+) -> dict:
+    payload = {
+        "player_input_kind": raw_kind,
+        "verb": verb,
+        "action_kind": action_kind,
+        "target_query": target_query,
+        "resolved_target_id": target_id,
+        "resolved_target_type": target_type,
+        "source_query": source_query,
+        "resolved_source_id": source_id,
+        "commit_policy": commit_policy,
+        "confidence": "high" if target_id else "low",
+    }
+    return {
+        "player_input_kind": raw_kind,
+        "narrator_response_expected": True,
+        "npc_response_expected": False,
+        "actor_id": actor_id,
+        "semantic_action": payload,
+    }
+
+
+def test_raw_movement_without_semantic_payload_does_not_guess_kitchen() -> None:
     out = resolve_player_action(
         raw_text="Gehe in die Kueche",
         interpreted_input={
             "player_input_kind": "action",
             "narrator_response_expected": True,
             "npc_response_expected": False,
-            "projection_captures": {"room": "die Kueche"},
             "actor_id": "annette_reille",
         },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=_root(),
+    )
+    aff = out["affordance_resolution"]
+    assert aff["affordance_status"] == "ambiguous"
+    assert aff["target_resolution_source"] == "semantic_ai_resolution_required"
+
+
+def test_ai_semantics_resolve_kitchen_against_content_surface() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe in die Kueche",
+        interpreted_input=_semantic(
+            verb="move_to",
+            action_kind="movement",
+            target_query="Kueche",
+            target_id="kitchen",
+            target_type="location",
+        ),
         module_id="god_of_carnage",
         runtime_projection=_projection(),
         content_modules_root=_root(),
@@ -53,83 +104,40 @@ def test_gehe_kueche_resolves_kitchen_offscreen() -> None:
     frame = out["player_action_frame"]
     assert frame["verb"] == "move_to"
     assert frame["resolved_target_id"] == "kitchen"
-    assert frame["affordance_status"] == "allowed_offscreen"
+    assert frame["target_resolution_source"] == "ai_semantic_resolution.content_id"
 
 
-def test_gehe_arbeitszimmer_resolves_study_offscreen() -> None:
-    out = resolve_player_action(
-        raw_text="Gehe ins Arbeitszimmer",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "projection_captures": {"room": "ins Arbeitszimmer"},
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=_root(),
-    )
-    frame = out["player_action_frame"]
-    assert frame["verb"] == "move_to"
-    assert frame["resolved_target_id"] == "study"
-    assert frame["affordance_status"] == "allowed_offscreen"
-
-
-def test_gehe_treppenhaus_is_prevented_not_forbidden() -> None:
+def test_ai_semantics_resolve_prevented_stairwell_without_forbidden_map() -> None:
     out = resolve_player_action(
         raw_text="Gehe ins Treppenhaus",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "projection_captures": {"room": "ins Treppenhaus"},
-            "actor_id": "alain_reille",
-        },
+        interpreted_input=_semantic(
+            verb="move_to",
+            action_kind="movement",
+            target_query="Treppenhaus",
+            target_id="building_stairwell",
+            target_type="location",
+            actor_id="alain_reille",
+            commit_policy="no_commit",
+        ),
         module_id="god_of_carnage",
         runtime_projection=_projection(),
         content_modules_root=_root(),
     )
-    frame = out["player_action_frame"]
     aff = out["affordance_resolution"]
-    assert frame["verb"] == "move_to"
-    assert frame["resolved_target_id"] == "building_stairwell"
-    assert frame["affordance_status"] == "prevented"
+    assert aff["affordance_status"] == "prevented"
     assert aff["action_commit_policy"] == "no_commit"
-    assert aff["requires_narrator"] is True
 
 
-def test_oeffne_fahrstuhl_is_prevented_not_forbidden() -> None:
-    out = resolve_player_action(
-        raw_text="Öffne den Fahrstuhl",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "alain_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=_root(),
-    )
-    frame = out["player_action_frame"]
-    aff = out["affordance_resolution"]
-    assert frame["verb"] == "open"
-    assert frame["resolved_target_id"] == "elevator"
-    assert frame["affordance_status"] == "prevented"
-    assert aff["action_commit_policy"] == "no_commit"
-    assert aff["requires_narrator"] is True
-
-
-def test_begruesse_accented_name_resolves_actor() -> None:
+def test_ai_semantics_resolve_actor_from_runtime_roster() -> None:
     out = resolve_player_action(
         raw_text="Begrüße Véronique",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
+        interpreted_input=_semantic(
+            verb="greet",
+            action_kind="social_nonverbal_action",
+            target_query="Véronique",
+            target_id="veronique_vallon",
+            target_type="actor",
+        ),
         module_id="god_of_carnage",
         runtime_projection=_projection(),
         content_modules_root=_root(),
@@ -140,268 +148,66 @@ def test_begruesse_accented_name_resolves_actor() -> None:
     assert frame["resolved_target_id"] == "veronique_vallon"
 
 
-def _modules_root_with_scene_objects(tmp_path: Path, *, empty_objects: bool) -> Path:
-    """Minimal ``content/modules`` tree for ``resolve_player_action`` tests."""
-    repo_locale = _root() / "god_of_carnage" / "locale"
-    dst_root = tmp_path / "modules"
-    loc = dst_root / "god_of_carnage" / "locale"
-    loc.mkdir(parents=True)
-    shutil.copy2(repo_locale / "action_ontology.yaml", loc / "action_ontology.yaml")
-    shutil.copy2(repo_locale / "module_strings.yaml", loc / "module_strings.yaml")
-    if empty_objects:
-        (loc / "scene_affordances.yaml").write_text(
-            "scene_affordances:\n"
-            "  current_area: test_area\n"
-            "  inferred_area_policy: residential_apartment\n"
-            "  locations: []\n"
-            "  objects: []\n",
-            encoding="utf-8",
-        )
-    else:
-        shutil.copy2(repo_locale / "scene_affordances.yaml", loc / "scene_affordances.yaml")
-    return dst_root
-
-
-def _modules_root_with_beer_fridge(tmp_path: Path, *, available: bool) -> Path:
-    repo_locale = _root() / "god_of_carnage" / "locale"
-    dst_root = tmp_path / "modules"
-    loc = dst_root / "god_of_carnage" / "locale"
-    loc.mkdir(parents=True)
-    shutil.copy2(repo_locale / "action_ontology.yaml", loc / "action_ontology.yaml")
-    shutil.copy2(repo_locale / "module_strings.yaml", loc / "module_strings.yaml")
-    objects = (
-        '    - id: beer\n'
-        '      aliases: ["Bier", "beer"]\n'
-        '      affordances: ["take"]\n'
-        '    - id: refrigerator\n'
-        '      aliases: ["Kuehlschrank", "Kühlschrank", "fridge", "refrigerator"]\n'
-        '      affordances: ["open", "take_from"]\n'
-        if available
-        else ""
-    )
-    (loc / "scene_affordances.yaml").write_text(
-        "scene_affordances:\n"
-        "  current_area: test_kitchen\n"
-        "  inferred_area_policy: residential_apartment\n"
-        "  locations: []\n"
-        "  objects:\n"
-        f"{objects}",
-        encoding="utf-8",
-    )
-    return dst_root
-
-
-def _modules_root_with_beer_without_fridge(tmp_path: Path) -> Path:
-    repo_locale = _root() / "god_of_carnage" / "locale"
-    dst_root = tmp_path / "modules"
-    loc = dst_root / "god_of_carnage" / "locale"
-    loc.mkdir(parents=True)
-    shutil.copy2(repo_locale / "action_ontology.yaml", loc / "action_ontology.yaml")
-    shutil.copy2(repo_locale / "module_strings.yaml", loc / "module_strings.yaml")
-    (loc / "scene_affordances.yaml").write_text(
-        "scene_affordances:\n"
-        "  current_area: test_kitchen\n"
-        "  inferred_area_policy: residential_apartment\n"
-        "  locations: []\n"
-        "  objects:\n"
-        '    - id: beer\n'
-        '      aliases: ["Bier", "beer"]\n'
-        '      affordances: ["take"]\n',
-        encoding="utf-8",
-    )
-    return dst_root
-
-
-def test_take_beer_from_fridge_available_stays_object_action_with_source_query(tmp_path: Path) -> None:
-    root = _modules_root_with_beer_fridge(tmp_path, available=True)
+def test_source_resolution_uses_ai_provided_content_id() -> None:
     out = resolve_player_action(
-        raw_text="Ich nehme ein Bier aus dem Kuehlschrank",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
+        raw_text="Ich nehme ein Glas aus dem Schrank",
+        interpreted_input=_semantic(
+            verb="take",
+            action_kind="object_interaction",
+            target_query="Glas",
+            target_id="glasses",
+            target_type="object",
+            source_query="Schrank",
+            source_id="glassware_cabinet",
+        ),
         module_id="god_of_carnage",
         runtime_projection=_projection(),
-        content_modules_root=root,
+        content_modules_root=_root(),
     )
     frame = out["player_action_frame"]
-    aff = out["affordance_resolution"]
-    assert frame["player_input_kind"] == "action"
-    assert frame["action_kind"] == "object_interaction"
-    assert frame["verb"] == "take"
-    assert frame["target_query"] == "Bier aus dem Kuehlschrank"
-    assert frame["source_query"] == "Kuehlschrank"
-    assert frame["resolved_target_id"] == "beer"
-    assert frame["resolved_source_id"] == "refrigerator"
-    assert aff["affordance_status"] == "allowed"
-    assert aff["action_commit_policy"] == "commit_action"
-    assert frame["narrator_response_expected"] is True
-    assert frame["npc_response_expected"] is False
+    assert frame["resolved_target_id"] == "glasses"
+    assert frame["resolved_source_id"] == "glassware_cabinet"
+    assert frame["source_resolution_source"] == "ai_semantic_resolution.content_id"
 
 
-def test_take_beer_from_unknown_source_is_clarification_not_speech(tmp_path: Path) -> None:
-    root = _modules_root_with_beer_without_fridge(tmp_path)
+def test_unknown_ai_target_query_stays_clarification() -> None:
     out = resolve_player_action(
-        raw_text="Ich nehme ein Bier aus dem Kuehlschrank",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
+        raw_text="Schalte den Hyperraum ein",
+        interpreted_input=_semantic(
+            verb="activate",
+            action_kind="object_interaction",
+            target_query="Hyperraum",
+            target_id=None,
+            target_type=None,
+        ),
         module_id="god_of_carnage",
         runtime_projection=_projection(),
-        content_modules_root=root,
+        content_modules_root=_root(),
     )
-    frame = out["player_action_frame"]
     aff = out["affordance_resolution"]
-    assert frame["player_input_kind"] == "action"
-    assert frame["resolved_target_id"] == "beer"
-    assert frame["source_query"] == "Kuehlschrank"
-    assert frame["resolved_source_id"] is None
     assert aff["affordance_status"] == "unknown_target"
     assert aff["action_commit_policy"] == "needs_clarification"
-    assert aff["reason"] == "source_query_unresolved"
 
 
-def test_take_beer_from_fridge_unavailable_remains_action_unknown_target(tmp_path: Path) -> None:
-    root = _modules_root_with_beer_fridge(tmp_path, available=False)
-    out = resolve_player_action(
-        raw_text="Ich nehme ein Bier aus dem Kuehlschrank",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=root,
-    )
-    frame = out["player_action_frame"]
-    aff = out["affordance_resolution"]
-    assert frame["player_input_kind"] == "action"
-    assert frame["action_kind"] == "object_interaction"
-    assert frame["verb"] == "take"
-    assert frame["source_query"] == "Kuehlschrank"
-    assert frame["resolved_target_id"] is None
-    assert frame["resolved_source_id"] is None
-    assert aff["affordance_status"] == "unknown_target"
-    assert aff["action_commit_policy"] == "needs_clarification"
-    assert aff["commit_allowed"] is False
-
-
-def test_schalte_fernseher_ein_when_upstream_labels_speech_still_object_interaction(tmp_path: Path) -> None:
-    """Intent classifier may emit ``speech``; bounded device imperatives stay action + object path."""
-    root = _modules_root_with_scene_objects(tmp_path, empty_objects=False)
-    out = resolve_player_action(
-        raw_text="Schalte den Fernseher ein",
-        interpreted_input={
-            "player_input_kind": "speech",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=root,
-    )
-    frame = out["player_action_frame"]
-    assert frame["input_kind"] == "action"
-    assert frame["action_kind"] == "object_interaction"
-    assert frame["verb"] == "activate"
-
-
-def test_schalte_fernseher_ein_object_interaction_with_scene_object(tmp_path: Path) -> None:
-    root = _modules_root_with_scene_objects(tmp_path, empty_objects=False)
-    out = resolve_player_action(
-        raw_text="Schalte den Fernseher ein",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=root,
-    )
-    frame = out["player_action_frame"]
-    aff = out["affordance_resolution"]
-    assert frame["player_input_kind"] == "action"
-    assert frame["action_kind"] == "object_interaction"
-    assert frame["verb"] == "activate"
-    assert frame["target_query"] == "Fernseher"
-    assert frame["resolved_target_id"] == "television"
-    assert frame["selected_actor_id"] == "annette_reille"
-    assert frame["narrator_response_expected"] is True
-    assert frame["npc_response_expected"] is False
-    assert aff["affordance_status"] == "allowed"
-    assert aff["action_commit_policy"] == "commit_action"
-
-
-def test_schalte_fernseher_ein_unknown_target_stays_action_without_scene_object(tmp_path: Path) -> None:
-    root = _modules_root_with_scene_objects(tmp_path, empty_objects=True)
-    out = resolve_player_action(
-        raw_text="Schalte den Fernseher ein",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=root,
-    )
-    frame = out["player_action_frame"]
-    aff = out["affordance_resolution"]
-    assert frame["player_input_kind"] == "action"
-    assert frame["action_kind"] == "object_interaction"
-    assert frame["verb"] == "activate"
-    assert frame["target_query"] == "Fernseher"
-    assert aff["affordance_status"] == "unknown_target"
-    assert aff["action_commit_policy"] == "needs_clarification"
-    assert aff["commit_allowed"] is False
-
-
-def test_mach_das_licht_aus_deactivate_extracts_object(tmp_path: Path) -> None:
-    root = _modules_root_with_scene_objects(tmp_path, empty_objects=True)
-    out = resolve_player_action(
-        raw_text="Mach das Licht aus",
-        interpreted_input={
-            "player_input_kind": "action",
-            "lang": "de",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_projection(),
-        content_modules_root=root,
-    )
-    frame = out["player_action_frame"]
-    assert frame["verb"] == "deactivate"
-    assert frame["target_query"] == "Licht"
-    assert frame["action_kind"] == "object_interaction"
-
-
-def test_mixed_stand_and_say_carries_speech_text() -> None:
+def test_mixed_action_speech_uses_ai_semantic_speech_text() -> None:
     out = resolve_player_action(
         raw_text="Ich stehe auf und sage: Das reicht.",
         interpreted_input={
-            "player_input_kind": "mixed",
-            "narrator_response_expected": True,
-            "npc_response_expected": True,
-            "projection_captures": {"speech": "Das reicht."},
-            "actor_id": "annette_reille",
+            **_semantic(
+                raw_kind="mixed",
+                verb="stand_up",
+                action_kind="movement",
+                target_query=None,
+                target_id=None,
+                target_type=None,
+            ),
+            "semantic_action": {
+                "player_input_kind": "mixed",
+                "verb": "stand_up",
+                "action_kind": "movement",
+                "speech_text": "Das reicht.",
+                "commit_policy": "commit_action",
+            },
         },
         module_id="god_of_carnage",
         runtime_projection=_projection(),

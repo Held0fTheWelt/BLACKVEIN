@@ -1,0 +1,24 @@
+location:
+  id: hallway_bathroom_locked
+  name: "Hallway bathroom (locked)"
+  category: locked_private_room
+  playable_access: locked_non_playable
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#hallway_bathroom_locked
+  description: >-
+    A bathroom door at the far end of the inner hallway; locked and not playable
+    during the visit. Distinct from the ensuite bathroom beyond the master bedroom.
+  room_profile:
+    role: locked_bathroom_at_hall_far_end
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: hallway_bathroom_locked_to_hallway
+        to_place_id: hallway
+        kind: locked_private_door
+  inventory_policy: door_only_no_interior
+  inventory_object_ids:
+    - locked_bathroom_door
+  sensory_tags: [closed_door, private_boundary, hall_far_end]
+  plausible_actions: [notice_locked_door]
+  forbidden_actions: [enter_room, open_locked_door]

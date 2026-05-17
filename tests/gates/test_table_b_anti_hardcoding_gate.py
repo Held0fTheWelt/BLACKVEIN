@@ -396,7 +396,6 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     "frontend/app/routes_play.py": "Play launcher still validates GoC role/profile locally.",
     "frontend/templates/session_start.html": "Play launcher still renders GoC role choices locally.",
     "story_runtime_core/builtin_experience_templates.py": "Built-in template registry includes GoC compatibility.",
-    "story_runtime_core/content_locale.py": "Locale fallback still defaults to GoC.",
     "story_runtime_core/goc_solo_builtin_catalog.py": "GoC-specific built-in compatibility catalog.",
     "story_runtime_core/goc_solo_builtin_catalog_actions.py": "GoC-specific built-in compatibility actions.",
     "story_runtime_core/goc_solo_builtin_roles_rooms.py": "GoC-specific built-in compatibility roles/rooms.",

@@ -1,7 +1,7 @@
-from .content_locale import (
+from .language_adapter import (
     build_player_attributed_visible_line,
     classify_player_input_from_rules,
-    clear_content_locale_caches,
+    clear_language_adapter_caches,
     default_player_intent_commit_flags,
     greeting_imperative_addressee_fragment,
     greeting_imperative_visible_pair,
@@ -17,7 +17,7 @@ from .runtime_delivery import extract_spoken_text_for_delivery, natural_input_to
 __all__ = [
     "build_player_attributed_visible_line",
     "classify_player_input_from_rules",
-    "clear_content_locale_caches",
+    "clear_language_adapter_caches",
     "default_player_intent_commit_flags",
     "greeting_imperative_addressee_fragment",
     "greeting_imperative_visible_pair",

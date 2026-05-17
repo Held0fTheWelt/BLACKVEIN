@@ -4,12 +4,11 @@ Verifies that the narrator consequence pipeline produces:
   - a LocalContextTransition with correct transition_type, to_area, new_area_established
   - a NarratorConsequencePlan with authored consequence_text (not a template restatement)
   - an updated player_local_context that advances the player into the new situation
-  - correct German locale rendering (as runtime data, test code stays English)
+  - content-derived consequence text without module locale files
   - multi-turn context persistence (player_local_context carries forward)
 
-All test inputs and assertions are in English. German content appears only as runtime data
-loaded from ``content/modules/god_of_carnage/locale/scene_affordances.yaml`` via
-``load_goc_scene_affordances_block()`` (no duplicated hardcoded affordance tables in tests).
+All test inputs and assertions are in English. Consequence text is loaded from
+the content-derived semantic interaction surface via ``load_goc_scene_affordances_block()``.
 """
 
 from __future__ import annotations
@@ -25,8 +24,8 @@ from ai_stack.narrator_consequence_contracts import (
 from ai_stack.langgraph_synthetic_action_resolution import (
     build_synthetic_generation_for_action_resolution,
 )
-from story_runtime_core.content_locale import (
-    clear_content_locale_caches,
+from story_runtime_core.language_adapter import (
+    clear_language_adapter_caches,
     resolve_string,
     resolve_content_modules_root,
 )
@@ -37,7 +36,7 @@ _SCENE_AFFORDANCE_MODEL = load_goc_scene_affordances_block()
 
 
 def setup_module(_m: object) -> None:
-    clear_content_locale_caches()
+    clear_language_adapter_caches()
 
 
 def _root():
@@ -67,7 +66,7 @@ def _location_detail(location_id: str, lang: str) -> str:
     for row in scene_affordances.get("locations") or []:
         if isinstance(row, dict) and row.get("id") == location_id:
             detail = row.get("entry_sensory_detail") or {}
-            return str(detail.get(lang) or detail.get("de") or detail.get("en") or "")
+            return str(detail.get(lang) or detail.get("de") or detail.get("en") or row.get("description") or "")
     raise AssertionError(f"missing canonical location detail: {location_id}")
 
 
@@ -76,7 +75,7 @@ def _object_detail(object_id: str, lang: str) -> str:
     for row in scene_affordances.get("objects") or []:
         if isinstance(row, dict) and row.get("id") == object_id:
             detail = row.get("perception_detail") or {}
-            return str(detail.get(lang) or detail.get("de") or detail.get("en") or "")
+            return str(detail.get(lang) or detail.get("de") or detail.get("en") or row.get("description") or "")
     raise AssertionError(f"missing canonical object detail: {object_id}")
 
 
@@ -497,7 +496,7 @@ def test_synthetic_gen_falls_back_to_template_when_no_scene_model():
     assert meta.get("narrator_consequence_plan") in (None, {})
 
 
-def test_synthetic_gen_de_locale_bathroom():
+def test_synthetic_gen_de_content_bathroom():
     gen = build_synthetic_generation_for_action_resolution(
         module_id=MODULE,
         lang="de",

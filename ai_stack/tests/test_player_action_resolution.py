@@ -4,17 +4,17 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.action_ontology import clear_action_ontology_cache
 from ai_stack.goc_turn_seams import run_validation_seam
 from ai_stack.player_action_resolution import resolve_player_action
+from story_runtime_core.language_adapter import clear_language_adapter_caches
 from story_runtime_core.player_input_intent_contract import default_commit_flags_for_player_input_kind
 
 
 @pytest.fixture(autouse=True)
-def _clear_action_ontology_cache() -> None:
-    clear_action_ontology_cache()
+def _clear_language_adapter_caches() -> None:
+    clear_language_adapter_caches()
     yield
-    clear_action_ontology_cache()
+    clear_language_adapter_caches()
 
 
 def _runtime_projection() -> dict:
@@ -35,54 +35,120 @@ def _content_root() -> Path:
     return Path(__file__).resolve().parents[2] / "content" / "modules"
 
 
-def test_gehe_ins_bad_resolves_movement_offscreen() -> None:
+def _semantic_interpreted(
+    *,
+    target_id: str | None,
+    target_type: str | None,
+    target_query: str | None,
+    verb: str,
+    action_kind: str,
+    actor_id: str = "annette_reille",
+    commit_policy: str = "commit_action",
+) -> dict:
+    return {
+        "player_input_kind": "action",
+        "narrator_response_expected": True,
+        "npc_response_expected": False,
+        "actor_id": actor_id,
+        "semantic_action": {
+            "player_input_kind": "action",
+            "verb": verb,
+            "action_kind": action_kind,
+            "target_query": target_query,
+            "resolved_target_id": target_id,
+            "resolved_target_type": target_type,
+            "commit_policy": commit_policy,
+            "confidence": "high" if target_id else "low",
+        },
+    }
+
+
+def test_action_without_ai_semantics_requests_clarification() -> None:
     out = resolve_player_action(
         raw_text="Gehe ins Bad",
         interpreted_input={
             "player_input_kind": "action",
             "narrator_response_expected": True,
             "npc_response_expected": False,
-            "projection_captures": {"room": "ins Bad"},
             "actor_id": "annette_reille",
         },
         module_id="god_of_carnage",
         runtime_projection=_runtime_projection(),
         content_modules_root=_content_root(),
     )
-    frame = out["player_action_frame"]
-    assert frame["player_input_kind"] == "movement_action"
-    assert frame["verb"] == "move_to"
-    assert frame["target_query"] == "Bad"
-    assert frame["resolved_target_type"] == "location"
-    assert frame["resolved_target_id"] == "bathroom"
-    assert frame["affordance_status"] == "allowed_offscreen"
-    assert frame["narrator_response_expected"] is True
-    assert frame["npc_response_expected"] is False
+    aff = out["affordance_resolution"]
+    assert aff["affordance_status"] == "ambiguous"
+    assert aff["action_commit_policy"] == "needs_clarification"
+    assert aff["target_resolution_source"] == "semantic_ai_resolution_required"
 
 
-def test_schau_aus_dem_fenster_resolves_perception_object() -> None:
+def test_ai_semantic_movement_resolves_content_location() -> None:
     out = resolve_player_action(
-        raw_text="Schau aus dem Fenster",
-        interpreted_input={
-            "player_input_kind": "perception",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "actor_id": "annette_reille",
-        },
+        raw_text="Gehe in die Küche",
+        interpreted_input=_semantic_interpreted(
+            verb="move_to",
+            action_kind="movement",
+            target_query="Küche",
+            target_id="kitchen",
+            target_type="location",
+        ),
         module_id="god_of_carnage",
         runtime_projection=_runtime_projection(),
         content_modules_root=_content_root(),
     )
     frame = out["player_action_frame"]
-    assert frame["verb"] == "look_at"
-    assert frame["resolved_target_type"] == "object"
-    assert frame["resolved_target_id"] == "window"
+    assert frame["verb"] == "move_to"
+    assert frame["resolved_target_type"] == "location"
+    assert frame["resolved_target_id"] == "kitchen"
     assert frame["affordance_status"] == "allowed"
-    assert frame["narrator_response_expected"] is True
-    assert frame["npc_response_expected"] is False
+    assert frame["validation_surface"] == "ai_semantic_resolution"
 
 
-def test_gibt_es_hier_ein_bad_stays_question_speech() -> None:
+def test_ai_semantic_stairwell_resolution_is_prevented_not_forbidden() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe ins Treppenhaus",
+        interpreted_input=_semantic_interpreted(
+            verb="move_to",
+            action_kind="movement",
+            target_query="Treppenhaus",
+            target_id="building_stairwell",
+            target_type="location",
+            actor_id="alain_reille",
+            commit_policy="no_commit",
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    aff = out["affordance_resolution"]
+    assert aff["affordance_status"] == "prevented"
+    assert aff["action_commit_policy"] == "no_commit"
+    assert aff["requires_narrator"] is True
+
+
+def test_ai_semantic_object_resolution_uses_content_access() -> None:
+    out = resolve_player_action(
+        raw_text="Öffne den Fahrstuhl",
+        interpreted_input=_semantic_interpreted(
+            verb="open",
+            action_kind="object_interaction",
+            target_query="Fahrstuhl",
+            target_id="elevator",
+            target_type="object",
+            actor_id="alain_reille",
+            commit_policy="no_commit",
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    frame = out["player_action_frame"]
+    assert frame["verb"] == "open"
+    assert frame["resolved_target_id"] == "elevator"
+    assert frame["affordance_status"] == "prevented"
+
+
+def test_speech_without_semantic_action_stays_speech_path() -> None:
     out = resolve_player_action(
         raw_text="Gibt es hier ein Bad?",
         interpreted_input={
@@ -97,9 +163,28 @@ def test_gibt_es_hier_ein_bad_stays_question_speech() -> None:
     )
     frame = out["player_action_frame"]
     assert frame["player_input_kind"] == "speech"
-    assert frame["verb"] == "ask"
+    assert frame["verb"] == "utterance"
     assert frame["affordance_status"] == "allowed"
     assert frame["npc_response_expected"] is True
+
+
+def test_semantic_unknown_target_returns_clarification_status() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe nach Mordor",
+        interpreted_input=_semantic_interpreted(
+            verb="move_to",
+            action_kind="movement",
+            target_query="Mordor",
+            target_id=None,
+            target_type=None,
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    aff = out["affordance_resolution"]
+    assert aff["affordance_status"] == "unknown_target"
+    assert aff["action_commit_policy"] == "needs_clarification"
 
 
 def test_meta_input_resolution_is_non_story_control() -> None:
@@ -128,25 +213,6 @@ def test_meta_input_resolution_is_non_story_control() -> None:
     assert aff["allows_npc_reaction"] is False
 
 
-def test_unknown_target_returns_clarification_status() -> None:
-    out = resolve_player_action(
-        raw_text="Gehe nach Mordor",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "projection_captures": {"room": "nach Mordor"},
-            "actor_id": "annette_reille",
-        },
-        module_id="god_of_carnage",
-        runtime_projection=_runtime_projection(),
-        content_modules_root=_content_root(),
-    )
-    aff = out["affordance_resolution"]
-    assert aff["affordance_status"] == "unknown_target"
-    assert aff["action_commit_policy"] == "needs_clarification"
-
-
 def test_continuity_pressure_reject_overridden_by_allowed_resolution(monkeypatch) -> None:
     class _FakeGateResult:
         value = "rejected_continuity_pressure"
@@ -167,7 +233,7 @@ def test_continuity_pressure_reject_overridden_by_allowed_resolution(monkeypatch
         proposed_state_effects=[{"effect_type": "narrative_projection", "description": "x"}],
         generation={"success": True, "metadata": {"structured_output": {}}},
         affordance_resolution={
-            "affordance_status": "allowed_offscreen",
+            "affordance_status": "allowed",
             "action_commit_policy": "commit_action",
         },
         player_action_frame={

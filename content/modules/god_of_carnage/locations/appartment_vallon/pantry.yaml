@@ -1,5 +1,6 @@
 location:
   id: pantry
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#pantry
   name: "Small pantry"
   category: service_storage
   playable_access: gated_scene_navigation

@@ -14,8 +14,6 @@ objects:
     living_room: objects/appartment_vallon/living_room/
     hallway: objects/appartment_vallon/hallway/
     kitchen: objects/appartment_vallon/kitchen/
-    dining_room: objects/appartment_vallon/dining_room/
-    bedroom: objects/appartment_vallon/bedroom/
     bathroom: objects/appartment_vallon/bathroom/
     pantry: objects/appartment_vallon/pantry/
     study: objects/appartment_vallon/study/
@@ -47,18 +45,6 @@ objects:
     - objects/appartment_vallon/kitchen/kitchen_drawers.yaml
     - objects/appartment_vallon/kitchen/coffee_machine.yaml
     - objects/appartment_vallon/kitchen/glasses.yaml
-    - objects/appartment_vallon/dining_room/dining_room_table.yaml
-    - objects/appartment_vallon/dining_room/dining_room_sideboard.yaml
-    - objects/appartment_vallon/dining_room/china_cabinet.yaml
-    - objects/appartment_vallon/dining_room/place_settings.yaml
-    - objects/appartment_vallon/dining_room/fruit_bowl.yaml
-    - objects/appartment_vallon/dining_room/linen_napkins.yaml
-    - objects/appartment_vallon/dining_room/dining_room_wall_clock.yaml
-    - objects/appartment_vallon/bedroom/bedroom_bed.yaml
-    - objects/appartment_vallon/bedroom/bedside_tables.yaml
-    - objects/appartment_vallon/bedroom/bedroom_wardrobe.yaml
-    - objects/appartment_vallon/bedroom/laundry_chair.yaml
-    - objects/appartment_vallon/bedroom/ensuite_bathroom_door.yaml
     - objects/appartment_vallon/bathroom/bathroom_mirror.yaml
     - objects/appartment_vallon/bathroom/bathroom_sink.yaml
     - objects/appartment_vallon/bathroom/towel_rail.yaml

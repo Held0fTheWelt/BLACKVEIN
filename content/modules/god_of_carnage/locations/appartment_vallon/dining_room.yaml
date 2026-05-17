@@ -1,0 +1,30 @@
+location:
+  id: dining_room
+  name: "Dining room"
+  category: formal_hospitality_room
+  playable_access: gated_scene_navigation
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#dining_room
+  description: >-
+    A separate dining room off the inner hallway, set for formal table hospitality
+    and reachable only by leaving the living-room cluster.
+  room_profile:
+    role: formal_hospitality_room
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: dining_room_to_hallway
+        to_place_id: hallway
+        kind: interior_threshold
+  inventory_policy: dining_room_objects
+  inventory_object_ids:
+    - dining_room_table
+    - dining_room_sideboard
+    - china_cabinet
+    - place_settings
+    - fruit_bowl
+    - linen_napkins
+    - dining_room_wall_clock
+  sensory_tags: [formal_table, china, hospitality_display, overheard_living_room]
+  plausible_actions: [look_at, listen_to, move_to_adjacent_room]
+  forbidden_actions: [invent_unseeded_guests]

@@ -440,7 +440,6 @@ class ModuleFileLoader:
             "locations": "locations",
             "objects": "objects",
             "content_access_policy": "content_access_policy",
-            "action_outcome_map": "action_outcome_map",
         }
 
         # Iterate over a copy of items to avoid "dictionary keys changed during iteration" error

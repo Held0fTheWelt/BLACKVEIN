@@ -1462,6 +1462,7 @@ class StorySession:
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     turn_counter: int = 0
     current_scene_id: str = ""
+    session_input_language: str = "de"
     session_output_language: str = "de"
     history: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
@@ -1499,6 +1500,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "updated_at": session.updated_at.isoformat(),
         "turn_counter": session.turn_counter,
         "current_scene_id": session.current_scene_id,
+        "session_input_language": session.session_input_language,
         "session_output_language": session.session_output_language,
         "history": session.history,
         "diagnostics": session.diagnostics,
@@ -1540,6 +1542,7 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         updated_at=updated_at,
         turn_counter=int(data.get("turn_counter", 0)),
         current_scene_id=str(data.get("current_scene_id") or ""),
+        session_input_language=str(data.get("session_input_language") or data.get("session_output_language") or "de"),
         session_output_language=str(data.get("session_output_language") or "de"),
         history=list(data.get("history") or []),
         diagnostics=list(data.get("diagnostics") or []),
@@ -3192,6 +3195,7 @@ def _build_langfuse_path_summary(
         "selected_player_role": _spr or None,
         "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
         "player_role_display_name": goc_player_role_display_name(_spr or None),
+        "session_input_language": getattr(session, "session_input_language", None) or getattr(session, "session_output_language", None) or "de",
         "session_output_language": getattr(session, "session_output_language", None) or "de",
         "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
@@ -10855,6 +10859,7 @@ class StoryRuntimeManager:
         *,
         module_id: str,
         runtime_projection: dict[str, Any],
+        session_input_language: str | None = None,
         session_output_language: str = "de",
         content_provenance: dict[str, Any] | None = None,
         session_id: str | None = None,
@@ -10875,6 +10880,7 @@ class StoryRuntimeManager:
             module_id=module_id,
             runtime_projection=runtime_projection,
             current_scene_id=current_scene_id,
+            session_input_language=session_input_language or session_output_language,
             session_output_language=session_output_language,
             content_provenance=prov,
         )

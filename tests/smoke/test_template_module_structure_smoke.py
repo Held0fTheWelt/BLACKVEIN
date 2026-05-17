@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from story_runtime_core.language_adapter import build_interaction_surface
+
 
 MODULE_ROOT = Path(__file__).parent.parent.parent / "content" / "modules" / "_template"
 
@@ -82,6 +84,14 @@ def test_template_keeps_objects_out_of_locations() -> None:
         assert isinstance(object_doc.get("portable"), bool), f"{rel_path} must declare boolean portable"
 
 
+def test_template_semantic_adapter_surface_replaces_action_maps() -> None:
+    surface = build_interaction_surface("_template", content_modules_root=MODULE_ROOT.parent)
+    assert surface["adapter_policy"]["engine_maps_allowed"] is False
+    assert surface["semantic_resolution_contract"]["policy"]["no_hardcoded_language_maps"] is True
+    assert surface["locations"], "Template should expose content-derived locations to the AI adapter"
+    assert surface["objects"], "Template should expose content-derived objects to the AI adapter"
+
+
 def test_template_keeps_old_orchestration_files_out() -> None:
     obsolete = [
         "scenes.yaml",
@@ -91,6 +101,7 @@ def test_template_keeps_old_orchestration_files_out() -> None:
         "escalation_axes.yaml",
         "direction/scene_guidance.yaml",
         "locale",
+        "knowledge/action_outcome_map.yaml",
         "runtime/action_outcome_map.yaml",
     ]
     for rel in obsolete:

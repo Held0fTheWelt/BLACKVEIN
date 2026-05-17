@@ -1,5 +1,6 @@
 location:
   id: hallway
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#hallway
   name: "Small interior hallway"
   category: interior_transition
   playable_access: gated_scene_navigation

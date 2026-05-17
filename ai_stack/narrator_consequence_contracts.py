@@ -48,7 +48,7 @@ def _find_location(
             continue
         if loc.get("id", "").lower() == t_id:
             return loc
-        aliases_lower = [a.lower() for a in (loc.get("aliases") or [])]
+        aliases_lower = [a.lower() for a in (loc.get("aliases") or loc.get("content_terms") or [])]
         if t_id in aliases_lower or t_alias in aliases_lower:
             return loc
     return None
@@ -67,7 +67,7 @@ def _find_object(
             continue
         if obj.get("id", "").lower() == t_id:
             return obj
-        aliases_lower = [a.lower() for a in (obj.get("aliases") or [])]
+        aliases_lower = [a.lower() for a in (obj.get("aliases") or obj.get("content_terms") or [])]
         if t_id in aliases_lower or t_alias in aliases_lower:
             return obj
     return None
@@ -175,20 +175,22 @@ def build_narrator_consequence_plan(
         if loc:
             detail_map = loc.get("entry_sensory_detail") or {}
             detail = detail_map.get(lang_key) or detail_map.get("de") or detail_map.get("en")
+            detail = detail or loc.get("description")
             if detail:
                 consequence_text = str(detail)
                 consequence_type = "area_transition"
-                source = "scene_affordance_detail"
+                source = "content_description"
             affordances_available = list(loc.get("available_affordances") or [])
     elif transition_type == "perception" and local_context_transition.get("object_found"):
         obj = _find_object(scene_affordance_model, target_id, target_alias)
         if obj:
             detail_map = obj.get("perception_detail") or {}
             detail = detail_map.get(lang_key) or detail_map.get("de") or detail_map.get("en")
+            detail = detail or obj.get("description")
             if detail:
                 consequence_text = str(detail)
                 consequence_type = "perception_result"
-                source = "scene_affordance_detail"
+                source = "content_description"
     elif transition_type == "object_interaction" and local_context_transition.get("object_found"):
         consequence_type = "object_state_change"
 

@@ -1,5 +1,6 @@
 location:
   id: study
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#study
   name: "Study"
   category: private_work_room
   playable_access: gated_scene_navigation

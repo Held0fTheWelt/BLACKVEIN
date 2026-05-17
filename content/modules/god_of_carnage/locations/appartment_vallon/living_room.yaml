@@ -1,5 +1,6 @@
 location:
   id: living_room
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#living_room
   name: "Living room"
   category: primary_play_space
   playable_access: active

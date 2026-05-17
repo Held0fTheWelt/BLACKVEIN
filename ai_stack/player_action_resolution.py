@@ -24,7 +24,7 @@ from ai_stack.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
-from story_runtime_core.content_locale import build_interaction_surface, resolve_content_modules_root
+from story_runtime_core.language_adapter import build_interaction_surface, resolve_content_modules_root
 from story_runtime_core.player_input_intent_contract import (
     is_mixed_player_input_kind,
     is_non_story_control_player_input_kind,
@@ -249,6 +249,18 @@ def _semantic_payload(interpreted_input: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _contract_input_languages(interpreted_input: dict[str, Any]) -> tuple[str | None, str | None]:
+    contract = interpreted_input.get("semantic_resolution_contract")
+    if not isinstance(contract, dict):
+        return None, None
+    payload = contract.get("input")
+    if not isinstance(payload, dict):
+        return None, None
+    input_language = str(payload.get("session_input_language") or "").strip().lower()[:2] or None
+    output_language = str(payload.get("session_output_language") or "").strip().lower()[:2] or None
+    return input_language, output_language
+
+
 def _make_frame(
     *,
     raw_text: str,
@@ -268,6 +280,9 @@ def _make_frame(
     source_resolution_source: str | None = None,
     validation_surface: str | None = None,
     projection_rule_id: str | None = None,
+    normalized_english_text: str | None = None,
+    session_input_language: str | None = None,
+    session_output_language: str | None = None,
 ) -> PlayerActionFrameContract:
     return PlayerActionFrameContract(
         raw_text=str(raw_text or "").strip(),
@@ -287,6 +302,10 @@ def _make_frame(
         source_resolution_source=source_resolution_source,
         validation_surface=validation_surface,
         projection_rule_id=projection_rule_id,
+        normalized_english_text=normalized_english_text,
+        internal_resolution_language="en",
+        session_input_language=session_input_language,
+        session_output_language=session_output_language,
     )
 
 
@@ -346,6 +365,10 @@ def resolve_player_action(
         environment_model=environment_model,
     )
     semantic = _semantic_payload(interpreted_input)
+    contract = interpreted_input.get("semantic_resolution_contract")
+    if isinstance(contract, dict):
+        affordance_model["semantic_resolution_contract"] = contract
+    session_input_language, session_output_language = _contract_input_languages(interpreted_input)
 
     if not semantic and not is_speech_like_player_input_kind(pik):
         aff = AffordanceResolutionContract(
@@ -371,6 +394,8 @@ def resolve_player_action(
             selected_actor_id=selected_actor_id,
             validation_surface="semantic_ai_resolution_required",
             projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
+            session_input_language=session_input_language,
+            session_output_language=session_output_language,
         )
         return {
             "player_action_frame": frame.to_dict(),
@@ -401,6 +426,8 @@ def resolve_player_action(
             actor_id=actor_id,
             selected_actor_id=selected_actor_id,
             validation_surface="speech_without_action_resolution",
+            session_input_language=session_input_language,
+            session_output_language=session_output_language,
         )
         return {
             "player_action_frame": frame.to_dict(),
@@ -409,15 +436,31 @@ def resolve_player_action(
         }
 
     pik = str(semantic.get("player_input_kind") or pik).strip().lower() or pik
-    action_kind = str(semantic.get("action_kind") or "semantic_action").strip() or "semantic_action"
-    verb = str(semantic.get("verb") or "semantic_action").strip() or "semantic_action"
+    normalized_english_text = (
+        str(
+            semantic.get("normalized_english_text")
+            or semantic.get("english_text")
+            or semantic.get("internal_english_text")
+            or ""
+        ).strip()
+        or None
+    )
+    action_kind = str(
+        semantic.get("normalized_english_action_kind") or semantic.get("action_kind") or "semantic_action"
+    ).strip() or "semantic_action"
+    verb = str(semantic.get("normalized_english_verb") or semantic.get("verb") or "semantic_action").strip() or "semantic_action"
     speech_text = str(semantic.get("speech_text") or "").strip() or None
     if is_mixed_player_input_kind(pik) and not speech_text:
         caps = interpreted_input.get("projection_captures")
         if isinstance(caps, dict):
             speech_text = str(caps.get("speech") or "").strip() or None
 
-    target_query = str(semantic.get("target_query") or "").strip() or None
+    target_query = str(
+        semantic.get("target_query_english")
+        or semantic.get("english_target_query")
+        or semantic.get("target_query")
+        or ""
+    ).strip() or None
     target_id = str(semantic.get("resolved_target_id") or semantic.get("target_id") or "").strip() or None
     target_type = str(semantic.get("resolved_target_type") or semantic.get("target_type") or "").strip() or None
 
@@ -451,7 +494,12 @@ def resolve_player_action(
         access_status=access,
     )
 
-    source_query = str(semantic.get("source_query") or "").strip() or None
+    source_query = str(
+        semantic.get("source_query_english")
+        or semantic.get("english_source_query")
+        or semantic.get("source_query")
+        or ""
+    ).strip() or None
     resolved_source = None
     source_resolution_source = None
     source_id = str(semantic.get("resolved_source_id") or "").strip() or None
@@ -487,6 +535,9 @@ def resolve_player_action(
         source_resolution_source=source_resolution_source,
         validation_surface="ai_semantic_resolution",
         projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
+        normalized_english_text=normalized_english_text,
+        session_input_language=session_input_language,
+        session_output_language=session_output_language,
     )
     return {
         "player_action_frame": frame.to_dict(),

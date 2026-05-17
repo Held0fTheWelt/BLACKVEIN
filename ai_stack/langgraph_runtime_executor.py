@@ -282,7 +282,7 @@ from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
-from story_runtime_core.content_locale import (
+from story_runtime_core.language_adapter import (
     classify_player_input_from_rules,
     default_player_intent_commit_flags,
     load_session_language_model_directive,
@@ -315,11 +315,17 @@ def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
     """Bind model output to ``session_output_language`` for non-opening turns (opening prompt already binds)."""
     if str(state.get("turn_input_class") or "").strip().lower() == "opening":
         return ""
-    lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    output_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    input_lang = str(state.get("session_input_language") or output_lang).strip().lower()[:2] or output_lang
     mid = str(state.get("module_id") or "").strip()
     if not mid:
         return ""
-    return load_session_language_model_directive(module_id=mid, lang=lang, content_modules_root=None)
+    return load_session_language_model_directive(
+        module_id=mid,
+        lang=output_lang,
+        session_input_language=input_lang,
+        content_modules_root=None,
+    )
 
 
 def _prune_out_of_scope_actor_lanes(
@@ -4769,6 +4775,7 @@ class RuntimeTurnGraphExecutor:
         turn_execution_mode: str | None = None,
         live_player_truth_surface: bool | None = None,
         actor_lane_context: dict[str, Any] | None = None,
+        session_input_language: str | None = None,
         session_output_language: str | None = None,
         story_runtime_experience: dict[str, Any] | None = None,
         validation_execution_mode: str | None = None,
@@ -4964,6 +4971,8 @@ class RuntimeTurnGraphExecutor:
         if hierarchical_memory_context:
             initial_state["hierarchical_memory_context"] = dict(hierarchical_memory_context)
         sol = str(session_output_language or "de").strip().lower()[:2] or "de"
+        sil = str(session_input_language or sol).strip().lower()[:2] or sol
+        initial_state["session_input_language"] = sil
         initial_state["session_output_language"] = sol
         if story_runtime_experience and isinstance(story_runtime_experience, dict):
             initial_state["story_runtime_experience"] = dict(story_runtime_experience)
@@ -5081,7 +5090,8 @@ class RuntimeTurnGraphExecutor:
             or "silence" in interp_intent
             or silence_negative_space_no_lexical_input
         )
-        session_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+        session_output_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+        session_input_lang = str(state.get("session_input_language") or session_output_lang).strip().lower()[:2] or session_output_lang
         module_for_rules = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
         input_kind_map = {
             "speech": "speech",
@@ -5121,7 +5131,9 @@ class RuntimeTurnGraphExecutor:
             hit = classify_player_input_from_rules(
                 raw_pi,
                 module_id=module_for_rules,
-                lang_hint=session_lang,
+                lang_hint=session_output_lang,
+                session_input_language=session_input_lang,
+                session_output_language=session_output_lang,
                 content_modules_root=None,
             )
             rid = str(hit.get("deterministic_intent_rule") or "")
@@ -6083,7 +6095,6 @@ class RuntimeTurnGraphExecutor:
                     "phase_beat_policy",
                     "narrator_sensory_palette",
                     "scene_affordances",
-                    "action_outcome_map",
                 )
                 for _knowledge_key in _structured_knowledge_keys:
                     _value = yaml_slice.get(_knowledge_key)
@@ -6123,7 +6134,6 @@ class RuntimeTurnGraphExecutor:
                     "phase_beat_policy_loaded": bool(isinstance(yaml_slice.get("phase_beat_policy"), dict) and yaml_slice.get("phase_beat_policy")),
                     "narrator_sensory_palette_loaded": bool(isinstance(yaml_slice.get("narrator_sensory_palette"), dict) and yaml_slice.get("narrator_sensory_palette")),
                     "scene_affordances_loaded": bool(isinstance(yaml_slice.get("scene_affordances"), dict) and yaml_slice.get("scene_affordances")),
-                    "action_outcome_map_loaded": bool(isinstance(yaml_slice.get("action_outcome_map"), dict) and yaml_slice.get("action_outcome_map")),
                 }
                 update["goc_runtime_knowledge_contract"] = build_runtime_knowledge_contract(
                     opening_scene_sequence=opening_scene_sequence,
@@ -6587,7 +6597,6 @@ class RuntimeTurnGraphExecutor:
             ("opening_scene_sequence", "opening_scene_sequence_loaded"),
             ("apartment_layout", "apartment_layout_loaded"),
             ("scene_affordances", "scene_affordances_loaded"),
-            ("action_outcome_map", "action_outcome_map_loaded"),
             ("narrator_sensory_palette", "narrator_sensory_palette_loaded"),
             ("premise_and_backstory", "premise_and_backstory_loaded"),
         ):

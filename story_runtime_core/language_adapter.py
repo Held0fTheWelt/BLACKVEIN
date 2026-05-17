@@ -1,6 +1,6 @@
 """Thin semantic language adapter.
 
-This module deliberately contains no verb ontology, locale table, action map,
+This module deliberately contains no verb ontology, language lookup table, action map,
 or alias dictionary. It exposes the content that already exists in module files
 as an AI-readable semantic catalog and defines the shape of the model-produced
 resolution. Meaning is inferred from the player's utterance against that
@@ -87,6 +87,13 @@ def _relative(module_dir: Path, path: Path) -> str:
 
 def _clean_list(values: Any) -> list[Any]:
     return list(values) if isinstance(values, list) else []
+
+
+def _language_code(value: str | None, *, fallback: str | None = None) -> str | None:
+    text = str(value or "").strip().lower()
+    if not text:
+        text = str(fallback or "").strip().lower()
+    return text[:2] or None
 
 
 def _content_terms(identifier: str, row: dict[str, Any]) -> list[str]:
@@ -193,6 +200,7 @@ def _location_surface(module_dir: Path, rid: str, row: dict[str, Any]) -> dict[s
         if isinstance(row.get("room_profile"), dict)
         else row.get("adjacent_room_ids"),
         "inventory_object_ids": _clean_list(row.get("inventory_object_ids")),
+        "available_affordances": _clean_list(row.get("plausible_actions")),
         "plausible_actions": _clean_list(row.get("plausible_actions")),
         "prevented_actions": _clean_list(row.get("prevented_actions")),
         "forbidden_actions": _clean_list(row.get("forbidden_actions")),
@@ -215,6 +223,7 @@ def _object_surface(module_dir: Path, oid: str, row: dict[str, Any]) -> dict[str
         "description": row.get("description"),
         "description_source_ref": _source_ref(module_dir, path, "object.description") if source else None,
         "interaction_notes": row.get("interaction_notes") if isinstance(row.get("interaction_notes"), dict) else {},
+        "available_affordances": _clean_list(row.get("plausible_actions")),
         "plausible_actions": _clean_list(row.get("plausible_actions")),
         "prevented_actions": _clean_list(row.get("prevented_actions")),
         "forbidden_actions": _clean_list(row.get("forbidden_actions")),
@@ -236,29 +245,44 @@ def _character_surface(module_dir: Path, cid: str, row: dict[str, Any]) -> dict[
     }
 
 
-def build_semantic_resolution_contract(*, raw_text: str | None = None, lang: str | None = None) -> dict[str, Any]:
+def build_semantic_resolution_contract(
+    *,
+    raw_text: str | None = None,
+    lang: str | None = None,
+    session_input_language: str | None = None,
+    session_output_language: str | None = None,
+) -> dict[str, Any]:
     """Return the AI contract for turning player language into grounded intent."""
+    output_language = _language_code(session_output_language, fallback=lang)
+    input_language = _language_code(session_input_language, fallback=output_language)
     return {
         "schema_version": "semantic_language_adapter.player_action_resolution.v1",
         "policy": {
             "no_hardcoded_language_maps": True,
             "infer_meaning_from_player_utterance_and_content_catalog": True,
+            "translate_input_to_internal_english_before_grounding": True,
+            "internal_resolution_language": "en",
             "do_not_translate_by_lookup_table": True,
             "ground_targets_in_content_ids_when_possible": True,
+            "ground_against_english_authored_content": True,
+            "preserve_player_visible_language_for_echo": True,
             "preserve_unknowns_as_clarification_requests": True,
         },
         "input": {
             "raw_player_text": str(raw_text or ""),
-            "session_output_language": str(lang or "").strip() or None,
+            "session_input_language": input_language,
+            "session_output_language": output_language,
+            "internal_resolution_language": "en",
         },
         "expected_ai_output": {
+            "normalized_english_text": "English translation/normalization of raw_player_text for internal grounding",
             "player_input_kind": "speech|question|action|perception|mixed|object_interaction|social_nonverbal_action|physical_action|wait_or_observe|ambiguous|unclear",
-            "action_kind": "free semantic label chosen by the model, grounded in utterance and catalog",
-            "verb": "free semantic label chosen by the model, not restricted by engine maps",
-            "target_query": "text span or null",
+            "action_kind": "English semantic label chosen by the model, grounded in normalized_english_text and catalog",
+            "verb": "English semantic label chosen by the model, not restricted by engine maps",
+            "target_query": "English target text span or null",
             "resolved_target_id": "location/object/character id or null",
             "resolved_target_type": "location|object|actor|null",
-            "source_query": "optional source/container text span or null",
+            "source_query": "optional English source/container text span or null",
             "resolved_source_id": "optional content id or null",
             "commit_policy": "commit_action|commit_speech|no_commit|needs_clarification|recover_or_reject",
             "confidence": "high|medium|low",
@@ -291,7 +315,7 @@ def _interaction_surface_cached(module_dir_s: str) -> dict[str, Any]:
         "current_area": current_area,
         "setting_id": layout.get("setting_id"),
         "adapter_policy": {
-            "module_locale_files_required": False,
+            "module_language_lookup_files_required": False,
             "engine_maps_allowed": False,
             "meaning_source": "ai_semantic_resolution_against_content_catalog",
         },
@@ -331,11 +355,15 @@ def classify_player_input_from_rules(
     *,
     module_id: str,
     lang_hint: str = "de",
+    session_input_language: str | None = None,
+    session_output_language: str | None = None,
     content_modules_root: Path | None = None,
 ) -> dict[str, Any]:
     """Return an AI-required classification shell; no rule table is consulted."""
     surface = build_interaction_surface(module_id, content_modules_root=content_modules_root)
     flags = default_commit_flags_for_player_input_kind("ambiguous")
+    output_language = _language_code(session_output_language, fallback=lang_hint) or "de"
+    input_language = _language_code(session_input_language, fallback=output_language) or output_language
     return {
         "player_input_kind": "ambiguous",
         "semantic_category": "semantic_resolution_required",
@@ -346,7 +374,8 @@ def classify_player_input_from_rules(
         "semantic_resolution_required": True,
         "semantic_resolution_contract": build_semantic_resolution_contract(
             raw_text=raw_text,
-            lang=lang_hint,
+            session_input_language=input_language,
+            session_output_language=output_language,
         ),
         "semantic_catalog_available": bool(surface),
         **flags,
@@ -379,7 +408,7 @@ def resolve_string(
     fallback_module_id: str | None = None,
     **placeholders: Any,
 ) -> str:
-    """Render a neutral technical fallback without content or locale lookup."""
+    """Render a neutral technical fallback without content language lookup."""
     del module_id, key, lang, content_modules_root, fallback_module_id
     if "raw" in placeholders and "name" in placeholders:
         return f"{placeholders['name']}: {placeholders['raw']}"
@@ -431,14 +460,19 @@ def load_session_language_model_directive(
     *,
     module_id: str,
     lang: str,
+    session_input_language: str | None = None,
     content_modules_root: Path | None = None,
 ) -> str:
     del module_id, content_modules_root
-    language = str(lang or "").strip() or "the session output language"
+    output_language = _language_code(lang) or "the session output language"
+    input_language = _language_code(session_input_language, fallback=output_language) or output_language
     return (
-        "Resolve player-visible narration semantically and write it in "
-        f"session_output_language={language}. Do not use module locale files or engine "
-        "lookup maps for meaning; infer intent from the utterance and grounded content catalog."
+        "Resolve player input semantically. The player input is written in "
+        f"session_input_language={input_language}; first translate/normalize it to English for "
+        "internal semantic grounding against the English-authored content catalog. Then write "
+        f"player-visible narration in session_output_language={output_language}. Do not use module "
+        "language lookup files or engine lookup maps for meaning; infer intent from the utterance and "
+        "grounded content catalog."
     )
 
 

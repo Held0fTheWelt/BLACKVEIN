@@ -1,0 +1,32 @@
+location:
+  id: bedroom
+  name: "Master bedroom"
+  category: private_suite
+  playable_access: gated_scene_navigation
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#bedroom
+  description: >-
+    The hosts' large bedroom opening off the hallway; the only playable route to the
+    accessible bathroom passes through this room.
+  room_profile:
+    role: large_host_bedroom_suite
+    connected_place_ids:
+      - hallway
+      - bathroom
+  entrances_exits:
+    exits:
+      - id: bedroom_to_hallway
+        to_place_id: hallway
+        kind: private_room_door
+      - id: bedroom_to_bathroom
+        to_place_id: bathroom
+        kind: ensuite_private
+  inventory_policy: bedroom_suite_objects
+  inventory_object_ids:
+    - bedroom_bed
+    - bedside_tables
+    - bedroom_wardrobe
+    - laundry_chair
+    - ensuite_bathroom_door
+  sensory_tags: [bed, wardrobe, private_suite, muffled_living_room]
+  plausible_actions: [look_at, listen_to, move_to_adjacent_room, pause]
+  forbidden_actions: [overhear_precise_living_room_dialogue]

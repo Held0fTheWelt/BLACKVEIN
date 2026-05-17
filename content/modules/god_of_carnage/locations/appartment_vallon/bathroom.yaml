@@ -1,5 +1,6 @@
 location:
   id: bathroom
+  topology_ref: locations/appartment_vallon/apartment_layout.yaml#bathroom
   name: "Bathroom"
   category: adjacent_room
   playable_access: gated_scene_navigation

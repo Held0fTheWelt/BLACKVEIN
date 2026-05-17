@@ -475,7 +475,6 @@ class ModuleRuntimePolicy:
     hard_forbidden_policy: dict[str, Any] = field(default_factory=dict)
     opening_policy: dict[str, Any] = field(default_factory=dict)
     language_policy: dict[str, Any] = field(default_factory=dict)
-    locale_policy: dict[str, Any] = field(default_factory=dict)
     narrative_aspect_policy: dict[str, Any] = field(default_factory=dict)
     information_disclosure_policy: dict[str, Any] = field(default_factory=dict)
     memory_policy: dict[str, Any] = field(default_factory=dict)
@@ -541,10 +540,6 @@ def load_module_runtime_policy(
         "hard_forbidden_rules",
     )
     scene_affordances = build_interaction_surface(mid, content_modules_root=root)
-    action_outcome_map = _unwrap(
-        _read_yaml(module_dir / "knowledge" / "action_outcome_map.yaml"),
-        "action_outcome_map",
-    )
     narrative_aspect_policy = normalize_narrative_aspect_policy(
         _unwrap(
             _read_yaml(module_dir / "narrative_aspect_policy.yaml"),
@@ -646,7 +641,6 @@ def load_module_runtime_policy(
         ("opening_scene_sequence", opening_policy),
         ("hard_forbidden_rules", hard_forbidden),
         ("interaction_surface", scene_affordances),
-        ("action_outcome_map", action_outcome_map),
         ("universal_language_adapter", {"enabled": True}),
         ("narrative_aspect_policy", narrative_aspect_policy if narrative_aspect_policy.get("aspects") else {}),
         (
@@ -674,17 +668,13 @@ def load_module_runtime_policy(
     playable_roles = _playable_roles_from_opening(opening_policy)
     language_policy = {
         "interaction_surface": scene_affordances,
-        "action_outcome_map": action_outcome_map,
         "adapter": {
             "id": "universal_language_adapter",
-            "module_locale_files_required": False,
+            "module_language_lookup_files_required": False,
             "engine_maps_allowed": False,
             "player_input_resolution_source": "ai_semantic_resolution",
             "visible_language_source": "ai_semantic_generation",
         },
-    }
-    locale_policy = {
-        "action_outcome_map": action_outcome_map,
     }
 
     return ModuleRuntimePolicy(
@@ -713,7 +703,6 @@ def load_module_runtime_policy(
         hard_forbidden_policy=hard_forbidden,
         opening_policy=opening_policy,
         language_policy=language_policy,
-        locale_policy=locale_policy,
         narrative_aspect_policy=narrative_aspect_policy,
         information_disclosure_policy=information_disclosure_policy,
         memory_policy=memory_policy,

@@ -152,7 +152,6 @@ def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
         scene_graph=dict(module.scene_graph),
         locations=dict(module.locations),
         objects=dict(module.objects),
-        action_outcome_map=dict(module.action_outcome_map),
         content_access_policy=dict(module.content_access_policy),
         character_ids=sorted(module.characters.keys()),
         characters=characters,
@@ -289,15 +288,6 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "runtime_language_adapter_available": True,
     },
     {
-        "field": "action_outcome_map",
-        "source_path": "content/modules/{module_id}/knowledge/action_outcome_map.yaml",
-        "content_kind": "action_outcome_map",
-        "authority": "module_canonical",
-        "use_for": ("action_resolution", "outcome_selection", "portability_gate"),
-        "language": "en",
-        "runtime_language_adapter_available": True,
-    },
-    {
         "field": "content_access_policy",
         "source_path": "content/modules/{module_id}/knowledge/content_access_policy.yaml",
         "content_kind": "content_access_policy",
@@ -424,7 +414,6 @@ def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
                     "runtime_language_adapter_available": bool(
                         profile["runtime_language_adapter_available"]
                     ),
-                    "runtime_locale_available": bool(profile["runtime_language_adapter_available"]),
                 },
             )
         )

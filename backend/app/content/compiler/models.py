@@ -25,7 +25,6 @@ class RuntimeProjection(BaseModel):
     scene_graph: dict[str, Any] = Field(default_factory=dict)
     locations: dict[str, Any] = Field(default_factory=dict)
     objects: dict[str, Any] = Field(default_factory=dict)
-    action_outcome_map: dict[str, Any] = Field(default_factory=dict)
     content_access_policy: dict[str, Any] = Field(default_factory=dict)
     character_ids: list[str] = Field(default_factory=list)
     characters: list[dict[str, Any]] = Field(default_factory=list)

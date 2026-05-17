@@ -1,0 +1,18 @@
+object:
+  id: locked_bathroom_door
+  name: "Locked hallway bathroom door"
+  category: interior_threshold
+  portable: false
+  placement_location_id: hallway
+  visible_from_location_ids: [hallway]
+  playable_access: topology_clarifier
+  description: >-
+    The closed bathroom door at the far end of the hallway; distinct from the ensuite
+    door inside the master bedroom suite.
+  interaction_notes:
+    look_at: "Signals a withheld private room without granting access."
+  plausible_actions: [look_at, listen_to]
+  forbidden_actions: [open_locked_door, enter_room]
+  symbolic_roles:
+    - privacy_boundary
+    - withheld_space

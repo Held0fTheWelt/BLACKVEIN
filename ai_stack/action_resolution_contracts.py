@@ -148,6 +148,10 @@ class PlayerActionFrameContract:
     source_resolution_source: str | None = None
     validation_surface: str | None = None
     projection_rule_id: str | None = None
+    normalized_english_text: str | None = None
+    internal_resolution_language: str = "en"
+    session_input_language: str | None = None
+    session_output_language: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         aff = self.affordance_resolution.to_dict()
@@ -180,13 +184,9 @@ class PlayerActionFrameContract:
             "affordance_resolution": aff,
             "validation_surface": self.validation_surface,
             "projection_rule_id": self.projection_rule_id,
+            "normalized_english_text": self.normalized_english_text,
+            "internal_resolution_language": self.internal_resolution_language,
+            "session_input_language": self.session_input_language,
+            "session_output_language": self.session_output_language,
         }
         return base
-
-
-
-_WS_COLLAPSE = re.compile(r"\s+")
-
-
-def collapse_ws(s: str) -> str:
-    return _WS_COLLAPSE.sub(" ", str(s or "").strip())

@@ -13,6 +13,8 @@ import yaml
 import pytest
 from pathlib import Path
 
+from story_runtime_core.language_adapter import build_interaction_surface
+
 
 def _load_character_roster(module_root: Path) -> dict:
     """Return compact character roster from characters/index.yaml or legacy map."""
@@ -85,8 +87,6 @@ class TestGocModuleStructureSmoke:
         "objects/appartment_vallon/hallway/hallway_doors.yaml",
         "objects/appartment_vallon/kitchen/coffee_machine.yaml",
         "objects/appartment_vallon/kitchen/glasses.yaml",
-        "objects/appartment_vallon/dining_room/dining_room_table.yaml",
-        "objects/appartment_vallon/bedroom/bedroom_wardrobe.yaml",
         "objects/appartment_vallon/bathroom/bathroom_mirror.yaml",
         "objects/appartment_vallon/pantry/pantry_shelves.yaml",
         "objects/appartment_vallon/study/study_desk.yaml",
@@ -95,7 +95,6 @@ class TestGocModuleStructureSmoke:
         "objects/appartment_vallon/hallway/locked_bathroom_door.yaml",
         "objects/building/apartment_door.yaml",
         "objects/building/elevator.yaml",
-        "knowledge/action_outcome_map.yaml",
         "locations/opening/park_edge.yaml",
         "locations/opening/basketball_court.yaml",
         "locations/opening/playground.yaml",
@@ -110,6 +109,7 @@ class TestGocModuleStructureSmoke:
         "locations/appartment_vallon/bathroom.yaml",
         "locations/appartment_vallon/hallway_bathroom_locked.yaml",
         "locations/appartment_vallon/pantry.yaml",
+        "objects/appartment_vallon/hallway/locked_bathroom_door.yaml",
         "locations/appartment_vallon/study.yaml",
         "locations/appartment_vallon/bedroom_one_locked.yaml",
         "locations/appartment_vallon/bedroom_two_locked.yaml",
@@ -133,6 +133,45 @@ class TestGocModuleStructureSmoke:
             filepath = self.MODULE_ROOT / filename
             assert filepath.exists(), f"Required file {filename} not found"
             assert filepath.is_file(), f"Required file {filename} is not a file"
+
+    def test_apartment_layout_declares_all_playable_and_locked_rooms(self):
+        """Each apartment room has topology in layout plus a linked location file."""
+        layout_path = self.MODULE_ROOT / "locations" / "appartment_vallon" / "apartment_layout.yaml"
+        layout = yaml.safe_load(layout_path.read_text(encoding="utf-8"))["apartment_layout"]
+        room_ids = {row["id"] for row in layout.get("rooms") or [] if isinstance(row, dict) and row.get("id")}
+        required = {
+            "living_room",
+            "hallway",
+            "kitchen",
+            "dining_room",
+            "bedroom",
+            "bathroom",
+            "hallway_bathroom_locked",
+            "pantry",
+            "study",
+        }
+        assert required.issubset(room_ids), f"apartment_layout missing rooms: {sorted(required - room_ids)}"
+        room_files = layout.get("room_location_files") or {}
+        for rid in required | {"bedroom_one_locked", "bedroom_two_locked"}:
+            rel = room_files.get(rid)
+            assert rel, f"room_location_files missing {rid}"
+            assert (self.MODULE_ROOT / rel).is_file(), f"missing location file for {rid}: {rel}"
+        for row in layout["rooms"]:
+            rid = row.get("id")
+            ref = row.get("location_ref") or {}
+            assert ref.get("location_id") == rid, f"{rid} location_ref.location_id mismatch"
+            assert ref.get("source") == room_files.get(rid), f"{rid} location_ref.source mismatch"
+        hallway = next(r for r in layout["rooms"] if r.get("id") == "hallway")
+        hallway_exit_targets = {e.get("to_room_id") for e in hallway.get("exits") or []}
+        assert "dining_room" in hallway_exit_targets
+        assert "bedroom" in hallway_exit_targets
+        assert "hallway_bathroom_locked" in hallway_exit_targets
+        assert "bathroom" not in hallway_exit_targets
+        bathroom = next(r for r in layout["rooms"] if r.get("id") == "bathroom")
+        assert bathroom.get("adjacent_room_ids") == ["bedroom"]
+        assert bathroom.get("access_pattern") == "via_master_bedroom_only"
+        dining = yaml.safe_load((self.MODULE_ROOT / room_files["dining_room"]).read_text(encoding="utf-8"))["location"]
+        assert dining["topology_ref"].endswith("#dining_room")
 
     def test_objects_are_not_modeled_as_locations(self):
         """Objects live under objects/ and locations only reference object ids."""
@@ -165,27 +204,20 @@ class TestGocModuleStructureSmoke:
         assert object_index["placement_policy"]["apartment_objects_grouped_by_location_subfolder"] is True
         assert object_index["placement_policy"]["objects_must_declare_portable"] is True
         assert object_index["location_object_folders"]["living_room"] == "objects/appartment_vallon/living_room/"
-        assert object_index["location_object_folders"]["dining_room"] == "objects/appartment_vallon/dining_room/"
-        assert object_index["location_object_folders"]["bedroom"] == "objects/appartment_vallon/bedroom/"
         assert "objects/appartment_vallon/living_room/coffee_table.yaml" in object_index["object_files"]
-        assert "objects/appartment_vallon/dining_room/dining_room_table.yaml" in object_index["object_files"]
         assert "objects/appartment_vallon/study/africa_map_darfur_pins.yaml" in object_index["object_files"]
         assert not list((self.MODULE_ROOT / "objects" / "appartment_vallon").glob("*.yaml"))
         for rel_path in object_index["object_files"]:
             object_doc = yaml.safe_load((self.MODULE_ROOT / rel_path).read_text(encoding="utf-8"))["object"]
             assert isinstance(object_doc.get("portable"), bool), f"{rel_path} must declare boolean portable"
 
-    def test_action_outcome_map_declares_cardinality_shapes(self):
-        """Action-outcome map supports 1:1, 1:n, n:1, and n:n relationships."""
-        action_map = yaml.safe_load(
-            (self.MODULE_ROOT / "knowledge" / "action_outcome_map.yaml").read_text(encoding="utf-8")
-        )["action_outcome_map"]
-        relationships = {row.get("cardinality") for row in action_map.get("mappings") or []}
-        assert {"one_to_one", "one_to_many", "many_to_one", "many_to_many"}.issubset(relationships)
-        assert (action_map.get("portability_rules") or {}).get("take_requires_portable") is True
-        assert "locked_bathroom_door" in {
-            row.get("target_id") for row in action_map.get("target_overrides") or [] if isinstance(row, dict)
-        }
+    def test_semantic_adapter_surface_replaces_action_maps(self):
+        """Player action meaning is resolved by AI semantics grounded in content surfaces."""
+        surface = build_interaction_surface("god_of_carnage", content_modules_root=self.MODULE_ROOT.parent)
+        assert surface["adapter_policy"]["engine_maps_allowed"] is False
+        assert surface["semantic_resolution_contract"]["policy"]["no_hardcoded_language_maps"] is True
+        assert {row.get("id") for row in surface["locations"]}.issuperset({"living_room", "kitchen", "building_stairwell"})
+        assert {row.get("id") for row in surface["objects"]}.issuperset({"coffee_table", "elevator"})
 
     def test_obsolete_orchestration_files_are_absent(self):
         """Old second-source orchestration files must not return to the module."""
@@ -197,6 +229,7 @@ class TestGocModuleStructureSmoke:
             "escalation_axes.yaml",
             "direction/scene_guidance.yaml",
             "locale",
+            "knowledge/action_outcome_map.yaml",
             "runtime/action_outcome_map.yaml",
         ]
         for filename in obsolete_files:

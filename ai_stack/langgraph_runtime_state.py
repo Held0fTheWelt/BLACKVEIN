@@ -77,7 +77,6 @@ class RuntimeTurnState(TypedDict, total=False):
     phase_beat_policy: dict[str, Any]
     narrator_sensory_palette: dict[str, Any]
     scene_affordances: dict[str, Any]
-    action_outcome_map: dict[str, Any]
     objects: dict[str, Any]
     knowledge_runtime_loaded: dict[str, bool]
     prior_continuity_impacts: list[dict[str, Any]]
@@ -159,6 +158,7 @@ class RuntimeTurnState(TypedDict, total=False):
     turn_input_class: str
     turn_execution_mode: str
     live_player_truth_surface: bool
+    session_input_language: str
     session_output_language: str
     # MVP2 actor-lane enforcement context: human_actor_id + ai_forbidden_actor_ids.
     # Populated by the host at turn start; consumed by validate_seam before commit.
@@ -209,6 +209,7 @@ class RuntimeTurnState(TypedDict, total=False):
     local_context_transition: dict[str, Any]
     narrator_consequence_plan: dict[str, Any]
     # ADR-0036: normative language for all model-visible turn text (host-injected).
+    session_input_language: str
     session_output_language: str
     # Effective ``story_runtime_experience`` slice from governed runtime config (operator/admin).
     story_runtime_experience: dict[str, Any]
