@@ -218,10 +218,10 @@
   const bootstrapEl = document.getElementById("play-shell-bootstrap");
   if (bootstrapEl) {
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
-    applyRuntimePayload(bootstrapPayload);
-    const blocks = extractBlocksFromPayload(bootstrapPayload);
+    const applied = applyRuntimePayload(bootstrapPayload);
     const initialStatus = extractRuntimeStatusFromPayload(bootstrapPayload);
-    if (blocks && blocks.length) {
+    const blocks = extractBlocksFromPayload(bootstrapPayload);
+    if (!applied && blocks && blocks.length) {
       if (!mvp5Ready) {
         mvp5Ready = initializeMVP5();
       }

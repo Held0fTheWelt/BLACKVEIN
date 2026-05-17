@@ -455,6 +455,47 @@ def _player_shell_state_view(
     }
 
 
+def _session_loop_evidence_for_bundle(
+    *,
+    created: dict[str, Any] | None,
+    state: dict[str, Any],
+    runtime_session_id: str,
+    module_id: str,
+) -> dict[str, Any] | None:
+    if isinstance(created, dict) and isinstance(created.get("session_loop"), dict):
+        return created["session_loop"]
+    if isinstance(state.get("session_loop"), dict):
+        return state["session_loop"]
+
+    runtime_world = state.get("runtime_world") if isinstance(state.get("runtime_world"), dict) else {}
+    if str(runtime_world.get("status") or "").strip() != "initialized":
+        return None
+    rooms = runtime_world.get("rooms") if isinstance(runtime_world.get("rooms"), dict) else {}
+    props = runtime_world.get("props") if isinstance(runtime_world.get("props"), dict) else {}
+    exits = runtime_world.get("exits") if isinstance(runtime_world.get("exits"), dict) else {}
+    actors = runtime_world.get("actors") if isinstance(runtime_world.get("actors"), dict) else {}
+    return {
+        "status": "runtime_engine_initialized",
+        "session_id": runtime_session_id,
+        "module_id": module_id or runtime_world.get("module_id"),
+        "turn_counter": state.get("turn_counter"),
+        "current_scene_id": state.get("current_scene_id"),
+        "history_len": state.get("history_count"),
+        "diagnostics_len": None,
+        "runtime_world": {
+            "schema_version": runtime_world.get("schema_version"),
+            "status": runtime_world.get("status"),
+            "mode": runtime_world.get("mode"),
+            "current_room_id": runtime_world.get("current_room_id"),
+            "room_count": len(rooms),
+            "prop_count": len(props),
+            "exit_count": len(exits),
+            "actor_count": len(actors),
+            "diagnostic_summary": runtime_world.get("diagnostic_summary"),
+        },
+    }
+
+
 def _player_session_bundle(
     *,
     run_id: str,
@@ -468,6 +509,12 @@ def _player_session_bundle(
     story_window = _story_window_from_state(state)
     latest_turn = turn if isinstance(turn, dict) else None
     opening_turn = created.get("opening_turn") if isinstance(created, dict) and isinstance(created.get("opening_turn"), dict) else None
+    session_loop = _session_loop_evidence_for_bundle(
+        created=created,
+        state=state,
+        runtime_session_id=runtime_session_id,
+        module_id=module_id,
+    )
     if latest_turn is None:
         latest_turn = state.get("last_committed_turn") if isinstance(state.get("last_committed_turn"), dict) else None
     latest_governance = (
@@ -514,10 +561,13 @@ def _player_session_bundle(
         }
         if tw_start is not None:
             visible_scene_output["typewriter_slice_start_index"] = tw_start
+    readiness_created = dict(created) if isinstance(created, dict) else {}
+    if session_loop and not isinstance(readiness_created.get("session_loop"), dict):
+        readiness_created["session_loop"] = session_loop
     opening_readiness = evaluate_session_opening_readiness(
         story_entries=story_window["entries"],
         visible_scene_output=visible_scene_output,
-        created=created,
+        created=readiness_created,
     )
     rip = runtime_intelligence_projection_from_turn_aspect_ledger(latest_turn)
     deg = degradation_signals_from_latest_turn(latest_turn)
@@ -562,6 +612,7 @@ def _player_session_bundle(
         "authoritative_state": state,
         "turn": latest_turn,
         "opening_turn": opening_turn,
+        "session_loop": session_loop,
         "governance": {
             "runtime_governance_surface": latest_governance,
             "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,

@@ -80,6 +80,35 @@ def _canonical_opening_turn() -> dict:
     }
 
 
+def _session_loop_payload(session_id: str = "we-1") -> dict:
+    return {
+        "session_id": session_id,
+        "module_id": "god_of_carnage",
+        "turn_counter": 0,
+        "current_scene_id": "salon",
+        "session_loop": {
+            "status": "runtime_engine_initialized",
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "salon",
+            "history_len": 0,
+            "diagnostics_len": 1,
+            "runtime_world": {
+                "schema_version": "story_runtime_world.v1",
+                "status": "initialized",
+                "mode": "story_runtime_projection",
+                "current_room_id": "salon",
+                "room_count": 1,
+                "prop_count": 0,
+                "exit_count": 0,
+                "actor_count": 1,
+                "diagnostic_summary": {"diagnostic_count": 1, "warning_count": 0, "error_count": 0},
+            },
+        },
+    }
+
+
 class TestGameServiceClient:
     def test_config_helpers_and_websocket_url(self, app):
         with app.app_context():
@@ -224,10 +253,24 @@ class TestGameServiceClient:
         assert capture["headers"].get("X-Play-Service-Key") == "k"
         assert capture["init_kwargs"]["timeout"] == 75.0
 
-    def test_create_story_session_rejects_missing_opening_canonical_evidence(self, app, monkeypatch):
+    def test_create_story_session_accepts_session_loop_without_opening_turn(self, app, monkeypatch):
+        response = _FakeResponse(status_code=200, payload=_session_loop_payload())
+        monkeypatch.setattr(
+            "app.services.game_service.httpx.Client",
+            lambda **kwargs: _FakeClient(response=response, **kwargs),
+        )
+        with app.app_context():
+            app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
+            app.config["PLAY_SERVICE_INTERNAL_API_KEY"] = "k"
+            app.config["PLAY_SERVICE_STORY_SESSION_TIMEOUT"] = 75
+            payload = create_story_session(module_id="god_of_carnage", runtime_projection={"start_scene_id": "s1"})
+        assert payload["session_loop"]["status"] == "runtime_engine_initialized"
+        assert "opening_turn" not in payload
+
+    def test_create_story_session_rejects_missing_session_loop_evidence(self, app, monkeypatch):
         response = _FakeResponse(
             status_code=200,
-            payload={"session_id": "we-1", "opening_turn": {"turn_kind": "opening"}},
+            payload={"session_id": "we-1", "session_loop": {"status": "runtime_engine_initialized"}},
         )
         monkeypatch.setattr(
             "app.services.game_service.httpx.Client",
@@ -239,8 +282,8 @@ class TestGameServiceClient:
             app.config["PLAY_SERVICE_STORY_SESSION_TIMEOUT"] = 75
             with pytest.raises(GameServiceError) as exc:
                 create_story_session(module_id="god_of_carnage", runtime_projection={"start_scene_id": "s1"})
-        assert exc.value.code == "missing_canonical_opening_evidence"
-        assert "canonical evidence" in str(exc.value)
+        assert exc.value.code == "missing_canonical_session_loop_evidence"
+        assert "canonical session-loop evidence" in str(exc.value)
 
     def test_request_wraps_transport_failures(self, app, monkeypatch):
         transport_error = httpx.RequestError("down", request=httpx.Request("GET", "https://play.example.com"))

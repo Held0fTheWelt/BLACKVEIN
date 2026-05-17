@@ -278,6 +278,13 @@ def evaluate_session_opening_readiness(
         status = "creating_opening"
     elif opening_status in {"failed", "failed_opening_generation"}:
         status = "failed_opening_generation"
+    elif _session_loop_ready(created_payload):
+        return {
+            "runtime_session_ready": True,
+            "can_execute": True,
+            "opening_generation_status": "ready_with_session_loop",
+            "opening_present": False,
+        }
     else:
         status = "blocked_missing_opening"
 
@@ -287,3 +294,20 @@ def evaluate_session_opening_readiness(
         "opening_generation_status": status,
         "opening_present": False,
     }
+
+
+def _session_loop_ready(created_payload: dict[str, Any]) -> bool:
+    session_loop = (
+        created_payload.get("session_loop")
+        if isinstance(created_payload.get("session_loop"), dict)
+        else {}
+    )
+    runtime_world = (
+        session_loop.get("runtime_world")
+        if isinstance(session_loop.get("runtime_world"), dict)
+        else {}
+    )
+    return (
+        str(session_loop.get("status") or "").strip() == "runtime_engine_initialized"
+        and str(runtime_world.get("status") or "").strip() == "initialized"
+    )

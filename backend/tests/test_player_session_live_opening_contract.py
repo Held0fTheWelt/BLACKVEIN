@@ -48,6 +48,86 @@ def test_live_session_without_opening_is_not_ready_for_play():
     assert bundle["opening_generation_status"] in {"blocked_missing_opening", "failed_opening_generation"}
 
 
+def test_live_session_with_session_loop_is_ready_without_opening():
+    bundle = _player_session_bundle(
+        run_id="run-session-loop",
+        template_id="god_of_carnage_solo",
+        module_id="god_of_carnage",
+        runtime_session_id="story-session-loop",
+        state={
+            "turn_counter": 0,
+            "history_count": 0,
+            "current_scene_id": "salon",
+            "story_window": {
+                "contract": "authoritative_story_window_v1",
+                "entries": [],
+                "entry_count": 0,
+                "latest_entry": None,
+            },
+        },
+        created={
+            "runtime_config_status": {
+                "governed_runtime_active": True,
+                "runtime_profile_id": "goc_live_profile",
+            },
+            "session_loop": {
+                "status": "runtime_engine_initialized",
+                "session_id": "story-session-loop",
+                "runtime_world": {
+                    "schema_version": "story_runtime_world.v1",
+                    "status": "initialized",
+                    "current_room_id": "salon",
+                    "diagnostic_summary": {"diagnostic_count": 1, "warning_count": 0, "error_count": 0},
+                },
+            },
+        },
+    )
+
+    assert bundle["runtime_session_ready"] is True
+    assert bundle["can_execute"] is True
+    assert bundle["opening_generation_status"] == "ready_with_session_loop"
+    assert bundle["opening_present"] is False
+    assert bundle["opening_turn"] is None
+    assert bundle["session_loop"]["status"] == "runtime_engine_initialized"
+
+
+def test_resumed_live_session_uses_runtime_world_as_session_loop_evidence():
+    bundle = _player_session_bundle(
+        run_id="run-resume-session-loop",
+        template_id="god_of_carnage_solo",
+        module_id="god_of_carnage",
+        runtime_session_id="story-resume-session-loop",
+        state={
+            "turn_counter": 0,
+            "history_count": 0,
+            "current_scene_id": "salon",
+            "runtime_world": {
+                "schema_version": "story_runtime_world.v1",
+                "status": "initialized",
+                "mode": "story_runtime_projection",
+                "current_room_id": "salon",
+                "rooms": {"salon": {"id": "salon"}},
+                "props": {},
+                "exits": {},
+                "actors": {"player": {"id": "player"}},
+                "diagnostic_summary": {"diagnostic_count": 1, "warning_count": 0, "error_count": 0},
+            },
+            "story_window": {
+                "contract": "authoritative_story_window_v1",
+                "entries": [],
+                "entry_count": 0,
+                "latest_entry": None,
+            },
+        },
+        created=None,
+    )
+
+    assert bundle["runtime_session_ready"] is True
+    assert bundle["can_execute"] is True
+    assert bundle["opening_generation_status"] == "ready_with_session_loop"
+    assert bundle["session_loop"]["runtime_world"]["room_count"] == 1
+
+
 def test_shell_committed_turn_display_counter_prefers_history_count_authority():
     assert _shell_committed_turn_display_counter({"turn_counter": 0, "history_count": 1}) == 1
     # history_count wins over a mismatched explicit counter (stale client payloads).

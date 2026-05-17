@@ -66,6 +66,35 @@ class _FakeClient:
         return self.response
 
 
+def _session_loop_payload(session_id: str = "we-1") -> dict:
+    return {
+        "session_id": session_id,
+        "module_id": "god_of_carnage",
+        "turn_counter": 0,
+        "current_scene_id": "salon",
+        "session_loop": {
+            "status": "runtime_engine_initialized",
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "salon",
+            "history_len": 0,
+            "diagnostics_len": 1,
+            "runtime_world": {
+                "schema_version": "story_runtime_world.v1",
+                "status": "initialized",
+                "mode": "story_runtime_projection",
+                "current_room_id": "salon",
+                "room_count": 1,
+                "prop_count": 0,
+                "exit_count": 0,
+                "actor_count": 1,
+                "diagnostic_summary": {"diagnostic_count": 1, "warning_count": 0, "error_count": 0},
+            },
+        },
+    }
+
+
 class TestGameServiceClient:
     def test_config_helpers_and_websocket_url(self, app):
         with app.app_context():
@@ -221,7 +250,7 @@ class TestGameServiceClient:
         capture = {}
         response = _FakeResponse(
             status_code=200,
-            payload={"session_id": "we-1", "module_id": "god_of_carnage", "turn_counter": 0, "current_scene_id": ""},
+            payload=_session_loop_payload(),
         )
         monkeypatch.setattr(
             "app.services.game_service.httpx.Client",
@@ -254,7 +283,7 @@ class TestGameServiceClient:
 
         def fake_request(method, path, **kwargs):
             request_calls.append((method, path))
-            return {"session_id": "we-1", "opening_turn": {"turn_number": 0}}
+            return _session_loop_payload()
 
         monkeypatch.setattr(game_service, "_enforce_story_runtime_budget_guards", fake_guard)
         monkeypatch.setattr(game_service, "_request", fake_request)

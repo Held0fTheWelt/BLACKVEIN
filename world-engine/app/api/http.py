@@ -624,8 +624,9 @@ def create_story_session(
                     name="world-engine.session.create",
                     input={"module_id": payload.module_id, "session_id": story_session_id},
                     metadata={
-                        "stage": "world_engine_session_create",
-                        "turn_kind": "opening",
+                        "stage": "world_engine_session_loop_create",
+                        "turn_kind": "session_loop",
+                        "session_loop_status": "runtime_engine_initializing",
                         "session_id": story_session_id,
                         "environment": lf_tracing_env,
                         **trace_classification,
@@ -638,7 +639,8 @@ def create_story_session(
                     input={"module_id": payload.module_id, "session_id": story_session_id},
                     metadata={
                         "module_id": payload.module_id,
-                        "turn_kind": "opening",
+                        "turn_kind": "session_loop",
+                        "session_loop_status": "runtime_engine_initializing",
                         "session_id": story_session_id,
                         "environment": lf_tracing_env,
                         **trace_classification,
@@ -651,7 +653,7 @@ def create_story_session(
             adapter.session_scope(
                 root_span=root_span,
                 session_id=story_session_id,
-                metadata={"module_id": payload.module_id, "turn_kind": "opening"},
+                metadata={"module_id": payload.module_id, "turn_kind": "session_loop"},
                 trace_name="world-engine.session.create",
                 user_id=payload.user_id,
             )
@@ -670,63 +672,57 @@ def create_story_session(
                 trace_id=trace_id if isinstance(trace_id, str) else None,
                 session_id=story_session_id,
             )
-            opening_turn = session.diagnostics[-1] if session.diagnostics else None
+            opening_turn = next(
+                (
+                    row
+                    for row in reversed(session.diagnostics)
+                    if isinstance(row, dict) and row.get("turn_kind") == "opening"
+                ),
+                None,
+            )
+            runtime_world = session.runtime_world if isinstance(session.runtime_world, dict) else {}
+            runtime_world_summary = {
+                "schema_version": runtime_world.get("schema_version"),
+                "status": runtime_world.get("status"),
+                "mode": runtime_world.get("mode"),
+                "current_room_id": runtime_world.get("current_room_id"),
+                "room_count": len(runtime_world.get("rooms") if isinstance(runtime_world.get("rooms"), dict) else {}),
+                "prop_count": len(runtime_world.get("props") if isinstance(runtime_world.get("props"), dict) else {}),
+                "exit_count": len(runtime_world.get("exits") if isinstance(runtime_world.get("exits"), dict) else {}),
+                "actor_count": len(runtime_world.get("actors") if isinstance(runtime_world.get("actors"), dict) else {}),
+                "diagnostic_summary": runtime_world.get("diagnostic_summary"),
+            }
+            session_loop = {
+                "status": "runtime_engine_initialized",
+                "session_id": session.session_id,
+                "module_id": session.module_id,
+                "turn_counter": session.turn_counter,
+                "current_scene_id": session.current_scene_id,
+                "history_len": len(session.history),
+                "diagnostics_len": len(session.diagnostics),
+                "runtime_world": runtime_world_summary,
+            }
             if root_span:
-                cost_summary = (
-                    opening_turn.get("diagnostics_envelope", {}).get("cost_summary")
-                    if isinstance(opening_turn, dict) and isinstance(opening_turn.get("diagnostics_envelope"), dict)
-                    else None
-                )
-                path_summary = (
-                    opening_turn.get("observability_path_summary")
-                    if isinstance(opening_turn, dict) and isinstance(opening_turn.get("observability_path_summary"), dict)
-                    else None
-                )
-                level, status_message = _langfuse_root_status(path_summary)
                 root_span.update(
                     output={
                         "session_id": session.session_id,
                         "turn_counter": session.turn_counter,
                         "success": True,
-                        "path_summary": path_summary,
+                        "session_loop": session_loop,
+                        "path_summary": None,
                     },
                     metadata={
                         "session_id": session.session_id,
                         "turn_counter": session.turn_counter,
                         "environment": lf_tracing_env,
                         **trace_classification,
-                        "cost_summary": cost_summary,
-                        "path_quality": path_summary.get("quality_class") if path_summary else None,
-                        "path_degradation": path_summary.get("degradation_summary") if path_summary else None,
-                        "path_selected_model": path_summary.get("selected_model") if path_summary else None,
-                        "path_adapter": path_summary.get("adapter") if path_summary else None,
-                        "path_fallback_used": path_summary.get("generation_fallback_used") if path_summary else None,
+                        "session_loop_status": "runtime_engine_initialized",
+                        "opening_turn_committed": False,
+                        "runtime_world": runtime_world_summary,
                     },
-                    level=level,
-                    status_message=status_message,
+                    level="DEFAULT",
+                    status_message="runtime_engine_initialized",
                 )
-            if adapter and adapter.is_enabled() and hasattr(adapter, "backfill_trace_metadata_after_commit"):
-                opening_turn_number = (
-                    opening_turn.get("turn_number")
-                    if isinstance(opening_turn, dict)
-                    else session.turn_counter
-                )
-                opening_trace_ref = (
-                    getattr(root_span, "trace_id", None)
-                    or langfuse_trace_id
-                )
-                backfill_diag = adapter.backfill_trace_metadata_after_commit(
-                    trace_id=opening_trace_ref,
-                    canonical_turn_id=(
-                        opening_turn.get("canonical_turn_id")
-                        if isinstance(opening_turn, dict)
-                        else None
-                    ),
-                    story_session_id=session.session_id,
-                    turn_number=int(opening_turn_number) if opening_turn_number is not None else None,
-                    environment=lf_tracing_env,
-                )
-                logger.info("[HTTP] Langfuse trace metadata backfill (opening): %s", backfill_diag)
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
@@ -734,8 +730,13 @@ def create_story_session(
             "current_scene_id": session.current_scene_id,
             "content_provenance": session.content_provenance,
             "opening_turn": opening_turn,
+            "session_loop": session_loop,
             "runtime_config_status": manager.runtime_config_status(),
-            "warnings": ["world_engine_authoritative_story_runtime", "session_includes_committed_turn_0_opening"],
+            "warnings": [
+                "world_engine_authoritative_story_runtime",
+                "session_loop_runtime_engine_initialized",
+                "opening_turn_not_committed",
+            ],
         }
     except LiveStoryGovernanceError as exc:
         if root_span:

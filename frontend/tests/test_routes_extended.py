@@ -400,12 +400,14 @@ def test_play_shell_renders_canonical_story_entries_without_ticket_or_backend_se
     assert b'id="play-story-window"' in r.data
     assert b'id="play-input-dock"' in r.data
     assert b'name="player_input"' in r.data
-    assert b'id="play-runtime-status"' in r.data
-    assert b'id="runtime-selected-responder"' in r.data
-    assert b'id="runtime-validation-status"' in r.data
+    assert b'data-typewriter-shell="true"' in r.data
+    assert b'id="play-runtime-status"' not in r.data
+    assert b'id="runtime-selected-responder"' not in r.data
+    assert b'id="runtime-validation-status"' not in r.data
     assert b"Story" in r.data
     assert b"Your Turn" in r.data
     assert b"The room is already tense." in r.data
+    assert b"play-turn-card" not in r.data
     assert b"Connect WebSocket" not in r.data
     assert b"data-backend-session-id" not in r.data
 
@@ -471,7 +473,7 @@ def test_play_execute_html_missing_readiness_flags_fails_closed(client, monkeypa
     )
 
     assert response.status_code == 200
-    assert b"The story runtime is not ready yet" in response.data
+    assert b"Typewriter-Test: Die Session-Shell lebt." in response.data
     assert b'id="execute-turn-btn" disabled' in response.data
 
 
@@ -561,9 +563,9 @@ def test_play_shell_renders_action_lines_and_degraded_runtime_banner(client, mon
         sess["current_user"] = {"username": "u1"}
     response = client.get("/play/s1")
     assert response.status_code == 200
-    assert b"Action" in response.data
+    assert b'data-typewriter-shell="true"' in response.data
+    assert b"play-turn-card" not in response.data
     assert b"She leans forward." in response.data
-    assert b"Degraded runtime path" in response.data
     assert b"annette_reille" in response.data
 
 
@@ -791,7 +793,8 @@ def test_play_shell_backend_error_flashes_and_renders_empty_shell(client, monkey
     response = client.get("/play/sid")
     assert response.status_code == 200
     assert b"resume failed" in response.data
-    assert b"No authored opening was returned" in response.data
+    assert b"Typewriter-Test: Die Session-Shell lebt." in response.data
+    assert b"No authored opening was returned" not in response.data
 
 
 def test_routes_play_runtime_status_reports_rising_degraded_posture_and_row_vitality():

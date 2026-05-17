@@ -544,6 +544,69 @@ def _runtime_status_view_from_story_entries(
     }
 
 
+def _visible_scene_output_for_typewriter(
+    payload: dict[str, Any],
+    *,
+    story_entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    raw_vso = payload.get("visible_scene_output") if isinstance(payload.get("visible_scene_output"), dict) else None
+    if isinstance(raw_vso, dict) and isinstance(raw_vso.get("blocks"), list) and raw_vso.get("blocks"):
+        return raw_vso
+
+    blocks: list[dict[str, Any]] = []
+    for idx, entry in enumerate(story_entries):
+        if not isinstance(entry, dict):
+            continue
+        lines = [str(entry.get("text") or "").strip()]
+        lines.extend(str(x).strip() for x in (entry.get("spoken_lines") or []) if str(x).strip())
+        lines.extend(str(x).strip() for x in (entry.get("action_lines") or []) if str(x).strip())
+        lines.extend(str(x).strip() for x in (entry.get("committed_consequences") or []) if str(x).strip())
+        text = "\n".join(line for line in lines if line).strip()
+        if not text:
+            continue
+        role = str(entry.get("role") or "").strip()
+        block_type = "player_input" if role == "player" else "narrator"
+        blocks.append(
+            {
+                "id": str(entry.get("entry_id") or f"story-entry-{idx}"),
+                "block_type": block_type,
+                "text": text,
+                "player_display_text": text,
+                "speaker_label": entry.get("speaker") or ("You" if role == "player" else "World of Shadows"),
+                "card_style": "player_lane" if role == "player" else "narrative_story",
+            }
+        )
+    if blocks:
+        return {
+            "blocks": blocks,
+            "typewriter_slice_start_index": max(0, len(blocks) - 1),
+            "source": "frontend_story_entries_typewriter_projection",
+        }
+
+    liveness_text = "\n".join(
+        [
+            "Typewriter-Test: Die Session-Shell lebt.",
+            "Der neue Runtime-Pfad ist verbunden.",
+            "Noch keine Erzaehlung generiert; dies ist nur ein UI-Lebenszeichen.",
+        ]
+    )
+    return {
+        "blocks": [
+            {
+                "id": "typewriter-ui-liveness-probe",
+                "block_type": "narrator",
+                "text": liveness_text,
+                "player_display_text": liveness_text,
+                "speaker_label": "World of Shadows",
+                "card_style": "narrative_story",
+                "narration_beat": "role_anchor",
+            }
+        ],
+        "typewriter_slice_start_index": 0,
+        "source": "typewriter_ui_liveness_probe",
+    }
+
+
 def _load_template_mapping() -> dict[str, str]:
     """Load template ID to content module ID mapping from config file.
 
@@ -750,14 +813,22 @@ def play_shell(session_id: str):
         story_entries,
         shell_state_view=shell_state_view,
     )
+    visible_scene_output = _visible_scene_output_for_typewriter(
+        payload,
+        story_entries=story_entries,
+    )
     play_bootstrap_json = json.dumps(
         {
             "contract": payload.get("contract"),
             "run_id": session_id,
             "runtime_session_id": payload.get("runtime_session_id") or backend_session_id,
             "backend_session_id": backend_session_id or None,
+            "runtime_session_ready": bool(payload.get("runtime_session_ready")),
+            "can_execute": bool(payload.get("can_execute")),
+            "opening_generation_status": payload.get("opening_generation_status"),
+            "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
             "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
-            "visible_scene_output": payload.get("visible_scene_output") if isinstance(payload.get("visible_scene_output"), dict) else None,
+            "visible_scene_output": visible_scene_output,
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
@@ -820,13 +891,21 @@ def play_execute(session_id: str):
         story_entries,
         shell_state_view=shell_state_view,
     )
+    visible_scene_output = _visible_scene_output_for_typewriter(
+        payload,
+        story_entries=story_entries,
+    )
     if wants_json:
         return jsonify(
             {
                 "ok": True,
                 "interpreted_input_kind": interpreted,
+                "runtime_session_ready": bool(payload.get("runtime_session_ready")),
+                "can_execute": bool(payload.get("can_execute")),
+                "opening_generation_status": payload.get("opening_generation_status"),
+                "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
                 "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
-                "visible_scene_output": payload.get("visible_scene_output") if isinstance(payload.get("visible_scene_output"), dict) else None,
+                "visible_scene_output": visible_scene_output,
                 "story_entries": story_entries,
                 "story_window": payload.get("story_window") if isinstance(payload.get("story_window"), dict) else {},
                 "shell_state_view": shell_state_view,
@@ -839,8 +918,12 @@ def play_execute(session_id: str):
             "contract": payload.get("contract"),
             "run_id": session_id,
             "runtime_session_id": payload.get("runtime_session_id"),
+            "runtime_session_ready": bool(payload.get("runtime_session_ready")),
+            "can_execute": bool(payload.get("can_execute")),
+            "opening_generation_status": payload.get("opening_generation_status"),
+            "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
             "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
-            "visible_scene_output": payload.get("visible_scene_output") if isinstance(payload.get("visible_scene_output"), dict) else None,
+            "visible_scene_output": visible_scene_output,
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,

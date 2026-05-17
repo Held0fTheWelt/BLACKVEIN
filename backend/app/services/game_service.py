@@ -591,28 +591,55 @@ def create_story_session(
     if not isinstance(payload, dict) or "session_id" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session payload.")
     opening_turn = payload.get("opening_turn") if isinstance(payload.get("opening_turn"), dict) else None
-    if not isinstance(opening_turn, dict):
-        raise GameServiceError(
-            "World-Engine story session is missing canonical opening evidence.",
-            status_code=502,
-            code="missing_canonical_opening_evidence",
-            payload={"missing": ["opening_turn"]},
+    if isinstance(opening_turn, dict):
+        try:
+            _validate_story_turn_canonical_evidence(opening_turn)
+        except GameServiceError as exc:
+            raise GameServiceError(
+                "World-Engine opening turn is missing canonical evidence.",
+                status_code=exc.status_code,
+                code="missing_canonical_opening_evidence",
+                payload=exc.payload,
+            ) from exc
+        _ingest_runtime_turn_cost(
+            session_id=str(payload["session_id"]),
+            turn_payload=opening_turn,
+            runtime_projection=runtime_projection,
         )
-    try:
-        _validate_story_turn_canonical_evidence(opening_turn)
-    except GameServiceError as exc:
-        raise GameServiceError(
-            "World-Engine opening turn is missing canonical evidence.",
-            status_code=exc.status_code,
-            code="missing_canonical_opening_evidence",
-            payload=exc.payload,
-        ) from exc
-    _ingest_runtime_turn_cost(
-        session_id=str(payload["session_id"]),
-        turn_payload=opening_turn,
-        runtime_projection=runtime_projection,
-    )
+    else:
+        _validate_story_session_loop_evidence(payload)
     return payload
+
+
+def _validate_story_session_loop_evidence(payload: dict[str, Any]) -> None:
+    missing: list[str] = []
+    session_loop = payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else {}
+    runtime_world = (
+        session_loop.get("runtime_world")
+        if isinstance(session_loop.get("runtime_world"), dict)
+        else {}
+    )
+    if not isinstance(session_loop, dict) or not session_loop:
+        missing.append("session_loop")
+    if str(session_loop.get("status") or "").strip() != "runtime_engine_initialized":
+        missing.append("session_loop.status")
+    if not str(session_loop.get("session_id") or payload.get("session_id") or "").strip():
+        missing.append("session_loop.session_id")
+    if not isinstance(runtime_world, dict) or not runtime_world:
+        missing.append("session_loop.runtime_world")
+    if str(runtime_world.get("status") or "").strip() != "initialized":
+        missing.append("session_loop.runtime_world.status")
+    if not str(runtime_world.get("schema_version") or "").strip():
+        missing.append("session_loop.runtime_world.schema_version")
+    if not isinstance(runtime_world.get("diagnostic_summary"), dict):
+        missing.append("session_loop.runtime_world.diagnostic_summary")
+    if missing:
+        raise GameServiceError(
+            "World-Engine story session is missing canonical session-loop evidence.",
+            status_code=502,
+            code="missing_canonical_session_loop_evidence",
+            payload={"missing": missing},
+        )
 
 
 def _story_turn_has_visible_surface(turn: dict[str, Any]) -> bool:

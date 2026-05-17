@@ -15,6 +15,15 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
+SESSION_LOOP_LOG_POLICY_VERSION = "session_loop_logging.v1"
+SESSION_LOOP_LOG_EVENT_VERSION = "session_loop_log_event.v1"
+SESSION_LOOP_LOG_LEVELS = {
+    "debug": logging.DEBUG,
+    "info": logging.INFO,
+    "warning": logging.WARNING,
+    "error": logging.ERROR,
+}
+
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
 from story_runtime_core.content_locale import (
     build_player_attributed_visible_line,
@@ -261,6 +270,10 @@ from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 from app.story_runtime.callback_web_store import JsonCallbackWebStore
 from app.story_runtime.consequence_cascade_store import JsonConsequenceCascadeStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
+from app.story_runtime.runtime_world import (
+    initialize_runtime_world,
+    runtime_world_session_diagnostic,
+)
 from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
     goc_append_continuity_impacts,
@@ -1460,6 +1473,8 @@ class StorySession:
     hierarchical_memory: dict[str, Any] = field(default_factory=dict)
     # Durable Pi15 environment state derived from canonical content and committed turns.
     environment_state: dict[str, Any] = field(default_factory=dict)
+    # Mechanical runtime world for the unified story session loop.
+    runtime_world: dict[str, Any] = field(default_factory=dict)
     # Immutable-ish snapshot of published content identity at session birth (audit F-M3).
     content_provenance: dict[str, Any] = field(default_factory=dict)
 
@@ -1492,6 +1507,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "prior_continuity_impacts": session.prior_continuity_impacts,
         "hierarchical_memory": session.hierarchical_memory,
         "environment_state": session.environment_state,
+        "runtime_world": session.runtime_world,
         "content_provenance": session.content_provenance,
     }
 
@@ -1532,6 +1548,7 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         prior_continuity_impacts=list(data.get("prior_continuity_impacts") or []),
         hierarchical_memory=dict(data.get("hierarchical_memory") or {}),
         environment_state=dict(data.get("environment_state") or {}),
+        runtime_world=dict(data.get("runtime_world") or {}),
         content_provenance=provenance,
     )
 
@@ -8936,7 +8953,97 @@ class StoryRuntimeManager:
             # rely on this rather than the configured row to know whether the
             # requested mode is actually honored.
             "story_runtime_experience": self._story_runtime_experience_policy().to_truth_surface(),
+            "session_loop_logging": self._session_loop_log_policy(),
         }
+
+    def _session_loop_log_policy(self) -> dict[str, Any]:
+        cfg = self._governed_runtime_config if isinstance(self._governed_runtime_config, dict) else {}
+        settings = cfg.get("world_engine_settings") if isinstance(cfg.get("world_engine_settings"), dict) else {}
+        raw = settings.get("session_loop_logging")
+        source = "governed_runtime_config.world_engine_settings.session_loop_logging"
+        if not isinstance(raw, dict):
+            raw = settings.get("session_loop_observability")
+            source = "governed_runtime_config.world_engine_settings.session_loop_observability"
+        if not isinstance(raw, dict):
+            raw = {}
+            source = "default"
+
+        raw_level = str(raw.get("level") or "info").strip().lower()
+        level = raw_level if raw_level in SESSION_LOOP_LOG_LEVELS else "info"
+        return {
+            "contract": SESSION_LOOP_LOG_POLICY_VERSION,
+            "source": source,
+            "enabled": bool(raw.get("enabled", True)),
+            "level": level,
+            "include_runtime_world_summary": bool(raw.get("include_runtime_world_summary", True)),
+            "include_projection_summary": bool(raw.get("include_projection_summary", True)),
+            "include_diagnostic_summary": bool(raw.get("include_diagnostic_summary", True)),
+        }
+
+    @staticmethod
+    def _runtime_world_summary(runtime_world: dict[str, Any]) -> dict[str, Any]:
+        world = runtime_world if isinstance(runtime_world, dict) else {}
+        return {
+            "schema_version": world.get("schema_version"),
+            "status": world.get("status"),
+            "mode": world.get("mode"),
+            "current_room_id": world.get("current_room_id"),
+            "room_count": len(world.get("rooms") if isinstance(world.get("rooms"), dict) else {}),
+            "prop_count": len(world.get("props") if isinstance(world.get("props"), dict) else {}),
+            "exit_count": len(world.get("exits") if isinstance(world.get("exits"), dict) else {}),
+            "actor_count": len(world.get("actors") if isinstance(world.get("actors"), dict) else {}),
+            "diagnostic_summary": world.get("diagnostic_summary"),
+        }
+
+    @staticmethod
+    def _runtime_projection_summary(runtime_projection: dict[str, Any]) -> dict[str, Any]:
+        projection = runtime_projection if isinstance(runtime_projection, dict) else {}
+        return {
+            "module_id": projection.get("module_id"),
+            "runtime_profile_id": projection.get("runtime_profile_id"),
+            "start_scene_id": projection.get("start_scene_id"),
+            "start_room_id": projection.get("start_room_id"),
+            "room_count": len(projection.get("rooms") if isinstance(projection.get("rooms"), list) else []),
+            "location_count": len(projection.get("locations") if isinstance(projection.get("locations"), list) else []),
+            "prop_count": len(projection.get("props") if isinstance(projection.get("props"), list) else []),
+            "object_count": len(projection.get("objects") if isinstance(projection.get("objects"), list) else []),
+            "npc_actor_count": len(projection.get("npc_actor_ids") if isinstance(projection.get("npc_actor_ids"), list) else []),
+            "has_human_actor_id": bool(str(projection.get("human_actor_id") or "").strip()),
+        }
+
+    def _log_session_loop_event(self, *, event: str, session: StorySession, trace_id: str | None = None) -> None:
+        policy = self._session_loop_log_policy()
+        if not policy.get("enabled"):
+            return
+        level = SESSION_LOOP_LOG_LEVELS.get(str(policy.get("level") or "info"), logging.INFO)
+        if not logger.isEnabledFor(level):
+            return
+
+        payload: dict[str, Any] = {
+            "contract": SESSION_LOOP_LOG_EVENT_VERSION,
+            "event": event,
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "trace_id": trace_id,
+            "turn_counter": session.turn_counter,
+            "current_scene_id": session.current_scene_id,
+            "history_len": len(session.history),
+            "diagnostics_len": len(session.diagnostics),
+            "authority_version": self._authority_version,
+            "authority_applied_at_iso": self._authority_applied_at_iso,
+        }
+        if policy.get("include_runtime_world_summary"):
+            payload["runtime_world"] = self._runtime_world_summary(session.runtime_world)
+        if policy.get("include_projection_summary"):
+            payload["runtime_projection"] = self._runtime_projection_summary(session.runtime_projection)
+        if policy.get("include_diagnostic_summary"):
+            latest_diag = session.diagnostics[-1] if session.diagnostics else None
+            payload["latest_diagnostic"] = {
+                "event_type": latest_diag.get("event_type") if isinstance(latest_diag, dict) else None,
+                "turn_kind": latest_diag.get("turn_kind") if isinstance(latest_diag, dict) else None,
+                "status": latest_diag.get("status") if isinstance(latest_diag, dict) else None,
+            }
+        logger.log(level, "story_session_loop_event %s", json.dumps(payload, sort_keys=True, default=str))
 
     def _compose_runtime_truth_surface(self, *, governed: bool) -> dict[str, Any]:
         """Describe the *active* runtime lane for operator diagnostics.
@@ -10743,21 +10850,17 @@ class StoryRuntimeManager:
             prior_ci=prior_ci,
         )
 
-    def create_session(
+    def _create_story_session_record(
         self,
         *,
         module_id: str,
         runtime_projection: dict[str, Any],
         session_output_language: str = "de",
         content_provenance: dict[str, Any] | None = None,
-        trace_id: str | None = None,
         session_id: str | None = None,
     ) -> StorySession:
         _validate_runtime_projection_contract(module_id, runtime_projection)
         session_id = str(session_id or uuid4().hex).strip() or uuid4().hex
-        # Generate trace_id if not provided for audit trail correlation
-        if not trace_id:
-            trace_id = uuid4().hex
         current_scene_id = str(runtime_projection.get("start_scene_id") or "")
         prov = dict(content_provenance) if isinstance(content_provenance, dict) else {}
         if not prov:
@@ -10787,10 +10890,157 @@ class StoryRuntimeManager:
             actor_lane_context=self._extract_actor_lane_context(session),
             turn_number=0,
         )
+        session.runtime_world = initialize_runtime_world(
+            module_id=module_id,
+            runtime_projection=runtime_projection,
+            environment_model=env_model,
+            environment_state=session.environment_state,
+        )
+        session.diagnostics.append(
+            runtime_world_session_diagnostic(
+                session.runtime_world,
+                session_id=session_id,
+            )
+        )
         self.sessions[session_id] = session
         with self._session_locks_guard:
             self._session_turn_locks.setdefault(session_id, threading.Lock())
         self._persist_session(session)
+        return session
+
+    def _emit_session_loop_observation(self, *, session: StorySession, trace_id: str | None = None) -> None:
+        """Best-effort Langfuse marker for session-loop runtime initialization."""
+        try:
+            adapter = LangfuseAdapter.get_instance()
+            if not adapter.is_enabled():
+                return
+        except Exception:
+            logger.debug("Langfuse adapter unavailable for session loop", exc_info=True)
+            return
+
+        runtime_world = session.runtime_world if isinstance(session.runtime_world, dict) else {}
+        runtime_summary = {
+            "schema_version": runtime_world.get("schema_version"),
+            "status": runtime_world.get("status"),
+            "mode": runtime_world.get("mode"),
+            "current_room_id": runtime_world.get("current_room_id"),
+            "room_count": len(runtime_world.get("rooms") if isinstance(runtime_world.get("rooms"), dict) else {}),
+            "prop_count": len(runtime_world.get("props") if isinstance(runtime_world.get("props"), dict) else {}),
+            "exit_count": len(runtime_world.get("exits") if isinstance(runtime_world.get("exits"), dict) else {}),
+            "actor_count": len(runtime_world.get("actors") if isinstance(runtime_world.get("actors"), dict) else {}),
+            "diagnostic_summary": runtime_world.get("diagnostic_summary"),
+        }
+        observation_input = {
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "current_scene_id": session.current_scene_id,
+        }
+        observation_output = {
+            "session_id": session.session_id,
+            "turn_counter": session.turn_counter,
+            "history_len": len(session.history),
+            "diagnostics_len": len(session.diagnostics),
+            "status": "runtime_engine_initialized",
+            "runtime_world": runtime_summary,
+        }
+        metadata = {
+            "stage": "session_loop_runtime_engine_init",
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "session_loop_status": "runtime_engine_initialized",
+            "session_loop_version": "runtime_world_v1",
+        }
+        previous_active_span = None
+        created_root_span = None
+        try:
+            previous_active_span = adapter.get_active_span()
+            if previous_active_span is not None:
+                span = adapter.create_child_span(
+                    name="story.runtime_engine.initialize",
+                    input=observation_input,
+                    output=observation_output,
+                    metadata=metadata,
+                    status_message="runtime_engine_initialized",
+                )
+                if span is not None:
+                    span.end()
+                return
+
+            normalized_trace_id = None
+            if isinstance(trace_id, str):
+                candidate = trace_id.strip().lower()
+                if re.fullmatch(r"[0-9a-f]{32}", candidate):
+                    normalized_trace_id = candidate
+            created_root_span = adapter.start_trace(
+                name="world-engine.session.loop",
+                session_id=session.session_id,
+                input=observation_input,
+                metadata=metadata,
+                trace_id=normalized_trace_id,
+            )
+            if created_root_span is not None:
+                created_root_span.update(
+                    output=observation_output,
+                    status_message="runtime_engine_initialized",
+                )
+                created_root_span.end()
+                adapter.flush()
+        except Exception:
+            logger.debug("Session loop Langfuse observation failed", exc_info=True)
+        finally:
+            try:
+                if created_root_span is not None or previous_active_span is not None:
+                    adapter.set_active_span(previous_active_span)
+            except Exception:
+                logger.debug("Failed to restore Langfuse active span after session loop", exc_info=True)
+
+    def create_session(
+        self,
+        *,
+        module_id: str,
+        runtime_projection: dict[str, Any],
+        session_output_language: str = "de",
+        content_provenance: dict[str, Any] | None = None,
+        trace_id: str | None = None,
+        session_id: str | None = None,
+    ) -> StorySession:
+        if not trace_id:
+            trace_id = uuid4().hex
+        session = self._create_story_session_record(
+            module_id=module_id,
+            runtime_projection=runtime_projection,
+            session_output_language=session_output_language,
+            content_provenance=content_provenance,
+            session_id=session_id,
+        )
+        self._emit_session_loop_observation(session=session, trace_id=trace_id)
+        self._log_session_loop_event(
+            event="runtime_engine_initialized",
+            session=session,
+            trace_id=trace_id,
+        )
+        return session
+
+    def create_session_proto(
+        self,
+        *,
+        module_id: str,
+        runtime_projection: dict[str, Any],
+        session_output_language: str = "de",
+        content_provenance: dict[str, Any] | None = None,
+        trace_id: str | None = None,
+        session_id: str | None = None,
+    ) -> StorySession:
+        # Generate trace_id if not provided for audit trail correlation.
+        if not trace_id:
+            trace_id = uuid4().hex
+        session = self._create_story_session_record(
+            module_id=module_id,
+            runtime_projection=runtime_projection,
+            session_output_language=session_output_language,
+            content_provenance=content_provenance,
+            session_id=session_id,
+        )
         if self._skip_graph_opening_on_create:
             return session
         self._assert_live_player_governance()
@@ -10798,28 +11048,28 @@ class StoryRuntimeManager:
         last_exc: BaseException | None = None
         for attempt in range(1, attempts + 1):
             try:
-                with self._session_turn_lock(session_id):
-                    self._execute_opening_locked(session_id, trace_id=trace_id)
-                self.metrics.incr("story_opening_success", module_id=module_id, session_id=session_id, attempt=attempt)
+                with self._session_turn_lock(session.session_id):
+                    self._execute_opening_locked(session.session_id, trace_id=trace_id)
+                self.metrics.incr("story_opening_success", module_id=module_id, session_id=session.session_id, attempt=attempt)
                 return session
             except BaseException as exc:
                 last_exc = exc
                 self.metrics.incr(
                     "story_opening_retry",
                     module_id=module_id,
-                    session_id=session_id,
+                    session_id=session.session_id,
                     attempt=attempt,
                     error=str(exc)[:300],
                 )
-        self.sessions.pop(session_id, None)
+        self.sessions.pop(session.session_id, None)
         if self._session_store is not None:
             try:
-                self._session_store.delete(session_id)
+                self._session_store.delete(session.session_id)
             except Exception:
                 pass
         log_story_runtime_failure(
             trace_id=None,
-            story_session_id=session_id,
+            story_session_id=session.session_id,
             operation="create_session_opening",
             message=str(last_exc)[:500] if last_exc else "opening_failed",
             failure_class="opening_generation_failed",
@@ -12598,6 +12848,18 @@ class StoryRuntimeManager:
             last_thread_summary = session.last_thread_update_trace.summary or None
 
         story_entries = _story_window_entries_for_session(session)
+        runtime_world = session.runtime_world if isinstance(session.runtime_world, dict) else {}
+        runtime_world_summary = self._runtime_world_summary(runtime_world)
+        session_loop = {
+            "status": "runtime_engine_initialized" if runtime_world.get("status") == "initialized" else "runtime_engine_uninitialized",
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "turn_counter": session.turn_counter,
+            "current_scene_id": session.current_scene_id,
+            "history_len": len(session.history),
+            "diagnostics_len": len(session.diagnostics),
+            "runtime_world": runtime_world_summary,
+        }
         player_shell_context = _player_shell_context_from_dramatic_context(
             last_dramatic_context_summary,
             session=session,
@@ -12646,6 +12908,8 @@ class StoryRuntimeManager:
             "current_scene_id": session.current_scene_id,
             "content_provenance": session.content_provenance,
             "runtime_projection": session.runtime_projection,
+            "runtime_world": runtime_world,
+            "session_loop": session_loop,
             "history_count": len(history_rows),
             "committed_state": {
                 "current_scene_id": session.current_scene_id,

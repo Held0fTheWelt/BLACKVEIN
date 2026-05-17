@@ -8,6 +8,7 @@
 {% block shell_scripts %}{% endblock %}
 {% block content %}
 <div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}" data-show-play-diagnostics="{{ 'true' if show_play_diagnostics else 'false' }}">
+  {% if show_play_diagnostics %}
   <section class="panel panel--compact play-shell-meta">
     <h1 class="play-shell-title">Better Tomorrow</h1>
     <p class="runtime-meta">
@@ -18,12 +19,14 @@
       <p class="runtime-meta runtime-warn">The story runtime is not ready yet. Return to Play Start and create a new player session.</p>
     {% endif %}
   </section>
+  {% endif %}
 
   <div class="play-game-surface">
     <section id="play-story-window" class="play-story-window" aria-labelledby="play-story-heading">
       <div class="play-story-window__chrome">
         <h2 id="play-story-heading" class="play-story-window__header">Story</h2>
-        <p class="play-story-window__hint runtime-meta">The opening and every turn below come from the authoritative World-Engine story runtime.</p>
+        {% if show_play_diagnostics %}
+        <p class="play-story-window__hint runtime-meta">The scene output and every turn below come from the authoritative World-Engine story runtime.</p>
         <div id="play-runtime-status" class="play-runtime-status">
           <p id="runtime-selected-responder" class="runtime-meta">
             {% if runtime_status_view.npc_responder_display_name %}
@@ -60,9 +63,10 @@
             {% endif %}
           </p>
         </div>
+        {% endif %}
       </div>
-      <div id="turn-transcript" class="play-story-window__body play-transcript" aria-live="polite" aria-relevant="additions">
-      {% if story_entries %}
+      <div id="turn-transcript" class="play-story-window__body play-transcript" data-typewriter-shell="true" aria-live="polite" aria-relevant="additions">
+      {% if show_play_diagnostics and story_entries %}
         {% for entry in story_entries %}
         <article class="play-turn-card" data-entry-id="{{ entry.entry_id or loop.index0 }}">
           <header class="play-turn-card__meta">
@@ -143,8 +147,6 @@
           {% endif %}
         </article>
         {% endfor %}
-      {% else %}
-        <p id="transcript-empty" class="play-story-placeholder">No authored opening was returned by the story runtime. The player session is not ready for meaningful play.</p>
       {% endif %}
       </div>
     </section>
@@ -163,6 +165,7 @@
     </section>
   </div>
 
+  {% if show_play_diagnostics %}
   <section class="panel panel--compact">
     <h2>Runtime Boundary</h2>
     <p class="runtime-meta">The WebSocket/ticket live-room simulator is not part of this canonical player path. Operator diagnostics remain separate from the story surface.</p>
@@ -181,6 +184,7 @@
       </p>
     {% endif %}
   </section>
+  {% endif %}
 </div>
 
 <script type="application/json" id="play-shell-bootstrap">{{ play_bootstrap_json | safe }}</script>
