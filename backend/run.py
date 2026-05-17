@@ -311,6 +311,25 @@ def seed_base_governance():
         print(message)
 
 
+@app.cli.command("seed-prompt-store")
+@click.option("--overwrite", is_flag=True, help="Overwrite existing prompt rows from seed files.")
+def seed_prompt_store(overwrite):
+    """Seed Prompt Store rows from repo-level prompts/*.json files."""
+    from app.config import env_bool
+    from app.services.prompt_store_service import seed_prompt_store_from_files
+
+    effective_overwrite = bool(overwrite or env_bool("WOS_PROMPT_STORE_SEED_OVERWRITE", False))
+    with app.app_context():
+        db.create_all()
+        result = seed_prompt_store_from_files(overwrite=effective_overwrite, actor="docker-entrypoint")
+        print(
+            "Seed prompt store: "
+            f"loaded={result['loaded']} inserted={result['inserted']} "
+            f"updated={result['updated']} skipped_existing={result['skipped_existing']} "
+            f"overwrite={str(result['overwrite']).lower()}"
+        )
+
+
 @app.cli.command("normalize-model-ids")
 def normalize_model_ids():
     """Normalize model_id: replace hyphens/dots with underscores.

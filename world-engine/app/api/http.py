@@ -554,12 +554,14 @@ def reload_story_runtime_governed_config(
         RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
     )
     from app.runtime.runtime_config_client import fetch_resolved_runtime_config
+    from ai_stack.prompt_store import configure_prompt_bundle
 
     cfg = fetch_resolved_runtime_config(
         base_url=BACKEND_RUNTIME_CONFIG_URL,
         token=INTERNAL_RUNTIME_CONFIG_TOKEN,
         timeout_seconds=RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
     )
+    configure_prompt_bundle((cfg or {}).get("prompt_store"))
     request.app.state.resolved_runtime_config = cfg
     status = manager.reload_runtime_config(cfg)
     governed_ok = bool(status.get("governed_runtime_active")) and not bool(status.get("live_execution_blocked"))

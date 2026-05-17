@@ -2221,6 +2221,12 @@ def build_resolved_runtime_config(*, persist_snapshot: bool, actor: str) -> dict
     providers_out = _serialize_provider_rows(providers)
     models_out = _serialize_model_rows(models, selected_provider_ids)
     scoped_settings = _collect_scope_settings()
+    try:
+        from app.services.prompt_store_service import get_active_prompt_bundle
+
+        prompt_store_bundle = get_active_prompt_bundle()
+    except Exception:
+        prompt_store_bundle = {"schema_version": "prompt_store_bundle.v1", "count": 0, "prompts": []}
 
     generated_at = datetime.now(timezone.utc)
     config_version = f"cfg_{generated_at.strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:6]}"
@@ -2235,6 +2241,7 @@ def build_resolved_runtime_config(*, persist_snapshot: bool, actor: str) -> dict
         "providers": providers_out,
         "models": models_out,
         "routes": resolved_routes,
+        "prompt_store": prompt_store_bundle,
         **scoped_settings,
     }
     if persist_snapshot:

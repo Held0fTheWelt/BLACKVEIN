@@ -4,6 +4,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from ai_stack.capabilities import CapabilityRegistry
+from ai_stack.prompt_store import render_prompt
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
@@ -267,16 +268,18 @@ class MinimalRuntimeTurnGraphExecutor:
         interpreted_input: dict[str, Any],
         context_text: str,
     ) -> str:
-        lines = [
-            f"Module: {module_id}",
-            f"Current scene: {current_scene_id or 'unknown'}",
-            f"Player input: {player_input}",
-            f"Interpreted kind: {interpreted_input.get('kind', 'unknown')}",
-        ]
-        if context_text:
-            lines.append("Use the attached retrieval context when responding.")
-        lines.append("Return a short in-world continuation.")
-        return "\n".join(lines)
+        return render_prompt(
+            "world_engine.minimal_turn_prompt",
+            module_id=module_id,
+            current_scene_id=current_scene_id or "unknown",
+            player_input=player_input,
+            interpreted_kind=interpreted_input.get("kind", "unknown"),
+            retrieval_instruction=(
+                "Use the attached retrieval context when responding."
+                if context_text
+                else ""
+            ),
+        ).strip()
 
     @staticmethod
     def _structured_output_from_result(result: ModelCallResult, interpreted_input: dict[str, Any]) -> dict[str, Any]:

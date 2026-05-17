@@ -90,6 +90,7 @@ from ai_stack import (
     build_runtime_retriever,
     create_default_capability_registry,
 )
+from ai_stack.prompt_store import configure_prompt_bundle, render_prompt
 from ai_stack.rag_retrieval_dtos import retrieval_config_from_governed
 from ai_stack.runtime_quality_semantics import canonical_quality_class
 from ai_stack.runtime_aspect_ledger import (
@@ -8544,6 +8545,11 @@ class StoryRuntimeManager:
             "live_execution_blocked": False,
         }
         self.turn_graph: RuntimeTurnGraphExecutor | None = None
+        configure_prompt_bundle(
+            (governed_runtime_config or {}).get("prompt_store")
+            if isinstance(governed_runtime_config, dict)
+            else None
+        )
         # MVP3: Narrative agent orchestration (streaming narrator blocks)
         self.narrative_agents: dict[str, NarrativeRuntimeAgent] = {}
         self.input_queues: dict[str, list[str]] = {}  # session_id -> list of queued player inputs
@@ -8892,6 +8898,11 @@ class StoryRuntimeManager:
         self._authority_applied_at_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
     def reload_runtime_config(self, governed_runtime_config: dict[str, Any] | None) -> dict[str, Any]:
+        configure_prompt_bundle(
+            governed_runtime_config.get("prompt_store")
+            if isinstance(governed_runtime_config, dict)
+            else None
+        )
         self._apply_runtime_components(governed_runtime_config)
         self._rebuild_turn_graph()
         self._bump_authority_version()
@@ -9097,18 +9108,6 @@ class StoryRuntimeManager:
         chars = projection.get("character_ids") if isinstance(projection.get("character_ids"), list) else []
         cast = ", ".join(str(c) for c in chars[:8]) if chars else "unknown"
         lang_label = "German" if session.session_output_language == "de" else "English"
-        lang_instruction = (
-            f"IMPORTANT: Write ALL player-visible narrative in {lang_label}. "
-            "Do not switch to French unless quoting in-world French text explicitly marked as a quotation. "
-        )
-        base = (
-            lang_instruction
-            + f"Opening turn for module {session.module_id}. "
-            f"Establish the starting situation in scene {scene_name} ({scene_id}). "
-            f"Scene description: {scene_desc or 'n/a'}. Cast: {cast}. "
-            "Write vivid but grounded opening narration within canonical module boundaries. "
-            "Set initial dramatic pressure, social posture, and opening narrative threads."
-        )
         runtime_profile_id = _runtime_profile_id_from_projection(projection)
         opening_scene_sequence_id = ""
         opening_event_ids: list[str] = []
@@ -9217,24 +9216,25 @@ class StoryRuntimeManager:
             if opening_max_visible_blocks >= visible_preferred
             else max(visible_preferred, 12)
         )
-        return (
-            f"{base}\n\n"
-            f"Session opening uses the module runtime policy. Anchor: {anchor}. "
-            "Narrator owns opening scenic establishment, role placement, and local context before NPC speech. "
-            f"Place {role_label} in the scene without forcing speech, decisions, or private conclusions. "
-            "Use separate narrator-visible blocks for distinct opening functions when the policy expects visible evidence. "
-            f"{handover_clause}"
-            f"Opening knowledge contract {opening_scene_sequence_id or 'opening_scene_sequence'} requires events "
-            f"{opening_event_ids} "
-            f"and must_establish {opening_must_establish}. "
-            f'Return "narration_summary" as a list of at least {visible_min} and ideally '
-            f"{visible_preferred} strings (max {visible_max}) so opening evidence can be projected into visible blocks. "
-            "Use the first three strings as: premise/incident, apartment room-and-ritual, selected role anchor. "
-            "Use the remaining strings to make consequence, arrival threshold, apartment-as-stage, and first playable moment visible. "
-            'Emit structured coverage evidence as "opening_event_ids" with the covered event ids; '
-            'semantic rule hits, when present, must use "runtime_gate_detections" ids. '
-            f"Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}. "
-            "Apply hard-forbidden rules by their authored ids; narrator owns spatial/premise establishment."
+        return render_prompt(
+            "world_engine.opening_prompt",
+            language_label=lang_label,
+            module_id=session.module_id,
+            scene_name=scene_name,
+            scene_id=scene_id,
+            scene_description=scene_desc or "n/a",
+            cast=cast,
+            anchor=anchor,
+            role_label=role_label,
+            handover_clause=handover_clause,
+            opening_scene_sequence_id=opening_scene_sequence_id or "opening_scene_sequence",
+            opening_event_ids=opening_event_ids,
+            opening_must_establish=opening_must_establish,
+            visible_min=visible_min,
+            visible_preferred=visible_preferred,
+            visible_max=visible_max,
+            hard_forbidden_reject_on=hard_forbidden_reject_on,
+            hard_forbidden_recover_on=hard_forbidden_recover_on,
         )
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:

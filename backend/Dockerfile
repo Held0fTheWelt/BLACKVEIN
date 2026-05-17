@@ -30,6 +30,7 @@ COPY ai_stack ./ai_stack
 
 # YAML narrative modules (session start, compiler). Matches packaged path in module_loader.
 COPY content/modules /app/content/modules
+COPY prompts /app/prompts
 
 RUN mkdir -p /app/instance && chmod +x /app/docker-entrypoint.sh && chown -R appuser:appuser /app
 USER appuser

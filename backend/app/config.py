@@ -79,6 +79,8 @@ class Config:
     # World of Shadows checkout root (RAG ``.wos/`` persistence, ingestion). Optional; see ``ai_engineer_suite_service._repo_root``.
     _wos_repo_root_env = (os.environ.get("WOS_REPO_ROOT") or "").strip()
     WOS_REPO_ROOT = _wos_repo_root_env if _wos_repo_root_env else None
+    WOS_PROMPT_STORE_DIR = os.environ.get("WOS_PROMPT_STORE_DIR", "").strip() or None
+    WOS_PROMPT_STORE_SEED_OVERWRITE = env_bool("WOS_PROMPT_STORE_SEED_OVERWRITE", False)
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

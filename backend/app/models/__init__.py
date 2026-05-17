@@ -12,6 +12,7 @@ from app.models.news_article import NewsArticle, NewsArticleTranslation, NewsArt
 from app.models.wiki_page import WikiPage, WikiPageTranslation, WikiPageForumThread
 from app.models.slogan import Slogan
 from app.models.site_setting import SiteSetting
+from app.models.prompt_store import PromptStorePrompt
 from app.models.notification import Notification
 from app.models.narrative_package import NarrativePackage
 from app.models.narrative_package_history_event import NarrativePackageHistoryEvent
@@ -81,6 +82,7 @@ __all__ = [
     "WikiPageForumThread",
     "Slogan",
     "SiteSetting",
+    "PromptStorePrompt",
     "Notification",
     "NarrativePackage",
     "NarrativePackageHistoryEvent",

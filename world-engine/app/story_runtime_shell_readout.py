@@ -3,6 +3,12 @@ from __future__ import annotations
 from typing import Any
 import re
 
+from ai_stack.prompt_store import render_prompt
+
+
+def _readout_text(prompt_key: str, **variables: Any) -> str:
+    return render_prompt(prompt_key, **variables)
+
 
 def _first_responder_actor(last_diagnostic: dict[str, Any] | None) -> str | None:
     if not isinstance(last_diagnostic, dict):
@@ -1350,20 +1356,20 @@ def frame_story_runtime_visible_output_bundle(*, visible_output_bundle: dict[str
 def _response_pressure_now(*, current_scene_id: str, open_pressures: list[str], consequences: list[str], social_state: dict[str, Any]) -> str:
     values = open_pressures + consequences
     if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
-        return "The room is pressing for repair, explanation, or restraint around departure and failed exit."
+        return _readout_text("world_engine.readout.response_pressure.failed_exit")
     if current_scene_id == "bathroom_recovery" or _contains_any(values, "cleanup", "bathroom", "vomit", "contamination"):
-        return "The room is pressing around exposure, concern, recoil, and who must manage what has become public."
+        return _readout_text("world_engine.readout.response_pressure.exposure")
     if _contains_any(values, "book", "art"):
-        return "The room is pressing for restraint or explanation around taste, manners, and status."
+        return _readout_text("world_engine.readout.response_pressure.judgment")
     if _contains_any(values, "flower", "tulip"):
-        return "The room is pressing around manners, hospitality, and whether care has become overfamiliarity."
+        return _readout_text("world_engine.readout.response_pressure.hospitality")
     if _contains_any(values, "phone"):
-        return "The room is pressing for deference, apology, or exposure management around interruption and priority."
+        return _readout_text("world_engine.readout.response_pressure.humiliation")
     if _has_hosting_surface(values):
-        return "The room is pressing around brittle hospitality, overfamiliarity, and how one handles the hosting surface."
+        return _readout_text("world_engine.readout.response_pressure.hosting")
     if str(social_state.get("scene_pressure_state") or "") == "high_blame":
-        return "The room is pressing for answerability rather than letting the act pass."
-    return "The room is pressing for some form of social answer rather than letting the act remain neutral."
+        return _readout_text("world_engine.readout.response_pressure.answerability")
+    return _readout_text("world_engine.readout.response_pressure.default")
 
 def _response_address_source_now(*, current_scene_id: str, open_pressures: list[str], consequences: list[str], social_state: dict[str, Any], responder_actor: str | None, selected_scene_function: str = "") -> str:
     actor = responder_actor.title() if responder_actor else "Someone"
@@ -1489,41 +1495,36 @@ def _why_this_reply_now(*, current_scene_id: str, open_pressures: list[str], con
         selected_scene_function=selected_scene_function,
         responder_actor=responder_actor,
     )
+    hook = f", {countermove}," if countermove else ""
+    variables = {
+        "side": side,
+        "hook": hook,
+        "pull": pull,
+        "signature": signature,
+    }
     if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
         if asym == "blame_on_host_spouse_axis":
-            hook = f", {countermove}," if countermove else ""
-            return f"The room read the act as failed repair, so the {side} answered through spouse embarrassment at the doorway{hook} and let the reply {pull}, in {signature}."
-        hook = f", {countermove}," if countermove else ""
-        return f"The room read the act as failed repair, so departure pressure pulled the {side} answer to the doorway{hook} and let the reply {pull}, in {signature}."
+            return _readout_text("world_engine.readout.why_reply.failed_repair_spouse", **variables)
+        return _readout_text("world_engine.readout.why_reply.failed_repair", **variables)
     if current_scene_id == "bathroom_recovery" or _contains_any(values, "cleanup", "bathroom", "vomit", "contamination"):
-        hook = f", {countermove}," if countermove else ""
-        return f"The room read the act as exposure, so care, recoil, and witness pressure pulled the {side} answer to the bathroom edge{hook} and let the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.exposure", **variables)
     if _contains_any(values, "book", "art"):
         if asym != "alliance_reposition_active":
-            hook = f", {countermove}," if countermove else ""
-            return f"The room read the act as taste and household judgment, so status strain pulled a {side} answer onto the books{hook} and let the reply {pull}, in {signature}."
-        hook = f", {countermove}," if countermove else ""
-        return f"The room read the act as taste and household judgment, so cross-couple strain answered through the books{hook} and let the reply {pull}, in {signature}."
+            return _readout_text("world_engine.readout.why_reply.taste_status_side", **variables)
+        return _readout_text("world_engine.readout.why_reply.taste_status_cross", **variables)
     if _contains_any(values, "flower", "tulip"):
-        hook = f", {countermove}," if countermove else ""
-        return f"The room read the act through hospitality and manners, so boundary strain pulled a {side} answer onto the flowers{hook} and let the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.hospitality", **variables)
     if _contains_any(values, "phone"):
-        hook = f", {countermove}," if countermove else ""
-        return f"The room read the act through humiliation and public priority, so humiliation pressure pulled a {side} answer onto the phone{hook} and let the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.humiliation", **variables)
     if asym == "alliance_reposition_active":
-        hook = f", {countermove}," if countermove else ""
-        return f"The room is answering through a shifting coalition rather than a settled side{hook} and letting the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.alliance", **variables)
     if selected_scene_function == "repair_or_stabilize":
-        hook = f", {countermove}," if countermove else ""
-        return f"The room is forcing the act into a repair-shaped exchange, making the {side} carry the answer{hook} and letting the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.repair", **variables)
     if selected_scene_function == "redirect_blame":
-        hook = f", {countermove}," if countermove else ""
-        return f"The room is reusing the act to move blame and social cost onto the {side} answer{hook} and letting the reply {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.redirect_blame", **variables)
     if selected_scene_function == "withhold_or_evade":
-        hook = f", {countermove}," if countermove else ""
-        return f"The room is making the answer slippery; pressure is still there, it is arriving through the {side} obliquely{hook}, and the reply is trying to {pull}, in {signature}."
-    hook = f", {countermove}," if countermove else ""
-    return f"The room is treating the act as answerable, routing the reply through the {side}{hook}, and letting it {pull}, in {signature}."
+        return _readout_text("world_engine.readout.why_reply.withhold", **variables)
+    return _readout_text("world_engine.readout.why_reply.default", **variables)
 
 
 
@@ -1537,21 +1538,22 @@ def _observation_foothold_now(*, current_scene_id: str, open_pressures: list[str
         open_pressures=open_pressures,
         consequences=consequences,
     )
+    variables = {"side": side, "pull": pull}
     if current_scene_id == "hallway_threshold" or _contains_any(values, "exit", "departure"):
-        return f"You are inside a failed-exit exchange now; the {side} is answering through departure pressure, and the reply is trying to {pull}."
+        return _readout_text("world_engine.readout.observation.failed_exit", **variables)
     if current_scene_id == "bathroom_recovery" or _contains_any(values, "cleanup", "bathroom", "vomit", "contamination"):
-        return f"You are inside an exposure exchange now; the {side} is answering through care, recoil, and witness pressure, trying to {pull}."
+        return _readout_text("world_engine.readout.observation.exposure", **variables)
     if _contains_any(values, "book", "art"):
-        return f"You are inside a judgment exchange now; the {side} is answering through taste, manners, and status, trying to {pull}."
+        return _readout_text("world_engine.readout.observation.judgment", **variables)
     if _contains_any(values, "flower", "tulip"):
-        return f"You are inside a brittle hospitality exchange now; the {side} is answering through manners and overfamiliarity pressure, trying to {pull}."
+        return _readout_text("world_engine.readout.observation.hospitality", **variables)
     if _contains_any(values, "phone"):
-        return f"You are inside a humiliation exchange now; the {side} is answering through public priority and contempt risk, trying to {pull}."
+        return _readout_text("world_engine.readout.observation.humiliation", **variables)
     if selected_scene_function == "repair_or_stabilize":
-        return f"You are inside a repair-shaped exchange now; the {side} is carrying the answer and trying to {pull}."
+        return _readout_text("world_engine.readout.observation.repair", **variables)
     if selected_scene_function == "redirect_blame":
-        return f"You are inside a blame-moving exchange now; the {side} is carrying redistributed social cost and trying to {pull}."
-    return f"You are inside a live exchange now; the {side} is answering what you did and trying to {pull}."
+        return _readout_text("world_engine.readout.observation.blame", **variables)
+    return _readout_text("world_engine.readout.observation.default", **variables)
 
 def build_story_runtime_shell_readout(*, state: dict[str, Any], last_diagnostic: dict[str, Any] | None) -> dict[str, Any]:
     committed_state = state.get("committed_state") if isinstance(state.get("committed_state"), dict) else {}

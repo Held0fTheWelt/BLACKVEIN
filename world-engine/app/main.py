@@ -21,6 +21,7 @@ try:
     ensure_langchain_reviver_explicit_core()
 except ImportError:
     pass
+from ai_stack.prompt_store import configure_prompt_bundle
 
 from fastapi import FastAPI
 from fastapi.requests import Request
@@ -382,6 +383,7 @@ async def lifespan(app: FastAPI):
         token=INTERNAL_RUNTIME_CONFIG_TOKEN,
         timeout_seconds=RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
     )
+    configure_prompt_bundle((resolved_runtime_config or {}).get("prompt_store"))
     try:
         hf_tok = fetch_hf_hub_token_from_backend(
             base_url=BACKEND_RUNTIME_CONFIG_URL,

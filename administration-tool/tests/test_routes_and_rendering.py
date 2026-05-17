@@ -199,6 +199,7 @@ class TestManagementRoutesRenderingContract:
             ("/manage/diagnosis", "manage/diagnosis.html"),
             ("/manage/play-service-control", "manage/play_service_control.html"),
             ("/manage/world-engine-console", "manage/world_engine_console.html"),
+            ("/manage/prompt-store", "manage/prompt_store.html"),
             ("/manage/analytics", "manage_analytics.html"),
             ("/manage/moderator-dashboard", "manage_moderator_dashboard.html"),
         ],

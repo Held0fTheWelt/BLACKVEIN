@@ -72,6 +72,9 @@ services:
       # Backend → world-engine (Docker DNS). Browser-facing URLs use PUBLIC (host port).
       - PLAY_SERVICE_INTERNAL_URL=http://play-service:8000
       - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
+      # Prompt Store: seed central prompt files into the backend DB; preserve live edits by default.
+      - WOS_PROMPT_STORE_DIR=/app/prompts
+      - WOS_PROMPT_STORE_SEED_OVERWRITE=${WOS_PROMPT_STORE_SEED_OVERWRITE:-false}
       # Stable secrets from .env (do not edit these hardcoded values; manage in .env instead)
       - PLAY_SERVICE_SHARED_SECRET=${PLAY_SERVICE_SHARED_SECRET}
       - PLAY_SERVICE_INTERNAL_API_KEY=${PLAY_SERVICE_INTERNAL_API_KEY}
@@ -147,6 +150,8 @@ services:
       - WOS_REPO_ROOT=/app
       # Content modules (god_of_carnage, etc.) path - required for Scene Director and canonical rules
       - WOS_CONTENT_MODULES_ROOT=/app/content/modules
+      # Prompt Store seed fallback for tests/startup; live runtime receives DB prompts via resolved config.
+      - WOS_PROMPT_STORE_DIR=/app/prompts
       # Embedding governance (see docs/rag_in_world_of_shadows.md):
       # Uncomment WOS_RAG_DISABLE_EMBEDDINGS to force sparse-only fallback (e.g. CI without model cache).
       # - WOS_RAG_DISABLE_EMBEDDINGS=1

@@ -299,6 +299,11 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
         """AI orchestration console for LangGraph and LangChain runtime visibility."""
         return render_template("manage/ai_orchestration.html")
 
+    @app.route("/manage/prompt-store")
+    def manage_prompt_store():
+        """Database-backed Prompt Store for live ai_stack and world-engine prompt editing."""
+        return render_template("manage/prompt_store.html")
+
     @app.route("/manage/runtime-settings")
     def manage_runtime_settings():
         """Controlled presets and bounded advanced runtime settings."""

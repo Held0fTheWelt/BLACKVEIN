@@ -1,0 +1,305 @@
+{% extends "manage/base.html" %}
+{% block title %}Prompt Store{% endblock %}
+{% block content %}
+<section class="manage-section manage-prompt-store" data-page="prompt-store">
+
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">AI Governance &middot; Prompt Store</p>
+            <h1>Prompt Store</h1>
+            <p class="mui-deck-headline">Central catalog for ai_stack and world-engine prompts with live database edits, seed metadata, and runtime bundle visibility.</p>
+            <div class="mui-pillrow">
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Prompts</span>
+                    <span class="mui-pill-value" id="manage-ps-total-pill">-</span>
+                </span>
+                <span class="mui-pill mui-pill--ok">
+                    <span class="mui-pill-label">Active</span>
+                    <span class="mui-pill-value" id="manage-ps-active-pill">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Categories</span>
+                    <span class="mui-pill-value" id="manage-ps-categories-pill">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Types</span>
+                    <span class="mui-pill-value" id="manage-ps-types-pill">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Domains</span>
+                    <span class="mui-pill-value" id="manage-ps-domains-pill">-</span>
+                </span>
+                <span class="mui-pill" id="manage-ps-drift-pill" hidden>
+                    <span class="mui-pill-label">Edited from seed</span>
+                    <span class="mui-pill-value" id="manage-ps-drift-count-pill">-</span>
+                </span>
+            </div>
+        </div>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn" id="manage-ps-refresh">Reload</button>
+            <button type="button" class="btn" id="manage-ps-seed-default">Seed missing</button>
+            <span class="mui-inline-result" id="manage-ps-header-result" hidden></span>
+        </div>
+    </header>
+
+    <p id="manage-ps-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-ps-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+
+    <div class="mui-deck" data-mui-deck>
+        <aside class="mui-deck-rail" aria-label="Prompt Store sections">
+            <a href="#library" class="mui-rail-btn" data-deck-target="library">
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Prompt library</span>
+                    <span class="mui-rail-secondary">categories + search</span>
+                </span>
+            </a>
+            <a href="#editor" class="mui-rail-btn" data-deck-target="editor">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">WYSIWYG editor</span>
+                    <span class="mui-rail-secondary">live DB prompt</span>
+                </span>
+            </a>
+            <a href="#seeding" class="mui-rail-btn" data-deck-target="seeding">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Seeding</span>
+                    <span class="mui-rail-secondary">docker build defaults</span>
+                </span>
+            </a>
+            <a href="#runtime" class="mui-rail-btn" data-deck-target="runtime">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Runtime bundle</span>
+                    <span class="mui-rail-secondary">DB extraction path</span>
+                </span>
+            </a>
+            <a href="#audit" class="mui-rail-btn" data-deck-target="audit">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Technical audit</span>
+                    <span class="mui-rail-secondary">selected JSON</span>
+                </span>
+            </a>
+        </aside>
+
+        <main class="mui-deck-main">
+            <section class="mui-deck-section is-active" data-deck-section="library">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Catalog</span>
+                        <h2>Prompt library</h2>
+                        <p class="mui-inspector-summary">Prompts are loaded from the database first. Seed files in the repo-level prompts folder are used for bootstrap and test fallback.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="manage-ps-preset-row" id="manage-ps-presets" aria-label="Preset filters">
+                            <button type="button" class="manage-ps-preset" data-ps-preset="important">Important</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="runtime-prompts">Runtime prompts</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="runtime-fragments">Runtime fragments</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="game-ui">Game/UI text</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="localization">Localization</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="readouts">Readouts</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="edited">Edited</button>
+                            <button type="button" class="manage-ps-preset" data-ps-preset="all">All</button>
+                        </div>
+                        <div class="manage-ps-filter-row">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Category</span>
+                                <select id="manage-ps-category-filter" class="form-input">
+                                    <option value="">All categories</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Type</span>
+                                <select id="manage-ps-type-filter" class="form-input">
+                                    <option value="">All types</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Domain</span>
+                                <select id="manage-ps-domain-filter" class="form-input">
+                                    <option value="">All domains</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Tag</span>
+                                <select id="manage-ps-tag-filter" class="form-input">
+                                    <option value="">All tags</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Seed drift</span>
+                                <select id="manage-ps-drift-filter" class="form-input">
+                                    <option value="">All</option>
+                                    <option value="edited">Edited from seed</option>
+                                    <option value="seed">Matches seed</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Search</span>
+                                <input type="search" id="manage-ps-search" class="form-input" placeholder="Name, key, description" />
+                            </label>
+                        </div>
+                        <div id="manage-ps-prompt-list" class="manage-ps-list" role="listbox" aria-label="Prompts"></div>
+                        <p id="manage-ps-empty" class="manage-empty" hidden>No prompts found.</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="editor">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Edit</span>
+                        <h2 id="manage-ps-editor-title">Select a prompt</h2>
+                        <p class="mui-inspector-summary" id="manage-ps-editor-summary">Choose a prompt from the library to inspect metadata and edit the active template.</p>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-ps-form" onsubmit="return false;">
+                        <input type="hidden" id="manage-ps-key" />
+                        <input type="hidden" id="manage-ps-template" />
+                        <div id="manage-ps-editor-empty" class="manage-empty">Select a prompt to edit.</div>
+                        <div id="manage-ps-editor-wrap" hidden>
+                            <div class="mui-field-grid">
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Name</span>
+                                    <input type="text" id="manage-ps-name" class="form-input" maxlength="180" />
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Category</span>
+                                    <input type="text" id="manage-ps-category" class="form-input" maxlength="96" />
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Type</span>
+                                    <input type="text" id="manage-ps-type" class="form-input" maxlength="64" />
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Domain</span>
+                                    <input type="text" id="manage-ps-domain" class="form-input" maxlength="96" />
+                                </label>
+                                <label class="mui-field mui-field-full">
+                                    <span class="mui-field-label">Description</span>
+                                    <textarea id="manage-ps-description" class="form-input" rows="3"></textarea>
+                                </label>
+                                <label class="mui-field mui-field-full">
+                                    <span class="mui-field-label">Variables</span>
+                                    <input type="text" id="manage-ps-variables" class="form-input" placeholder="Comma separated variables" />
+                                    <span class="mui-field-hint">Variables become insert buttons in the editor toolbar and document expected template fields.</span>
+                                </label>
+                                <label class="mui-field mui-field-full">
+                                    <span class="mui-field-label">Tags</span>
+                                    <input type="text" id="manage-ps-tags" class="form-input" placeholder="Comma separated tags" />
+                                    <span class="mui-field-hint">Tags power preset filters such as important, localization, readout, and actor-lane.</span>
+                                </label>
+                                <label class="mui-field-check mui-field-full">
+                                    <input type="checkbox" id="manage-ps-active" />
+                                    <span>Active in runtime bundle</span>
+                                </label>
+                            </div>
+
+                            <div class="manage-ps-editor-block">
+                                <div class="manage-ps-toolbar" aria-label="Prompt editor toolbar">
+                                    <button type="button" class="manage-ps-tool" data-ps-command="undo" title="Undo">Undo</button>
+                                    <button type="button" class="manage-ps-tool" data-ps-command="redo" title="Redo">Redo</button>
+                                    <span class="manage-ps-toolbar-separator" aria-hidden="true"></span>
+                                    <div id="manage-ps-variable-buttons" class="manage-ps-variable-buttons" aria-label="Template variables"></div>
+                                </div>
+                                <div id="manage-ps-editor"
+                                     class="manage-ps-editor"
+                                     contenteditable="true"
+                                     role="textbox"
+                                     aria-multiline="true"
+                                     spellcheck="false"></div>
+                            </div>
+
+                            <div class="manage-ps-meta-grid">
+                                <div>
+                                    <span class="mui-field-label">Prompt key</span>
+                                    <code id="manage-ps-key-display"></code>
+                                </div>
+                                <div>
+                                    <span class="mui-field-label">Source</span>
+                                    <code id="manage-ps-source-display"></code>
+                                </div>
+                                <div>
+                                    <span class="mui-field-label">Updated</span>
+                                    <span id="manage-ps-updated-display" class="muted">-</span>
+                                </div>
+                                <div>
+                                    <span class="mui-field-label">Seed drift</span>
+                                    <span id="manage-ps-drift-display" class="muted">-</span>
+                                </div>
+                                <div>
+                                    <span class="mui-field-label">Tags</span>
+                                    <span id="manage-ps-tags-display" class="muted">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-ps-save">Save prompt</button>
+                        <span class="mui-inline-result" id="manage-ps-editor-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="seeding">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Bootstrap</span>
+                        <h2>Seed files and overwrite mode</h2>
+                        <p class="mui-inspector-summary">Default seeding inserts missing prompts only, preserving live edits. Overwrite mode refreshes rows from the centralized prompt files.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-card-grid">
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Seed root</p>
+                                <code id="manage-ps-seed-root">-</code>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Seed overwrite default</p>
+                                <span id="manage-ps-seed-overwrite-default" class="muted">-</span>
+                            </div>
+                        </div>
+                        <label class="mui-field-check manage-ps-overwrite-check">
+                            <input type="checkbox" id="manage-ps-overwrite" />
+                            <span>Overwrite existing prompt rows from seed files for this run</span>
+                        </label>
+                    </div>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-ps-run-seed">Run seed</button>
+                        <span class="mui-inline-result" id="manage-ps-seed-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="runtime">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Extraction</span>
+                        <h2>Runtime bundle path</h2>
+                        <p class="mui-inspector-summary">The backend publishes active prompts into resolved runtime config so ai_stack and the world-engine can use live DB content instead of hardcoded prompt strings.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <ul id="manage-ps-runtime-lines" class="muted manage-ps-lines"></ul>
+                    </div>
+                </article>
+            </section>
+
+            <section class="mui-deck-section" data-deck-section="audit">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Audit</span>
+                        <h2>Selected prompt payload</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <pre id="manage-ps-json" class="manage-psc-json" data-json-label="Prompt Store payload"></pre>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_prompt_store.js') }}"></script>
+{% endblock %}

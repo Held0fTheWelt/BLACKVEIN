@@ -17,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
+from ai_stack.prompt_store import get_prompt_definition
 from ai_stack.rag_retrieval_dtos import RetrievalRequest
 from ai_stack.rag_types import RetrievalDomain
 
@@ -441,95 +442,26 @@ class WritersRoomStructuredOutput(BaseModel):
 
 
 def _build_runtime_prompt_template() -> ChatPromptTemplate:
-    """Build runtime prompt template from catalog with hardcoded fallback.
+    """Build runtime prompt template from the central prompt store."""
+    from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
-    Attempts to load from CanonicalPromptCatalog for governance integration.
-    Falls back to hardcoded template if catalog unavailable.
+    return CanonicalPromptCatalog().get_runtime_turn_template()
 
-    Returns:
-        ChatPromptTemplate for runtime turn model invocation
-    """
-    try:
-        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
-        catalog = CanonicalPromptCatalog()
-        return catalog.get_runtime_turn_template()
-    except (ImportError, KeyError, Exception):
-        # Fallback to hardcoded template if catalog fails
-        return ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "You are the World of Shadows runtime turn model. Generate actor behavior first, prose projection second.\n\n"
-                    "PRIMARY TASK — Actor Realization:\n"
-                    "Your job is to determine and output:\n"
-                    "1. **Who responds in this turn** (primary_responder_id)\n"
-                    "2. **What they say** (spoken_lines with speaker_id and text)\n"
-                    "3. **What they do** (action_lines with actor_id and physical action)\n"
-                    "4. **Who else reacts** (secondary_responder_ids, initiative_events)\n"
-                    "5. **What pressure/state changes** (state_effects)\n\n"
-                    "SECONDARY OUTPUT — Prose Narration:\n"
-                    "After actor lanes are complete, synthesize narration_summary: a prose narrative projecting the actor choices above. "
-                    "Narration is a view of actor realization, not the source of truth.\n\n"
-                    "MECHANICS:\n"
-                    "- spoken_lines entries MUST have speaker_id (the actor speaking)\n"
-                    "- action_lines entries MUST have actor_id (the actor acting)\n"
-                    "- initiative_events capture turn seizure/escalation/deflection\n"
-                    "- state_effects document world-state changes from actor choices\n"
-                    "- narration_summary describes what happened (derived from actor output)\n"
-                    "- narrative_response MUST be a copy of narration_summary only\n"
-                    "- PLAYER-VISIBLE TYPOGRAPHY: spoken_lines[].text wraps spoken words in ASCII double quotes; optional "
-                    "attributive lead-ins (e.g. German \"meint:\", \"führt aus:\", \"Name stimmt zu:\") allowed before the quote; "
-                    "no name-only colon lines. action_lines[].text is third-person blocking with the name inside the sentence; "
-                    "never start with \"Name:\".\n\n"
-                    "Return valid JSON. Prioritize actor lanes over prose beauty.\n"
-                    "PLAYER INPUT OWNERSHIP: primary_responder_id selects the NPC who reacts; it must never mean the "
-                    "player's raw words belong to that NPC. The human lane already consumed verbatim player speech; "
-                    "generate only NPC/narrator reaction.",
-                ),
-                (
-                    "human",
-                    "{full_context}"
-                    "{correction_block}"
-                    "ACTOR REALIZATION TASK:\n"
-                    "0. If the packet states the human actor already spoke verbatim_player_input, do not rewrite that "
-                    "line as NPC dialogue under primary_responder_id.\n"
-                    "1. Identify the primary responder (actor responding to this move).\n"
-                    "2. Determine what they say (if speech: populate spoken_lines with speaker_id; use quoted speech per typography rules).\n"
-                    "3. Determine what they do (if action: populate action_lines with actor_id; prose action without a leading Name: prefix).\n"
-                    "4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).\n"
-                    "5. Identify state changes (state_effects for pressure/relationship/scene shifts).\n\n"
-                    "PROSE PROJECTION:\n"
-                    "After completing actor realization above, write narration_summary that expresses the scene from the actor choices you determined. "
-                    "Think of this as a narrative view of the actor output, not a separate prose invention. Narration should be grounded in actor behavior.\n\n"
-                    "COHERENCE CHECK:\n"
-                    "- Does narration_summary reflect the actor choices (responder, spoken/action lines, initiative)?\n"
-                    "- Does it avoid inventing actors or dialogue not in the actor lanes?\n"
-                    "- Does it ground state_effects in visible narrative consequence?\n\n"
-                    "COPY INSTRUCTION:\n"
-                    "Copy narration_summary content exactly to narrative_response (no separate prose).\n\n"
-                    "Format instructions:\n{format_instructions}",
-                ),
-            ]
-        )
+
+def _build_writers_room_prompt_template() -> ChatPromptTemplate:
+    """Build writers-room review prompt template from the central prompt store."""
+    system_prompt = str(get_prompt_definition("writers_room_review_system")["template"])
+    human_prompt = str(get_prompt_definition("writers_room_review_human")["template"])
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", human_prompt),
+        ]
+    )
 
 
 _RUNTIME_PROMPT_TEMPLATE = _build_runtime_prompt_template()
-_WRITERS_ROOM_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are the World of Shadows writers-room review assistant. "
-            "Return strictly valid JSON matching the requested schema.",
-        ),
-        (
-            "human",
-            "Module: {module_id}\n"
-            "Review focus: {focus}\n\n"
-            "Retrieved context for evidence:\n{retrieval_context}\n\n"
-            "Format instructions:\n{format_instructions}",
-        ),
-    ]
-)
+_WRITERS_ROOM_PROMPT_TEMPLATE = _build_writers_room_prompt_template()
 _RUNTIME_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=RuntimeTurnStructuredOutput)
 _WRITERS_ROOM_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=WritersRoomStructuredOutput)
 

@@ -1,0 +1,75 @@
+{
+  "schema_version": "prompt_collection.v1",
+  "seed_version": "2026-05-17.prompt-store.v1",
+  "prompts": [
+    {
+      "prompt_key": "world_engine.opening_prompt",
+      "name": "World Engine Opening Prompt",
+      "category": "World Engine / Story Runtime",
+      "prompt_type": "runtime_prompt",
+      "domain": "world_engine",
+      "tags": ["story-runtime", "opening", "important"],
+      "description": "Builds the initial story-session opening prompt from module runtime policy, selected role, scene, and hard-forbidden policy.",
+      "source_path": "world-engine/app/story_runtime/manager.py",
+      "source_symbol": "StoryRuntimeManager._build_opening_prompt",
+      "variables": [
+        "language_label",
+        "module_id",
+        "scene_name",
+        "scene_id",
+        "scene_description",
+        "cast",
+        "anchor",
+        "role_label",
+        "handover_clause",
+        "opening_scene_sequence_id",
+        "opening_event_ids",
+        "opening_must_establish",
+        "visible_min",
+        "visible_preferred",
+        "visible_max",
+        "hard_forbidden_reject_on",
+        "hard_forbidden_recover_on"
+      ],
+      "template_lines": [
+        "IMPORTANT: Write ALL player-visible narrative in {language_label}. Do not switch to French unless quoting in-world French text explicitly marked as a quotation.",
+        "Opening turn for module {module_id}. Establish the starting situation in scene {scene_name} ({scene_id}).",
+        "Scene description: {scene_description}. Cast: {cast}.",
+        "Write vivid but grounded opening narration within canonical module boundaries. Set initial dramatic pressure, social posture, and opening narrative threads.",
+        "",
+        "Session opening uses the module runtime policy. Anchor: {anchor}.",
+        "Narrator owns opening scenic establishment, role placement, and local context before NPC speech.",
+        "Place {role_label} in the scene without forcing speech, decisions, or private conclusions.",
+        "Use separate narrator-visible blocks for distinct opening functions when the policy expects visible evidence.",
+        "{handover_clause}",
+        "Opening knowledge contract {opening_scene_sequence_id} requires events {opening_event_ids} and must_establish {opening_must_establish}.",
+        "Return \"narration_summary\" as a list of at least {visible_min} and ideally {visible_preferred} strings (max {visible_max}) so opening evidence can be projected into visible blocks.",
+        "Use the first three strings as: premise/incident, apartment room-and-ritual, selected role anchor.",
+        "Use the remaining strings to make consequence, arrival threshold, apartment-as-stage, and first playable moment visible.",
+        "Emit structured coverage evidence as \"opening_event_ids\" with the covered event ids; semantic rule hits, when present, must use \"runtime_gate_detections\" ids.",
+        "Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}.",
+        "Apply hard-forbidden rules by their authored ids; narrator owns spatial/premise establishment."
+      ]
+    },
+    {
+      "prompt_key": "world_engine.minimal_turn_prompt",
+      "name": "Minimal Runtime Turn Prompt",
+      "category": "World Engine / Fallback Runtime",
+      "prompt_type": "runtime_prompt",
+      "domain": "world_engine",
+      "tags": ["story-runtime", "fallback"],
+      "description": "Dependency-thin fallback prompt for the minimal runtime graph.",
+      "source_path": "world-engine/app/story_runtime/minimal_turn_graph.py",
+      "source_symbol": "MinimalRuntimeTurnGraphExecutor._build_prompt",
+      "variables": ["module_id", "current_scene_id", "player_input", "interpreted_kind", "retrieval_instruction"],
+      "template_lines": [
+        "Module: {module_id}",
+        "Current scene: {current_scene_id}",
+        "Player input: {player_input}",
+        "Interpreted kind: {interpreted_kind}",
+        "{retrieval_instruction}",
+        "Return a short in-world continuation."
+      ]
+    }
+  ]
+}

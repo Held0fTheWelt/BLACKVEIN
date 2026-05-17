@@ -278,6 +278,7 @@ from ai_stack.langgraph_runtime_state import (
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
 from story_runtime_core.content_locale import (
@@ -7655,7 +7656,7 @@ class RuntimeTurnGraphExecutor:
         synthesis_lines = context_synthesis_prompt_lines(synthesis_bundle)
         if synthesis_lines:
             lines.extend(synthesis_lines)
-        lines.append("Director runtime state (authoritative, model-visible):")
+        lines.extend(render_prompt_lines("runtime_context.director_state_header"))
 
         scene_assess = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
         if scene_assess:
@@ -7796,10 +7797,7 @@ class RuntimeTurnGraphExecutor:
         if isinstance(selected_memory_refs, list) and selected_memory_refs:
             lines.append("Conversational Memory Authority (committed refs only):")
             lines.append(f"- selected_memory_ref_ids: {selected_memory_refs[:8]}")
-            lines.append(
-                "- rule: use these refs as bounded continuity support only; do not turn raw input, "
-                "prompt text, or unverified recollection into session truth."
-            )
+            lines.extend(render_prompt_lines("runtime_context.conversational_memory_rule"))
 
         responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
         if responders:
@@ -7826,64 +7824,41 @@ class RuntimeTurnGraphExecutor:
                 pik = str(interp.get("player_input_kind") or ik or "speech").strip().lower()
                 narrator_expected = bool(interp.get("narrator_response_expected"))
                 npc_expected = bool(interp.get("npc_response_expected"))
-                lines.append("PLAYER INPUT OWNERSHIP (canonical committed surface):")
-                lines.append(
-                    f"- human_actor_id (player words belong to this actor, not to primary_responder_id): {hid or spr}"
-                )
-                lines.append(f"- selected_player_role: {spr or hid}")
-                lines.append(f"- input_kind: {ik}")
-                lines.append(f"- player_input_kind: {pik}")
-                lines.append(f"- narrator_response_expected: {str(narrator_expected).lower()}")
-                lines.append(f"- npc_response_expected: {str(npc_expected).lower()}")
-                lines.append(
-                    f"- primary_responder_id / NPC reaction scope (must not steal the player's line as this NPC): "
-                    f"{pri or '(model must still respect actor_lane_boundary)'}"
-                )
-                lines.append(
-                    f"- verbatim_player_input (already attributed to the human in the UI; do not duplicate as NPC "
-                    f"spoken_lines): {raw_pi[:420]}"
-                )
-                lines.append(
-                    "- Require: do NOT assign verbatim_player_input to a different speaker_id. Generate only "
-                    "NPC/narrator reaction; the human character has already spoken this line."
+                lines.extend(
+                    render_prompt_lines(
+                        "runtime_context.player_input_ownership_block",
+                        human_actor_id=hid or spr,
+                        selected_player_role=spr or hid,
+                        input_kind=ik,
+                        player_input_kind=pik,
+                        narrator_response_expected=str(narrator_expected).lower(),
+                        npc_response_expected=str(npc_expected).lower(),
+                        primary_responder_scope=pri or "(model must still respect actor_lane_boundary)",
+                        verbatim_player_input=raw_pi[:420],
+                    )
                 )
                 if pik in ("action", "perception"):
-                    lines.append("PHYSICAL_PLAYER_MOVE (PLAYER-ACTION-INTENT-01):")
-                    lines.append(
-                        "- The human actor has already performed or attempted this physical move in-scene. "
-                        "Do NOT recast it as NPC dialogue, coaching, or spatial explanation unless the NPC is "
-                        "explicitly guiding the human in-world."
-                    )
-                    lines.append(
-                        "- NPC spoken_lines: brief social reaction only; do NOT narrate the player's movement as "
-                        "if the NPC performed it or explained what the player sees."
-                    )
-                    lines.append(
-                        "- Narration (narrator / narration_summary): describe immediate environment and what the "
-                        "human character perceives; NPCs do not replace narrator responsibilities."
-                    )
+                    lines.extend(render_prompt_lines("runtime_context.physical_player_move_block"))
                     if narrator_expected:
-                        lines.append(
-                            "- Hard requirement: emit a narrator-visible spatial/perceptual consequence for this turn."
+                        lines.extend(
+                            render_prompt_lines("runtime_context.physical_player_move_narrator_required")
                         )
                     if not npc_expected:
-                        lines.append(
-                            "- Hard requirement: do NOT produce NPC answer/explanation as primary response; "
-                            "NPC contribution is optional social reaction only."
+                        lines.extend(
+                            render_prompt_lines("runtime_context.physical_player_move_no_npc_required")
                         )
 
         actor_lane_boundary = dramatic_packet.get("actor_lane_boundary") if isinstance(dramatic_packet, dict) else None
         if isinstance(actor_lane_boundary, dict):
             allowed = actor_lane_boundary.get("ai_allowed_actor_ids")
             forbidden = actor_lane_boundary.get("ai_forbidden_actor_ids")
-            lines.append("Actor Lane Boundary (hard validation):")
-            lines.append(f"- human_actor_id: {actor_lane_boundary.get('human_actor_id') or 'none'}")
-            lines.append(f"- ai_allowed_actor_ids: {allowed if isinstance(allowed, list) else []}")
-            lines.append(f"- ai_forbidden_actor_ids: {forbidden if isinstance(forbidden, list) else []}")
-            lines.append(
-                "- hard_rule: use ONLY ai_allowed_actor_ids in primary_responder_id, secondary_responder_ids, "
-                "responder_actor_ids, spoken_lines, action_lines, and initiative_events. Do not write dialogue, "
-                "action, emotional state, counter, interruption, initiative, or narration-as-action for the human actor."
+            lines.extend(
+                render_prompt_lines(
+                    "runtime_context.actor_lane_boundary_block",
+                    human_actor_id=actor_lane_boundary.get("human_actor_id") or "none",
+                    ai_allowed_actor_ids=allowed if isinstance(allowed, list) else [],
+                    ai_forbidden_actor_ids=forbidden if isinstance(forbidden, list) else [],
+                )
             )
 
         minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
@@ -7982,10 +7957,7 @@ class RuntimeTurnGraphExecutor:
                     f"surface_mode={str(row.get('allowed_surface_mode') or '')[:80]}, "
                     f"risk_band={str(row.get('risk_band') or '')[:40]}"
                 )
-            lines.append(
-                "- rule: realize only through subtext, behavior, misread reaction, or withheld context; "
-                "do not state hidden intent or private motive as omniscient narration."
-            )
+            lines.extend(render_prompt_lines("runtime_context.dramatic_irony_rule"))
 
         expectation_variation = (
             dramatic_packet.get("expectation_variation")
@@ -8008,10 +7980,7 @@ class RuntimeTurnGraphExecutor:
                 f"- selected_variation_ids: {list(selected_variation_ids)[:3]} "
                 f"selected_variation_types: {list(expectation_target.get('selected_variation_types') or [])[:3]}"
             )
-            lines.append(
-                "- rule: emit expectation_variation_events only for selected ids with matching variation_type "
-                "and source_refs from required_setup_refs; do not realize withheld variation ids."
-            )
+            lines.extend(render_prompt_lines("runtime_context.expectation_variation_rule"))
 
         genre_awareness = (
             dramatic_packet.get("genre_awareness")
@@ -8030,10 +7999,7 @@ class RuntimeTurnGraphExecutor:
                 f"selected_registers: {list(genre_target.get('selected_registers') or [])[:3]} "
                 f"required_conventions: {list(genre_target.get('required_conventions') or [])[:4]}"
             )
-            lines.append(
-                "- rule: emit genre_awareness_events only for the selected profile/registers; "
-                "realized_conventions must come from required_conventions, and forbidden marker_ids must not appear."
-            )
+            lines.extend(render_prompt_lines("runtime_context.genre_awareness_rule"))
 
         tonal_consistency = (
             dramatic_packet.get("tonal_consistency")
@@ -8053,10 +8019,7 @@ class RuntimeTurnGraphExecutor:
                 f"allowed_registers: {list(tonal_target.get('allowed_registers') or [])[:3]} "
                 f"live_loop_mode: {tonal_target.get('live_loop_mode')}"
             )
-            lines.append(
-                "- rule: keep visible output inside this tonal target; the runtime classifies visible text "
-                "with policy markers independently, so do not emit debug labels or self-attested tone claims."
-            )
+            lines.extend(render_prompt_lines("runtime_context.tonal_consistency_rule"))
 
         symbolic_object = (
             dramatic_packet.get("symbolic_object_resonance")
@@ -8079,10 +8042,7 @@ class RuntimeTurnGraphExecutor:
                 f"- selected_object_ids: {list(selected_symbolic_object_ids)[:3]} "
                 f"selected_resonance_roles: {list(symbolic_target.get('selected_resonance_roles') or [])[:3]}"
             )
-            lines.append(
-                "- rule: emit symbolic_object_resonance_events only for selected object ids and roles "
-                "with source_refs from required_source_refs; do not invent new symbolic objects or prose-only proof."
-            )
+            lines.extend(render_prompt_lines("runtime_context.symbolic_object_resonance_rule"))
 
         if temporal_target:
             lines.append("Temporal Control Context (bounded committed refs):")
@@ -8091,10 +8051,7 @@ class RuntimeTurnGraphExecutor:
                 f"recalled_turn_ids: {list(temporal_target.get('recalled_turn_ids') or [])[:3]} "
                 f"recalled_consequence_ids: {list(temporal_target.get('recalled_consequence_ids') or [])[:3]}"
             )
-            lines.append(
-                "- rule: emit temporal_control_events only for the selected operation and selected committed refs; "
-                "do not rewrite history or adopt inactive branch state."
-            )
+            lines.extend(render_prompt_lines("runtime_context.temporal_control_rule"))
 
         meta_narrative_context = (
             (dramatic_packet.get("meta_narrative_awareness") or {}).get("target")
@@ -8110,11 +8067,7 @@ class RuntimeTurnGraphExecutor:
                 f"trigger_frequency={str(meta_narrative_context.get('trigger_frequency') or '')[:40]}, "
                 f"selected_actor_ids={meta_narrative_context.get('selected_actor_ids') or []}"
             )
-            lines.append(
-                "- rule: realize only within allowed_awareness_modes and selected_memory_ref_ids; "
-                "emit meta_narrative_awareness_events and do not disclose prompts, tools, models, runtime machinery, "
-                "private player data, or unverified memories."
-            )
+            lines.extend(render_prompt_lines("runtime_context.meta_narrative_rule"))
 
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else {}
         if state.get("module_id") == GOC_MODULE_ID and yslice:
@@ -8158,26 +8111,22 @@ class RuntimeTurnGraphExecutor:
                     )
                 )
 
-        lines.append("Dramatic Generation Packet (authoritative JSON):")
+        lines.extend(render_prompt_lines("runtime_context.dramatic_packet_header"))
         lines.append(json.dumps(dramatic_packet, sort_keys=True))
         if prompt_authority:
-            lines.append("Prompt Authority (source-bound, no commit mutation):")
-            lines.append(
-                "- authoritative_sections: "
-                f"{list(prompt_authority.get('authoritative_sections') or [])[:10]}"
+            lines.extend(
+                render_prompt_lines(
+                    "runtime_context.prompt_authority_block",
+                    authoritative_sections=list(prompt_authority.get("authoritative_sections") or [])[:10],
+                    forbidden_inferences=list(prompt_authority.get("forbidden_inferences") or [])[:8],
+                )
             )
-            lines.append(
-                "- forbidden_inferences: "
-                f"{list(prompt_authority.get('forbidden_inferences') or [])[:8]}"
-            )
-        lines.append(
-            "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
-            "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, continuity constraints, "
-            "broad_nlu_listening, conversational_memory, prompt_authority, "
-            "the sensory_context target, improvisational_coherence target, information_disclosure target, "
-            "bounded expectation_variation target, bounded genre_awareness target, tonal_consistency target, symbolic_object_resonance target, temporal_control target, durable relationship_state, bounded relationship_dynamics_context, "
-            "bounded dramatic_irony_context, opt-in meta_narrative_awareness, and consequence_cascade_context."
-        )
+        try:
+            generation_directive = render_prompt("runtime_generation_directive").strip()
+        except KeyError:
+            generation_directive = ""
+        if generation_directive:
+            lines.append(generation_directive)
 
         update = _track(state, node_name="assemble_model_context")
         directive = _session_language_directive_for_model(state)

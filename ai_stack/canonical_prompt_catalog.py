@@ -5,8 +5,10 @@ This module provides immutable, validated prompts for LangGraph nodes to use
 when reasoning about game state and generating narrative responses.
 """
 
-from typing import Dict, List, Any
 from copy import deepcopy
+from typing import Any, Dict, List
+
+from ai_stack.prompt_store import list_prompt_definitions
 
 
 class CanonicalPromptCatalog:
@@ -22,154 +24,27 @@ class CanonicalPromptCatalog:
         self._validated = False
 
     def _initialize_prompts(self) -> Dict[str, Dict[str, Any]]:
-        """Initialize all game-specific prompts.
+        """Initialize all game-specific prompts from the central prompt store.
 
         Returns:
             Dictionary mapping prompt names to prompt definitions.
         """
-        return {
-            "decision_context": {
-                "id": "decision_context",
-                "template": """You are an AI agent in a game world. Analyze the current game state and the player's queued action.
-
-Current Game State:
-{game_state}
-
-Player's Queued Action:
-{player_action}
-
-Previous Turn Result:
-{previous_result}
-
-Generate a list of 3-5 possible narrative interpretations or outcomes for this action, considering:
-1. The game world's rules and physics
-2. The player's current abilities and status
-3. The narrative consequences
-4. Failure modes if applicable
-
-Respond with a structured analysis of possible action outcomes.""",
-                "description": "Analyze game state and player action to generate decision context.",
-                "variables": ["game_state", "player_action", "previous_result"]
-            },
-            "action_selection": {
-                "id": "action_selection",
-                "template": """Based on the decision analysis below, select the single best action outcome for the player.
-
-Decision Analysis:
-{decision_analysis}
-
-Consider:
-1. Narrative coherence with game world
-2. Player intention (what they tried to do)
-3. Game rules and balance
-4. Fairness and fun factor
-
-Respond with:
-- Selected Outcome: [brief description]
-- Reason: [1-2 sentences explaining why]
-- Narrative Impact: [how this affects game state]""",
-                "description": "Select the best action outcome from decision analysis.",
-                "variables": ["decision_analysis"]
-            },
-            "narrative_response": {
-                "id": "narrative_response",
-                "template": """Generate a short, engaging narrative response to the player's action.
-
-Action Taken: {action}
-Outcome: {outcome}
-Game World Context: {world_context}
-
-Write 2-3 sentences that:
-1. Describe what happened in vivid, game-appropriate language
-2. Show consequences of the action
-3. Set up the next player choice
-
-Keep it concise and immersive.""",
-                "description": "Generate narrative text describing action outcome to player.",
-                "variables": ["action", "outcome", "world_context"]
-            },
-            "failure_explanation": {
-                "id": "failure_explanation",
-                "template": """The player's action failed. Explain why in narrative terms.
-
-Action Attempted: {action}
-Failure Reason: {reason}
-Game State: {game_state}
-
-Respond with 1-2 sentences that:
-1. Explain in-world why the action failed
-2. Preserve player agency (not "you are too weak")
-3. Hint at alternative approaches if applicable
-
-Tone: helpful, not punitive.""",
-                "description": "Explain action failure in engaging, non-punitive narrative.",
-                "variables": ["action", "reason", "game_state"]
-            },
-            "runtime_turn_system": {
-                "id": "runtime_turn_system",
-                "template": """You are the World of Shadows runtime turn model. Generate actor behavior first, prose projection second.
-
-PRIMARY TASK — Actor Realization:
-Your job is to determine and output:
-1. **Who responds in this turn** (primary_responder_id)
-2. **What they say** (spoken_lines with speaker_id and text)
-3. **What they do** (action_lines with actor_id and physical action)
-4. **Who else reacts** (secondary_responder_ids, initiative_events for interruptions/escalations)
-5. **What pressure/state changes** (state_effects capturing social/emotional/scene shifts)
-
-SECONDARY OUTPUT — Prose Narration:
-After actor lanes are complete, synthesize narration_summary: a prose narrative that projects the actor choices you made above. Narration is a view of actor realization, not the source of truth.
-
-MECHANICS:
-- spoken_lines entries MUST have speaker_id (the actor whose words these are)
-- action_lines entries MUST have actor_id (the actor performing the action)
-- initiative_events capture turn seizure/loss/escalation/deflection between actors
-- state_effects document what world-state changes result from actor choices
-- narration_summary describes what happened (derived from actor output above)
-- narrative_response MUST be a copy of narration_summary only
-- PLAYER-VISIBLE TYPOGRAPHY (spoken vs stage; apply in the session_output_language):
-  - spoken_lines[].text: Put the actual spoken words in ASCII double quotes ("…"). You may use an optional attributive lead-in before the opening quote (German examples: "meint: ", "führt aus: ", "Name stimmt zu: "). Do not leave a line that is only a name plus ":" with no quoted speech. Avoid clumsy duplicate speaker labels immediately before the quoted passage.
-  - action_lines[].text: Pure blocking / gesture in third-person prose; weave the actor's name inside the sentence (e.g. "Veronique steht auf und zeigt auf die Tür."). Never start this field with "Name:" — that colon form is for spoken_lines, not for silent action.
-- TRANSCRIPT / SHELL (not novel prose): The play surface renders **typed blocks**—a theatrical transcript whose **count follows the cast and beats** (one visible NPC focus may be one card; several distinct speakers or actions may be several cards; narrator beats are separate cards). Do **not** replace that with a **single book-style omniscient paragraph** that smears everyone together. When multiple people have speech or blocking this turn, emit **separate** `spoken_lines` / `action_lines` rows per speaker and per physical actor so downstream can show **person-scoped narrative blocks**. Keep `narration_summary` a concise projection of those rows—not a long internal novel that is the only place the cast appears.
-- When prior_initiative_truth shows unresolved tension (initiative_pressure_label contested/floor_claimed), the next turn MUST show an actor response that addresses or escalates that pressure.
-- When secondary_responder_ids are nominated, at least one SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible.
-- When pacing_mode=thin_edge with silence, actors may react briefly but MUST NOT be completely absent if prior carry_forward_tension_notes are present.
-- preferred_reaction_order lists the runtime's preferred dramatic actor order (e.g., [alice, bob, carol]). When present: deliver visible actor beats in that sequence when it is narratively plausible. Interruption, validation constraints, or scene pressure may justify divergence from preferred order—that is acceptable and expected.
-- PLAYER INPUT OWNERSHIP (God of Carnage live human lane): primary_responder_id only selects which NPC reacts next; it must never re-assign the player's raw words to that NPC. The human actor has already spoken/acted the player line in the committed surface; do not paraphrase it as NPC spoken_lines unless it is clearly distinct new dialogue (never a verbatim or trivial rewrite of the player line). Generate only NPC/narrator reaction and stage blocking.
-- GOD OF CARNAGE HOST/GUEST FOOTING: Véronique and Michel are hosts in their apartment; Annette and Alain are guests. Do not write Alain as primary apartment host (landlord-style welcome, "our home" authority, hosting the space as if it were his). He may mediate or speak politely as a guest; ritual welcome and hosting primacy default to the hosts unless the beat explicitly frames a deliberate contradiction.
-
-Return valid JSON. Prioritize actor lanes over prose beauty.""",
-                "description": "System prompt for World of Shadows runtime turn generation.",
-                "variables": []
-            },
-            "runtime_turn_human": {
-                "id": "runtime_turn_human",
-                "template": """{full_context}{correction_block}ACTOR REALIZATION TASK:
-1. Identify the primary responder (the actor who responds to this move/input).
-2. Determine what they say (if speech is present: populate spoken_lines with speaker_id; spoken text in "quotes" per MECHANICS typography rules).
-3. Determine what they do (if physical action: populate action_lines with actor_id; action text is prose without a leading "Name:" prefix).
-4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).
-4.5. If prior_initiative_truth is present: emit an initiative_event (seize/counter/escalate/deflect) that reflects who holds or contests the floor this turn.
-4.6. If preferred_reaction_order is present in the packet: realize actors in that order when narratively plausible. Interruption or validation constraints may justify divergence. If PLAYER INPUT OWNERSHIP / verbatim_player_input is present, the human actor already owns that line; primary_responder_id is only the NPC reaction target—do not output the player's sentence as that NPC's quoted speech.
-5. Identify state changes (state_effects for pressure shifts, relationship changes, scene shifts).
-
-PROSE PROJECTION:
-After completing actor realization above, write narration_summary that expresses the scene from the actor choices you determined. Think of this as a narrative view of the actor output, not a separate prose invention. Narration should be grounded in actor behavior. If several actors are visible this turn, your earlier `spoken_lines` / `action_lines` should already be split per person so the shell never depends on one merged novel paragraph for cast clarity.
-
-COHERENCE CHECK:
-- Does narration_summary reflect the actor choices (responder, spoken/action lines, initiative)?
-- Does it avoid inventing actors or dialogue not in the actor lanes?
-- Does it ground state_effects in visible narrative consequence?
-
-COPY INSTRUCTION:
-Copy narration_summary content exactly to narrative_response (no separate prose).
-
-Format instructions:
-{format_instructions}""",
-                "description": "Human message template for World of Shadows runtime turn generation.",
-                "variables": ["full_context", "correction_block", "format_instructions"]
+        prompts: Dict[str, Dict[str, Any]] = {}
+        for prompt in list_prompt_definitions():
+            key = str(prompt.get("prompt_key") or prompt.get("id") or "").strip()
+            if not key:
+                continue
+            prompts[key] = {
+                "id": key,
+                "template": prompt["template"],
+                "description": prompt.get("description", ""),
+                "variables": list(prompt.get("variables") or []),
+                "name": prompt.get("name") or key,
+                "category": prompt.get("category") or "uncategorized",
+                "source_path": prompt.get("source_path") or "",
+                "source_symbol": prompt.get("source_symbol") or "",
             }
-        }
+        return prompts
 
     def get_prompt(self, name: str) -> Dict[str, Any]:
         """Get a prompt by name.

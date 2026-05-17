@@ -14,6 +14,7 @@ from functools import lru_cache
 from typing import Any
 
 from ai_stack.goc_yaml_authority import load_goc_opening_sequence_yaml
+from ai_stack.prompt_store import render_prompt
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 
@@ -47,6 +48,11 @@ def _is_alain(*, human_actor_id: str | None, selected_player_role: str | None) -
     return "alain" in blob
 
 
+def _lang_key(output_language: str | None) -> str:
+    lang = _lang_norm(output_language)
+    return lang if lang in {"de", "en"} else "en"
+
+
 def role_display_name(*, human_actor_id: str | None, selected_player_role: str | None) -> str:
     raw = str(human_actor_id or selected_player_role or "").strip()
     if not raw:
@@ -59,33 +65,15 @@ def role_display_name(*, human_actor_id: str | None, selected_player_role: str |
 
 def deterministic_part1_premise(*, output_language: str | None) -> str:
     """Background / shared premise: park court, two boys, stick, injury, civilised procedure."""
-    lang = _lang_norm(output_language)
-    if lang == "de":
-        return sanitize_gm_narration_beat_line(
-            "Am Rand eines Pariser Parks: grauer Herbsthimmel, kahle Bäume, ein Basketballplatz, Spielgerät und Fahrräder. "
-            "Unter den Jungen kippt ein Streit; einer greift nach einem Stock, dreht sich um und schlägt zu, bevor er beim Weggehen noch ein Fahrrad umtritt. "
-            "Die Eltern haben vereinbart, es »zivilisiert« zu klären — die Kluft zwischen kindlicher Gewalt und höflichem Verfahren ist schon spürbar."
-        )
     return sanitize_gm_narration_beat_line(
-        "At the edge of a Paris park: gray autumn sky, bare trees, a basketball court, playground equipment, and bicycles. "
-        "A quarrel between boys turns; one grabs a stick, turns back, strikes, and kicks over a bicycle as he leaves. "
-        "Their parents agreed to settle it the civilised way — the gap between child-world violence and polite procedure already hangs in the air."
+        render_prompt(f"goc.opening.premise.{_lang_key(output_language)}")
     )
 
 
 def deterministic_part2_room(*, output_language: str | None) -> str:
     """Paris salon / ritual civility: hosts, guests, coats, papers, art books, tulips, coffee, dessert."""
-    lang = _lang_norm(output_language)
-    if lang == "de":
-        return sanitize_gm_narration_beat_line(
-            "In der Pariser Wohnung der Vallons: Mäntel ordentlich gelegt, Papiere mit sauberen Kanten, "
-            "Kunstbücher und Tulpen, die Kultur vorspiegeln. Espresso und ein Dessert stehen noch höflich bereit — "
-            "Gastgeber und Gäste, gefangen in einem Ritual der Manieren, bevor aus Höflichkeit Anklage werden kann."
-        )
     return sanitize_gm_narration_beat_line(
-        "In the Vallons' Paris apartment: coats folded with care, papers with neat edges, art books and tulips "
-        "advertising culture. Espresso and a dessert still wait politely — hosts and guests caught in a ritual of "
-        "manners before courtesy can curdle into accusation."
+        render_prompt(f"goc.opening.room.{_lang_key(output_language)}")
     )
 
 
@@ -96,36 +84,14 @@ def deterministic_role_anchor_beat(
     selected_player_role: str | None,
 ) -> str:
     """Narrator-only identity anchor: guest + spouse + not spectator; never prescribes speech or action."""
-    lang = _lang_norm(output_language)
     display = role_display_name(human_actor_id=human_actor_id, selected_player_role=selected_player_role)
-    if lang == "de":
-        if _is_annette(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-            return sanitize_gm_narration_beat_line(
-                f"Du bist {display}, als Gast neben Alain gekommen — Ehefrau in dieser höflichen Phase, "
-                "nicht Zuschauerin; was du sagst oder tust, entscheidest du selbst, nicht der Raum für dich."
-            )
-        if _is_alain(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-            return sanitize_gm_narration_beat_line(
-                f"Du bist {display}, als Gast neben Annette gekommen — Ehemann in dieser höflichen Phase, "
-                "nicht Zuschauer; beruflicher Druck zieht am Rand deiner Aufmerksamkeit, ohne dir eine Zeile vorzuschreiben."
-            )
-        return sanitize_gm_narration_beat_line(
-            f"Du bist {display}, als Gast in dieser Elternrunde — nicht außerhalb dessen, was zwischen den Paaren steht; "
-            "deine nächste Geste bleibt dir überlassen."
-        )
+    role_key = "default"
     if _is_annette(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        return sanitize_gm_narration_beat_line(
-            f"You are {display}, arriving as a guest beside Alain — spouse in this courteous phase, not a spectator; "
-            "what you say or do next is yours to choose, not scripted by the room."
-        )
-    if _is_alain(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        return sanitize_gm_narration_beat_line(
-            f"You are {display}, arriving as a guest beside Annette — spouse in this courteous phase, not a spectator; "
-            "professional pressure tugs at the edge of your attention without putting words in your mouth."
-        )
+        role_key = "annette"
+    elif _is_alain(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
+        role_key = "alain"
     return sanitize_gm_narration_beat_line(
-        f"You are {display}, present as a guest in this parents' meeting — not outside what is at stake between the couples; "
-        "your next move remains yours to choose."
+        render_prompt(f"goc.opening.role_anchor.{role_key}.{_lang_key(output_language)}", display=display)
     )
 
 
@@ -133,13 +99,8 @@ def polite_ritual_first_actor_line(*, output_language: str | None, actor_id: str
     lang = _lang_norm(output_language)
     aid = str(actor_id or "veronique_vallon").strip().lower()
     host_veronique = "veronique" in aid or aid.endswith("vallon") or aid == ""
-    if lang == "de":
-        if host_veronique:
-            return "Bitte, setzen Sie sich; ich bringe noch einen Kaffee."
-        return "Michel nickt höflich und rückt die Tassen zurecht, ohne das Thema zu benennen."
-    if host_veronique:
-        return "Please — sit; I'll bring more coffee."
-    return "Michel gives a small polite nod and straightens the cups without naming the subject."
+    actor_key = "veronique" if host_veronique else "michel"
+    return render_prompt(f"goc.opening.polite_ritual.{actor_key}.{lang if lang in {'de', 'en'} else 'en'}")
 
 
 _RE_GENERIC_CONFLICT = re.compile(

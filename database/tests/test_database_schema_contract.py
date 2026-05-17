@@ -27,6 +27,7 @@ EXPECTED_TABLES = {
     "notifications",
     "password_histories",
     "password_reset_tokens",
+    "prompt_store_prompts",
     "refresh_tokens",
     "roles",
     "site_settings",
@@ -50,6 +51,7 @@ CORE_TABLE_COLUMNS = {
     "wiki_page_translations": {"id", "page_id", "language_code", "title", "slug", "content_markdown"},
     "game_experience_templates": {"id", "template_id", "slug", "title", "kind", "payload_json", "is_published"},
     "game_save_slots": {"id", "user_id", "character_id", "slot_key", "title", "template_id", "status", "metadata_json"},
+    "prompt_store_prompts": {"prompt_key", "name", "description", "category", "prompt_type", "domain", "template", "variables_json", "tags_json", "metadata_json", "is_active", "is_seeded"},
     "refresh_tokens": {"id", "jti", "user_id", "refresh_token", "expires_at", "revoked_at"},
     "token_blacklist": {"id", "jti", "user_id", "blacklisted_at", "expires_at"},
 }
@@ -65,6 +67,7 @@ NOT_NULL_COLUMNS = {
     "notifications": {"id", "user_id", "event_type", "target_type", "target_id", "message", "is_read", "created_at"},
     "game_save_slots": {"id", "user_id", "slot_key", "title", "template_id", "status", "created_at", "updated_at"},
     "game_experience_templates": {"id", "template_id", "slug", "title", "kind", "style_profile", "tags_json", "payload_json", "source", "version", "is_published", "created_at", "updated_at"},
+    "prompt_store_prompts": {"prompt_key", "name", "description", "category", "prompt_type", "domain", "template", "variables_json", "tags_json", "metadata_json", "is_active", "is_editable", "is_seeded", "created_at", "updated_at"},
 }
 
 
@@ -107,6 +110,7 @@ TIMESTAMP_TABLES = {
     "game_save_slots": {"created_at", "updated_at"},
     "news_articles": {"created_at", "updated_at"},
     "notifications": {"created_at"},
+    "prompt_store_prompts": {"created_at", "updated_at"},
     "refresh_tokens": {"created_at"},
     "slogans": {"created_at", "updated_at"},
     "users": {"created_at", "updated_at"},
@@ -181,6 +185,7 @@ class TestDatabaseSchemaContract:
             "game_experience_templates": {"template_id", "slug", "kind", "is_published"},
             "game_save_slots": {"user_id", "character_id", "template_id", "run_id"},
             "notifications": {"user_id", "event_type", "created_at"},
+            "prompt_store_prompts": {"prompt_key", "category", "prompt_type", "domain", "is_active", "is_seeded"},
             "refresh_tokens": {"jti", "user_id", "expires_at", "revoked_at"},
             "token_blacklist": {"jti", "expires_at"},
             "users": {"username"},

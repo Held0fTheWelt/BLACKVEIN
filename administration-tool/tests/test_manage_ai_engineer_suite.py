@@ -26,6 +26,13 @@ def test_manage_ai_orchestration_route_and_template(app, client):
     assert templates[-1][0] == "manage/ai_orchestration.html"
 
 
+def test_manage_prompt_store_route_and_template(app, client):
+    with captured_templates(app) as templates:
+        response = client.get("/manage/prompt-store")
+    assert response.status_code == 200
+    assert templates[-1][0] == "manage/prompt_store.html"
+
+
 def test_manage_runtime_settings_route_and_template(app, client):
     with captured_templates(app) as templates:
         response = client.get("/manage/runtime-settings")
@@ -40,11 +47,13 @@ def test_manage_base_includes_phase2_nav_entries(client):
     assert "manage-nav-runtime-settings" in html
     assert "manage-nav-rag-operations" in html
     assert "manage-nav-ai-orchestration" in html
+    assert "manage-nav-prompt-store" in html
     assert "manage-nav-observability-settings" in html
     assert "/manage/runtime-dashboard" in html
     assert "/manage/runtime-settings" in html
     assert "/manage/rag-operations" in html
     assert "/manage/ai-orchestration" in html
+    assert "/manage/prompt-store" in html
     assert "/manage/observability-settings" in html
     assert 'data-feature="manage.ai_runtime_governance"' in html
 
@@ -86,6 +95,23 @@ def test_manage_ai_orchestration_mount_points(client):
     assert "manage-orch-guidance-lines" in html
     assert "manage-orch-save-settings" in html
     assert "manage_ai_orchestration.js" in html
+
+
+def test_manage_prompt_store_mount_points(client):
+    response = client.get("/manage/prompt-store")
+    html = response.get_data(as_text=True)
+    assert "manage-ps-prompt-list" in html
+    assert "manage-ps-category-filter" in html
+    assert "manage-ps-type-filter" in html
+    assert "manage-ps-domain-filter" in html
+    assert "data-ps-preset=\"runtime-fragments\"" in html
+    assert "data-ps-preset=\"readouts\"" in html
+    assert "manage-ps-editor" in html
+    assert "contenteditable=\"true\"" in html
+    assert "manage-ps-tags" in html
+    assert "manage-ps-run-seed" in html
+    assert "manage-ps-runtime-lines" in html
+    assert "manage_prompt_store.js" in html
 
 
 def test_manage_runtime_settings_mount_points(client):

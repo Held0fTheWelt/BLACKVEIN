@@ -88,6 +88,7 @@ class TestManagementRoutesContract:
             "/manage/diagnosis",
             "/manage/play-service-control",
             "/manage/world-engine-console",
+            "/manage/prompt-store",
         ],
     )
     def test_management_routes_return_200(self, client, path: str):

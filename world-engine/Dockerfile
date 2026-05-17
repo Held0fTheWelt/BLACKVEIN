@@ -18,6 +18,7 @@ COPY ai_stack ./ai_stack
 
 # Content modules (god_of_carnage, etc.) - required for Scene Director and canonical rules
 COPY content ./content
+COPY prompts ./prompts
 
 EXPOSE 8000
 
