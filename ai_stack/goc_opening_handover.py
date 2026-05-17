@@ -13,8 +13,14 @@ import re
 from functools import lru_cache
 from typing import Any
 
-from ai_stack.goc_yaml_authority import load_goc_opening_sequence_yaml
-from ai_stack.prompt_store import render_prompt
+from ai_stack.goc_yaml_authority import (
+    goc_actor_display_name,
+    goc_actor_identity,
+    goc_actor_identity_index,
+    goc_character_key_for_actor_id,
+    load_goc_opening_sequence_yaml,
+)
+from ai_stack.prompt_store import get_prompt_definition, render_prompt
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 
@@ -38,25 +44,62 @@ def _lang_norm(output_language: str | None) -> str:
     return (output_language or "de").strip().lower()[:2] or "de"
 
 
-def _is_annette(*, human_actor_id: str | None, selected_player_role: str | None) -> bool:
-    blob = f"{human_actor_id or ''} {selected_player_role or ''}".lower()
-    return "annette" in blob
-
-
-def _is_alain(*, human_actor_id: str | None, selected_player_role: str | None) -> bool:
-    blob = f"{human_actor_id or ''} {selected_player_role or ''}".lower()
-    return "alain" in blob
-
-
 def _lang_key(output_language: str | None) -> str:
     lang = _lang_norm(output_language)
     return lang if lang in {"de", "en"} else "en"
+
+
+def _prompt_exists(prompt_key: str) -> bool:
+    try:
+        get_prompt_definition(prompt_key)
+    except KeyError:
+        return False
+    return True
+
+
+def _prompt_key_for_actor(
+    *,
+    prompt_prefix: str,
+    actor_ref: str | None,
+    output_language: str | None,
+    fallback: str,
+) -> str:
+    lang = _lang_key(output_language)
+    character_key = goc_character_key_for_actor_id(actor_ref)
+    if character_key and _prompt_exists(f"{prompt_prefix}.{character_key}.{lang}"):
+        return character_key
+    return fallback
+
+
+def _default_polite_ritual_actor_key(*, output_language: str | None) -> str:
+    lang = _lang_key(output_language)
+    rows = [
+        row for row in goc_actor_identity_index().values()
+        if _prompt_exists(f"goc.opening.polite_ritual.{row.get('character_key')}.{lang}")
+    ]
+    rows.sort(
+        key=lambda row: (
+            0 if str(row.get("playable_status") or "").lower() == "npc" else 1,
+            0 if "host" in str(row.get("role") or "").lower() else 1,
+            0 if any(
+                marker in str(row.get("role") or "").lower()
+                for marker in ("moral", "ideal", "cultivated")
+            ) else 1,
+            str(row.get("character_key") or ""),
+        )
+    )
+    if rows:
+        return str(rows[0].get("character_key") or "default").strip() or "default"
+    return "default"
 
 
 def role_display_name(*, human_actor_id: str | None, selected_player_role: str | None) -> str:
     raw = str(human_actor_id or selected_player_role or "").strip()
     if not raw:
         return "the player character"
+    resolved = goc_actor_display_name(raw)
+    if resolved != (raw.replace("_", " ").title() if raw else "Actor"):
+        return resolved
     if "_" in raw:
         parts = [p for p in raw.split("_") if p]
         return " ".join(p[:1].upper() + p[1:] for p in parts if p)
@@ -85,22 +128,29 @@ def deterministic_role_anchor_beat(
 ) -> str:
     """Narrator-only identity anchor: guest + spouse + not spectator; never prescribes speech or action."""
     display = role_display_name(human_actor_id=human_actor_id, selected_player_role=selected_player_role)
-    role_key = "default"
-    if _is_annette(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        role_key = "annette"
-    elif _is_alain(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        role_key = "alain"
+    role_ref = human_actor_id or selected_player_role
+    role_key = _prompt_key_for_actor(
+        prompt_prefix="goc.opening.role_anchor",
+        actor_ref=role_ref,
+        output_language=output_language,
+        fallback="default",
+    )
     return sanitize_gm_narration_beat_line(
         render_prompt(f"goc.opening.role_anchor.{role_key}.{_lang_key(output_language)}", display=display)
     )
 
 
 def polite_ritual_first_actor_line(*, output_language: str | None, actor_id: str | None) -> str:
-    lang = _lang_norm(output_language)
-    aid = str(actor_id or "veronique_vallon").strip().lower()
-    host_veronique = "veronique" in aid or aid.endswith("vallon") or aid == ""
-    actor_key = "veronique" if host_veronique else "michel"
-    return render_prompt(f"goc.opening.polite_ritual.{actor_key}.{lang if lang in {'de', 'en'} else 'en'}")
+    lang = _lang_key(output_language)
+    actor_key = _prompt_key_for_actor(
+        prompt_prefix="goc.opening.polite_ritual",
+        actor_ref=actor_id,
+        output_language=output_language,
+        fallback=_default_polite_ritual_actor_key(output_language=output_language),
+    )
+    if not _prompt_exists(f"goc.opening.polite_ritual.{actor_key}.{lang}"):
+        actor_key = "default"
+    return render_prompt(f"goc.opening.polite_ritual.{actor_key}.{lang}")
 
 
 _RE_GENERIC_CONFLICT = re.compile(
@@ -214,10 +264,19 @@ def selected_role_anchor_present(
 ) -> bool:
     low = (anchor_beat or "").lower()
     anchor_phrase = ("du bist" in low) or ("you are" in low)
-    if _is_annette(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        return anchor_phrase and ("annette" in low) and ("gast" in low or "guest" in low)
-    if _is_alain(human_actor_id=human_actor_id, selected_player_role=selected_player_role):
-        return anchor_phrase and ("alain" in low) and ("gast" in low or "guest" in low)
+    ident = goc_actor_identity(human_actor_id or selected_player_role)
+    if ident:
+        name_tokens = {
+            str(ident.get("actor_id") or "").lower(),
+            str(ident.get("character_key") or "").lower(),
+            str(ident.get("name") or "").lower(),
+            str(ident.get("first_name") or "").lower(),
+        }
+        named = any(tok and tok in low for tok in name_tokens)
+        guest_role = "guest" in str(ident.get("role") or "").lower()
+        if guest_role:
+            return anchor_phrase and named and ("gast" in low or "guest" in low)
+        return anchor_phrase and named
     return anchor_phrase
 
 

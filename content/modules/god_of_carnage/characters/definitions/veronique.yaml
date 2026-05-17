@@ -1,6 +1,7 @@
 character_document:
   id: veronique
   canonical_id: veronique
+  actor_id: veronique_vallon
   runtime_actor_id: veronique_vallon
   name: Véronique Vallon
   role: "Host, moral idealist, parental figure"

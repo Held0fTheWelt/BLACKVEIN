@@ -205,6 +205,12 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
         locations={"places": [{"id": "living_room", "inventory_object_ids": ["written_statement"]}]},
         objects={"object_documents": {"written_statement": {"id": "written_statement"}}},
         content_access_policy={"blocked_entities": [], "gated_entities": []},
+        character_documents={
+            "veronique": {"actor_id": "veronique_vallon"},
+            "michel": {"actor_id": "michel_longstreet"},
+            "annette": {"actor_id": "annette_reille"},
+            "alain": {"actor_id": "alain_reille"},
+        },
         beat_library={
             "patterns": {
                 "single_word_challenge": {"id": "single_word_challenge"},

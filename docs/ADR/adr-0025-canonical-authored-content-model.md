@@ -7,7 +7,10 @@ Accepted
 
 **Implemented and stable.**
 
-- `content/modules/<module_id>/` YAML format is the canonical authored content model (god_of_carnage/, etc.).
+- `content/modules/<module_id>/` YAML format is the canonical authored content
+  model (god_of_carnage/, etc.). Current modules may be folder-based: canonical
+  path, locations, objects, characters, knowledge, direction, and module policy
+  live as separate authority surfaces.
 - `backend/app/content/module_loader.py` and `backend/app/content/module_models.py` are the authoritative ingestion surface.
 - `backend/app/content/compiler/` compiles to three projections: `runtime_projection`, `retrieval_corpus_seed`, `review_export_seed`.
 - World-Engine, review tools, and RAG (`ai_stack/rag.py`) consume compiled projections.
@@ -29,12 +32,24 @@ This ADR contains no personal data. Implementers must follow the repository priv
 - [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
 
 ## Context
-Content authoring in the repository uses scene/trigger/ending content modules under `content/modules/<module_id>/`. Multiple tools and projections consume these sources; a single canonical authored content model avoids divergence.
+Content authoring in the repository uses structured content modules under
+`content/modules/<module_id>/`. Multiple tools and projections consume these
+sources; a single canonical authored content model avoids divergence.
+
+The model has moved beyond the early flat scene/trigger/ending file set. The
+current contract prefers modular authority surfaces: locations describe places,
+objects describe inspectable things, character folders describe people and
+relationships, and `canonical_path/` describes directed story order by
+reference.
 
 ## Decision
-- Declare the existing scene/trigger/ending module format under `content/modules/<module_id>/` as the canonical authored content model.
+- Declare the structured module format under `content/modules/<module_id>/` as
+  the canonical authored content model.
 - Treat `ContentModule` and the backend loader (`backend/app/content/module_loader.py`) as the authoritative ingestion surface for authored content.
 - Compile authored content into projection outputs: `runtime_projection`, `retrieval_corpus_seed`, and `review_export_seed`.
+- Content modules must not duplicate location, object, character, or language
+  meaning in parallel lookup databases. Directed story and runtime guidance
+  reference canonical content IDs rather than restating prose.
 
 ## Consequences
 - Consumers (World-Engine, review tools, RAG ingestion) must read the canonical compiled projections rather than ad-hoc source variants.

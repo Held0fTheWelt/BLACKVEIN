@@ -1,11 +1,11 @@
 # Canonical Authored Content Model
 
-Status: Canonical for Milestone 1.
+Status: Canonical authored-content reference.
 
 ## Decision
 
-The canonical authored source model is the existing scene/trigger/ending content
-module format under `content/modules/<module_id>/` loaded into `ContentModule`.
+The canonical authored source model is the structured content-module format
+under `content/modules/<module_id>/` loaded into `ContentModule`.
 
 This model is authoritative for authored narrative intent.
 
@@ -13,14 +13,19 @@ This model is authoritative for authored narrative intent.
 
 ## Source contract
 
-- Primary source files:
+- Primary source surfaces:
   - `module.yaml`
-  - `scenes.yaml`
-  - `triggers.yaml`
-  - `endings.yaml`
-  - `characters.yaml`
-  - `relationships.yaml`
-  - `transitions.yaml`
+  - `canonical_path/`
+  - `locations/`
+  - `objects/`
+  - `characters/`
+  - `knowledge/`
+  - `direction/`
+  - module policy files such as `phase_beat_policy.yaml`,
+    `memory_policy.yaml`, `information_disclosure_policy.yaml`, and
+    `narrative_aspect_policy.yaml`
+- Runtime indexes such as `scene_graph.yaml` may reference canonical ids, but
+  they must not duplicate room, object, character, or path descriptions.
 - Backend loader contract:
   - `backend/app/content/module_loader.py`
   - `backend/app/content/module_models.py`
@@ -35,6 +40,7 @@ Canonical authored content is compiled into three projections:
 
 ## Compatibility
 
-- Existing God of Carnage authored content remains valid.
+- Existing God of Carnage authored content remains valid when it follows the
+  current modular authority surfaces.
 - Published experience payloads can embed canonical compilation metadata.
 - Experience templates remain consumable by existing clients.

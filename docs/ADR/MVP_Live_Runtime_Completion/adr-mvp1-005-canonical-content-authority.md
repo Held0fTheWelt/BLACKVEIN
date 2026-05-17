@@ -6,43 +6,43 @@
 
 ## Context
 
-The `god_of_carnage_solo` ExperienceTemplate in `story_runtime_core/` owned role descriptions, NPC voice strings, room layouts, props, actions, and beats — story truth that belongs exclusively to the canonical content module at `content/modules/god_of_carnage/`. This created two competing authorities: the runtime template and the content YAML. Changes to character identity, NPC voice, or scene props required updates in two places, with no guarantee of consistency.
+The `god_of_carnage_solo` ExperienceTemplate in `story_runtime_core/` owned role descriptions, NPC voice strings, room layouts, props, actions, and beats — story truth that belongs exclusively to the canonical content module at `content/modules/god_of_carnage/`. This created two competing authorities: the runtime template and the content YAML. Changes to character identity, NPC voice, room/object truth, or canonical path beats required updates in two places, with no guarantee of consistency.
 
 FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`, `veronique`, `michel`) in the runtime template must derive from canonical content, not be maintained independently.
 
 ## Decision
 
-1. **`content/modules/god_of_carnage/`** is the sole canonical content authority for God of Carnage story truth: character identities, relationships, scenes, escalation axes, props, beats, endings, and NPC voice intent.
+1. **`content/modules/god_of_carnage/`** is the sole canonical content authority for God of Carnage story truth: character identities, relationships, locations, objects, canonical path steps, escalation policy, beats, content-access rules, and NPC voice intent.
 
 2. **`god_of_carnage_solo` ExperienceTemplate** (in `story_runtime_core/`) is runtime scaffolding only — it provides the game-engine participation model (lobby seats, room graph, action menus). It does not author story truth.
 
-3. **Runtime profile** (`world-engine/app/runtime/profiles.py`) resolves canonical actor IDs from `content/modules/god_of_carnage/characters.yaml` at runtime via `_resolve_goc_content()`, not from hardcoded constants.
+3. **Runtime profile** (`world-engine/app/runtime/profiles.py`) resolves canonical actor IDs from the modular character content under `content/modules/god_of_carnage/characters/` at runtime via `_resolve_goc_content()`, not from hardcoded constants.
 
-4. **Role IDs** in the ExperienceTemplate must be a subset of character IDs in `characters.yaml`. This is enforced by `test_goc_solo_runtime_projection_is_derived_from_canonical_content`.
+4. **Role IDs** in the ExperienceTemplate must be a subset of character IDs in `characters/index.yaml` and `characters/definitions/*.yaml`. This is enforced by `test_goc_solo_runtime_projection_is_derived_from_canonical_content`.
 
-5. **`god_of_carnage_solo` runtime module** cannot own characters, rooms, scenes, relationships, or endings as story truth. `assert_profile_contains_no_story_truth()` enforces this for profile dicts.
+5. **`god_of_carnage_solo` runtime module** cannot own characters, rooms, objects, canonical path steps, relationships, or endings as story truth. `assert_profile_contains_no_story_truth()` enforces this for profile dicts.
 
 ## Affected Services/Files
 
-- `content/modules/god_of_carnage/characters.yaml` — canonical authority for character IDs
-- `world-engine/app/runtime/profiles.py` — `_resolve_goc_content()` reads characters.yaml, produces content hash
-- `story_runtime_core/goc_solo_builtin_roles_rooms.py` — role IDs must match characters.yaml IDs
+- `content/modules/god_of_carnage/characters/index.yaml` and `characters/definitions/*.yaml` — canonical authority for character IDs
+- `world-engine/app/runtime/profiles.py` — `_resolve_goc_content()` reads canonical character content, produces content hash
+- `story_runtime_core/goc_solo_builtin_roles_rooms.py` — role IDs must match canonical character IDs
 - `world-engine/tests/test_mvp1_experience_identity.py` — `TestStoryTruthBoundary` and `TestContentResolvedRoleMapping`
 
 ## Consequences
 
-- Any change to canonical character IDs in `characters.yaml` must be reflected in the ExperienceTemplate role IDs
+- Any change to canonical character IDs in `characters/index.yaml` or `characters/definitions/*.yaml` must be reflected in the ExperienceTemplate role IDs
 - Test `test_goc_solo_runtime_projection_is_derived_from_canonical_content` will fail if they drift
-- The runtime profile produces a `content_hash` (SHA-256 of `characters.yaml`) in `build_actor_ownership()`, enabling drift detection
+- The runtime profile produces a `content_hash` from canonical character content in `build_actor_ownership()`, enabling drift detection
 - MVP 2 can trust that `human_actor_id` and `npc_actor_ids` in the handoff trace back to canonical content
 
 ## Diagrams
 
-**YAML in `content/modules/god_of_carnage/`** is sole story authority; the **solo ExperienceTemplate** is scaffolding only; resolver pulls IDs from **`characters.yaml`**.
+**YAML in `content/modules/god_of_carnage/`** is sole story authority; the **solo ExperienceTemplate** is scaffolding only; resolver pulls IDs from the modular **`characters/`** authority surface.
 
 ```mermaid
 flowchart TB
-  Y[characters.yaml + module YAML]
+  Y[characters/ + module YAML]
   TPL[god_of_carnage_solo template]
   Y -->|subset IDs enforced by tests| TPL
   Y --> PROF[Runtime profile resolver]

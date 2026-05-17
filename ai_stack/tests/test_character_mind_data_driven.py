@@ -1,10 +1,8 @@
 """Tests for data-driven character-mind selection.
 
-These pin the runtime's ability to build character-mind records for any module
-that publishes a canonical characters block, not only the God of Carnage
-vertical slice. The module-specific fallback map is exercised alongside so
-the currently-supported module continues to resolve short keys to canonical
-actor ids without code changes.
+These pin the runtime's ability to build character-mind records from actor ids
+published by content modules. Runtime code must not maintain a module-specific
+fallback map from character keys to actor ids.
 """
 
 from __future__ import annotations
@@ -20,10 +18,10 @@ def test_resolve_actor_id_prefers_explicit_yaml_actor_id() -> None:
     assert resolve_runtime_actor_id("hero", yaml_characters=chars) == "hero_001"
 
 
-def test_resolve_actor_id_uses_goc_fallback_for_short_keys() -> None:
+def test_resolve_actor_id_does_not_use_goc_fallback_for_short_keys() -> None:
     assert resolve_runtime_actor_id(
         "annette", yaml_characters={}, module_id="god_of_carnage"
-    ) == "annette_reille"
+    ) == "annette"
 
 
 def test_resolve_actor_id_returns_key_for_unknown_modules() -> None:
@@ -33,7 +31,7 @@ def test_resolve_actor_id_returns_key_for_unknown_modules() -> None:
     ) == "phoenix"
 
 
-def test_resolve_actor_id_explicit_yaml_wins_over_goc_fallback() -> None:
+def test_resolve_actor_id_uses_explicit_yaml_for_goc_short_key() -> None:
     chars = {"annette": {"actor_id": "annette_override"}}
     assert (
         resolve_runtime_actor_id(
@@ -66,9 +64,14 @@ def test_build_character_mind_records_uses_yaml_actor_ids() -> None:
     assert ids == ["hero_001", "rival_001"]
 
 
-def test_build_character_mind_records_goc_short_keys_still_work() -> None:
+def test_build_character_mind_records_goc_short_keys_require_content_actor_ids() -> None:
     records = build_character_mind_records_for_goc(
-        yaml_slice=None,
+        yaml_slice={
+            "characters": {
+                "annette": {"actor_id": "annette_reille", "role": "Guest"},
+                "alain": {"actor_id": "alain_reille", "role": "Guest"},
+            }
+        },
         active_character_keys=["annette", "alain"],
         current_scene_id="living_room",
         module_id="god_of_carnage",

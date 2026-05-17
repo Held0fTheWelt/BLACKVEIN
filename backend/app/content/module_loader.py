@@ -254,7 +254,7 @@ class ModuleFileLoader:
                         "id": str(doc.get("canonical_id") or doc.get("id") or char_id),
                         "name": str(doc.get("name") or char_id),
                         "role": str(doc.get("role") or doc.get("dramatic_role") or ""),
-                        "actor_id": str(doc.get("runtime_actor_id") or doc.get("actor_id") or ""),
+                        "actor_id": str(doc.get("actor_id") or doc.get("runtime_actor_id") or ""),
                         "runtime_actor_id": str(doc.get("runtime_actor_id") or doc.get("actor_id") or ""),
                         "baseline_attitude": str(
                             doc.get("baseline_attitude")

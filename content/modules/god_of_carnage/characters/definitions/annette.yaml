@@ -1,6 +1,7 @@
 character_document:
   id: annette
   canonical_id: annette
+  actor_id: annette_reille
   runtime_actor_id: annette_reille
   name: Annette Reille
   role: "Guest, spouse, controlled observer under pressure"

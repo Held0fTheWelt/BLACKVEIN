@@ -283,10 +283,14 @@ from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
 from story_runtime_core.language_adapter import (
+    build_interaction_surface,
     default_player_intent_commit_flags,
     load_session_language_model_directive,
     prepare_player_input_semantic_resolution,
 )
+
+
+SEMANTIC_INPUT_TRANSLATION_SCHEMA_VERSION = "semantic_language_adapter.input_translation.v1"
 
 
 def _runtime_profile_id_from_host_template(host_experience_template: dict[str, Any] | None) -> str | None:
@@ -326,6 +330,136 @@ def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
         session_input_language=input_lang,
         content_modules_root=None,
     )
+
+
+def _safe_json_object_from_model_text(text: str) -> dict[str, Any]:
+    raw = str(text or "").strip()
+    if not raw:
+        return {}
+    candidates = [raw]
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        candidates.append(raw[start : end + 1])
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except Exception:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return {}
+
+
+def _compact_semantic_catalog(module_id: str) -> dict[str, Any]:
+    try:
+        surface = build_interaction_surface(module_id)
+    except Exception:
+        surface = {}
+    if not isinstance(surface, dict):
+        return {}
+
+    def _compact_rows(rows: Any, fields: tuple[str, ...], *, limit: int) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        if not isinstance(rows, list):
+            return out
+        for row in rows[:limit]:
+            if not isinstance(row, dict):
+                continue
+            compact = {field: row.get(field) for field in fields if row.get(field) not in (None, "", [], {})}
+            if compact:
+                out.append(compact)
+        return out
+
+    return {
+        "module_id": module_id,
+        "schema_version": surface.get("schema_version"),
+        "locations": _compact_rows(
+            surface.get("locations"),
+            ("id", "name", "content_terms", "playable_access", "connected_place_ids", "inventory_object_ids"),
+            limit=48,
+        ),
+        "objects": _compact_rows(
+            surface.get("objects"),
+            ("id", "name", "content_terms", "placement_location_id", "playable_access", "portable"),
+            limit=80,
+        ),
+        "characters": _compact_rows(
+            surface.get("characters"),
+            ("id", "name", "content_terms", "runtime_actor_id", "role"),
+            limit=24,
+        ),
+    }
+
+
+def _semantic_translation_prompt(
+    *,
+    raw_text: str,
+    module_id: str,
+    session_input_language: str,
+    session_output_language: str,
+    contract: dict[str, Any],
+) -> str:
+    catalog = _compact_semantic_catalog(module_id)
+    return "\n".join(
+        [
+            "Return valid JSON only.",
+            "Resolve the player input before any story turn processing.",
+            f"session_input_language={session_input_language}",
+            f"session_output_language={session_output_language}",
+            "First translate or normalize the player input to English.",
+            "Then ground the English meaning against the English-authored content catalog.",
+            "Do not use lookup tables, phrase maps, verb maps, actor alias maps, or locale files.",
+            "If meaning or target is uncertain, set commit_policy to needs_clarification.",
+            "Expected top-level JSON keys:",
+            "- semantic_action: object following the semantic_resolution_contract expected_ai_output",
+            "- semantic_move: optional bounded social move object if the utterance carries social pressure",
+            "- confidence: high|medium|low",
+            "- reasoning_summary: one short sentence with content ids when available",
+            f"raw_player_text: {raw_text}",
+            "semantic_resolution_contract:",
+            json.dumps(contract, ensure_ascii=False, sort_keys=True),
+            "content_catalog:",
+            json.dumps(catalog, ensure_ascii=False, sort_keys=True),
+        ]
+    )
+
+
+def _semantic_payloads_from_translation_output(parsed: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not isinstance(parsed, dict):
+        return {}, {}
+    action = parsed.get("semantic_action")
+    if not isinstance(action, dict):
+        for key in ("semantic_resolution", "ai_semantic_resolution", "player_action"):
+            candidate = parsed.get(key)
+            if isinstance(candidate, dict):
+                action = candidate
+                break
+    if not isinstance(action, dict):
+        action_keys = {
+            "normalized_english_text",
+            "player_input_kind",
+            "action_kind",
+            "verb",
+            "target_query",
+            "target_query_english",
+            "resolved_target_id",
+            "resolved_target_type",
+            "commit_policy",
+        }
+        if any(key in parsed for key in action_keys):
+            action = {key: parsed.get(key) for key in action_keys if key in parsed}
+            for key in ("confidence", "reasoning_summary"):
+                if key in parsed:
+                    action[key] = parsed.get(key)
+    move = parsed.get("semantic_move")
+    if not isinstance(move, dict):
+        for key in ("ai_semantic_move", "semantic_move_resolution"):
+            candidate = parsed.get(key)
+            if isinstance(candidate, dict):
+                move = candidate
+                break
+    return (action if isinstance(action, dict) else {}, move if isinstance(move, dict) else {})
 
 
 def _prune_out_of_scope_actor_lanes(
@@ -4736,6 +4870,7 @@ class RuntimeTurnGraphExecutor:
         Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
         """
         graph = StateGraph(RuntimeTurnState)
+        graph.add_node("translate_player_input", self._translate_player_input)
         graph.add_node("interpret_input", self._interpret_input)
         graph.add_node("meta_control_turn", self._meta_control_turn)
         graph.add_node("resolve_player_action", self._resolve_player_action)
@@ -4769,7 +4904,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("commit_seam", self._commit_seam)
         graph.add_node("render_visible", self._render_visible)
         graph.add_node("package_output", self._package_output)
-        graph.set_entry_point("interpret_input")
+        graph.set_entry_point("translate_player_input")
+        graph.add_edge("translate_player_input", "interpret_input")
         graph.add_conditional_edges(
             "interpret_input",
             self._route_after_interpret_input,
@@ -5070,6 +5206,174 @@ class RuntimeTurnGraphExecutor:
         if validation_execution_mode:
             initial_state["validation_execution_mode"] = str(validation_execution_mode)
         return self._graph.invoke(initial_state)
+
+    def _translation_adapter_candidate(self) -> tuple[str, str, BaseModelAdapter | None, str | None]:
+        try:
+            decision = self.routing.choose(task_type="classification")
+        except Exception:
+            decision = None
+        candidate_model_ids: list[str] = []
+        if decision is not None:
+            for mid in (getattr(decision, "selected_model", None), getattr(decision, "fallback_model", None)):
+                text = str(mid or "").strip()
+                if text and text not in candidate_model_ids:
+                    candidate_model_ids.append(text)
+        for spec in self.registry.all().values():
+            if spec.model_name not in candidate_model_ids:
+                candidate_model_ids.append(spec.model_name)
+        for model_id in candidate_model_ids:
+            spec = self.registry.get(model_id)
+            if spec is None:
+                continue
+            provider = str(spec.provider or "").strip()
+            adapter = self.adapters.get(provider)
+            if adapter is not None:
+                api_model = str(getattr(spec, "provider_model_name", "") or "").strip() or spec.model_name
+                return model_id, provider, adapter, api_model
+        return "", "", None, None
+
+    def _translate_player_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Prepare or perform semantic input translation before interpretation."""
+        update = _track(state, node_name="translate_player_input")
+        raw_pi = str(state.get("player_input") or "").strip()
+        output_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+        input_lang = str(state.get("session_input_language") or output_lang).strip().lower()[:2] or output_lang
+        module_id = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
+
+        shell = prepare_player_input_semantic_resolution(
+            raw_pi,
+            module_id=module_id,
+            lang_hint=output_lang,
+            session_input_language=input_lang,
+            session_output_language=output_lang,
+            content_modules_root=None,
+        )
+        contract = shell.get("semantic_resolution_contract") if isinstance(shell.get("semantic_resolution_contract"), dict) else {}
+        translation: dict[str, Any] = {
+            "schema_version": SEMANTIC_INPUT_TRANSLATION_SCHEMA_VERSION,
+            "stage": "pre_interpretation",
+            "status": "contract_prepared",
+            "module_id": module_id,
+            "session_input_language": input_lang,
+            "session_output_language": output_lang,
+            "internal_resolution_language": "en",
+            "raw_player_text_sha256": hashlib.sha256(raw_pi.encode("utf-8", errors="replace")).hexdigest()
+            if raw_pi
+            else "",
+            "semantic_resolution_required": bool(shell.get("semantic_resolution_required")),
+            "semantic_catalog_available": bool(shell.get("semantic_catalog_available")),
+            "semantic_resolution_contract": contract,
+            "semantic_resolution_shell": shell,
+            "adapter_attempted": False,
+            "adapter_model_id": None,
+            "adapter_provider": None,
+            "adapter_success": None,
+            "parser_status": "not_attempted",
+        }
+
+        if _is_engine_opening_turn(state):
+            translation["status"] = "skipped_opening_turn"
+            translation["semantic_resolution_required"] = False
+            update["input_translation"] = translation
+            update["semantic_resolution_contract"] = contract
+            return update
+
+        model_id, provider, adapter, api_model = self._translation_adapter_candidate()
+        if adapter is None:
+            translation["status"] = "adapter_unavailable_contract_only"
+            translation["parser_status"] = "skipped_adapter_unavailable"
+            update["input_translation"] = translation
+            update["semantic_resolution_contract"] = contract
+            return update
+
+        prompt = _semantic_translation_prompt(
+            raw_text=raw_pi,
+            module_id=module_id,
+            session_input_language=input_lang,
+            session_output_language=output_lang,
+            contract=contract,
+        )
+        translation.update(
+            {
+                "adapter_attempted": True,
+                "adapter_model_id": model_id or None,
+                "adapter_provider": provider or None,
+                "prompt_length": len(prompt),
+            }
+        )
+        try:
+            call = adapter.generate(
+                prompt,
+                timeout_seconds=8.0,
+                retrieval_context=None,
+                model_name=api_model,
+            )
+        except Exception as exc:
+            translation.update(
+                {
+                    "status": "adapter_error_contract_only",
+                    "adapter_success": False,
+                    "parser_status": "not_attempted_adapter_error",
+                    "error": str(exc)[:300],
+                }
+            )
+            update["input_translation"] = translation
+            update["semantic_resolution_contract"] = contract
+            return update
+
+        translation["adapter_success"] = bool(call.success)
+        raw_output = str(call.content or "").strip()
+        if raw_output:
+            translation["model_output_sha256"] = hashlib.sha256(
+                raw_output.encode("utf-8", errors="replace")
+            ).hexdigest()
+            translation["model_output_excerpt"] = raw_output[:240]
+        if not call.success:
+            translation.update(
+                {
+                    "status": "adapter_failed_contract_only",
+                    "parser_status": "not_attempted_adapter_failed",
+                    "error": str((call.metadata or {}).get("error") or "")[:300],
+                }
+            )
+            update["input_translation"] = translation
+            update["semantic_resolution_contract"] = contract
+            return update
+
+        parsed = _safe_json_object_from_model_text(raw_output)
+        if not parsed:
+            translation.update(
+                {
+                    "status": "model_unparsed_contract_only",
+                    "parser_status": "no_json_object",
+                }
+            )
+            update["input_translation"] = translation
+            update["semantic_resolution_contract"] = contract
+            return update
+
+        semantic_action, semantic_move = _semantic_payloads_from_translation_output(parsed)
+        translation["parser_status"] = "parsed_json"
+        translation["parsed_top_level_keys"] = sorted(str(key) for key in parsed.keys())[:20]
+        if semantic_action:
+            translation["status"] = "resolved"
+            translation["semantic_resolution_required"] = False
+            translation["semantic_action"] = semantic_action
+            normalized = str(
+                semantic_action.get("normalized_english_text")
+                or semantic_action.get("english_text")
+                or semantic_action.get("internal_english_text")
+                or ""
+            ).strip()
+            if normalized:
+                translation["normalized_english_text"] = normalized
+        else:
+            translation["status"] = "model_missing_semantic_action_contract_only"
+        if semantic_move:
+            translation["semantic_move"] = semantic_move
+        update["input_translation"] = translation
+        update["semantic_resolution_contract"] = contract
+        return update
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
         """``_interpret_input`` — see implementation for behaviour and contracts.
@@ -6640,6 +6944,9 @@ class RuntimeTurnGraphExecutor:
             objects=state.get("objects")
             if isinstance(state.get("objects"), dict)
             else (yslice.get("objects") if isinstance(yslice, dict) else None),
+            character_documents=state.get("character_documents")
+            if isinstance(state.get("character_documents"), dict)
+            else (yslice.get("character_documents") if isinstance(yslice, dict) else None),
             content_access_policy=state.get("content_access_policy")
             if isinstance(state.get("content_access_policy"), dict)
             else (yslice.get("content_access_policy") if isinstance(yslice, dict) else None),

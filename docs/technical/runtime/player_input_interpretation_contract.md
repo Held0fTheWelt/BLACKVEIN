@@ -93,7 +93,9 @@ Canonical handling:
 - Unquoted lexical input that appears to describe withholding is marked for
   semantic AI resolution unless an upstream AI payload supplies silence
   semantics.
-- The LangGraph runtime may map these signals to `player_input_kind=wait_or_observe` for non-lexical input or `player_input_kind=social_nonverbal_action` for explicit withholding.
+- The LangGraph runtime may map non-lexical signals to
+  `player_input_kind=wait_or_observe`. AI-resolved withholding can carry
+  `player_input_kind=social_nonverbal_action` or `semantic_category=silence_withdrawal`.
 - Runtime payloads mark `silence_negative_space_signal=true` and set `semantic_category=silence_withdrawal` when the signal should continue into the Π14 negative-space path.
 - Semantic interpretation may then emit `semantic_move_record.move_type=silence_withdrawal`, allowing the scene director to produce `silence_negative_space.v1` inside `silence_brevity_decision`.
 

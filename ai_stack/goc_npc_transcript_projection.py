@@ -10,26 +10,49 @@ Cardinality of projected blocks follows content + policy, not a fixed count.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any, Sequence
 
 from ai_stack.goc_frozen_vocab import (
-    GOC_CANONICAL_ACTOR_IDS,
     canonicalize_goc_actor_id,
     expand_goc_actor_id_aliases,
 )
+from ai_stack.goc_yaml_authority import (
+    goc_actor_display_name,
+    goc_actor_ids_from_content,
+    goc_actor_identity,
+)
 
-_GOC_SHELL_FIRST: dict[str, str] = {
-    "veronique_vallon": "Véronique",
-    "annette_reille": "Annette",
-    "michel_longstreet": "Michel",
-    "alain_reille": "Alain",
+
+def _fold_label(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(value or "").strip().lower())
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def _content_actor_id(value: str) -> str:
+    raw = str(value or "").strip()
+    ident = goc_actor_identity(raw)
+    if ident.get("actor_id"):
+        return str(ident["actor_id"])
+    return canonicalize_goc_actor_id(raw)
+
+
+def _content_actor_aliases(actor_id: str) -> set[str]:
+    aliases = set(expand_goc_actor_id_aliases(actor_id))
+    ident = goc_actor_identity(actor_id)
+    for key in ("actor_id", "character_key", "name", "first_name"):
+        val = str(ident.get(key) or "").strip()
+        if val:
+            aliases.add(val)
+    return aliases
 }
 
 
 def goc_shell_display_firstname(actor_id: str) -> str:
-    aid = str(canonicalize_goc_actor_id(str(actor_id).strip()) or str(actor_id).strip()).strip()
-    if aid in _GOC_SHELL_FIRST:
-        return _GOC_SHELL_FIRST[aid]
+    aid = str(_content_actor_id(str(actor_id).strip()) or str(actor_id).strip()).strip()
+    resolved = goc_actor_display_name(aid, first_name=True)
+    if resolved != (aid.replace("_", " ").title() if aid else "Actor"):
+        return resolved
     return aid.replace("_", " ").title() if aid else "Actor"
 
 
@@ -38,22 +61,23 @@ def goc_npc_roster_canonical_ids(runtime_projection: dict[str, Any] | None) -> t
     proj = runtime_projection if isinstance(runtime_projection, dict) else {}
     exclude: set[str] = set()
     for key in ("human_actor_id", "selected_player_role"):
-        c = canonicalize_goc_actor_id(str(proj.get(key) or "").strip())
+        c = _content_actor_id(str(proj.get(key) or "").strip())
         if c:
             exclude.add(c)
     raw = proj.get("npc_actor_ids")
     out: list[str] = []
     seen: set[str] = set()
+    content_actor_ids = set(goc_actor_ids_from_content())
     if isinstance(raw, list) and raw:
         for item in raw:
-            c = canonicalize_goc_actor_id(str(item).strip())
-            if not c or c in exclude or c not in GOC_CANONICAL_ACTOR_IDS:
+            c = _content_actor_id(str(item).strip())
+            if not c or c in exclude or c not in content_actor_ids:
                 continue
             if c not in seen:
                 seen.add(c)
                 out.append(c)
         return tuple(out)
-    for c in sorted(GOC_CANONICAL_ACTOR_IDS):
+    for c in goc_actor_ids_from_content():
         if c not in exclude:
             out.append(c)
     return tuple(out)
@@ -64,6 +88,11 @@ def _prefix_tokens_for_actor(canonical_id: str) -> list[str]:
     fn = goc_shell_display_firstname(canonical_id)
     if fn:
         tokens.add(fn)
+    ident = goc_actor_identity(canonical_id)
+    for key in ("name", "first_name", "character_key"):
+        val = str(ident.get(key) or "").strip()
+        if val:
+            tokens.add(val)
     stem = canonical_id.split("_", 1)[0].strip()
     if stem:
         tokens.add(stem.title())
@@ -113,12 +142,12 @@ def goc_prefix_label_to_actor_id(label: str, roster_canonical: Sequence[str]) ->
     low_raw = raw.lower()
     scored: list[tuple[int, str]] = []
     for aid in roster_canonical:
-        for alias in expand_goc_actor_id_aliases(aid):
+        for alias in _content_actor_aliases(aid):
             al = str(alias).strip()
             if len(al) < 2:
                 continue
             al_low = al.lower()
-            if low_raw.startswith(al_low) or low_raw.startswith(al_low.replace("é", "e")):
+            if low_raw.startswith(al_low) or _fold_label(low_raw).startswith(_fold_label(al_low)):
                 scored.append((len(al), aid))
     if scored:
         scored.sort(key=lambda t: (-t[0], t[1]))

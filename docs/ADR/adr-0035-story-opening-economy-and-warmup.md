@@ -8,7 +8,7 @@ Accepted
 
 **Accepted and implemented as a bounded GoC opening/runtime-state contract.**
 
-- Implemented opening contract surfaces: `content/modules/god_of_carnage/knowledge/opening_scene_sequence.yaml`, `direction/opening_sequence.yaml`, `scenes.yaml`, and `direction/scene_guidance.yaml` are loaded through the module runtime policy and GoC YAML slice.
+- Implemented opening contract surfaces: `content/modules/god_of_carnage/canonical_path/`, `locations/opening/`, `locations/building/`, `locations/appartment_vallon/`, `objects/`, `characters/`, `knowledge/opening_scene_sequence.yaml`, `knowledge/opening_quote_anchors.yaml`, `direction/opening_sequence.yaml`, `scene_graph.yaml`, and `phase_beat_policy.yaml` are loaded through the module runtime policy and GoC YAML slice.
 - Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
 - Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
 - The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
@@ -21,7 +21,7 @@ Accepted
 
 ## Context
 
-Canonical content modules already describe an early dramaturgical phase that favors **orientation over escalation**. Example (God of Carnage): `phase_1` / “Polite Opening” in `content/modules/god_of_carnage/scenes.yaml` and `direction/scene_guidance.yaml` — ritual civility, light framing, **no** substantive disagreement yet, triggers intentionally inactive.
+Canonical content modules already describe an early dramaturgical phase that favors **orientation over escalation**. Example (God of Carnage): the opening canonical path steps, `scene_graph.yaml`, and `phase_beat_policy.yaml` define a polite handover into the Vallon apartment — ritual civility, light framing, **no** substantive disagreement yet, escalation beats intentionally constrained.
 
 Separately, several runtime layers optimize for **immediate visible narrative mass** and **dramatic pressure**:
 
@@ -153,9 +153,12 @@ Current verification uses structured/content-derived assertions:
 ## References
 
 - `resources/carnage-2011.pdf` — *Carnage* (2011) shooting script; opening sequencing (playground → apartment) as dramaturgical reference
+- `content/modules/god_of_carnage/canonical_path/` — numbered directed opening spine, including park incident, building hallway, apartment handover, and first playable courtesy gap
+- `content/modules/god_of_carnage/locations/` — opening, building, and apartment place authority used by the opening path
+- `content/modules/god_of_carnage/objects/` — one-file-per-object authority referenced by rooms and path steps
 - `content/modules/god_of_carnage/direction/opening_sequence.yaml` — canonical two-part opening + narrator bar + premise seeds (bundled as `opening_sequence` in GoC YAML slice)
-- `content/modules/god_of_carnage/scenes.yaml` — `session_opening` pointer; phase_1 polite opening
-- `content/modules/god_of_carnage/direction/scene_guidance.yaml` — phase guidance
+- `content/modules/god_of_carnage/scene_graph.yaml` — runtime node index that references canonical path/location ids; not a second scene description database
+- `content/modules/god_of_carnage/phase_beat_policy.yaml` — early-phase pacing and forbidden escalation policy
 - `content/modules/god_of_carnage/direction/system_prompt.md` — phase semantics (“structural, not stage directions”)
 - `world-engine/app/story_runtime/manager.py` — `_build_opening_prompt` (opening prompt construction)
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary

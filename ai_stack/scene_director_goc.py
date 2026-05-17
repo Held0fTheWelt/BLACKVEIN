@@ -10,7 +10,6 @@ from typing import Any
 from ai_stack.goc_frozen_vocab import (
     CONTINUITY_CLASSES,
     CONTINUITY_CLASS_SEVERITY_ORDER,
-    GOC_CANONICAL_ACTOR_IDS,
     GOC_MODULE_ID,
     SCENE_FUNCTIONS,
     assert_pacing_mode,
@@ -18,7 +17,12 @@ from ai_stack.goc_frozen_vocab import (
     assert_silence_brevity_mode,
 )
 from ai_stack.goc_scene_identity import GOC_DEFAULT_GUIDANCE_PHASE_KEY, guidance_phase_key_for_scene_id
-from ai_stack.goc_yaml_authority import scene_assessment_phase_hints, scene_guidance_snippets
+from ai_stack.goc_yaml_authority import (
+    goc_actor_ids_from_content,
+    goc_actor_identity_index,
+    scene_assessment_phase_hints,
+    scene_guidance_snippets,
+)
 from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label_in_matrix
 from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.silence_negative_space_contract import (
@@ -514,21 +518,6 @@ def _goc_primary_responder_from_context(
     return actor, reason
 
 
-_GOC_DEFAULT_REACTOR_BY_PRIMARY: dict[str, str] = {
-    "annette_reille": "veronique_vallon",
-    "alain_reille": "michel_longstreet",
-    "michel_longstreet": "annette_reille",
-    "veronique_vallon": "alain_reille",
-}
-
-_GOC_INTERRUPTER_BY_PRIMARY: dict[str, str] = {
-    "annette_reille": "michel_longstreet",
-    "alain_reille": "veronique_vallon",
-    "michel_longstreet": "veronique_vallon",
-    "veronique_vallon": "annette_reille",
-}
-
-
 def _append_responder(
     responders: list[dict[str, Any]],
     *,
@@ -551,10 +540,30 @@ def _append_responder(
     })
 
 
+def _content_actor_ids(yaml_slice: dict[str, Any] | None) -> list[str]:
+    chars = yaml_slice.get("characters") if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("characters"), dict) else {}
+    out: list[str] = []
+    for row in chars.values():
+        if not isinstance(row, dict):
+            continue
+        actor_id = str(row.get("actor_id") or row.get("runtime_actor_id") or "").strip()
+        if actor_id and actor_id not in out:
+            out.append(actor_id)
+    return out
+
+
+def _first_available_actor_id(actor_ids: list[str], *, excluded: set[str]) -> str:
+    for actor_id in actor_ids:
+        if actor_id and actor_id not in excluded:
+            return actor_id
+    return ""
+
+
 def _build_responder_set(
     *,
     primary_actor: str,
     primary_reason: str,
+    yaml_slice: dict[str, Any] | None,
     scene_fn: str,
     pacing_mode: str,
     prior_classes: list[str],
@@ -600,7 +609,10 @@ def _build_responder_set(
     ]
 
     if is_high_pressure:
-        secondary = _GOC_DEFAULT_REACTOR_BY_PRIMARY.get(primary_actor)
+        secondary = _first_available_actor_id(
+            _content_actor_ids(yaml_slice),
+            excluded={str(row.get("actor_id") or "").strip() for row in responders if isinstance(row, dict)},
+        )
         if secondary:
             _append_responder(
                 responders,
@@ -616,7 +628,10 @@ def _build_responder_set(
         or move_type in {"direct_accusation", "escalation_threat"}
     )
     if interruption_trigger:
-        interrupter = _GOC_INTERRUPTER_BY_PRIMARY.get(primary_actor)
+        interrupter = _first_available_actor_id(
+            _content_actor_ids(yaml_slice),
+            excluded={str(row.get("actor_id") or "").strip() for row in responders if isinstance(row, dict)},
+        )
         if interrupter:
             _append_responder(
                 responders,
@@ -803,6 +818,7 @@ def build_responder_and_function(
     responders, responder_set_resolution = _build_responder_set(
         primary_actor=actor,
         primary_reason=reason,
+        yaml_slice=yaml_slice,
         scene_fn=scene_fn,
         pacing_mode=pacing_mode,
         prior_classes=prior_classes,

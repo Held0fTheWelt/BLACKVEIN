@@ -83,7 +83,7 @@ Content defines: characters, relationships, scenes, transitions, triggers, escal
 | Wave | Focus | Primary Deliverables | Gate Criteria |
 |------|-------|----------------------|---------------|
 | **W0** | **Foundation & Contract** | 4 canonical docs, schema skeletons, test skeletons, SLM/LLM role definitions, folder structure | Core terms defined, contracts documented, SLM/LLM roles separated |
-| **W1** | **God of Carnage as Real Module** | Full module.yaml, characters.yaml, relationships.yaml, scenes.yaml, triggers.yaml, endings.yaml, content validator | Module loads stably, at least one run formally possible |
+| **W1** | **God of Carnage as Real Module** | Full modular content tree: `module.yaml`, `canonical_path/`, `locations/`, `objects/`, `characters/`, `knowledge/`, `direction/`, policy files, content validator | Module loads stably, at least one run formally possible |
 | **W2** | **Dynamic AI Story Core** | Story loop skeleton (W2.0), real AI adapter with JSON (W2.1), guard/validation layer (W2.2), context/memory logic (W2.3), internal SLM/LLM roles (W2.4), recovery/stability (W2.5) | Story loop stable, guard layer enforced, recovery working |
 | **W3** | **Playable UI with Diagnostics** | Session start view, scene display, character panel, conflict panel, debug panel, minimum API endpoints (start session, get session, execute turn, get logs, get state) | Minimum playable, diagnostics discoverable |
 | **W4** | **MVP Hardening & First Playable** | System tests, E2E tests, balancing, AI quality, session persistence, UI usability, demo script | MVP-ready for demonstration |

@@ -1,6 +1,7 @@
 character_document:
   id: michel
   canonical_id: michel
+  actor_id: michel_longstreet
   runtime_actor_id: michel_longstreet
   name: Michel Vallon
   role: "Host, spouse, pragmatist, conflict avoider"

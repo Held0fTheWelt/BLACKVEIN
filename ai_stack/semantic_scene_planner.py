@@ -251,17 +251,6 @@ _HARD_TRANSITION_SCENE_FUNCTIONS: Final[frozenset[str]] = frozenset(
     {"escalate_conflict", "redirect_blame", "reveal_surface"}
 )
 
-_ACTOR_KEY_TO_RUNTIME_ID: Final[dict[str, str]] = {
-    "veronique": "veronique_vallon",
-    "michel": "michel_longstreet",
-    "annette": "annette_reille",
-    "alain": "alain_reille",
-}
-
-_RUNTIME_ID_TO_ACTOR_KEY: Final[dict[str, str]] = {
-    actor_id: actor_key for actor_key, actor_id in _ACTOR_KEY_TO_RUNTIME_ID.items()
-}
-
 _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
     "opening_008_statement_on_table": {
         "speech_function": "statement_procedure",
@@ -270,7 +259,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": "veronique",
+                "actor_ref": "veronique",
                 "intent": "introduce_written_statement_as_shared_ground",
                 "quote_anchor_id": "quote_carrying",
                 "paraphrase_policy": "structural_paraphrase_required",
@@ -286,14 +275,14 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "single_word_challenge",
-                "actor_key": "alain",
+                "actor_ref": "alain",
                 "intent": "isolate_the_accusatory_word",
                 "quote_anchor_id": "quote_armed",
                 "quote_use": "exact_anchor_allowed",
                 "required_facts": ("challenge_target_word: armed",),
                 "minimum_visible": "one word as a question, at most three words",
                 "forces_response_chain": {
-                    "target_actor_key": "veronique",
+                    "target_actor_ref": "veronique",
                     "target_intent": "offer_compromise_word_carrying",
                     "required_state_change": "statement_word_replaced",
                     "target_pattern_ref": "paraphrase_required_with_facts",
@@ -302,7 +291,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
             },
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": "veronique",
+                "actor_ref": "veronique",
                 "intent": "offer_compromise_word_carrying",
                 "quote_anchor_id": "quote_carrying",
                 "quote_use": "exact_anchor_allowed",
@@ -320,7 +309,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": "veronique",
+                "actor_ref": "veronique",
                 "intent": "make_dental_consequence_concrete",
                 "quote_anchor_id": "quote_root_canal",
                 "paraphrase_policy": "short_anchor_quote_allowed",
@@ -336,7 +325,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": "veronique",
+                "actor_ref": "veronique",
                 "intent": "frame_the_meeting_as_civilized_community",
                 "quote_anchor_id": "quote_sense_of_community",
                 "paraphrase_policy": "short_anchor_quote_allowed",
@@ -345,7 +334,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
             },
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": "annette",
+                "actor_ref": "annette",
                 "intent": "concede_parental_form_without_accepting_moral_trial",
                 "quote_anchor_id": "quote_our_kid",
                 "paraphrase_policy": "short_anchor_quote_allowed",
@@ -361,7 +350,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "amiable_echo",
-                "actor_key": "michel",
+                "actor_ref": "michel",
                 "intent": "use_safe_object_compliment_to_delay_conflict",
                 "quote_anchor_id": "quote_tulips_gorgeous",
                 "quote_use": "exact_anchor_allowed",
@@ -377,7 +366,7 @@ _DIALOGUE_STEP_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "beats": (
             {
                 "beat_pattern_ref": "phone_interruption_recurrent",
-                "actor_key": "alain",
+                "actor_ref": "alain",
                 "intent": "let_phone_pressure_interrupt_without_solving_exit",
                 "quote_anchor_id": None,
                 "paraphrase_policy": "verbatim_forbidden",
@@ -414,21 +403,33 @@ def _unique_clean(values: list[Any] | tuple[Any, ...]) -> list[str]:
     return out
 
 
-def _actor_key_to_runtime_id(actor_key_or_id: Any) -> str:
-    value = _clean(actor_key_or_id)
-    if value in _ACTOR_KEY_TO_RUNTIME_ID:
-        return _ACTOR_KEY_TO_RUNTIME_ID[value]
-    return value
+def _actor_id_index(character_documents: dict[str, Any] | None) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for key, row in _as_dict(character_documents).items():
+        if not isinstance(row, dict):
+            continue
+        actor_id = _clean(row.get("actor_id") or row.get("runtime_actor_id"))
+        if not actor_id:
+            continue
+        for ref in (
+            key,
+            row.get("id"),
+            row.get("canonical_id"),
+            row.get("character_id"),
+            actor_id,
+            row.get("runtime_actor_id"),
+        ):
+            cleaned = _clean(ref)
+            if cleaned:
+                out.setdefault(cleaned, actor_id)
+    return out
 
 
-def _actor_key_for_ref(ref: Any) -> str:
-    text = _clean(ref)
-    if not text:
+def _resolve_actor_id(actor_ref_or_id: Any, actor_id_by_ref: dict[str, str]) -> str:
+    value = _clean(actor_ref_or_id)
+    if not value:
         return ""
-    name = text.rsplit("/", 1)[-1].split(".", 1)[0]
-    if name in {"veronique", "michel", "annette", "alain"}:
-        return name
-    return ""
+    return actor_id_by_ref.get(value, value if value in actor_id_by_ref.values() else "")
 
 
 def _ai_forbidden_actor_ids(actor_lane_context: dict[str, Any] | None) -> set[str]:
@@ -608,6 +609,7 @@ def _content_frame(
     scene_graph: dict[str, Any] | None,
     locations: dict[str, Any] | None,
     objects: dict[str, Any] | None,
+    character_documents: dict[str, Any] | None,
     content_access_policy: dict[str, Any] | None,
     scene_assessment: dict[str, Any] | None,
     environment_state: dict[str, Any] | None,
@@ -638,12 +640,22 @@ def _content_frame(
     if not object_ids and location_id:
         loc = _location_rows(locations).get(location_id, {})
         object_ids = [_clean(item) for item in _as_list(loc.get("inventory_object_ids")) if _clean(item)]
-    present_keys = [
+    actor_id_by_ref = _actor_id_index(character_documents)
+    present_refs = [
         _clean(item)
         for item in _as_list(_as_dict(_as_dict(step.get("path_point")).get("present")).get("named_characters"))
         if _clean(item)
     ]
-    present_actor_ids = [_ACTOR_KEY_TO_RUNTIME_ID.get(key, key) for key in present_keys]
+    explicit_present_actor_ids = [
+        _clean(item)
+        for item in _as_list(_as_dict(_as_dict(step.get("path_point")).get("present")).get("actor_ids"))
+        if _clean(item)
+    ]
+    present_actor_ids = explicit_present_actor_ids or [
+        actor_id
+        for actor_id in (_resolve_actor_id(ref, actor_id_by_ref) for ref in present_refs)
+        if actor_id
+    ]
     target_ids = [location_id, *object_ids]
 
     return {
@@ -663,7 +675,7 @@ def _content_frame(
         "player_windows": _unique_clean(_as_list(_as_dict(step.get("path_point")).get("player_windows"))),
         "narrator_tasks": _unique_clean(_as_list(_as_dict(step.get("path_point")).get("narrator_tasks"))),
         "must_not": _unique_clean(_as_list(_as_dict(step.get("path_point")).get("must_not"))),
-        "present_actor_keys": present_keys,
+        "present_actor_refs": present_refs,
         "present_actor_ids": present_actor_ids,
         "next_step_id": _as_dict(step.get("next_point")).get("step_id"),
         "next_handoff": _as_dict(step.get("next_point")).get("handoff"),
@@ -774,14 +786,15 @@ def _speech_profile_for_frame(
 
 def _select_dialogue_actor(
     *,
-    preferred_actor_key: str,
+    preferred_actor_ref: str,
     content_frame: dict[str, Any],
     selected_responder_set: list[dict[str, Any]] | None,
     actor_lane_context: dict[str, Any] | None,
+    actor_id_by_ref: dict[str, str],
 ) -> str:
     forbidden = _ai_forbidden_actor_ids(actor_lane_context)
     candidates: list[str] = []
-    preferred = _actor_key_to_runtime_id(preferred_actor_key)
+    preferred = _resolve_actor_id(preferred_actor_ref, actor_id_by_ref)
     if preferred:
         candidates.append(preferred)
     for row in selected_responder_set or []:
@@ -802,25 +815,28 @@ def _dialogue_plan(
     selected_responder_set: list[dict[str, Any]] | None,
     actor_lane_context: dict[str, Any] | None,
     beat_library: dict[str, Any] | None,
+    character_documents: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
     if not speech_policy.get("speech_recommended") or not speech_policy.get("npc_speech_allowed"):
         return []
+    actor_id_by_ref = _actor_id_index(character_documents)
     step_id = _clean(content_frame.get("canonical_path_step_id"))
     profile = _DIALOGUE_STEP_PROFILES.get(step_id, {})
     profile_beats = list(profile.get("beats") or [])
     if not profile_beats:
         actor_id = _select_dialogue_actor(
-            preferred_actor_key="",
+            preferred_actor_ref="",
             content_frame=content_frame,
             selected_responder_set=selected_responder_set,
             actor_lane_context=actor_lane_context,
+            actor_id_by_ref=actor_id_by_ref,
         )
         if not actor_id:
             return []
         profile_beats = [
             {
                 "beat_pattern_ref": "paraphrase_required_with_facts",
-                "actor_key": _RUNTIME_ID_TO_ACTOR_KEY.get(actor_id, actor_id),
+                "actor_ref": actor_id,
                 "intent": speech_policy.get("speech_function") or "respond_to_scene_pressure",
                 "quote_anchor_id": None,
                 "paraphrase_policy": "structural_paraphrase_required",
@@ -835,15 +851,16 @@ def _dialogue_plan(
     for idx, spec in enumerate(profile_beats, start=1):
         if not isinstance(spec, dict):
             continue
-        preferred_actor_key = _clean(spec.get("actor_key"))
-        preferred_actor_id = _actor_key_to_runtime_id(preferred_actor_key)
-        if preferred_actor_key and preferred_actor_id in forbidden:
+        preferred_actor_ref = _clean(spec.get("actor_ref") or spec.get("actor_id"))
+        preferred_actor_id = _resolve_actor_id(preferred_actor_ref, actor_id_by_ref)
+        if preferred_actor_ref and preferred_actor_id and preferred_actor_id in forbidden:
             continue
         actor_id = _select_dialogue_actor(
-            preferred_actor_key=preferred_actor_key,
+            preferred_actor_ref=preferred_actor_ref,
             content_frame=content_frame,
             selected_responder_set=selected_responder_set,
             actor_lane_context=actor_lane_context,
+            actor_id_by_ref=actor_id_by_ref,
         )
         if not actor_id:
             continue
@@ -851,15 +868,16 @@ def _dialogue_plan(
         quote_ref = _quote_anchor_ref(spec.get("quote_anchor_id"), _as_list(content_frame.get("quote_anchor_refs")))
         chain = _as_dict(spec.get("forces_response_chain"))
         if chain:
-            preferred_target_key = _clean(chain.get("target_actor_key"))
-            preferred_target_id = _actor_key_to_runtime_id(preferred_target_key)
+            preferred_target_ref = _clean(chain.get("target_actor_ref") or chain.get("target_actor_id"))
+            preferred_target_id = _resolve_actor_id(preferred_target_ref, actor_id_by_ref)
             target_actor_id = ""
-            if not preferred_target_key or preferred_target_id not in forbidden:
+            if not preferred_target_ref or not preferred_target_id or preferred_target_id not in forbidden:
                 target_actor_id = _select_dialogue_actor(
-                    preferred_actor_key=preferred_target_key,
+                    preferred_actor_ref=preferred_target_ref,
                     content_frame=content_frame,
                     selected_responder_set=[],
                     actor_lane_context=actor_lane_context,
+                    actor_id_by_ref=actor_id_by_ref,
                 )
             chain = {
                 "target_actor_id": target_actor_id or None,
@@ -878,7 +896,7 @@ def _dialogue_plan(
                 "beat_pattern_ref": pattern_ref,
                 "beat_pattern_available": pattern_ref in known_patterns if known_patterns else None,
                 "actor_id": actor_id,
-                "actor_key": _RUNTIME_ID_TO_ACTOR_KEY.get(actor_id),
+                "actor_ref": preferred_actor_ref or actor_id,
                 "intent": spec.get("intent"),
                 "required": bool(spec.get("required", speech_policy.get("speech_required"))),
                 "quote_anchor_ref": quote_ref,
@@ -1839,6 +1857,7 @@ def build_semantic_scene_plan_enrichment(
     scene_graph: dict[str, Any] | None = None,
     locations: dict[str, Any] | None = None,
     objects: dict[str, Any] | None = None,
+    character_documents: dict[str, Any] | None = None,
     content_access_policy: dict[str, Any] | None = None,
     beat_library: dict[str, Any] | None = None,
     opening_quote_anchors: dict[str, Any] | None = None,
@@ -1920,6 +1939,7 @@ def build_semantic_scene_plan_enrichment(
         scene_graph=scene_graph,
         locations=locations,
         objects=objects,
+        character_documents=character_documents,
         content_access_policy=content_access_policy,
         scene_assessment=scene,
         environment_state=environment_state,
@@ -1949,6 +1969,7 @@ def build_semantic_scene_plan_enrichment(
         selected_responder_set=selected_responder_set,
         actor_lane_context=actor_lane_context,
         beat_library=beat_library,
+        character_documents=character_documents,
     )
     quote_moment_policy = _quote_moment_policy(
         content_frame=content_frame,

@@ -1,6 +1,7 @@
 character_document:
   id: alain
   canonical_id: alain
+  actor_id: alain_reille
   runtime_actor_id: alain_reille
   name: Alain Reille
   role: "Guest, spouse, lawyerly pragmatist, phone-tethered avoider"

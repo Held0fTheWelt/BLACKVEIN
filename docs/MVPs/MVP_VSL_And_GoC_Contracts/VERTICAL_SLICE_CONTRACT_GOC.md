@@ -131,7 +131,7 @@ Negative-space payloads are **soft dramatic shaping**. They do not commit new fa
 
 | Rule | Statement |
 |---|---|
-| **Canonical** | The **YAML module tree** at `content/modules/god_of_carnage/` (including referenced files such as `module.yaml`, `scenes.yaml`, and the `direction/` subtree) is the **sole canonical dramatic source authority** for slice content consumed by runtime and task derivation. |
+| **Canonical** | The **YAML module tree** at `content/modules/god_of_carnage/` (including referenced surfaces such as `module.yaml`, `canonical_path/`, `locations/`, `objects/`, `characters/`, `knowledge/`, `direction/`, and module policy files) is the **sole canonical dramatic source authority** for slice content consumed by runtime and task derivation. |
 | **Secondary — builtins** | The `god_of_carnage_solo` builtins template may **not** define truth that contradicts YAML. It may **not** be merged silently with YAML. If both are loaded, **YAML wins**; builtins may only mirror YAML or remain explicitly non-authoritative test fixtures. |
 | **Secondary — writers-room** | Writers-room markdown **must not** influence runtime directly. It is **reference and design input only**. Changes become runtime-relevant only when reflected in YAML (or in a future derived corpus explicitly built from YAML). |
 | **Derived corpus** | Any future derived corpus is **non-canonical** unless promoted by freeze amendment; until then it is a build artifact whose source of truth remains YAML. |

@@ -4,7 +4,13 @@ How **canonical YAML modules** become **runtime**, **retrieval**, and **review**
 
 ## Canonical source
 
-- Files live under `content/modules/<module_id>/` (`module.yaml`, `scenes.yaml`, `characters.yaml`, `triggers.yaml`, `transitions.yaml`, `endings.yaml`, `relationships.yaml`, …).
+- Files live under `content/modules/<module_id>/`. Current modules are
+  folder-based rather than a single flat scene file set: `module.yaml`,
+  `canonical_path/`, `locations/`, `objects/`, `characters/`, `knowledge/`,
+  `direction/`, and module policy files such as `phase_beat_policy.yaml`.
+- Directed path files reference locations, objects, characters, and policy ids.
+  They must not restate those authority surfaces as a second description
+  database.
 - Loader models: `backend/app/content/module_loader.py`, `module_models.py`.
 - Conceptual model: [`docs/technical/content/canonical_authored_content_model.md`](../../technical/content/canonical_authored_content_model.md).
 
@@ -24,6 +30,10 @@ The canonical model defines three compiled projections:
 ## GoC binding
 
 For God of Carnage, **YAML is primary**; builtins such as `god_of_carnage_solo` are **secondary** and must not silently override YAML (`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §6).
+
+Current GoC authoring is led by `canonical_path/` plus modular
+`locations/`, `objects/`, and `characters/` folders. `scene_graph.yaml` is a
+runtime index over those ids, not the primary narrative description surface.
 
 ## Duplicate-truth risk (writers-room)
 

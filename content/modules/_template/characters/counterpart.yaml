@@ -1,6 +1,7 @@
 character_document:
   id: counterpart
   canonical_id: counterpart
+  actor_id: counterpart_actor
   runtime_actor_id: counterpart_actor
   name: Counterpart Name
   role: "Replace with opposing or complicating role"

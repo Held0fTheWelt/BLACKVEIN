@@ -186,8 +186,8 @@ def load_goc_characters_yaml() -> dict[str, Any]:
                 or doc.get("public_identity")
                 or ""
             ),
-            **({"actor_id": doc.get("runtime_actor_id")} if doc.get("runtime_actor_id") else {}),
-            **({"runtime_actor_id": doc.get("runtime_actor_id")} if doc.get("runtime_actor_id") else {}),
+            **({"actor_id": doc.get("actor_id") or doc.get("runtime_actor_id")} if (doc.get("actor_id") or doc.get("runtime_actor_id")) else {}),
+            **({"runtime_actor_id": doc.get("runtime_actor_id") or doc.get("actor_id")} if (doc.get("runtime_actor_id") or doc.get("actor_id")) else {}),
             **({"playable_status": doc.get("playable_status")} if doc.get("playable_status") else {}),
         }
         for char_id, doc in docs.items()
@@ -465,6 +465,90 @@ def load_goc_character_documents_yaml() -> dict[str, Any]:
         if char_id:
             docs[char_id] = inner
     return docs
+
+
+def goc_actor_identity_index(yaml_slice: dict[str, Any] | None = None) -> dict[str, dict[str, str]]:
+    """Return actor identity records derived from content character documents."""
+    docs = (
+        yaml_slice.get("character_documents")
+        if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("character_documents"), dict)
+        else None
+    )
+    if not isinstance(docs, dict) or not docs:
+        docs = (
+            yaml_slice.get("characters")
+            if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("characters"), dict)
+            else None
+        )
+    if not isinstance(docs, dict) or not docs:
+        docs = load_goc_character_documents_yaml()
+    out: dict[str, dict[str, str]] = {}
+    for key, row in docs.items():
+        if not isinstance(row, dict):
+            continue
+        actor_id = str(row.get("actor_id") or row.get("runtime_actor_id") or "").strip()
+        if not actor_id:
+            continue
+        character_key = str(row.get("id") or row.get("canonical_id") or key or "").strip()
+        name = str(row.get("name") or character_key or actor_id).strip()
+        first_name = name.split()[0] if name else actor_id.replace("_", " ").title()
+        out[actor_id] = {
+            "actor_id": actor_id,
+            "character_key": character_key,
+            "name": name,
+            "first_name": first_name,
+            "playable_status": str(row.get("playable_status") or "").strip(),
+            "household_side": str(row.get("household_side") or "").strip(),
+            "role": str(row.get("role") or "").strip(),
+        }
+    return out
+
+
+def goc_actor_identity(
+    actor_id_or_ref: str | None,
+    *,
+    yaml_slice: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    ref = str(actor_id_or_ref or "").strip()
+    ref_low = ref.lower()
+    index = goc_actor_identity_index(yaml_slice)
+    if ref in index:
+        return dict(index[ref])
+    for row in index.values():
+        aliases = {
+            str(row.get("actor_id") or "").strip(),
+            str(row.get("character_key") or "").strip(),
+            str(row.get("name") or "").strip(),
+            str(row.get("first_name") or "").strip(),
+        }
+        if ref and (ref in aliases or ref_low in {alias.lower() for alias in aliases if alias}):
+            return dict(row)
+    return {}
+
+
+def goc_actor_display_name(
+    actor_id_or_ref: str | None,
+    *,
+    yaml_slice: dict[str, Any] | None = None,
+    first_name: bool = False,
+) -> str:
+    ident = goc_actor_identity(actor_id_or_ref, yaml_slice=yaml_slice)
+    if ident:
+        return ident.get("first_name" if first_name else "name") or ident.get("actor_id") or "Actor"
+    raw = str(actor_id_or_ref or "").strip()
+    return raw.replace("_", " ").title() if raw else "Actor"
+
+
+def goc_character_key_for_actor_id(
+    actor_id_or_ref: str | None,
+    *,
+    yaml_slice: dict[str, Any] | None = None,
+) -> str:
+    return goc_actor_identity(actor_id_or_ref, yaml_slice=yaml_slice).get("character_key", "")
+
+
+def goc_actor_ids_from_content(yaml_slice: dict[str, Any] | None = None) -> list[str]:
+    return list(goc_actor_identity_index(yaml_slice).keys())
 
 
 def _load_goc_location_documents_yaml() -> dict[str, Any]:
@@ -861,17 +945,18 @@ def goc_character_profile_snippet(
     """
     if not isinstance(yaml_slice, dict):
         return {}
-    actor_key_map = {
-        "veronique_vallon": "veronique",
-        "michel_longstreet": "michel",
-        "annette_reille": "annette",
-        "alain_reille": "alain",
-    }
-    key = actor_key_map.get(actor_id)
-    if not key:
-        return {}
     chars = yaml_slice.get("characters") if isinstance(yaml_slice.get("characters"), dict) else {}
     voice = yaml_slice.get("character_voice") if isinstance(yaml_slice.get("character_voice"), dict) else {}
+    key = ""
+    for raw_key, row in chars.items():
+        if not isinstance(row, dict):
+            continue
+        row_actor_id = str(row.get("actor_id") or row.get("runtime_actor_id") or "").strip()
+        if row_actor_id == actor_id:
+            key = str(raw_key or "").strip()
+            break
+    if not key:
+        return {}
     cblock = chars.get(key) if isinstance(chars.get(key), dict) else {}
     vblock = voice.get(key) if isinstance(voice.get(key), dict) else {}
     out: dict[str, str] = {"character_key": key}

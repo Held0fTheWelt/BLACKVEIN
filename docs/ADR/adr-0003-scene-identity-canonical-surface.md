@@ -1,17 +1,22 @@
-# ADR-0003: Single canonical scene identity surface across compile, AI guidance, and commit
+# ADR-0003: Scene Identity Compatibility Surface Across Compile, AI Guidance, and Commit
 
 ## Status
 Accepted
 
 ## Implementation Status
 
-**Implemented — matches ADR.**
+**Implemented as a bounded compatibility surface.**
 
-- `ai_stack/goc_scene_identity.py` is the sole definition point for `guidance_phase_key_for_scene_id`.
+- `ai_stack/goc_scene_identity.py` is the sole legacy-compatible definition
+  point for `guidance_phase_key_for_scene_id`.
 - `ai_stack/goc_yaml_authority.py` re-exports and consumes that module without introducing a second mapping dict.
 - `ai_stack/tests/test_goc_scene_identity.py` includes `test_sole_definition_of_guidance_phase_key_for_scene_id` which scans the entire repo for duplicate definitions and fails on any found.
 - `tools/verify_goc_scene_identity_single_source.py` enforces the no-local-remap rule in CI.
 - Governance investigation confirms `CTR-ADR-0003-SCENE-IDENTITY` implemented and validated.
+- This ADR does not authorize semantic routing, language translation, actor
+  targeting, or scene-candidate selection from raw player text. Current GoC
+  direction is governed by authored `canonical_path/`, `scene_graph.yaml`,
+  phase policy, and AI semantic payloads.
 
 ## Date
 2026-04-17
@@ -35,11 +40,14 @@ Authored narrative modules are consumed by more than one component (content comp
 
 ## Decision
 1. Treat **compiler runtime projection** and world-engine **commit resolver** as the **normative** contract for scene row identity at the seam (unchanged from prior draft).
-2. **Single owned module:** [`ai_stack/goc_scene_identity.py`](../../ai_stack/goc_scene_identity.py) is the only place that defines runtime `scene_id` -> `scene_guidance.yaml` phase keys and guidance-phase -> escalation-arc subkeys. [`ai_stack/goc_yaml_authority.py`](../../ai_stack/goc_yaml_authority.py) **re-exports** and consumes that module; it must not introduce a second mapping dict.
+2. **Single owned compatibility resolver:** [`ai_stack/goc_scene_identity.py`](../../ai_stack/goc_scene_identity.py) is the only place that defines legacy runtime `scene_id` -> phase-policy guidance keys and guidance-phase -> escalation-arc subkeys. [`ai_stack/goc_yaml_authority.py`](../../ai_stack/goc_yaml_authority.py) **re-exports** and consumes that module; it must not introduce a second mapping dict.
 3. **No local remap (mandatory):**
    - No duplicate scene-id -> guidance dicts outside `goc_scene_identity.py` (enforced by `python tools/verify_goc_scene_identity_single_source.py` in CI and by `test_sole_definition_of_guidance_phase_key_for_scene_id` in `ai_stack/tests/test_goc_scene_identity.py`).
    - No ad hoc `if scene_id == "...": phase = ...` mapping in consumers; use `guidance_phase_key_for_scene_id` (exceptions require ADR amendment or state decision log + expiry).
 4. Prefer **contract tests** that load canonical content and assert vocabulary legibility (see `ai_stack/tests/test_goc_scene_identity.py`).
+5. Do not add new runtime maps for player language, semantic moves, actor
+   aliases, location aliases, or scene candidates. Those meanings must come
+   from authored content IDs and AI semantic resolution.
 
 ## Consequences
 - Positive: Fewer silent failures at seams; CI enforcement against mapping drift.
@@ -47,11 +55,13 @@ Authored narrative modules are consumed by more than one component (content comp
 
 ## Diagrams
 
-A **single mapping module** feeds compiler projection, commit resolver, and AI scene packets — CI blocks duplicate `scene_id` → guidance maps.
+A bounded compatibility resolver feeds compiler projection, commit resolver,
+and AI scene packets. CI blocks duplicate `scene_id` -> guidance maps, and new
+semantic routing maps are outside this ADR.
 
 ```mermaid
 flowchart TD
-  M[goc_scene_identity.py — sole mapping]
+  M[goc_scene_identity.py — compatibility resolver]
   M --> COMP[Compiler projection]
   M --> COMM[World-engine commit resolver]
   M --> AI[Scene packet / director input]
@@ -61,7 +71,9 @@ flowchart TD
 ## Testing
 
 - **CI:** `python tools/verify_goc_scene_identity_single_source.py` and `ai_stack/tests/test_goc_scene_identity.py` (including `test_sole_definition_of_guidance_phase_key_for_scene_id`).
-- **Failure mode:** duplicate scene-id → guidance maps or ad hoc `if scene_id == …` branches outside `goc_scene_identity.py`.
+- **Failure mode:** duplicate scene-id -> guidance maps or ad hoc `if scene_id == ...` branches outside `goc_scene_identity.py`.
+- **Out of scope:** raw player text, actor names, locale words, or scene-topic
+  keywords selecting semantic moves or scene candidates.
 
 ## References
 

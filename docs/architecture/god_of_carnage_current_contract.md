@@ -1,6 +1,6 @@
 # God of Carnage — Current Contract
 
-**Status:** Active contract — 2026-04-26
+**Status:** Active contract — 2026-05-18
 
 ---
 
@@ -11,20 +11,26 @@ Location: `content/modules/god_of_carnage/`
 The canonical God of Carnage content module is the sole authority for story truth.
 It is not a runtime module — it is a content module loaded by the engine at session start.
 
-### Required Files
+### Required Authority Surfaces
 
-| File | Purpose |
-|------|---------|
-| `module.yaml` | Module metadata, versioning, file registry |
-| `characters.yaml` | Character definitions: veronique, michel, annette, alain |
-| `relationships.yaml` | Relationship axes and dynamics |
-| `scenes.yaml` | Scene phases (5 phases) |
-| `transitions.yaml` | Scene transition conditions |
-| `triggers.yaml` | Trigger types with recognition markers |
-| `endings.yaml` | End state conditions |
-| `direction/system_prompt.md` | LLM system prompt guidance |
-| `direction/scene_guidance.yaml` | Per-scene constraints |
-| `direction/character_voice.yaml` | Character voice guidance plus machine-readable `voice_consistency` marker policy |
+| Surface | Purpose |
+|---------|---------|
+| `module.yaml` | Module metadata, versioning, file registry, runtime policy switches |
+| `canonical_path/` | Numbered directed story spine; references places, objects, characters, themes, quote anchors, and handover points |
+| `locations/` | Place authority: rooms, exits, prevented actions, inventory refs, privacy, and adjacency |
+| `objects/` | One-file-per-object authority, grouped by location folders where useful |
+| `characters/definitions/` | Character identity and canonical profile documents |
+| `characters/details/` | Relationship axes, pressure profiles, interaction patterns |
+| `characters/voices/` | Character voice guidance and machine-readable `voice_consistency` policy |
+| `knowledge/` | Premise, opening event coverage, quote anchors, hard-forbidden rules, content-access policy |
+| `direction/` | System prompt, opening brief/sequence, subtext policy, beat library |
+| `scene_graph.yaml` | Runtime node index over canonical path/location ids; not a second scene-description database |
+| `phase_beat_policy.yaml` | Coarse dramatic pacing and allowed/blocked beat policy |
+| `memory_policy.yaml` / `information_disclosure_policy.yaml` / `narrative_aspect_policy.yaml` | Runtime governance policy surfaces |
+
+The old flat files (`characters.yaml`, `relationships.yaml`, `scenes.yaml`,
+`triggers.yaml`, `transitions.yaml`, `endings.yaml`) are not the current GoC
+content shape. Their concepts now live in modular folders and policy files.
 
 ### module_id
 
@@ -64,7 +70,7 @@ It is not a runtime module — it is a content module loaded by the engine at se
 | actions | EMPTY |
 | props | EMPTY |
 | roles | Runtime structure only (annette, alain, veronique, michel) |
-| rooms | Runtime navigation structure (hallway, living_room, bathroom) |
+| rooms | Runtime navigation skeleton only; detailed place truth comes from canonical `locations/` files |
 
 A session start request uses `runtime_profile_id="god_of_carnage_solo"` with `selected_player_role=annette|alain`.
 

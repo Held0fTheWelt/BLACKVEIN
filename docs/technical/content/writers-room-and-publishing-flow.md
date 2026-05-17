@@ -2,7 +2,13 @@
 
 ## Canonical authored content
 
-- **Source of truth for runtime:** YAML modules under `content/modules/<module_id>/` (`module.yaml`, `scenes.yaml`, characters, triggers, transitions, endings, relationships, …).
+- **Source of truth for runtime:** YAML modules under
+  `content/modules/<module_id>/`. Current modules use `module.yaml`,
+  `canonical_path/`, `locations/`, `objects/`, `characters/`, `knowledge/`,
+  `direction/`, and policy files rather than one flat scene/trigger bundle.
+- **Modularity rule:** publishing changes should reference canonical ids instead
+  of copying room, object, character, or language descriptions into secondary
+  files.
 - **Loader / models:** `backend/app/content/module_loader.py`, `module_models.py`.
 - **Compiler:** `backend/app/content/compiler/` produces projections consumed by runtime, retrieval, and review.
 

@@ -1,6 +1,7 @@
 character_document:
   id: protagonist
   canonical_id: protagonist
+  actor_id: protagonist_actor
   runtime_actor_id: protagonist_actor
   name: Protagonist Name
   role: "Replace with dramatic role"

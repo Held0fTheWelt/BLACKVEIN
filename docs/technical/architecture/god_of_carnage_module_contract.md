@@ -2,7 +2,13 @@
 
 ## Purpose
 
-This document defines the formal structure, characters, relationships, scenes, triggers, escalation logic, and validation expectations for the *God of Carnage* module. It serves as the reference implementation for all content modules in the MVP. There is no special engine logic for this module — everything must work generically.
+This document defines the current authored-content contract for the
+`god_of_carnage` module. The module is the reference implementation for a
+structured dramatic content tree, but it must not require special engine logic.
+
+The current shape is not the early flat `scenes.yaml` / `triggers.yaml` bundle.
+The module is directed by `canonical_path/` and grounded by referenced
+locations, objects, characters, knowledge, direction, and policy files.
 
 ---
 
@@ -10,30 +16,53 @@ This document defines the formal structure, characters, relationships, scenes, t
 
 **Title**: God of Carnage
 **Reference**: `god_of_carnage`
-**Role**: Reference implementation module for formalized story content structure
-**Scope**: Single two-act play, 4 characters, dinner party setting, escalation from polite negotiation to emotional and relational breakdown
-**Quality Principle**: This module is the reference, not an exception. All engine logic must work for any module structured the same way.
+**Role**: Reference implementation module for modular story content structure
+**Scope**: Four-character apartment drama, beginning with the Parc Montsouris
+incident and moving through building threshold, apartment civility, social
+pressure, and eventual escalation.
+**Quality Principle**: This module is the reference, not an exception. All
+engine logic must work for any module structured the same way.
 
 ---
 
 ## File Layout
 
-Content modules are structured as follows:
+Current content modules are structured as follows:
 
-```
+```text
 content/modules/god_of_carnage/
-├── module.yaml                # Module metadata, version, dependencies
-├── characters.yaml            # Character definitions (properties, baseline attitudes)
-├── relationships.yaml         # Relationship axes and dynamics
-├── scenes.yaml                # Scene structure, sequence, conditions
-├── transitions.yaml           # Scene transitions and conditions
-├── triggers.yaml              # Trigger definitions and validation set
-├── endings.yaml               # Valid end states / flip conditions
-└── direction/
-    ├── system_prompt.md       # System prompt for story LLM
-    ├── scene_guidance.yaml    # Per-scene constraints and context
-    └── character_voice.yaml   # Character voice, tone guidance, and voice_consistency marker policy
+├── module.yaml
+├── canonical_path/
+│   ├── index.yaml
+│   └── 001_...yaml
+├── locations/
+│   ├── index.yaml
+│   ├── opening/
+│   ├── building/
+│   └── appartment_vallon/
+├── objects/
+│   ├── index.yaml
+│   ├── opening/
+│   ├── building/
+│   └── appartment_vallon/<room>/
+├── characters/
+│   ├── index.yaml
+│   ├── definitions/
+│   ├── details/
+│   └── voices/
+├── knowledge/
+├── direction/
+│   └── beat_library/
+├── scene_graph.yaml
+├── phase_beat_policy.yaml
+├── memory_policy.yaml
+├── information_disclosure_policy.yaml
+└── narrative_aspect_policy.yaml
 ```
+
+`canonical_path/` is the directed story spine. It references canonical ids; it
+does not re-describe rooms, objects, or character facts. `scene_graph.yaml` is a
+runtime index over path and location ids, not a second scene database.
 
 ---
 
@@ -93,126 +122,66 @@ Four primary relationship axes govern character dynamics:
 
 ---
 
-## Scene Structure
+## Directed Path And Runtime Nodes
 
-The module follows a five-phase structure:
+The opening path is numbered and ascending. Its early steps move from:
 
-### Phase 1: Polite Opening
-- **Content**: Ritual civility, small talk, framing the social contract
-- **Engine task**: Initialize scene state, activate all characters, establish baseline relationship values
-- **Trigger set active**: None yet (civility enforced)
-- **Duration**: ~2 turns minimum
+- Parc Montsouris edge and basketball court incident,
+- the struck boy, bicycle beat, and disappearance,
+- dark building hallway with elevator/stairwell pressure,
+- living room handover and apartment entry,
+- statement on the table, wording dispute, dental consequence, courtesy
+  pressure, tulips, and the first playable courtesy gap.
 
-### Phase 2: Moral Negotiation
-- **Content**: First substantive disagreement (parenting philosophy, culpability, ethical standards)
-- **Engine task**: Track position divergence, activate first relationship axis (spousal alignment)
-- **Trigger set active**: Contradiction, exposure (of hypocrisy)
-- **Duration**: ~3–4 turns
+Path steps may carry narrator tasks, action beats, theme ids, quote-anchor
+refs, player windows, and handover hints. They reference `location_ref`,
+`location_refs`, `object_refs`, `character_refs`, and policy ids instead of
+copying the underlying descriptions.
 
-### Phase 3: Faction Shifts
-- **Content**: One or more characters shift allegiance (spouse challenges spouse, guest aligns with host, host sides with guest)
-- **Engine task**: Update relationship state, recalculate power dynamics, note which axis shifted
-- **Trigger set active**: Contradiction, relativization (moral positions questioned), exposure
-- **Duration**: ~2–3 turns
-
-### Phase 4: Emotional Derailment
-- **Content**: Control lost — voices raised, tears, personal insults, moral accusations
-- **Engine task**: Character emotional state escalates, relationship values drop below civility threshold
-- **Trigger set active**: All triggers active (contradiction, exposure, relativization, apology/non-apology, cynicism, flight into sideplots)
-- **Duration**: ~2–3 turns
-
-### Phase 5: Loss of Control / Escalation or Collapse
-- **Content**: Either explosive confrontation or emotional breakdown and retreat
-- **Engine task**: Evaluate end conditions, apply ending rule based on character state and relationship axes
-- **Trigger set active**: Recovery triggers (apology, retreat) or collapse triggers
-- **Duration**: ~1–2 turns, then forced end state
+`scene_graph.yaml` may group path steps into runtime nodes for execution and
+diagnostics. It must stay compact: ids, phase ids, location ids, edges, and
+runtime notes only.
 
 ---
 
-## Trigger Set
+## Locations And Objects
 
-Six trigger types are recognized in the God of Carnage module:
+Locations live one place per file under `locations/`.
 
-### 1. Contradiction
-- **Definition**: A statement that directly contradicts a previous claim or revealed fact
-- **Example**: Claiming Alain was a bystander after Alain admitted involvement
-- **Engine effect**: Marks this claim as challenge-worthy; opens opportunity for exposure or escalation
+Current GoC location groups:
 
-### 2. Exposure
-- **Definition**: Revealing a hypocrisy, hidden fact, or concealed motive
-- **Example**: Pointing out Annette's cynicism contradicts her earlier idealism
-- **Engine effect**: Damages relationship axis (moral integrity), forces response
+- `locations/opening/`: Parc Montsouris edge, basketball court, playground.
+- `locations/building/`: building hallway and stairwell.
+- `locations/appartment_vallon/`: apartment entry, living room, hallway,
+  kitchen, bathroom, pantry, study, locked bedrooms, and layout policy.
 
-### 3. Relativization
-- **Definition**: Questioning the moral foundation of another's position
-- **Example**: "Is your rule just your preference, not a universal principle?"
-- **Engine effect**: Destabilizes moral authority; increases tension on axis 3
+Objects live one object per file under `objects/`, grouped by broad location
+and room folders. Location files may list `inventory_object_ids`; object files
+carry their placement. A room can be furnished by adding object files without
+rewriting the room description.
 
-### 4. Apology / Non-Apology
-- **Definition**: Offer to repair or refusal to repair damage
-- **Example**: Sincere apology vs. defensive excuse masquerading as apology
-- **Engine effect**: Apology may de-escalate; false apology escalates further
-
-### 5. Cynicism
-- **Definition**: Explicit claim that all positions are self-interested, no true morality exists
-- **Example**: "You're just defending your parenting style out of ego, not principle"
-- **Engine effect**: Attacks moral axis; forces other characters to defend or capitulate
-
-### 6. Flight into Sideplots
-- **Definition**: Introducing a tangential topic to avoid the central conflict
-- **Example**: Suddenly discussing restaurant reviews instead of the core disagreement
-- **Engine effect**: Temporarily reduces escalation; tension returns when flight is exhausted
+The engine may expose explicit affordances and prevented actions from these
+documents. Prevented actions are not forbidden moral rules; they are in-world
+conditions that block or redirect an attempted action.
 
 ---
 
-## Escalation Logic
+## Dramatic Policy
 
-Four dimensions track escalation:
+Escalation and recovery are no longer expressed as a flat trigger list in this
+document. Runtime policy is split across:
 
-### Dimension 1: Individual Escalation (Per Character)
-- Tracks emotional state: neutral → mildly tense → upset → angry → contemptuous
-- Triggers based on: personal attacks, contradictions involving that character, failures to get respect
+- `phase_beat_policy.yaml` for coarse phase and beat constraints,
+- `characters/details/relationships.yaml` for relationship axes,
+- `characters/details/actor_pressure_profiles.yaml` for pressure identities,
+- `direction/subtext_policy.yaml` for bounded subtext interpretation,
+- `knowledge/content_access_policy.yaml` for what can be surfaced when,
+- `knowledge/hard_forbidden_rules.yaml` for validation hard stops,
+- `memory_policy.yaml` and aspect policies for runtime continuity.
 
-### Dimension 2: Relationship Instability (Axis-Based)
-- Each relationship axis has a stability value: 0–100 (100 = allied, 0 = hostile)
-- Triggers (contradiction, exposure, cynicism) lower stability
-- Recovery triggers (apology, retreat) raise stability
-- When stability < 30: characters may switch alliances
-
-### Dimension 3: Conversation Collapse
-- Tracks whether the conversation is still coherent (people listening) or fragmenting (separate arguments, interruptions)
-- When multiple characters talk past each other simultaneously: collapse risk
-- Engine may force scene end if collapse > threshold
-
-### Dimension 4: Coalition Shifts
-- Tracks which characters are aligned: baseline is spousal (Véronique+Michel, Annette+Alain)
-- Escalation can break spousal alignment or create cross-couple alignments
-- Tracks which character holds moral/intellectual dominance
-
----
-
-## End Conditions
-
-Four primary end states are valid for God of Carnage:
-
-### 1. Breakdown (Scene 1 Finale)
-- **Condition**: Conversation becomes incoherent; no shared ground; emotional state ≥ angry for ≥3 characters
-- **Outcome**: Scene ends abruptly. Couples separate. Evening is ruined.
-- **Example**: Véronique and Michel are no longer aligned; Annette is contemptuous; Alain is exhausted.
-
-### 2. Open Implosion (Scene 1 Finale)
-- **Condition**: A personal, unforgivable statement is made (e.g., "You're a terrible parent")
-- **Outcome**: One character leaves or demands leave. Scene breaks.
-
-### 3. Temporary De-escalation (Transition to Scene 2)
-- **Condition**: A character successfully apologizes or retreats; conversation stabilizes above chaos threshold
-- **Outcome**: Scene transitions to Phase 2 or resumes earlier phase. Temporary civility restored.
-- **Consequence**: Underlying tensions remain. Escalation will resume.
-
-### 4. Toxic Pseudo-Resolution (Scene 2 Finale)
-- **Condition**: Characters accept a false resolution (mask restored, deeper issues ignored)
-- **Outcome**: Scene ends. Couples leave together, publicly recovered. Privately fractured.
-- **Quality**: Not a true resolution — instability preserved for W2+ story extensions.
+Natural-language player input is resolved semantically. The engine must not
+route social moves, actor targets, or scene candidates through hardcoded
+keyword, verb, locale, or actor-alias maps.
 
 ---
 
@@ -221,22 +190,27 @@ Four primary end states are valid for God of Carnage:
 The Engine validates God of Carnage modules against:
 
 ### Structural Validation
-- ✅ All characters defined in `characters.yaml`
-- ✅ All relationships reference defined characters
-- ✅ All triggers in proposed AI output match the trigger set
-- ✅ All scene transitions reference valid target scenes
-- ✅ All proposed state changes affect only defined relationship axes or character escalation states
+- All indexed files referenced by `module.yaml` exist.
+- Canonical path ids are unique and ordered.
+- Path steps reference existing locations, objects, characters, themes, and
+  quote anchors.
+- Location adjacency and inventory refs resolve.
+- Object placement locations resolve.
+- Character voice and relationship refs resolve.
+- Runtime nodes in `scene_graph.yaml` reference valid path/location ids.
 
 ### Content Validation
-- ✅ Proposed state deltas match content module structure (no arbitrary new fields)
-- ✅ Trigger detection is accurate (no false positives)
-- ✅ Character escalation stays within bounds (0–100)
-- ✅ Scene transitions follow defined rules (no jumping from Phase 1 directly to Phase 5)
+- Proposed state deltas match content module structure; no arbitrary new fields.
+- Opening event coverage is derived from canonical opening path/knowledge ids.
+- Environment state is initialized from canonical locations and objects.
+- Quote anchors are used only through the quote policy and moment-locked refs.
 
 ### Constraint Validation
-- ✅ No character is given new facts not in content or event log
-- ✅ No relationship axis is given a value outside its baseline ±50
-- ✅ No character is forced into an end state prematurely
+- No character is given new facts not in content or committed event log.
+- No location/object truth is invented outside canonical files.
+- No hidden locale, command translation, verb, or actor-alias map becomes runtime
+  authority.
+- Player speech is never forced by opening or director policy.
 
 ---
 
@@ -248,5 +222,5 @@ The Engine validates God of Carnage modules against:
 
 ---
 
-**Version**: W0 (2026-03-26)
+**Version**: W0 updated for modular content contract (2026-05-18)
 **Status**: Reference Implementation

@@ -90,7 +90,7 @@ def _read_character_documents(module_dir: Path) -> dict[str, Any]:
             continue
         chars[char_id] = {
             "id": char_id,
-            "actor_id": doc.get("runtime_actor_id") or doc.get("actor_id") or char_id,
+            "actor_id": doc.get("actor_id") or doc.get("runtime_actor_id") or char_id,
             "runtime_actor_id": doc.get("runtime_actor_id") or doc.get("actor_id") or char_id,
             "name": doc.get("name") or char_id,
             "role": doc.get("role"),

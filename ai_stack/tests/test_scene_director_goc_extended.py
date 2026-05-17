@@ -19,6 +19,17 @@ from ai_stack.goc_frozen_vocab import (
 )
 
 
+def _actor_id_yaml_slice() -> dict:
+    return {
+        "characters": {
+            "veronique": {"actor_id": "veronique_vallon"},
+            "michel": {"actor_id": "michel_longstreet"},
+            "annette": {"actor_id": "annette_reille"},
+            "alain": {"actor_id": "alain_reille"},
+        }
+    }
+
+
 class TestGocSceneAssessmentHasMinimalFields:
     """Test decision paths in goc_scene_assessment_has_minimal_fields (lines 33-41)."""
 
@@ -757,6 +768,7 @@ class TestBuildResponderAndFunction:
             interpreted_move={"move_type": "direct_accusation"},
             pacing_mode="standard",
             semantic_move_record={"move_type": "direct_accusation"},
+            yaml_slice=_actor_id_yaml_slice(),
             prior_narrative_thread_state=_thread_feedback_state(),
         )
 
