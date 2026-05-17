@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  --bg: #0f1220;
+  --bg: #0b0d12;
   --panel: #181d30;
   --panel-2: #1f2640;
   --text: #e7ebff;
@@ -15,7 +15,10 @@
 body {
   margin: 0;
   font-family: Inter, Segoe UI, Arial, sans-serif;
-  background: linear-gradient(160deg, #0b1020 0%, #151a2b 50%, #120f22 100%);
+  background:
+    radial-gradient(circle at 0% -20%, rgba(127, 99, 217, 0.18), transparent 48%),
+    radial-gradient(circle at 100% -30%, rgba(34, 154, 214, 0.10), transparent 44%),
+    var(--bg);
   color: var(--text);
 }
 

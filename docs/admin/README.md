@@ -12,6 +12,7 @@ Operators, administrators, and governance owners.
 - [Operations runbook](operations-runbook.md)
 - [Monitoring, logging, and incident response](monitoring-logging-and-incident-response.md)
 - [Security and compliance overview](security-and-compliance-overview.md)
+- [Security governance administration](security-governance.md)
 - [Release and quality gates for operators](release-and-quality-gates-for-operators.md)
 
 ## Technical depth (cross-stack)
@@ -21,7 +22,7 @@ Operators, administrators, and governance owners.
 ## Additional reference
 
 - Local runbook detail: [`docs/operations/RUNBOOK.md`](../operations/RUNBOOK.md)
-- Security: [`docs/security/`](../security/), `audits/*` at repo root where present
+- Security: [`docs/security/`](../security/), including [`At-rest encryption evidence`](../security/AT_REST_ENCRYPTION.md) and [`Provider credential governance`](../security/PROVIDER_CREDENTIAL_GOVERNANCE.md), plus `audits/*` at repo root where present
 - Testing policy: [`docs/testing/QUALITY_GATES.md`](../testing/QUALITY_GATES.md), [`docs/testing/RELEASE_GATE_POLICY.md`](../testing/RELEASE_GATE_POLICY.md)
 - Forum moderation: [`docs/forum/ModerationWorkflow.md`](../forum/ModerationWorkflow.md)
 

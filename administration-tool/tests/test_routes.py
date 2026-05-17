@@ -61,3 +61,24 @@ def test_index_template_receives_frontend_context(app, client):
     assert context["frontend_config"]["currentLanguage"] == "en"
     assert context["supported_languages"] == ["de", "en"]
     assert isinstance(context["t"], dict)
+
+
+def test_favicon_is_linked_and_served(client):
+    public_response = client.get("/")
+    manage_response = client.get("/manage")
+    assert public_response.status_code == 200
+    assert manage_response.status_code == 200
+    assert b"/static/favicon.ico" in public_response.data
+    assert b"/static/favicon.ico" in manage_response.data
+
+    favicon_response = client.get("/favicon.ico")
+    assert favicon_response.status_code == 200
+    assert favicon_response.mimetype == "image/vnd.microsoft.icon"
+    assert favicon_response.data.startswith(b"\x00\x00\x01\x00")
+
+
+def test_manage_sidebar_uses_administration_tool_label(client):
+    response = client.get("/manage?lang=de")
+    assert response.status_code == 200
+    assert b"Administration Tool" in response.data
+    assert b"Verwalten" not in response.data

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t.nav_wiki | default('Wiki') }} – {{ t.site_name | default('BLACKVEIN') }}{% endblock %}
+{% block title %}{{ t.nav_wiki | default('Wiki') }} – {{ t.site_name | default('Better Tomorrow') }}{% endblock %}
 {% block body_class %}page-wiki{% endblock %}
 
 {% block content %}
@@ -94,7 +94,7 @@
                     content.appendChild(suggestedWrap);
                 }
                 content.hidden = false;
-                if (data.title) document.title = data.title + ' – ' + (window.__FRONTEND_CONFIG__ && window.__FRONTEND_CONFIG__.siteName ? window.__FRONTEND_CONFIG__.siteName : 'BLACKVEIN');
+                if (data.title) document.title = data.title + ' – ' + (window.__FRONTEND_CONFIG__ && window.__FRONTEND_CONFIG__.siteName ? window.__FRONTEND_CONFIG__.siteName : 'Better Tomorrow');
             } else {
                 if (content) { content.innerHTML = '<p>No content.</p>'; content.hidden = false; }
             }

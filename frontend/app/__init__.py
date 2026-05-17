@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 from .config import Config, TestingConfig
 from .routes import frontend_bp
@@ -30,6 +30,10 @@ def create_app(config_object=None, *, testing: bool | None = None) -> Flask:
 
     app.register_blueprint(frontend_bp)
 
+    @app.get("/favicon.ico")
+    def favicon():
+        return send_from_directory(app.static_folder, "favicon.ico", mimetype="image/vnd.microsoft.icon")
+
     @app.errorhandler(404)
     def not_found(_exc):
         if _wants_json():
@@ -51,8 +55,9 @@ def create_app(config_object=None, *, testing: bool | None = None) -> Flask:
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
-            "style-src 'self'; "
+            "style-src 'self' https://fonts.googleapis.com; "
             "img-src 'self' data: https:; "
+            "font-src 'self' https://fonts.gstatic.com; "
             "connect-src 'self' https: wss: ws:; "
             "object-src 'none'; "
             "frame-ancestors 'none'; "

@@ -116,6 +116,15 @@ class TestContentSecurityPolicyContract:
         response = client.get(route)
         csp = response.headers["Content-Security-Policy"]
         assert "style-src" in csp, f"style-src directive missing on {route}"
+        assert "https://fonts.googleapis.com" in csp, f"Google font stylesheet source missing on {route}"
+
+    @pytest.mark.parametrize("route,_", ROUTES_TO_TEST[:3])
+    def test_csp_font_src_allows_google_fonts(self, client, route, _):
+        """font-src must allow the shared Inter/JetBrains font files."""
+        response = client.get(route)
+        csp = response.headers["Content-Security-Policy"]
+        assert "font-src" in csp, f"font-src directive missing on {route}"
+        assert "https://fonts.gstatic.com" in csp, f"Google font file source missing on {route}"
 
     @pytest.mark.parametrize("route,_", ROUTES_TO_TEST[:3])
     def test_csp_img_src_allows_data_and_https(self, client, route, _):

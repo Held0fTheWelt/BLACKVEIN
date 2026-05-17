@@ -4,7 +4,8 @@ Short orientation for **non-developers**. For the **full, maintained** term list
 
 | Term | Plain meaning |
 |------|----------------|
-| **World of Shadows** | The narrative game and community platform (multi-service software). |
+| **Better Tomorrow** | The product title for the narrative game and community platform. |
+| **World of Shadows** | Subtitle and world/platform context for Better Tomorrow; also historical shorthand in older engineering docs. |
 | **Play service / world-engine** | The service that runs **live story sessions** and owns committed play state for those sessions. |
 | **Backend** | The API and database service for accounts, forum, content compilation, admin features, and integration with the play service. |
 | **Frontend** | The player-facing website. |

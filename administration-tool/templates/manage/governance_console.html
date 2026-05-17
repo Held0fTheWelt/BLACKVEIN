@@ -51,7 +51,7 @@
             </article>
             <article class="gov-help-card gov-help-card--danger">
                 <h4>Evidence promotion rule</h4>
-                <p>Local traces/tests/projections are local proof only. Capability promotion to staging/live requires explicit evidence policy gates and external proof.</p>
+                <p>Local traces/tests/projections are local proof only. Capability promotion to Staging/Production requires explicit evidence policy gates and external proof.</p>
                 <span class="gov-help-source">Source: ADR-0039 + capability_matrix_live_claim_gates.md</span>
             </article>
         </div>
@@ -61,7 +61,7 @@
         <div class="gov-help-grid">
             <article class="gov-help-card">
                 <h4>What should I choose?</h4>
-                <p><strong>Local development:</strong> deterministic validators, `safe_local` posture, optional Langfuse, no staging/live claims.</p>
+                <p><strong>Local development:</strong> deterministic validators, `safe_local` posture, optional Langfuse, no Staging/Production claims.</p>
                 <p><strong>Staging validation:</strong> provider credentials + Langfuse + MCP verification + readiness blockers cleared.</p>
                 <p><strong>Runtime authority pilot:</strong> ADR-0041 plan/projection flags with bounded co-authority diagnostics, still local-only until staging evidence exists.</p>
                 <p><strong>Production/live:</strong> only governance-approved flags, no env-only UI mutations, evidence-backed claims.</p>
@@ -75,7 +75,7 @@
             </article>
             <article class="gov-help-card">
                 <h4>Evidence tiers</h4>
-                <p>`local_only`, `runtime_path_participation`, `staging_pending`, `staging_verified`, `live_verified` communicate proof scope; only staging/live tiers support promotion claims.</p>
+                <p>`local_only`, `runtime_path_participation`, `staging_pending`, `staging_verified`, `production_verified` communicate proof scope; only Staging/Production tiers support promotion claims.</p>
                 <span class="gov-help-source">Source: capability_matrix_status_and_adr_relations.md</span>
             </article>
             <article class="gov-help-card">
@@ -103,7 +103,7 @@
         <article class="mui-card">
             <p class="mui-card-meta">Maturity</p>
             <h4>Capability Matrix</h4>
-            <p class="manage-section-subtitle">Maturity and evidence boundary (<code>local</code> vs staging/live) with blockers and promotion eligibility.</p>
+            <p class="manage-section-subtitle">Maturity and evidence boundary (<code>local</code> vs Staging/Production) with blockers and promotion eligibility.</p>
             <pre id="gov-capability-matrix" class="mui-json-pre">Loading...</pre>
         </article>
         <article class="mui-card">
@@ -115,7 +115,7 @@
         <article class="mui-card">
             <p class="mui-card-meta">Evidence</p>
             <h4>Langfuse / MCP</h4>
-            <p class="manage-section-subtitle">Credential readiness ≠ score proof. Local traces are not staging/live evidence by default.</p>
+            <p class="manage-section-subtitle">Credential readiness ≠ score proof. Local traces are not Staging/Production evidence by default.</p>
             <pre id="gov-evidence" class="mui-json-pre">Loading...</pre>
         </article>
         <article class="mui-card">

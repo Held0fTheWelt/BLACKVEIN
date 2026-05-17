@@ -18,6 +18,10 @@ from story_runtime_core.observability_tree_policy import (
     normalize_enabled_observation_trees,
     observation_tree_catalog,
 )
+from story_runtime_core.langfuse_tracing_environment import (
+    local_langfuse_evidence_metadata,
+    resolve_runtime_langfuse_base_url,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -955,6 +959,7 @@ def verify_langfuse_runtime_connectivity(
         }
 
     configured_base_url = str(config.get("base_url") or _LANGFUSE_EU_BASE_URL).rstrip("/")
+    runtime_base_url, base_url_source = resolve_runtime_langfuse_base_url(configured_base_url)
     environment = str(config.get("environment") or "development")
     release = str(config.get("release") or "unknown")
     sample_rate = float(config.get("sample_rate") or 1.0)
@@ -962,16 +967,16 @@ def verify_langfuse_runtime_connectivity(
     resolved_base_url, host_issue, project_names = _resolve_langfuse_base_url_for_credentials(
         public_key=public_key,
         secret_key=secret_key,
-        configured_base_url=configured_base_url,
+        configured_base_url=runtime_base_url,
     )
     if resolved_base_url is None:
         auth_message = (
             "Backend-stored Langfuse keys failed auth on configured and alternate Langfuse Cloud "
             f"region hosts: {host_issue}"
-            if _is_langfuse_cloud_base_url(configured_base_url)
+            if _is_langfuse_cloud_base_url(runtime_base_url)
             else (
-                "Backend-stored Langfuse keys failed auth/connectivity against configured "
-                f"Base URL {configured_base_url}: {host_issue}"
+                "Backend-stored Langfuse keys failed auth/connectivity against runtime "
+                f"Base URL {runtime_base_url}: {host_issue}"
             )
         )
         payload = {
@@ -979,11 +984,13 @@ def verify_langfuse_runtime_connectivity(
             "ok": False,
             "health_status": "auth_failed",
             "message": auth_message,
-            "base_url": configured_base_url,
-            "tested_base_urls": _candidate_langfuse_base_urls(configured_base_url),
+            "base_url": runtime_base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
+            "tested_base_urls": _candidate_langfuse_base_urls(runtime_base_url),
         }
-        if _is_langfuse_cloud_base_url(configured_base_url):
-            payload["alternate_base_url"] = _alternate_langfuse_base_url(configured_base_url)
+        if _is_langfuse_cloud_base_url(runtime_base_url):
+            payload["alternate_base_url"] = _alternate_langfuse_base_url(runtime_base_url)
         return payload
 
     if host_issue:
@@ -992,7 +999,9 @@ def verify_langfuse_runtime_connectivity(
             "ok": False,
             "health_status": "host_mismatch",
             "message": str(host_issue),
-            "base_url": configured_base_url,
+            "base_url": runtime_base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
             "resolved_base_url": resolved_base_url,
             "langfuse_projects": project_names,
         }
@@ -1011,10 +1020,14 @@ def verify_langfuse_runtime_connectivity(
     export_errors: list[str] = []
     try:
         with _capture_otel_export_errors() as export_errors:
+            probe_metadata = {
+                "source": "backend_observability_connection_test",
+                **local_langfuse_evidence_metadata(base_url),
+            }
             with client.start_as_current_observation(
                 as_type="span",
                 name="world_of_shadows.connection_test",
-                metadata={"source": "backend_observability_connection_test"},
+                metadata=probe_metadata,
             ) as span:
                 trace_id = client.get_current_trace_id()
                 span.update(output={"status": "probe"})
@@ -1026,6 +1039,8 @@ def verify_langfuse_runtime_connectivity(
             "health_status": "export_failed",
             "message": f"Failed to export Langfuse probe trace with backend credentials: {exc}",
             "base_url": base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
             "langfuse_projects": project_names,
         }
 
@@ -1058,6 +1073,8 @@ def verify_langfuse_runtime_connectivity(
             "message": message,
             "langfuse_detail": forbidden_detail,
             "base_url": base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
             "environment": environment,
             "langfuse_projects": project_names,
         }
@@ -1069,6 +1086,8 @@ def verify_langfuse_runtime_connectivity(
             "health_status": "export_failed",
             "message": "Langfuse probe did not produce a trace id",
             "base_url": base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
             "langfuse_projects": project_names,
         }
 
@@ -1097,6 +1116,8 @@ def verify_langfuse_runtime_connectivity(
                 f"Probe trace {trace_id} flushed but not yet queryable in Langfuse: {last_error}"
             ),
             "base_url": base_url,
+            "configured_base_url": configured_base_url,
+            "base_url_source": base_url_source,
             "environment": environment,
             "trace_id": trace_id,
             "trace_url": trace_url,
@@ -1109,6 +1130,8 @@ def verify_langfuse_runtime_connectivity(
         "health_status": "connected",
         "message": "Connection successful; probe trace verified in Langfuse",
         "base_url": base_url,
+        "configured_base_url": configured_base_url,
+        "base_url_source": base_url_source,
         "environment": environment,
         "trace_id": trace_id,
         "trace_url": trace_url,

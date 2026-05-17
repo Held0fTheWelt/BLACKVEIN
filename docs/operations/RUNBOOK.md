@@ -2,6 +2,8 @@
 
 This runbook describes the three-service player flow plus separate admin tooling.
 
+Local `.env` is the intended developer/bootstrap path and is created or repaired by `python docker-up.py init-env` / `python docker-up.py up`. Production should inject the same environment variables from a dedicated secret store with rotation, audit, and access separation; that deployment hardening must not make the local Docker-Up flow depend on production infrastructure.
+
 ## Service URLs (defaults)
 
 | Service | URL | Purpose |

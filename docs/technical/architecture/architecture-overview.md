@@ -1,6 +1,6 @@
 # Architecture overview
 
-World of Shadows is a **multi-service narrative platform**: a player web app, an admin web app, a **backend** (API, auth, persistence, content compilation), and a **play service** (`world-engine/`) that owns **authoritative live session** execution. Shared library code lives in `story_runtime_core/`; AI-assisted turns run through `ai_stack/` (retrieval, LangGraph, LangChain adapters, capabilities) under **runtime rules**—models propose; the runtime **validates and commits**.
+**Better Tomorrow** is a **multi-service narrative platform**; **World of Shadows** is its subtitle and world/platform context. The system includes a player web app, an admin web app, a **backend** (API, auth, persistence, content compilation), and a **play service** (`world-engine/`) that owns **authoritative live session** execution. Shared library code lives in `story_runtime_core/`; AI-assisted turns run through `ai_stack/` (retrieval, LangGraph, LangChain adapters, capabilities) under **runtime rules**—models propose; the runtime **validates and commits**.
 
 ## Layered responsibilities
 

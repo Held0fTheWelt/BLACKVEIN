@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from story_runtime_core.adapters import build_default_model_adapters
 from app.runtime.model_routing_contracts import AdapterModelSpec
+from app.services.governed_provider_adapter_service import build_governed_provider_adapters
 from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 from ai_stack import (
     build_capability_tool_bridge,
@@ -42,10 +42,14 @@ def _get_workflow() -> _WritersRoomWorkflow:
         assembler=assembler,
         repo_root=repo_root,
     )
+    adapters = build_governed_provider_adapters()
     _WORKFLOW = _WritersRoomWorkflow(
         capability_registry=capability_registry,
-        model_route_specs=build_writers_room_model_route_specs(),
-        adapters=build_default_model_adapters(),
+        model_route_specs=[
+            spec for spec in build_writers_room_model_route_specs()
+            if spec.adapter_name in adapters
+        ],
+        adapters=adapters,
         seed_graph=build_seed_writers_room_graph(),
         langchain_retriever=build_langchain_retriever_bridge(retriever),
         review_bundle_tool=build_capability_tool_bridge(

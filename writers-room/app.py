@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, redirect, render_template, request, send_from_directory, session, url_for
 
 _here = Path(__file__).resolve().parent
 _repo_root = _here.parent
@@ -59,6 +59,11 @@ BACKEND_BASE_URL = (
     or os.environ.get("BACKEND_API_URL")
     or "http://127.0.0.1:5000"
 ).rstrip("/")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(app.static_folder, "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 _service_file = _here / "app" / "services" / "chatgpt_service.py"
 _spec = importlib.util.spec_from_file_location("writers_room_chatgpt_service", str(_service_file))

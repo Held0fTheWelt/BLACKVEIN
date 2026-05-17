@@ -26,11 +26,12 @@ def test_api_requires_play_service_ticket_for_access(client):
     # Ready endpoint should be accessible (operational readiness check)
     response = client.get("/api/health/ready")
     assert response.status_code == 200
-    # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 operator readiness:
-    # the readiness payload must expose explicit operator-facing fields so staging
-    # gaps (missing OPENAI_API_KEY, implicit Langfuse environment) are discoverable.
+    # Operator readiness exposes provider governance and Langfuse environment
+    # hints without requiring direct provider API keys in the play-service env.
     ready_body = response.json()
     op = ready_body.get("operator_readiness") or {}
+    assert op["provider_credential_source"] == "backend_governance_or_secret_manager"
+    assert "governed_provider_credentials_present" in op
     assert "openai_api_key_present" in op
     assert "langfuse_tracing_environment_explicit" in op
     assert "resolved_langfuse_environment" in op

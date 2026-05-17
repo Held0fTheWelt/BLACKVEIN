@@ -1,7 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Play Launcher{% endblock %}
+{% block title %}Play Launcher — Better Tomorrow{% endblock %}
+{% block body_class %}wos-shell auth-shell{% endblock %}
+{% block topbar_title %}Play · Launcher{% endblock %}
+
+{% block page_header %}
+<header class="page-shell-header">
+  <p class="page-eyebrow">// LAUNCH</p>
+  <h1 class="page-title">Begin a <span class="page-title-accent">run</span></h1>
+  <p class="page-lead">Choose a template and language. The runtime forges the opening beat from canonical state — no mock data, no shortcuts.</p>
+</header>
+{% endblock %}
+
 {% block content %}
-<section class="panel">
+<section class="panel narrow">
   <h1>Start a play run</h1>
   <form method="post" action="{{ url_for('frontend.play_create') }}" id="play-launcher-form">
     <label>Template

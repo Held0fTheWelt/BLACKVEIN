@@ -77,8 +77,8 @@
                 datasets: [{
                   label: 'Active users',
                   data: activeSeries,
-                  borderColor: '#7a5c9e',
-                  backgroundColor: 'rgba(122, 92, 158, 0.2)',
+                  borderColor: '#9479ef',
+                  backgroundColor: 'rgba(148, 121, 239, 0.2)',
                   fill: true,
                   tension: 0.3
                 }]
@@ -89,14 +89,14 @@
                 plugins: { legend: { display: false } },
                 scales: {
                   x: {
-                    grid: { color: 'rgba(42,42,50,0.8)' },
-                    ticks: { color: '#9a9692', maxTicksLimit: 12 }
+                    grid: { color: 'rgba(42, 51, 72, 0.8)' },
+                    ticks: { color: '#a6b0c8', maxTicksLimit: 12 }
                   },
                   y: {
                     min: 0,
                     max: activeMax > 0 ? Math.ceil(activeMax * 1.1) : 1,
-                    grid: { color: 'rgba(42,42,50,0.8)' },
-                    ticks: { color: '#9a9692' }
+                    grid: { color: 'rgba(42, 51, 72, 0.8)' },
+                    ticks: { color: '#a6b0c8' }
                   }
                 }
               }
@@ -114,8 +114,8 @@
                 datasets: [{
                   label: 'Cumulative users',
                   data: growthSeries,
-                  backgroundColor: '#a07dcc',
-                  borderColor: '#7a5c9e',
+                  backgroundColor: '#7f63d9',
+                  borderColor: '#9479ef',
                   borderWidth: 1
                 }]
               },
@@ -126,13 +126,13 @@
                 scales: {
                   x: {
                     grid: { display: false },
-                    ticks: { color: '#9a9692', maxTicksLimit: 12 }
+                    ticks: { color: '#a6b0c8', maxTicksLimit: 12 }
                   },
                   y: {
                     min: 0,
                     max: Math.ceil(growthMax * 1.05) || 1,
-                    grid: { color: 'rgba(42,42,50,0.8)' },
-                    ticks: { color: '#9a9692' }
+                    grid: { color: 'rgba(42, 51, 72, 0.8)' },
+                    ticks: { color: '#a6b0c8' }
                   }
                 }
               }

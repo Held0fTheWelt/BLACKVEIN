@@ -125,6 +125,27 @@ def test_request_backend_retries_after_refresh(app_ctx, monkeypatch):
     assert len(responses) == 0
 
 
+def test_request_backend_sends_bearer_without_forwarding_cookies(app_ctx, monkeypatch):
+    from flask import session
+
+    captured: dict[str, object] = {}
+    session["access_token"] = "access-token"
+
+    def fake_request(**kwargs):
+        captured.update(kwargs)
+        return MagicMock(status_code=200, ok=True)
+
+    monkeypatch.setattr("app.api_client.requests.request", fake_request)
+
+    response = request_backend("POST", "/api/v1/forum/threads", json_data={"title": "T"})
+
+    assert response.status_code == 200
+    headers = captured["headers"]
+    assert headers["Authorization"] == "Bearer access-token"
+    assert headers["Content-Type"] == "application/json"
+    assert "Cookie" not in headers
+
+
 def test_request_backend_401_refresh_fails_no_second_call(app_ctx, monkeypatch):
     calls = 0
 

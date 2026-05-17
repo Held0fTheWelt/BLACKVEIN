@@ -163,12 +163,12 @@
     }
 
     /**
-     * Show current user and role in #manage-user-info; hide Users nav if not admin.
+     * Show current user name in #manage-user-info; hide Users nav if not admin.
      */
     function updateUI(user) {
         var infoEl = document.getElementById("manage-user-info");
         if (infoEl && user) {
-            infoEl.textContent = (user.username || "") + (user.role ? " (" + user.role + ")" : "");
+            infoEl.textContent = user.username || "operator";
         }
         var allowed = user && user.allowed_features ? user.allowed_features : [];
         var hasFeature = function(fid) { return allowed.indexOf(fid) >= 0; };

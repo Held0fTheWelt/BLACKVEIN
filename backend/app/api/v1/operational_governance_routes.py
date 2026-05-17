@@ -544,14 +544,18 @@ def admin_story_runtime_experience_update():
         result = update_story_runtime_experience_settings(_body(), _actor_identifier())
         # Rebuild resolved runtime config so world-engine fetches the new
         # Story Runtime Experience section on its next reload call.
+        rebind_result = None
         try:
-            build_resolved_runtime_config(persist_snapshot=True, actor=_actor_identifier())
-        except GovernanceError:
+            resolved = build_resolved_runtime_config(persist_snapshot=True, actor=_actor_identifier())
+            if isinstance(resolved, dict):
+                rebind_result = resolved.get("world_engine_story_runtime_rebind")
+        except GovernanceError as exc:
             # Settings are persisted even if full resolve fails; the admin
             # truth surface will reflect the new values on next GET.
-            pass
+            rebind_result = {"attempted": False, "skipped": True, "ok": False, "error": str(exc)}
         truth = build_story_runtime_experience_truth_surface()
         truth["update_warnings"] = result.get("warnings") or []
+        truth["world_engine_story_runtime_rebind"] = rebind_result
         return truth
 
     return _handle("story_runtime_experience_update", _do)

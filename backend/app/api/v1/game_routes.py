@@ -78,6 +78,7 @@ from app.services.game_service import (
 from app.observability.langfuse_adapter import LangfuseAdapter
 from app.observability.trace import get_langfuse_trace_id
 from app.config.route_constants import route_status_codes, route_pagination_config
+from story_runtime_core.langfuse_tracing_environment import is_local_langfuse_evidence_context
 
 
 class GameIdentityContext(dict):
@@ -96,6 +97,14 @@ def _trace_classification(*, canonical_player_flow: bool, runtime_mode: str = "s
             "execution_tier": tier,
             "canonical_player_flow": canonical_player_flow,
             "test_case_id": current_test or None,
+            "runtime_mode": runtime_mode,
+        }
+    if canonical_player_flow and is_local_langfuse_evidence_context():
+        return {
+            "trace_origin": "player_ui_local",
+            "execution_tier": "local",
+            "canonical_player_flow": canonical_player_flow,
+            "test_case_id": None,
             "runtime_mode": runtime_mode,
         }
     return {
@@ -809,6 +818,7 @@ def _ensure_player_session(
         runtime_profile_handoff=runtime_profile_handoff,
     )
     provenance["run_id"] = clean_run_id
+    trace_meta = _trace_classification(canonical_player_flow=True, runtime_mode="solo_story")
     created = create_story_session(
         module_id=module_id,
         runtime_projection=runtime_projection,
@@ -816,10 +826,11 @@ def _ensure_player_session(
         user_id=str(user.id),
         trace_id=trace_id or g.get("trace_id"),
         langfuse_trace_id=langfuse_trace_id or g.get("langfuse_trace_id") or get_langfuse_trace_id(),
-        trace_origin="live_ui",
-        execution_tier="live",
-        canonical_player_flow=True,
-        runtime_mode="solo_story",
+        trace_origin=str(trace_meta.get("trace_origin")),
+        execution_tier=str(trace_meta.get("execution_tier")),
+        canonical_player_flow=bool(trace_meta.get("canonical_player_flow")),
+        test_case_id=trace_meta.get("test_case_id"),
+        runtime_mode=str(trace_meta.get("runtime_mode")),
         content_provenance=provenance,
     )
     runtime_session_id = str(created.get("session_id") or "").strip()
@@ -884,25 +895,51 @@ def _builtin_play_template_dicts() -> list[dict[str, Any]]:
     return out
 
 
+def _template_catalog_from_runtime_or_fallback(*, play_service_configured: bool) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Return play templates plus diagnostic catalog-source metadata."""
+    diagnostic: dict[str, Any] = {
+        "source": "builtin_fallback",
+        "degraded": not play_service_configured,
+        "runtime_error": None,
+    }
+    templates: list[dict[str, Any]] = []
+    if play_service_configured:
+        try:
+            templates = list_play_templates()
+            diagnostic["source"] = "play_service"
+            diagnostic["degraded"] = False
+        except GameServiceError as exc:
+            diagnostic.update(
+                {
+                    "source": "builtin_fallback",
+                    "degraded": True,
+                    "runtime_error": str(exc),
+                    "runtime_status_code": exc.status_code,
+                }
+            )
+    if not templates:
+        templates = _builtin_play_template_dicts()
+    return templates, diagnostic
+
+
 @api_v1_bp.route("/game/bootstrap", methods=["GET"])
 @limiter.limit("60 per minute")
 def game_bootstrap():
     try:
         user = _require_game_user()
         play_service = _play_service_bootstrap()
-        templates: list[dict[str, Any]] = []
         runs: list[dict[str, Any]] = []
+        templates, template_diagnostic = _template_catalog_from_runtime_or_fallback(
+            play_service_configured=bool(play_service["configured"])
+        )
+        play_service["template_catalog"] = template_diagnostic
         if play_service["configured"]:
             try:
-                templates = list_play_templates()
-            except GameServiceError:
-                templates = []
-            try:
                 runs = list_play_runs()
-            except GameServiceError:
+            except GameServiceError as exc:
                 runs = []
-        if not templates:
-            templates = _builtin_play_template_dicts()
+                play_service["runs_degraded"] = True
+                play_service["runs_error"] = str(exc)
         characters = [character.to_dict() for character in list_characters_for_user(user.id)]
         save_slots = [slot.to_dict() for slot in list_save_slots_for_user(user.id)]
         return jsonify(
@@ -928,13 +965,10 @@ def game_bootstrap():
 def game_templates():
     try:
         _require_game_user()
-        try:
-            raw = list_play_templates()
-        except GameServiceError:
-            raw = []
-        if not raw:
-            raw = _builtin_play_template_dicts()
-        return jsonify({"templates": _serialize_template_catalog(raw)})
+        raw, diagnostic = _template_catalog_from_runtime_or_fallback(
+            play_service_configured=has_complete_play_service_config()
+        )
+        return jsonify({"templates": _serialize_template_catalog(raw), "template_catalog": diagnostic})
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
 

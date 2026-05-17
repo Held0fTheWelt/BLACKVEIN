@@ -31,6 +31,18 @@ def test_legacy_oracle_route_remains_transitional(monkeypatch):
     response = client.get("/legacy-oracle")
     assert response.status_code == 200
     assert b"Legacy Oracle (Transitional)" in response.data
+    assert b"/static/favicon.ico" in response.data
+
+
+def test_favicon_is_served(monkeypatch):
+    monkeypatch.setenv("WRITERS_ROOM_SECRET_KEY", "test-secret")
+    module = _load_app_module()
+    client = module.app.test_client()
+
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert response.mimetype == "image/vnd.microsoft.icon"
+    assert response.data.startswith(b"\x00\x00\x01\x00")
 
 
 def test_unified_review_flow_renders_report(monkeypatch):

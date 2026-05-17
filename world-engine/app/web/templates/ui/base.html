@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}World-Engine UI{% endblock %} – BLACKVEIN</title>
+  <title>{% block title %}World-Engine UI{% endblock %} – Better Tomorrow</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/ui.css">
   {% block extra_head %}{% endblock %}
 </head>
@@ -20,8 +21,8 @@
       <div class="ui-brand">
         <span class="ui-brand-mark" aria-hidden="true">◆</span>
         <span>
-          <span class="ui-brand-title">BLACKVEIN</span>
-          <span class="ui-brand-subtitle">World-Engine · Runtime</span>
+          <span class="ui-brand-title">Better Tomorrow</span>
+          <span class="ui-brand-subtitle">World-Engine</span>
         </span>
       </div>
 
@@ -52,9 +53,9 @@
 
       <p class="ui-side-note">Setup, config, and governance writes live in the <strong>Administration Tool</strong> — this UI is live runtime diagnostics only.</p>
       <div class="ui-side-foot">
-        <div class="ui-user">{{ (current_user.username if current_user else "Unknown") }}{% if current_user and current_user.role %} ({{ current_user.role }}){% endif %}</div>
+        <span class="ui-side-user">{{ (current_user.username if current_user else "Unknown") }}{% if current_user and current_user.role %} ({{ current_user.role }}){% endif %}</span>
         <form method="post" action="/logout">
-          <button type="submit" class="ui-btn ui-btn-ghost">Log out</button>
+          <button type="submit" class="ui-side-logout">Log out</button>
         </form>
       </div>
     </aside>
@@ -64,7 +65,7 @@
         <button type="button" class="ui-side-toggle" id="ui-side-toggle" aria-controls="ui-side" aria-expanded="false" aria-label="Toggle navigation">
           <span></span><span></span><span></span>
         </button>
-        <span class="ui-topbar-title">Runtime · Diagnostic Tier</span>
+        <span class="ui-topbar-title">Runtime Diagnostic Tier</span>
       </header>
       <main class="ui-main" role="main">
         {% block content %}{% endblock %}

@@ -1,9 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Play Session{% endblock %}
+{% block title %}Play Session — Better Tomorrow{% endblock %}
+{% block body_class %}play-active{% endblock %}
+{% block matrix_layer %}{% endblock %}
+{% block matrix_scripts %}{% endblock %}
+{% block sidebar %}{% endblock %}
+{% block topbar %}{% endblock %}
+{% block shell_scripts %}{% endblock %}
 {% block content %}
 <div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}" data-show-play-diagnostics="{{ 'true' if show_play_diagnostics else 'false' }}">
   <section class="panel panel--compact play-shell-meta">
-    <h1 class="play-shell-title">World of Shadows</h1>
+    <h1 class="play-shell-title">Better Tomorrow</h1>
     <p class="runtime-meta">
       Canonical player run <code>{{ session_id }}</code>
       {% if runtime_session_id %} · story session <code>{{ runtime_session_id }}</code>{% endif %}
@@ -185,4 +191,5 @@
 <script src="{{ url_for('static', filename='play_controls.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_shell.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_narrative_stream.js') }}" defer></script>
+<script src="{{ url_for('static', filename='play_cinematic.js') }}" defer></script>
 {% endblock %}

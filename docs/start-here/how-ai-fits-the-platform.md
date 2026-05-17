@@ -1,12 +1,12 @@
 # How AI fits the platform
 
-For a **single end-to-end narrative** across layers (including diagrams), see the spine: [`AI in World of Shadows — Connected System Reference`](../ai/ai_system_in_world_of_shadows.md).
+For a **single end-to-end narrative** across layers (including diagrams), see the spine: [`AI in Better Tomorrow — Connected System Reference`](../ai/ai_system_in_world_of_shadows.md).
 
 This page is **layered**: a short plain-language summary first, then technical pointers for implementers.
 
 ## Plain language
 
-**Artificial intelligence** in World of Shadows helps **run narrative turns**: it can retrieve context from authored content, propose what happens next, and shape dramatic delivery. **The platform does not treat the model as the boss of truth.** A **runtime pipeline** checks proposals against rules and **commits** only what is allowed. **Operators and developers** also use **tooling** (including an **MCP server** in this repo) to inspect health and content—tools are **not** a replacement for the play service’s authority.
+**Artificial intelligence** in Better Tomorrow helps **run narrative turns**: it can retrieve context from authored content, propose what happens next, and shape dramatic delivery. **The platform does not treat the model as the boss of truth.** A **runtime pipeline** checks proposals against rules and **commits** only what is allowed. **Operators and developers** also use **tooling** (including an **MCP server** in this repo) to inspect health and content—tools are **not** a replacement for the play service’s authority.
 
 Think of it as: **AI suggests** → **runtime decides** → **players see** validated results.
 

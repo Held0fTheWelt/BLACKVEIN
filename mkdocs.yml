@@ -1,8 +1,8 @@
-# MkDocs Material site for World of Shadows documentation.
+# MkDocs Material site for Better Tomorrow documentation.
 # Source lives under docs/ (docs-as-code). This does not replace the GitHub repo view;
 # it provides search, nav tabs, and Mermaid rendering for readers who prefer a static site.
 
-site_name: World of Shadows Documentation
+site_name: Better Tomorrow Documentation
 docs_dir: docs
 site_dir: site
 
@@ -49,7 +49,7 @@ nav:
   - Documentation index: INDEX.md
   - Start here:
       - Overview: start-here/README.md
-      - What is World of Shadows: start-here/what-is-world-of-shadows.md
+      - What is Better Tomorrow: start-here/what-is-world-of-shadows.md
       - How the system works: start-here/how-world-of-shadows-works.md
       - System map: start-here/system-map-services-and-data-stores.md
       - God of Carnage as an experience: start-here/god-of-carnage-as-an-experience.md
@@ -74,6 +74,11 @@ nav:
       - Operations runbook: admin/operations-runbook.md
       - Monitoring & incidents: admin/monitoring-logging-and-incident-response.md
       - Security overview: admin/security-and-compliance-overview.md
+      - Security governance: admin/security-governance.md
+      - At-rest encryption evidence: security/AT_REST_ENCRYPTION.md
+      - Rate-limit inventory: security/rate-limit-inventory.md
+      - Provider credential governance: security/PROVIDER_CREDENTIAL_GOVERNANCE.md
+      - CSRF matrix: security/csrf-matrix.md
       - Release & quality gates: admin/release-and-quality-gates-for-operators.md
   - Developer:
       - Overview: dev/README.md
@@ -114,6 +119,10 @@ nav:
       - Baseline validation: reference/baseline-validation-note.md
       - Governance index: governance/README.md
       - ADR 0001 Runtime authority: governance/adr-0001-runtime-authority-in-world-engine.md
+      - ADR 0047 At-rest encryption evidence: ADR/adr-0047-at-rest-encryption-evidence-boundary.md
+      - ADR 0050 Security governance: ADR/adr-0050-security-governance-browser-mutation-boundaries.md
+      - ADR 0051 Storage-layer encryption governance: ADR/adr-0051-storage-layer-encryption-governance.md
+      - ADR 0052 Security governance admin control plane: ADR/adr-0052-security-governance-admin-control-plane.md
       - ADR template: governance/adr-template.md
   - Contracts (GoC):
       - Canonical turn contract: MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md

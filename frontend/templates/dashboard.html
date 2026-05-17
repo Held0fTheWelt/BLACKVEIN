@@ -1,58 +1,74 @@
 {% extends "base.html" %}
-{% block title %}Dashboard – World of Shadows{% endblock %}
-{% block body_class %}dashboard{% endblock %}
+{% block title %}Dashboard — Better Tomorrow{% endblock %}
+{% block body_class %}wos-shell dashboard-shell{% endblock %}
+{% block topbar_title %}Account · Dashboard{% endblock %}
 {% block extra_head %}
+{% if is_admin %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endif %}
 {% endblock %}
 
-{% block site_main %}
-<main class="dashboard-layout">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <ul class="flash-messages dash-flash">
-      {% for category, message in messages %}
-      <li class="flash flash-{{ category }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
+{% block page_header %}
+<header class="page-shell-header">
+  <p class="page-eyebrow">// ACCOUNT</p>
+  <h1 class="page-title">Your <span class="page-title-accent">Dashboard</span></h1>
+  <p class="page-lead">Profile settings and account state live here. The main Better Tomorrow navigation remains available at all times.</p>
+</header>
+{% endblock %}
 
-    <aside class="dash-sidebar" role="navigation" aria-label="Dashboard menu">
-        <div class="dash-sidebar-header">
-            <h2 class="dash-sidebar-title mono">// USER</h2>
+{% block content %}
+<div class="dashboard-page">
+    <section class="dash-view dash-section is-visible" id="view-user-settings" aria-labelledby="dashboard-user-settings-title">
+        <div class="dash-topbar">
+            <h1 class="dash-title mono" id="dashboard-user-settings-title">// USER SETTINGS</h1>
         </div>
-        <nav class="dash-nav" aria-label="User">
-            <button type="button" class="dash-nav-item{% if not is_admin %} is-active{% endif %}" data-dash-view="user-settings" id="nav-user-settings">
-                User Settings
-            </button>
-        </nav>
-        {% if is_admin %}
-        <div class="dash-sidebar-sep" aria-hidden="true"></div>
-        <div class="dash-sidebar-header">
-            <h2 class="dash-sidebar-title mono">// ADMIN</h2>
+        <div class="dash-settings-card">
+            <p class="chart-title mono">// PROFILE</p>
+            {% if current_user %}
+            <div class="dash-user-meta" style="margin-bottom:1rem;">
+                <p class="mono" style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.25rem 0;"><span class="mono">Created</span>
+                  {% if current_user.get("created_at") %}{{ (current_user.get("created_at") | string)[:19] | replace("T", " ") }} UTC{% else %}—{% endif %}</p>
+                <p class="mono" style="font-size:0.85rem; color:var(--text-muted); margin:0;"><span class="mono">Last seen</span>
+                  {% if current_user.get("last_seen_at") %}{{ (current_user.get("last_seen_at") | string)[:19] | replace("T", " ") }} UTC{% else %}—{% endif %}</p>
+            </div>
+            {% endif %}
+            <form id="form-user-settings" class="dash-settings-form" action="#" method="post">
+                <div class="form-group">
+                    <label for="user-settings-name">Name</label>
+                    <input type="text" id="user-settings-name" name="username" value="{{ current_user.get('username', '') if current_user else '' }}" autocomplete="username" maxlength="128">
+                </div>
+                <div class="form-group">
+                    <label for="user-settings-email">Email</label>
+                    <input type="email" id="user-settings-email" name="email" value="{{ current_user.get('email', '') if current_user else '' }}" placeholder="your@email.com" autocomplete="email" maxlength="255">
+                </div>
+                <div class="dash-settings-actions">
+                    <button type="submit" class="btn btn-primary" id="user-settings-save">Save Changes</button>
+                    <span class="dash-settings-status" id="user-settings-status" aria-live="polite"></span>
+                </div>
+            </form>
         </div>
-        <nav class="dash-nav" aria-label="Admin">
-            <button type="button" class="dash-nav-item" data-dash-view="overview" id="nav-overview">
-                Overview
-            </button>
-            <button type="button" class="dash-nav-item is-active" data-dash-view="metrics" id="nav-metrics">
-                Metrics
-            </button>
-            <button type="button" class="dash-nav-item" data-dash-view="logs" id="nav-logs">
-                Logs
-            </button>
-            <button type="button" class="dash-nav-item" data-dash-view="site-management" id="nav-site-management">
-                Site Management
-            </button>
-        </nav>
-        {% endif %}
-    </aside>
+    </section>
 
-    <div class="dash-content">
-        {% if is_admin %}
-        <div class="dash-view is-visible" id="view-metrics" role="tabpanel" aria-labelledby="nav-metrics">
+    {% if is_admin %}
+    <section class="dashboard-admin-grid" aria-label="Admin dashboard">
+        <section class="dash-view dash-section is-visible" id="view-overview" aria-labelledby="dashboard-overview-title">
             <div class="dash-topbar">
-                <h1 class="dash-title-main mono">// METRICS</h1>
+                <h1 class="dash-title mono" id="dashboard-overview-title">// OVERVIEW</h1>
+            </div>
+            <div class="dash-overview-card">
+                <p class="chart-title mono">// DEVELOPMENT STATUS</p>
+                <p class="config-hint">Quick overview of the Admin Dashboard.</p>
+                <ul class="dash-overview-list">
+                    <li><span class="mono">Metrics</span> — Active users (last 15 min), registered, verified, banned; Active Users Over Time and User Growth from real data; range 24h/7d/30d/12m.</li>
+                    <li><span class="mono">Logs</span> — Activity log with filters and CSV export.</li>
+                    <li><span class="mono">Overview</span> — Summary and entry point to dashboard sections.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="dash-view dash-section is-visible" id="view-metrics" aria-labelledby="dashboard-metrics-title">
+            <div class="dash-topbar">
+                <h1 class="dash-title-main mono" id="dashboard-metrics-title">// METRICS</h1>
             </div>
             <div class="dash-subtitle">
                 <p class="mono">Metrics about the website.</p>
@@ -105,11 +121,11 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="dash-view" id="view-logs" role="tabpanel" aria-labelledby="nav-logs" hidden>
+        <section class="dash-view dash-section is-visible" id="view-logs" aria-labelledby="dashboard-logs-title">
             <div class="dash-topbar">
-                <h1 class="dash-title mono">// LOGS</h1>
+                <h1 class="dash-title mono" id="dashboard-logs-title">// LOGS</h1>
             </div>
             <div class="table-card">
                 <div class="table-toolbar">
@@ -156,11 +172,11 @@
                     <span id="table-count" class="mono">0 entries</span>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="dash-view" id="view-site-management" role="tabpanel" aria-labelledby="nav-site-management" hidden>
+        <section class="dash-view dash-section is-visible" id="view-site-management" aria-labelledby="dashboard-site-management-title">
             <div class="dash-topbar">
-                <h1 class="dash-title mono">// SITE MANAGEMENT</h1>
+                <h1 class="dash-title mono" id="dashboard-site-management-title">// SITE MANAGEMENT</h1>
             </div>
             <div class="dash-overview-card">
                 <p class="chart-title mono">// SLOGAN ROTATION</p>
@@ -177,56 +193,10 @@
                     <span id="site-settings-status" class="dash-settings-status" aria-live="polite"></span>
                 </form>
             </div>
-        </div>
-
-        <div class="dash-view" id="view-overview" role="tabpanel" aria-labelledby="nav-overview" hidden>
-            <div class="dash-topbar">
-                <h1 class="dash-title mono">// OVERVIEW</h1>
-            </div>
-            <div class="dash-overview-card">
-                <p class="chart-title mono">// DEVELOPMENT STATUS</p>
-                <p class="config-hint">Quick overview of the Admin Dashboard.</p>
-                <ul class="dash-overview-list">
-                    <li><span class="mono">Metrics</span> — Active users (last 15 min), registered, verified, banned; Active Users Over Time and User Growth from real data; range 24h/7d/30d/12m.</li>
-                    <li><span class="mono">Logs</span> — Activity log with filters and CSV export.</li>
-                    <li><span class="mono">Overview</span> — This page; summary and entry point to dashboard sections.</li>
-                </ul>
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="dash-view{% if not is_admin %} is-visible{% endif %}" id="view-user-settings" role="tabpanel" aria-labelledby="nav-user-settings"{% if is_admin %} hidden{% endif %}>
-            <div class="dash-topbar">
-                <h1 class="dash-title mono">// USER SETTINGS</h1>
-            </div>
-            <div class="dash-settings-card">
-                <p class="chart-title mono">// PROFILE</p>
-                {% if current_user %}
-                <div class="dash-user-meta" style="margin-bottom:1rem;">
-                    <p class="mono" style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.25rem 0;"><span class="mono">Created</span>
-                      {% if current_user.get("created_at") %}{{ (current_user.get("created_at") | string)[:19] | replace("T", " ") }} UTC{% else %}—{% endif %}</p>
-                    <p class="mono" style="font-size:0.85rem; color:var(--text-muted); margin:0;"><span class="mono">Last seen</span>
-                      {% if current_user.get("last_seen_at") %}{{ (current_user.get("last_seen_at") | string)[:19] | replace("T", " ") }} UTC{% else %}—{% endif %}</p>
-                </div>
-                {% endif %}
-                <form id="form-user-settings" class="dash-settings-form" action="#" method="post">
-                    <div class="form-group">
-                        <label for="user-settings-name">Name</label>
-                        <input type="text" id="user-settings-name" name="username" value="{{ current_user.get('username', '') if current_user else '' }}" autocomplete="username" maxlength="128">
-                    </div>
-                    <div class="form-group">
-                        <label for="user-settings-email">Email</label>
-                        <input type="email" id="user-settings-email" name="email" value="{{ current_user.get('email', '') if current_user else '' }}" placeholder="your@email.com" autocomplete="email" maxlength="255">
-                    </div>
-                    <div class="dash-settings-actions">
-                        <button type="submit" class="btn btn-primary" id="user-settings-save">Save Changes</button>
-                        <span class="dash-settings-status" id="user-settings-status" aria-live="polite"></span>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</main>
+        </section>
+    </section>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_scripts %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link with context %}
+{% block title %}Observability &amp; evidence{% endblock %}
+{% block heading %}Observability &amp; Evidence{% endblock %}
+{% block subheading %}Langfuse, lokale Traces, RAG-Diagnostik und Evaluatoren — lesbar, nützlich, aber sauber von Runtime-Wahrheit getrennt.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Worum es hier geht</h2>
+  <p>Observability beantwortet: Was ist in einer Session passiert, welche RAG-Quellen wurden genutzt, welche Capabilities waren aktiv, und wie haben lokale Judges bewertet? Diese Daten helfen beim Debugging und bei ADR-0041-Evidence, dürfen aber keine fachliche Wahrheit mutieren.</p>
+  <div class="info-callout-warning">
+    <strong>Lokale Langfuse-Daten sind lokale Evidence.</strong>
+    <p>Ein lokaler Trace ist nicht automatisch Production- oder Staging-Beweis. Erwartete Metadaten sind unter anderem <code>environment=local</code>, <code>evidence_scope=local_langfuse</code>, <code>proof_level=local_only</code> und ein deaktiviertes Production-/Staging-Evidence-Flag.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Was in einen guten Trace gehört</h2>
+  <table class="doc-table" aria-label="Trace-Metadaten">
+    <thead><tr><th>Feld</th><th>Bedeutung</th><th>Warum lesbar wichtig</th></tr></thead>
+    <tbody>
+      <tr><td><code>session_id</code>, <code>turn_id</code></td><td>Korrelation zwischen Backend, Engine und Langfuse.</td><td>Support kann einen einzelnen Turn wiederfinden.</td></tr>
+      <tr><td><code>player_input_sha256</code></td><td>Hash statt Rohtext für sensible Eingaben.</td><td>Vergleichbar, ohne unnötig Daten offenzulegen.</td></tr>
+      <tr><td><code>turn_class</code></td><td>Art des Turns, z. B. Dialog, Navigation, Tooling.</td><td>Hilft beim Filtern und Bewerten.</td></tr>
+      <tr><td><code>selected_capabilities</code></td><td>Aktive Runtime-Fähigkeiten.</td><td>Erklärt, warum ein Pfad gewählt wurde.</td></tr>
+      <tr><td><code>authority_level</code></td><td>RAG-/Content-Autorität einer Quelle.</td><td>Trennt kanonische Inhalte von Hilfswissen.</td></tr>
+      <tr><td><code>runtime_quality</code></td><td><code>healthy</code>, <code>degraded</code> oder <code>fallback</code>.</td><td>Verhindert, dass Fallbacks als gesund gelesen werden.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Judges und Evaluatoren transferieren</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Evaluator-Definition inventarisieren.</strong><span>Name, Prompt, Kategorien, Score-Skala, Filter und Provider getrennt dokumentieren. Provider-API-Keys nie in Compose-Dateien schreiben.</span></div>
+    </li>
+    <li>
+      <div><strong>In Langfuse als Evaluator anlegen oder importieren.</strong><span>Wenn die lokale Langfuse-Version UI-Import/API-Seeding anbietet, Definitionen versioniert übernehmen; sonst manuell in der UI anlegen und im Repo dokumentieren.</span></div>
+    </li>
+    <li>
+      <div><strong>Auf Observations oder Traces filtern.</strong><span>Für Generation-Evaluatoren braucht der sendende SDK-Pfad kompatible Observation-Daten. Bei SDK-Hinweisen zuerst Python SDK v3+ oder JS SDK v4+ im sendenden Dienst prüfen.</span></div>
+    </li>
+    <li>
+      <div><strong>Scores governance-sicher lesen.</strong><span>Scores sind Diagnose. Sie dürfen <code>validation_outcome</code>, Commit und Readiness nicht direkt verändern.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Verbindungsfehler richtig lesen</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong><code>localhost</code> im Browser</strong>
+      <p>Für die Langfuse-UI ist <code>http://localhost:3000</code> korrekt, wenn der Container-Port auf den Host gemappt ist.</p>
+    </article>
+    <article class="info-note">
+      <strong><code>langfuse-web</code> im Container</strong>
+      <p>Backend, world-engine und Worker müssen im Docker-Netz <code>http://langfuse-web:3000</code> oder die konfigurierte Service-URL verwenden.</p>
+    </article>
+    <article class="info-note">
+      <strong><code>auth_failed</code></strong>
+      <p>Base-URL erreichbar, aber Public/Secret-Key passt nicht zu diesem Projekt oder wurde noch nicht gespeichert/restartet.</p>
+    </article>
+    <article class="info-note">
+      <strong><code>connection refused</code></strong>
+      <p>Der Zielhost/Port antwortet nicht aus Sicht des aufrufenden Prozesses. Bei Docker fast immer URL- oder Profil-/Container-Start prüfen.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>ADR-0039 / ADR-0041 Leitplanken</h2>
+  <ul class="info-check-list">
+    <li><strong>Keine Pi/Π-Runtime-Keys:</strong> Observability darf keine aktiven Runtime-Schlüssel offenlegen.</li>
+    <li><strong>Keine Frontend-Secrets:</strong> Langfuse Secret Keys bleiben backendseitig; Frontends dürfen höchstens Trace-IDs oder Links anzeigen.</li>
+    <li><strong>Keine Truth-Mutation:</strong> Langfuse-Scores ändern keine Commit-/Readiness-/Validation-Entscheidung.</li>
+    <li><strong>Keine falsche Evidence-Stufe:</strong> Lokale Traces bleiben <code>local_only</code>, solange sie nicht in Staging oder Production erzeugt wurden.</li>
+    <li><strong>Fallback sichtbar machen:</strong> Degraded- oder Fallback-Traces zählen nicht als gesunde Runtime-Evidence.</li>
+  </ul>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li><a href="{{ url_for('info.runtime_path') }}">Runtime-Pfad</a> — wo Traces entstehen und welche Komponente autoritativ bleibt.</li>
+    <li><a href="{{ url_for('info.ai_integration') }}">AI &amp; Orchestrierung</a> — WritersRoom, Improvement, SessionsBridge und Governance.</li>
+    <li><a href="{{ url_for('info.mcp_integration') }}">MCP &amp; Tooling</a> — MCP-Server, Admin-Cockpit und Langfuse/MCP-Evidence.</li>
+    <li>{{ docs_deep_link("Lokales Langfuse Docker Setup", "/local-langfuse-docker/") }}</li>
+  </ul>
+</section>
+{% endblock %}

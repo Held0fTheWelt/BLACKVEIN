@@ -1,8 +1,8 @@
-# Backend in World of Shadows
+# Backend in Better Tomorrow
 
 ## Title and purpose
 
-This document is the **canonical technical reference** for the **Flask backend** (`backend/`) in World of Shadows. It explains the backend as (1) a subsystem with clear boundaries, (2) the **central API and policy surface** other parts of the platform talk to, and (3) a **single monolithic service body** whose routing, security, sessions, and integrations form one coherent story.
+This document is the **canonical technical reference** for the **Flask backend** (`backend/`) in Better Tomorrow. World of Shadows remains the subtitle/world context. It explains the backend as (1) a subsystem with clear boundaries, (2) the **central API and policy surface** other parts of the platform talk to, and (3) a **single monolithic service body** whose routing, security, sessions, and integrations form one coherent story.
 
 **Repository anchors:** `backend/app/__init__.py`, `backend/app/api/__init__.py`, `docs/technical/architecture/backend-runtime-classification.md`.
 
@@ -20,7 +20,7 @@ This document is the **canonical technical reference** for the **Flask backend**
 
 ## Executive overview
 
-The backend is **Better Tomorrow / World of Shadows’ primary HTTP API**: it owns user accounts, roles, feature-area governance, content and forum surfaces, admin dashboards, bridges to the **World Engine** for **live play**, and operator-facing diagnostics. It is **not** a second runtime: in-process session and AI paths are explicitly **non-authoritative** and exist for tests, tooling, and transitional compatibility (`docs/technical/architecture/backend-runtime-classification.md`).
+The backend is **Better Tomorrow’s primary HTTP API**: it owns user accounts, roles, feature-area governance, content and forum surfaces, admin dashboards, bridges to the **World Engine** for **live play**, and operator-facing diagnostics. It is **not** a second runtime: in-process session and AI paths are explicitly **non-authoritative** and exist for tests, tooling, and transitional compatibility (`docs/technical/architecture/backend-runtime-classification.md`).
 
 **Why this matters:** Confusing “API host” with “runtime host” breaks operational mental models (where transcripts live, which process enforces run identity, what restarts wipe). This document keeps those distinctions explicit.
 
@@ -60,7 +60,7 @@ Monolithic here means **one deployable Flask process** with shared extensions (`
 | **Diagnostics** | `system_diagnosis_routes.py`, `info/routes.py` | Aggregated diagnosis; static operator pages under `/backend` |
 | **Runtime library (in-repo)** | `app/runtime/` | Shared models/policies/tests; **not** mounted as a second public play host |
 
-### Why this matters in World of Shadows
+### Why this matters in Better Tomorrow
 
 The product’s **trust boundary** for “who can do what” lives largely here. The **runtime authority** for live play is deliberately **outsourced** to the World Engine; the backend’s job is to **authenticate callers**, **apply policy**, and **call the engine** with validated contracts.
 
@@ -187,7 +187,7 @@ The backend decides **whether you are allowed in** (authentication), **what you 
 
 **Transport and headers:** Optional HTTPS redirect when `ENFORCE_HTTPS` (`create_app`). Security headers include CSP (with `connect-src` extended by `PLAY_SERVICE_PUBLIC_URL`), `X-Frame-Options: DENY`, HSTS when HTTPS enforced (`backend/app/__init__.py`).
 
-**Rate limiting:** Flask-Limiter with key function preferring JWT user id (`get_rate_limit_key` in `extensions.py`); test-mode proxy limiter for pytest.
+**Rate limiting:** Flask-Limiter with key function preferring JWT user id (`get_rate_limit_key` in `extensions.py`); test-mode proxy limiter for pytest. The inspectable route/tool inventory is built by `ai_stack/limit_inventory.py`, surfaced through `/backend/api-explorer`, `/backend/security-features`, `/backend/auth`, and `/backend/mcp`, and documented in `docs/security/rate-limit-inventory.md` plus ADR-0048.
 
 **Admin-sensitive exports:** `admin_security` wrapper on sensitive CSV export (`admin_routes.py`).
 
@@ -580,7 +580,7 @@ flowchart TB
 
 ## Conclusion
 
-The World of Shadows backend is **one Flask monolith** that **organizes access**: JWTs for people, service tokens for automation, feature areas for staff, and **`game_service`** for **World Engine** integration. It **must not** be mistaken for the **live narrative runtime**—that role belongs to the **World Engine**, with the backend acting as **gatekeeper, integrator, and operator console**.
+The Better Tomorrow backend is **one Flask monolith** that **organizes access**: JWTs for people, service tokens for automation, feature areas for staff, and **`game_service`** for **World Engine** integration. It **must not** be mistaken for the **live narrative runtime**—that role belongs to the **World Engine**, with the backend acting as **gatekeeper, integrator, and operator console**.
 
 ### Suggested cross-links
 

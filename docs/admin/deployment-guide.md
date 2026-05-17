@@ -39,12 +39,15 @@ Root `docker-compose.yml` defines:
 - **Secrets:** `SECRET_KEY`, `JWT_SECRET_KEY` (use strong random values in production).
 - **CORS / frontend:** `CORS_ORIGINS`, `FRONTEND_URL`.
 - **Play service integration:** `PLAY_SERVICE_INTERNAL_URL`, `PLAY_SERVICE_PUBLIC_URL`, `PLAY_SERVICE_SHARED_SECRET`, `PLAY_SERVICE_INTERNAL_API_KEY` — must match play service configuration.
+- **Runtime governance Redis:** production must use a passworded `rediss://` `REDIS_URL` backed by a named ACL user, not the unauthenticated local Compose URL.
 
 ### Play service (`play-service`)
 
 - `PLAY_SERVICE_SECRET` — must match backend `PLAY_SERVICE_SHARED_SECRET`.
 - `PLAY_SERVICE_INTERNAL_API_KEY` — must match backend internal key.
-- `RUN_STORE_BACKEND` — example uses `json` for local stacks; production choices belong in ops runbooks.
+- `RUN_STORE_BACKEND` — local stacks may use `json`; production should use `sqlalchemy` on encrypted managed DB/storage or `json_aead` with `WORLD_ENGINE_JSON_AEAD_KEY` from the production secret store.
+- `RUN_STORE_URL` — required for SQL-backed runtime persistence.
+- `WORLD_ENGINE_JSON_AEAD_KEY` — 32-byte base64url key for AEAD JSON persistence when `RUN_STORE_BACKEND=json_aead`.
 
 ### Frontend
 
@@ -55,10 +58,47 @@ Root `docker-compose.yml` defines:
 
 - `BACKEND_API_URL` — backend base URL for admin API calls.
 
+## Security governance and secrets
+
+Use [Security governance](security-governance.md) to record the desired production posture for CSRF/cookie policy, production secret-store usage, local `docker-up.py` bootstrap preservation, and Redis hardening.
+
+For production:
+
+- Materialize `SECRET_KEY`, `JWT_SECRET_KEY`, play-service shared secrets, database credentials, Redis passwords, Langfuse secrets, and provider credentials from a dedicated secret store or orchestrator-native secret mechanism before services start.
+- Keep rotation, audit, and access-separation evidence in your deployment/IaC or internal ops wiki.
+- Preserve local `.env` bootstrap for `python docker-up.py init-env` and `python docker-up.py up`; production secret-store integration must not make local Compose depend on cloud login or production secret-store access.
+
 ## Database
 
 - Run **migrations** from the backend image or release process (`flask db upgrade` or your CI equivalent) before serving traffic.
 - Back up the database on a schedule appropriate to your RPO/RTO; document restore drills in [Operations runbook](operations-runbook.md).
+- Production database storage must be encrypted through the managed database/KMS configuration or through documented encrypted volumes. Record the evidence in `/manage/security-governance`.
+
+## World-engine runtime store
+
+Production must not rely on plain local JSON runtime files. Choose one supported pattern:
+
+- `RUN_STORE_BACKEND=sqlalchemy` with `RUN_STORE_URL` pointing to an encrypted managed database or encrypted volume-backed database.
+- `RUN_STORE_BACKEND=json_aead` with `WORLD_ENGINE_JSON_AEAD_KEY` injected from the production secret store; this writes `*.json.enc` AES-256-GCM envelopes for world-engine JSON persistence.
+
+Keep `RUN_STORE_BACKEND=json` for local/dev only unless the host/volume encryption evidence is complete and recorded.
+
+## Redis
+
+Production must not reuse the local app Redis defaults. Run:
+
+```bash
+python docker-up.py init-production-redis
+python docker-up.py validate-production-redis
+```
+
+Then start Compose with `python docker-up.py --production-redis up` or carry the generated contract into your orchestrator:
+
+- app Redis and Langfuse Redis are separate instances/hosts
+- both use named ACL users and distinct passwords
+- both use TLS (`rediss://`) with CA validation
+- no Redis service is published as a host port
+- Langfuse Redis keeps `maxmemory-policy=noeviction`
 
 ## TLS and reverse proxies
 

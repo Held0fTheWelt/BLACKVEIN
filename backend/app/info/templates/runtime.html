@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link, endpoint_examples with context %}
+{% block title %}Runtime path{% endblock %}
+{% block heading %}Runtime-Pfad{% endblock %}
+{% block subheading %}Wie eine lokale Spielsitzung durch Backend, Play-Service, World-Engine und Observability läuft — mit klarer Grenze zwischen Diagnose und Wahrheit.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Worum es hier geht</h2>
+  <p>Diese View beschreibt den <strong>laufenden Session- und Turn-Pfad</strong>. Sie ist für Fehleranalyse gedacht: Welche Komponente entscheidet was, welche URL wird verwendet, und an welcher Stelle entsteht nur Diagnose statt Runtime-Wahrheit?</p>
+  <div class="info-lead-block">
+    <p><strong>Merksatz:</strong> Das Backend orchestriert Zugriff, Content und Tickets. Der World-Engine-Pfad bleibt autoritativ für Production-Run, Commit, Readiness und validierte Turn-Ergebnisse.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Hauptfluss</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Browser startet über die Player-UI.</strong><span>Login, Charakterwahl und Shell-Zustand laufen über Frontend und Backend-API.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend validiert den Startkontext.</strong><span>Account, Rolle, Charakter, veröffentlichter Content, Session-Policy und interne Service-Konfiguration werden geprüft.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend ruft den Play-Service intern auf.</strong><span>Container verwenden <code>PLAY_SERVICE_INTERNAL_URL</code>; der Browser bekommt die öffentliche Play-Service-Adresse.</span></div>
+    </li>
+    <li>
+      <div><strong>World-engine übernimmt den Production-Run.</strong><span>Lobby, WebSocket, Turn-Ausführung, Runtime-Qualität und Commit-/Readiness-Semantik gehören in diesen Pfad.</span></div>
+    </li>
+    <li>
+      <div><strong>Observability hängt Diagnose an.</strong><span>Langfuse, Logs und Judge-Scores dürfen erklären, aber nicht Commit, Readiness oder <code>validation_outcome</code> überschreiben.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Wichtige Routen</h2>
+  <p>Diese API-Einstiege sind meist die schnellsten Kontrollpunkte, wenn eine Session nicht startet oder ein Turn nicht sauber läuft.</p>
+  {{ endpoint_examples(backend_info_summary.examples) }}
+</section>
+
+<section class="info-section">
+  <h2>Konfiguration, die wirklich zählt</h2>
+  <dl class="info-key-value">
+    <dt>Backend zu Play-Service</dt>
+    <dd><code>{{ play_service_internal_url or "PLAY_SERVICE_INTERNAL_URL nicht gesetzt" }}</code></dd>
+    <dt>Browser zu Play-Service</dt>
+    <dd><code>{{ play_service_public_url or "PLAY_SERVICE_PUBLIC_URL nicht gesetzt" }}</code></dd>
+    <dt>Player-Frontend</dt>
+    <dd><code>{{ frontend_url or "FRONTEND_URL nicht gesetzt" }}</code></dd>
+  </dl>
+  <p class="muted">Wenn Docker beteiligt ist, darf der interne Wert nicht auf <code>localhost</code> zeigen, außer Backend und Play-Service laufen bewusst im selben Netzwerk-Namespace.</p>
+</section>
+
+<section class="info-section">
+  <h2>Runtime-Qualität lesen</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>healthy</strong>
+      <p>Der autoritative Runtime-Pfad antwortet, Turn-Ergebnisse kommen aus dem Engine-Pfad, und lokale Diagnose ist korrekt als lokal markiert.</p>
+    </article>
+    <article class="info-note">
+      <strong>degraded</strong>
+      <p>Die Runtime läuft, aber eine Nebenfähigkeit fehlt: zum Beispiel Langfuse, Judge-Provider, RAG-Diagnostik oder ein optionaler Inspector.</p>
+    </article>
+    <article class="info-note">
+      <strong>fallback</strong>
+      <p>Ein Ersatzpfad liefert noch UI- oder Diagnoseantworten. Das ist nützlich zum Debuggen, aber keine gesunde Production-Evidence.</p>
+    </article>
+    <article class="info-note">
+      <strong>failed</strong>
+      <p>Session-Start, Engine-Aufruf oder Turn-Verarbeitung scheitern fachlich oder technisch. Observability darf das melden, aber nicht schönrechnen.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li><a href="{{ url_for('info.engine_integration') }}">Engine-Integration</a> — Service-Adressen, Tickets und Play-Service-Grenze.</li>
+    <li><a href="{{ url_for('info.runtime_algorithms') }}">Session- und Turn-Algorithmen</a> — Start, Resume, Turn-Lifecycle und Fallback-Lesart.</li>
+    <li><a href="{{ url_for('info.data_model') }}">Datenmodell &amp; Relationen</a> — welche Tabellen Run und Story Session verbinden.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — Langfuse, Judges, lokale Trace-Regeln.</li>
+    <li>{{ docs_deep_link("Runtime &amp; Authority", "/dev/architecture/runtime-authority-and-session-lifecycle/") }}</li>
+  </ul>
+</section>
+{% endblock %}

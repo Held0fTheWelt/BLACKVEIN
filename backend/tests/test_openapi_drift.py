@@ -36,4 +36,7 @@ def test_backend_info_serves_openapi_and_explorer():
         assert b"openapi:" in spec.data
         page = client.get("/backend/api-explorer")
         assert page.status_code == 200
-        assert b"redoc-container" in page.data
+        assert b"api-explorer-app" in page.data
+        catalog = client.get("/backend/api-explorer/catalog.json")
+        assert catalog.status_code == 200
+        assert catalog.get_json()["stats"]["endpoints"] > 0

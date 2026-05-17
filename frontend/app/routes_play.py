@@ -681,18 +681,26 @@ def play_create():
 
         # Check if this is a JSON request
         if _wants_json_response():
+            status_code = exc.status_code if 400 <= int(exc.status_code or 0) <= 599 else 502
             response_data = {
                 "error": "Could not start game session",
                 "error_code": error_code,
                 "error_detail": error_detail,
                 "debug_id": trace_id,
+                "backend_status_code": exc.status_code,
             }
             if backend_url:
                 response_data["backend_url"] = backend_url
-            return jsonify(response_data), 400
+            return jsonify(response_data), status_code
 
         # For HTML requests, show error code and debug ID in flash message
-        error_msg = f"Could not start game session.\nError code: {error_code}\nDebug ID: {trace_id}"
+        error_msg = (
+            f"Could not start game session.\n"
+            f"Status: {exc.status_code}\n"
+            f"Error code: {error_code}\n"
+            f"Detail: {error_detail}\n"
+            f"Debug ID: {trace_id}"
+        )
         if backend_url:
             error_msg += f"\nBackend URL: {backend_url}"
         flash(error_msg, "error")

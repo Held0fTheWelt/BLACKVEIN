@@ -1,6 +1,6 @@
-# Better Tomorrow (World of Shadows)
+# Better Tomorrow — World of Shadows
 
-World of Shadows is a multi-service narrative game platform: player-facing web apps, an API layer, an authoritative play runtime, and a shared **AI stack** (RAG, LangGraph turn orchestration, guarded capabilities, MCP-oriented tooling) used by the world-engine and related workflows.
+**Better Tomorrow** is the product title. **World of Shadows** is its subtitle and world/platform context: a multi-service narrative game platform with player-facing web apps, an API layer, an authoritative play runtime, and a shared **AI stack** (RAG, LangGraph turn orchestration, guarded capabilities, MCP-oriented tooling) used by the world-engine and related workflows.
 
 The product direction for the **MVP vertical slice** is a **guided interactive drama runtime** (scene-led, truth-aligned turns)—not a generic chatbot or prose toy. See **[docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md)** for the target state and **[docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md)** for how Phase 0 freeze rules attach to that slice.
 
@@ -127,7 +127,7 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 - **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md) and `ai_stack/capabilities.py`.
 - **Player input**: structured interpretation contract in `story_runtime_core` — [docs/technical/runtime/player_input_interpretation_contract.md](docs/technical/runtime/player_input_interpretation_contract.md).
 
-Model routing (registry, adapters, timeouts) is configured in the world-engine startup path; local runs typically use **mock** or configured providers per `story_runtime_core` registry.
+Model routing (registry, adapters, timeouts) is configured in the world-engine startup path; local runs typically use **mock** or providers configured in backend AI Runtime Governance.
 
 ## MCP and auxiliary tooling
 
@@ -266,6 +266,8 @@ See [docs/development/LocalDevelopment.md](docs/development/LocalDevelopment.md)
 - `CORS_ORIGINS` — backend (include frontend and admin origins)
 - `FRONTEND_URL` — backend legacy redirects; optional `ADMINISTRATION_TOOL_URL` for `/backend` links
 - `PLAY_SERVICE_PUBLIC_URL`, `PLAY_SERVICE_INTERNAL_URL`, `PLAY_SERVICE_SHARED_SECRET` — backend ↔ play integration
+
+Provider API keys are managed through **Administration Tool → AI Runtime Governance** (encrypted backend credential storage) or the deployment secret manager. The Docker Compose runtime intentionally clears direct provider key env slots so backend/world-engine access goes through the governed credential path.
 
 Individual services may define additional variables; check each app’s README or config modules if present.
 

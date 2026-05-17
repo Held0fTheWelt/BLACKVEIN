@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
+
+from app.runtime.json_at_rest import JsonAtRestCodec, associated_data
 
 
 class JsonCallbackWebStore:
@@ -12,31 +13,37 @@ class JsonCallbackWebStore:
 
     backend_name = "json"
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, codec: JsonAtRestCodec | None = None) -> None:
         self.root = root
+        self.codec = codec or JsonAtRestCodec.plain()
+        self.backend_name = self.codec.backend_name("json")
         self.root.mkdir(parents=True, exist_ok=True)
 
     def path_for(self, callback_web_id: str) -> Path:
-        return self.root / f"{callback_web_id}.json"
+        return self.codec.path_for(self.root, callback_web_id)
+
+    def _aad(self, callback_web_id: str) -> bytes:
+        return associated_data("callback-web", callback_web_id)
 
     def save(self, callback_web_id: str, payload: dict[str, Any]) -> None:
         destination = self.path_for(callback_web_id)
-        temp_path = destination.with_suffix(".json.tmp")
-        temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp_path = destination.with_suffix(destination.suffix + ".tmp")
+        temp_path.write_text(self.codec.dumps(payload, aad=self._aad(callback_web_id)), encoding="utf-8")
         temp_path.replace(destination)
 
     def load(self, callback_web_id: str) -> dict[str, Any]:
         path = self.path_for(callback_web_id)
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = self.codec.loads(path.read_text(encoding="utf-8"), aad=self._aad(callback_web_id))
         if not isinstance(data, dict):
             raise ValueError("callback_web_payload_not_object")
         return data
 
     def load_all_raw(self) -> dict[str, dict[str, Any]]:
         out: dict[str, dict[str, Any]] = {}
-        for path in sorted(self.root.glob("*.json")):
+        for path in sorted(self.root.glob(f"*{self.codec.extension}")):
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
+                callback_web_id = path.name.removesuffix(self.codec.extension)
+                data = self.codec.loads(path.read_text(encoding="utf-8"), aad=self._aad(callback_web_id))
                 if isinstance(data, dict) and isinstance(data.get("callback_web_id"), str):
                     out[data["callback_web_id"]] = data
             except Exception:
@@ -53,9 +60,14 @@ class JsonCallbackWebStore:
         return rows
 
     def delete(self, callback_web_id: str) -> None:
-        path = self.path_for(callback_web_id)
-        if path.exists():
-            path.unlink()
+        for suffix in (".json", ".json.enc"):
+            path = self.root / f"{callback_web_id}{suffix}"
+            if path.exists():
+                path.unlink()
 
     def describe(self) -> dict[str, str]:
-        return {"backend": self.backend_name, "root": str(self.root)}
+        return {
+            "backend": self.backend_name,
+            "root": str(self.root),
+            "encrypted_at_rest": "yes" if self.codec.encrypted else "no",
+        }

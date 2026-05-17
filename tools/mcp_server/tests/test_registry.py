@@ -22,6 +22,8 @@ def test_tools_list_returns_expected_tools():
     assert health_tool["permission"] == "read"
     assert health_tool["tool_class"] == "read_only"
     assert health_tool["authority_source"] == "backend_http_authority"
+    assert health_tool["rate_limit"]["limit"] == "30 per minute"
+    assert health_tool["rate_limit"]["source"] == "mcp_json_rpc_dispatch"
     assert "governance" in health_tool
     assert set(health_tool["governance"].keys()) == {
         "published_vs_draft",
@@ -45,6 +47,7 @@ def test_tool_has_required_fields():
         assert "authority_source" in tool
         assert "implementation_status" in tool
         assert "governance" in tool
+        assert "rate_limit" in tool
 
 
 def test_session_create_is_write_capable():

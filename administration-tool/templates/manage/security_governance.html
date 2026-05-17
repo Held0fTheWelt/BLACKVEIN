@@ -1,0 +1,339 @@
+{% extends "manage/base.html" %}
+{% block title %}Security Governance{% endblock %}
+
+{% block content %}
+<section class="manage-section" data-page="security-governance">
+    <header class="mui-deck-header">
+        <div>
+            <p class="mui-deck-eyebrow">Security · Governance</p>
+            <h1>Security Governance</h1>
+            <p class="mui-deck-headline">
+                CSRF matrix, cookie posture, proxy boundary, secret-store policy, Redis hardening, and storage-layer evidence.
+            </p>
+            <div class="mui-pillrow" aria-label="Security governance status">
+                <span class="mui-pill mui-pill--ok">
+                    <span class="mui-pill-label">Review</span>
+                    <span class="mui-pill-value" id="manage-sg-review-status">Loading</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Target SameSite</span>
+                    <span class="mui-pill-value" id="manage-sg-target-samesite">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Effective SameSite</span>
+                    <span class="mui-pill-value" id="manage-sg-effective-samesite">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Secret Store</span>
+                    <span class="mui-pill-value" id="manage-sg-secret-store-mode">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Docker-Up</span>
+                    <span class="mui-pill-value" id="manage-sg-docker-up">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Redis Profile</span>
+                    <span class="mui-pill-value" id="manage-sg-redis-profile">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Redis Status</span>
+                    <span class="mui-pill-value" id="manage-sg-redis-status">-</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Storage Evidence</span>
+                    <span class="mui-pill-value" id="manage-sg-storage-status">-</span>
+                </span>
+            </div>
+        </div>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn" id="manage-sg-refresh">Reload</button>
+            <button type="button" class="btn btn-primary" id="manage-sg-save">Save policy</button>
+            <span class="mui-inline-result" id="manage-sg-result" hidden></span>
+        </div>
+    </header>
+
+    <p id="manage-sg-error" class="form-error mui-legacy-hidden" hidden role="alert"></p>
+    <p id="manage-sg-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+
+    <section class="gov-help-row" aria-label="Security governance guidance">
+        <div class="gov-help-grid">
+            <article class="gov-help-card">
+                <h4>Policy is editable</h4>
+                <p>The controls below persist the operator's desired CSRF and cookie posture in backend governance settings.</p>
+                <span class="gov-help-source">Source: /api/v1/admin/security/governance</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Enforcement is code-owned</h4>
+                <p>CSRF exemption for <code>api_v1</code>, proxy cookie stripping, and Bearer-token API auth are not flipped from this page.</p>
+                <span class="gov-help-source">Source: factory_app.py + route_registration_proxy.py</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>Regression gate</h4>
+                <p>Backend, frontend, and admin proxy tests keep the documented CSRF matrix aligned with runtime behavior.</p>
+                <span class="gov-help-source">Source: docs/security/csrf-matrix.md</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>Secret-store boundary</h4>
+                <p>Production secret storage is governed here, while <code>docker-up.py</code> keeps local <code>.env</code> bootstrap independent.</p>
+                <span class="gov-help-source">Source: ADR-0030 / ADR-0031</span>
+            </article>
+            <article class="gov-help-card">
+                <h4>Redis hardening</h4>
+                <p>Production Redis policy requires passwords, TLS, named ACL users, separated instances, and no host-published ports.</p>
+                <span class="gov-help-source">Source: docker-compose.redis-production.yml</span>
+            </article>
+            <article class="gov-help-card gov-help-card--warn">
+                <h4>Storage evidence</h4>
+                <p>Full at-rest claims require storage-layer evidence for SQLite, Redis, runtime stores, Langfuse volumes, and backups.</p>
+                <span class="gov-help-source">Source: ADR-0051 / AT_REST_ENCRYPTION.md</span>
+            </article>
+        </div>
+    </section>
+
+    <div class="mui-card-grid">
+        <article class="mui-card">
+            <p class="mui-card-meta">Editable policy</p>
+            <h4>Operator settings</h4>
+            <form id="manage-sg-form" class="mui-field-grid" onsubmit="return false;">
+                <label class="mui-field">
+                    <span class="mui-field-label">Review status</span>
+                    <select id="manage-sg-field-review-status" class="form-input">
+                        <option value="approved">approved</option>
+                        <option value="needs_review">needs_review</option>
+                        <option value="draft">draft</option>
+                    </select>
+                </label>
+                <label class="mui-field">
+                    <span class="mui-field-label">Target session SameSite</span>
+                    <select id="manage-sg-field-target-samesite" class="form-input">
+                        <option value="Lax">Lax</option>
+                        <option value="Strict">Strict</option>
+                    </select>
+                    <span class="mui-field-hint">Desired policy. Actual app config remains code/deployment-owned.</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-web-csrf" />
+                    <span>Require CSRF protection for backend web POST flows</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-bearer-api" />
+                    <span>Require Bearer-token auth for mutating JSON APIs</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-proxy-cookie" />
+                    <span>Require same-origin proxies to strip browser cookies upstream</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-regression-tests" />
+                    <span>Require CSRF matrix regression tests before release</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-secret-store" />
+                    <span>Require production secret-store boundary</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-secret-audit" />
+                    <span>Require production secret-store audit trail</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-secret-access-separation" />
+                    <span>Require separated production secret access</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-preserve-docker-up" />
+                    <span>Preserve local Docker-Up <code>.env</code> bootstrap</span>
+                </label>
+                <label class="mui-field mui-field-full">
+                    <span class="mui-field-label">Redis hardening profile</span>
+                    <select id="manage-sg-field-redis-profile" class="form-input">
+                        <option value="production_compose">production_compose</option>
+                        <option value="managed_service">managed_service</option>
+                        <option value="local_development">local_development</option>
+                    </select>
+                    <span class="mui-field-hint">Production Compose uses docker-up generated TLS, ACL files, and separate Redis services.</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-hardening" />
+                    <span>Require production Redis hardening outside local development</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-tls" />
+                    <span>Require Redis TLS for app and Langfuse connections</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-acl" />
+                    <span>Require named Redis ACL users and passwords</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-separate" />
+                    <span>Require separate app and Langfuse Redis instances</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-no-host-ports" />
+                    <span>Require Redis services to stay internal without host ports</span>
+                </label>
+                <label class="mui-field-check mui-field-full">
+                    <input type="checkbox" id="manage-sg-field-redis-validation" />
+                    <span>Require docker-up Redis validation before production startup</span>
+                </label>
+                <label class="mui-field mui-field-full">
+                    <span class="mui-field-label">Operator notes</span>
+                    <textarea id="manage-sg-field-notes" class="form-input" rows="4" maxlength="800" placeholder="Short audit note"></textarea>
+                </label>
+            </form>
+        </article>
+
+        <article class="mui-card">
+            <p class="mui-card-meta">Effective posture</p>
+            <h4>Observed runtime values</h4>
+            <ul class="info-check-list" id="manage-sg-effective-list"></ul>
+            <div class="mui-subgroup">
+                <p class="mui-subgroup-title">Warnings</p>
+                <ul class="info-check-list" id="manage-sg-warnings"></ul>
+            </div>
+        </article>
+    </div>
+
+    <section class="mui-card" aria-label="Secret-management governance">
+        <p class="mui-card-meta">Secret-management governance</p>
+        <h4>Local bootstrap vs. production secret store</h4>
+        <div class="mui-field-grid">
+            <label class="mui-field">
+                <span class="mui-field-label">Secret-source mode</span>
+                <select id="manage-sg-field-secret-store-mode" class="form-input">
+                    <option value="production_secret_store">production_secret_store</option>
+                    <option value="external_env_injection">external_env_injection</option>
+                    <option value="local_env_bootstrap">local_env_bootstrap</option>
+                </select>
+                <span class="mui-field-hint">Production should use a dedicated store. Local development remains <code>.env</code>.</span>
+            </label>
+            <label class="mui-field">
+                <span class="mui-field-label">Secret-store provider</span>
+                <select id="manage-sg-field-secret-store-provider" class="form-input">
+                    <option value="deployment_managed">deployment_managed</option>
+                    <option value="vault">vault</option>
+                    <option value="aws_secrets_manager">aws_secrets_manager</option>
+                    <option value="gcp_secret_manager">gcp_secret_manager</option>
+                    <option value="azure_key_vault">azure_key_vault</option>
+                    <option value="1password">1password</option>
+                    <option value="doppler">doppler</option>
+                    <option value="other">other</option>
+                </select>
+            </label>
+            <label class="mui-field">
+                <span class="mui-field-label">Rotation interval days</span>
+                <input type="number" id="manage-sg-field-secret-rotation-days" class="form-input" min="1" max="365" step="1" />
+                <span class="mui-field-hint">Policy target only; provider-side rotation stays deployment-owned.</span>
+            </label>
+        </div>
+        <div class="mui-subgroup">
+            <p class="mui-subgroup-title">Governed boundary</p>
+            <ul class="info-check-list" id="manage-sg-secret-governance"></ul>
+        </div>
+    </section>
+
+    <section class="mui-card" aria-label="Redis hardening governance">
+        <p class="mui-card-meta">Production Redis</p>
+        <h4>Password, TLS, ACLs, and instance separation</h4>
+        <div class="mui-card-grid">
+            <div class="mui-subgroup">
+                <p class="mui-subgroup-title">Runtime and compose posture</p>
+                <ul class="info-check-list" id="manage-sg-redis-effective-list"></ul>
+            </div>
+            <div class="mui-subgroup">
+                <p class="mui-subgroup-title">Policy gates</p>
+                <ul class="info-check-list" id="manage-sg-redis-checks"></ul>
+            </div>
+        </div>
+        <div class="mui-subgroup">
+            <p class="mui-subgroup-title">Operator commands</p>
+            <ul class="info-check-list" id="manage-sg-redis-commands"></ul>
+        </div>
+    </section>
+
+    <section class="mui-card" aria-label="Storage-layer encryption governance">
+        <p class="mui-card-meta">Storage-layer encryption</p>
+        <h4>Evidence pack and production coverage</h4>
+        <div class="mui-field-grid">
+            <label class="mui-field mui-field-full">
+                <span class="mui-field-label">Storage encryption profile</span>
+                <select id="manage-sg-field-storage-profile" class="form-input">
+                    <option value="mixed_evidence_pack">mixed_evidence_pack</option>
+                    <option value="managed_encrypted_services">managed_encrypted_services</option>
+                    <option value="self_hosted_encrypted_volumes">self_hosted_encrypted_volumes</option>
+                    <option value="local_development">local_development</option>
+                </select>
+                <span class="mui-field-hint">Production claims require evidence for every persisted surface.</span>
+            </label>
+            <label class="mui-field-check mui-field-full">
+                <input type="checkbox" id="manage-sg-field-storage-evidence-required" />
+                <span>Require storage encryption evidence for persisted data surfaces</span>
+            </label>
+            <label class="mui-field-check mui-field-full">
+                <input type="checkbox" id="manage-sg-field-backup-evidence-required" />
+                <span>Require encrypted backup and snapshot evidence</span>
+            </label>
+            <label class="mui-field-check mui-field-full">
+                <input type="checkbox" id="manage-sg-field-storage-key-custody" />
+                <span>Require key custody or KMS reference for storage controls</span>
+            </label>
+            <label class="mui-field-check mui-field-full">
+                <input type="checkbox" id="manage-sg-field-storage-restore-test" />
+                <span>Require restore-test evidence for backups and snapshots</span>
+            </label>
+            <label class="mui-field mui-field-full">
+                <span class="mui-field-label">Storage evidence JSON</span>
+                <textarea id="manage-sg-field-storage-evidence-json" class="form-input" rows="14" spellcheck="false"></textarea>
+                <span class="mui-field-hint">Surface ids and allowed values are returned in the governance payload.</span>
+            </label>
+        </div>
+        <div class="mui-card-grid">
+            <div class="mui-subgroup">
+                <p class="mui-subgroup-title">Coverage</p>
+                <ul class="info-check-list" id="manage-sg-storage-effective-list"></ul>
+            </div>
+            <div class="mui-subgroup">
+                <p class="mui-subgroup-title">Policy gates</p>
+                <ul class="info-check-list" id="manage-sg-storage-checks"></ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="mui-card" aria-label="CSRF matrix">
+        <p class="mui-card-meta">CSRF matrix</p>
+        <h4>Mutating browser and proxy flows</h4>
+        <div class="manage-table-wrap">
+            <table class="manage-table">
+                <thead>
+                    <tr>
+                        <th>Flow</th>
+                        <th>Credential</th>
+                        <th>Mutation</th>
+                        <th>Policy</th>
+                        <th>Test</th>
+                    </tr>
+                </thead>
+                <tbody id="manage-sg-csrf-matrix">
+                    <tr><td colspan="5">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="mui-card" aria-label="Non-editable boundaries">
+        <p class="mui-card-meta">Boundary</p>
+        <h4>Not editable from the admin UI</h4>
+        <ul class="info-check-list" id="manage-sg-boundaries"></ul>
+    </section>
+
+    <section class="mui-card" aria-label="Security governance JSON">
+        <p class="mui-card-meta">Audit</p>
+        <h4>Full security governance payload</h4>
+        <pre id="manage-sg-json" class="manage-psc-json" data-json-label="Security governance payload">Loading...</pre>
+    </section>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_security_governance.js') }}"></script>
+{% endblock %}

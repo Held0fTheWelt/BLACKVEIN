@@ -1,4 +1,9 @@
 import pytest
+from ai_stack.limit_inventory import (
+    MCP_RATE_LIMIT_LABEL,
+    MCP_RATE_LIMIT_MAX_CALLS,
+    MCP_RATE_LIMIT_WINDOW_SECONDS,
+)
 from tools.mcp_server.rate_limiter import RateLimiter
 from tools.mcp_server.server import McpServer
 
@@ -43,3 +48,17 @@ def test_server_rate_limit_uses_stable_client_key_not_trace_id(monkeypatch):
     response = server.dispatch({**request, "id": 3}, "trace-3")
 
     assert response["error"]["code"] == -32002
+    assert MCP_RATE_LIMIT_LABEL in response["error"]["message"]
+
+
+def test_server_uses_central_mcp_limit_inventory(monkeypatch):
+    monkeypatch.setenv("WOS_MCP_OPERATING_PROFILE", "healthy")
+    server = McpServer()
+
+    assert server.rate_limiter.max_calls == MCP_RATE_LIMIT_MAX_CALLS
+    assert server.rate_limiter.window_seconds == MCP_RATE_LIMIT_WINDOW_SECONDS
+
+    health_tool = next(t for t in server.registry.list_tools() if t["canonical_name"] == "wos.system.health")
+    assert health_tool["rate_limit"]["limit"] == MCP_RATE_LIMIT_LABEL
+    assert health_tool["rate_limit"]["source"] == "mcp_json_rpc_dispatch"
+    assert health_tool["rate_limit"]["tool"] == "wos.system.health"

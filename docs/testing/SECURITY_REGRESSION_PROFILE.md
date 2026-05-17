@@ -234,16 +234,19 @@ cd backend && pytest -m security -k injection -v
 
 ---
 
-### CSRF Prevention (3+ tests)
+### CSRF Matrix (3+ tests)
 
 ```bash
-cd administration-tool && pytest -m security -k csrf -v
+cd backend && pytest tests/test_csrf_protection.py -q
+cd frontend && PYTHONPATH=. pytest tests/test_csrf_matrix.py tests/test_api_client.py -q
+cd administration-tool && pytest tests/test_proxy_contract.py -q
 ```
 
 **Tests Cover**:
-- CSRF tokens required for state-changing requests
-- Token validated before processing
-- Invalid/missing tokens rejected
+- Backend web `POST` routes reject missing CSRF tokens when CSRF is enabled
+- Backend `/api/v1/*` JSON mutations stay CSRF-exempt and use Bearer auth where required
+- Frontend and admin same-origin proxies do not forward browser cookies upstream
+- Cookie SameSite/HttpOnly policy remains pinned to the documented matrix
 
 ---
 

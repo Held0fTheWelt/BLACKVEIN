@@ -82,7 +82,7 @@ pg_dump production_db > backup_$(date +%s).sql
 
 # 3. Run migration
 ssh production
-cd ~/BLACKVEIN/backend
+cd ~/Better Tomorrow/backend
 flask db upgrade
 
 # 4. Verify
@@ -94,6 +94,12 @@ tail -f logs/production.log
 ```
 
 ## 🗂️ Data Management
+
+### At-rest encryption status
+
+The default local backend database is plain SQLite at `backend/instance/wos.db`. Docker Compose persists it through the `./backend/instance:/app/instance` bind mount. The application encrypts selected governed credential fields and can encrypt exported payloads on request, but it does not automatically encrypt the SQLite file, runtime JSON stores, Redis AOF files, Langfuse named volumes, or backups.
+
+For the current evidence and the completion plan, see [At-rest encryption evidence and completion plan](../security/AT_REST_ENCRYPTION.md). A production deployment must provide storage-layer encryption evidence before claiming full database or volume encryption at rest.
 
 ### Backups
 

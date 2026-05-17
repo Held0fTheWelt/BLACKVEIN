@@ -1,4 +1,4 @@
-# AI in World of Shadows — Connected System Reference
+# AI in Better Tomorrow — Connected System Reference
 
 ## Title and purpose
 

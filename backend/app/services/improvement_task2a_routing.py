@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
+from story_runtime_core.adapters import BaseModelAdapter
 
 from app.runtime import model_routing
 from app.runtime.model_routing_contracts import (
@@ -22,6 +22,7 @@ from app.runtime.area2_operator_truth import (
 )
 from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
 from app.runtime.operator_audit import build_bounded_surface_operator_audit
+from app.services.governed_provider_adapter_service import build_governed_provider_adapters
 from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 
 _MODEL_ASSISTED_DISCLAIMER = (
@@ -127,8 +128,11 @@ def enrich_improvement_package_with_task2a_routing(
         except Exception:
             pass  # Langfuse errors never break the main flow
 
-        ad = adapters if adapters is not None else build_default_model_adapters()
-        sp = specs if specs is not None else build_writers_room_model_route_specs()
+        ad = adapters if adapters is not None else build_governed_provider_adapters()
+        sp = specs if specs is not None else [
+            spec for spec in build_writers_room_model_route_specs()
+            if spec.adapter_name in ad
+        ]
 
         base_for_synthesis = package_response.get("deterministic_recommendation_base")
         if base_for_synthesis is None or str(base_for_synthesis).strip() == "":

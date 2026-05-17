@@ -1,6 +1,6 @@
-# World of Shadows Testing Documentation Index
+# Better Tomorrow Testing Documentation Index
 
-**Project**: World of Shadows v0.1.10
+**Project**: Better Tomorrow / World of Shadows v0.1.10
 **Scope**: Comprehensive Test Expansion WAVE 0
 **Status**: ✅ COMPLETE
 **Date**: 2026-03-25

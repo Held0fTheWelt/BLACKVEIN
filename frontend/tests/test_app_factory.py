@@ -69,4 +69,7 @@ def test_security_headers_on_response():
     assert r.status_code == 200
     assert r.headers.get("X-Frame-Options") == "DENY"
     assert r.headers.get("X-Content-Type-Options") == "nosniff"
-    assert "default-src 'self'" in (r.headers.get("Content-Security-Policy") or "")
+    csp = r.headers.get("Content-Security-Policy") or ""
+    assert "default-src 'self'" in csp
+    assert "style-src 'self' https://fonts.googleapis.com" in csp
+    assert "font-src 'self' https://fonts.gstatic.com" in csp

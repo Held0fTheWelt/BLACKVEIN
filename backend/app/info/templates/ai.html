@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "info_sections.html" import docs_deep_link %}
+{% from "info_sections.html" import docs_deep_link with context %}
 {% block title %}AI integration{% endblock %}
 {% block heading %}AI &amp; Orchestrierung{% endblock %}
 {% block subheading %}Wo intelligente Schichten laufen — und wie sich <strong>Vorschläge</strong> von <strong>autoritativem Spielstand</strong> unterscheiden.{% endblock %}
@@ -7,6 +7,27 @@
 <section class="info-section">
   <h2>Kernfunktionalität</h2>
   <p>Schwere AI-Orchestrierung (Adapter, Tool-Loops, Supervisor) lebt unter <code>app.runtime</code> und dient Tests, Operator-Tools und der <strong>Sessions-Brücke</strong> unter <code>/api/v1/sessions</code>. Separat gibt es <strong>Writers-Room</strong>- und <strong>Improvement</strong>-HTTP-APIs sowie <strong>AI-Stack-Governance</strong> für Inspector und Evidence — jeweils mit klarer Policy in der Anwendungsschicht.</p>
+</section>
+<section class="info-section">
+  <h2>AI-Flächen im Backend</h2>
+  <div class="info-example-grid">
+    <article class="info-example">
+      <strong>WritersRoom</strong>
+      <p>Prüft und kommentiert Content-Artefakte. Ergebnis ist ein Review- oder Vorschlagsobjekt, nicht automatisch veröffentlichter Spielzustand.</p>
+    </article>
+    <article class="info-example">
+      <strong>Improvement</strong>
+      <p>Experimentelle Verbesserungen und Vergleiche. Geeignet für Redaktion und QA, aber immer mit menschlicher oder Policy-Grenze.</p>
+    </article>
+    <article class="info-example">
+      <strong>SessionsBridge</strong>
+      <p>In-Prozess-Brücke für Tests und Tooling. Sie ist bewusst nicht die autoritative Production-Engine.</p>
+    </article>
+    <article class="info-example">
+      <strong>AIStackGovernance</strong>
+      <p>Inspector-, Evidence- und Readiness-nahe Diagnose. Sie dokumentiert, aber ersetzt keine Runtime-Policy.</p>
+    </article>
+  </div>
 </section>
 <section class="info-section">
   <h2>Für wen / Nutzungsszenarien</h2>
@@ -20,13 +41,33 @@
   <h2>Möglich / nicht möglich</h2>
   <ul>
     <li><strong>Möglich:</strong> HTTP-Zugriff auf <code>WritersRoom</code>, <code>Improvement</code>, <code>AIStackGovernance</code>, <code>SessionsBridge</code> wie in <a href="{{ url_for('info.openapi_spec') }}">OpenAPI</a>; narrative Feinheiten in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }}.</li>
-    <li><strong>Nicht möglich:</strong> Das Backend als <strong>einzige Quelle</strong> für committed Live-Narration im laufenden Spiel ersetzen — dafür ist der <strong>world-engine</strong> zuständig, sobald Tickets/WebSockets im Spiel sind.</li>
+    <li><strong>Nicht möglich:</strong> Das Backend als <strong>einzige Quelle</strong> für committed Production-Narration im laufenden Spiel ersetzen — dafür ist der <strong>world-engine</strong> zuständig, sobald Tickets/WebSockets im Spiel sind.</li>
     <li><strong>Automation:</strong> Optionale n8n-Webhooks und Service-Tokens sind Betriebs-Integration, kein Ersatz für Engine-Regeln.</li>
   </ul>
 </section>
 <section class="info-section">
+  <h2>Judges, Evaluatoren und Langfuse</h2>
+  <p>Lokale Evaluatoren können Traces, Generations und Scores lesbar machen. Für die Runtime zählt aber weiterhin die Anwendungspolitik: Ein Judge-Score ist Beobachtung, kein Commit und keine Readiness-Entscheidung.</p>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Runtime erzeugt Trace-Metadaten.</strong><span>Session, Turn, Turn-Klasse, ausgewählte Capabilities und RAG-Provenance werden als Diagnose angehängt.</span></div>
+    </li>
+    <li>
+      <div><strong>Evaluator bewertet lokal oder in der gewählten Umgebung.</strong><span>Provider-Keys bleiben außerhalb von Compose und Frontend. Lokale Ergebnisse werden mit <code>proof_level=local_only</code> markiert.</span></div>
+    </li>
+    <li>
+      <div><strong>Governance liest Scores nur als Evidence.</strong><span><code>validation_outcome</code>, Commit und Readiness dürfen nicht aus Langfuse-Scores mutiert werden.</span></div>
+    </li>
+  </ol>
+  <div class="info-callout-warning">
+    <strong>Wichtig für ADR-0039 / ADR-0041</strong>
+    <p>Lokale LLM-as-a-Judge-Ergebnisse sind reproduzierbare Diagnose. Sie sind erst dann Production- oder Staging-Beweis, wenn sie in genau dieser Umgebung mit passender Evidence-Policy erzeugt wurden.</p>
+  </div>
+</section>
+<section class="info-section">
   <h2>Direkt zu Details</h2>
   <ul>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — lokale Judge- und Langfuse-Regeln.</li>
     <li>{{ docs_deep_link("Dev — AI stack &amp; GoC seams", "/dev/architecture/ai-stack-rag-langgraph-and-goc-seams/") }}</li>
     <li><a href="{{ url_for('info.api_explorer') }}#tag/WritersRoom">OpenAPI — WritersRoom</a> · <a href="{{ url_for('info.api_explorer') }}#tag/Improvement">Improvement</a> · <a href="{{ url_for('info.api_explorer') }}#tag/AIStackGovernance">AIStackGovernance</a> · <a href="{{ url_for('info.api_explorer') }}#tag/SessionsBridge">SessionsBridge</a></li>
   </ul>
@@ -34,7 +75,7 @@
 <section class="info-section">
   <h2>Grenzen (Merksatz)</h2>
   <p><strong>Backend</strong> — Geschäftsregeln, Persistenz, Ticket-Ausgabe, HTTP zum Play-Service.<br>
-  <strong>World-engine</strong> — autoritative Ausführung und Live-Player-Semantik.<br>
-  <strong>In-Prozess-AI</strong> — geteilte Bibliotheken für Simulation, Tests und dokumentierte Brücken — explizit nicht als zweite Live-Engine missverstehen.</p>
+  <strong>World-engine</strong> — autoritative Ausführung und Production-Player-Semantik.<br>
+  <strong>In-Prozess-AI</strong> — geteilte Bibliotheken für Simulation, Tests und dokumentierte Brücken — explizit nicht als zweite Production-Engine missverstehen.</p>
 </section>
 {% endblock %}

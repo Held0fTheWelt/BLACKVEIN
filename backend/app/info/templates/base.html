@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Backend{% endblock %} · World of Shadows</title>
+  <title>{% block title %}Backend{% endblock %} · Better Tomorrow</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('info.static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('info.static', filename='manage.css') }}">
   <link rel="stylesheet" href="{{ url_for('info.static', filename='backend-info.css') }}">
@@ -20,11 +21,13 @@
     <button type="button" class="manage-shell-scrim" id="manage-shell-scrim" aria-hidden="true" tabindex="-1"></button>
     <aside class="manage-shell-side" id="manage-side" aria-label="Backend-Dokumentation">
       <div class="manage-side-head">
-        <a href="{{ url_for('info.backend_home') }}" class="manage-logo">
+        <a href="{{ url_for('info.backend_home') }}" class="manage-logo" aria-label="Better Tomorrow Backend">
           <span class="manage-logo-mark" aria-hidden="true">◇</span>
-          <span class="manage-logo-word">World of Shadows</span>
+          <span class="manage-logo-text">
+            <span class="manage-logo-word">Better Tomorrow</span>
+            <span class="manage-side-subtitle">Backend</span>
+          </span>
         </a>
-        <span class="manage-side-subtitle">Backend · technische Oberfläche</span>
       </div>
 
       <nav class="manage-side-nav" id="manage-nav" aria-label="Themen">
@@ -40,7 +43,7 @@
           </ul>
         </details>
 
-        {% if frontend_url or admin_tool_url or play_service_public_url %}
+        {% if frontend_url or admin_tool_url or langfuse_ui_url or play_service_public_url %}
         <details class="manage-side-group" data-group="external" open>
           <summary class="manage-side-group-head">
             <span class="manage-side-group-label">Weitere Oberflächen</span>
@@ -51,7 +54,11 @@
               <li><a class="manage-nav-link" href="{{ frontend_url }}/" rel="noopener noreferrer">Player-Frontend</a></li>
             {% endif %}
             {% if admin_tool_url %}
-              <li><a class="manage-nav-link" href="{{ admin_tool_url }}/manage/login" rel="noopener noreferrer">Administration-Tool (Login)</a></li>
+              <li><a class="manage-nav-link" href="{{ admin_tool_url }}/manage/login" rel="noopener noreferrer">Administration-Tool{% if not admin_tool_configured %} (lokal){% endif %}</a></li>
+              <li><a class="manage-nav-link" href="{{ admin_tool_url }}/manage/mcp-operations" rel="noopener noreferrer">MCP Operations{% if not admin_tool_configured %} (lokal){% endif %}</a></li>
+            {% endif %}
+            {% if langfuse_ui_url %}
+              <li><a class="manage-nav-link" href="{{ langfuse_ui_url }}" rel="noopener noreferrer">Langfuse{% if not langfuse_ui_configured %} (lokal){% endif %}</a></li>
             {% endif %}
             {% if play_service_public_url %}
               <li><a class="manage-nav-link" href="{{ play_service_public_url }}" rel="noopener noreferrer">Play-Service</a></li>
@@ -61,9 +68,7 @@
         {% endif %}
       </nav>
 
-      <div class="manage-side-foot" id="backend-info-side-foot">
-        <span class="manage-user-info">Öffentliche Lesefläche — keine Anmeldung (nicht das Verwaltungs-UI).</span>
-      </div>
+      <div class="manage-side-foot" id="backend-info-side-foot" aria-hidden="true"></div>
     </aside>
 
     <div class="manage-shell-main">
@@ -73,20 +78,17 @@
           <span class="manage-side-toggle-bar"></span>
           <span class="manage-side-toggle-bar"></span>
         </button>
-        <a href="{{ url_for('info.backend_home') }}" class="manage-topbar-logo">World of Shadows</a>
+        <a href="{{ url_for('info.backend_home') }}" class="manage-topbar-logo">Better Tomorrow</a>
       </header>
 
       <main id="main" class="manage-main{% block main_class %}{% endblock %}" role="main">
-        <div class="backend-info-callout" role="status">
-          System / backend service — not the player or admin UI; keine Authentifizierung auf diesen Seiten.
-        </div>
         <div class="backend-info-content">
-          <section class="manage-section">
-            <header class="manage-section-header">
+          <section class="manage-section backend-info-section">
+            <header class="mui-deck-header backend-info-header">
               <div>
-                <p class="manage-eyebrow">Backend service</p>
-                <h1 class="page-header">{% block heading %}Backend{% endblock %}</h1>
-                <p class="manage-lead">{% block subheading %}{% endblock %}</p>
+                <p class="mui-deck-eyebrow">backend service</p>
+                <h1>{% block heading %}Backend{% endblock %}</h1>
+                <p class="mui-deck-headline">{% block subheading %}{% endblock %}</p>
               </div>
             </header>
             {% block body %}{% endblock %}

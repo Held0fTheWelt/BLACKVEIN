@@ -20,6 +20,7 @@ from contextvars import ContextVar
 
 from story_runtime_core.langfuse_tracing_environment import (
     local_langfuse_evidence_metadata,
+    resolve_runtime_langfuse_base_url,
     resolve_langfuse_environment,
 )
 from story_runtime_core.observability_tree_policy import (
@@ -56,7 +57,9 @@ class LangfuseConfig:
         self.public_key = self._get_credential_from_db("public_key") or ""
         self.secret_key = self._get_credential_from_db("secret_key") or ""
 
-        self.base_url = str(db_config.get("base_url") or "https://cloud.langfuse.com")
+        self.base_url, self.base_url_source = resolve_runtime_langfuse_base_url(
+            str(db_config.get("base_url") or "https://cloud.langfuse.com")
+        )
         self.environment = str(db_config.get("environment") or "development")
         self.release = str(db_config.get("release") or "unknown")
         self.sample_rate = float(db_config.get("sample_rate") or 1.0)

@@ -3,52 +3,120 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}World of Shadows{% endblock %}</title>
+  <title>{% block title %}Better Tomorrow — World of Shadows{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
-  {% block site_header %}
-  <header class="site-header">
-    <nav class="nav">
-      <a href="{{ url_for('frontend.home') }}">Home</a>
-      <a href="{{ url_for('frontend.news') }}">News</a>
-      <a href="{{ url_for('frontend.wiki') }}">Wiki</a>
-      <a href="{{ url_for('frontend.community') }}">Community</a>
-      <a href="{{ url_for('frontend.game_menu') }}">Game Menu</a>
-      {% if session.get("access_token") %}
-        {% if session.get("current_user") %}
-          <span class="user-info">{{ session["current_user"].get("username", "") }}</span>
+<body class="{% block body_class %}wos-shell{% endblock %}">
+  {% block matrix_layer %}
+  <div class="matrix-layer" id="matrix-layer" aria-hidden="true">
+    <canvas id="matrixCanvas" class="matrix-layer__canvas"></canvas>
+    <div class="matrix-layer__glow"></div>
+  </div>
+  {% endblock %}
+
+  {% block shell %}
+  <div class="fr-shell" data-side-open="false">
+    <button type="button" class="fr-shell-scrim" id="fr-shell-scrim" aria-hidden="true" tabindex="-1"></button>
+
+    {% block sidebar %}
+    <aside class="fr-side" id="fr-side" aria-label="Site navigation">
+      <a href="{{ url_for('frontend.home') }}" class="fr-brand">
+        <span class="fr-brand-mark" aria-hidden="true">◆</span>
+        <span class="fr-brand-text">
+          <span class="fr-brand-title">Better Tomorrow</span>
+          <span class="fr-brand-subtitle">World of Shadows</span>
+        </span>
+      </a>
+
+      <nav class="fr-nav" aria-label="Sections">
+        <details class="fr-nav-group" open>
+          <summary class="fr-nav-group-head">Explore</summary>
+          <a href="{{ url_for('frontend.news') }}" class="fr-nav-link">News</a>
+          {% if session.get("access_token") %}
+          <a href="{{ url_for('frontend.dashboard') }}" class="fr-nav-link">Dashboard</a>
+          {% endif %}
+          <a href="{{ url_for('frontend.wiki') }}" class="fr-nav-link">Wiki</a>
+          <a href="{{ url_for('frontend.community') }}" class="fr-nav-link">Community</a>
+        </details>
+
+        <details class="fr-nav-group" open>
+          <summary class="fr-nav-group-head">Play</summary>
+          <a href="{{ url_for('frontend.game_menu') }}" class="fr-nav-link">Game Menu</a>
+          {% if session.get("access_token") %}
+          <a href="{{ url_for('frontend.play_start') }}" class="fr-nav-link">Start a run</a>
+          {% endif %}
+        </details>
+
+        {% if not session.get("access_token") %}
+        <details class="fr-nav-group" open>
+          <summary class="fr-nav-group-head">Account</summary>
+          <a href="{{ url_for('frontend.login') }}" class="fr-nav-link">Sign in</a>
+          <a href="{{ url_for('frontend.register') }}" class="fr-nav-link">Register</a>
+        </details>
         {% endif %}
-        <a href="{{ url_for('frontend.dashboard') }}">Dashboard</a>
-        <form method="post" action="{{ url_for('frontend.logout') }}">
-          <button type="submit">Log out</button>
-        </form>
-      {% else %}
-        <a href="{{ url_for('frontend.login') }}">Login</a>
-        <a href="{{ url_for('frontend.register') }}">Register</a>
-      {% endif %}
-    </nav>
-  </header>
+      </nav>
+
+      <p class="fr-side-note">
+        Player frontend. Operator and runtime surfaces live in the
+        <strong>Administration Tool</strong> and <strong>World Engine</strong>.
+      </p>
+
+      <div class="fr-side-foot">
+        {% if session.get("access_token") and session.get("current_user") %}
+          <span class="fr-side-user">{{ session["current_user"].get("username", "operator") }}</span>
+          <form method="post" action="{{ url_for('frontend.logout') }}">
+            <button type="submit" class="fr-side-logout">Log out</button>
+          </form>
+        {% else %}
+          <span class="fr-side-user">Anonymous</span>
+          <span class="fr-side-user-role">Not signed in</span>
+        {% endif %}
+      </div>
+    </aside>
+    {% endblock %}
+
+    <div class="fr-shell-main">
+      {% block topbar %}
+      <header class="fr-topbar">
+        <button type="button" class="fr-side-toggle" id="fr-side-toggle"
+                aria-controls="fr-side" aria-expanded="false"
+                aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="fr-topbar-title">{% block topbar_title %}Better Tomorrow{% endblock %}</span>
+      </header>
+      {% endblock %}
+
+      {% block site_main %}
+      <main class="fr-main" id="main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-list">
+              {% for category, message in messages %}
+                <li class="flash {{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+        {% block page_header %}{% endblock %}
+        {% block content %}{% endblock %}
+      </main>
+      {% endblock %}
+    </div>
+  </div>
   {% endblock %}
 
-  {% block site_main %}
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul class="flash-list">
-          {% for category, message in messages %}
-            <li class="flash {{ category }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
+  {% block matrix_scripts %}
+  <script src="{{ url_for('static', filename='matrix-layer.js') }}" defer></script>
   {% endblock %}
-
+  {% block shell_scripts %}
+  <script src="{{ url_for('static', filename='fr-shell.js') }}" defer></script>
+  {% endblock %}
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>

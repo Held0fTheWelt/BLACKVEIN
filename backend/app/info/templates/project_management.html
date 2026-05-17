@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Projektmanagement{% endblock %}
+{% block heading %}Projektmanagement &amp; Repository-Landkarte{% endblock %}
+{% block subheading %}Größe, Verantwortungsbereiche, Testsuite, ADR Runtime Store und der lokale Run-once-Buildpfad — als lesbare Orientierung für Entwicklung, Betrieb und Review.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Was diese Seite sichtbar macht</h2>
+  <p>Das Projekt ist kein einzelner Flask-Dienst, sondern ein lokales System aus Backend, Player-Frontend, Administration-Tool, World-Engine, AI/RAG-Schicht, MCP-Tooling, Tests, ADRs und Docker-Bootstrap. Diese Seite erklärt die <strong>Arbeitsverteilung</strong>: welche Sektion wofür zuständig ist, wie groß sie ungefähr ist und welche Gates verhindern, dass lokale Diagnose als Production-Beweis gelesen wird.</p>
+  <div class="info-lead-block">
+    <p><strong>Lesart:</strong> Die Zahlen werden beim Aufruf aus dem Checkout gezählt. Generierte, versteckte und persistente Laufzeitordner wie <code>.git</code>, <code>.worktrees</code>, <code>node_modules</code>, <code>backend/var</code> und <code>backend/instance</code> werden ausgelassen.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Projekt auf einen Blick</h2>
+  <dl class="info-stat-grid" aria-label="Projektstatistiken">
+    <div class="info-stat">
+      <dt>Gezählte Dateien</dt>
+      <dd>{{ project_overview.totals.files }}</dd>
+      <p>Text-, Code-, Config- und Dokumentationsdateien im Repo.</p>
+    </div>
+    <div class="info-stat">
+      <dt>Gezählter Umfang</dt>
+      <dd>{{ project_overview.totals.size_kib }} KiB</dd>
+      <p>Dateigröße als schnelle Größenordnung, nicht als Produktivitätsmetrik.</p>
+    </div>
+    <div class="info-stat">
+      <dt>Testdateien</dt>
+      <dd>{{ project_overview.totals.test_files }}</dd>
+      <p>Pytest-Dateien quer durch Backend, Engine, AI, MCP und UI.</p>
+    </div>
+    <div class="info-stat">
+      <dt>ADR-Dateien</dt>
+      <dd>{{ project_overview.totals.adr_files }}</dd>
+      <p>Entscheidungen und Evidence-Regeln unter <code>docs/ADR</code>.</p>
+    </div>
+  </dl>
+</section>
+
+<section class="info-section">
+  <h2>Größe und Anteil der Sektionen</h2>
+  <p>Die folgende Ansicht hilft beim Review: große Sektionen sind nicht automatisch riskant, aber sie brauchen klarere Gates, bessere Leseflächen und gezieltere Tests.</p>
+  <div class="info-share-list" aria-label="Repository-Sektionsanteile">
+    {% for section in project_overview.sections %}
+      {% if section.files %}
+      <article class="info-share-row">
+        <div class="info-share-main">
+          <strong>{{ section.label }}</strong>
+          <span>{{ section.description }}</span>
+        </div>
+        <div class="info-share-meter" aria-hidden="true">
+          <span style="--share: {{ section.share }}%;"></span>
+        </div>
+        <div class="info-share-numbers">
+          <strong>{{ section.share }}%</strong>
+          <span>{{ section.files }} Dateien · {{ section.size_kib }} KiB</span>
+        </div>
+      </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Testsuite: was geprüft wird</h2>
+  <p>Die Testsuite ist absichtlich breit: sie prüft nicht nur einzelne Routen, sondern auch Runtime-Verträge, Governance-Gates, Langfuse-/MCP-Evidence, Datenbankmigrationen und UI-Sicherheitsregeln. Ein grüner Testname allein ist kein Beweis; die Gates müssen echte Vertragsfelder prüfen.</p>
+  <table class="doc-table" aria-label="Testsuite nach Bereichen">
+    <thead><tr><th>Suite</th><th>Testdateien</th><th>Umfang</th><th>Was sie absichert</th></tr></thead>
+    <tbody>
+      {% for suite in project_overview.test_suites %}
+      <tr>
+        <td>{{ suite.label }}</td>
+        <td>{{ suite.files }}</td>
+        <td>{{ suite.size_kib }} KiB</td>
+        <td>
+          {% if "Backend" in suite.label %}API, Auth, Bootstrap, Info-Views und Runtime-Bridges.
+          {% elif "World-Engine" in suite.label %}Story-Session, Turn-Lifecycle, WebSocket-Isolation und Runtime-Truth.
+          {% elif "Administration" in suite.label %}Admin-Routen, Proxies, Security Header, Governance- und Langfuse-Settings.
+          {% elif "Frontend" in suite.label %}Player-Routen, Play-Launcher, API-Client und Browser-Projektion.
+          {% elif "AI" in suite.label %}RAG, LangGraph, Capability-Auswahl, Evaluatoren und Runtime-Qualität.
+          {% elif "MCP" in suite.label %}MCP-Server-Verträge, Tool-Catalogs und Operator-Diagnostik.
+          {% elif "Database" in suite.label %}Schema, Token-Modelle, Migrationen und Datenbankverträge.
+          {% else %}Repo-weite Gates, Smoke-Checks oder ergänzende Governance-Validierung.
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="info-note">
+    <strong>Run-Strategie</strong>
+    <p><code>tests/run_tests.py</code> ist der orchestrierende Runner für repo-weite Prüfungen. Zusätzlich werden gezielte Pytest-Befehle für einzelne Bereiche genutzt, damit kleine Änderungen schnell geprüft werden können und große Gates trotzdem reproduzierbar bleiben.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Run-once-Buildalgorithmus</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong><code>python docker-up.py up</code> starten.</strong><span>Der Befehl ist der lokale Standardpfad: App-Services plus lokale Langfuse-Observability, sofern nicht mit <code>--no-langfuse</code> abgewählt.</span></div>
+    </li>
+    <li>
+      <div><strong><code>.env</code> materialisieren.</strong><span>Fehlende Plattform-Secrets werden lokal erzeugt und vorhandene Werte bleiben erhalten. Provider-Keys bleiben leer, bis ein Operator sie bewusst einträgt.</span></div>
+    </li>
+    <li>
+      <div><strong>Compose-Dateien schichten.</strong><span><code>docker-compose.yml</code> startet Backend, Frontend, Administration-Tool, Play-Service und App-Redis. <code>docker-compose.langfuse.yml</code> ergänzt Langfuse-Web, Worker, Postgres, ClickHouse, MinIO und dediziertes Langfuse-Redis.</span></div>
+    </li>
+    <li>
+      <div><strong>Images bauen und Health abwarten.</strong><span>Backend migriert die lokale Datenbank beim Start; abhängige Services warten auf den Backend-Healthcheck statt einen zyklischen Start zu erzwingen.</span></div>
+    </li>
+    <li>
+      <div><strong>Bootstrap-Gate ausführen.</strong><span>Der Scriptpfad legt den lokalen Admin an, importiert Langfuse-Keys nur bei vollständigem Schlüssel-Paar und meldet, ob der operative Bootstrap noch abgeschlossen werden muss.</span></div>
+    </li>
+  </ol>
+  <div class="info-callout-warning">
+    <strong>Keine unsichere Key-Automatik.</strong>
+    <p>Der Algorithmus erzeugt lokale Plattform-Secrets, aber keine OpenAI-/Anthropic-/OpenRouter-/Langfuse-Projektkeys. Diese bleiben bewusst Operator-Eingaben und werden nicht in Dockerfiles, Frontend-Bundles oder Dokumentation geschrieben.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Docker-Services, Redis und Langfuse</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>App-Redis</strong>
+      <p><code>redis</code> läuft intern mit AOF-Persistenz und wird vom Backend als <code>REDIS_URL=redis://redis:6379/0</code> genutzt. Er ist App-/Runtime-Governance-Speicher, nicht Langfuse-Queue.</p>
+    </article>
+    <article class="info-note">
+      <strong>Langfuse-Redis</strong>
+      <p><code>langfuse-redis</code> ist getrennt, passwortgeschützt und persistent. Die Trennung schützt App-Caches und Langfuse-Ingestion-Queues vor gegenseitiger Schlüssel- und DB-Index-Kollision.</p>
+    </article>
+    <article class="info-note">
+      <strong>Langfuse Stack</strong>
+      <p><code>langfuse-web</code>, <code>langfuse-worker</code>, <code>langfuse-postgres</code>, <code>langfuse-clickhouse</code>, <code>langfuse-minio</code> und <code>langfuse-redis</code>. Nur UI und optionale MinIO-Ports werden lokal gemappt.</p>
+    </article>
+    <article class="info-note">
+      <strong>Runtime-Anbindung</strong>
+      <p>Backend und Play-Service nutzen im Docker-Netz <code>http://langfuse-web:3000</code>. Browser nutzen die Host-URL wie <code>http://localhost:3000</code>.</p>
+    </article>
+  </div>
+  <h3>Compose-Inventar</h3>
+  <table class="doc-table" aria-label="Docker Compose Services">
+    <thead><tr><th>Datei</th><th>Services</th></tr></thead>
+    <tbody>
+      {% for file_name, services in project_overview.compose_services.items() %}
+      <tr>
+        <td><code>{{ file_name }}</code></td>
+        <td>{{ services|join(", ") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>ADR Runtime Store</h2>
+  <p>Die ADRs sind der erklärende Speicher der Architektur: sie sagen nicht nur „was entschieden wurde“, sondern auch <strong>welche Evidence zählt</strong>, welche Runtime-Grenzen gelten und welche Abkürzungen nicht als Beweis anerkannt werden.</p>
+  <table class="doc-table" aria-label="Wichtige ADRs">
+    <thead><tr><th>ADR</th><th>Thema</th><th>Erklärt</th></tr></thead>
+    <tbody>
+      {% for adr in project_overview.key_adrs %}
+      <tr>
+        <td><code>{{ adr.adr }}</code>{% if not adr.exists %} <span class="muted">(nicht gefunden)</span>{% endif %}</td>
+        <td>{{ adr.topic }}</td>
+        <td>{{ adr.explains }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Wie das Projekt im Alltag funktioniert</h2>
+  <div class="info-diagram" role="img" aria-label="Projektarbeitsfluss">
+    <div class="info-diagram-row--four">
+      <div class="diagram-node diagram-node--db"><strong>ADR / Docs</strong><span>Erklären Grenzen, Evidence und Betriebsregeln.</span></div>
+      <div class="diagram-edge">leiten</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Implementierung</strong><span>Backend, Engine, UI, AI, MCP.</span></div>
+      <div class="diagram-edge">prüft</div>
+      <div class="diagram-node diagram-node--external"><strong>Testsuite</strong><span>Verträge, Gates, Security, Observability.</span></div>
+      <div class="diagram-edge">startet</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Docker-up</strong><span>Lokaler Stack ohne committed Provider-Secrets.</span></div>
+    </div>
+  </div>
+  <ul>
+    <li><a href="{{ url_for('info.security_features') }}">Security Features</a> — welche Schutzmechanismen wirklich umgesetzt sind.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — lokale Langfuse-Traces richtig lesen.</li>
+    <li><a href="{{ url_for('info.mcp_integration') }}">MCP</a> — Operator-Tooling, Diagnostik und Evidence-Pfade.</li>
+  </ul>
+</section>
+{% endblock %}

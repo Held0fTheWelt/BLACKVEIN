@@ -53,4 +53,4 @@ Contact the **operators** of your deployment. If you are running the stack yours
 ## Related
 
 - [Runtime interactions (player-visible)](runtime-interactions-player-visible.md)
-- [What is World of Shadows?](../start-here/what-is-world-of-shadows.md)
+- [What is Better Tomorrow?](../start-here/what-is-world-of-shadows.md)

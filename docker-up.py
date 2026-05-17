@@ -8,6 +8,10 @@ Usage:
   python docker-up.py --no-langfuse up
                                    Start app containers without local Langfuse
   python docker-up.py langfuse-up   Explicit alias for local Langfuse observability startup
+  python docker-up.py init-production-redis
+                                   Generate production Redis passwords, TLS certs, ACL files
+  python docker-up.py --production-redis up
+                                   Start with hardened separate app/Langfuse Redis instances
   python docker-up.py build         Build images only
   python docker-up.py restart       Restart running containers
   python docker-up.py stop          Stop containers
@@ -33,12 +37,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import quote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_COMPOSE = REPO_ROOT / "docker-compose.yml"
 LANGFUSE_COMPOSE = REPO_ROOT / "docker-compose.langfuse.yml"
+REDIS_PRODUCTION_COMPOSE = REPO_ROOT / "docker-compose.redis-production.yml"
+REDIS_PRODUCTION_DIR = REPO_ROOT / ".docker" / "redis-production"
 ENV_FILE = REPO_ROOT / ".env"
 ENV_EXAMPLE = REPO_ROOT / ".env.example"
 
@@ -59,7 +66,8 @@ REQUIRED_SECRETS = {
     "LANGFUSE_DB_PASSWORD": 24,
     "CLICKHOUSE_PASSWORD": 24,
     "MINIO_ROOT_PASSWORD": 24,
-    "REDIS_PASSWORD": 24,
+    "APP_REDIS_PASSWORD": 24,
+    "LANGFUSE_REDIS_PASSWORD": 24,
 }
 
 # Keys that have default/fallback values and don't need generation
@@ -90,20 +98,25 @@ OPTIONAL_WITH_DEFAULTS = {
     "NEXTAUTH_URL": "http://localhost:3000",
     "CLICKHOUSE_USER": "langfuse",
     "MINIO_ROOT_USER": "langfuse",
+    "APP_REDIS_USERNAME": "wos_app",
+    "APP_REDIS_TLS_ENABLED": "false",
+    "APP_REDIS_TLS_CA_PATH": "/certs/app-redis/ca.crt",
+    "LANGFUSE_REDIS_TLS_ENABLED": "false",
+    "LANGFUSE_REDIS_TLS_CA_PATH": "/certs/langfuse-redis/ca.crt",
+    "LANGFUSE_REDIS_TLS_CERT_PATH": "/certs/langfuse-redis/redis.crt",
+    "LANGFUSE_REDIS_TLS_KEY_PATH": "/certs/langfuse-redis/redis.key",
+    "LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED": "true",
+    "LANGFUSE_REDIS_KEY_PREFIX": "langfuse:",
     "LANGFUSE_WEB_PORT": "3000",
     "LANGFUSE_MINIO_API_PORT": "9090",
     "LANGFUSE_MINIO_CONSOLE_PORT": "9091",
     "LANGFUSE_TELEMETRY_ENABLED": "true",
 }
 
-# Slots materialized in .env as empty strings when missing (same lifecycle as provider API keys).
-# HF_TOKEN is a Hugging Face **account** read token from https://huggingface.co/settings/tokens — not a
-# random platform secret; docker-up only ensures the key exists so compose/env_file can inject it.
+# Slots materialized in .env as empty strings when missing.
+# Provider API keys are intentionally excluded: store them through Backend AI Runtime Governance /
+# encrypted secret storage so runtime containers do not receive provider secrets from Compose.
 OPTIONAL_SECRET_KEYS = (
-    "OPENAI_API_KEY",
-    "OPENROUTER_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "HF_TOKEN",
     "LANGFUSE_PUBLIC_KEY",
     "LANGFUSE_SECRET_KEY",
 )
@@ -194,6 +207,327 @@ def _write_env_file(path: Path, env_dict: dict[str, str], example_path: Path | N
         sys.exit(1)
 
 
+def _rediss_url(username: str, password: str, host: str, ca_path: str) -> str:
+    """Build a Redis TLS URL with URL-escaped ACL credentials."""
+    quoted_user = quote(username, safe="")
+    quoted_password = quote(password, safe="")
+    quoted_ca_path = quote(ca_path, safe="/:")
+    return (
+        f"rediss://{quoted_user}:{quoted_password}@{host}:6379/0"
+        f"?ssl_cert_reqs=required&ssl_ca_certs={quoted_ca_path}"
+    )
+
+
+def _redis_username_is_valid(username: str) -> bool:
+    if not username or username == "default":
+        return False
+    return all(ch.isalnum() or ch in "._-" for ch in username)
+
+
+def _ensure_production_redis_env(force: bool = False) -> bool:
+    """Ensure .env contains production Redis ACL/TLS variables."""
+    if not ENV_FILE.is_file():
+        _ensure_env_secrets()
+    else:
+        _ensure_env_secrets(force=False)
+
+    env_to_write = _read_env_file(ENV_FILE)
+    updated = False
+
+    for key, num_bytes in (
+        ("APP_REDIS_PASSWORD", 32),
+        ("LANGFUSE_REDIS_PASSWORD", 32),
+    ):
+        cur = env_to_write.get(key, "")
+        if force or key not in env_to_write or _platform_secret_needs_generation(cur):
+            env_to_write[key] = _generate_secret_for_key(key, num_bytes)
+            updated = True
+
+    for key, default_value in (
+        ("APP_REDIS_USERNAME", "wos_app"),
+        ("LANGFUSE_REDIS_USERNAME", "langfuse"),
+    ):
+        cur = env_to_write.get(key, "").strip()
+        if force or not cur:
+            env_to_write[key] = default_value
+            updated = True
+
+    fixed_values = {
+        "APP_REDIS_TLS_ENABLED": "true",
+        "APP_REDIS_TLS_CA_PATH": "/certs/app-redis/ca.crt",
+        "LANGFUSE_REDIS_TLS_ENABLED": "true",
+        "LANGFUSE_REDIS_TLS_CA_PATH": "/certs/langfuse-redis/ca.crt",
+        "LANGFUSE_REDIS_TLS_CERT_PATH": "/certs/langfuse-redis/redis.crt",
+        "LANGFUSE_REDIS_TLS_KEY_PATH": "/certs/langfuse-redis/redis.key",
+        "LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED": "true",
+        "LANGFUSE_REDIS_KEY_PREFIX": "langfuse:",
+    }
+    for key, value in fixed_values.items():
+        if env_to_write.get(key, "").strip() != value:
+            env_to_write[key] = value
+            updated = True
+
+    app_url = _rediss_url(
+        env_to_write["APP_REDIS_USERNAME"],
+        env_to_write["APP_REDIS_PASSWORD"],
+        "redis",
+        env_to_write["APP_REDIS_TLS_CA_PATH"],
+    )
+    langfuse_url = _rediss_url(
+        env_to_write["LANGFUSE_REDIS_USERNAME"],
+        env_to_write["LANGFUSE_REDIS_PASSWORD"],
+        "langfuse-redis",
+        env_to_write["LANGFUSE_REDIS_TLS_CA_PATH"],
+    )
+    for key, value in (
+        ("APP_REDIS_URL", app_url),
+        ("LANGFUSE_REDIS_CONNECTION_STRING", langfuse_url),
+    ):
+        if env_to_write.get(key, "").strip() != value:
+            env_to_write[key] = value
+            updated = True
+
+    if updated:
+        _write_env_file(ENV_FILE, env_to_write, ENV_EXAMPLE)
+    return updated
+
+
+def _validate_production_redis_env(env_dict: dict[str, str]) -> list[str]:
+    """Return production Redis hardening violations."""
+    errors: list[str] = []
+    required = (
+        "APP_REDIS_USERNAME",
+        "APP_REDIS_PASSWORD",
+        "APP_REDIS_URL",
+        "APP_REDIS_TLS_ENABLED",
+        "APP_REDIS_TLS_CA_PATH",
+        "LANGFUSE_REDIS_USERNAME",
+        "LANGFUSE_REDIS_PASSWORD",
+        "LANGFUSE_REDIS_CONNECTION_STRING",
+        "LANGFUSE_REDIS_TLS_ENABLED",
+        "LANGFUSE_REDIS_TLS_CA_PATH",
+        "LANGFUSE_REDIS_TLS_CERT_PATH",
+        "LANGFUSE_REDIS_TLS_KEY_PATH",
+        "LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED",
+    )
+    for key in required:
+        if not env_dict.get(key, "").strip():
+            errors.append(f"{key} is required")
+
+    for key in ("APP_REDIS_USERNAME", "LANGFUSE_REDIS_USERNAME"):
+        value = env_dict.get(key, "").strip()
+        if value and not _redis_username_is_valid(value):
+            errors.append(f"{key} must be a named ACL user using only letters, numbers, '.', '_' or '-'")
+
+    for key in ("APP_REDIS_PASSWORD", "LANGFUSE_REDIS_PASSWORD"):
+        if _platform_secret_needs_generation(env_dict.get(key, "")):
+            errors.append(f"{key} must be a generated non-placeholder secret")
+
+    if env_dict.get("APP_REDIS_PASSWORD") == env_dict.get("LANGFUSE_REDIS_PASSWORD"):
+        errors.append("APP_REDIS_PASSWORD and LANGFUSE_REDIS_PASSWORD must be different")
+
+    if not _value_truthy(env_dict.get("APP_REDIS_TLS_ENABLED")):
+        errors.append("APP_REDIS_TLS_ENABLED must be true")
+    if not _value_truthy(env_dict.get("LANGFUSE_REDIS_TLS_ENABLED")):
+        errors.append("LANGFUSE_REDIS_TLS_ENABLED must be true")
+    if not _value_truthy(env_dict.get("LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED")):
+        errors.append("LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED must be true")
+
+    app_url = env_dict.get("APP_REDIS_URL", "").strip()
+    langfuse_url = env_dict.get("LANGFUSE_REDIS_CONNECTION_STRING", "").strip()
+    parsed_app = urlparse(app_url)
+    parsed_langfuse = urlparse(langfuse_url)
+
+    if parsed_app.scheme != "rediss":
+        errors.append("APP_REDIS_URL must use rediss://")
+    if parsed_langfuse.scheme != "rediss":
+        errors.append("LANGFUSE_REDIS_CONNECTION_STRING must use rediss://")
+    if parsed_app.hostname and parsed_langfuse.hostname and parsed_app.hostname == parsed_langfuse.hostname:
+        errors.append("App Redis and Langfuse Redis must use separate hosts/instances")
+    if not parsed_app.username or not parsed_app.password:
+        errors.append("APP_REDIS_URL must include ACL username and password")
+    if not parsed_langfuse.username or not parsed_langfuse.password:
+        errors.append("LANGFUSE_REDIS_CONNECTION_STRING must include ACL username and password")
+
+    return errors
+
+
+def _run_checked(cmd: list[str]) -> None:
+    result = subprocess.run(
+        cmd,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(f"{' '.join(cmd)} failed: {detail}")
+
+
+def _ensure_mode_readable(path: Path) -> None:
+    try:
+        path.chmod(0o644)
+    except OSError:
+        pass
+
+
+def _ensure_production_redis_certs(force: bool = False) -> bool:
+    """Generate local TLS material for the production Redis compose override."""
+    openssl = shutil.which("openssl")
+    if not openssl:
+        raise RuntimeError("openssl is required to generate Redis TLS certificates")
+
+    ca_dir = REDIS_PRODUCTION_DIR / "ca"
+    certs_dir = REDIS_PRODUCTION_DIR / "certs"
+    ca_key = ca_dir / "ca.key"
+    ca_crt = ca_dir / "ca.crt"
+    generated = False
+
+    ca_dir.mkdir(parents=True, exist_ok=True)
+    certs_dir.mkdir(parents=True, exist_ok=True)
+
+    if force or not ca_key.is_file() or not ca_crt.is_file():
+        _run_checked([openssl, "genrsa", "-out", str(ca_key), "4096"])
+        _run_checked(
+            [
+                openssl,
+                "req",
+                "-x509",
+                "-new",
+                "-nodes",
+                "-key",
+                str(ca_key),
+                "-sha256",
+                "-days",
+                "825",
+                "-out",
+                str(ca_crt),
+                "-subj",
+                "/CN=WorldOfShadows Redis Local CA",
+            ]
+        )
+        generated = True
+
+    _ensure_mode_readable(ca_crt)
+    try:
+        ca_key.chmod(0o600)
+    except OSError:
+        pass
+
+    for label, dns_name in (("app", "redis"), ("langfuse", "langfuse-redis")):
+        service_dir = certs_dir / label
+        service_dir.mkdir(parents=True, exist_ok=True)
+        key_path = service_dir / "redis.key"
+        csr_path = service_dir / "redis.csr"
+        crt_path = service_dir / "redis.crt"
+        ca_copy = service_dir / "ca.crt"
+        ext_path = service_dir / "redis.ext"
+
+        if force or not key_path.is_file() or not crt_path.is_file() or not ca_copy.is_file():
+            ext_path.write_text(
+                "\n".join(
+                    [
+                        "authorityKeyIdentifier=keyid,issuer",
+                        "basicConstraints=CA:FALSE",
+                        "keyUsage=digitalSignature,keyEncipherment",
+                        "extendedKeyUsage=serverAuth",
+                        f"subjectAltName=DNS:{dns_name},DNS:localhost,IP:127.0.0.1",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            _run_checked([openssl, "genrsa", "-out", str(key_path), "2048"])
+            _run_checked(
+                [
+                    openssl,
+                    "req",
+                    "-new",
+                    "-key",
+                    str(key_path),
+                    "-out",
+                    str(csr_path),
+                    "-subj",
+                    f"/CN={dns_name}",
+                ]
+            )
+            _run_checked(
+                [
+                    openssl,
+                    "x509",
+                    "-req",
+                    "-in",
+                    str(csr_path),
+                    "-CA",
+                    str(ca_crt),
+                    "-CAkey",
+                    str(ca_key),
+                    "-CAcreateserial",
+                    "-out",
+                    str(crt_path),
+                    "-days",
+                    "825",
+                    "-sha256",
+                    "-extfile",
+                    str(ext_path),
+                ]
+            )
+            shutil.copyfile(ca_crt, ca_copy)
+            generated = True
+
+        for path in (key_path, crt_path, ca_copy):
+            if path.is_file():
+                _ensure_mode_readable(path)
+
+    return generated
+
+
+def _write_acl_file(path: Path, username: str, password: str) -> bool:
+    content = f"user default off\nuser {username} on >{password} ~* &* +@all\n"
+    old = path.read_text(encoding="utf-8") if path.is_file() else None
+    if old == content:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+    return True
+
+
+def _ensure_production_redis_assets(env_dict: dict[str, str], force: bool = False) -> bool:
+    updated = _ensure_production_redis_certs(force=force)
+    updated = (
+        _write_acl_file(
+            REDIS_PRODUCTION_DIR / "app-users.acl",
+            env_dict["APP_REDIS_USERNAME"],
+            env_dict["APP_REDIS_PASSWORD"],
+        )
+        or updated
+    )
+    updated = (
+        _write_acl_file(
+            REDIS_PRODUCTION_DIR / "langfuse-users.acl",
+            env_dict["LANGFUSE_REDIS_USERNAME"],
+            env_dict["LANGFUSE_REDIS_PASSWORD"],
+        )
+        or updated
+    )
+    return updated
+
+
+def _ensure_production_redis_setup(force: bool = False) -> tuple[bool, bool]:
+    """Materialize production Redis env, TLS certs, ACL files, then validate."""
+    env_updated = _ensure_production_redis_env(force=force)
+    env_dict = _read_env_file(ENV_FILE)
+    errors = _validate_production_redis_env(env_dict)
+    if errors:
+        raise RuntimeError("; ".join(errors))
+    assets_updated = _ensure_production_redis_assets(env_dict, force=force)
+    return env_updated, assets_updated
+
+
 def _ensure_env_secrets(force: bool = False) -> bool:
     """
     Ensure .env exists with all required stable secrets.
@@ -222,9 +556,9 @@ def _ensure_env_secrets(force: bool = False) -> bool:
             env_to_write[key] = default_value
             updated = True
 
-    # Ensure known provider / optional credential slots exist (empty default).
-    # Only add missing *keys* — never replace existing values (operators may have set
-    # OPENAI_API_KEY, HF_TOKEN, LANGFUSE_*, etc.; re-running init-env/up must preserve them).
+    # Ensure optional runtime credential slots exist (empty default). Provider keys are excluded;
+    # use Backend AI Runtime Governance / encrypted secret storage for those.
+    # Only add missing *keys* — never replace existing values.
     for key in OPTIONAL_SECRET_KEYS:
         if key not in env_to_write:
             env_to_write[key] = ""
@@ -289,14 +623,30 @@ def _with_langfuse_enabled(args: argparse.Namespace) -> bool:
     return True
 
 
+def _with_production_redis(args: argparse.Namespace) -> bool:
+    return bool(getattr(args, "production_redis", False)) or _env_truthy("WOS_DOCKER_PRODUCTION_REDIS")
+
+
 def _compose_prefix(args: argparse.Namespace) -> list[str]:
     cmd = _compose_executable()
     files = list(args.file) if args.file else [str(DEFAULT_COMPOSE)]
+    production_redis = _with_production_redis(args)
+    if production_redis and not _with_langfuse_enabled(args):
+        print(
+            "Error: --production-redis requires the Langfuse override so app Redis and Langfuse Redis are both hardened.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     if _with_langfuse_enabled(args):
         langfuse_file = str(LANGFUSE_COMPOSE)
         resolved_files = {_resolve_compose_path(f) for f in files}
         if LANGFUSE_COMPOSE.resolve() not in resolved_files:
             files.append(langfuse_file)
+    if production_redis:
+        production_file = str(REDIS_PRODUCTION_COMPOSE)
+        resolved_files = {_resolve_compose_path(f) for f in files}
+        if REDIS_PRODUCTION_COMPOSE.resolve() not in resolved_files:
+            files.append(production_file)
     for f in files:
         p = _resolve_compose_path(f)
         if not p.is_file():
@@ -308,7 +658,7 @@ def _compose_prefix(args: argparse.Namespace) -> list[str]:
     return cmd
 
 
-def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
+def _ensure_dotenv_before_compose(compose_args: list[str], args: argparse.Namespace | None = None) -> None:
     """Ensure .env exists with required secrets before compose (build/up/restart need substitution + env_file)."""
     if not compose_args:
         return
@@ -322,7 +672,7 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
         if created:
             print(
                 f"\n[OK] Created {ENV_FILE} with auto-generated stable secrets.\n"
-                f"  IMPORTANT: Set provider keys in {ENV_FILE} (OPENAI_API_KEY / OPENROUTER_API_KEY / ANTHROPIC_API_KEY / optional HF_TOKEN) as needed.\n"
+                f"  IMPORTANT: Add provider credentials in Administration Tool -> AI Runtime Governance; Compose does not inject provider keys.\n"
                 f"  Other secrets are already generated and should not be changed.\n",
                 file=sys.stderr,
             )
@@ -332,7 +682,19 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
         if updated:
             print(
                 f"\n[OK] Updated {ENV_FILE} with missing stable secrets.\n"
-                f"  Review {ENV_FILE} to ensure provider API keys are set where needed.\n",
+                f"  Add provider API keys via Administration Tool -> AI Runtime Governance when needed.\n",
+                file=sys.stderr,
+            )
+
+    if args is not None and _with_production_redis(args):
+        try:
+            env_updated, assets_updated = _ensure_production_redis_setup(force=False)
+        except RuntimeError as exc:
+            print(f"ERROR: Production Redis setup failed: {exc}", file=sys.stderr)
+            sys.exit(6)
+        if env_updated or assets_updated:
+            print(
+                f"[OK] Production Redis password/TLS/ACL setup materialized under {REDIS_PRODUCTION_DIR}.",
                 file=sys.stderr,
             )
 
@@ -342,7 +704,7 @@ def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
     if getattr(args, "dry_run", False):
         print(" ".join(shlex_quote(a) for a in cmd))
         return 0
-    _ensure_dotenv_before_compose(compose_args)
+    _ensure_dotenv_before_compose(compose_args, args=args)
     print("$", " ".join(cmd), flush=True)
     exit_code = subprocess.call(cmd, cwd=REPO_ROOT)
     if exit_code == 0 and compose_args and compose_args[0] == "up":
@@ -611,6 +973,13 @@ def cmd_langfuse_up(args: argparse.Namespace, services: list[str]) -> int:
     return cmd_up(args, services)
 
 
+def cmd_production_redis_up(args: argparse.Namespace, services: list[str]) -> int:
+    """Start the stack with production Redis hardening override enabled."""
+    setattr(args, "with_langfuse", True)
+    setattr(args, "production_redis", True)
+    return cmd_up(args, services)
+
+
 def cmd_build(args: argparse.Namespace, services: list[str]) -> int:
     build_args: list[str] = ["build"]
     if getattr(args, "no_cache", False):
@@ -648,7 +1017,7 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
     if created or force:
         print(f"\n{'[OK] Created' if not ENV_FILE.is_file() else '[OK] Updated'} {ENV_FILE}")
         print(f"\nNext steps:")
-        print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic; optional HF_TOKEN for Hub)")
+        print("  1. Add provider credentials in Administration Tool -> AI Runtime Governance / secret storage as needed")
         print(f"  2. Run: python docker-up.py up  (starts app + local Langfuse)")
         print(f"     App-only fallback: python docker-up.py --no-langfuse up")
         print(f"\nOther secrets (SECRET_KEY, JWT_SECRET_KEY, etc.) are auto-generated and should not be changed.")
@@ -656,6 +1025,58 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
 
     print(f"[OK] {ENV_FILE} already exists with all required secrets and defaults.")
     print(f"  To regenerate secrets, use: python docker-up.py init-env --force")
+    return 0
+
+
+def cmd_init_production_redis(args: argparse.Namespace, services: list[str]) -> int:
+    """Initialize production Redis passwords, TLS certs, ACL files, and URLs."""
+    force = getattr(args, "force", False)
+    try:
+        env_updated, assets_updated = _ensure_production_redis_setup(force=force)
+    except RuntimeError as exc:
+        print(f"ERROR: Production Redis setup failed: {exc}", file=sys.stderr)
+        return 6
+
+    if env_updated:
+        print(f"[OK] Updated {ENV_FILE} with production Redis URL/TLS/ACL settings.")
+    else:
+        print(f"[OK] {ENV_FILE} already contains production Redis URL/TLS/ACL settings.")
+
+    if assets_updated:
+        print(f"[OK] Generated Redis ACL/TLS material under {REDIS_PRODUCTION_DIR}.")
+    else:
+        print(f"[OK] Redis ACL/TLS material already exists under {REDIS_PRODUCTION_DIR}.")
+
+    print("Next step: python docker-up.py --production-redis up")
+    return 0
+
+
+def cmd_validate_production_redis(args: argparse.Namespace, services: list[str]) -> int:
+    """Validate production Redis environment and generated local assets."""
+    env_dict = _read_env_file(ENV_FILE)
+    errors = _validate_production_redis_env(env_dict)
+    required_assets = (
+        REDIS_PRODUCTION_DIR / "app-users.acl",
+        REDIS_PRODUCTION_DIR / "langfuse-users.acl",
+        REDIS_PRODUCTION_DIR / "certs" / "app" / "ca.crt",
+        REDIS_PRODUCTION_DIR / "certs" / "app" / "redis.crt",
+        REDIS_PRODUCTION_DIR / "certs" / "app" / "redis.key",
+        REDIS_PRODUCTION_DIR / "certs" / "langfuse" / "ca.crt",
+        REDIS_PRODUCTION_DIR / "certs" / "langfuse" / "redis.crt",
+        REDIS_PRODUCTION_DIR / "certs" / "langfuse" / "redis.key",
+    )
+    for path in required_assets:
+        if not path.is_file():
+            errors.append(f"Missing generated Redis asset: {path}")
+
+    if errors:
+        print("Production Redis validation failed:", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        print("Recovery: python docker-up.py init-production-redis", file=sys.stderr)
+        return 6
+
+    print("[OK] Production Redis password/TLS/ACL setup is complete.")
     return 0
 
 
@@ -766,6 +1187,12 @@ def main() -> None:
         default=argparse.SUPPRESS,
         help=f"Do not include {LANGFUSE_COMPOSE.name}; start app-only stack.",
     )
+    common.add_argument(
+        "--production-redis",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help=f"Include {REDIS_PRODUCTION_COMPOSE.name}; auto-materialize Redis password/TLS/ACL setup.",
+    )
 
     parser = argparse.ArgumentParser(
         description="Docker Compose: default = stack up with rebuild (up -d --build).",
@@ -821,6 +1248,15 @@ def main() -> None:
     p_langfuse_up.add_argument("services", nargs="*", help="Optional: only these services.")
     p_langfuse_up.set_defaults(_handler=cmd_langfuse_up)
 
+    p_production_redis_up = sub.add_parser(
+        "production-redis-up",
+        aliases=["prod-redis-up"],
+        help="Start stack with production Redis password/TLS/ACL hardening.",
+        parents=[common],
+    )
+    p_production_redis_up.add_argument("services", nargs="*", help="Optional: only these services.")
+    p_production_redis_up.set_defaults(_handler=cmd_production_redis_up)
+
     p_build = sub.add_parser(
         "build",
         help="Build images (use --no-cache after Dockerfile changes).",
@@ -862,6 +1298,27 @@ def main() -> None:
         help="Regenerate all secrets, overwriting existing values.",
     )
     p_init_env.set_defaults(_handler=cmd_init_env)
+
+    p_init_production_redis = sub.add_parser(
+        "init-production-redis",
+        aliases=["init-prod-redis"],
+        help="Generate production Redis credentials, TLS certs, ACL files, and URLs.",
+        parents=[common],
+    )
+    p_init_production_redis.add_argument(
+        "--force",
+        action="store_true",
+        help="Regenerate Redis passwords and TLS certificates.",
+    )
+    p_init_production_redis.set_defaults(_handler=cmd_init_production_redis)
+
+    p_validate_production_redis = sub.add_parser(
+        "validate-production-redis",
+        aliases=["validate-prod-redis"],
+        help="Validate production Redis password/TLS/ACL setup.",
+        parents=[common],
+    )
+    p_validate_production_redis.set_defaults(_handler=cmd_validate_production_redis)
 
     p_ensure_env = sub.add_parser(
         "ensure-env",

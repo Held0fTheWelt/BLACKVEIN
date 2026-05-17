@@ -327,7 +327,20 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
         assert len(slots) == 1
         assert slots[0].kind == "canonical_player_session"
         assert slots[0].metadata_json["runtime_session_id"] == "story-session-1"
-        assert slots[0].metadata_json["session_output_language"] == "de"
+    assert slots[0].metadata_json["session_output_language"] == "de"
+
+
+def test_canonical_player_trace_classification_marks_local_langfuse_as_local(monkeypatch):
+    from app.api.v1.game_routes import _trace_classification
+
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setenv("WOS_LANGFUSE_LOCAL_EVIDENCE", "1")
+
+    trace_meta = _trace_classification(canonical_player_flow=True)
+
+    assert trace_meta["trace_origin"] == "player_ui_local"
+    assert trace_meta["execution_tier"] == "local"
+    assert trace_meta["canonical_player_flow"] is True
 
 
 @pytest.mark.parametrize(

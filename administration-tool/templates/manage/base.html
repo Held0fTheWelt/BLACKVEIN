@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ t.nav_manage | default('Manage') }}{% endblock %} – {{ t.site_name | default('BLACKVEIN') }}</title>
+    <title>{% block title %}{{ t.nav_manage | default('Manage') }}{% endblock %} – {{ t.site_name | default('Better Tomorrow') }}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='manage.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='20260517a') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='manage.css', v='20260517a') }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="manage-body"
@@ -19,11 +20,13 @@
         <button type="button" class="manage-shell-scrim" id="manage-shell-scrim" aria-hidden="true" tabindex="-1"></button>
         <aside class="manage-shell-side" id="manage-side" aria-label="Management navigation">
             <div class="manage-side-head">
-                <a href="{{ url_for('manage_index') }}" class="manage-logo">
+                <a href="{{ url_for('manage_index') }}" class="manage-logo" aria-label="{{ (t.site_name | default('Better Tomorrow')) ~ ' ' ~ (t.nav_manage | default('Administration Tool')) }}">
                     <span class="manage-logo-mark" aria-hidden="true">◆</span>
-                    <span class="manage-logo-word">{{ t.site_name | default('BLACKVEIN') }}</span>
+                    <span class="manage-logo-text">
+                        <span class="manage-logo-word">{{ t.site_name | default('Better Tomorrow') }}</span>
+                        <span class="manage-side-subtitle">{{ t.nav_manage | default('Administration Tool') }}</span>
+                    </span>
                 </a>
-                <span class="manage-side-subtitle">{{ t.nav_manage | default('Manage') }}</span>
             </div>
 
             <nav class="manage-side-nav" id="manage-nav" aria-label="Management">
@@ -51,6 +54,7 @@
                     <ul class="manage-side-list">
                         <li><a href="{{ url_for('manage_ai_runtime_governance') }}" class="manage-nav-link" data-page="ai-runtime-governance" id="manage-nav-ai-runtime-governance" data-feature="manage.ai_runtime_governance">AI Runtime Governance</a></li>
                         <li><a href="{{ url_for('manage_governance_console') }}" class="manage-nav-link" data-page="governance-console" id="manage-nav-governance-console" data-feature="manage.ai_runtime_governance">Governance Console</a></li>
+                        <li><a href="{{ url_for('manage_security_governance') }}" class="manage-nav-link" data-page="security-governance" id="manage-nav-security-governance" data-feature="manage.ai_runtime_governance">Security Governance</a></li>
                         <li><a href="{{ url_for('manage_ai_orchestration') }}" class="manage-nav-link" data-page="ai-orchestration" id="manage-nav-ai-orchestration" data-feature="manage.ai_runtime_governance">AI Orchestration</a></li>
                         <li><a href="{{ url_for('manage_rag_operations') }}" class="manage-nav-link" data-page="rag-operations" id="manage-nav-rag-operations" data-feature="manage.ai_runtime_governance">RAG Operations</a></li>
                         <li><a href="{{ url_for('manage_mcp_operations') }}" class="manage-nav-link" data-page="mcp-operations" id="manage-nav-mcp-operations" data-feature="manage.mcp_operations">MCP Operations</a></li>
@@ -109,8 +113,8 @@
             </nav>
 
             <div class="manage-side-foot manage-auth-bar" id="manage-auth-bar">
-                <span class="manage-user-info" id="manage-user-info"></span>
-                <button type="button" class="btn btn-ghost btn-sm" id="manage-logout">{{ t.manage_logout | default('Log out') }}</button>
+                <span class="manage-user-info manage-side-user" id="manage-user-info"></span>
+                <button type="button" class="manage-side-logout" id="manage-logout">Log out</button>
             </div>
         </aside>
 
@@ -121,7 +125,7 @@
                     <span class="manage-side-toggle-bar"></span>
                     <span class="manage-side-toggle-bar"></span>
                 </button>
-                <a href="{{ url_for('manage_index') }}" class="manage-topbar-logo">{{ t.site_name | default('BLACKVEIN') }}</a>
+                <a href="{{ url_for('manage_index') }}" class="manage-topbar-logo">{{ t.site_name | default('Better Tomorrow') }}</a>
             </header>
             <main id="main" class="manage-main" role="main">
                 {% block content %}{% endblock %}
@@ -131,9 +135,9 @@
     <script>
         window.__FRONTEND_CONFIG__ = {{ frontend_config | tojson }};
     </script>
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
-    <script src="{{ url_for('static', filename='manage_auth.js') }}"></script>
-    <script src="{{ url_for('static', filename='manage_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='main.js', v='20260517a') }}"></script>
+    <script src="{{ url_for('static', filename='manage_auth.js', v='20260517a') }}"></script>
+    <script src="{{ url_for('static', filename='manage_ui.js', v='20260517a') }}"></script>
     <script>
         (function manageSidebarShell() {
             const pathname = window.location.pathname.replace(/\/+$/, "");

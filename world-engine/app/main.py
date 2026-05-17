@@ -52,6 +52,7 @@ from app.narrative.package_loader import NarrativePackageLoader
 from app.narrative.preview_isolation import PreviewIsolationRegistry
 from app.narrative.runtime_health import RuntimeHealthCounters
 from app.narrative.validator_strategies import OutputValidatorConfig, ValidationStrategy
+from app.runtime.json_at_rest import JsonAtRestCodec
 from app.runtime.manager import RuntimeManager
 from app.runtime.runtime_config_client import (
     fetch_hf_hub_token_from_backend,
@@ -242,6 +243,10 @@ def _render_ui_page(
 def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = None) -> None:
     ui_root = web_root or WEB_ROOT
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(ui_root / "static" / "favicon.ico", media_type="image/vnd.microsoft.icon")
+
     @app.get("/")
     def root_entry(request: Request):
         if request.session.get(SESSION_KEY_ACCESS_TOKEN):
@@ -390,13 +395,14 @@ async def lifespan(app: FastAPI):
         print(f"[WARN] Could not sync HF_TOKEN from backend: {exc}")
 
     app.state.resolved_runtime_config = resolved_runtime_config
+    json_at_rest_codec = JsonAtRestCodec.from_env()
     app.state.manager = RuntimeManager(store_root=RUN_STORE_DIR, governed_runtime_config=resolved_runtime_config)
     app.state.story_manager = StoryRuntimeManager(
-        session_store=JsonStorySessionStore(STORY_SESSION_STORE_DIR),
-        branching_tree_store=JsonBranchingTreeStore(BRANCHING_TREE_STORE_DIR),
-        branch_timeline_store=JsonBranchTimelineStore(BRANCH_TIMELINE_STORE_DIR),
-        callback_web_store=JsonCallbackWebStore(CALLBACK_WEB_STORE_DIR),
-        consequence_cascade_store=JsonConsequenceCascadeStore(CONSEQUENCE_CASCADE_STORE_DIR),
+        session_store=JsonStorySessionStore(STORY_SESSION_STORE_DIR, codec=json_at_rest_codec),
+        branching_tree_store=JsonBranchingTreeStore(BRANCHING_TREE_STORE_DIR, codec=json_at_rest_codec),
+        branch_timeline_store=JsonBranchTimelineStore(BRANCH_TIMELINE_STORE_DIR, codec=json_at_rest_codec),
+        callback_web_store=JsonCallbackWebStore(CALLBACK_WEB_STORE_DIR, codec=json_at_rest_codec),
+        consequence_cascade_store=JsonConsequenceCascadeStore(CONSEQUENCE_CASCADE_STORE_DIR, codec=json_at_rest_codec),
         governed_runtime_config=resolved_runtime_config,
     )
     app.state.ticket_manager = TicketManager()

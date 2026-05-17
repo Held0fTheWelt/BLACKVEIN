@@ -1,10 +1,9 @@
 /* =============================================================================
-   World-Engine Runtime UI — unified BLACKVEIN design system
+   World-Engine Runtime UI — unified Better Tomorrow design system
 
-   This stylesheet is intentionally aligned with administration-tool/static/
-   manage.css + styles.css. Tokens, shell layout, typography, code blocks,
-   cards, buttons and side-nav rendering match the Administration Tool so the
-   three surfaces (admin, backend/info, world-engine) read as one product.
+   This stylesheet is intentionally aligned with the backend info shell.
+   Tokens, shell layout, typography, code blocks, cards, buttons and side-nav
+   rendering define the shared diagnostic/navigation surface.
 
    Class names remain the `ui-*` namespace this surface already uses, so no
    template churn is required.
@@ -47,9 +46,20 @@
   --mono-font: "JetBrains Mono", "Fira Mono", ui-monospace, "Courier New", monospace;
 
   --side-w: 268px;
+  --side-head-h: 88px;
   --side-pad-x: 1.05rem;
   --side-rail: 3px;
   --side-grad: linear-gradient(180deg, rgba(127, 99, 217, 0.16), rgba(127, 99, 217, 0.04) 38%, transparent 70%);
+  --side-brand-gap: 0.6rem;
+  --side-brand-mark-size: 0.9rem;
+  --side-brand-title-size: 1rem;
+  --side-brand-subtitle-size: 0.64rem;
+  --side-brand-title-line: 1.1;
+  --side-nav-pad-top: 0.5rem;
+  --side-nav-link-pad-y: 0.42rem;
+  --side-nav-link-pad-r: 0.6rem;
+  --side-nav-link-pad-l: 0.95rem;
+  --side-group-head-pad-y: 0.55rem;
 
   --violet-bright: #a07dcc;
 }
@@ -75,7 +85,7 @@ h1, h2, h3, h4 { letter-spacing: 0.01em; }
 a { color: var(--primary-hover); }
 
 /* -----------------------------------------------------------------------------
-   Shell — replicates .manage-shell from the Administration Tool.
+   Shell — shared diagnostic sidebar rail used by backend/world-engine.
    ----------------------------------------------------------------------------- */
 
 .ui-shell {
@@ -115,45 +125,70 @@ a { color: var(--primary-hover); }
 }
 
 .ui-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: var(--side-brand-mark-size) max-content;
+  grid-template-rows: calc(var(--side-brand-title-size) * var(--side-brand-title-line)) auto;
+  column-gap: var(--side-brand-gap);
+  row-gap: 0.25rem;
+  align-content: start;
+  justify-content: start;
+  height: var(--side-head-h);
+  min-height: var(--side-head-h);
   padding: 1.35rem var(--side-pad-x) 1rem;
   border-bottom: 1px solid var(--border);
 }
 
+.ui-brand > span:not(.ui-brand-mark) { display: contents; }
+
 .ui-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  justify-self: center;
+  width: var(--side-brand-mark-size);
+  height: calc(var(--side-brand-title-size) * var(--side-brand-title-line));
   color: var(--primary);
-  font-size: 1.05rem;
-  transform: translateY(-1px);
+  font-size: var(--side-brand-mark-size);
+  line-height: 1;
   text-shadow: 0 0 12px var(--primary-glow);
 }
 
 .ui-brand-title {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
   font-family: var(--font);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: var(--side-brand-title-size);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text);
-  line-height: 1.1;
+  line-height: var(--side-brand-title-line);
+  white-space: nowrap;
 }
 
 .ui-brand-subtitle {
+  grid-column: 2;
+  grid-row: 2;
   display: block;
-  margin-top: 0.2rem;
+  margin-top: 0;
   font-family: var(--mono-font);
-  font-size: 0.68rem;
+  font-size: var(--side-brand-subtitle-size);
+  line-height: 1;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .ui-nav {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  padding: 0.5rem var(--side-pad-x) 1rem;
+  padding: var(--side-nav-pad-top) var(--side-pad-x) 1rem;
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1 1 auto;
@@ -176,7 +211,7 @@ a { color: var(--primary-hover); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.55rem 0.1rem;
+  padding: var(--side-group-head-pad-y) 0.1rem;
   gap: 0.4rem;
   user-select: none;
   font-family: var(--mono-font);
@@ -211,13 +246,14 @@ a { color: var(--primary-hover); }
 .ui-nav-link {
   display: block;
   position: relative;
-  padding: 0.42rem 0.6rem 0.42rem 0.95rem;
+  padding: var(--side-nav-link-pad-y) var(--side-nav-link-pad-r) var(--side-nav-link-pad-y) var(--side-nav-link-pad-l);
   margin: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-size: 0.88rem;
   font-weight: 500;
+  line-height: 1.35;
   text-decoration: none;
   white-space: normal;
   background: transparent;
@@ -273,19 +309,41 @@ a { color: var(--primary-hover); }
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.9rem var(--side-pad-x) 1.1rem;
+  gap: 0.55rem;
+  padding: 1rem var(--side-pad-x) 1.1rem;
   border-top: 1px solid var(--border);
   background: rgba(7, 7, 10, 0.45);
 }
-.ui-user {
+.ui-side-user {
+  color: var(--text);
   font-family: var(--mono-font);
   font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  word-break: break-all;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  word-break: break-word;
 }
 .ui-side-foot form { margin: 0; }
+.ui-side-logout {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  font-family: var(--mono-font);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease,
+              border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ui-side-logout:hover {
+  color: var(--text);
+  background: rgba(148, 121, 239, 0.12);
+  border-color: rgba(148, 121, 239, 0.45);
+  box-shadow: 0 0 14px rgba(148, 121, 239, 0.18);
+}
 
 /* Shell-main column ----------------------------------------------------------- */
 .ui-shell-main {
@@ -358,6 +416,8 @@ a { color: var(--primary-hover); }
   -webkit-backdrop-filter: blur(10px);
   display: grid;
   gap: 0.45rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ui-page-head h1 {
   margin: 0;
@@ -381,6 +441,7 @@ a { color: var(--primary-hover); }
   font-size: 0.96rem;
   line-height: 1.5;
   max-width: 80ch;
+  overflow-wrap: anywhere;
 }
 .ui-subtle strong { color: var(--text); font-weight: 600; }
 
@@ -392,12 +453,14 @@ a { color: var(--primary-hover); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
   gap: 1rem;
+  min-width: 0;
 }
 
 .ui-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  min-width: 0;
 }
 
 .ui-card {
@@ -410,6 +473,9 @@ a { color: var(--primary-hover); }
   flex-direction: column;
   gap: 0.65rem;
   min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ui-card > h2,
@@ -438,6 +504,7 @@ a { color: var(--primary-hover); }
   margin: 0;
   padding-left: 1.1rem;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 .ui-list li + li { margin-top: 0.35rem; }
 
@@ -459,6 +526,10 @@ a { color: var(--primary-hover); }
   font-weight: 500;
   font-size: 0.9rem;
   line-height: 1.2;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
@@ -501,6 +572,8 @@ a { color: var(--primary-hover); }
 .ui-form select,
 .ui-form textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -558,6 +631,8 @@ a { color: var(--primary-hover); }
   border-radius: var(--radius);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)) var(--surface);
   box-shadow: var(--shadow-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ui-toolbar > label {
   font-family: var(--mono-font);
@@ -610,6 +685,8 @@ a { color: var(--primary-hover); }
   color: var(--text);
   font: inherit;
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
@@ -645,6 +722,7 @@ a { color: var(--primary-hover); }
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   tab-size: 2;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
@@ -668,6 +746,8 @@ a { color: var(--primary-hover); }
   font-size: 0.92rem;
   line-height: 1.45;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   box-shadow: var(--shadow-1);
 }
 .ui-banner::before {
@@ -737,7 +817,7 @@ a { color: var(--primary-hover); }
 .ui-login-card .ui-btn-primary { margin-top: 0.5rem; }
 
 /* -----------------------------------------------------------------------------
-   Responsive — collapse rail into off-canvas drawer (mirrors manage-shell).
+   Responsive — collapse rail into off-canvas drawer.
    ----------------------------------------------------------------------------- */
 
 @media (max-width: 900px) {

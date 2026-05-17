@@ -178,7 +178,7 @@ def _require_internal_api_key(x_play_service_key: str | None = Header(default=No
 
     Behavior:
     - If PLAY_SERVICE_INTERNAL_API_KEY is configured: key must match exactly (fail-fast)
-    - If PLAY_SERVICE_INTERNAL_API_KEY is not configured: no enforcement (lenient test mode)
+    - If PLAY_SERVICE_INTERNAL_API_KEY is not configured: only explicit test mode is lenient
     - Empty/blank key values always rejected when configured
 
     Raises:
@@ -194,6 +194,16 @@ def _require_internal_api_key(x_play_service_key: str | None = Header(default=No
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Missing or invalid internal API key"
             )
+        return
+
+    test_mode = os.getenv("FLASK_ENV") in {"test", "testing"} or os.getenv("ENV") in {"test", "testing"}
+    if test_mode:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="PLAY_SERVICE_INTERNAL_API_KEY is not configured",
+    )
 
 
 @router.get("/health")
@@ -203,11 +213,17 @@ def health() -> dict[str, str]:
 
 @router.get("/health/ready")
 def ready(request: Request, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 readiness diagnostic:
-    # surface OpenAI key + Langfuse env explicitness so operators see staging gaps
-    # without log-diving. Does not change overall status to keep local tests stable.
+    # Operator readiness diagnostic: provider secrets are governed by backend
+    # AI Runtime Governance, not direct Compose env slots.
     import os as _os
-    openai_key_present = bool((_os.environ.get("OPENAI_API_KEY") or "").strip())
+    runtime_config = getattr(request.app.state, "resolved_runtime_config", None)
+    providers = runtime_config.get("providers", []) if isinstance(runtime_config, dict) else []
+    governed_provider_credentials_present = any(
+        isinstance(provider, dict)
+        and str(provider.get("provider_type") or "").strip().lower() not in {"mock", "ollama"}
+        and bool(provider.get("credential_configured"))
+        for provider in providers
+    )
     lf_env_raw = (_os.environ.get("LANGFUSE_TRACING_ENVIRONMENT") or "").strip()
     lf_env_explicit = bool(lf_env_raw)
     resolved_env = lf_env_raw or "staging"  # matches resolve_langfuse_environment default fallback
@@ -218,10 +234,12 @@ def ready(request: Request, manager: RuntimeManager = Depends(get_manager)) -> d
         "template_count": len(manager.list_templates()),
         "run_count": len(manager.list_runs()),
         "operator_readiness": {
-            "openai_api_key_present": openai_key_present,
+            "provider_credential_source": "backend_governance_or_secret_manager",
+            "governed_provider_credentials_present": governed_provider_credentials_present,
+            "openai_api_key_present": False,
             "langfuse_tracing_environment_explicit": lf_env_explicit,
             "resolved_langfuse_environment": resolved_env,
-            "model_path_can_run_live": openai_key_present,
+            "model_path_can_run_live": governed_provider_credentials_present,
         },
     }
 

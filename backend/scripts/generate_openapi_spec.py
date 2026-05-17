@@ -230,7 +230,7 @@ def build_spec() -> dict:
     return {
         "openapi": "3.0.3",
         "info": {
-            "title": "World of Shadows — Backend API",
+            "title": "Better Tomorrow — Backend API",
             "version": "1.0.0",
             "description": (
                 "Machine-readable inventory of Flask `/api/v1` routes. "

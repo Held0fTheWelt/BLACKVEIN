@@ -1,4 +1,4 @@
-# What World of Shadows is — and why it works this way
+# What Better Tomorrow is — and why it works this way
 
 > **Projection governance**
 > contractify-projection:
@@ -10,7 +10,7 @@
 
 ## Title and purpose
 
-This document explains **World of Shadows** as a whole: what it is trying to become, what problem it solves, what value it is meant to create, and **why** the architecture is shaped the way it is.
+This document explains **Better Tomorrow** as a whole: what it is trying to become, what problem it solves, what value it is meant to create, and **why** the architecture is shaped the way it is. **World of Shadows** remains the subtitle and world/platform context.
 
 It is written for **technical readers**, **non-specialists**, **stakeholders**, and **new contributors** who want a trustworthy mental model before diving into every file.
 
@@ -34,7 +34,7 @@ Facts here follow this order:
 
 ## The shortest useful explanation
 
-**World of Shadows** is a **multi-service narrative game platform**: player web apps, an API and persistence layer, an **authoritative play runtime** (the World Engine), and a shared **AI stack** (retrieval, turn orchestration, guarded tooling) used during live play and in operator/author workflows.
+**Better Tomorrow** is a **multi-service narrative game platform**: player web apps, an API and persistence layer, an **authoritative play runtime** (the World Engine), and a shared **AI stack** (retrieval, turn orchestration, guarded tooling) used during live play and in operator/author workflows. **World of Shadows** is the subtitle and context label, not the primary title.
 
 **In plain words:** It is built for **guided interactive drama**—scene-led play where “what just became true in the story” is **decided by rules and the runtime**, not only by whatever a language model said in the moment.
 
@@ -201,7 +201,7 @@ flowchart TB
 
 ### Simple explanation
 
-Someone has to be the **referee** for a live session: “Did that move count? What is officially true now?” In World of Shadows, that referee is the **World Engine**.
+Someone has to be the **referee** for a live session: “Did that move count? What is officially true now?” In Better Tomorrow, that referee is the **World Engine**.
 
 ### What this means in the actual system
 
@@ -554,7 +554,7 @@ flowchart TB
 
 ## Conclusion
 
-World of Shadows is **not “just an AI roleplay app.”** It is a **multi-service narrative platform** that uses AI **seriously** by **refusing** to let AI be the **silent owner of reality**.
+Better Tomorrow is **not “just an AI roleplay app.”** It is a **multi-service narrative platform** that uses AI **seriously** by **refusing** to let AI be the **silent owner of reality**.
 
 The **World Engine** is the **live referee**. **Authored modules** are the **human-owned story ground**. **Retrieval** is **governed context**. **MCP** is **operator tooling**, not the game. **Separate surfaces** protect **players and staff**.
 

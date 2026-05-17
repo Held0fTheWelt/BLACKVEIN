@@ -197,17 +197,11 @@ class McpLangfuseTracer:
             or os.environ.get("RUNTIME_CONFIG_TOKEN", "").strip()
             or self._internal_token
         )
-        bearer_token = os.environ.get("BACKEND_BEARER_TOKEN", "").strip()
-        if not runtime_token and not bearer_token:
+        if not runtime_token:
             return
         try:
             endpoint = f"{backend_url}/api/v1/internal/observability/langfuse-credentials"
-            header_attempts: list[dict[str, str]] = []
-            if runtime_token:
-                header_attempts.append({"X-Internal-Config-Token": runtime_token})
-            if bearer_token:
-                # Optional runtime deployment fallback: some setups terminate auth upstream.
-                header_attempts.append({"Authorization": f"Bearer {bearer_token}"})
+            header_attempts: list[dict[str, str]] = [{"X-Internal-Config-Token": runtime_token}]
             # Use ``requests`` (same stack as Langfuse HTTP helpers in verify tools), not
             # ``httpx``. A missing or broken ``httpx`` import previously failed the entire
             # fetch inside ``except Exception: pass``, leaving keys empty with no signal.

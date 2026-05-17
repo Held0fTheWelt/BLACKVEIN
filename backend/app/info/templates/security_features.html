@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% from "info_sections.html" import route_limit_table with context %}
+{% block title %}Security Features{% endblock %}
+{% block heading %}Security Features &amp; Grenzen{% endblock %}
+{% block subheading %}Welche Schutzmechanismen in der Architektur sichtbar umgesetzt sind, welche bewusst lokal begrenzt sind und was für Production noch verbessert werden sollte.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Security-Lesart</h2>
+  <p>Security ist hier keine einzelne Middleware, sondern ein Bündel aus Authentifizierung, Rollen, Secret-Grenzen, internen Service-Token, Browser-Härtung, Rate-Limits, Observability-Governance und Tests. Diese Seite trennt drei Dinge: <strong>umgesetzt</strong>, <strong>teilweise umgesetzt</strong> und <strong>nicht als Production-Schutz vorhanden</strong>.</p>
+  <div class="info-lead-block">
+    <p><strong>Wichtig:</strong> Lokale Docker- und Langfuse-Daten sind Entwicklungsdiagnostik. Sie beweisen kein Production- oder Staging-Verhalten, tragen bei Judge-Scores sichtbar <code>local_only: true</code> und dürfen Commit, Readiness oder <code>validation_outcome</code> nicht mutieren.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Secret-Management-Grenze</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>Local-Dev bleibt <code>.env</code></strong>
+      <p><code>docker-up.py init-env</code>, <code>docker-up.py up</code>, <code>build</code> und <code>restart</code> dürfen ohne zentralen Secret-Manager laufen. Der lokale Bootstrap erzeugt fehlende Plattform-Secrets und erhält vorhandene Werte; Provider-Keys bleiben aus Compose heraus und werden über AI Runtime Governance oder Secret-Store gesetzt.</p>
+    </article>
+    <article class="info-note">
+      <strong>Production braucht Secret-Store</strong>
+      <p>Production sollte Provider-Credentials aus Backend-Governance oder Secret-Store laden, nicht über Compose-Variablen. Ein dedizierter Secret-Store ist dort weiterhin die erwartete Betriebsgrenze; erwartet werden Rotation, Audit, Zugriffstrennung und Deployment-Injektion außerhalb von Compose.</p>
+    </article>
+    <article class="info-note">
+      <strong>Kein Repo-Secret-Manager</strong>
+      <p>Dieses Repository liefert keinen zentralen Production-Secret-Manager und behauptet keine vollständige Rotations- oder Audit-Lösung. Die App kann Provider-Credentials governed speichern, konsumieren und redaktieren; die Produktionsverwahrung bleibt Deployment-Aufgabe.</p>
+    </article>
+    <article class="info-note">
+      <strong>Docker-Up darf nicht brechen</strong>
+      <p>Eine spätere Vault-/KMS-/Cloud-Secret-Anbindung muss außerhalb des lokalen Docker-Up-Pfads bleiben oder die gleichen Variablen vor dem Start bereitstellen. Lokale Compose-Starts dürfen nicht von Production-Netzwerk, Cloud-Login oder Secret-Store-Rechten abhängen.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Provider- &amp; Evaluator-Governance</h2>
+  <p>Lokale Evaluatoren können weiterhin über Langfuse laufen, aber Provider-Zugriffe gehen nicht mehr über direkt aus Compose geerbte API-Keys. Der Runtime-Pfad nimmt nur konfigurierte Provider aus Backend-Governance oder einem Secret-Manager auf; lokale Judge-Scores bleiben als Diagnose markiert.</p>
+  <div class="info-lead-block">
+    <p><strong>Kanonischer Nachweis:</strong> <code>ADR-0049</code> und <code>docs/security/PROVIDER_CREDENTIAL_GOVERNANCE.md</code> definieren Provider-Credential-Governance, Secret-Manager-Grenze und lokale Evaluator-Evidence.</p>
+  </div>
+  <table class="doc-table" aria-label="Provider und Evaluator Governance">
+    <thead><tr><th>Kontrolle</th><th>Umsetzung</th><th>Sichtbarer Beleg</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Compose-Secret-Grenze</td>
+        <td>Backend und Play-Service überschreiben direkte Provider-Key-Slots leer: <code>OPENAI_API_KEY=</code>, <code>OPENROUTER_API_KEY=</code>, <code>ANTHROPIC_API_KEY=</code>, <code>HF_TOKEN=</code>.</td>
+        <td><code>docker-compose.yml</code>, <code>.env.example</code>, <code>tests/test_local_langfuse_docker_config.py</code></td>
+      </tr>
+      <tr>
+        <td>Governed Adapter Routing</td>
+        <td><code>OpenAIChatAdapter</code> liest Env-Keys nicht standardmäßig. OpenAI- und OpenRouter-Routen werden erst gebaut, wenn <code>AIProviderConfig</code> aktiv ist und <code>get_provider_credential_for_runtime</code> ein Credential liefert.</td>
+        <td><code>backend/app/services/governed_provider_adapter_service.py</code>, <code>story_runtime_core/adapters.py</code></td>
+      </tr>
+      <tr>
+        <td>Operator-Readiness</td>
+        <td>Readiness meldet <code>provider_credential_source</code> als <code>backend_governance_or_secret_manager</code> und leitet Live-Fähigkeit aus governed Provider-Credentials ab, nicht aus <code>OPENAI_API_KEY</code>.</td>
+        <td><code>world-engine/app/api/http.py</code>, <code>world-engine/tests/test_api_security.py</code></td>
+      </tr>
+      <tr>
+        <td>Lokale Judge-Evidence</td>
+        <td>Langfuse-Trace- und Score-Metadaten tragen <code>evidence_scope=local_langfuse</code>, <code>proof_level=local_only</code>, <code>local_only: true</code> und <code>live_or_staging_evidence=false</code>.</td>
+        <td><code>story_runtime_core/langfuse_tracing_environment.py</code>, <code>tools/mcp_server/tools_registry_handlers_langfuse_verify.py</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Production Redis Hardening</h2>
+  <p>Der lokale Standard bleibt bewusst entwicklerfreundlich: App-Redis ist nur im Compose-Netz erreichbar und hat keinen Host-Port; Langfuse-Redis ist separat und passwortgeschützt. Für den Production-Compose-Pfad ist die Härtung jetzt automatisiert und verbindlich als eigener Override abgebildet.</p>
+  <div class="info-lead-block">
+    <p><strong>Automatischer Ablauf:</strong> <code>python docker-up.py init-production-redis</code> erzeugt getrennte Redis-Passwörter, <code>rediss://</code>-URLs, TLS-Zertifikate und ACL-Dateien. <code>python docker-up.py validate-production-redis</code> prüft die Contract-Grenze, und <code>python docker-up.py --production-redis up</code> startet mit <code>docker-compose.redis-production.yml</code>.</p>
+  </div>
+  <table class="doc-table" aria-label="Production Redis Hardening">
+    <thead><tr><th>Fläche</th><th>Lokaler Default</th><th>Production-Redis-Pfad</th><th>Beleg</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>App Runtime Redis</td>
+        <td><code>REDIS_URL=redis://redis:6379/0</code>, internes Compose-Netz, kein Host-Port.</td>
+        <td><code>APP_REDIS_URL</code> nutzt <code>rediss://</code>, eigenen ACL-User <code>APP_REDIS_USERNAME</code>, eigenes Passwort und CA-Validierung.</td>
+        <td><code>docker-up.py init-production-redis</code>, <code>docker-compose.redis-production.yml</code></td>
+      </tr>
+      <tr>
+        <td>Langfuse Redis</td>
+        <td>Getrennte Instanz <code>langfuse-redis</code>, eigenes Volume, <code>LANGFUSE_REDIS_PASSWORD</code>, kein Host-Port.</td>
+        <td><code>LANGFUSE_REDIS_CONNECTION_STRING</code> nutzt <code>rediss://</code>, eigenen ACL-User <code>LANGFUSE_REDIS_USERNAME</code>, eigenes Passwort, TLS und <code>noeviction</code>.</td>
+        <td><code>REDIS_TLS_ENABLED=true</code>, <code>REDIS_TLS_REJECT_UNAUTHORIZED=true</code>, <code>REDIS_KEY_PREFIX=langfuse:</code></td>
+      </tr>
+      <tr>
+        <td>ACL &amp; TLS Assets</td>
+        <td>Nicht nötig für den lokalen Default.</td>
+        <td>Generierte, nicht zu committende Dateien unter <code>.docker/redis-production/</code>; Redis <code>default</code>-User ist deaktiviert.</td>
+        <td><code>app-users.acl</code>, <code>langfuse-users.acl</code>, <code>certs/app</code>, <code>certs/langfuse</code></td>
+      </tr>
+      <tr>
+        <td>Instanztrennung</td>
+        <td>App-Redis und Langfuse-Redis sind bereits getrennte Compose-Services.</td>
+        <td>Validator schlägt fehl, wenn App- und Langfuse-Redis denselben Host, kein <code>rediss://</code>, fehlende ACL-Credentials oder gleiche Passwörter nutzen.</td>
+        <td><code>tests/test_production_redis_docker_config.py</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>At-rest-Verschlüsselung</h2>
+  <p>Der aktuelle Stand ist absichtlich konservativ: <strong>vollständige at-rest Verschlüsselung ist nur mit komplettem Storage-Layer-Evidence-Pack belegbar</strong>. Das Evidence-Pack ist jetzt im Security-Governance-Backend und im Administration-Tool implementiert; lokales Compose verschlüsselt SQLite-, Redis-, JSON-, Docker-Volume- und Backup-Daten weiterhin nicht automatisch.</p>
+  <div class="info-lead-block">
+    <p><strong>Kanonischer Nachweis:</strong> <code>ADR-0047</code> entscheidet die Evidence-Grenze; <code>ADR-0051</code> implementiert die Storage-Layer-Governance; <code>docs/security/AT_REST_ENCRYPTION.md</code> trennt implementierte Kontrollen, offene Persistenzflächen und den Plan zur Vervollständigung.</p>
+  </div>
+  <table class="doc-table" aria-label="At-rest Verschlüsselungsstatus">
+    <thead><tr><th>Status</th><th>Persistenzfläche</th><th>Beleg / Grenze</th><th>Nächster Schritt</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Storage-Layer-Evidence Governance</td>
+        <td><code>/api/v1/admin/security/governance</code> speichert <code>storage_encryption_evidence</code>; <code>/manage/security-governance</code> macht Policy und Evidence editierbar; <code>/api/v1/admin/system-diagnosis</code> meldet <code>storage_layer_encryption</code>.</td>
+        <td>Für jede Persistenzfläche Evidence-Referenz, Control-Type, KMS-/Key-Referenz und Backup-Restore-Test pflegen.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">belegt</span></td>
+        <td>Governed Provider-Credentials</td>
+        <td><code>SECRETS_KEK</code>, Envelope Encryption, <code>AES-256-GCM</code>, Tabellen <code>observability_credentials</code>.</td>
+        <td>Key-Rotation und Zugriffstrennung im Production-Secret-Store dokumentieren.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">belegt</span></td>
+        <td>Export-Artefakte</td>
+        <td><code>encrypt=true</code> erzeugt verschlüsselte Export-Payloads; das schützt das Exportfile, nicht die Live-Datenbank.</td>
+        <td>Exportformat später auf AEAD oder authentifizierten Envelope heben.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">offen</span></td>
+        <td>Backend SQLite</td>
+        <td><code>backend/instance/wos.db</code> wird über <code>./backend/instance:/app/instance</code> persistiert und ist plain SQLite, sofern Host/Volume nicht verschlüsselt ist.</td>
+        <td>SQLite lokal/dev-only halten oder SQLCipher beziehungsweise Storage-Layer-Verschlüsselung belegen.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">offen</span></td>
+        <td>Redis AOF und Runtime Stores</td>
+        <td><code>redis-data:/data</code> und SQLAlchemy <code>payload_json</code> brauchen Storage-Layer-Evidence; world-engine kann statt plain JSON jetzt <code>RUN_STORE_BACKEND=json_aead</code> mit <code>WORLD_ENGINE_JSON_AEAD_KEY</code> nutzen.</td>
+        <td>Production-Redis/DB auf verschlüsselte Managed Services oder verschlüsselte Volumes legen; JSON Store durch SQL-Store ablösen oder mit AEAD betreiben.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">offen</span></td>
+        <td>Lokale Langfuse Volumes</td>
+        <td><code>langfuse-postgres-data</code>, <code>langfuse-clickhouse-data</code>, <code>langfuse-minio-data</code> und <code>langfuse-redis-data</code> sind Compose-Volumes ohne deklarierte Volume-Verschlüsselung.</td>
+        <td>Host-/Docker-Storage-Verschlüsselung, Volume-Driver oder Managed-Service-KMS pro Volume nachweisen.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">offen</span></td>
+        <td>Backups und Snapshots</td>
+        <td>Backup-Konzepte existieren, aber kein committed Job beweist verschlüsselte Backup-Ausgabe oder KMS/SSE-Policy.</td>
+        <td>Encrypted Backup Output, Restore-Test und Key-Verwahrung in einem Operator-Evidence-Pack erfassen.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Architekturkarte</h2>
+  <div class="info-diagram" role="img" aria-label="Security Architekturkarte">
+    <div class="info-diagram-row--four">
+      <div class="diagram-node diagram-node--runtime"><strong>Browser / Admin</strong><span>JWT, Session-Cookie, CORS/CSP, same-origin Proxies.</span></div>
+      <div class="diagram-edge">auth</div>
+      <div class="diagram-node diagram-node--db"><strong>Backend</strong><span>Rollen, Rate-Limits, AI Runtime Governance, Secret-Redaction.</span></div>
+      <div class="diagram-edge">token</div>
+      <div class="diagram-node diagram-node--external"><strong>World-Engine</strong><span>Interner API-Key, Runtime-Truth, Commit-Policy.</span></div>
+      <div class="diagram-edge">diag</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Langfuse / MCP</strong><span>Lokale Evidence mit local_only, keine Truth-Mutation, keine Frontend-Secrets.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>CSRF-Matrix &amp; Browser-Mutation-Grenze</h2>
+  <p><strong>Aktueller Stand:</strong> Admin- und Frontend-Session-Cookies nutzen SameSite; JSON-APIs arbeiten mit <code>Authorization: Bearer ...</code>; mutierende Browser-Aufrufe gehen entweder als Same-Origin-Formularfluss oder über same-origin Proxies, die keine Browser-Cookies upstream weiterreichen.</p>
+  <div class="info-lead-block">
+    <p><strong>Regression-Gate:</strong> Die mutierenden Cookie-Flows sind in <code>docs/security/csrf-matrix.md</code> dokumentiert, in <code>ADR-0050</code> als Architekturgrenze festgehalten und über Backend-, Frontend-, Frontend-API-Client- und Proxy-Regressionstests gepinnt.</p>
+  </div>
+  <dl class="info-stat-grid" aria-label="CSRF Browser-Mutation Status">
+    <div class="info-stat"><dt>Cookie-Flows</dt><dd>SameSite</dd><p>Admin- und Frontend-Session-Cookies bleiben Browser-origin-gebunden; per-run Backend-Session-Cookies sind <code>SameSite=Strict</code>.</p></div>
+    <div class="info-stat"><dt>JSON-API</dt><dd>Bearer</dd><p><code>/api/v1/*</code> bleibt CSRF-exempt, weil API-Auth nicht über Browser-Cookies erfolgt.</p></div>
+    <div class="info-stat"><dt>Proxies</dt><dd>cookie-strip</dd><p>Same-origin Proxies leiten Bearer/erlaubte Header weiter und entfernen <code>Cookie</code>, <code>Set-Cookie</code> und Host-Spoofing-Header.</p></div>
+    <div class="info-stat"><dt>Evidence</dt><dd>4 Suiten</dd><p>Backend CSRF, Frontend-Routen, Frontend API-Client und Admin-Proxy werden separat getestet.</p></div>
+  </dl>
+  <table class="doc-table" aria-label="CSRF-Matrix Regression Gate">
+    <thead><tr><th>Flow</th><th>Credential</th><th>Mutationen</th><th>Schutzentscheidung</th><th>Testbeleg</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Backend Legacy Web Routes</td>
+        <td>Backend <code>session</code>-Cookie</td>
+        <td><code>POST /logout</code>, Legacy-Redirect-POSTs</td>
+        <td>Globaler Flask-WTF-CSRF-Schutz greift, sobald <code>WTF_CSRF_ENABLED=True</code> ist.</td>
+        <td><code>backend/tests/test_csrf_protection.py</code></td>
+      </tr>
+      <tr>
+        <td>Backend JSON API</td>
+        <td><code>Authorization: Bearer ...</code></td>
+        <td><code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code> unter <code>/api/v1/*</code></td>
+        <td><code>api_v1</code> bleibt CSRF-exempt; API-Auth darf nicht über Browser-Cookies passieren und muss rollen-/route-seitig autorisiert werden.</td>
+        <td><code>backend/tests/test_csrf_protection.py</code></td>
+      </tr>
+      <tr>
+        <td>Frontend Player Forms</td>
+        <td>Frontend <code>session</code>-Cookie als serverseitiger Token-Speicher</td>
+        <td>Login, Logout, Registrierung, Reset, Play-Start und Turn-Ausführung</td>
+        <td>Same-origin Form-Posts plus <code>SameSite=Lax</code>; Backend-Aufrufe nutzen Bearer, und per-run Cookies sind <code>SameSite=Strict</code>.</td>
+        <td><code>frontend/tests/test_csrf_matrix.py</code></td>
+      </tr>
+      <tr>
+        <td>Frontend Same-Origin API Proxy</td>
+        <td>Frontend <code>session</code>-Cookie nur für serverseitigen Bearer-Lookup</td>
+        <td><code>/api/v1/&lt;path&gt;</code> mit <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code></td>
+        <td>Upstream-Aufrufe senden <code>Authorization: Bearer ...</code> und kopieren keine inbound <code>Cookie</code>-Header.</td>
+        <td><code>frontend/tests/test_api_client.py</code></td>
+      </tr>
+      <tr>
+        <td>Administration Tool Same-Origin Proxy</td>
+        <td>Bearer-Header; Admin-Cookie bleibt am Admin-Origin</td>
+        <td><code>/_proxy/api/*</code> mit mutierenden Methoden</td>
+        <td>Proxy-Allowlist, genehmigte Header und Strippen von <code>Cookie</code>/<code>Set-Cookie</code>/<code>Host</code>.</td>
+        <td><code>administration-tool/tests/test_proxy_contract.py</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Zentrales Limit-Inventar</h2>
+  <p>Rate-Limits sind jetzt als gemeinsames Inventar sichtbar: API-Routen werden aus Flask-URL-Map, OpenAPI und Route-Decorators zusammengeführt; MCP-Tools erben die konservative JSON-RPC-Dispatch-Grenze aus ADR-0028.</p>
+  <dl class="info-stat-grid" aria-label="Security Rate-Limit-Inventar">
+    <div class="info-stat"><dt>API-Routen</dt><dd>{{ backend_limit_inventory.route_stats.routes }}</dd><p>Implementierte <code>/api/v1</code>-Endpoints im Explorer-Katalog.</p></div>
+    <div class="info-stat"><dt>Explizite Route-Limits</dt><dd>{{ backend_limit_inventory.route_stats.explicit }}</dd><p>Per <code>@limiter.limit</code> am Handler gefunden.</p></div>
+    <div class="info-stat"><dt>Default-Limits</dt><dd>{{ backend_limit_inventory.route_stats.default }}</dd><p>Fallen auf <code>RATELIMIT_DEFAULT</code> zurück.</p></div>
+    <div class="info-stat"><dt>MCP-Tools</dt><dd>{{ backend_limit_inventory.mcp_stats.tools }}</dd><p>Per MCP-Dispatch-Limiter geschützt.</p></div>
+  </dl>
+
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>HTTP Route-Layer</strong>
+      <p>Primärer Key ist JWT-Identity, sonst Remote-Adresse; einzelne Routen können einen eigenen <code>key_func</code> nutzen, zum Beispiel Passwort-Reset pro E-Mail.</p>
+    </article>
+    <article class="info-note">
+      <strong>MCP Dispatch-Layer</strong>
+      <p><code>{{ backend_limit_inventory.mcp_dispatch.limit }}</code> für JSON-RPC-Requests; Key ist {{ backend_limit_inventory.mcp_dispatch.key }}.</p>
+    </article>
+  </div>
+
+  <h3>Häufige API-Limits</h3>
+  <div class="info-pill-row" aria-label="Häufige API Rate-Limits">
+    {% for item in backend_limit_inventory.top_limits %}
+      <span class="info-pill"><strong>{{ item.limit }}</strong> {{ item.count }}</span>
+    {% endfor %}
+  </div>
+
+  <h3>Beispielrouten</h3>
+  {{ route_limit_table(backend_limit_inventory.route_examples, "Security Route-Limit-Beispiele") }}
+  <p class="muted">Vollständige Route-Liste: <a href="{{ url_for('info.api_explorer') }}">API Explorer</a>. Vollständige Tool-Liste: <a href="{{ url_for('info.mcp_integration') }}">MCP &amp; Tooling</a>.</p>
+</section>
+
+<section class="info-section">
+  <h2>Production-Tuning &amp; Telemetry</h2>
+  <p>Das Limit-Inventar ist die Karte: {{ backend_limit_inventory.production_tuning.routes }} API-Routen und {{ backend_limit_inventory.production_tuning.tools }} MCP-Tools sind sichtbar. Production-Tuning braucht zusätzlich echte 429-, MCP-Block- und Edge-Telemetry, bevor Grenzwerte verschärft oder gelockert werden.</p>
+
+  <dl class="info-stat-grid" aria-label="Rate-Limit Production-Tuning Status">
+    <div class="info-stat"><dt>Readiness</dt><dd>{{ backend_limit_inventory.production_tuning.status }}</dd><p>{{ backend_limit_inventory.production_tuning.status_label }}</p></div>
+    <div class="info-stat"><dt>Baseline</dt><dd>7 Tage</dd><p>Minimum für Production- oder Staging-Verkehr vor Quota-Änderungen.</p></div>
+    <div class="info-stat"><dt>Rollout</dt><dd>Shadow - Canary - Global</dd><p>Neue Limits erst beobachten, dann begrenzt ausrollen.</p></div>
+    <div class="info-stat"><dt>Privacy</dt><dd>hashed limiter key</dd><p>Keine raw Tokens, Cookies, IP-Adressen, E-Mails oder Request-Bodies.</p></div>
+  </dl>
+
+  <table class="doc-table" aria-label="Rate-Limit Telemetry Signals">
+    <thead><tr><th>Signal</th><th>Quelle</th><th>Warum es gebraucht wird</th><th>Datenschutz</th></tr></thead>
+    <tbody>
+      {% for signal in backend_limit_inventory.production_tuning.signals %}
+      <tr>
+        <td><code>{{ signal.metric }}</code></td>
+        <td>{{ signal.source }}</td>
+        <td>{{ signal.purpose }}</td>
+        <td>{{ signal.privacy }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Tuning-Ablauf</h3>
+  <ol class="info-flow">
+    {% for step in backend_limit_inventory.production_tuning.workflow %}
+    <li><div><strong>{{ step.step }}</strong><span>{{ step.description }}</span></div></li>
+    {% endfor %}
+  </ol>
+
+  <h3>Privacy-Regeln</h3>
+  <ul class="info-check-list">
+    {% for rule in backend_limit_inventory.production_tuning.privacy %}
+    <li>{{ rule }}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="info-section">
+  <h2>Umgesetzte Schutzmechanismen</h2>
+  <table class="doc-table" aria-label="Umgesetzte Security Features">
+    <thead><tr><th>Status</th><th>Mechanismus</th><th>Wo sichtbar</th><th>Warum es wichtig ist</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>JWT-Auth, Rollen und Accountstatus</td>
+        <td><code>backend/</code>, Admin-Proxies, API-Explorer auth_kind</td>
+        <td>API-Zugriffe werden an User, Rolle, Ban-/Aktivstatus und geschützte Endpunkte gebunden.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Interner Play-Service-Vertrag</td>
+        <td><code>PLAY_SERVICE_SHARED_SECRET</code>, <code>PLAY_SERVICE_INTERNAL_API_KEY</code>, Docker DNS</td>
+        <td>Backend und World-Engine kommunizieren containerintern; Browser nutzen nur Public-URLs und erhalten keine internen Keys.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Lokale Secret-Erzeugung</td>
+        <td><code>docker-up.py init-env</code>, <code>.env.example</code>, Compose env_file</td>
+        <td>Plattform-Secrets werden lokal erzeugt und erhalten; direkte Provider-Key-Slots werden in Compose nicht befüllt.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Governed Provider Routing</td>
+        <td>AI Runtime Governance, Secret-Store-Pfad, <code>OpenAIChatAdapter</code></td>
+        <td>Provider-Keys werden nicht aus Compose übernommen; Runtime-Adapter werden aus governed Provider-Konfiguration und Runtime-Credentials gebaut.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Langfuse Secret-Grenze</td>
+        <td>Backend-/Play-Service-Env, Observability Settings, Redaction</td>
+        <td><code>LANGFUSE_SECRET_KEY</code> bleibt serverseitig. Frontends dürfen Trace-IDs oder Links sehen, aber keine Secret Keys.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Security Header in Browser-Apps</td>
+        <td><code>frontend/app</code>, <code>administration-tool/tests/test_security_headers.py</code></td>
+        <td>CSP, X-Frame-Options und verwandte Header begrenzen Script-, Framing- und MIME-Risiken.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--ok">umgesetzt</span></td>
+        <td>Observability-Governance</td>
+        <td>ADR-0039/ADR-0041, Langfuse-Metadaten, MCP-Evidence-Regeln</td>
+        <td>Lokale Scores erklären Diagnose, sind als <code>local_only</code> sichtbar und ändern nicht Commit, Readiness oder Runtime-Wahrheit.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Teilweise umgesetzt oder kontextabhängig</h2>
+  <table class="doc-table" aria-label="Teilweise umgesetzte Security Features">
+    <thead><tr><th>Status</th><th>Thema</th><th>Aktueller Stand</th><th>Verbesserung</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">teilweise</span></td>
+        <td>CSRF</td>
+        <td>Admin- und Frontend-Session-Cookies nutzen SameSite; JSON-APIs arbeiten mit Bearer-Token und same-origin Proxies.</td>
+        <td>Die mutierenden Cookie-Flows sind in <code>docs/security/csrf-matrix.md</code> dokumentiert und über Backend-, Frontend- und Proxy-Regressionstests gepinnt.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">teilweise</span></td>
+        <td>Rate-Limiting</td>
+        <td>API- und Auth-Bereiche sind rate-limitfähig; MCP-ADR beschreibt konservative Grenzen. Das zentrale Inventar umfasst {{ backend_limit_inventory.route_stats.routes }} API-Routen und {{ backend_limit_inventory.mcp_stats.tools }} MCP-Tools.</td>
+        <td>Inventar ist in API Explorer, Auth-Seite und MCP-Seite sichtbar; Production-Tuning/Telemetry ist als nächster Härtungspfad mit Signalen, Baseline, Shadow-Tuning und Privacy-Regeln beschrieben.</td>
+      </tr>
+      <tr>
+        <td><span class="info-status-chip info-status-chip--partial">teilweise</span></td>
+        <td>Redis-Auth</td>
+        <td>Langfuse-Redis ist passwortgeschützt. App-Redis ist im lokalen Compose intern und ohne Host-Port. Der Production-Compose-Pfad hat nun eigene Passwörter, ACL-User, TLS und getrennte Instanzen.</td>
+        <td><code>python docker-up.py init-production-redis</code> und <code>python docker-up.py --production-redis up</code> verwenden <code>docker-compose.redis-production.yml</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Nicht als umgesetzt behaupten</h2>
+  <p>Diese Punkte sind wichtig, aber aus dem lokalen Repo nicht als vollständige Production-Schutzschicht ableitbar.</p>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>Kein Production-Secret-Manager im Repo</strong>
+      <p>Lokal ist <code>.env</code> richtig und praktisch; Production braucht einen dedizierten Secret-Store. Diese View bewertet die Repo-Fähigkeit, nicht die spätere Infrastruktur-Anbindung.</p>
+    </article>
+    <article class="info-note">
+      <strong>Keine WAF-/IDS-Schicht</strong>
+      <p>Docker Compose liefert keine Netzwerk-Abwehr für Internetbetrieb. Production braucht Gateway, WAF/IDS, TLS-Termination und verwaltete Logs.</p>
+    </article>
+    <article class="info-note">
+      <strong>Keine vollständige Datenverschlüsselung belegt</strong>
+      <p>Lokale SQLite-/Volume-Daten sind persistiert, aber nicht automatisch als at-rest verschlüsselt. Der neue Storage-Layer-Governance-Pfad dokumentiert Evidence in <code>storage_encryption_evidence</code>; der vollständige Gap-Plan steht in <code>docs/security/AT_REST_ENCRYPTION.md</code>.</p>
+    </article>
+    <article class="info-note">
+      <strong>Keine Production-Evidence aus lokalen Traces</strong>
+      <p>Langfuse local, MCP local und lokale Judge-Scores bleiben Diagnose. Die Metadaten markieren sie als <code>local_only</code>; sie sind kein Promotion-Beweis ohne passende Umgebung und Production-/Staging-Evidence.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Security-relevante Tests</h2>
+  <ul class="info-check-list">
+    <li><strong>Header, Sessions und CSRF-Matrix:</strong> Administration-Tool, Frontend und Backend prüfen CSP, X-Frame-Options, SameSite, Cookie-Proxy-Grenzen und mutierende Cookie-Flows.</li>
+    <li><strong>Proxy-Grenzen:</strong> Admin-Proxies prüfen Backend-Token-Weitergabe, Fehlerabbildung und keine direkte Browser-Secret-Exposition.</li>
+    <li><strong>ADR-0039 Gates:</strong> Pi/Π-Labels, Langfuse/MCP-Evidence und Capability-Matrix-Claims müssen echte Vertragsdaten prüfen.</li>
+    <li><strong>Langfuse Docker:</strong> lokale Compose-Konfiguration und fehlende Keys dürfen Runtime nicht crashen oder falsche Erfolgsscores erzeugen.</li>
+    <li><strong>Provider-Governance:</strong> Compose darf keine direkten Provider-Keys durchreichen; governed Adapter und Readiness prüfen Secret-Quelle und verfügbare Provider-Credentials.</li>
+    <li><strong>Lokale Judge-Scores:</strong> MCP-Verify übernimmt <code>local_only</code> aus Trace- oder Score-Metadaten und macht lokale Evidence explizit sichtbar.</li>
+    <li><strong>Info-Views:</strong> Diese Leseflächen bleiben öffentlich, erklären aber keine Secret-Werte und hosten keine Admin-Aktionen.</li>
+  </ul>
+</section>
+
+<section class="info-section">
+  <h2>Empfohlene nächste Verbesserungen</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Security-Inventar ausbauen.</strong><span>Rate-Limits sind maschinenlesbar; als nächstes Rollen, CSRF-Relevanz und Secret-Zugriff pro Route/Tool in denselben Katalog aufnehmen.</span></div>
+    </li>
+    <li>
+      <div><strong>Rate-Limit-Telemetry instrumentieren.</strong><span><code>rate_limit_hits_total</code>, Quota-Auslastung, Retry-After und Edge-Throttle-Events mit gehashten Keys sammeln, bevor Production-Limits angepasst werden.</span></div>
+    </li>
+    <li>
+      <div><strong>Production-Secret-Management definieren.</strong><span>Rotation, Zugriff, Audit und Deployment-Injektion außerhalb von Compose dokumentieren und testen, ohne <code>docker-up.py</code> als lokalen Bootstrap zu blockieren.</span></div>
+    </li>
+    <li>
+      <div><strong>At-rest Evidence-Pack schließen.</strong><span>Für Datenbank, Redis, Runtime Store, Langfuse-Volumes und Backups die konkrete Storage-Verschlüsselung inklusive KMS-/Key-Referenz und Restore-Test dokumentieren.</span></div>
+    </li>
+    <li>
+      <div><strong>Redis/Postgres/ClickHouse-Härtung trennen.</strong><span>Redis hat jetzt einen automatisierten Production-Compose-Pfad; Postgres, ClickHouse, Backups und Managed-Service-KMS brauchen dieselbe Nachweisschärfe.</span></div>
+    </li>
+    <li>
+      <div><strong>Evaluator-Registry operationalisieren.</strong><span>Judge-Prompts, Provider, Score-Namen und Evidence-Scope versionieren, damit Production-Evidence und lokale Diagnose dauerhaft getrennt auswertbar bleiben.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li><a href="{{ url_for('info.project_management') }}">Projektmanagement</a> — Testsuite, ADR Runtime Store und Docker-up-Ablauf.</li>
+    <li><a href="{{ url_for('info.auth_security') }}">Auth</a> — JWT, Cookies, CORS und API-/Browser-Grenzen.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — Langfuse, Judges und lokale Evidence.</li>
+    <li><a href="{{ url_for('info.mcp_integration') }}">MCP</a> — Tooling- und Operator-Sicherheitsgrenzen.</li>
+  </ul>
+</section>
+{% endblock %}

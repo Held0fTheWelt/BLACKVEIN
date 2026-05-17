@@ -18,6 +18,7 @@ from ai_stack.symbolic_object_resonance_contracts import (
 )
 from tools.mcp_server.tools_registry import create_default_registry
 from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+    _extract_scores_split,
     _runtime_aspect_recommended_repair,
     _runtime_aspect_matrix_row,
 )
@@ -44,6 +45,33 @@ def test_langfuse_verify_tools_registered():
     assert registry.get("wos.evaluators.catalog") is not None
     assert registry.get("wos.evaluators.get") is not None
     assert registry.get("wos.evaluators.langfuse_sync_preview") is not None
+
+
+def test_judge_scores_inherit_local_only_trace_metadata() -> None:
+    _det, judge = _extract_scores_split(
+        {
+            "metadata": {
+                "evidence_scope": "local_langfuse",
+                "proof_level": "local_only",
+                "local_only": True,
+                "live_or_staging_evidence": False,
+            },
+            "scores": [
+                {
+                    "name": "opening_experience_judge",
+                    "value": 1.0,
+                    "comment": "looks good",
+                    "metadata": {"category": "strong_opening"},
+                }
+            ],
+        }
+    )
+
+    entry = judge["opening_experience_judge"]
+    assert entry["local_only"] is True
+    assert entry["proof_level"] == "local_only"
+    assert entry["evidence_scope"] == "local_langfuse"
+    assert entry["live_or_staging_evidence"] is False
 
 
 def test_runtime_aspect_matrix_recommends_improvisational_repair():

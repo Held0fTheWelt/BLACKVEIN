@@ -1,4 +1,4 @@
-# API Reference — World of Shadows Backend
+# API Reference — Better Tomorrow Backend
 
 > **Projection governance**
 > contractify-projection:
@@ -7,7 +7,7 @@
 >   projection_weight: low
 >   note: Human-readable examples remain subordinate to generated OpenAPI and validated route code.
 
-Complete reference for all REST API endpoints in the World of Shadows backend. For authentication details, see `docs/security.md`.
+Complete reference for all REST API endpoints in the Better Tomorrow backend. World of Shadows remains the subtitle/world context. For authentication details, see `docs/security.md`.
 
 ---
 
@@ -39,8 +39,9 @@ Response format:
 ```
 
 ### Rate Limiting
-- Default: 100 requests per minute
-- Specific endpoints: 60 per minute (public reads), 30 per minute (writes)
+- Current route/tool inventory: see [`docs/security/rate-limit-inventory.md`](../security/rate-limit-inventory.md) and `/backend/api-explorer`.
+- HTTP route entries expose structured `rate_limit` metadata including limit, source, keying scope, and parsed window fields where available.
+- The API fallback policy is `100 per minute`; route decorators and admin-sensitive policy wrappers may provide more specific limits.
 - Headers in response:
   - `RateLimit-Limit`: Maximum requests
   - `RateLimit-Remaining`: Requests remaining
@@ -1410,13 +1411,9 @@ Import **`postman/WorldOfShadows_Complete_OpenAPI.postman_collection.json`** (or
 
 ## Rate Limiting
 
-All endpoints are rate-limited by default:
+All API routes are covered by Flask-Limiter defaults or route-specific decorators. The canonical inventory is generated from the backend route map and exposed through `/backend/api-explorer`, `/backend/api`, `/backend/auth`, and `/backend/security-features`.
 
-| Endpoint Type | Limit |
-|---------------|-------|
-| Public read (GET) | 60 per minute |
-| Authenticated read (GET) | 100 per minute |
-| Write operations (POST/PUT/DELETE) | 30 per minute |
+For the shared route/tool model, see [`docs/security/rate-limit-inventory.md`](../security/rate-limit-inventory.md). MCP tool limits are documented there as dispatch-level JSON-RPC limits and mirrored through MCP `tools/list`.
 
 Rate limit info available in response headers:
 - `RateLimit-Limit`

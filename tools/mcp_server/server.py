@@ -22,6 +22,11 @@ from ai_stack.mcp_canonical_surface import (
     resolve_active_mcp_suite_filter,
     resolve_mcp_operating_profile,
 )
+from ai_stack.limit_inventory import (
+    MCP_RATE_LIMIT_LABEL,
+    MCP_RATE_LIMIT_MAX_CALLS,
+    MCP_RATE_LIMIT_WINDOW_SECONDS,
+)
 
 from .backend_client import BackendClient
 from .config import Config
@@ -63,7 +68,10 @@ class McpServer:
             fs=self._fs,
         )
         self._resource_reader = McpResourceReader(self._backend, self._fs)
-        self.rate_limiter = RateLimiter(max_calls=30, window_seconds=60)
+        self.rate_limiter = RateLimiter(
+            max_calls=MCP_RATE_LIMIT_MAX_CALLS,
+            window_seconds=MCP_RATE_LIMIT_WINDOW_SECONDS,
+        )
         self._rate_limit_client_id = self._build_rate_limit_client_id()
 
     def _build_rate_limit_client_id(self) -> str:
@@ -215,7 +223,7 @@ class McpServer:
 
         try:
             if not self.rate_limiter.is_allowed(self._rate_limit_client_id):
-                raise RateLimitedError("Rate limit exceeded (30 calls/min)")
+                raise RateLimitedError(f"Rate limit exceeded ({MCP_RATE_LIMIT_LABEL})")
             result = route_mcp_method(self, method, params, trace_id)
             duration_ms = (time.time() - start) * 1000
             log_response(trace_id, method, "success", duration_ms)

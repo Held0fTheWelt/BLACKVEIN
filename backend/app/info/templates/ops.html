@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "info_sections.html" import docs_deep_link %}
+{% from "info_sections.html" import docs_deep_link with context %}
 {% block title %}Operations{% endblock %}
 {% block heading %}Betrieb &amp; Gesundheit{% endblock %}
 {% block subheading %}Health-Checks, Umgebung, Diagnose — und wie du Incidents eingrenzt.{% endblock %}
@@ -9,17 +9,30 @@
   <p>Der Dienst exponiert <strong>leichte Health-Endpunkte</strong> für Load-Balancer und Monitoring, nutzt strukturierte Logs mit optionaler <strong>Trace-ID</strong> (<code>X-WoS-Trace-Id</code>) und wird über Umgebungsvariablen an Compose/Bare-Metal angepasst. Admin-JSON zu Metriken, Logs und Systemdiagnose ergänzt das für Betreiber.</p>
 </section>
 <section class="info-section">
+  <h2>Schnelle Lageeinschätzung</h2>
+  <table class="doc-table" aria-label="Operations-Checks">
+    <thead><tr><th>Check</th><th>Gut erkennbar an</th><th>Wenn es fehlschlägt</th></tr></thead>
+    <tbody>
+      <tr><td>Backend lebt</td><td><code>GET /health</code> liefert <code>{"status":"ok"}</code>.</td><td>Prozess, Port-Mapping und Container-Logs prüfen.</td></tr>
+      <tr><td>API ist erreichbar</td><td><code>GET /api/v1/health</code> antwortet als v1-JSON.</td><td>Rate-Limits, Blueprint-Registrierung und Reverse Proxy prüfen.</td></tr>
+      <tr><td>OpenAPI aktuell</td><td><code>/backend/openapi.yaml</code> und Explorer laden denselben Katalog.</td><td>Drift-Test und Spec-Generierung prüfen.</td></tr>
+      <tr><td>Play-Service gebunden</td><td><code>PLAY_SERVICE_INTERNAL_URL</code> zeigt auf einen Docker-Service oder lokalen Host.</td><td>Keine Session starten, bevor interne URL und API-Key stimmen.</td></tr>
+      <tr><td>Observability lokal</td><td>Traces sind mit <code>proof_level=local_only</code> markiert.</td><td>Nicht als Production-/Staging-Beweis werten; Langfuse separat prüfen.</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="info-section">
   <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
     <li><strong>DevOps / SRE</strong> — Health prüfen, Ports und Compose aus dem Runbook ableiten.</li>
     <li><strong>Support</strong> — Trace-Header aus API-Antworten mitgeben, um Logs zu korrelieren.</li>
-    <li><strong>Platform-Admins</strong> — MCP-Aktivität, Analytics und Systemdiagnose über die dokumentierten Admin-Routen.</li>
+    <li><strong>Platform-Admins</strong> — MCP-Aktivität, Analytics und Systemdiagnose über die dokumentierten Admin-Routen und das <a href="{{ url_for('info.mcp_integration') }}">MCP-Cockpit</a>.</li>
   </ul>
 </section>
 <section class="info-section">
   <h2>Möglich / nicht möglich</h2>
   <ul>
-    <li><strong>Möglich:</strong> <code>GET /health</code> und <code>GET /api/v1/health</code>; Diagnose- und MCP-Übersichten über Tags <a href="{{ url_for('info.api_explorer') }}#tag/System">System</a>, <a href="{{ url_for('info.api_explorer') }}#tag/MCP">MCP</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Analytics">Analytics</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Admin">Admin</a>.</li>
+    <li><strong>Möglich:</strong> <code>GET /health</code> und <code>GET /api/v1/health</code>; Diagnose- und MCP-Übersichten über Tags <a href="{{ url_for('info.api_explorer') }}#tag/System">System</a>, <a href="{{ url_for('info.api_explorer') }}#tag/MCP">MCP</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Analytics">Analytics</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Admin">Admin</a> sowie die eigene <a href="{{ url_for('info.mcp_integration') }}">MCP-Infoseite</a>.</li>
     <li><strong>Nicht Ziel:</strong> Diese Seite ersetzt kein vollständiges APM-Produkt; sie verweist auf Runbooks und Admin-APIs.</li>
   </ul>
 </section>
@@ -34,10 +47,42 @@
   <h2>Umgebung &amp; Compose</h2>
   <p>Docker Compose mappt Backend-Ports oft anders als lokales Flask; Frontends setzen <code>BACKEND_API_URL</code> passend. Siehe <span class="path">docs/operations/RUNBOOK.md</span> und Root-<span class="path">README.md</span>.</p>
   <p>Variablen-Übersicht: <span class="path">backend/.env.example</span> — u.&nbsp;a. Datenbank, JWT-Secrets, <code>FRONTEND_URL</code>, CORS, Play-Service.</p>
+  <dl class="info-key-value">
+    <dt>Frontend</dt>
+    <dd><code>{{ frontend_url or "FRONTEND_URL nicht gesetzt" }}</code></dd>
+    <dt>Administration</dt>
+    <dd><code>{{ admin_tool_url or "ADMINISTRATION_TOOL_URL nicht gesetzt" }}</code></dd>
+    <dt>Play-Service öffentlich</dt>
+    <dd><code>{{ play_service_public_url or "PLAY_SERVICE_PUBLIC_URL nicht gesetzt" }}</code></dd>
+    <dt>Play-Service intern</dt>
+    <dd><code>{{ play_service_internal_url or "PLAY_SERVICE_INTERNAL_URL nicht gesetzt" }}</code></dd>
+  </dl>
+</section>
+<section class="info-section">
+  <h2>Incident-Lesepfad</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Erreichbarkeit zuerst.</strong><span><code>/health</code>, Container-Status und Port-Mapping sagen, ob Flask überhaupt antwortet.</span></div>
+    </li>
+    <li>
+      <div><strong>Dann API-Kontext.</strong><span><code>/api/v1/health</code>, OpenAPI und Explorer zeigen, ob die versionierte API geladen ist.</span></div>
+    </li>
+    <li>
+      <div><strong>Dann Runtime-Abhängigkeiten.</strong><span>Datenbank, Redis, Play-Service, Langfuse und Provider-Keys getrennt prüfen; ein Observability-Ausfall darf die Runtime nicht als fachlichen Fehler markieren.</span></div>
+    </li>
+    <li>
+      <div><strong>Zum Schluss Evidence bewerten.</strong><span>Lokale Traces helfen beim Debugging. Für ADR-0041 zählen sie nur als lokale Evidence, solange Umgebung und Policy das nicht anders bestätigen.</span></div>
+    </li>
+  </ol>
 </section>
 <section class="info-section">
   <h2>Direkt zu Details</h2>
   <ul>
+    <li><a href="{{ url_for('info.runtime_path') }}">Runtime-Pfad</a> — Start- und Turn-Diagnose.</li>
+    <li><a href="{{ url_for('info.runtime_algorithms') }}">Session- und Turn-Algorithmen</a> — Ablaufdiagramme für Start/Resume und Player-Turns.</li>
+    <li><a href="{{ url_for('info.data_model') }}">Datenmodell &amp; Relationen</a> — Tabellen, Bindungen und Runtime-Grenzen.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — Langfuse, lokale Evidence und Judge-Scores.</li>
+    <li><a href="{{ url_for('info.mcp_integration') }}">MCP &amp; Tooling</a> — MCP-Server, Admin-Cockpit und Evidence-Grenzen.</li>
     <li>{{ docs_deep_link("Admin — Services &amp; health", "/admin/services-and-health-checks/") }}</li>
     <li>{{ docs_deep_link("Admin — Operations runbook", "/admin/operations-runbook/") }}</li>
     <li><a href="{{ url_for('info.api_explorer') }}#tag/System">OpenAPI — System</a></li>

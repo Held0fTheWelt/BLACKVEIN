@@ -590,9 +590,26 @@ def create_story_session(
     )
     if not isinstance(payload, dict) or "session_id" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session payload.")
+    opening_turn = payload.get("opening_turn") if isinstance(payload.get("opening_turn"), dict) else None
+    if not isinstance(opening_turn, dict):
+        raise GameServiceError(
+            "World-Engine story session is missing canonical opening evidence.",
+            status_code=502,
+            code="missing_canonical_opening_evidence",
+            payload={"missing": ["opening_turn"]},
+        )
+    try:
+        _validate_story_turn_canonical_evidence(opening_turn)
+    except GameServiceError as exc:
+        raise GameServiceError(
+            "World-Engine opening turn is missing canonical evidence.",
+            status_code=exc.status_code,
+            code="missing_canonical_opening_evidence",
+            payload=exc.payload,
+        ) from exc
     _ingest_runtime_turn_cost(
         session_id=str(payload["session_id"]),
-        turn_payload=payload.get("opening_turn") if isinstance(payload.get("opening_turn"), dict) else {},
+        turn_payload=opening_turn,
         runtime_projection=runtime_projection,
     )
     return payload

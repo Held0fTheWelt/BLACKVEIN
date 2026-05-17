@@ -1,7 +1,7 @@
 [project]
 name = "world-of-shadows-frontend"
 version = "1.0.0"
-description = "Frontend application for World of Shadows game platform"
+description = "Frontend application for Better Tomorrow game platform"
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0.6,<4",

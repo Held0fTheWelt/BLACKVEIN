@@ -1,5 +1,5 @@
 /**
- * World of Shadows – news list and detail
+ * Better Tomorrow – news list and detail
  * Uses FrontendConfig.getApiBaseUrl() and FrontendConfig.apiFetch() (main.js) for backend API.
  * List: GET /api/v1/news?q=&sort=&direction=&page=&limit=&category= → { items, total, page, per_page }.
  * Detail: GET /api/v1/news/<id> → single article object.
@@ -235,7 +235,7 @@
             if (loading) loading.hidden = true;
             if (errEl) errEl.hidden = true;
             if (!content) return;
-            document.title = (article.title || 'News') + ' – World of Shadows';
+            document.title = (article.title || 'News') + ' – Better Tomorrow';
             var title = document.createElement('h1');
             title.textContent = article.title || 'Untitled';
             var meta = document.createElement('p');

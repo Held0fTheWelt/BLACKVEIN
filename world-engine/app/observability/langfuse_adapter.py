@@ -14,6 +14,7 @@ from typing import Any, Iterator, Optional
 
 from story_runtime_core.langfuse_tracing_environment import (
     local_langfuse_evidence_metadata,
+    resolve_runtime_langfuse_base_url,
     resolve_langfuse_environment,
 )
 from story_runtime_core.observability_tree_policy import (
@@ -380,7 +381,9 @@ class LangfuseAdapter:
 
         public_key = str(credentials.get("public_key") or "").strip()
         secret_key = str(credentials.get("secret_key") or "").strip()
-        base_url = str(credentials.get("base_url") or "https://cloud.langfuse.com").strip()
+        base_url, base_url_source = resolve_runtime_langfuse_base_url(
+            str(credentials.get("base_url") or "https://cloud.langfuse.com").strip()
+        )
         environment = credentials.get("environment") or os.getenv("LANGFUSE_ENVIRONMENT", "development")
         release = credentials.get("release") or os.getenv("LANGFUSE_RELEASE", "unknown")
         sample_rate = self._coerce_sample_rate(credentials.get("sample_rate"))
@@ -413,7 +416,8 @@ class LangfuseAdapter:
 
         if not was_ready or client_config_changed or tree_config_changed:
             logger.info(
-                "[LANGFUSE] Credentials loaded/refreshed; environment=%r, trees=%s",
+                "[LANGFUSE] Credentials loaded/refreshed; base_url_source=%s, environment=%r, trees=%s",
+                base_url_source,
                 str(self._config.environment),
                 ",".join(self._enabled_observation_trees),
             )
@@ -796,7 +800,9 @@ class LangfuseAdapter:
                     comment=comment,
                     metadata={
                         "score_origin": "adr0041_runtime_intelligence",
+                        "evidence_scope": "local_langfuse",
                         "proof_level": "local_only",
+                        "local_only": True,
                         "live_or_staging_evidence": False,
                     },
                 )
@@ -1395,7 +1401,13 @@ class LangfuseAdapter:
             logger.error("[LANGFUSE] Langfuse ScoreDataType import failed: %s", e, exc_info=True)
             return
         try:
-            score_metadata = self._metadata_with_active_session(metadata)
+            score_metadata = self._metadata_with_active_session(
+                self._with_observation_policy_metadata(
+                    metadata,
+                    observation_name=name,
+                    as_type="score",
+                )
+            )
             safe_score_metadata = _langfuse_sanitize_value(
                 score_metadata,
                 max_str=4000,

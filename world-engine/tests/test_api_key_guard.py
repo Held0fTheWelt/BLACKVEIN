@@ -54,11 +54,23 @@ class TestApiKeyGuardFunction:
     @pytest.mark.unit
     @pytest.mark.security
     def test_guard_allows_any_key_when_not_configured(self):
-        """When PLAY_SERVICE_INTERNAL_API_KEY not set, any key allowed (no enforcement)."""
+        """Explicit test mode remains lenient when PLAY_SERVICE_INTERNAL_API_KEY is absent."""
         with patch("app.api.http.PLAY_SERVICE_INTERNAL_API_KEY", None):
             # Should not raise even with wrong key or no key
             _require_internal_api_key(x_play_service_key="any-key")
             _require_internal_api_key(x_play_service_key=None)
+
+    @pytest.mark.unit
+    @pytest.mark.security
+    def test_guard_rejects_missing_config_outside_test_mode(self, monkeypatch):
+        """Non-test runtimes fail closed when the internal API key is not configured."""
+        monkeypatch.setenv("FLASK_ENV", "production")
+        monkeypatch.delenv("ENV", raising=False)
+        with patch("app.api.http.PLAY_SERVICE_INTERNAL_API_KEY", None):
+            with pytest.raises(HTTPException) as exc_info:
+                _require_internal_api_key(x_play_service_key=None)
+        assert exc_info.value.status_code == 503
+        assert "PLAY_SERVICE_INTERNAL_API_KEY is not configured" in exc_info.value.detail
 
     @pytest.mark.unit
     @pytest.mark.security

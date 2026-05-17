@@ -12,6 +12,8 @@ WorldOfShadows.code-workspace
 instance/
 instance/*.db
 .env
+.env.production
+.env.production.*
 frontend/node_modules/
 
 __pycache__/
@@ -40,6 +42,7 @@ Task.md
 backend/var/improvement/
 backend/var/writers_room/
 .wos/
+.docker/redis-production/
 .coverage.*
 # MkDocs static site output (see mkdocs.yml site_dir)
 /site/

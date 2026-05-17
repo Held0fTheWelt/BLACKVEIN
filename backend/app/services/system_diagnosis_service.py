@@ -333,6 +333,50 @@ def _check_ai_stack_readiness(trace_id: str) -> dict[str, Any]:
         }
 
 
+def _check_storage_layer_encryption() -> dict[str, Any]:
+    t0 = time.perf_counter()
+    try:
+        from app.services.security_governance_service import get_security_governance
+
+        governance = get_security_governance().get("storage_encryption_governance", {})
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        posture = governance.get("status")
+        coverage = governance.get("coverage") if isinstance(governance, dict) else {}
+        failed = int((coverage or {}).get("failed_required_check_count") or 0)
+        if posture == "ready":
+            message = "Storage-layer encryption evidence pack is complete"
+            status = "running"
+        elif posture == "local_allowed":
+            message = "Storage-layer encryption evidence is disabled for local-only operation"
+            status = "initialized"
+        else:
+            message = f"Storage-layer encryption evidence needs attention ({failed} required check(s) failing)"
+            status = "initialized"
+        return {
+            "id": "storage_layer_encryption",
+            "label": "Storage-layer encryption evidence",
+            "status": status,
+            "message": message,
+            "latency_ms": latency_ms,
+            "timed_out": False,
+            "critical": False,
+            "source": "/api/v1/admin/security/governance storage_encryption_governance",
+            "details": governance,
+        }
+    except Exception as exc:
+        return {
+            "id": "storage_layer_encryption",
+            "label": "Storage-layer encryption evidence",
+            "status": "fail",
+            "message": str(exc),
+            "latency_ms": int((time.perf_counter() - t0) * 1000),
+            "timed_out": False,
+            "critical": False,
+            "source": "/api/v1/admin/security/governance storage_encryption_governance",
+            "details": {"error": str(exc)},
+        }
+
+
 def _run_with_timeout(fn, timeout_s: float):
     with ThreadPoolExecutor(max_workers=1) as ex:
         fut = ex.submit(fn)
@@ -467,18 +511,20 @@ def _build_diagnosis(app, self_base_url: str, trace_id: str) -> dict[str, Any]:
         play_internal_base = _internal_base_url_from_config(cfg_snapshot)
         play_hdrs = _play_internal_headers_from_config(cfg_snapshot)
 
-    with ThreadPoolExecutor(max_workers=6) as pool:
+    with ThreadPoolExecutor(max_workers=7) as pool:
         f_backend = pool.submit(_backend)
         f_db = pool.submit(_check_database_bounded, app)
         f_cfg = pool.submit(_run_with_app_ctx, app, _check_play_service_configuration)
         f_pub = pool.submit(_check_published_feed_bounded, app)
         f_ai = pool.submit(_check_ai_stack_readiness_bounded, app, trace_id)
+        f_storage = pool.submit(_run_with_app_ctx, app, _check_storage_layer_encryption)
 
         backend = f_backend.result()
         database = f_db.result()
         play_cfg = f_cfg.result()
         published = f_pub.result()
         ai = f_ai.result()
+        storage = f_storage.result()
 
         if play_cfg["status"] != "running":
             play_health = _prereq_skip_play_runtime("Skipped: play-service configuration incomplete")
@@ -516,6 +562,7 @@ def _build_diagnosis(app, self_base_url: str, trace_id: str) -> dict[str, Any]:
         play_ready,
         published,
         ai,
+        storage,
     ]
     overall = _resolve_overall(checks_order)
     summary = _summary_counts(checks_order)
@@ -540,6 +587,11 @@ def _build_diagnosis(app, self_base_url: str, trace_id: str) -> dict[str, Any]:
             "id": "ai_governance",
             "label": "AI and governance",
             "checks": [ai],
+        },
+        {
+            "id": "security_governance",
+            "label": "Security governance",
+            "checks": [storage],
         },
     ]
 

@@ -12,6 +12,7 @@ from app.services.system_diagnosis_service import (
     _check_play_service_configuration,
     _check_published_feed,
     _check_ai_stack_readiness,
+    _check_storage_layer_encryption,
     _run_with_timeout,
     _check_ai_stack_readiness_bounded,
     _check_published_feed_bounded,
@@ -379,6 +380,26 @@ class TestSummaryCounts:
         """Test counting empty checks."""
         result = _summary_counts([])
         assert result == {"running": 0, "initialized": 0, "fail": 0}
+
+
+class TestStorageLayerEncryptionCheck:
+    """Tests for storage-layer encryption diagnosis."""
+
+    def test_check_storage_layer_encryption_ready(self):
+        """Test ready storage-layer governance maps to running diagnosis."""
+        with patch("app.services.security_governance_service.get_security_governance") as mock_governance:
+            mock_governance.return_value = {
+                "storage_encryption_governance": {
+                    "status": "ready",
+                    "coverage": {"failed_required_check_count": 0},
+                }
+            }
+
+            result = _check_storage_layer_encryption()
+
+            assert result["id"] == "storage_layer_encryption"
+            assert result["status"] == "running"
+            assert result["critical"] is False
 
 
 class TestBuildDiagnosis:

@@ -1,9 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Game Menu{% endblock %}
+{% block title %}Game Menu — Better Tomorrow{% endblock %}
+{% block body_class %}wos-shell game-shell{% endblock %}
+{% block topbar_title %}Game · Launch{% endblock %}
+
+{% block page_header %}
+<header class="page-shell-header">
+  <p class="page-eyebrow">// PLAY</p>
+  <h1 class="page-title">Step into the <span class="page-title-accent">story</span></h1>
+  <p class="page-lead">The game launcher is hosted by the dedicated play frontend. Open the launcher to choose a scenario, role and language.</p>
+</header>
+{% endblock %}
+
 {% block content %}
 <section class="panel">
   <h1>Game Menu</h1>
-  <p>The game launcher is now hosted by the dedicated frontend service.</p>
-  <p><a href="{{ url_for('frontend.play_start') }}">Open play launcher</a></p>
+  <p>The game launcher is now hosted by the dedicated frontend service. Pick a template, set the language, and the runtime opens the first beat.</p>
+  <a href="{{ url_for('frontend.play_start') }}" class="launch-cta">Open play launcher</a>
 </section>
 {% endblock %}

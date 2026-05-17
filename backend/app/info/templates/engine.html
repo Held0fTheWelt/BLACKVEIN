@@ -1,12 +1,22 @@
 {% extends "base.html" %}
-{% from "info_sections.html" import docs_deep_link %}
+{% from "info_sections.html" import docs_deep_link with context %}
 {% block title %}Engine integration{% endblock %}
 {% block heading %}World Engine (Play-Service){% endblock %}
-{% block subheading %}Wie dieses Backend Tickets und Runs mit dem <strong>world-engine</strong>-Dienst verbindet — ohne selbst Live-Laufzeit zu sein.{% endblock %}
+{% block subheading %}Wie dieses Backend Tickets und Runs mit dem <strong>world-engine</strong>-Dienst verbindet — ohne selbst Production-Runtime zu sein.{% endblock %}
 {% block body %}
 <section class="info-section">
   <h2>Kernfunktionalität</h2>
   <p>Das Backend löst <strong>Identität, Berechtigung und Content</strong> auf und stellt dem Client <strong>Play-Tickets</strong> sowie HTTP-Metadaten für den Anschluss an den Play-Service bereit. <strong>Autoritative Lobby-, Run- und WebSocket-Zustände</strong> liegen im separaten <code>world-engine/</code>-Prozess.</p>
+</section>
+<section class="info-section">
+  <h2>Aktuelle Service-Adressen</h2>
+  <dl class="info-key-value">
+    <dt>Interner Backend-Aufruf</dt>
+    <dd><code>{{ play_service_internal_url or "PLAY_SERVICE_INTERNAL_URL nicht gesetzt" }}</code></dd>
+    <dt>Öffentliche Client-Adresse</dt>
+    <dd><code>{{ play_service_public_url or "PLAY_SERVICE_PUBLIC_URL nicht gesetzt" }}</code></dd>
+  </dl>
+  <p class="muted">Im Docker-Netz nutzt das Backend Servicenamen wie <code>world-engine</code>, nicht <code>localhost</code>. Browser-Clients erhalten dagegen eine host-seitige URL.</p>
 </section>
 <section class="info-section">
   <h2>Für wen / Nutzungsszenarien</h2>
@@ -26,16 +36,42 @@
 </section>
 <section class="info-section">
   <h2>Ablauf (kurz)</h2>
-  <ol>
-    <li>Client authentifiziert sich am Backend (JWT).</li>
-    <li>Backend prüft Join-Context (Account, Charakter, Rolle) und spricht den Play-Service über interne URLs/Secrets.</li>
-    <li>Client erhält <strong>Ticket</strong> + Basis-URL für WebSocket; Live-Updates kommen vom Engine.</li>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Client authentifiziert sich am Backend.</strong><span>Der Browser oder ein Tool sendet JWT gegen <code>/api/v1/game/*</code>. Ohne gültigen Kontext bleibt der Lauf vor dem Engine-Aufruf stehen.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend prüft Join-Context und Content.</strong><span>Account, Charakter, Rolle, veröffentlichter Spielinhalt und Policy werden im Backend validiert.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend spricht den Play-Service intern an.</strong><span>Der HTTP-Client verwendet <code>PLAY_SERVICE_INTERNAL_URL</code> und interne Service-Keys; diese Werte gehören nicht in Frontend-Bundles.</span></div>
+    </li>
+    <li>
+      <div><strong>World-engine führt den Production-Run aus.</strong><span>Run-State, WebSocket-Ereignisse, Commit und Readiness bleiben im Engine-/Runtime-Pfad autoritativ.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend gibt Ticket und Verbindungsdaten zurück.</strong><span>Der Client verbindet sich anschließend direkt mit dem Play-Service; Backend-Traces sind Diagnose, kein zweiter Production-State.</span></div>
+    </li>
   </ol>
   <p>Architekturvertiefung: {{ docs_deep_link("Runtime &amp; Authority (Dev)", "/dev/architecture/runtime-authority-and-session-lifecycle/") }} und <span class="path">docs/technical/architecture/backend-runtime-classification.md</span> im Clone.</p>
 </section>
 <section class="info-section">
+  <h2>Diagnose und Evidence</h2>
+  <div class="info-callout-warning">
+    <strong>Lokale Langfuse-Traces sind nur lokale Diagnose.</strong>
+    <p>Sie dürfen Session-, Turn- und RAG-Metadaten zeigen, aber sie beweisen keine Production- oder Staging-Readiness. Scores aus Observability dürfen <code>validation_outcome</code>, Commit oder Readiness nicht verändern.</p>
+  </div>
+  <ul class="info-check-list">
+    <li><strong>Gesund:</strong> Engine antwortet, Ticket wird ausgegeben, Trace ist als <code>local_only</code> markiert.</li>
+    <li><strong>Degraded:</strong> Observability oder Judge fehlt; Runtime läuft weiter, aber die Diagnose ist unvollständig.</li>
+    <li><strong>Fallback:</strong> Template- oder Mock-Fallbacks sind sichtbar zu markieren und zählen nicht als gesunde Runtime-Evidence.</li>
+  </ul>
+</section>
+<section class="info-section">
   <h2>Direkt zu Details</h2>
   <ul>
+    <li><a href="{{ url_for('info.runtime_path') }}">Runtime-Pfad</a> — Session, Turn, Runtime-Qualität und Commit-/Readiness-Grenzen.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — lokale Langfuse-Traces, Judges und Governance-Regeln.</li>
     <li>{{ docs_deep_link("API-Referenz (Game &amp; Tickets)", "/api/REFERENCE/") }}</li>
     <li><a href="{{ url_for('info.api_explorer') }}#tag/GameBootstrap">OpenAPI — GameBootstrap</a> · <a href="{{ url_for('info.api_explorer') }}#tag/GameAdmin">GameAdmin</a></li>
   </ul>

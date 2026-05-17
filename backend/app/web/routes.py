@@ -7,7 +7,7 @@ frontend service for legacy paths (``/login``, ``/play``, …).
 """
 from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify, redirect, request, session, url_for
+from flask import Blueprint, current_app, jsonify, redirect, request, send_from_directory, session, url_for
 
 from app.services import log_activity
 
@@ -34,6 +34,11 @@ def _compat_redirect(path: str, *, fallback_status: int = 410):
 @web_bp.route("/health")
 def health():
     return {"status": "ok"}, 200
+
+
+@web_bp.route("/favicon.ico")
+def favicon():
+    return send_from_directory(current_app.static_folder, "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 
 @web_bp.route("/")

@@ -194,6 +194,7 @@ def _extract_scores_split(
     """
     det: dict[str, Any] = {}
     judge: dict[str, Any] = {}
+    trace_metadata = _extract_metadata(raw_trace)
     score_rows = raw_trace.get("scores")
     if not isinstance(score_rows, list):
         return det, judge
@@ -209,7 +210,25 @@ def _extract_scores_split(
                 continue
             comment = str(row.get("comment") or "").strip()
             category = _extract_judge_category_from_row(row)
-            judge[name] = {"value": value, "category": category, "reasoning": comment or None}
+            row_metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+            score_metadata = {**trace_metadata, **row_metadata}
+            proof_level = str(score_metadata.get("proof_level") or "").strip() or None
+            evidence_scope = str(score_metadata.get("evidence_scope") or "").strip() or None
+            local_only = bool(score_metadata.get("local_only")) or proof_level == "local_only" or evidence_scope == "local_langfuse"
+            live_or_staging = score_metadata.get("live_or_staging_evidence")
+            entry = {
+                "value": value,
+                "category": category,
+                "reasoning": comment or None,
+                "local_only": local_only,
+            }
+            if proof_level:
+                entry["proof_level"] = proof_level
+            if evidence_scope:
+                entry["evidence_scope"] = evidence_scope
+            if live_or_staging is not None:
+                entry["live_or_staging_evidence"] = bool(live_or_staging)
+            judge[name] = entry
         else:
             if name in det:
                 continue

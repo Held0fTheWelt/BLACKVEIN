@@ -23,6 +23,7 @@ from ai_stack.mcp_canonical_surface import (
     McpSuite,
     descriptor_to_public_metadata,
 )
+from ai_stack.limit_inventory import mcp_tool_rate_limit_metadata
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.config import Config
 from tools.mcp_server.fs_tools import FileSystemTools
@@ -81,6 +82,7 @@ class ToolDefinition:
             "governance": meta["governance"],
             "narrative_mutation_risk": meta["narrative_mutation_risk"],
             "mcp_suite": meta["mcp_suite"],
+            "rate_limit": mcp_tool_rate_limit_metadata(self.name),
         }
 
 

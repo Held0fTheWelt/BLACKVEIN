@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Session- und Turn-Algorithmen{% endblock %}
+{% block heading %}Session- &amp; Turn-Algorithmen{% endblock %}
+{% block subheading %}Was beim Start einer Story-Session und bei jedem Player-Turn passiert — als Ablauf, nicht als Code-Dump.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Warum diese Algorithmen wichtig sind</h2>
+  <p>Die Player-UI wirkt wie ein einziger Flow. Intern laufen aber mehrere Verträge zusammen: Auth im Backend, Save-Slot-Bindung in der Datenbank, Play-Service-Run, World-Engine-Story-Session, Observability und Rückgabe eines verständlichen Bundles an den Browser.</p>
+  <div class="info-lead-block">
+    <p><strong>Merksatz:</strong> Der Session-Algorithmus baut die Verbindung auf. Der Turn-Algorithmus verarbeitet eine einzelne Eingabe und darf erst dann committen, wenn der autoritative Engine-Pfad sie akzeptiert oder bewusst als recoverable Ergebnis behandelt.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Session-Algorithmus: Start oder Resume</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>User validieren.</strong><span>JWT prüfen, Account laden, Ban-/Aktivstatus beachten. Ohne gültigen User entsteht keine Player-Session.</span></div>
+    </li>
+    <li>
+      <div><strong>Run-ID bestimmen.</strong><span>Entweder kommt <code>run_id</code> aus dem Request, oder das Backend erstellt über den Play-Service einen neuen Run aus <code>template_id</code> oder <code>runtime_profile_id</code>.</span></div>
+    </li>
+    <li>
+      <div><strong>Save Slot suchen.</strong><span>Für <code>user_id + run_id</code> wird ein deterministischer Slot gesucht. Enthält er eine gültige <code>runtime_session_id</code>, versucht das Backend Resume.</span></div>
+    </li>
+    <li>
+      <div><strong>Bei Resume: Engine-State holen.</strong><span>Der World-Engine-State entscheidet, ob die Session wirklich noch existiert. Fehlt sie dort, meldet das Backend <code>session_lost</code> statt still neu zu erfinden.</span></div>
+    </li>
+    <li>
+      <div><strong>Bei Neustart: Run-Details und Runtime-Handoff prüfen.</strong><span>Template, Runtime-Profil, ausgewählte Spielerrolle und Content-Provenance werden geprüft, bevor ein Story-Modul kompiliert wird.</span></div>
+    </li>
+    <li>
+      <div><strong>Runtime Projection bauen.</strong><span>Das Backend übersetzt das Template in eine Engine-verträgliche Projektion: Modul, Rollenbindung, Sprache, Content-Provenance.</span></div>
+    </li>
+    <li>
+      <div><strong>World-Engine Story Session erstellen.</strong><span><code>POST /api/story/sessions</code> erzeugt die autoritative Session und den Opening-Turn. Fehlt canonical opening evidence, schlägt der Start hart fehl.</span></div>
+    </li>
+    <li>
+      <div><strong>Binding speichern und Bundle zurückgeben.</strong><span><code>game_save_slots</code> speichert run_id, template_id, module_id und runtime_session_id. Danach fragt das Backend den State ab und liefert das Player-Bundle.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Session-Ablaufdiagramm</h2>
+  <div class="info-diagram" role="img" aria-label="Session Algorithmus Ablaufdiagramm">
+    <div class="info-diagram-row--four">
+      <div class="diagram-node diagram-node--runtime"><strong>Browser</strong><span>POST /game/player-sessions</span></div>
+      <div class="diagram-edge">JWT</div>
+      <div class="diagram-node diagram-node--db"><strong>Backend DB</strong><span>User, Character, SaveSlot</span></div>
+      <div class="diagram-edge">run</div>
+      <div class="diagram-node diagram-node--external"><strong>Play-Service</strong><span>Run, Handoff, Story Session</span></div>
+      <div class="diagram-edge">state</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Player Bundle</strong><span>runtime_session_id, state, opening_turn</span></div>
+    </div>
+  </div>
+  <p class="diagram-caption">Der entscheidende Kontrollpunkt liegt beim Opening-Turn: Ohne kanonische Opening-Evidence wird keine scheinbar gesunde Session zurückgegeben.</p>
+</section>
+
+<section class="info-section">
+  <h2>Turn-Algorithmus: eine Spielereingabe</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Eingabe normalisieren.</strong><span>Das Backend akzeptiert <code>player_input</code> oder <code>input</code>, trimmt Leerraum und lehnt leere Eingaben ab.</span></div>
+    </li>
+    <li>
+      <div><strong>Session sicherstellen.</strong><span>Vor jedem Turn läuft der Resume-Teil des Session-Algorithmus: Save Slot lesen, runtime_session_id finden, Engine-State prüfen.</span></div>
+    </li>
+    <li>
+      <div><strong>Trace vorbereiten.</strong><span>Wenn Langfuse verfügbar ist, startet das Backend <code>backend.turn.execute</code> und hängt Hash, run_id, session_id und lokale/Production-/Staging-Metadaten an.</span></div>
+    </li>
+    <li>
+      <div><strong>Engine-Turn ausführen.</strong><span>Das Backend ruft <code>POST /api/story/sessions/{session_id}/turns</code> im World-Engine-Dienst auf. Container nutzen die interne Service-URL.</span></div>
+    </li>
+    <li>
+      <div><strong>World-Engine verarbeitet autoritativ.</strong><span>Die Engine hasht die Eingabe, klassifiziert den Trace, startet den Turn-Span und führt <code>StoryRuntimeManager.execute_turn</code> aus.</span></div>
+    </li>
+    <li>
+      <div><strong>Lifecycle durchlaufen.</strong><span>Received → interpreted → generated/resolved → validated → committed → projected → persisted → observed.</span></div>
+    </li>
+    <li>
+      <div><strong>State und Turn zurückgeben.</strong><span>Das Backend holt nach dem Engine-Turn den aktuellen State, aktualisiert Observability und liefert das Bundle an die Player-UI.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Turn-Strukturdiagramm</h2>
+  <div class="info-diagram" role="img" aria-label="Turn Strukturdiagramm">
+    <div class="info-diagram-row">
+      <div class="diagram-node diagram-node--runtime"><strong>Input</strong><span>Text + SHA-256, Session, Run, Trace.</span></div>
+      <div class="diagram-edge">führt zu</div>
+      <div class="diagram-node diagram-node--external"><strong>Turn Graph</strong><span>Interpretation, Retrieval, Generation/Resolution, Validation.</span></div>
+      <div class="diagram-edge">committet</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Canonical Turn</strong><span>canonical_turn_id, turn_number, visible_output_bundle, diagnostics.</span></div>
+    </div>
+    <div class="info-diagram-row">
+      <div class="diagram-node diagram-node--external"><strong>Observability</strong><span>Spans, scores, cost summary, path quality.</span></div>
+      <div class="diagram-edge">erklärt</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Runtime Truth</strong><span>Commit/Readiness bleibt Engine-/Policy-gesteuert.</span></div>
+      <div class="diagram-edge">liefert</div>
+      <div class="diagram-node diagram-node--runtime"><strong>UI Projection</strong><span>Blöcke, counters, warnings, nächste Eingabe.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Lifecycle in drei verständlichen Phasen</h2>
+  <div class="algorithm-phase-grid">
+    <article class="algorithm-phase">
+      <strong>1. Vor dem Commit</strong>
+      <p>Input wird interpretiert, Kontext/RAG werden gesammelt, die Engine erzeugt oder resolved ein mögliches Ergebnis. Noch ist nichts kanonisch.</p>
+    </article>
+    <article class="algorithm-phase">
+      <strong>2. Commit-Entscheidung</strong>
+      <p>Validatoren und Runtime-Policy entscheiden, ob ein Ergebnis committed, recoverable abgelehnt oder als Fehler behandelt wird.</p>
+    </article>
+    <article class="algorithm-phase">
+      <strong>3. Nach dem Commit</strong>
+      <p>State, History, sichtbare UI-Blöcke, Diagnostics und Observability werden aktualisiert. Scores erklären nur, sie mutieren keine Wahrheit.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Fehler- und Fallback-Lesart</h2>
+  <ul class="info-check-list">
+    <li><strong>Leerer Input:</strong> Backend lehnt vor der Engine ab.</li>
+    <li><strong>Session verloren:</strong> Save Slot zeigt auf eine Story Session, die World-Engine nicht mehr kennt; Restart erforderlich.</li>
+    <li><strong>Governance blockiert:</strong> Engine meldet Governance- oder Runtime-Konfigurationsfehler; keine falsche Erfolgshülle bauen.</li>
+    <li><strong>Recoverable Turn:</strong> Die Engine kann ein spielersichtbares, aber als recoverable markiertes Ergebnis persistieren.</li>
+    <li><strong>Observability-Ausfall:</strong> Runtime läuft weiter; lokale Traces oder fehlende Scores verändern Commit/Readiness nicht.</li>
+  </ul>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu den Relationen</h2>
+  <ul>
+    <li><a href="{{ url_for('info.data_model') }}">Datenmodell &amp; Relationen</a> — welche Tabellen diesen Ablauf verbinden.</li>
+    <li><a href="{{ url_for('info.runtime_path') }}">Runtime-Pfad</a> — welche Komponente in welchem Schritt autoritativ ist.</li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — warum Scores keine Runtime-Wahrheit mutieren.</li>
+  </ul>
+</section>
+{% endblock %}

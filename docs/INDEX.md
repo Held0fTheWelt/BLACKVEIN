@@ -5,7 +5,7 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 ## Start here (everyone)
 
 - **Orientation:** [`docs/start-here/README.md`](start-here/README.md)
-- **What is World of Shadows?** [`docs/start-here/what-is-world-of-shadows.md`](start-here/what-is-world-of-shadows.md)
+- **What is Better Tomorrow?** [`docs/start-here/what-is-world-of-shadows.md`](start-here/what-is-world-of-shadows.md)
 - **How the system works (plain language):** [`docs/start-here/how-world-of-shadows-works.md`](start-here/how-world-of-shadows-works.md)
 - **Glossary (short):** [`docs/start-here/glossary.md`](start-here/glossary.md) — full definitions: [`docs/reference/glossary.md`](reference/glossary.md)
 - **Doc registry (owners, cadence):** [`docs/reference/documentation-registry.md`](reference/documentation-registry.md)
@@ -32,7 +32,8 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 
 - Root: [`docs/admin/README.md`](admin/README.md)
 - Setup, health, publishing, diagnostics: [`setup-and-first-run.md`](admin/setup-and-first-run.md), [`services-and-health-checks.md`](admin/services-and-health-checks.md), [`publishing-and-module-activation.md`](admin/publishing-and-module-activation.md), [`diagnostics-and-auditing.md`](admin/diagnostics-and-auditing.md)
-- Also: [`deployment-guide.md`](admin/deployment-guide.md), [`operations-runbook.md`](admin/operations-runbook.md), [`monitoring-logging-and-incident-response.md`](admin/monitoring-logging-and-incident-response.md)
+- Also: [`deployment-guide.md`](admin/deployment-guide.md), [`operations-runbook.md`](admin/operations-runbook.md), [`monitoring-logging-and-incident-response.md`](admin/monitoring-logging-and-incident-response.md), [`Security governance`](admin/security-governance.md), [`CSRF matrix`](security/csrf-matrix.md)
+- Security evidence: [`docs/security/AT_REST_ENCRYPTION.md`](security/AT_REST_ENCRYPTION.md), [`docs/security/rate-limit-inventory.md`](security/rate-limit-inventory.md), [`docs/security/PROVIDER_CREDENTIAL_GOVERNANCE.md`](security/PROVIDER_CREDENTIAL_GOVERNANCE.md), [`ADR-0047`](ADR/adr-0047-at-rest-encryption-evidence-boundary.md), [`ADR-0048`](ADR/adr-0048-central-route-and-mcp-rate-limit-inventory.md), [`ADR-0049`](ADR/adr-0049-provider-credential-governance-and-local-evaluator-evidence.md), [`ADR-0050`](ADR/adr-0050-security-governance-browser-mutation-boundaries.md), [`ADR-0051`](ADR/adr-0051-storage-layer-encryption-governance.md), [`ADR-0052`](ADR/adr-0052-security-governance-admin-control-plane.md)
 
 ### Developers
 

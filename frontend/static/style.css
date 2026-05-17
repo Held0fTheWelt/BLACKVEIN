@@ -1,29 +1,59 @@
-/* World of Shadows – base styles */
+/* Better Tomorrow - base styles */
 
 :root {
+    color-scheme: dark;
     --void: #07070a;
-    --obsidian: #0f0f12;
-    --violet: #7a5c9e;
+    --obsidian: #0b0d12;
+    --violet: #7f63d9;
     --role-anchor-amber: #d4a017;
     --violet-bright: #a07dcc;
-    --violet-glow: rgba(122, 92, 158, 0.35);
-    --violet-glow-strong: rgba(122, 92, 158, 0.6);
+    --violet-glow: rgba(148, 121, 239, 0.35);
+    --violet-glow-strong: rgba(148, 121, 239, 0.6);
     --mono-font: "JetBrains Mono", "Fira Mono", monospace;
     --display-font: "Inter", "Segoe UI", system-ui, sans-serif;
     --transition-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-    --bg: #0f0f12;
-    --surface: #1a1a20;
-    --border: #2a2a32;
-    --text: #e8e6e3;
-    --text-muted: #9a9692;
-    --primary: #7a5c9e;
-    --primary-hover: #8f6db5;
-    --danger: #c94a4a;
-    --success: #4a9e6a;
-    --info: #4a7ec9;
-    --radius: 8px;
+    --bg: #0b0d12;
+    --surface: #121723;
+    --surface-soft: #171d2b;
+    --surface-elevated: #1c2434;
+    --border: #2a3348;
+    --border-strong: #3a4a68;
+    --text: #eff3ff;
+    --text-muted: #a6b0c8;
+    --text-faint: rgba(166, 176, 200, 0.7);
+    --primary: #7f63d9;
+    --primary-hover: #9479ef;
+    --primary-soft: rgba(127, 99, 217, 0.16);
+    --primary-glow: rgba(148, 121, 239, 0.55);
+    --danger: #e35a72;
+    --danger-soft: rgba(227, 90, 114, 0.14);
+    --success: #5dbb87;
+    --warn: #d29922;
+    --info: #37b0d8;
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --shadow-1: 0 6px 16px rgba(4, 8, 18, 0.22);
+    --shadow-2: 0 16px 38px rgba(4, 8, 18, 0.34);
+    --shadow-card: 0 10px 24px rgba(4, 8, 18, 0.26);
+    --side-head-h: 88px;
+    --side-grad: linear-gradient(180deg, rgba(127, 99, 217, 0.16), rgba(127, 99, 217, 0.04) 38%, transparent 70%);
+    --side-brand-gap: 0.6rem;
+    --side-brand-mark-size: 0.9rem;
+    --side-brand-title-size: 1rem;
+    --side-brand-subtitle-size: 0.64rem;
+    --side-brand-title-line: 1.1;
+    --side-nav-pad-top: 0.5rem;
+    --side-nav-link-pad-y: 0.42rem;
+    --side-nav-link-pad-r: 0.6rem;
+    --side-nav-link-pad-l: 0.95rem;
+    --side-group-head-pad-y: 0.55rem;
     --font: "Inter", "Segoe UI", system-ui, sans-serif;
+    --shared-view-background:
+        radial-gradient(circle at 0% -20%, rgba(127, 99, 217, 0.18), transparent 48%),
+        radial-gradient(circle at 100% -30%, rgba(34, 154, 214, 0.10), transparent 44%),
+        var(--bg);
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +62,7 @@ body {
     margin: 0;
     min-height: 100vh;
     font-family: var(--font);
-    background: var(--bg);
+    background: var(--shared-view-background);
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -211,7 +241,7 @@ code { background: var(--surface); padding: 0.2em 0.4em; border-radius: 4px; }
 /* ── LANDING ─────────────────────────────────────── */
 body.landing {
     overflow-x: hidden;
-    background: var(--void);
+    background: var(--shared-view-background);
 }
 body.landing main,
 body.landing .landing-main { padding: 0; max-width: 100%; width: 100%; margin: 0; flex: 1; }
@@ -256,9 +286,9 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
  *
  * --hero-glitch-word-duration-enter     Einzelwort "Enter": Dauer einer Runde (Sekunden)
  * --hero-glitch-word-duration-world     Einzelwort "World": Dauer einer Runde (Sekunden)
- * --hero-glitch-word-duration-accent    Einzelwort "BLACKVEIN.": Dauer einer Runde (Sekunden)
+ * --hero-glitch-word-duration-accent    Einzelwort "Better Tomorrow.": Dauer einer Runde (Sekunden)
  * --hero-glitch-word-delay-world        Verzögerung für "World"
- * --hero-glitch-word-delay-accent       Verzögerung für "BLACKVEIN."
+ * --hero-glitch-word-delay-accent       Verzögerung für "Better Tomorrow."
  * ==========
  */
 .hero {
@@ -303,7 +333,7 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
     transform-origin: left center;
     transition: transform 0.1s ease-out;
 }
-/* Glitch (CodePen jh3y/jOOQjYP glitch--3): nur auf Enter, World, BLACKVEIN. */
+/* Glitch (CodePen jh3y/jOOQjYP glitch--3): nur auf Enter, World, Better Tomorrow. */
 /* Performance: Animation nur, wenn Hero sichtbar (landing.js setzt .glitch-in-view) */
 .hero .hero-glitch-word [data-char] { animation-play-state: paused; }
 .hero.glitch-in-view .hero-glitch-word [data-char] { animation-play-state: running; }
@@ -844,9 +874,11 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
     top: .7rem;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(26, 26, 32, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+        rgba(18, 23, 35, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--border);
     border-radius: 50px;
     padding: 0.6rem 0.8rem;
@@ -854,13 +886,13 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
     align-items: center;
     gap: 0.5rem;
     z-index: 1000;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-2);
     transition: transform 0.3s var(--transition-spring), box-shadow 0.3s;
     will-change: transform;
 }
-.command-dock:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 20px var(--violet-glow); }
+.command-dock:hover { box-shadow: var(--shadow-2), 0 0 20px rgba(148, 121, 239, 0.18); }
 .dock-logo {
-    color: var(--violet-bright);
+    color: var(--primary-hover);
     font-weight: 700;
     font-size: 0.85rem;
     text-decoration: none;
@@ -872,16 +904,18 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
     color: var(--text-muted);
     text-decoration: none;
     padding: 0.45rem 0.9rem;
+    border: 1px solid transparent;
     border-radius: 30px;
     font-size: 0.9rem;
-    transition: color 0.2s, background 0.2s;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
 .dock-link:hover, .dock-link--active {
     color: var(--text);
-    background: rgba(122,92,158,0.15);
+    background: rgba(148, 121, 239, 0.12);
+    border-color: rgba(148, 121, 239, 0.24);
 }
 .dock-cta {
-    background: var(--violet);
+    background: var(--primary);
     color: #fff;
     text-decoration: none;
     padding: 0.45rem 1rem;
@@ -890,7 +924,7 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
     font-weight: 600;
     transition: background 0.2s, transform 0.15s var(--transition-spring);
 }
-.dock-cta:hover { background: var(--violet-bright); transform: scale(1.05); }
+.dock-cta:hover { background: var(--primary-hover); transform: scale(1.05); }
 
 @media (max-width: 900px) {
     .hero { grid-template-columns: 1fr; padding: 8rem 5vw 4rem; }
@@ -905,7 +939,9 @@ body.landing .footer { background: rgba(26, 26, 32, 0.35); }
 }
 
 /* ── DASHBOARD ──────────────────────────────────── */
-body.dashboard { background: var(--void); }
+body.dashboard {
+    background: var(--shared-view-background);
+}
 .dashboard-layout {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -918,7 +954,9 @@ body.dashboard { background: var(--void); }
 .dash-flash { padding: 1rem 1.5rem 0; grid-column: 1 / -1; grid-row: 1; }
 
 .dash-sidebar {
-    background: var(--surface);
+    background:
+        var(--side-grad),
+        var(--surface);
     border-right: 1px solid var(--border);
     padding: 1rem 0;
     display: flex;
@@ -938,7 +976,7 @@ body.dashboard { background: var(--void); }
     background: var(--border);
     margin: 0.75rem 1rem;
 }
-.dash-sidebar-title { margin: 0; font-size: 0.8rem; letter-spacing: 0.1em; color: var(--violet-bright); }
+.dash-sidebar-title { margin: 0; font-size: 0.8rem; letter-spacing: 0.1em; color: var(--primary-hover); }
 .dash-nav { display: flex; flex-direction: column; gap: 0.25rem; }
 .dash-nav-group { display: flex; flex-direction: column; }
 .dash-nav-trigger {
@@ -956,7 +994,7 @@ body.dashboard { background: var(--void); }
     text-align: left;
     transition: color 0.2s, background 0.2s;
 }
-.dash-nav-trigger:hover { color: var(--text); background: rgba(122,92,158,0.08); }
+.dash-nav-trigger:hover { color: var(--text); background: rgba(148, 121, 239, 0.08); }
 .dash-nav-trigger:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: -2px; }
 .dash-nav-trigger[aria-expanded="true"] .dash-nav-trigger-icon { transform: rotate(0deg); }
 .dash-nav-trigger[aria-expanded="false"] .dash-nav-trigger-icon { transform: rotate(-90deg); }
@@ -969,20 +1007,50 @@ body.dashboard { background: var(--void); }
 .dash-nav-group.is-closed .dash-nav-sub { display: none; }
 .dash-nav-item {
     display: block;
+    position: relative;
     width: 100%;
-    padding: 0.5rem 1rem 0.5rem 1.75rem;
+    padding: 0.5rem 1rem 0.5rem 1.35rem;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
     font: inherit;
     font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
     text-align: left;
-    transition: color 0.2s, background 0.2s;
-    border-left: 3px solid transparent;
+    transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
-.dash-nav-item:hover { color: var(--text); background: rgba(122,92,158,0.06); }
-.dash-nav-item.is-active { color: var(--violet-bright); border-left-color: var(--violet); background: rgba(122,92,158,0.1); }
+.dash-nav-item::before {
+    content: "";
+    position: absolute;
+    left: 0.45rem;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0.25);
+    width: 3px;
+    height: 60%;
+    background: var(--primary);
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.18s ease;
+}
+.dash-nav-item:hover {
+    color: var(--text);
+    background: rgba(148, 121, 239, 0.08);
+}
+.dash-nav-item:hover::before {
+    opacity: 0.5;
+    transform: translateY(-50%) scaleY(0.7);
+}
+.dash-nav-item.is-active {
+    color: #fff;
+    border-color: rgba(148, 121, 239, 0.32);
+    background: rgba(148, 121, 239, 0.16);
+}
+.dash-nav-item.is-active::before {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+}
 .dash-nav-item:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: -2px; }
 
 .dash-content {
@@ -996,6 +1064,32 @@ body.dashboard { background: var(--void); }
 }
 .dash-view { display: none; flex: 1; min-height: 0; flex-direction: column; }
 .dash-view.is-visible { display: flex; }
+
+.dashboard-page,
+.dashboard-admin-grid {
+    display: grid;
+    gap: 1.25rem;
+}
+.dashboard-shell .dash-view {
+    flex: initial;
+    min-height: auto;
+}
+.dashboard-shell .dash-section {
+    scroll-margin-top: 5rem;
+}
+.dashboard-shell .dash-settings-card,
+.dashboard-shell .dash-overview-card {
+    max-width: none;
+}
+.dashboard-shell #view-user-settings .dash-settings-card {
+    max-width: 520px;
+}
+.dashboard-shell .dash-topbar {
+    margin-bottom: 0.8rem;
+}
+.dashboard-shell .dash-subtitle {
+    margin: -0.4rem 0 1rem;
+}
 
 .dash-overview-card {
     background: var(--surface);
@@ -2023,7 +2117,289 @@ button.secondary:hover {
     background: rgba(154, 150, 146, 0.05);
 }
 
-/* Typewriter animation state (handled by JavaScript) */
+/* ──────────────────────────────────────────────────────────────────────────
+   TYPEWRITER CINEMATIC LAYER (ADR-0046)
+   Per-character spans, breathing cursor with beat-specific variants, char
+   reveal animation, beat-change decompression sweep, skip speedrun, settle.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+    --cursor-glyph: "▎";
+    --cursor-color: var(--violet-bright);
+    --cursor-glow: rgba(160, 125, 204, 0.6);
+}
+
+/* Char span (one per character of the typed text). Reveals on insertion. */
+.scene-block .char {
+    display: inline;
+    opacity: 0;
+    will-change: opacity, filter, transform;
+    animation: char-reveal 240ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+    text-shadow: 0 0 0 transparent;
+}
+.scene-block .char--space { white-space: pre; }
+.scene-block .char--break { display: inline; }
+
+@keyframes char-reveal {
+    0%   { opacity: 0; filter: blur(3px); transform: translateY(2px);
+           text-shadow: 0 0 12px var(--cursor-glow); }
+    35%  { opacity: 0.7; filter: blur(1px); transform: translateY(1px);
+           text-shadow: 0 0 10px var(--cursor-glow); }
+    70%  { opacity: 1; filter: blur(0); transform: translateY(0);
+           text-shadow: 0 0 6px var(--cursor-glow); }
+    100% { opacity: 1; filter: blur(0); transform: translateY(0);
+           text-shadow: 0 0 0 transparent; }
+}
+
+/* Live cursor — replaces the dead `.block-typewriter::after` rule. */
+.play-cursor {
+    display: inline-block;
+    margin-left: 1px;
+    width: 0.55ch;
+    vertical-align: baseline;
+    position: relative;
+    color: var(--cursor-color);
+    animation: cursor-breath 1.45s ease-in-out infinite;
+    text-shadow:
+        0 0 6px var(--cursor-glow),
+        0 0 14px var(--cursor-glow),
+        0 0 28px rgba(160, 125, 204, 0.25);
+}
+.play-cursor::after {
+    content: var(--cursor-glyph);
+    line-height: 1;
+}
+
+@keyframes cursor-breath {
+    0%, 100% { opacity: 0.65; text-shadow:
+        0 0 4px var(--cursor-glow),
+        0 0 12px var(--cursor-glow); }
+    50%      { opacity: 1; text-shadow:
+        0 0 8px var(--cursor-glow),
+        0 0 22px var(--cursor-glow),
+        0 0 36px rgba(160, 125, 204, 0.35); }
+}
+
+.play-cursor--pulse {
+    animation: cursor-breath 1.45s ease-in-out infinite,
+               cursor-pulse 220ms ease-out;
+}
+@keyframes cursor-pulse {
+    0%   { transform: scaleY(1)  scaleX(1);   filter: brightness(1); }
+    35%  { transform: scaleY(1.18) scaleX(1.3); filter: brightness(1.7); }
+    100% { transform: scaleY(1)  scaleX(1);   filter: brightness(1); }
+}
+
+.play-cursor--settle {
+    animation: cursor-settle 520ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes cursor-settle {
+    0%   { opacity: 1; transform: scaleY(1)  scaleX(1);  filter: brightness(1.4); }
+    40%  { opacity: 1; transform: scaleY(1.3) scaleX(0.55); filter: brightness(2); }
+    80%  { opacity: 0.4; transform: scaleY(0.4) scaleX(0.18); }
+    100% { opacity: 0; transform: scaleY(0.1) scaleX(0.06); }
+}
+
+/* Beat-specific cursor variants — drive --cursor-glyph + colour from data attr.
+   Variants come from play_typewriter_engine.js TYPEWRITER_BEAT_PROFILES. */
+.play-cursor[data-cursor-variant="default"]   { --cursor-glyph: "▎"; --cursor-color: var(--violet-bright); --cursor-glow: rgba(160, 125, 204, 0.6); }
+.play-cursor[data-cursor-variant="anchor"]    { --cursor-glyph: "▎"; --cursor-color: var(--role-anchor-amber); --cursor-glow: rgba(212, 160, 23, 0.65); width: 0.7ch; }
+.play-cursor[data-cursor-variant="tension"]   { --cursor-glyph: "▕"; --cursor-color: #f06b86; --cursor-glow: rgba(240, 107, 134, 0.55); }
+.play-cursor[data-cursor-variant="dialogue"]  { --cursor-glyph: "‖"; --cursor-color: #b48dff; --cursor-glow: rgba(180, 141, 255, 0.55); }
+.play-cursor[data-cursor-variant="action"]    { --cursor-glyph: "▌"; --cursor-color: #ff8b3a; --cursor-glow: rgba(255, 139, 58, 0.6); width: 0.6ch; }
+.play-cursor[data-cursor-variant="reflect"]   { --cursor-glyph: "▘"; --cursor-color: #8ec5ff; --cursor-glow: rgba(142, 197, 255, 0.5); }
+
+/* Beat atmosphere — applied by the engine via setting a beat-- class on the
+   scene-block during startDelivery. Adds a subtle aura behind the card.    */
+.scene-block.beat--default   { box-shadow: inset 0 0 0 1px rgba(122, 92, 158, 0.18); }
+.scene-block.beat--anchor    { box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.45),
+                                            inset 0 0 32px rgba(212, 160, 23, 0.10),
+                                            0 0 28px rgba(212, 160, 23, 0.12); }
+.scene-block.beat--tension   { box-shadow: inset 0 0 0 1px rgba(240, 107, 134, 0.38),
+                                            inset 0 0 24px rgba(240, 107, 134, 0.08),
+                                            0 0 22px rgba(240, 107, 134, 0.10); }
+.scene-block.beat--dialogue  { box-shadow: inset 0 0 0 1px rgba(180, 141, 255, 0.32); }
+.scene-block.beat--action    { box-shadow: inset 0 0 0 1px rgba(255, 139, 58, 0.36),
+                                            inset 0 0 18px rgba(255, 139, 58, 0.08); }
+.scene-block.beat--reflect   { box-shadow: inset 0 0 0 1px rgba(142, 197, 255, 0.32),
+                                            inset 0 0 20px rgba(142, 197, 255, 0.08); }
+
+/* Beat-change decompression: card border sweeps once on receive. */
+.scene-block.scene-block--beat-decompress {
+    position: relative;
+    overflow: hidden;
+}
+.scene-block.scene-block--beat-decompress::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(160, 125, 204, 0.18) 35%,
+        rgba(192, 132, 252, 0.32) 50%,
+        rgba(160, 125, 204, 0.18) 65%,
+        transparent 100%);
+    transform: translateX(-100%);
+    animation: beat-decompress-sweep 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes beat-decompress-sweep {
+    0%   { transform: translateX(-100%); opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* role_anchor opening sweep — fires when an anchor block first mounts. */
+.scene-block--narrator-role-anchor::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(212, 160, 23, 0.35) 50%,
+        transparent 100%);
+    transform: translateX(-100%);
+    animation: anchor-sweep 800ms cubic-bezier(0.2, 0.6, 0.2, 1) 60ms forwards;
+}
+.scene-block--narrator-role-anchor {
+    position: relative;
+    overflow: hidden;
+}
+@keyframes anchor-sweep {
+    0%   { transform: translateX(-100%); opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateX(120%); opacity: 0; }
+}
+
+/* Skip speedrun: while active, the cursor flattens and the chars chromatic-
+   aberrate slightly to convey acceleration. Toggled by JS. */
+.play-shell.is-speedrun .play-cursor {
+    width: 0.18ch;
+    animation: cursor-breath 0.35s ease-in-out infinite;
+    filter: drop-shadow(1px 0 0 rgba(255, 0, 80, 0.5))
+            drop-shadow(-1px 0 0 rgba(0, 200, 255, 0.5));
+}
+.play-shell.is-speedrun .char {
+    animation: char-reveal 90ms ease-out forwards;
+}
+
+/* Reduced motion: bypass char reveal animation, cursor reduces to a static
+   underscore. Keeps content fully present. */
+@media (prefers-reduced-motion: reduce) {
+    .scene-block .char { animation: none; opacity: 1; filter: none; transform: none; text-shadow: none; }
+    .play-cursor { animation: none; opacity: 0.7; }
+    .play-cursor--settle { animation: none; opacity: 0; }
+    .scene-block.scene-block--beat-decompress::before,
+    .scene-block--narrator-role-anchor::after { animation: none; opacity: 0; }
+}
+
+/* ── Live-direction signals (composing, echo, heartbeat) ─────────────── */
+.play-composing {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.75rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px dashed rgba(160, 125, 204, 0.35);
+    border-radius: 999px;
+    background: rgba(15, 15, 18, 0.55);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    pointer-events: none;
+    width: max-content;
+}
+.play-composing.is-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.play-composing__label {
+    color: var(--violet-bright);
+    font-size: 0.7rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+}
+.play-composing__dots {
+    display: inline-flex;
+    gap: 0.25rem;
+    color: var(--violet-bright);
+    font-family: var(--mono-font);
+    font-size: 0.85rem;
+}
+.play-composing__dot {
+    opacity: 0.4;
+    animation: composing-dot 1.2s ease-in-out infinite;
+}
+.play-composing__dot:nth-child(1) { animation-delay: 0s; }
+.play-composing__dot:nth-child(2) { animation-delay: 0.18s; }
+.play-composing__dot:nth-child(3) { animation-delay: 0.36s; }
+@keyframes composing-dot {
+    0%, 100% { opacity: 0.3; transform: translateY(0); text-shadow: none; }
+    50%      { opacity: 1; transform: translateY(-2px);
+               text-shadow: 0 0 12px rgba(160, 125, 204, 0.85),
+                            0 0 24px rgba(160, 125, 204, 0.4); }
+}
+
+/* Player echo fade — last player turn card dims while the engine answers. */
+.play-turn-card.play-turn-card--echoing {
+    opacity: 0.55;
+    filter: saturate(0.85);
+    transition: opacity 0.4s ease, filter 0.4s ease;
+}
+
+/* Story-window heartbeat & active-typing pulse. The border glows at ~60 bpm
+   while a stream is open; intensifies during active typing. */
+.play-story-window {
+    position: relative;
+    border-radius: 12px;
+}
+.play-story-window.is-stream-active {
+    box-shadow:
+        inset 0 0 0 1px rgba(160, 125, 204, 0.18),
+        0 0 0 1px rgba(160, 125, 204, 0.10),
+        0 0 24px rgba(122, 92, 158, 0.10);
+    animation: story-heartbeat 1.0s ease-in-out infinite;
+}
+.play-story-window.is-typing {
+    animation: story-heartbeat 0.72s ease-in-out infinite;
+}
+@keyframes story-heartbeat {
+    0%, 100% {
+        box-shadow:
+            inset 0 0 0 1px rgba(160, 125, 204, 0.20),
+            0 0 0 1px rgba(160, 125, 204, 0.10),
+            0 0 22px rgba(122, 92, 158, 0.10);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 0 1px rgba(160, 125, 204, 0.42),
+            0 0 0 1px rgba(160, 125, 204, 0.20),
+            0 0 36px rgba(160, 125, 204, 0.22);
+    }
+}
+
+/* Body-level typing flag — exposes a hook for future ambient effects (e.g.,
+   matrix coupling on views that show the matrix-layer). The play-shell does
+   not show the matrix, so this is mostly a no-op there. */
+body.is-typing .matrix-layer__glow {
+    background: radial-gradient(ellipse 100% 100% at 50% 50%,
+        rgba(160, 125, 204, 0.10) 0%,
+        transparent 45%,
+        rgba(10, 25, 50, 0.18) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .play-composing__dot { animation: none; opacity: 1; }
+    .play-story-window.is-stream-active,
+    .play-story-window.is-typing { animation: none; }
+}
+
+/* Legacy cursor classes — kept for any external CSS reference. The active
+   cursor lives on `.play-cursor` now. */
 .block-typewriter {
     position: relative;
 }
@@ -2069,4 +2445,946 @@ button.secondary:hover {
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   UNIFIED MATRIX SHELL — Better Tomorrow design system applied to every
+   non-landing, non-play view. The matrix-layer canvas drops in behind the
+   site chrome; surfaces become translucent so the rain reads through.
+
+   Scope: body.wos-shell. The landing (home) shares the same base background,
+   but keeps its own matrix, hero and artwork overlays. session_shell.html opts
+   out via body.play-active.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+body.wos-shell {
+    overflow-x: hidden;
+    color: var(--text);
+    background: var(--shared-view-background);
+}
+
+body.wos-shell .matrix-layer {
+    /* dimmer than landing so long-form copy stays readable */
+    opacity: 0.55;
+    box-shadow:
+        inset 0 0 200px rgba(7, 12, 22, 0.65),
+        inset 0 0 90px rgba(10, 25, 50, 0.45);
+}
+
+body.wos-shell .matrix-layer__glow {
+    background: radial-gradient(ellipse 90% 90% at 50% 35%,
+        transparent 35%,
+        rgba(7, 12, 22, 0.55) 100%);
+}
+
+/* Header sits above the rain with a frosted-glass look. */
+body.wos-shell .site-header,
+body.wos-shell .header {
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(180deg,
+        rgba(15, 15, 18, 0.78) 0%,
+        rgba(15, 15, 18, 0.52) 100%);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid rgba(122, 92, 158, 0.22);
+    box-shadow: 0 1px 0 rgba(122, 92, 158, 0.08), 0 8px 32px rgba(0, 0, 0, 0.32);
+}
+
+body.wos-shell .site-header .nav > a,
+body.wos-shell .site-header .nav button[type="submit"] {
+    background: rgba(15, 15, 18, 0.35);
+    border-color: rgba(122, 92, 158, 0.22);
+    color: var(--text-muted);
+    font-family: var(--mono-font);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.55rem 0.95rem;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease,
+                box-shadow 0.2s ease;
+}
+body.wos-shell .site-header .nav > a:hover,
+body.wos-shell .site-header .nav button[type="submit"]:hover {
+    color: var(--text);
+    border-color: var(--violet);
+    background: rgba(122, 92, 158, 0.12);
+    box-shadow: 0 0 18px var(--violet-glow);
+}
+
+/* The main column floats above the matrix and keeps a comfortable reading width.
+   Applies both to the legacy .container (still used by a few overrides) and to
+   the new .fr-main inside the sidebar shell. */
+body.wos-shell .container,
+body.wos-shell .fr-main {
+    position: relative;
+    z-index: 2;
+    max-width: 1100px;
+    padding: 2.5rem 1.5rem 4rem;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Footer mirrors the header treatment. */
+body.wos-shell .footer {
+    position: relative;
+    z-index: 2;
+    background: rgba(15, 15, 18, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(122, 92, 158, 0.18);
+}
+
+/* ── Shell-page header: mono eyebrow + display title ───────────────────── */
+.page-shell-header {
+    position: relative;
+    z-index: 2;
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    padding: 0 0.25rem;
+}
+.page-shell-header .page-eyebrow {
+    color: var(--violet-bright);
+    font-family: var(--mono-font);
+    font-size: 0.74rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    margin: 0 0 0.85rem;
+    text-shadow:
+        0 0 4px rgba(192, 132, 252, 0.85),
+        0 0 14px rgba(160, 125, 204, 0.55),
+        0 0 28px rgba(160, 125, 204, 0.35);
+}
+.page-shell-header .page-title {
+    font-family: var(--display-font);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin: 0 0 0.6rem;
+    color: var(--text);
+}
+.page-shell-header .page-title-accent {
+    background: linear-gradient(135deg, var(--violet-bright), #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.page-shell-header .page-lead {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+/* ── Panel chrome (refresh, scoped to wos-shell so play-shell stays intact) ── */
+body.wos-shell .panel {
+    position: relative;
+    background:
+        linear-gradient(180deg,
+            rgba(26, 26, 32, 0.86) 0%,
+            rgba(15, 15, 18, 0.78) 100%);
+    border: 1px solid rgba(122, 92, 158, 0.22);
+    border-radius: 14px;
+    padding: 2rem;
+    margin: 1.25rem 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.02) inset,
+        0 20px 60px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(122, 92, 158, 0.04);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s var(--transition-spring);
+}
+body.wos-shell .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at top right, rgba(160, 125, 204, 0.08), transparent 55%);
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+body.wos-shell .panel:hover {
+    border-color: rgba(160, 125, 204, 0.38);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.03) inset,
+        0 24px 70px rgba(0, 0, 0, 0.4),
+        0 0 32px rgba(122, 92, 158, 0.15);
+}
+body.wos-shell .panel.narrow {
+    max-width: 460px;
+    margin: 2rem auto;
+}
+body.wos-shell .panel > h1,
+body.wos-shell .panel > h2:first-of-type {
+    font-family: var(--display-font);
+    margin: 0 0 1.25rem;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    position: relative;
+    z-index: 1;
+}
+body.wos-shell .panel > h1::before,
+body.wos-shell .panel > h2:first-of-type::before {
+    content: "// ";
+    color: var(--violet-bright);
+    font-family: var(--mono-font);
+    font-size: 0.7em;
+    letter-spacing: 0.2em;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+}
+body.wos-shell .panel > p,
+body.wos-shell .panel > article {
+    position: relative;
+    z-index: 1;
+    color: var(--text);
+    line-height: 1.65;
+}
+body.wos-shell .panel p:first-of-type {
+    margin-top: 0;
+}
+
+/* Lists inside panels */
+body.wos-shell .panel ul,
+body.wos-shell .panel ol {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.85rem;
+}
+body.wos-shell .panel ul li {
+    padding: 1rem 1.1rem;
+    border-left: 2px solid rgba(122, 92, 158, 0.35);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: rgba(15, 15, 18, 0.45);
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+body.wos-shell .panel ul li:hover {
+    border-left-color: var(--violet-bright);
+    background: rgba(122, 92, 158, 0.08);
+    transform: translateX(2px);
+}
+body.wos-shell .panel ul li strong {
+    color: var(--text);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.01em;
+}
+body.wos-shell .panel ul li p {
+    margin: 0.35rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.93rem;
+    line-height: 1.55;
+}
+body.wos-shell .panel ul li small {
+    color: var(--text-muted);
+    font-family: var(--mono-font);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    margin-left: 0.4rem;
+}
+
+/* Form fields inside shell panels */
+body.wos-shell .panel label {
+    display: block;
+    color: var(--text-muted);
+    font-family: var(--mono-font);
+    font-size: 0.74rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 1.1rem;
+    position: relative;
+    z-index: 1;
+}
+body.wos-shell .panel input,
+body.wos-shell .panel select,
+body.wos-shell .panel textarea {
+    margin-top: 0.55rem;
+    padding: 0.8rem 0.9rem;
+    background: rgba(7, 7, 10, 0.7);
+    border: 1px solid rgba(122, 92, 158, 0.22);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: var(--font);
+    letter-spacing: 0;
+    text-transform: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+body.wos-shell .panel input:focus,
+body.wos-shell .panel select:focus,
+body.wos-shell .panel textarea:focus {
+    outline: none;
+    border-color: var(--violet-bright);
+    background: rgba(7, 7, 10, 0.95);
+    box-shadow: 0 0 0 3px rgba(160, 125, 204, 0.18), 0 0 26px rgba(122, 92, 158, 0.18);
+}
+body.wos-shell .panel button[type="submit"] {
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.6rem;
+    background: linear-gradient(135deg, var(--violet) 0%, #6a4d8e 100%);
+    border: 1px solid rgba(160, 125, 204, 0.5);
+    color: #fff;
+    font-family: var(--mono-font);
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 18px var(--violet-glow);
+    transition: transform 0.2s var(--transition-spring), box-shadow 0.2s ease,
+                background 0.2s ease;
+}
+body.wos-shell .panel button[type="submit"]:hover {
+    background: linear-gradient(135deg, var(--violet-bright) 0%, var(--violet) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 32px var(--violet-glow-strong);
+}
+body.wos-shell .panel a:not(.btn) {
+    color: var(--violet-bright);
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(160, 125, 204, 0.45);
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+body.wos-shell .panel a:not(.btn):hover {
+    color: #d6c3f0;
+    border-bottom-color: var(--violet-bright);
+}
+
+/* Flash messages within the shell */
+body.wos-shell .flash-list {
+    position: relative;
+    z-index: 2;
+    max-width: 1100px;
+    margin: 0 auto 1.25rem;
+}
+body.wos-shell .flash-list .flash {
+    background: rgba(15, 15, 18, 0.7);
+    border: 1px solid rgba(122, 92, 158, 0.22);
+    color: var(--text);
+    font-family: var(--mono-font);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    padding: 0.9rem 1.1rem;
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+body.wos-shell .flash-list .flash.success {
+    border-color: rgba(74, 158, 106, 0.6);
+    background: rgba(74, 158, 106, 0.12);
+    color: #9ad7b1;
+}
+body.wos-shell .flash-list .flash.error {
+    border-color: rgba(201, 74, 74, 0.6);
+    background: rgba(201, 74, 74, 0.12);
+    color: #e9a5a5;
+}
+body.wos-shell .flash-list .flash.info {
+    border-color: rgba(74, 126, 201, 0.6);
+    background: rgba(74, 126, 201, 0.12);
+    color: #a8c8ec;
+}
+
+/* ── Specific shell variants ─────────────────────────────────────────────── */
+
+/* Auth pages need a magnetic, centered form. */
+body.wos-shell.auth-shell .container,
+body.wos-shell.auth-shell .fr-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    min-height: calc(100vh - 10rem);
+}
+body.wos-shell.auth-shell .panel.narrow {
+    padding: 2.5rem 2.25rem;
+    margin: 0 auto;
+}
+body.wos-shell.auth-shell .panel.narrow > h1 {
+    text-align: left;
+    font-size: 1.85rem;
+    margin-bottom: 1.75rem;
+}
+
+/* Wiki: a long-form reading surface. */
+body.wos-shell.wiki-shell .panel article {
+    font-size: 1.02rem;
+    line-height: 1.75;
+    color: var(--text);
+}
+body.wos-shell.wiki-shell .panel article h2,
+body.wos-shell.wiki-shell .panel article h3 {
+    color: var(--violet-bright);
+    font-family: var(--display-font);
+    letter-spacing: -0.01em;
+    margin-top: 1.75rem;
+}
+body.wos-shell.wiki-shell .panel article a {
+    color: var(--violet-bright);
+}
+body.wos-shell.wiki-shell .panel pre {
+    background: rgba(7, 7, 10, 0.85);
+    border: 1px solid rgba(122, 92, 158, 0.22);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-family: var(--mono-font);
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+/* News list: card-style entries with a violet timeline bar. */
+body.wos-shell.news-shell .panel ul li,
+body.wos-shell.community-shell .panel ul li {
+    padding: 1.25rem 1.35rem;
+}
+body.wos-shell.news-shell .panel ul li strong {
+    font-family: var(--display-font);
+    font-size: 1.1rem;
+    color: var(--violet-bright);
+}
+
+/* Game menu launcher: hero-styled CTA tile. */
+body.wos-shell.game-shell .panel {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+body.wos-shell.game-shell .panel > h1 {
+    font-size: 2.4rem;
+    text-align: center;
+}
+body.wos-shell.game-shell .panel > p {
+    color: var(--text-muted);
+    margin-bottom: 1.6rem;
+}
+body.wos-shell.game-shell .panel a.launch-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--violet) 0%, #5d4180 100%);
+    border: 1px solid rgba(160, 125, 204, 0.5);
+    color: #fff;
+    font-family: var(--mono-font);
+    font-size: 0.82rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    text-decoration: none;
+    border-bottom: none;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), 0 0 26px var(--violet-glow);
+    transition: transform 0.2s var(--transition-spring), box-shadow 0.2s ease;
+}
+body.wos-shell.game-shell .panel a.launch-cta::after {
+    content: "→";
+    font-family: var(--font);
+    font-size: 1.05rem;
+    transition: transform 0.2s ease;
+}
+body.wos-shell.game-shell .panel a.launch-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 38px var(--violet-glow-strong);
+}
+body.wos-shell.game-shell .panel a.launch-cta:hover::after {
+    transform: translateX(4px);
+}
+
+/* Dashboard adopts the shell backdrop but keeps its grid layout. */
+body.dashboard.wos-shell .matrix-layer {
+    opacity: 0.35;
+}
+body.dashboard.wos-shell .dashboard-layout {
+    position: relative;
+    z-index: 2;
+}
+body.dashboard.wos-shell .dash-sidebar,
+body.dashboard.wos-shell .dash-overview-card,
+body.dashboard.wos-shell .dash-settings-card,
+body.dashboard.wos-shell .metric-card,
+body.dashboard.wos-shell .chart-card,
+body.dashboard.wos-shell .table-card {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+        var(--surface);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: var(--border);
+}
+body.dashboard.wos-shell .dash-sidebar {
+    background:
+        var(--side-grad),
+        var(--surface);
+    border-right: 1px solid var(--border);
+}
+
+/* ── HOME image tuning — keep the matrix look, just calm the artwork down ──
+   The hero now lays its two images side-by-side at a reasonable max-height,
+   and the overview logo is no longer 40rem tall. Content + arrangement of
+   the home page is otherwise untouched.
+   ──────────────────────────────────────────────────────────────────────── */
+.hero-title-images {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: 1rem;
+}
+.hero-title-image,
+.hero-title-image--2 {
+    flex: 1 1 280px;
+    min-width: 0;
+    width: auto;
+    max-width: 320px;
+    height: auto;
+    max-height: 26vh;
+    object-fit: contain;
+    object-position: center;
+    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.45));
+    transition: transform 0.4s var(--transition-spring), filter 0.3s ease;
+}
+.hero-title-image:hover {
+    transform: translateY(-4px);
+    filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.55))
+            drop-shadow(0 0 24px rgba(160, 125, 204, 0.35));
+}
+.overview-logo-wrap {
+    height: 22rem;
+    padding-top: 1rem;
+}
+.overview-logo {
+    height: 100%;
+    width: auto;
+    max-width: 60%;
+}
+@media (max-width: 900px) {
+    .hero-title-images { justify-content: center; }
+    .hero-title-image,
+    .hero-title-image--2 {
+        max-height: 22vh;
+        max-width: 260px;
+    }
+    .overview-logo-wrap { height: 16rem; }
+}
+@media (max-width: 600px) {
+    .hero-title-images { gap: 0.75rem; }
+    .hero-title-image,
+    .hero-title-image--2 {
+        max-width: 45%;
+        max-height: 18vh;
+    }
+    .overview-logo-wrap { height: 12rem; }
+    .overview-logo { max-width: 78%; }
+}
+
+/* ── Print-side: keep things sane if a user prints any of these views ──── */
+@media print {
+    body.wos-shell .matrix-layer { display: none; }
+    body.wos-shell { background: #fff; color: #000; }
+    body.wos-shell .panel { background: #fff; border-color: #888; box-shadow: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   FRONTEND SHELL — sidebar rail aligned with the Backend and World-Engine
+   navigation. Desktop navigation lives in the left rail; the topbar exists
+   only as the mobile drawer trigger.
+
+   Activated by body.wos-shell (default). Home, dashboard, and play-shell
+   override the {% block shell %} so they keep their bespoke layouts.
+
+   Hides the legacy `.site-header` whenever the new shell is on, since the
+   sidebar replaces the horizontal nav completely.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+    --fr-side-w: 268px;
+    --fr-side-pad-x: 1.05rem;
+    --fr-side-rail: 3px;
+}
+
+body.wos-shell .site-header { display: none; }
+
+.fr-shell {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: var(--fr-side-w) minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.fr-shell-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    padding: 0;
+    background: rgba(4, 6, 12, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    cursor: pointer;
+}
+
+.fr-side {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 30;
+    overflow: hidden;
+    background:
+        var(--side-grad),
+        var(--surface);
+    border-right: 1px solid var(--border);
+}
+
+.fr-brand {
+    display: grid;
+    grid-template-columns: var(--side-brand-mark-size) max-content;
+    grid-template-rows: calc(var(--side-brand-title-size) * var(--side-brand-title-line)) auto;
+    column-gap: var(--side-brand-gap);
+    row-gap: 0.25rem;
+    align-content: start;
+    justify-content: start;
+    height: var(--side-head-h);
+    min-height: var(--side-head-h);
+    padding: 1.35rem var(--fr-side-pad-x) 1rem;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    position: relative;
+}
+.fr-brand::after {
+    display: none;
+}
+.fr-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    width: var(--side-brand-mark-size);
+    height: calc(var(--side-brand-title-size) * var(--side-brand-title-line));
+    color: var(--primary);
+    font-size: var(--side-brand-mark-size);
+    line-height: 1;
+    text-shadow: 0 0 12px var(--primary-glow);
+}
+.fr-brand-text { display: contents; }
+.fr-brand-title {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: var(--side-brand-title-size);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+    line-height: var(--side-brand-title-line);
+    white-space: nowrap;
+}
+.fr-brand-subtitle {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
+    font-family: var(--mono-font);
+    font-size: var(--side-brand-subtitle-size);
+    line-height: 1;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.fr-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: var(--side-nav-pad-top) var(--fr-side-pad-x) 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.fr-nav::-webkit-scrollbar { width: 6px; }
+.fr-nav::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 3px;
+}
+
+.fr-nav-group { border-bottom: 1px dashed transparent; margin: 0; }
+.fr-nav-group + .fr-nav-group { margin-top: 0.15rem; }
+.fr-nav-group[open] {
+    border-bottom-color: rgba(122, 92, 158, 0.10);
+    padding-bottom: 0.3rem;
+}
+
+.fr-nav-group-head {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--side-group-head-pad-y) 0.1rem;
+    gap: 0.4rem;
+    user-select: none;
+    font-family: var(--mono-font);
+    font-size: 0.66rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: color 0.15s ease;
+}
+.fr-nav-group-head::-webkit-details-marker { display: none; }
+.fr-nav-group-head::marker { content: ""; }
+.fr-nav-group-head:hover { color: var(--text); }
+.fr-nav-group-head::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid var(--text-muted);
+    border-bottom: 1.5px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.fr-nav-group[open] > .fr-nav-group-head::after {
+    transform: rotate(45deg);
+    border-color: var(--primary-hover);
+}
+
+.fr-nav-link {
+    display: block;
+    position: relative;
+    padding: var(--side-nav-link-pad-y) var(--side-nav-link-pad-r) var(--side-nav-link-pad-y) var(--side-nav-link-pad-l);
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    background: transparent;
+    transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.fr-nav-link::before {
+    content: "";
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0.25);
+    width: var(--fr-side-rail);
+    height: 60%;
+    background: var(--primary);
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.18s ease;
+}
+.fr-nav-link:hover {
+    color: var(--text);
+    background: rgba(148, 121, 239, 0.08);
+}
+.fr-nav-link:hover::before {
+    opacity: 0.5;
+    transform: translateY(-50%) scaleY(0.7);
+}
+.fr-nav-link.is-current {
+    color: #fff;
+    background: rgba(148, 121, 239, 0.16);
+    border-color: rgba(148, 121, 239, 0.32);
+    font-weight: 600;
+}
+.fr-nav-link.is-current::before {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+}
+.fr-nav-link:focus-visible {
+    outline: 2px solid var(--violet-bright);
+    outline-offset: 2px;
+}
+
+.fr-side-note {
+    margin: 0.5rem var(--fr-side-pad-x) 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--radius-sm);
+    background: rgba(127, 99, 217, 0.06);
+    border: 1px solid rgba(127, 99, 217, 0.18);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.fr-side-foot {
+    margin-top: auto;
+    padding: 1rem var(--fr-side-pad-x) 1.1rem;
+    border-top: 1px solid var(--border);
+    background: rgba(7, 7, 10, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.fr-side-user {
+    color: var(--text);
+    font-family: var(--mono-font);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+.fr-side-user-role {
+    color: var(--text-muted);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+}
+.fr-side-foot form { margin: 0; }
+.fr-side-logout {
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-family: var(--mono-font);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease,
+                border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.fr-side-logout:hover {
+    color: var(--text);
+    background: rgba(148, 121, 239, 0.12);
+    border-color: rgba(148, 121, 239, 0.45);
+    box-shadow: 0 0 14px rgba(148, 121, 239, 0.18);
+}
+
+/* Main column inside the shell */
+.fr-shell-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+}
+
+.fr-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18, 23, 35, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.fr-side-toggle {
+    display: none;
+    width: 2.35rem;
+    height: 2.35rem;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text);
+}
+.fr-side-toggle:hover { border-color: var(--primary-hover); }
+.fr-side-toggle span {
+    display: block;
+    width: 1rem;
+    height: 1.5px;
+    background: currentColor;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.fr-topbar-title {
+    font-family: var(--mono-font);
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.fr-topbar-title::before {
+    content: "// ";
+    color: var(--violet-bright);
+}
+
+.fr-main {
+    flex: 1 1 auto;
+    padding: 2.5rem 2rem 4rem;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Mobile: collapse sidebar, expose hamburger. */
+@media (max-width: 900px) {
+    .fr-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .fr-topbar { display: flex; }
+    .fr-side {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(85vw, 320px);
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    }
+    .fr-shell[data-side-open="true"] .fr-side {
+        transform: translateX(0);
+    }
+    .fr-shell[data-side-open="true"] .fr-shell-scrim {
+        display: block;
+    }
+    .fr-side-toggle { display: inline-flex; }
+    .fr-main { padding: 1.75rem 1.25rem 3rem; }
+}
+@media (max-width: 600px) {
+    .fr-topbar { padding: 0.75rem 1rem; }
+    .fr-main { padding: 1.5rem 1rem 2.5rem; }
+}
+
+/* Landing overrides the shell entirely; app pages, including dashboard, use it. */
+body.landing .fr-shell { display: none; }
+
+/* Play-active opts out of the sidebar shell but keeps content rendering. The
+   sidebar/topbar/scrim are hidden, the grid flattens, and the main keeps the
+   classic .container width so .play-shell measurements don't shift. */
+body.play-active .fr-shell {
+    display: block;
+    grid-template-columns: none;
+}
+body.play-active .fr-shell-scrim,
+body.play-active .fr-side,
+body.play-active .fr-topbar { display: none; }
+body.play-active .fr-shell-main { display: block; }
+body.play-active .fr-main {
+    padding: 1.25rem 1.5rem 2.5rem;
+    max-width: 1200px;
 }

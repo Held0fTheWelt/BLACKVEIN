@@ -19,6 +19,7 @@ from app.services.observability_governance_service import (
     update_observability_config,
     write_observability_credential,
 )
+from story_runtime_core.langfuse_tracing_environment import resolve_runtime_langfuse_base_url
 from story_runtime_core.observability_tree_policy import normalize_enabled_observation_trees
 
 # Same handler set as ``tools.mcp_server`` Langfuse verify tools (explicit allow-list).
@@ -234,15 +235,15 @@ def internal_langfuse_credentials():
     Internal endpoint for world-engine / MCP to fetch Langfuse credentials.
 
     Two accepted auth paths (first match wins):
-    1. X-Internal-Config-Token header — world-engine, play-service (no JWT needed)
-    2. Authorization: Bearer <admin-JWT> — MCP operator using BACKEND_BEARER_TOKEN
+    1. X-Internal-Config-Token header — world-engine, play-service, MCP service (raw runtime credentials)
+    2. Authorization: Bearer <admin-JWT> — operator diagnostics only (no raw secret material)
     """
     # Path 1: internal config token
     token = (request.headers.get("X-Internal-Config-Token") or "").strip()
     expected = (current_app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN") or "").strip()
     via_internal_token = bool(token and expected and token == expected)
 
-    # Path 2: admin JWT bearer (MCP with BACKEND_BEARER_TOKEN)
+    # Path 2: admin JWT bearer (operator diagnostics only; never raw secrets)
     via_jwt = False
     if not via_internal_token:
         user = get_current_user()
@@ -268,11 +269,21 @@ def internal_langfuse_credentials():
         public_key = get_observability_credential_for_runtime("public_key")
         secret_key = get_observability_credential_for_runtime("secret_key")
 
+        runtime_base_url, base_url_source = resolve_runtime_langfuse_base_url(config.base_url)
+
+        raw_secret_allowed = via_internal_token
+        enabled_for_caller = config.is_enabled and bool(secret_key) and raw_secret_allowed
+
         return ok({
-            "enabled": config.is_enabled and bool(secret_key),
+            "enabled": enabled_for_caller,
             "public_key": public_key,
-            "secret_key": secret_key,
-            "base_url": config.base_url,
+            "secret_key": secret_key if raw_secret_allowed else None,
+            "secret_key_configured": bool(secret_key),
+            "secret_key_redacted": bool(secret_key and not raw_secret_allowed),
+            "credential_fingerprint": getattr(config, "credential_fingerprint", None),
+            "base_url": runtime_base_url,
+            "configured_base_url": config.base_url,
+            "base_url_source": base_url_source,
             "environment": config.environment,
             "release": config.release,
             "sample_rate": config.sample_rate,

@@ -1,4 +1,4 @@
-# What is World of Shadows?
+# What is Better Tomorrow?
 
 > **Projection governance**
 > contractify-projection:
@@ -10,9 +10,9 @@
 
 ## What it is
 
-**World of Shadows** is a narrative game and community platform delivered as **several cooperating services**. Players use a **public web application**; operators use a **separate admin application**. A **backend** service provides APIs, accounts, and persistence. A **play service** (the **world-engine**) runs **live story sessions**—scene flow, turns, and authoritative session state—according to authored content and strict runtime rules.
+**Better Tomorrow** is the product title for a narrative game and community platform delivered as **several cooperating services**. **World of Shadows** remains the subtitle and world/platform context. Players use a **public web application**; operators use a **separate admin application**. A **backend** service provides APIs, accounts, and persistence. A **play service** (the **world-engine**) runs **live story sessions**—scene flow, turns, and authoritative session state—according to authored content and strict runtime rules.
 
-The repository README also introduces the product line as **Better Tomorrow (World of Shadows)**. This documentation primarily uses **World of Shadows** as the public name.
+Current public-facing surfaces should use **Better Tomorrow** first and **World of Shadows** as subtitle/context. Older roadmap and engineering documents may still use **World of Shadows** as historical shorthand for the platform.
 
 ## What problem it solves
 
@@ -39,5 +39,5 @@ The repository README also introduces the product line as **Better Tomorrow (Wor
 - **World Engine (deep dive):** [World Engine — authoritative runtime and system interactions](../technical/runtime/world_engine_authoritative_runtime_and_system_interactions.md)
 - **How services connect:** [System map: services and data stores](system-map-services-and-data-stores.md)
 - **First dramatic slice:** [God of Carnage as an experience](god-of-carnage-as-an-experience.md)
-- **Plain-language system story:** [How World of Shadows works](how-world-of-shadows-works.md)
+- **Plain-language system story:** [How Better Tomorrow works](how-world-of-shadows-works.md)
 - **Definitions:** [Glossary](../reference/glossary.md)

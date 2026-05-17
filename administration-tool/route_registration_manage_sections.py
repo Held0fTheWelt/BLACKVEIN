@@ -314,6 +314,11 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
         """Central governance console (read-only authority and evidence surfaces)."""
         return render_template("manage/governance_console.html")
 
+    @app.route("/manage/security-governance")
+    def manage_security_governance():
+        """Security governance posture, CSRF matrix, and operator policy controls."""
+        return render_template("manage/security_governance.html")
+
 
 def register_manage_observability_pages(app: Flask) -> None:
     @app.route("/manage/observability-settings")

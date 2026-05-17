@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Datenmodell{% endblock %}
+{% block heading %}Datenmodell &amp; Relationen{% endblock %}
+{% block subheading %}Die wichtigsten Backend-Tabellen und ihre Beziehung zum World-Engine-Runtime-Pfad — bewusst als Prozesslandkarte, nicht als Datenbank-Suchseite.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Was diese View erklärt</h2>
+  <p>Das Backend speichert Identität, Rollen, Spielerprofile, Content-Templates und lokale Bindungen an gestartete Runs. Der autoritative Story-Run selbst sitzt im <strong>world-engine</strong>. Darum ist die wichtigste Frage nicht „welche Tabelle hat wie viele Spalten?“, sondern: <strong>welches Objekt verbindet welchen Prozessschritt?</strong></p>
+  <div class="info-lead-block">
+    <p><strong>Merksatz:</strong> Backend-Daten beantworten „wer darf was starten und womit?“. World-Engine-Daten beantworten „was ist im laufenden Run wirklich passiert?“.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Strukturdiagramm: Spieler startet eine Story</h2>
+  <div class="info-diagram" role="img" aria-label="Datenmodell vom User bis zur World-Engine Story Session">
+    <div class="info-diagram-row">
+      <div class="diagram-node diagram-node--db"><strong>roles</strong><span>Rollen wie user, qa, moderator, admin.</span></div>
+      <div class="diagram-edge">1:n</div>
+      <div class="diagram-node diagram-node--db"><strong>users</strong><span>Login, JWT-Identität, Rolle, Ban-/Aktivstatus.</span></div>
+      <div class="diagram-edge">1:n</div>
+      <div class="diagram-node diagram-node--db"><strong>game_characters</strong><span>Spielerprofil im Spielkontext: Name, Anzeige, Bio, Default.</span></div>
+    </div>
+    <div class="info-diagram-row">
+      <div class="diagram-node diagram-node--db"><strong>game_experience_templates</strong><span>Veröffentlichbare Templates mit JSON-Payload und Governance-Provenance.</span></div>
+      <div class="diagram-edge">startet</div>
+      <div class="diagram-node diagram-node--external"><strong>Play Run</strong><span>World-Engine Run-ID, Lobby und Runtime-Profile-Handoff.</span></div>
+      <div class="diagram-edge">bindet</div>
+      <div class="diagram-node diagram-node--db"><strong>game_save_slots</strong><span>User + Slot-Key + run_id + metadata.runtime_session_id.</span></div>
+    </div>
+    <div class="info-diagram-row">
+      <div class="diagram-node diagram-node--db"><strong>game_save_slots.metadata_json</strong><span>module_id, runtime_session_id, Sprache, Template-Titel.</span></div>
+      <div class="diagram-edge">zeigt auf</div>
+      <div class="diagram-node diagram-node--runtime"><strong>Story Session</strong><span>World-Engine Session-ID, Turn Counter, History, Diagnose.</span></div>
+      <div class="diagram-edge">liefert</div>
+      <div class="diagram-node diagram-node--runtime"><strong>State / Turn Bundle</strong><span>Spieloberfläche, sichtbare Blöcke, Turn-Metadaten.</span></div>
+    </div>
+  </div>
+  <p class="diagram-caption">Die Datenbank hält also nicht „den ganzen Run“. Sie hält vor allem die Identität, das Content-Artefakt und die Bindung, mit der das Backend die richtige World-Engine-Session wiederfindet.</p>
+</section>
+
+<section class="info-section">
+  <h2>Die wichtigsten Tabellen lesbar erklärt</h2>
+  <table class="doc-table" aria-label="Wichtige Datenbanktabellen">
+    <thead><tr><th>Tabelle / Modell</th><th>Wofür sie da ist</th><th>Wichtige Beziehungen</th></tr></thead>
+    <tbody>
+      <tr><td><code>roles</code></td><td>Rollen- und Hierarchiegrundlage für Auth, Admin und Moderation.</td><td><code>roles.id</code> → <code>users.role_id</code>.</td></tr>
+      <tr><td><code>users</code></td><td>Account, Login, JWT-Identität, Ban-/Aktivstatus, Sprache.</td><td>Besitzt Characters, Save Slots, Content-Autorenschaft.</td></tr>
+      <tr><td><code>game_characters</code></td><td>Spielerfigur oder Anzeigeidentität für Play-Flows.</td><td><code>user_id</code> gehört zu User; kann Save Slots zugeordnet sein.</td></tr>
+      <tr><td><code>game_experience_templates</code></td><td>Persistierte Template-Katalogeinträge mit JSON-Payload, Publishing-Status und Governance-Provenance.</td><td><code>created_by_user_id</code> und <code>updated_by_user_id</code> zeigen auf User.</td></tr>
+      <tr><td><code>game_save_slots</code></td><td>Resume-Bindung: User + run_id + Template + optional Character + Runtime-Session-Metadaten.</td><td>Unique pro <code>user_id</code> und <code>slot_key</code>; <code>run_id</code> verbindet zum Play-Service.</td></tr>
+      <tr><td><code>runtime_sessions</code></td><td>Durable Cache für ältere/in-process Runtime-Sessions und Cross-Worker-Rekonstruktion.</td><td>Nicht die Production-Autorität für World-Engine-Runs; als Übergangs-/Bridge-Speicher lesen.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="info-section">
+  <h2>Objektstruktur: was im Save Slot steckt</h2>
+  <div class="info-diagram" role="img" aria-label="GameSaveSlot Objektstruktur">
+    <div class="info-diagram-row--four">
+      <div class="diagram-node diagram-node--db"><strong>user_id</strong><span>Wem gehört der Slot?</span></div>
+      <div class="diagram-edge">+</div>
+      <div class="diagram-node diagram-node--db"><strong>slot_key</strong><span>Deterministisch aus run_id abgeleitet.</span></div>
+      <div class="diagram-edge">+</div>
+      <div class="diagram-node diagram-node--db"><strong>run_id</strong><span>Play-Service Launch-/Continuity-Handle.</span></div>
+      <div class="diagram-edge">+</div>
+      <div class="diagram-node diagram-node--db"><strong>metadata_json</strong><span>runtime_session_id, module_id, Sprache, Provenance.</span></div>
+    </div>
+  </div>
+  <p>Beim Resume sucht das Backend zuerst den Slot für <code>user_id + run_id</code>. Wenn dort eine gültige <code>runtime_session_id</code> steht, fragt es den World-Engine-State ab. Wenn die Engine diese Session nicht mehr kennt, ist der Slot zwar noch da, aber der Runtime-Pfad muss neu gestartet werden.</p>
+</section>
+
+<section class="info-section">
+  <h2>Was bewusst nicht in einer Backend-Tabelle steckt</h2>
+  <ul class="info-check-list">
+    <li><strong>Committed Turn-History:</strong> kommt aus der World-Engine Story Session und deren Diagnose-/History-Struktur.</li>
+    <li><strong>Commit und Readiness:</strong> werden nicht aus Langfuse- oder MCP-Scores abgeleitet.</li>
+    <li><strong>Production-Evidence:</strong> entsteht nur in der passenden Umgebung; lokale Save Slots oder lokale Traces beweisen das nicht.</li>
+    <li><strong>Frontend-Secrets:</strong> sind kein Datenbankthema und dürfen nicht in Browser-Bundles landen.</li>
+  </ul>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu den Abläufen</h2>
+  <ul>
+    <li><a href="{{ url_for('info.runtime_algorithms') }}">Session- und Turn-Algorithmen</a> — wie aus diesen Relationen ein laufender Run wird.</li>
+    <li><a href="{{ url_for('info.runtime_path') }}">Runtime-Pfad</a> — welche Komponente in welchem Schritt autoritativ ist.</li>
+    <li><a href="{{ url_for('info.api_explorer') }}#tag/GameBootstrap">API Explorer — GameBootstrap</a></li>
+  </ul>
+</section>
+{% endblock %}

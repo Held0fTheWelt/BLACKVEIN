@@ -1,11 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Resend Verification{% endblock %}
+{% block title %}Resend Verification — Better Tomorrow{% endblock %}
+{% block body_class %}wos-shell auth-shell{% endblock %}
+{% block topbar_title %}Account · Resend{% endblock %}
+
+{% block page_header %}
+<header class="page-shell-header">
+  <p class="page-eyebrow">// VERIFY</p>
+  <h1 class="page-title">Resend the <span class="page-title-accent">verification</span></h1>
+  <p class="page-lead">No link in your inbox? Trigger a fresh dispatch — old links are revoked the moment a new one is sent.</p>
+</header>
+{% endblock %}
+
 {% block content %}
 <section class="panel narrow">
   <h1>Resend verification</h1>
   <form method="post">
     <label>Email
-      <input type="email" name="email" required>
+      <input type="email" name="email" required autocomplete="email">
     </label>
     <button type="submit">Send link</button>
   </form>

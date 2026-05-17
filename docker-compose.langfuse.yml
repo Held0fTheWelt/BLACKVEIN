@@ -54,11 +54,13 @@ x-langfuse-env: &langfuse-env
   LANGFUSE_INGESTION_CLICKHOUSE_WRITE_INTERVAL_MS: ${LANGFUSE_INGESTION_CLICKHOUSE_WRITE_INTERVAL_MS:-}
   REDIS_HOST: langfuse-redis
   REDIS_PORT: 6379
-  REDIS_AUTH: ${REDIS_PASSWORD:-CHANGEME}
-  REDIS_TLS_ENABLED: ${REDIS_TLS_ENABLED:-false}
-  REDIS_TLS_CA: ${REDIS_TLS_CA:-/certs/ca.crt}
-  REDIS_TLS_CERT: ${REDIS_TLS_CERT:-/certs/redis.crt}
-  REDIS_TLS_KEY: ${REDIS_TLS_KEY:-/certs/redis.key}
+  REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-CHANGEME}
+  REDIS_TLS_ENABLED: ${LANGFUSE_REDIS_TLS_ENABLED:-false}
+  REDIS_TLS_CA_PATH: ${LANGFUSE_REDIS_TLS_CA_PATH:-/certs/langfuse-redis/ca.crt}
+  REDIS_TLS_CERT_PATH: ${LANGFUSE_REDIS_TLS_CERT_PATH:-/certs/langfuse-redis/redis.crt}
+  REDIS_TLS_KEY_PATH: ${LANGFUSE_REDIS_TLS_KEY_PATH:-/certs/langfuse-redis/redis.key}
+  REDIS_TLS_REJECT_UNAUTHORIZED: ${LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED:-true}
+  REDIS_KEY_PREFIX: ${LANGFUSE_REDIS_KEY_PREFIX:-langfuse:}
   EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
   SMTP_CONNECTION_URL: ${SMTP_CONNECTION_URL:-}
 
@@ -186,15 +188,15 @@ services:
     image: docker.io/redis:7
     restart: unless-stopped
     command: >
-      --requirepass ${REDIS_PASSWORD:-CHANGEME}
+      --requirepass ${LANGFUSE_REDIS_PASSWORD:-CHANGEME}
       --maxmemory-policy noeviction
       --appendonly yes
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-CHANGEME}
+      LANGFUSE_REDIS_PASSWORD: ${LANGFUSE_REDIS_PASSWORD:-CHANGEME}
     volumes:
       - langfuse-redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${LANGFUSE_REDIS_PASSWORD}\" ping | grep PONG"]
       interval: 3s
       timeout: 10s
       retries: 10

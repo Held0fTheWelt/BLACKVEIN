@@ -13,6 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency in lightwe
     Engine = Any
 
 from app.runtime.models import RuntimeInstance
+from app.runtime.json_at_rest import JsonAtRestCodec, associated_data
 
 
 class RunStore(Protocol):
@@ -30,36 +31,48 @@ class RunStore(Protocol):
 class JsonRunStore:
     backend_name = "json"
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, codec: JsonAtRestCodec | None = None) -> None:
         self.root = root
+        self.codec = codec or JsonAtRestCodec.plain()
+        self.backend_name = self.codec.backend_name("json")
         self.root.mkdir(parents=True, exist_ok=True)
 
     def path_for(self, run_id: str) -> Path:
-        return self.root / f"{run_id}.json"
+        return self.codec.path_for(self.root, run_id)
+
+    def _aad(self, run_id: str) -> bytes:
+        return associated_data("runtime-run", run_id)
 
     def save(self, instance: RuntimeInstance) -> None:
         destination = self.path_for(instance.id)
-        temp_path = destination.with_suffix(".json.tmp")
-        temp_path.write_text(instance.model_dump_json(indent=2), encoding="utf-8")
+        temp_path = destination.with_suffix(destination.suffix + ".tmp")
+        payload = json.loads(instance.model_dump_json())
+        temp_path.write_text(self.codec.dumps(payload, aad=self._aad(instance.id)), encoding="utf-8")
         temp_path.replace(destination)
 
     def load_all(self) -> list[RuntimeInstance]:
         instances: list[RuntimeInstance] = []
-        for path in sorted(self.root.glob("*.json")):
+        for path in sorted(self.root.glob(f"*{self.codec.extension}")):
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
+                run_id = path.name.removesuffix(self.codec.extension)
+                data = self.codec.loads(path.read_text(encoding="utf-8"), aad=self._aad(run_id))
                 instances.append(RuntimeInstance.model_validate(data))
             except Exception:
                 continue
         return instances
 
     def delete(self, run_id: str) -> None:
-        path = self.path_for(run_id)
-        if path.exists():
-            path.unlink()
+        for suffix in (".json", ".json.enc"):
+            path = self.root / f"{run_id}{suffix}"
+            if path.exists():
+                path.unlink()
 
     def describe(self) -> dict[str, str]:
-        return {"backend": self.backend_name, "root": str(self.root)}
+        return {
+            "backend": self.backend_name,
+            "root": str(self.root),
+            "encrypted_at_rest": "yes" if self.codec.encrypted else "no",
+        }
 
 
 class SqlAlchemyRunStore:
@@ -129,6 +142,8 @@ def build_run_store(*, root: Path, backend: str, url: str | None = None) -> RunS
     backend_name = backend.strip().lower()
     if backend_name == "json":
         return JsonRunStore(root)
+    if backend_name in {"json_aead", "aead_json", "encrypted_json"}:
+        return JsonRunStore(root, codec=JsonAtRestCodec.from_env(required=True))
     if backend_name in {"sqlalchemy", "postgres", "postgresql"}:
         if not url:
             raise ValueError("RUN_STORE_URL is required when using SQL-backed runtime persistence.")

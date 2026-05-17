@@ -62,7 +62,7 @@ CLICKHOUSE_USER=langfuse
 CLICKHOUSE_PASSWORD=CHANGEME
 MINIO_ROOT_USER=langfuse
 MINIO_ROOT_PASSWORD=CHANGEME
-REDIS_PASSWORD=CHANGEME
+LANGFUSE_REDIS_PASSWORD=CHANGEME
 ```
 
 `ENCRYPTION_KEY` must be a 256-bit hex key, equivalent to:
@@ -72,6 +72,48 @@ openssl rand -hex 32
 ```
 
 Do not commit `.env` or real Langfuse project keys.
+
+## Production Redis Hardening
+
+Local Compose keeps the app Redis internal and without a host port; local Langfuse Redis is already password-protected and also internal. Production must go further: app Redis and Langfuse Redis must be separate instances with distinct ACL users, distinct generated passwords, TLS enabled, and no shared Redis hostname.
+
+`docker-up.py` owns the automated setup:
+
+```bash
+python docker-up.py init-production-redis
+python docker-up.py --production-redis up
+```
+
+The init command updates `.env` with:
+
+```env
+APP_REDIS_USERNAME=wos_app
+APP_REDIS_PASSWORD=...
+APP_REDIS_URL=rediss://wos_app:...@redis:6379/0?ssl_cert_reqs=required&ssl_ca_certs=/certs/app-redis/ca.crt
+APP_REDIS_TLS_ENABLED=true
+LANGFUSE_REDIS_USERNAME=langfuse
+LANGFUSE_REDIS_PASSWORD=...
+LANGFUSE_REDIS_CONNECTION_STRING=rediss://langfuse:...@langfuse-redis:6379/0?ssl_cert_reqs=required&ssl_ca_certs=/certs/langfuse-redis/ca.crt
+LANGFUSE_REDIS_TLS_ENABLED=true
+LANGFUSE_REDIS_TLS_REJECT_UNAUTHORIZED=true
+```
+
+It also writes ignored local operational material under `.docker/redis-production/`: Redis ACL files with `default` disabled, generated TLS certificates for the two Redis services, and the shared local CA. The production override is `docker-compose.redis-production.yml`; it switches Redis to TLS-only (`--port 0`, `--tls-port 6379`) and injects `REDIS_URL` into the backend from `APP_REDIS_URL`.
+
+Validate without starting containers:
+
+```bash
+python docker-up.py validate-production-redis
+python docker-up.py --production-redis --dry-run up
+```
+
+For managed production Redis, keep the same contract: use two independent Redis/Valkey instances, two distinct ACL users/passwords, `rediss://` URLs, CA validation enabled, and Langfuse's `maxmemory-policy=noeviction` requirement for its queue/cache Redis. Langfuse documents `REDIS_USERNAME`, `REDIS_AUTH`, `REDIS_CONNECTION_STRING`, and Redis TLS variables in its self-hosted cache configuration.
+
+## Persistence And At-rest Encryption Boundary
+
+Local Langfuse persists data in Docker named volumes for Postgres, ClickHouse, MinIO, and Redis. The Compose file supplies credentials and `ENCRYPTION_KEY`, but it does not declare encrypted Docker volumes. Treat those volumes as encrypted only when the host filesystem, Docker storage root, volume driver, or managed replacement service provides documented encryption.
+
+For the cross-stack evidence and gap plan, see [At-rest encryption evidence and completion plan](security/AT_REST_ENCRYPTION.md).
 
 ## Bootstrap Flow
 
@@ -115,6 +157,8 @@ wos-mcp stdio on host -> LANGFUSE_MCP_BASE_URL=http://localhost:3000
 Frontend services do not receive `LANGFUSE_SECRET_KEY`, `LANGFUSE_PUBLIC_KEY`, or `LANGFUSE_HOST`.
 
 `wos-mcp` usually runs as a host-side stdio process from Cursor/Codex/Claude rather than inside Docker. It therefore cannot resolve Docker DNS names like `langfuse-web`; it uses `LANGFUSE_MCP_BASE_URL` or automatically maps `http://langfuse-web:3000` to the published local URL when running outside a container.
+
+For live runtime calls from Docker containers, the direction is reversed: `http://localhost:3000` points back at the backend/play-service container, not Langfuse. If an operator has stored `http://localhost:3000` in the Administration Center while the runtime is running in Docker, backend/world-engine resolve the runtime API URL from `LANGFUSE_BASE_URL`/`LANGFUSE_HOST` and call `http://langfuse-web:3000`. The stored URL is still reported as `configured_base_url` for diagnostics.
 
 When keys are missing, backend/world-engine stay in no-op observability mode. When Langfuse is unreachable, the SDK errors are diagnostic only; runtime execution continues and no healthy success score is fabricated.
 
@@ -234,7 +278,8 @@ Avoid `down -v` with the full app Compose set unless you also intend to delete a
 ## Troubleshooting
 
 - `localhost:3000` is busy: set `LANGFUSE_WEB_PORT=3001`, `NEXTAUTH_URL=http://localhost:3001`, and restart.
-- Traces do not appear: confirm backend observability config is enabled and world-engine can fetch credentials from `/api/v1/internal/observability/langfuse-credentials`.
+- Runtime cannot connect but browser can open Langfuse: check whether the backend admin Base URL is `localhost`; containers must use `http://langfuse-web:3000`, and the internal credentials endpoint reports both `base_url` and `configured_base_url`.
+- Traces do not appear: confirm backend observability config is enabled and world-engine/MCP can fetch credentials from `/api/v1/internal/observability/langfuse-credentials` with `X-Internal-Config-Token`. Admin bearer tokens only receive redacted diagnostics and cannot fetch the Langfuse secret key.
 - Langfuse starts slowly: ClickHouse/Postgres/MinIO must become healthy before web/worker are ready.
 - Media upload issues: keep `LANGFUSE_MINIO_API_PORT=9090` exposed on localhost for local browser uploads.
 - Evaluators do not run: configure an LLM connection in Langfuse UI and target local observations/traces, not `Environment=live`.

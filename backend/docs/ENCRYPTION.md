@@ -1,5 +1,7 @@
 # Database Export Encryption Feature
 
+This document covers **export artifact encryption only**. It does not mean the live SQLite database file, Docker volumes, runtime JSON stores, Redis append-only files, Langfuse volumes, or backups are automatically encrypted at rest. For the full current evidence, gaps, and completion plan, see [`docs/security/AT_REST_ENCRYPTION.md`](../../docs/security/AT_REST_ENCRYPTION.md).
+
 This document describes the AES-256 encryption feature for protecting exported database data at rest.
 
 ## Overview

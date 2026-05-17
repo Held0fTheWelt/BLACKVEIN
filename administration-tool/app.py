@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-from flask import Flask, request, session
+from flask import Flask, request, send_from_directory, session
 import secrets  # Import the secrets module
 
 # Backend API base URL (no trailing slash). Used for login link and for frontend JS.
@@ -325,6 +325,10 @@ def create_app(test_config=None):
 
     # Register all routes and handlers
     _register_routes(app)
+
+    @app.get("/favicon.ico")
+    def favicon():
+        return send_from_directory(app.static_folder, "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
     return app
 

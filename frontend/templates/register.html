@@ -1,20 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Register{% endblock %}
+{% block title %}Register — Better Tomorrow{% endblock %}
+{% block body_class %}wos-shell auth-shell{% endblock %}
+{% block topbar_title %}Account · Register{% endblock %}
+
+{% block page_header %}
+<header class="page-shell-header">
+  <p class="page-eyebrow">// ENROLMENT</p>
+  <h1 class="page-title">Claim a place in the <span class="page-title-accent">shadow</span></h1>
+  <p class="page-lead">A new operator profile takes seconds. The story will remember you forever.</p>
+</header>
+{% endblock %}
+
 {% block content %}
 <section class="panel narrow">
   <h1>Create account</h1>
   <form method="post">
     <label>Username
-      <input name="username" required>
+      <input name="username" required autocomplete="username">
     </label>
     <label>Email
-      <input type="email" name="email">
+      <input type="email" name="email" autocomplete="email">
     </label>
     <label>Password
-      <input type="password" name="password" required>
+      <input type="password" name="password" required autocomplete="new-password">
     </label>
     <label>Confirm password
-      <input type="password" name="password_confirm" required>
+      <input type="password" name="password_confirm" required autocomplete="new-password">
     </label>
     <button type="submit">Register</button>
   </form>

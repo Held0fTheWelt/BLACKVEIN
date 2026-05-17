@@ -292,7 +292,7 @@ def build_governed_model_adapters(config: dict[str, Any]) -> dict[str, BaseModel
                     print(f"DEBUG: Exception fetching credential for {provider_id}: {type(e).__name__}", flush=True)
 
         print(f"DEBUG: Building adapter for {provider_id} ({provider_type}): api_key_present={bool(api_key)}", flush=True)
-        if provider_type == "openai":
+        if provider_type in {"openai", "openrouter"}:
             adapters[provider_id] = OpenAIChatAdapter(base_url=base_url, api_key=api_key)
         elif provider_type == "ollama":
             adapters[provider_id] = OllamaAdapter(base_url=base_url)

@@ -61,6 +61,12 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0041](adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) | Controlled Runtime Capability Authority | Not Finished |
 | [ADR-0042](adr-0042-meta-narrative-awareness-opt-in.md) | Opt-in Meta-Narrative Awareness Runtime Aspect | Accepted |
 | [ADR-0043](adr-0043-adaptive-meta-narrative-awareness.md) | Adaptive Meta-Narrative Awareness and Fourth-Wall Play | Accepted |
+| [ADR-0047](adr-0047-at-rest-encryption-evidence-boundary.md) | At-rest encryption evidence boundary | Not Finished |
+| [ADR-0048](adr-0048-central-route-and-mcp-rate-limit-inventory.md) | Central route and MCP rate-limit inventory | Accepted |
+| [ADR-0049](adr-0049-provider-credential-governance-and-local-evaluator-evidence.md) | Provider credential governance and local evaluator evidence | Accepted |
+| [ADR-0050](adr-0050-security-governance-browser-mutation-boundaries.md) | Security governance for browser mutation boundaries | Accepted |
+| [ADR-0051](adr-0051-storage-layer-encryption-governance.md) | Storage-layer encryption governance | Accepted |
+| [ADR-0052](adr-0052-security-governance-admin-control-plane.md) | Security Governance Admin Control Plane | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
 

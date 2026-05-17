@@ -514,6 +514,40 @@ class TestProxyHeaderForwarding:
         assert "Set-Cookie" not in recorded["headers"]
 
     @pytest.mark.security
+    def test_proxy_strips_cookie_headers_on_mutating_requests(self, monkeypatch):
+        """Verify mutating proxy calls never forward browser cookie credentials."""
+        module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
+        recorded = {}
+
+        def _urlopen_stub_tpc_020b(request, timeout=0):
+            recorded["method"] = request.get_method()
+            recorded["headers"] = dict(request.header_items())
+            recorded["body"] = request.data
+            return DummyUpstreamResponse(b'{"ok": true}', status=200)
+
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_020b)
+        client = module.app.test_client()
+
+        response = client.post(
+            "/_proxy/api/v1/forum/threads",
+            data=b'{"title":"Thread"}',
+            headers={
+                "Authorization": "Bearer admin-token",
+                "Content-Type": "application/json",
+                "Cookie": "session=admin-session",
+                "Set-Cookie": "session=attacker",
+            },
+        )
+
+        assert response.status_code == 200
+        assert recorded["method"] == "POST"
+        assert recorded["body"] == b'{"title":"Thread"}'
+        assert recorded["headers"]["Authorization"] == "Bearer admin-token"
+        header_names = {name.lower() for name in recorded["headers"]}
+        assert "cookie" not in header_names
+        assert "set-cookie" not in header_names
+
+    @pytest.mark.security
     def test_proxy_strips_host_header(self, monkeypatch):
         """Verify Host header is NOT forwarded (prevents host injection)."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")

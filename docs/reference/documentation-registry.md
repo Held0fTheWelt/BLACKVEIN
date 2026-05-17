@@ -62,6 +62,10 @@ See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 a
 | [operations-runbook.md](../admin/operations-runbook.md) | Ops | When run procedures change |
 | [monitoring-logging-and-incident-response.md](../admin/monitoring-logging-and-incident-response.md) | Ops/SRE | When observability stack changes |
 | [security-and-compliance-overview.md](../admin/security-and-compliance-overview.md) | Security owner | When threat model or controls change |
+| [security-governance.md](../admin/security-governance.md) | Security owner + Ops/SRE | When admin governance fields, secret-store posture, CSRF/proxy policy, or Redis hardening controls change |
+| [security/AT_REST_ENCRYPTION.md](../security/AT_REST_ENCRYPTION.md) | Security owner + Ops/SRE | When storage controls, persisted surfaces, or encryption evidence change |
+| [security/rate-limit-inventory.md](../security/rate-limit-inventory.md) | Security owner + Backend/MCP owners | When route, tool, limiter source, keying, or info-surface evidence changes |
+| [security/PROVIDER_CREDENTIAL_GOVERNANCE.md](../security/PROVIDER_CREDENTIAL_GOVERNANCE.md) | Security owner + AI/runtime lead | When provider access, evaluator evidence, or secret-manager boundaries change |
 | [release-and-quality-gates-for-operators.md](../admin/release-and-quality-gates-for-operators.md) | Release manager | When release policy changes |
 
 ## Developer
@@ -120,6 +124,12 @@ See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 a
 | [governance/README.md](../governance/README.md) | Tech lead | When ADR set changes |
 | [ADR/adr-template.md](../ADR/adr-template.md) | Tech lead | Rare |
 | [ADR/adr-0001-runtime-authority-in-world-engine.md](../ADR/adr-0001-runtime-authority-in-world-engine.md) | Architecture council | When superseding the decision |
+| [ADR/adr-0047-at-rest-encryption-evidence-boundary.md](../ADR/adr-0047-at-rest-encryption-evidence-boundary.md) | Security owner + Ops/SRE | When at-rest encryption claims, persisted surfaces, or evidence-pack requirements change |
+| [ADR/adr-0048-central-route-and-mcp-rate-limit-inventory.md](../ADR/adr-0048-central-route-and-mcp-rate-limit-inventory.md) | Security owner + Backend/MCP owners | When rate-limit inventory ownership, enforcement source, or info-surface requirements change |
+| [ADR/adr-0049-provider-credential-governance-and-local-evaluator-evidence.md](../ADR/adr-0049-provider-credential-governance-and-local-evaluator-evidence.md) | Security owner + AI/runtime lead | When provider credential governance or local evaluator evidence rules change |
+| [ADR/adr-0050-security-governance-browser-mutation-boundaries.md](../ADR/adr-0050-security-governance-browser-mutation-boundaries.md) | Security owner + Ops/SRE | When the admin governance control plane, browser mutation boundaries, or secret-store/Redis governance requirements change |
+| [ADR/adr-0051-storage-layer-encryption-governance.md](../ADR/adr-0051-storage-layer-encryption-governance.md) | Security owner + Ops/SRE | When storage-layer encryption evidence fields, diagnosis, or persisted surface coverage changes |
+| [ADR/adr-0052-security-governance-admin-control-plane.md](../ADR/adr-0052-security-governance-admin-control-plane.md) | Security owner + Ops/SRE | When the administration security governance control plane, editable policy fields, or Redis hardening gates change |
 
 ## Reference
 

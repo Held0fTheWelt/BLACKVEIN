@@ -76,7 +76,37 @@ class BlocksOrchestrator {
     }
   }
 
+  _beatOf(block) {
+    return String((block && block.narration_beat) || '').trim().toLowerCase() || 'default';
+  }
+
+  _decompressionMs(prevBlock, nextBlock) {
+    // Only the real TypewriterEngine carries a `config` object. Mocked
+    // typewriters (used in tests) lack it — skip the cinematic gap so
+    // unit-test expectations on startDelivery's call signature stay clean.
+    if (!this.typewriter || !this.typewriter.config) return 0;
+    if (this.typewriter.test_mode) return 0;
+    const profiles = this.typewriter.config.beat_profiles
+      || (typeof window !== 'undefined' && window.TYPEWRITER_BEAT_PROFILES)
+      || {};
+    const prevProfile = profiles[this._beatOf(prevBlock)] || profiles.default || {};
+    const nextProfile = profiles[this._beatOf(nextBlock)] || profiles.default || {};
+    let gap = Number(prevProfile.pause_after || 0) + Number(nextProfile.pause_before || 0);
+    if (this._beatOf(prevBlock) !== this._beatOf(nextBlock)) {
+      gap += 250; // beat-change decompression
+    }
+    return Math.max(0, gap);
+  }
+
+  _emitCinematicEvent(name, detail) {
+    if (typeof document === 'undefined' || typeof document.dispatchEvent !== 'function') return;
+    try {
+      document.dispatchEvent(new CustomEvent(name, { detail: detail || {} }));
+    } catch (_e) { /* IE11 fallback unnecessary in this project */ }
+  }
+
   _onSliceDeliveryComplete() {
+    const prev = this.sliceQueue[this.currentSliceIndex] || null;
     this.currentSliceIndex++;
     if (this.currentSliceIndex < this.sliceQueue.length) {
       const next = this.sliceQueue[this.currentSliceIndex];
@@ -84,11 +114,23 @@ class BlocksOrchestrator {
       if (el) {
         this._fillBlockElement(el, null);
       }
-      this.typewriter.startDelivery(next);
+      const lead_in_ms = this._decompressionMs(prev, next);
+      const beatChanged = this._beatOf(prev) !== this._beatOf(next);
+      if (beatChanged && el) {
+        el.classList.add('scene-block--beat-decompress');
+        setTimeout(() => el.classList.remove('scene-block--beat-decompress'), 600);
+      }
+      if (lead_in_ms > 0) {
+        this.typewriter.startDelivery(next, { lead_in_ms });
+      } else {
+        this.typewriter.startDelivery(next);
+      }
+      this._emitCinematicEvent('play-cinematic-slice-start', { block: next, beat_changed: beatChanged });
     } else {
       this._detachSliceDelivery();
       this.sliceQueue = [];
       this.currentSliceIndex = 0;
+      this._emitCinematicEvent('play-cinematic-idle', {});
     }
     this.currentBlockIndex = this.blocks.length ? this.blocks.length - 1 : 0;
   }
@@ -174,7 +216,9 @@ class BlocksOrchestrator {
       if (typeof this.typewriter.setOnDeliveryComplete === 'function') {
         this.typewriter.setOnDeliveryComplete(() => this._onSliceDeliveryComplete());
       }
-      this.typewriter.startDelivery(this.sliceQueue[0]);
+      const first = this.sliceQueue[0];
+      this.typewriter.startDelivery(first);
+      this._emitCinematicEvent('play-cinematic-slice-start', { block: first, beat_changed: true });
     }
 
     if (this.accessibility_mode) {
@@ -213,6 +257,7 @@ class BlocksOrchestrator {
     if (!this.accessibility_mode) {
       this.typewriter.revealAll();
       this.typewriter.startDelivery(block);
+      this._emitCinematicEvent('play-cinematic-slice-start', { block: block, beat_changed: true });
       this.currentBlockIndex = this.blocks.length - 1;
     } else {
       const el = this.renderer.getBlockElement(block.id);

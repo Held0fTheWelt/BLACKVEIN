@@ -343,6 +343,48 @@ def test_refresh_backend_config_updates_observation_trees_without_flushing_clien
     assert client.flushed is False
 
 
+def test_apply_backend_credentials_maps_localhost_to_docker_langfuse_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = False
+    adapter._public_key = ""
+    adapter._secret_key = ""
+    adapter._base_url = "https://cloud.langfuse.com"
+    adapter._release = "unknown"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(
+        environment="development",
+        release="unknown",
+        sample_rate=1.0,
+        enabled_observation_trees=["minimal"],
+    )
+    adapter._enabled_observation_trees = ["minimal"]
+    adapter._clients = {}
+
+    monkeypatch.setenv("WOS_WORLD_ENGINE_RUNNING_IN_DOCKER", "1")
+    monkeypatch.setenv("LANGFUSE_BASE_URL", "http://langfuse-web:3000")
+    monkeypatch.setattr(adapter, "_get_client", lambda _environment: object())
+
+    adapter._apply_backend_credentials(
+        {
+            "enabled": True,
+            "public_key": "pk-live",
+            "secret_key": "sk-live",
+            "base_url": "http://localhost:3000",
+            "environment": "local",
+            "release": "r1",
+            "sample_rate": 1.0,
+            "enabled_observation_trees": ["minimal"],
+        }
+    )
+
+    assert adapter.is_ready is True
+    assert adapter._base_url == "http://langfuse-web:3000"
+
+
 def test_start_trace_force_refreshes_tree_policy_into_root_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     from types import SimpleNamespace
 
@@ -511,7 +553,9 @@ def test_record_adr0041_langfuse_scores_are_local_only_scores() -> None:
     for call in client.create_score.call_args_list:
         metadata = call.kwargs["metadata"]
         assert metadata["score_origin"] == "adr0041_runtime_intelligence"
+        assert metadata["evidence_scope"] == "local_langfuse"
         assert metadata["proof_level"] == "local_only"
+        assert metadata["local_only"] is True
         assert metadata["live_or_staging_evidence"] is False
         assert "session_id" not in call.kwargs
 

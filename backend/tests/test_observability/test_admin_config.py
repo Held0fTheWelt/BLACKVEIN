@@ -551,6 +551,44 @@ class TestServiceLayerFunctions:
         assert calls == ["http://localhost:3000"]
         assert "Connection refused" in str(issue)
 
+    def test_verify_langfuse_uses_docker_runtime_url_for_localhost_config(
+        self,
+        db_session,
+        monkeypatch,
+    ):
+        """Backend connection tests use service DNS when Docker runtime stores a host URL."""
+        config_obj = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="http://localhost:3000",
+        )
+        db.session.add(config_obj)
+        db.session.commit()
+        write_observability_credential(public_key="pk-lf-test", secret_key="sk-lf-test", actor="test")
+
+        calls: list[str] = []
+
+        def fake_projects_for_host(*, public_key, secret_key, base_url):
+            calls.append(base_url)
+            return False, [], "[Errno 111] Connection refused"
+
+        monkeypatch.setenv("WOS_BACKEND_RUNNING_IN_DOCKER", "1")
+        monkeypatch.setenv("LANGFUSE_BASE_URL", "http://langfuse-web:3000")
+        monkeypatch.setattr(
+            "app.services.observability_governance_service._langfuse_projects_for_host",
+            fake_projects_for_host,
+        )
+
+        result = verify_langfuse_runtime_connectivity()
+
+        assert result["ok"] is False
+        assert result["base_url"] == "http://langfuse-web:3000"
+        assert result["configured_base_url"] == "http://localhost:3000"
+        assert result["base_url_source"] == "docker_service_env_for_localhost"
+        assert calls == ["http://langfuse-web:3000"]
+
     def test_cloud_langfuse_connection_still_checks_alternate_region(self, monkeypatch):
         """Cloud credentials still get the EU/US mismatch hint."""
         calls: list[str] = []

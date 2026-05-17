@@ -5,12 +5,12 @@ Accepted
 
 ## Implementation Status
 
-**Implemented at policy level; rate-limiting and log-hashing not separately verified as automated enforcement.**
+**Implemented at policy level; MCP rate-limiting is verified by the central limit inventory and MCP rate-limit tests. Log-hashing remains governed by separate logging coverage.**
 
 - Phase A MCP is read/preview-only for operator workflows; write operations are not exposed through the MCP tool set.
 - Bearer token authentication (`Authorization: Bearer <SERVICE_TOKEN>`) is used for backend calls per the ADR.
 - Tokens are stored in local config, not committed to repo.
-- Rate limiting (30 calls/min per token) and request-body hashing in logs: these are documented policy constraints; automated enforcement in the MCP server was not verified in code search.
+- Rate limiting (30 calls/min per token) is enforced in `tools/mcp_server/server.py`, sourced from `ai_stack/limit_inventory.py`, and mirrored per tool in `tools/list` metadata. Request-body hashing in logs remains a separate logging constraint.
 - Status promoted from "Proposed" because the Phase A security posture is in force and the MCP server is operational.
 - Review if rate limiting is not implemented in `tools/mcp_server/` before expanding Phase A scope.
 
@@ -58,7 +58,7 @@ flowchart TD
 
 ## Testing
 
-Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
+Contract / unit coverage as cited in **References**. Rate-limit drift is covered by `tools/mcp_server/tests/test_rate_limit.py` and the backend info inventory tests. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

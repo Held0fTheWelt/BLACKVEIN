@@ -1,10 +1,10 @@
-# AI stack in World of Shadows — Easy system explainer
+# AI stack in Better Tomorrow — Easy system explainer
 
 ## Title and purpose
 
-This document explains **how the AI-related parts of World of Shadows fit together**: models, retrieval, orchestration libraries, the backend, the **World Engine**, **MCP**, and what the **player** actually sees.
+This document explains **how the AI-related parts of Better Tomorrow fit together**: models, retrieval, orchestration libraries, the backend, the **World Engine**, **MCP**, and what the **player** actually sees. World of Shadows remains the subtitle and world/platform context.
 
-It is **connected explanation**, not a buzzword list. For “how to start the repo,” see [Getting started with World of Shadows](getting_started_with_world_of_shadows.md). For the play service alone, see [World Engine — easy runbook](world_engine_runbook_easy.md).
+It is **connected explanation**, not a buzzword list. For “how to start the repo,” see [Getting started with Better Tomorrow](getting_started_with_world_of_shadows.md). For the play service alone, see [World Engine — easy runbook](world_engine_runbook_easy.md).
 
 ---
 

@@ -1,6 +1,6 @@
 # World of Shadows – Wiki
 
-Welcome to the **World of Shadows** (Blackveign) wiki.
+Welcome to the **World of Shadows** (Better Tomorrow) wiki.
 
 ## About the project
 

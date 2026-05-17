@@ -1,4 +1,4 @@
-# Getting started with World of Shadows — Easy tutorial
+# Getting started with Better Tomorrow — Easy tutorial
 
 ## Title and purpose
 
@@ -21,7 +21,7 @@ If your checkout differs from `main`, re-check those files first.
 
 ---
 
-## What World of Shadows consists of
+## What Better Tomorrow consists of
 
 ### What this section helps you do
 
@@ -29,7 +29,7 @@ Build a simple mental map so you do not open the wrong browser tab and wonder wh
 
 ### Simple explanation
 
-World of Shadows is **several programs that work together**:
+Better Tomorrow is **several programs that work together**. World of Shadows is the subtitle and world/platform context:
 
 - **Frontend** — what players use in the browser (login, game menu, play screen).
 - **Backend** — accounts, APIs, database, and the “front door” that talks to the play service for you.
@@ -63,7 +63,7 @@ You will pick **one** startup path (Docker recommended), bring services up, and 
 
 ### Big picture — the parts that talk to each other
 
-**Title:** World of Shadows — main runnable services.
+**Title:** Better Tomorrow — main runnable services.
 
 ```mermaid
 flowchart TB
@@ -127,8 +127,9 @@ When you run services **bare metal** without Docker, the backend defaults to **`
 ### What to do now
 
 1. Install **Docker Desktop** (or a compatible engine).
-2. From the repo root, copy environment template: **`.env.example` → `.env`** and set at least **`SECRET_KEY`** and **`JWT_SECRET_KEY`** (comments in `.env.example` explain length).
-3. Run `docker compose up --build` and wait until logs show the services listening.
+2. From the repo root, run **`python docker-up.py init-env`**. This creates **`.env`** with local stable secrets.
+3. Set provider keys such as **`OPENAI_API_KEY`** in **`.env`** only if you need those AI features.
+4. Run **`python docker-up.py up`** and wait until logs show the services listening.
 
 ### What to expect next
 
@@ -166,10 +167,10 @@ Avoid “blank page” or “CORS” failures on first load.
 
 ### Simple explanation
 
-- **Secrets:** backend needs strong enough **`JWT_SECRET_KEY`** (see `.env.example`).
+- **Secrets:** backend needs strong local secrets. `docker-up.py init-env` creates them from `.env.example` placeholders.
 - **Cross-origin (CORS):** when frontend and backend are different ports, backend must list frontend (and admin) origins. **Compose already sets** `CORS_ORIGINS` for `5001` and `5002` in `docker-compose.yml`.
-- **Backend ↔ play-service:** they must share **`PLAY_SERVICE_SHARED_SECRET`** (backend) and **`PLAY_SERVICE_SECRET`** (world-engine)—Compose sets matching `local-dev-shared-secret` values.
-- **Internal API key:** `PLAY_SERVICE_INTERNAL_API_KEY` / `X-Play-Service-Key`—Compose sets `local-dev-internal-key` on both sides.
+- **Backend ↔ play-service:** they must share **`PLAY_SERVICE_SHARED_SECRET`** (backend) and **`PLAY_SERVICE_SECRET`** (world-engine). Docker-Up materializes matching local values in `.env`.
+- **Internal API key:** `PLAY_SERVICE_INTERNAL_API_KEY` / `X-Play-Service-Key` is also materialized locally by Docker-Up.
 
 ### What this means in the actual repository
 
@@ -178,7 +179,7 @@ Avoid “blank page” or “CORS” failures on first load.
 
 ### What to do now
 
-For Compose: ensure **`.env`** exists with valid secrets. For bare metal: copy the “Cross-service configuration” block from **`README.md`** or **`docs/development/LocalDevelopment.md`** into each service’s environment.
+For Compose: use **`python docker-up.py init-env`** or **`python docker-up.py up`** so **`.env`** exists with valid local secrets. For bare metal: copy the “Cross-service configuration” block from **`README.md`** or **`docs/development/LocalDevelopment.md`** into each service’s environment.
 
 ### What to expect next
 
@@ -195,9 +196,9 @@ Browser calls from `localhost:5002` to `localhost:8000` succeed without network 
 **Commands (repo root):**
 
 ```bash
-cp .env.example .env
-# Edit .env: set SECRET_KEY and JWT_SECRET_KEY at minimum
-docker compose up --build
+python docker-up.py init-env
+# Optional: edit .env and set provider keys such as OPENAI_API_KEY
+python docker-up.py up
 ```
 
 **Source:** `docker-compose.yml`, `README.md`.

@@ -1,18 +1,19 @@
 {% extends "base.html" %}
-{% block title %}World of Shadows – BETTER TOMORROW{% endblock %}
+{% block title %}Better Tomorrow — World of Shadows{% endblock %}
 {% block body_class %}landing{% endblock %}
+
+{% block matrix_layer %}{% endblock %}
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='lightbox.js') }}" defer></script>
 <script src="{{ url_for('static', filename='splitting.min.js') }}" defer></script>
-<script src="{{ url_for('static', filename='matrix-layer.js') }}" defer></script>
 <script src="{{ url_for('static', filename='landing.js') }}" defer></script>
 <script src="{{ url_for('static', filename='splitting-init.js') }}" defer></script>
 <script src="{{ url_for('static', filename='slogan-rotator.js') }}" defer></script>
 <script src="{{ url_for('static', filename='void-slogan-rotator.js') }}" defer></script>
 {% endblock %}
 
-{% block site_main %}
+{% block shell %}
 <div class="matrix-layer" id="matrix-layer" aria-hidden="true">
   <canvas id="matrixCanvas" class="matrix-layer__canvas"></canvas>
   <div class="matrix-layer__glow"></div>
@@ -48,12 +49,18 @@
         </div>
       </div>
       <div class="hero-actions">
+        {% if session.get("access_token") %}
+        <a href="{{ url_for('frontend.news') }}" class="btn btn-primary btn-lg">
+          Get Started
+        </a>
+        {% else %}
         <a href="{{ url_for('frontend.register') }}" class="btn btn-primary btn-lg">
-          Get started
+          Get Started
         </a>
         <a href="{{ url_for('frontend.login') }}" class="btn btn-ghost btn-lg">
           Sign in
         </a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -158,9 +165,15 @@
         <span>the </span><span class="void-glitch-word void-glitch-word--shadows void-title-accent" data-splitting>shadows?</span>
       </span>
     </h2>
+    {% if session.get("access_token") %}
+    <a href="{{ url_for('frontend.news') }}" class="btn btn-void-cta">
+      Get Started
+    </a>
+    {% else %}
     <a href="{{ url_for('frontend.register') }}" class="btn btn-void-cta">
       Create your account
     </a>
+    {% endif %}
   </div>
   <div class="void-footer-legal">
     <span class="mono">BETTER TOMORROW</span>
@@ -182,7 +195,7 @@
     <a href="{{ url_for('frontend.dashboard') }}" class="dock-link dock-link--active">Dashboard</a>
     {% else %}
     <a href="{{ url_for('frontend.login') }}" class="dock-link">Sign in</a>
-    <a href="{{ url_for('frontend.register') }}" class="dock-cta">Get started</a>
+    <a href="{{ url_for('frontend.register') }}" class="dock-cta">Get Started</a>
     {% endif %}
   </div>
 </nav>

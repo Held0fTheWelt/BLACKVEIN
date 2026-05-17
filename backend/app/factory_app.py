@@ -111,6 +111,7 @@ def _initialize_observability(app: Flask) -> None:
             get_observability_config,
             get_observability_credential_for_runtime,
         )
+        from story_runtime_core.langfuse_tracing_environment import resolve_runtime_langfuse_base_url
 
         db_config = get_observability_config()
 
@@ -131,7 +132,9 @@ def _initialize_observability(app: Flask) -> None:
         config.enabled = True
         config.public_key = public_key or ""
         config.secret_key = secret_key
-        config.base_url = db_config.get("base_url", "https://cloud.langfuse.com")
+        config.base_url, _base_url_source = resolve_runtime_langfuse_base_url(
+            db_config.get("base_url", "https://cloud.langfuse.com")
+        )
         config.environment = db_config.get("environment", "development")
         config.release = db_config.get("release", "unknown")
         config.sample_rate = float(db_config.get("sample_rate", 1.0))

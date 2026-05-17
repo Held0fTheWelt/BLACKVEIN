@@ -467,13 +467,14 @@ body {
     --radius-lg: 16px;
     --shadow-1: 0 6px 16px rgba(4, 8, 18, 0.22);
     --shadow-2: 0 16px 38px rgba(4, 8, 18, 0.34);
-}
-
-body {
-    background:
+    --shared-view-background:
         radial-gradient(circle at 0% -20%, rgba(127, 99, 217, 0.18), transparent 48%),
         radial-gradient(circle at 100% -30%, rgba(34, 154, 214, 0.10), transparent 44%),
         var(--bg);
+}
+
+body {
+    background: var(--shared-view-background);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;

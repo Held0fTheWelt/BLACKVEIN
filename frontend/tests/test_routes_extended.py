@@ -25,7 +25,7 @@ def test_login_get_redirects_when_already_logged_in(client):
         sess["access_token"] = "t"
     r = client.get("/login", follow_redirects=False)
     assert r.status_code == 302
-    assert "/dashboard" in r.headers["Location"]
+    assert "/news" in r.headers["Location"]
 
 
 def test_login_get_shows_form(client):

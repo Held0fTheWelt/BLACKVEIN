@@ -55,9 +55,11 @@ Operational procedures for common tasks and incidents.
 
 ## 🔐 Security Operations
 
-- **Secrets Management:** Use environment variables, never commit secrets
+- **Secrets Management:** Keep local `.env` for development bootstrap; in production inject the same variables from a dedicated secret store with rotation, audit, and access separation
+- **Provider Credentials:** Backend/play-service provider keys must flow through [provider credential governance](../security/PROVIDER_CREDENTIAL_GOVERNANCE.md) or a production secret-manager path, not direct Compose key inheritance
 - **Access Control:** SSH keys for server access, API keys for services
 - **Audit Logging:** All administrative actions logged
+- **At-rest encryption:** Current repository evidence is partial; follow the [at-rest encryption evidence and completion plan](../security/AT_REST_ENCRYPTION.md) before making a full encryption claim
 - **See:** [Security Guide](../security/README.md)
 
 ## 📈 Performance & Scaling
@@ -83,8 +85,9 @@ Operational procedures for common tasks and incidents.
 
 ### Backup Strategy
 - Database: Daily snapshots to S3
+- Encryption: Backups must use documented server-side or client-side encryption before production use
 - Code: GitHub (distributed VCS)
-- Configuration: Encrypted secrets vault
+- Configuration: Dedicated secrets vault/secret store with tested restore and rotation procedures
 
 ### Recovery Procedures
 1. **Data loss:** Restore from latest snapshot

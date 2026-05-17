@@ -89,6 +89,44 @@ class TestLangfuseCredentialsEndpoint:
         assert data["redaction_mode"] == "strict"
         assert data["enabled_observation_trees"] == ["minimal", "graph_path", "model_io", "retrieval"]
 
+    def test_internal_credentials_maps_localhost_to_docker_runtime_url(
+        self,
+        client,
+        app,
+        db_session,
+        monkeypatch,
+    ):
+        """Runtime callers inside Docker receive service DNS, not host-local browser URLs."""
+        token = app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
+        monkeypatch.setenv("WOS_BACKEND_RUNNING_IN_DOCKER", "1")
+        monkeypatch.setenv("LANGFUSE_BASE_URL", "http://langfuse-web:3000")
+
+        config = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="http://localhost:3000",
+        )
+        db.session.add(config)
+        db.session.commit()
+
+        write_observability_credential(
+            public_key="pk_local_runtime",
+            secret_key="sk_local_runtime",
+            actor="test_system",
+        )
+
+        resp = client.get(
+            "/api/v1/internal/observability/langfuse-credentials",
+            headers={"X-Internal-Config-Token": token},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert data["base_url"] == "http://langfuse-web:3000"
+        assert data["configured_base_url"] == "http://localhost:3000"
+        assert data["base_url_source"] == "docker_service_env_for_localhost"
+
     def test_internal_credentials_endpoint_returns_empty_when_enabled_but_no_secret(self, client, app, db_session):
         """When enabled but no secret key, credentials are marked as not ready."""
         token = app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
@@ -117,10 +155,10 @@ class TestLangfuseCredentialsEndpoint:
 
 
 class TestLangfuseCredentialsEndpointJwtAuth:
-    """Credentials endpoint: admin JWT bearer path (MCP / BACKEND_BEARER_TOKEN)."""
+    """Credentials endpoint: admin JWT bearer path is diagnostics-only."""
 
-    def test_admin_jwt_can_fetch_credentials_when_enabled(self, client, admin_jwt, db_session):
-        """Admin JWT bearer token is accepted as an alternative to X-Internal-Config-Token."""
+    def test_admin_jwt_cannot_fetch_raw_secret_when_enabled(self, client, admin_jwt, db_session):
+        """Admin JWT bearer token must not expose raw Langfuse secret material."""
         config = ObservabilityConfig(
             service_id="langfuse",
             service_type="langfuse",
@@ -143,9 +181,12 @@ class TestLangfuseCredentialsEndpointJwtAuth:
         )
         assert resp.status_code == 200
         data = resp.get_json()["data"]
-        assert data["enabled"] is True
+        assert data["enabled"] is False
         assert data["public_key"] == "pk_mcp_test"
-        assert data["secret_key"] == "sk_mcp_test"
+        assert data["secret_key"] is None
+        assert data["secret_key_configured"] is True
+        assert data["secret_key_redacted"] is True
+        assert data["credential_fingerprint"]
 
     def test_non_admin_jwt_is_rejected(self, client, auth_headers):
         """Regular user JWT is rejected — endpoint requires admin role."""

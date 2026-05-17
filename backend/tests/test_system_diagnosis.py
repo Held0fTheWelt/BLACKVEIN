@@ -157,6 +157,7 @@ def test_diagnosis_payload_shape(client, app, moderator_headers, monkeypatch):
     assert "backend_api" in ids
     assert "database" in ids
     assert "play_service_configuration" in ids
+    assert "storage_layer_encryption" in ids
 
 
 def test_diagnosis_cache_hit(client, app, moderator_headers, monkeypatch):

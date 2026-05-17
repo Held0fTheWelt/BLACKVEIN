@@ -1,20 +1,110 @@
 {% extends "base.html" %}
+{% from "info_sections.html" import method_mix %}
 {% block main_class %} backend-info-main--wide{% endblock %}
 {% block title %}API Explorer{% endblock %}
 {% block heading %}API Explorer{% endblock %}
-{% block subheading %}Durchsuchbare OpenAPI-Ansicht aller <code>/api/v1</code>-Routen — Schemas und Tags; Beispiele und Feintuning in der Referenz.{% endblock %}
+{% block subheading %}Durchsuchbarer Katalog der implementierten <code>/api/v1</code>-Routen — mit Domain-Tags, Handler-Informationen, Parametern, Rate-Limits, Statuscodes und cURL-Beispielen.{% endblock %}
 {% block body %}
-<section>
-  <h2>Hinweise</h2>
-  <ul>
-    <li>Die Spec wird aus dem Repository unter <a href="{{ url_for('info.openapi_spec') }}"><code>/backend/openapi.yaml</code></a> ausgeliefert (Drift-geprüft gegen Flask).</li>
-    <li>Menschliche Request-/Response-Beispiele: {% if docs_site_url %}<a href="{{ docs_site_url }}/api/REFERENCE/">MkDocs — API-Referenz</a>{% else %}MkDocs-Build (<code>python -m mkdocs serve</code>) — setze <code>DOCS_SITE_URL</code> für klickbare Links.{% endif %}</li>
-    <li>World-Engine-HTTP (Play-Service) ist <strong>nicht</strong> in dieser Spec; siehe Referenz-Abschnitt World Engine.</li>
-  </ul>
+{% set stats = catalog.stats if catalog else none %}
+<section class="api-explorer-hero" aria-label="API Explorer Suche">
+  <div>
+    <p class="manage-eyebrow">Aktueller Katalog</p>
+    <h2>Suche wie in einem API-Verzeichnis</h2>
+    <p>Der Katalog wird aus der Drift-geprüften OpenAPI-Datei, der aktuell registrierten Flask-URL-Map und dem zentralen Limit-Inventar gebaut. Damit siehst du die tatsächlich implementierten Backend-Routen, nicht nur lose Dokumentation.</p>
+  </div>
+  <dl class="api-explorer-stats" aria-label="API Explorer Statistiken">
+    <div><dt>Endpoints</dt><dd>{{ stats.endpoints if stats else "…" }}</dd></div>
+    <div><dt>Tags</dt><dd>{{ stats.tags if stats else "…" }}</dd></div>
+    <div><dt>Public</dt><dd>{{ stats.public if stats else "…" }}</dd></div>
+    <div><dt>JWT</dt><dd>{{ stats.protected if stats else "…" }}</dd></div>
+  </dl>
 </section>
-<div id="redoc-container" class="redoc-wrap" data-spec-url="{{ url_for('info.openapi_spec') }}"></div>
+
+<section class="info-section">
+  <h2>So liest du den Explorer</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>Suche kombiniert Filter</strong>
+      <p><code>tag:Auth method:POST</code> zeigt nur POST-Endpunkte im Auth-Bereich. Freitext wie <code>forum search</code> durchsucht Pfad, Summary, Handler und Parameter.</p>
+    </article>
+    <article class="info-note">
+      <strong>Details sind operational</strong>
+      <p>Jede Detailansicht zeigt Auth-Art, Flask-Handler, Rate-Limit, Parameter, Statuscodes und ein cURL-Beispiel. Das ist kein Mock-Katalog, sondern die aktuell registrierte Backend-URL-Map.</p>
+    </article>
+  </div>
+  <h3>Methodenmix</h3>
+  {{ method_mix(backend_info_summary) }}
+</section>
+
+<section
+  id="api-explorer-app"
+  class="api-explorer-app"
+  data-catalog-url="{{ url_for('info.api_explorer_catalog') }}"
+  data-openapi-url="{{ url_for('info.openapi_spec') }}"
+>
+  <div class="api-explorer-toolbar">
+    <label class="api-search-label" for="api-explorer-search">API durchsuchen</label>
+    <div class="api-search-row">
+      <input
+        id="api-explorer-search"
+        class="api-search-input"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="forum search, method:POST, tag:Auth, path:users, auth:public, limit:minute"
+      >
+      <button class="api-clear-button" type="button" data-api-clear>Leeren</button>
+    </div>
+    <div class="api-query-chips" aria-label="Suchbeispiele">
+      <button type="button" data-api-query="tag:Auth">tag:Auth</button>
+      <button type="button" data-api-query="method:POST">method:POST</button>
+      <button type="button" data-api-query="auth:public">auth:public</button>
+      <button type="button" data-api-query="limit:hour">limit:hour</button>
+      <button type="button" data-api-query="path:sessions">path:sessions</button>
+      <button type="button" data-api-query="param:session_id">param:session_id</button>
+    </div>
+    <p class="api-search-help">Filter sind klein geschrieben unkritisch. Mehrere Begriffe werden mit UND verknüpft; entferne einzelne Wörter, wenn die Liste leer bleibt.</p>
+  </div>
+
+  <div class="api-explorer-links">
+    <a href="{{ url_for('info.openapi_spec') }}">OpenAPI YAML</a>
+    {% if docs_site_url %}
+      <a href="{{ docs_site_url }}/api/REFERENCE/">Request/Response-Referenz</a>
+    {% else %}
+      <span>MkDocs-Referenz: <code>docs/api/REFERENCE.md</code></span>
+    {% endif %}
+    <a href="{{ url_for('info.engine_integration') }}">World-Engine-Abgrenzung</a>
+  </div>
+
+  <div class="api-explorer-grid">
+    <aside class="api-tag-panel" aria-label="API-Domänen">
+      <div class="api-panel-title">Domains</div>
+      <div class="api-tag-list" data-api-tags>
+        <button type="button" class="api-tag-filter is-active" data-tag="">Alle</button>
+      </div>
+    </aside>
+
+    <section class="api-results-panel" aria-live="polite" aria-label="API-Suchergebnisse">
+      <div class="api-results-meta">
+        <span data-api-count>Catalog lädt…</span>
+        <span data-api-active-filter></span>
+      </div>
+      <div class="api-results-list" data-api-results></div>
+    </section>
+
+    <aside class="api-detail-panel" aria-label="Endpoint Details">
+      <div class="api-detail-empty" data-api-detail-empty>
+        Wähle einen Endpoint aus der Liste.
+      </div>
+      <article class="api-detail" data-api-detail hidden></article>
+    </aside>
+  </div>
+
+  <noscript>
+    <p>Der Explorer benötigt JavaScript. Die OpenAPI-Datei bleibt direkt unter <a href="{{ url_for('info.openapi_spec') }}">/backend/openapi.yaml</a> erreichbar.</p>
+  </noscript>
+</section>
 {% endblock %}
 {% block extra_scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/redoc/2.1.3/bundles/redoc.standalone.min.js" crossorigin="anonymous"></script>
-<script src="{{ url_for('info.static', filename='api_explorer_redoc.js') }}"></script>
+<script src="{{ url_for('info.static', filename='api_explorer.js') }}"></script>
 {% endblock %}

@@ -14,6 +14,7 @@ Accepted
 - `REDIS_URL` is part of bootstrap governance; Redis is provisioned in Docker Compose by default.
 - No `LANGFUSE_ENABLED` legacy toggle exists; the old model is explicitly prohibited in this ADR.
 - `HF_TOKEN` is a provider credential in Layer 2; no admin UI screen — set in `.env`.
+- Production secret management is a deployment concern: use a dedicated secret store with rotation, audit, and access separation, while keeping `docker-up.py` as the local `.env` bootstrap.
 
 ## Date
 
@@ -172,6 +173,12 @@ Therefore:
 - Docker Compose provisions Redis by default
 - backend may fall back to in-process storage outside Docker, but that fallback is not the canonical Docker truth path
 
+### 7. Production secret-store boundary
+
+For local development, repository-root `.env` is the intended operator experience and is maintained by `docker-up.py`. It should stay convenient, repeatable, and disconnected from external infrastructure.
+
+For production, `.env` files are not the recommended long-term secret source. Production deployments should inject the same environment contract from a dedicated secret store such as a cloud secret manager, Vault, or equivalent platform service. That store must provide rotation, audit, and access separation. It should feed runtime environment variables or orchestrator-native secrets before services start; it must not make local `docker-up.py init-env` or `python docker-up.py up` depend on production credentials or network access.
+
 ## Consequences
 
 ### Positive
@@ -184,6 +191,7 @@ Therefore:
 
 - Some older comments or examples may still mention `LANGFUSE_ENABLED`; they should be treated as transitional or historical, not normative.
 - New features must be careful not to push backend-governed state back into `.env` out of convenience.
+- Production rollout needs separate secret-store integration and rotation procedures; this ADR only defines the environment contract and local bootstrap behavior.
 
 ## Diagrams
 
@@ -205,6 +213,7 @@ When adding a new variable:
 3. If it is a bootstrap-import credential, document the import path and completeness rules.
 4. Add or update `.env.example` only for variables that truly belong in environment space.
 5. Add startup validation only for env-owned invariants.
+6. Do not add a production secret-manager dependency to `docker-up.py`; keep deployment secret injection outside the local helper.
 
 ## Testing
 

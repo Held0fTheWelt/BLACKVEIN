@@ -76,6 +76,20 @@ def test_runtime_langfuse_env_is_server_only() -> None:
         assert token not in admin_block
 
 
+def test_runtime_provider_keys_are_not_injected_from_compose_env() -> None:
+    base = BASE_COMPOSE.read_text(encoding="utf-8")
+
+    for service in ("backend", "play-service"):
+        block = _service_block(base, service)
+        assert "OPENAI_API_KEY=${OPENAI_API_KEY}" not in block
+        assert "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" not in block
+        assert "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" not in block
+        assert "HF_TOKEN=${HF_TOKEN}" not in block
+        assert "OPENAI_API_KEY=" in block
+        assert "OPENROUTER_API_KEY=" in block
+        assert "ANTHROPIC_API_KEY=" in block
+
+
 def test_env_examples_include_langfuse_placeholders_without_real_keys() -> None:
     example = ENV_EXAMPLE.read_text(encoding="utf-8")
     langfuse_example = LANGFUSE_ENV_EXAMPLE.read_text(encoding="utf-8")
@@ -94,7 +108,9 @@ def test_env_examples_include_langfuse_placeholders_without_real_keys() -> None:
         "CLICKHOUSE_PASSWORD=CHANGEME",
         "MINIO_ROOT_USER=langfuse",
         "MINIO_ROOT_PASSWORD=CHANGEME",
-        "REDIS_PASSWORD=CHANGEME",
+        "LANGFUSE_REDIS_PASSWORD=CHANGEME",
+        "LANGFUSE_REDIS_TLS_ENABLED=false",
+        "LANGFUSE_REDIS_KEY_PREFIX=langfuse:",
         "WOS_LANGFUSE_EVIDENCE_SCOPE=local_langfuse",
         "WOS_LANGFUSE_PROOF_LEVEL=local_only",
         "WOS_LANGFUSE_LIVE_OR_STAGING_EVIDENCE=false",
@@ -104,6 +120,24 @@ def test_env_examples_include_langfuse_placeholders_without_real_keys() -> None:
 
     assert "pk-lf-" not in combined
     assert "sk-lf-" not in combined
+
+
+def test_world_engine_persistence_env_supports_aead_json_without_local_key_generation() -> None:
+    example = ENV_EXAMPLE.read_text(encoding="utf-8")
+    base = BASE_COMPOSE.read_text(encoding="utf-8")
+    docker_up = DOCKER_UP.read_text(encoding="utf-8")
+    play_block = _service_block(base, "play-service")
+
+    assert "RUN_STORE_BACKEND=json" in example
+    assert "RUN_STORE_URL=" in example
+    assert "WORLD_ENGINE_JSON_AEAD_KEY=" in example
+    assert "WORLD_ENGINE_JSON_AEAD_KEY=__AUTO_GENERATED_DO_NOT_EDIT__" not in example
+
+    assert "RUN_STORE_BACKEND=${RUN_STORE_BACKEND:-json}" in play_block
+    assert "RUN_STORE_URL=${RUN_STORE_URL:-}" in play_block
+    assert "WORLD_ENGINE_JSON_AEAD_KEY=${WORLD_ENGINE_JSON_AEAD_KEY:-}" in play_block
+
+    assert '"WORLD_ENGINE_JSON_AEAD_KEY": 32' not in docker_up
 
 
 def test_docker_up_has_first_class_langfuse_entrypoint() -> None:
@@ -118,6 +152,7 @@ def test_docker_up_has_first_class_langfuse_entrypoint() -> None:
     assert "_bootstrap_gate_after_up(local_langfuse=_with_langfuse_enabled(args))" in text
     assert 'base_url = "http://langfuse-web:3000"' in text
     assert '"LANGFUSE_MCP_BASE_URL": "http://localhost:3000"' in text
+    assert '"LANGFUSE_REDIS_PASSWORD": 24' in text
     assert '"overwrite_existing": _value_truthy(env_dict.get("WOS_LANGFUSE_BOOTSTRAP_OVERWRITE"))' in text
 
 

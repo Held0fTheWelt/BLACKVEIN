@@ -65,3 +65,14 @@ def test_ops_requires_auth(client):
     response = client.get("/ops", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"].startswith("/login")
+
+
+def test_favicon_is_linked_and_served(client):
+    login_response = client.get("/login")
+    assert login_response.status_code == 200
+    assert "/static/favicon.ico" in login_response.text
+
+    favicon_response = client.get("/favicon.ico")
+    assert favicon_response.status_code == 200
+    assert favicon_response.headers["content-type"].startswith("image/vnd.microsoft.icon")
+    assert favicon_response.content.startswith(b"\x00\x00\x01\x00")

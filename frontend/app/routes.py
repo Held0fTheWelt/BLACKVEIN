@@ -71,7 +71,7 @@ def home():
 def login():
     if request.method == "GET":
         if session.get("access_token"):
-            return redirect(url_for("frontend.dashboard"))
+            return redirect(url_for("frontend.news"))
         return render_template("login.html")
 
     username = (request.form.get("username") or "").strip()
@@ -97,7 +97,7 @@ def login():
     session["current_user"] = payload.get("user")
     session.modified = True
     flash("Logged in successfully.", "success")
-    return redirect(url_for("frontend.dashboard"))
+    return redirect(url_for("frontend.news"))
 
 
 @frontend_bp.route("/logout", methods=["POST"])

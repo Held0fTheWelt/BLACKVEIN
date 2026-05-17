@@ -118,10 +118,12 @@ class OpenAIChatAdapter(BaseModelAdapter):
         model_name: str = "gpt-4o-mini",
         base_url: str | None = None,
         api_key: str | None = None,
+        allow_env_api_key: bool = False,
     ) -> None:
         self.model_name = model_name
         self.base_url = (base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
         self._configured_api_key = (api_key or "").strip() or None
+        self._allow_env_api_key = bool(allow_env_api_key)
 
     @staticmethod
     def _supports_custom_temperature(model_name: str) -> bool:
@@ -384,7 +386,9 @@ class OpenAIChatAdapter(BaseModelAdapter):
         retrieval_context: str | None = None,
         model_name: str | None = None,
     ) -> ModelCallResult:
-        api_key = (self._configured_api_key or os.getenv("OPENAI_API_KEY") or "").strip()
+        api_key = (self._configured_api_key or "").strip()
+        if not api_key and self._allow_env_api_key:
+            api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
         chosen_model = (model_name or self.model_name).strip() or self.model_name
         uses_reasoning_controls = self._uses_reasoning_controls(chosen_model)
         request_timeout = timeout_seconds

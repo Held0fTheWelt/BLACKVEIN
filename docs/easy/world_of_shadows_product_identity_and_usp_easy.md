@@ -1,4 +1,4 @@
-# World of Shadows / Better Tomorrow — product identity, core asset, and what we actually sell
+# Better Tomorrow / World of Shadows — product identity, core asset, and what we actually sell
 
 > **Projection governance**
 > contractify-projection:
@@ -10,7 +10,7 @@
 
 ## Title and purpose
 
-This document is a **founder- and stakeholder-grade** explanation of **World of Shadows** and **Better Tomorrow** as **one market-facing product identity**, of the **runtime system beneath it** as a **separate technical core asset**, and of how **demonstrations, vertical slices, and commercial paths** relate without blurring into each other.
+This document is a **founder- and stakeholder-grade** explanation of **Better Tomorrow** as the product title and **World of Shadows** as its subtitle/world context, of the **runtime system beneath it** as a **separate technical core asset**, and of how **demonstrations, vertical slices, and commercial paths** relate without blurring into each other.
 
 It is written to be **read aloud**, **taken seriously**, and **checked against the repository**—not to sound like a pitch deck, a task report, or generic AI marketing.
 
@@ -34,7 +34,7 @@ Facts follow this order:
 
 ## The shortest useful explanation
 
-**Market-facing identity:** The product line is presented as **Better Tomorrow (World of Shadows)** in the root [`README.md`](../../README.md). Treat **World of Shadows** and **Better Tomorrow** as **one public universe of product and story**—the **owned world people are invited into**—not as “a platform brand” with “a decorative sub-brand.”
+**Market-facing identity:** The product line is presented as **Better Tomorrow — World of Shadows** in the root [`README.md`](../../README.md). Treat **Better Tomorrow** as the title and **World of Shadows** as subtitle/world context for the **owned world people are invited into**—not as “a platform brand” with “a decorative sub-brand.”
 
 **Technical core:** Under that identity sits a **multi-service narrative platform**: player and admin web apps, APIs and persistence, an **authoritative play runtime** in `world-engine/`, and an **AI stack** that **proposes** turns while **runtime rules validate and commit** what becomes true ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)).
 
@@ -48,12 +48,12 @@ Facts follow this order:
 
 ### Plain language
 
-The **product identity** is the **market-facing whole**: the **World of Shadows / Better Tomorrow** line—**narrative game and community platform**, **scene-led drama**, **owned setting and IP surface**—as people and partners would describe it before they care about repository folders.
+The **product identity** is the **market-facing whole**: the **Better Tomorrow / World of Shadows** line—**narrative game and community platform**, **scene-led drama**, **owned setting and IP surface**—as people and partners would describe it before they care about repository folders.
 
 ### Precise product reading
 
-- The repository README titles the project **Better Tomorrow (World of Shadows)** and describes a **multi-service narrative game platform** with player app, admin app, backend, world-engine, AI stack, and modules ([`README.md`](../../README.md)).
-- [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md) aligns: narrative game and community platform, with README also using the **Better Tomorrow (World of Shadows)** line; docs often say **World of Shadows** as the primary documentation name—**both refer to the same product family**, not two stacked products.
+- The repository README titles the project **Better Tomorrow — World of Shadows** and describes a **multi-service narrative game platform** with player app, admin app, backend, world-engine, AI stack, and modules ([`README.md`](../../README.md)).
+- [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md) aligns: **Better Tomorrow** is the product title; **World of Shadows** is subtitle/world context. Older docs may still say **World of Shadows** as historical shorthand, but current public-facing copy should lead with **Better Tomorrow**.
 - Concrete **in-world** surfacing exists in code (e.g. `better_tomorrow_district_alpha`, “Better Tomorrow” in site settings) in `backend/app/content/builtins.py` and `world-engine/app/content/builtins.py`.
 
 ### Why it matters
@@ -67,7 +67,7 @@ If identity is fuzzy, **everything downstream**—partnerships, pricing, creativ
 
 ### Commitment
 
-We commit to speaking **externally** in a way that treats **World of Shadows / Better Tomorrow** as **one identity**, and to keeping **technical seams** (services, ADRs) **off the marquee** unless a technical audience needs them.
+We commit to speaking **externally** in a way that treats **Better Tomorrow / World of Shadows** as **one identity with clear order**: title first, subtitle/context second. Technical seams (services, ADRs) stay **off the marquee** unless a technical audience needs them.
 
 ---
 
@@ -78,7 +78,7 @@ We commit to speaking **externally** in a way that treats **World of Shadows / B
 ```mermaid
 flowchart TB
   subgraph Market["Market-facing identity (one line)"]
-    ID["World of Shadows / Better Tomorrow\nowned world & product universe"]
+    ID["Better Tomorrow / World of Shadows\nowned world & product universe"]
   end
 
   subgraph Engine["Technical core (no separate public brand required)"]
@@ -111,7 +111,7 @@ flowchart TB
 
 ### Precise reading
 
-- The product line is introduced as **Better Tomorrow (World of Shadows)** at the repository root ([`README.md`](../../README.md)).
+- The product line is introduced as **Better Tomorrow — World of Shadows** at the repository root ([`README.md`](../../README.md)).
 - Experience templates and builtins bind **Better Tomorrow** to **playable content** (e.g. `better_tomorrow_district_alpha`) in `world-engine/app/content/builtins.py` / `backend/app/content/builtins.py`.
 - That means **Better Tomorrow** is **continuity between marketing, UI, and authored experience shape**—not a tagline bolted onto a generic engine demo.
 
@@ -203,7 +203,7 @@ flowchart TB
 
 ### Plain language
 
-**God of Carnage** is the **wind tunnel**: a **first vertical slice** used to **prove** interpretation, scene shape, validation, and continuity. It is **not** the **permanent face** of **World of Shadows / Better Tomorrow** in the market.
+**God of Carnage** is the **wind tunnel**: a **first vertical slice** used to **prove** interpretation, scene shape, validation, and continuity. It is **not** the **permanent face** of **Better Tomorrow / World of Shadows** in the market.
 
 ### Precise reading
 
@@ -476,7 +476,7 @@ flowchart TB
 |-----------|------------|
 | **Promise** | A **multi-service narrative platform** with **clear runtime authority** and **governed AI assistance**—something **integrable** and **explainable** ([`README.md`](../../README.md); [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)). |
 | **Problem** | Partners cannot build on **opaque chat demos**; they need **seams**, **contracts**, and **operational clarity**. |
-| **We commit** | To **one market identity** (**World of Shadows / Better Tomorrow**) and to **separating shipped vs aspirational** in external narrative ([`docs/presentations/executive-summary-world-of-shadows.md`](../presentations/executive-summary-world-of-shadows.md); stakeholder brief). |
+| **We commit** | To **one market identity** (**Better Tomorrow / World of Shadows**) and to **separating shipped vs aspirational** in external narrative ([`docs/presentations/executive-summary-world-of-shadows.md`](../presentations/executive-summary-world-of-shadows.md); stakeholder brief). |
 | **We do not yet claim** | All **cross-stack structural moves** are finished; known risks remain ([`docs/presentations/goc-vertical-slice-stakeholder-brief.md`](../presentations/goc-vertical-slice-stakeholder-brief.md)). |
 | **Proof that would convince** | **Stable demos**, **clean integration paths**, and **credible governance** stories backed by **running code** and **contracts**. |
 
@@ -573,7 +573,7 @@ We commit to **compounding the runtime asset** and **compounding the world ident
 
 ## Conclusion
 
-**World of Shadows / Better Tomorrow** is **one market-facing identity**: the **owned universe** people should understand and remember.
+**Better Tomorrow / World of Shadows** is **one market-facing identity**: the **owned universe** people should understand and remember.
 
 Under it lies a **real runtime asset**: **authored, scene-led, truth-bound** interactive drama machinery centered on **`world-engine/`** authority and **proposal/commit** discipline.
 

@@ -1,6 +1,6 @@
 # God of Carnage as an experience
 
-**God of Carnage (GoC)** is the first **MVP vertical slice** of World of Shadows: a **guided interactive drama**—scene-led, with **truth-aligned turns**—not a generic open-ended chat toy. Normative engineering detail lives in slice contracts; this page explains the **human-visible idea**.
+**God of Carnage (GoC)** is the first **MVP vertical slice** of Better Tomorrow / World of Shadows: a **guided interactive drama**—scene-led, with **truth-aligned turns**—not a generic open-ended chat toy. Normative engineering detail lives in slice contracts; this page explains the **human-visible idea**.
 
 ## What the player experiences
 

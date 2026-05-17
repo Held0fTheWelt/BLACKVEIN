@@ -36,6 +36,7 @@ def _local_metadata_filters(filters: dict[str, Any], *, environment: str) -> dic
             "environment": environment,
             "evidence_scope": "local_langfuse",
             "proof_level": "local_only",
+            "local_only": True,
             "live_or_staging_evidence": False,
         }
     )
@@ -105,6 +106,7 @@ def build_local_langfuse_judge_transfer_bundle(
             "environment": env,
             "evidence_scope": "local_langfuse",
             "proof_level": "local_only",
+            "local_only": True,
             "live_or_staging_evidence": False,
         },
         "canonical_definition_source": LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,

@@ -6,3 +6,111 @@
     <span class="muted">{{ label }} (MkDocs: <code>python -m mkdocs serve</code> — setze <code>DOCS_SITE_URL</code> für direkte Links)</span>
   {%- endif %}
 {%- endmacro %}
+
+{% macro stat_grid(summary) -%}
+  {% set stats = summary.stats if summary else none %}
+  <dl class="info-stat-grid" aria-label="Backend-Katalogstatistiken">
+    <div class="info-stat">
+      <dt>REST-Endpunkte</dt>
+      <dd>{{ stats.endpoints if summary.available else "…" }}</dd>
+      <p>Aus OpenAPI und Flask-URL-Map gebaut.</p>
+    </div>
+    <div class="info-stat">
+      <dt>Implementiert</dt>
+      <dd>{{ stats.implemented if summary.available else "…" }}</dd>
+      <p>Mit registriertem Handler im Backend.</p>
+    </div>
+    <div class="info-stat">
+      <dt>Öffentlich</dt>
+      <dd>{{ stats.public if summary.available else "…" }}</dd>
+      <p>Ohne Bearer-Token markiert.</p>
+    </div>
+    <div class="info-stat">
+      <dt>JWT/geschützt</dt>
+      <dd>{{ stats.protected if summary.available else "…" }}</dd>
+      <p>Erwartet gültige API-Authentifizierung.</p>
+    </div>
+  </dl>
+{%- endmacro %}
+
+{% macro method_mix(summary) -%}
+  {% if summary.methods %}
+    <div class="info-pill-row" aria-label="HTTP-Methoden im Katalog">
+      {% for item in summary.methods %}
+        <span class="info-pill"><strong>{{ item.method }}</strong> {{ item.count }}</span>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">Keine Methodenzählung verfügbar.</p>
+  {% endif %}
+{%- endmacro %}
+
+{% macro top_tags(summary) -%}
+  {% if summary.top_tags %}
+    <div class="info-tag-grid" aria-label="Häufige OpenAPI-Tags">
+      {% for tag in summary.top_tags %}
+        <a href="{{ url_for('info.api_explorer') }}#tag/{{ tag.name }}" class="info-tag-card">
+          <strong>{{ tag.name }}</strong>
+          <span>{{ tag.count }} Endpunkte</span>
+          {% if tag.description %}<small>{{ tag.description }}</small>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">Keine Tag-Zusammenfassung verfügbar.</p>
+  {% endif %}
+{%- endmacro %}
+
+{% macro endpoint_examples(examples) -%}
+  <div class="endpoint-example-grid" aria-label="Beispiel-Endpunkte">
+    {% for example in examples %}
+      <article class="endpoint-example">
+        <div class="endpoint-example-head">
+          <span class="api-method method-{{ example.method|lower }}">{{ example.method }}</span>
+          <strong>{{ example.label }}</strong>
+        </div>
+        <code>{{ example.path }}</code>
+        <p>{{ example.note }}</p>
+      </article>
+    {% endfor %}
+  </div>
+{%- endmacro %}
+
+{% macro route_limit_table(routes, caption="Route-Limits") -%}
+  <table class="doc-table" aria-label="{{ caption }}">
+    <thead><tr><th>Route</th><th>Auth</th><th>Limit</th><th>Quelle / Key</th></tr></thead>
+    <tbody>
+      {% for route in routes %}
+        {% set limit = route.rate_limit %}
+        <tr>
+          <td><span class="api-method method-{{ route.method|lower }}">{{ route.method }}</span> <code>{{ route.path }}</code></td>
+          <td>{{ route.auth }}</td>
+          <td><code>{{ limit.limit }}</code></td>
+          <td>{{ limit.source }}<br><span class="muted">{{ limit.key }}</span></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">Kein Route-Limit-Inventar verfügbar.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{%- endmacro %}
+
+{% macro mcp_tool_limit_table(tools) -%}
+  <table class="doc-table" aria-label="MCP Tool-Limits">
+    <thead><tr><th>Tool</th><th>Suite</th><th>Klasse</th><th>Limit</th><th>Key / Scope</th></tr></thead>
+    <tbody>
+      {% for tool in tools %}
+        {% set limit = tool.rate_limit %}
+        <tr>
+          <td><code>{{ tool.name }}</code></td>
+          <td>{{ tool.suite }}</td>
+          <td>{{ tool.tool_class }}</td>
+          <td><code>{{ limit.limit }}</code></td>
+          <td>{{ limit.key }}<br><span class="muted">{{ limit.scope }}</span></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">Kein MCP-Tool-Inventar verfügbar.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{%- endmacro %}

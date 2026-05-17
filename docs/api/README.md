@@ -8,7 +8,7 @@
 >     - CTR-WORLD-ENGINE-SYSTEM-INTERACTIONS
 >   projection_weight: low
 
-Complete API reference for all services in WorldOfShadows.
+Complete API reference for all services in Better Tomorrow / World of Shadows.
 
 ## Backend API
 
@@ -20,7 +20,7 @@ The Flask app also exposes **non-API technical pages** at **`/backend/*`** (arch
 **Discoverability**
 
 - **OpenAPI (machine-readable):** [`openapi.yaml`](openapi.yaml) — Flask serves **`/backend/openapi.yaml`** on the API host; MkDocs (static) serves the same content at **`/backend/openapi.yaml`** via [`docs/backend/openapi.yaml`](../backend/openapi.yaml) (written by the same generator). Regenerate with `python backend/scripts/generate_openapi_spec.py --write` after route changes.
-- **API Explorer (searchable UI):** **`/backend/api-explorer`** (Redoc; filter by tags).
+- **API Explorer (searchable UI):** **`/backend/api-explorer`** (search by tag, method, path, auth, handler, and parameters).
 - **Tag taxonomy:** [openapi-taxonomy.md](openapi-taxonomy.md) — maps OpenAPI tags to `/backend/*` topics and MkDocs.
 - **MkDocs:** run `python -m mkdocs serve` from the repo root; the **API** tab includes this reference plus full-text search across `docs/`.
 

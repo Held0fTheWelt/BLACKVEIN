@@ -1,6 +1,6 @@
 # Technical documentation
 
-Active **system** documentation for World of Shadows: architecture, runtime authority, AI/RAG, integrations (MCP, LangGraph, LangChain), content pipeline, and technical reference material.
+Active **system** documentation for Better Tomorrow / World of Shadows: architecture, runtime authority, AI/RAG, integrations (MCP, LangGraph, LangChain), content pipeline, and technical reference material.
 
 **Audience:** engineers, operators who need implementation truth, and technical integrators.
 

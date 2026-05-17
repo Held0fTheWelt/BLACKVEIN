@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link, mcp_tool_limit_table with context %}
+{% block title %}MCP integration{% endblock %}
+{% block heading %}MCP &amp; Tooling{% endblock %}
+{% block subheading %}Wie der lokale MCP-Server, Backend-Admin-APIs, Langfuse/MCP-Evidence und das Administration-Tool zusammenspielen.{% endblock %}
+{% block body %}
+<section class="info-section">
+  <h2>Worum es hier geht</h2>
+  <p>MCP ist die kontrollierte Tooling-Schicht für Entwickler, Operatoren und Agenten. Sie kann Dateien lesen, Backend-Session-Werkzeuge ausführen, Langfuse-Traces prüfen, Evaluator-/Quality-Lab-Funktionen anbieten und Diagnosefälle strukturieren. MCP ist dabei <strong>keine zweite Runtime</strong> und keine automatische Promotion von Evidence.</p>
+  <div class="info-lead-block">
+    <p><strong>Merksatz:</strong> MCP darf beobachten, prüfen und begrenzte Admin-Aktionen anstoßen. Autoritative Runtime-Wahrheit, Commit, Readiness und <code>validation_outcome</code> bleiben bei den dafür vorgesehenen Backend-/World-Engine-Policies.</p>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Bestandteile im Repository</h2>
+  <table class="doc-table" aria-label="MCP Bestandteile">
+    <thead><tr><th>Teil</th><th>Pfad / Oberfläche</th><th>Aufgabe</th></tr></thead>
+    <tbody>
+      <tr><td>MCP-Server</td><td><span class="path">tools/mcp_server/</span></td><td>Tool-Registry, JSON-RPC/stdio, Langfuse-Verifikation, Quality-Lab, Research- und Backend-Session-Handler.</td></tr>
+      <tr><td>Backend-Admin-APIs</td><td><code>/api/v1/admin/mcp/*</code></td><td>Übersicht, Aktivität, Diagnostics, Logs und begrenzte Actions für das Admin-Cockpit.</td></tr>
+      <tr><td>Administration-Tool</td><td><a href="{{ admin_tool_url }}/manage/mcp-operations" rel="noopener noreferrer">MCP Operations</a></td><td>Operator-Cockpit für Suite-Registry, Aktivität, Diagnosefälle und Audit-Bundles.</td></tr>
+      <tr><td>Research Workbench</td><td><a href="{{ admin_tool_url }}/manage/research/mcp-workbench" rel="noopener noreferrer">MCP / Workbench</a></td><td>Research- und Workbench-Haltung: was lokal existiert, was deferred ist, was canonical promoted wurde.</td></tr>
+      <tr><td>Langfuse/MCP Evidence</td><td><code>/api/v1/admin/governance/evidence/langfuse-mcp</code></td><td>Governance-Sicht auf Trace-/MCP-Evidence ohne automatische Truth-Mutation.</td></tr>
+    </tbody>
+  </table>
+  {% if not admin_tool_configured %}
+    <p class="muted">Das Administration-Tool wird hier mit dem lokalen Standard <code>{{ admin_tool_url }}</code> verlinkt. Setze <code>ADMINISTRATION_TOOL_URL</code>, wenn dein Admin-Tool unter einer anderen Adresse läuft.</p>
+  {% endif %}
+</section>
+
+<section class="info-section">
+  <h2>Tool-Limit-Inventar</h2>
+  <p>Alle MCP-Tools hängen am zentralen JSON-RPC-Dispatch-Limiter: <code>{{ backend_limit_inventory.mcp_dispatch.limit }}</code>, keyed über {{ backend_limit_inventory.mcp_dispatch.key }}. Das entspricht der konservativen Grenze aus {{ backend_limit_inventory.mcp_dispatch.adr }} und wird pro Tool im Katalog gespiegelt.</p>
+  {{ mcp_tool_limit_table(backend_limit_inventory.mcp_tools) }}
+</section>
+
+<section class="info-section">
+  <h2>Typische MCP-Flows</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Tool-Katalog laden.</strong><span>Der MCP-Server registriert verfügbare Werkzeuge und trennt Backend-Session-, Research-, Governance-, Filesystem- und Langfuse-Verifikationsfunktionen.</span></div>
+    </li>
+    <li>
+      <div><strong>Backend oder Langfuse abfragen.</strong><span>Host-seitige MCP-Prozesse nutzen host-erreichbare URLs, zum Beispiel <code>LANGFUSE_MCP_BASE_URL=http://localhost:3000</code>. Container nutzen Docker-Servicenamen.</span></div>
+    </li>
+    <li>
+      <div><strong>Diagnostics strukturieren.</strong><span>Aktivität, Fehler, Suite-Zuordnung und Audit-Bundles werden über Backend-Admin-APIs und das Admin-Cockpit sichtbar.</span></div>
+    </li>
+    <li>
+      <div><strong>Evidence bewerten, nicht mutieren.</strong><span>MCP-/Langfuse-Ergebnisse können Governance erklären, aber lokale Ergebnisse bleiben <code>local_only</code> und werden nicht als Production- oder Staging-Beweis verkauft.</span></div>
+    </li>
+  </ol>
+</section>
+
+<section class="info-section">
+  <h2>Was MCP darf und was nicht</h2>
+  <div class="info-split-grid">
+    <article class="info-note">
+      <strong>Darf</strong>
+      <p>Tools ausführen, Dateien gezielt lesen, Langfuse-Traces prüfen, Diagnosefälle erzeugen, Admin-Cockpit-Daten liefern und bounded Actions starten.</p>
+    </article>
+    <article class="info-note">
+      <strong>Darf nicht</strong>
+      <p>Frontend-Secrets lesen oder anzeigen, lokale Scores zu Production-Evidence hochstufen, Commit/Readiness verändern oder eine zweite Runtime-Wahrheit behaupten.</p>
+    </article>
+  </div>
+</section>
+
+<section class="info-section">
+  <h2>Konfiguration und URLs</h2>
+  <dl class="info-key-value">
+    <dt>Admin-Tool</dt>
+    <dd><code>{{ admin_tool_url }}</code>{% if not admin_tool_configured %} <span class="muted">(lokaler Standard)</span>{% endif %}</dd>
+    <dt>MCP Operations</dt>
+    <dd><a href="{{ admin_tool_url }}/manage/mcp-operations" rel="noopener noreferrer">{{ admin_tool_url }}/manage/mcp-operations</a></dd>
+    <dt>Research Workbench</dt>
+    <dd><a href="{{ admin_tool_url }}/manage/research/mcp-workbench" rel="noopener noreferrer">{{ admin_tool_url }}/manage/research/mcp-workbench</a></dd>
+    <dt>Langfuse für host-seitiges MCP</dt>
+    <dd><code>LANGFUSE_MCP_BASE_URL=http://localhost:3000</code></dd>
+    <dt>Langfuse im Docker-Netz</dt>
+    <dd><code>LANGFUSE_HOST=http://langfuse-web:3000</code></dd>
+  </dl>
+</section>
+
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li><a href="{{ url_for('info.api_explorer') }}#tag/MCP">API Explorer — MCP</a></li>
+    <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — Langfuse/MCP-Evidence und lokale Trace-Regeln.</li>
+    <li><a href="{{ url_for('info.operations_health') }}">Ops</a> — Health, Diagnose und Incident-Lesepfad.</li>
+    <li>{{ docs_deep_link("Lokales Langfuse Docker Setup", "/local-langfuse-docker/") }}</li>
+  </ul>
+</section>
+{% endblock %}

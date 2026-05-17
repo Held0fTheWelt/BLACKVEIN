@@ -163,6 +163,8 @@ The same status semantics now appear across:
 `/api/v1/bootstrap/public-status` and prints the setup path when initialization is
 still required.
 
+This is the local bootstrap path. It intentionally keeps `.env` convenient and self-contained for development. Production deployments should use a dedicated secret store with rotation, audit, and access separation, then inject the same environment contract before startup; do not make local `docker-up.py` runs depend on that production store.
+
 ### RAG and AI Engineer Suite — `WOS_REPO_ROOT`
 
 RAG persistence (`.wos/` under the resolved tree) and AI Engineer Suite ingestion need a **stable root path**:

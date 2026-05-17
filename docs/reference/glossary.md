@@ -1,13 +1,16 @@
 # Glossary
 
-Authoritative short definitions for documentation across World of Shadows. Prefer linking here instead of redefining terms in every page.
+Authoritative short definitions for documentation across Better Tomorrow / World of Shadows. Prefer linking here instead of redefining terms in every page.
 
 **Quick orientation (non-normative):** readers new to the product may start with [`docs/start-here/glossary.md`](../start-here/glossary.md); this file remains the **maintained** term list for engineering and contracts.
 
 ## Product and scope
 
+**Better Tomorrow**  
+Primary product title for the multi-service narrative game platform: player and admin web apps, platform API, authoritative play runtime, shared AI stack (retrieval, orchestration, tooling). Public UI, browser titles, and current documentation should lead with **Better Tomorrow**.
+
 **World of Shadows**  
-Multi-service narrative game platform: player and admin web apps, platform API, authoritative play runtime, shared AI stack (retrieval, orchestration, tooling). The root README also uses the line **Better Tomorrow (World of Shadows)**; use **World of Shadows** as the primary public documentation name unless product leadership standardizes otherwise.
+Subtitle and world/platform context for **Better Tomorrow**. Older roadmap, archive, and engineering documents may still use **World of Shadows** as historical shorthand; new public-facing wording should not treat it as the primary title.
 
 **God of Carnage (GoC)**  
 The first MVP **vertical slice**: a guided interactive drama experience backed by the canonical module under `content/modules/god_of_carnage/`. Bound by `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` and related contracts.

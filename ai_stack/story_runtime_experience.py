@@ -529,6 +529,35 @@ def extract_policy_from_resolved_config(resolved: Any) -> StoryRuntimeExperience
         section = resolved.get("story_runtime_experience")
     else:
         section = None
+    if isinstance(section, dict) and (
+        isinstance(section.get("configured"), dict) or isinstance(section.get("effective"), dict)
+    ):
+        configured_raw = section.get("configured") if isinstance(section.get("configured"), dict) else {}
+        effective_raw = (
+            section.get("effective")
+            if isinstance(section.get("effective"), dict)
+            else configured_raw
+        )
+        markers: list[dict[str, str]] = []
+        for item in section.get("degradation_markers") or []:
+            if not isinstance(item, dict):
+                continue
+            marker = str(item.get("marker") or "").strip()
+            reason = str(item.get("reason") or "").strip()
+            if marker:
+                markers.append({"marker": marker, "reason": reason})
+        return StoryRuntimeExperiencePolicy(
+            configured=normalize_story_runtime_experience(configured_raw),
+            effective=normalize_story_runtime_experience(effective_raw),
+            degradation_markers=markers,
+            packaging_contract_version=str(
+                section.get("packaging_contract_version")
+                or STORY_RUNTIME_EXPERIENCE_PACKAGING_CONTRACT_VERSION
+            ),
+            config_version=str(
+                section.get("config_version") or STORY_RUNTIME_EXPERIENCE_CONFIG_VERSION
+            ),
+        )
     return resolve_story_runtime_experience_policy(section)
 
 

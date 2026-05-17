@@ -229,6 +229,7 @@ if PLAY_SERVICE_SECRET is None:
 PLAY_SERVICE_INTERNAL_API_KEY = os.getenv("PLAY_SERVICE_INTERNAL_API_KEY", "").strip() or None
 RUN_STORE_BACKEND = os.getenv("RUN_STORE_BACKEND", "json")
 RUN_STORE_URL = os.getenv("RUN_STORE_URL", "")
+WORLD_ENGINE_JSON_AEAD_KEY = os.getenv("WORLD_ENGINE_JSON_AEAD_KEY", "").strip()
 
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "").strip().rstrip("/")
 BACKEND_CONTENT_FEED_URL = os.getenv("BACKEND_CONTENT_FEED_URL", (f"{BACKEND_API_URL}/api/v1/game/content/published" if BACKEND_API_URL else "")).strip()

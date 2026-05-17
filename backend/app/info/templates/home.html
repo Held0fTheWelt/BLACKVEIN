@@ -1,22 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Backend home{% endblock %}
+{% from "info_sections.html" import endpoint_examples, method_mix, stat_grid, top_tags with context %}
+{% block title %}Better Tomorrow Backend{% endblock %}
 {% block heading %}Better Tomorrow backend{% endblock %}
 {% block subheading %}Geschäfts- und Integrations-Schicht: REST unter <code>/api/v1</code>, Auth, Persistenz — plus diese technische Infoseite (nicht das Spieler- oder Admin-UI).{% endblock %}
 {% block body %}
-<section>
+<section class="info-section info-readable">
   <h2>Serviceüberblick</h2>
   <p>Diese Flask-Anwendung ist die <strong>Business- und Integrationsschicht</strong>: versionierte REST-API, JWT/Session-Politik, Moderation, Game-Content-APIs und HTTP-Anbindung an den World-Engine-Play-Service. Sie hostet <strong>kein</strong> kanonisches Spieler-HTML und kein Verwaltungs-UI.</p>
 </section>
-<section>
-  <h2>Architektur (dieses Repo)</h2>
-  <ul>
-    <li><strong>frontend/</strong> — kanonische Spieler-/Public-UI (Login, Dashboard, Play-Shell).</li>
-    <li><strong>administration-tool/</strong> — kanonisches Admin-/Redaktions-UI (eigener Ursprung in Produktion).</li>
-    <li><strong>backend/</strong> (dieser Dienst) — API, Auth, Policy, Legacy-Redirects zu <code>FRONTEND_URL</code>, technische Seiten unter <code>/backend/*</code>.</li>
-    <li><strong>world-engine/</strong> — autoritative Live-Run-Zustände, Lobby, WebSocket-Laufzeit.</li>
-  </ul>
+<section class="info-section">
+  <h2>Auf einen Blick</h2>
+  <div class="info-lead-block">
+    <p>Die Zahlen kommen aus der gleichen OpenAPI-Datei, die auch der API Explorer nutzt, und werden gegen die registrierte Flask-URL-Map gespiegelt. Sie sind ein schneller Lesestatus für Entwickler, QA und Betrieb.</p>
+  </div>
+  {{ stat_grid(backend_info_summary) }}
+  <h3>Methodenmix</h3>
+  {{ method_mix(backend_info_summary) }}
+  <h3>Häufige Domänen</h3>
+  {{ top_tags(backend_info_summary) }}
 </section>
-<section>
+<section class="info-section">
+  <h2>Architektur (dieses Repo)</h2>
+  <div class="info-example-grid">
+    <article class="info-example">
+      <strong><span class="path">frontend/</span></strong>
+      <p>Kanonische Spieler- und Public-UI: Login, Dashboard, Play-Shell und alle Browser-Flows für Spielende.</p>
+    </article>
+    <article class="info-example">
+      <strong><span class="path">administration-tool/</span></strong>
+      <p>Admin- und Redaktionsoberfläche mit eigener Anmeldung und eigenem Produktionsursprung.</p>
+    </article>
+    <article class="info-example">
+      <strong><span class="path">backend/</span></strong>
+      <p>Dieser Dienst: REST-API, Auth, Policy, Persistenz, technische Seiten unter <code>/backend/*</code> und HTTP zum Play-Service.</p>
+    </article>
+    <article class="info-example">
+      <strong><span class="path">world-engine/</span></strong>
+      <p>Autoritative Runtime-Zustände, Lobby, WebSocket-Laufzeit und Commit-/Readiness-Semantik.</p>
+    </article>
+  </div>
+</section>
+<section class="info-section">
   <h2>Themen &amp; Interaktionsmöglichkeiten</h2>
   <p>Wähle eine Karte, um zu verstehen, <strong>was</strong> du mit dem Backend machen kannst, <strong>für wen</strong> das gedacht ist und <strong>wo</strong> die Details stehen.</p>
   <div class="card-grid" aria-label="Backend-Themen">
@@ -26,15 +50,43 @@
     </a>
     <a href="{{ url_for('info.api_explorer') }}" class="card card-link">
       <h3>API Explorer</h3>
-      <p>Durchsuchbare OpenAPI-Ansicht (Redoc), Tags filtern, Spec unter <code>/backend/openapi.yaml</code>.</p>
+      <p>Durchsuchbarer aktueller Katalog der implementierten API mit Tags, Handlern, Parametern und cURL-Beispielen.</p>
+    </a>
+    <a href="{{ url_for('info.project_management') }}" class="card card-link">
+      <h3>Projekt</h3>
+      <p>Repo-Größen, Testsuite, ADR Runtime Store, Docker-up-Ablauf und lokale Langfuse-/Redis-Integration.</p>
+    </a>
+    <a href="{{ url_for('info.data_model') }}" class="card card-link">
+      <h3>Datenmodell</h3>
+      <p>Tabellen, Beziehungen und Bindungen zwischen User, Templates, Save Slots und World-Engine-Session.</p>
+    </a>
+    <a href="{{ url_for('info.runtime_algorithms') }}" class="card card-link">
+      <h3>Algorithmen</h3>
+      <p>Session-Start, Resume und Turn-Verarbeitung als lesbare Ablauf- und Strukturdiagramme.</p>
     </a>
     <a href="{{ url_for('info.engine_integration') }}" class="card card-link">
       <h3>Engine</h3>
-      <p>Tickets, Runs, Join-Context: wie das Backend den Play-Service anstößt (ohne Live-State zu besitzen).</p>
+      <p>Tickets, Runs, Join-Context: wie das Backend den Play-Service anstößt (ohne autoritativen Runtime-State zu besitzen).</p>
+    </a>
+    <a href="{{ url_for('info.runtime_path') }}" class="card card-link">
+      <h3>Runtime</h3>
+      <p>Session- und Turn-Pfad vom Browser über Backend bis World-Engine, inklusive Commit-/Readiness-Grenzen.</p>
     </a>
     <a href="{{ url_for('info.ai_integration') }}" class="card card-link">
       <h3>AI</h3>
       <p>Runtime-Adapter, Writers-Room, Improvement — wo Vorschläge entstehen vs. wo autoritative Narration läuft.</p>
+    </a>
+    <a href="{{ url_for('info.observability_evidence') }}" class="card card-link">
+      <h3>Observability</h3>
+      <p>Langfuse, lokale Evidence, Judges, RAG-Diagnostik und die Grenze zu Production-/Staging-Beweisen.</p>
+    </a>
+    <a href="{{ url_for('info.mcp_integration') }}" class="card card-link">
+      <h3>MCP</h3>
+      <p>Tool-Registry, MCP-Server, Admin-Cockpit, Langfuse/MCP-Evidence und sichere Operator-Aktionen.</p>
+    </a>
+    <a href="{{ url_for('info.security_features') }}" class="card card-link">
+      <h3>Security</h3>
+      <p>Umgesetzte Schutzmechanismen, bekannte Grenzen, Secret-Handling und Verbesserungen für Production.</p>
     </a>
     <a href="{{ url_for('info.auth_security') }}" class="card card-link">
       <h3>Auth</h3>
@@ -57,7 +109,12 @@
     {% endif %}
   </div>
 </section>
-<section>
+<section class="info-section">
+  <h2>Konkrete Einstiegspunkte</h2>
+  <p>Diese Beispiele zeigen die Breite der API: vom einfachen Health-Check über Auth bis zur World-Engine-Anbindung. Im API Explorer findest du dazu Handler, Parameter, Statuscodes und cURL.</p>
+  {{ endpoint_examples(backend_info_summary.examples) }}
+</section>
+<section class="info-section">
   <h2>Schnellzugriff</h2>
   <ul class="card-list">
     <li><a href="/health">GET /health</a> — Prozess-Liveness (JSON).</li>
@@ -72,6 +129,6 @@
     <li><span class="path">docs/operations/RUNBOOK.md</span> — Compose, Ports, Betrieb.</li>
   </ul>
   <h3>Weitere Oberflächen</h3>
-  <p class="muted">Schnellzugriff in der linken Navigation (Player-Frontend, Administration-Tool mit Login, Play-Service), sofern <code>FRONTEND_URL</code>, <code>ADMINISTRATION_TOOL_URL</code> bzw. <code>PLAY_SERVICE_PUBLIC_URL</code> gesetzt sind.</p>
+  <p class="muted">Schnellzugriff in der linken Navigation: Player-Frontend und Play-Service, sofern konfiguriert; Administration-Tool mit lokalem Standard <code>http://localhost:5001</code>, falls <code>ADMINISTRATION_TOOL_URL</code> nicht gesetzt ist.</p>
 </section>
 {% endblock %}

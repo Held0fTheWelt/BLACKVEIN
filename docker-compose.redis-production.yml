@@ -1,0 +1,125 @@
+# Production Redis hardening override.
+#
+# Use through docker-up.py so .env secrets, ACL files, and TLS certificates are
+# materialized before Compose starts:
+#   python docker-up.py init-production-redis
+#   python docker-up.py --production-redis up
+#
+# This keeps the app Redis and Langfuse Redis as separate services and turns on:
+# password authentication, named ACL users, TLS-only Redis ports, and no host ports.
+
+services:
+  redis:
+    command:
+      - redis-server
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /certs/redis.crt
+      - --tls-key-file
+      - /certs/redis.key
+      - --tls-ca-cert-file
+      - /certs/ca.crt
+      - --tls-auth-clients
+      - "no"
+      - --aclfile
+      - /usr/local/etc/redis/users.acl
+      - --appendonly
+      - "yes"
+    environment:
+      APP_REDIS_USERNAME: ${APP_REDIS_USERNAME:?Run python docker-up.py init-production-redis}
+      APP_REDIS_PASSWORD: ${APP_REDIS_PASSWORD:?Run python docker-up.py init-production-redis}
+    volumes:
+      - redis-data:/data
+      - ./.docker/redis-production/app-users.acl:/usr/local/etc/redis/users.acl:ro
+      - ./.docker/redis-production/certs/app:/certs:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --tls --cacert /certs/ca.crt --user \"$${APP_REDIS_USERNAME}\" -a \"$${APP_REDIS_PASSWORD}\" ping | grep PONG",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  backend:
+    environment:
+      REDIS_URL: ${APP_REDIS_URL:?Run python docker-up.py init-production-redis}
+    volumes:
+      - ./.docker/redis-production/certs/app:/certs/app-redis:ro
+
+  langfuse-web:
+    environment:
+      REDIS_CONNECTION_STRING: ${LANGFUSE_REDIS_CONNECTION_STRING:?Run python docker-up.py init-production-redis}
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: ${LANGFUSE_REDIS_USERNAME:?Run python docker-up.py init-production-redis}
+      REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:?Run python docker-up.py init-production-redis}
+      REDIS_TLS_ENABLED: "true"
+      REDIS_TLS_CA_PATH: /certs/langfuse-redis/ca.crt
+      REDIS_TLS_CERT_PATH: /certs/langfuse-redis/redis.crt
+      REDIS_TLS_KEY_PATH: /certs/langfuse-redis/redis.key
+      REDIS_TLS_SERVERNAME: langfuse-redis
+      REDIS_TLS_REJECT_UNAUTHORIZED: "true"
+      REDIS_KEY_PREFIX: ${LANGFUSE_REDIS_KEY_PREFIX:-langfuse:}
+    volumes:
+      - ./.docker/redis-production/certs/langfuse:/certs/langfuse-redis:ro
+
+  langfuse-worker:
+    environment:
+      REDIS_CONNECTION_STRING: ${LANGFUSE_REDIS_CONNECTION_STRING:?Run python docker-up.py init-production-redis}
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: ${LANGFUSE_REDIS_USERNAME:?Run python docker-up.py init-production-redis}
+      REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:?Run python docker-up.py init-production-redis}
+      REDIS_TLS_ENABLED: "true"
+      REDIS_TLS_CA_PATH: /certs/langfuse-redis/ca.crt
+      REDIS_TLS_CERT_PATH: /certs/langfuse-redis/redis.crt
+      REDIS_TLS_KEY_PATH: /certs/langfuse-redis/redis.key
+      REDIS_TLS_SERVERNAME: langfuse-redis
+      REDIS_TLS_REJECT_UNAUTHORIZED: "true"
+      REDIS_KEY_PREFIX: ${LANGFUSE_REDIS_KEY_PREFIX:-langfuse:}
+    volumes:
+      - ./.docker/redis-production/certs/langfuse:/certs/langfuse-redis:ro
+
+  langfuse-redis:
+    command:
+      - redis-server
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /certs/redis.crt
+      - --tls-key-file
+      - /certs/redis.key
+      - --tls-ca-cert-file
+      - /certs/ca.crt
+      - --tls-auth-clients
+      - "no"
+      - --aclfile
+      - /usr/local/etc/redis/users.acl
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - "yes"
+    environment:
+      LANGFUSE_REDIS_USERNAME: ${LANGFUSE_REDIS_USERNAME:?Run python docker-up.py init-production-redis}
+      LANGFUSE_REDIS_PASSWORD: ${LANGFUSE_REDIS_PASSWORD:?Run python docker-up.py init-production-redis}
+    volumes:
+      - langfuse-redis-data:/data
+      - ./.docker/redis-production/langfuse-users.acl:/usr/local/etc/redis/users.acl:ro
+      - ./.docker/redis-production/certs/langfuse:/certs:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli --tls --cacert /certs/ca.crt --user \"$${LANGFUSE_REDIS_USERNAME}\" -a \"$${LANGFUSE_REDIS_PASSWORD}\" ping | grep PONG",
+        ]
+      interval: 3s
+      timeout: 10s
+      retries: 10

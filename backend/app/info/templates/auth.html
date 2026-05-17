@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "info_sections.html" import docs_deep_link %}
+{% from "info_sections.html" import docs_deep_link, route_limit_table with context %}
 {% block title %}Auth &amp; security{% endblock %}
 {% block heading %}Authentifizierung &amp; Sicherheit{% endblock %}
 {% block subheading %}JWT für die API, Browser-Grenzen für Legacy — und was das für Clients bedeutet.{% endblock %}
@@ -9,11 +9,28 @@
   <p>Das Backend stellt <strong>JWT-basierte API-Auth</strong> (kurzlebige Access-Tokens, rotierbare Refresh-Tokens mit Widerruf) bereit und trennt das klar von optionalen <strong>Server-Session-Cookies</strong> für ältere Web-Routen. CORS, CSRF und Security-Header schützen die Browser-Oberfläche gemäß Konfiguration.</p>
 </section>
 <section class="info-section">
+  <h2>Token-Flow in einfachen Schritten</h2>
+  <ol class="info-flow">
+    <li>
+      <div><strong>Client meldet sich an.</strong><span><code>POST /api/v1/auth/login</code> nimmt Credentials entgegen und gibt Token zurück, wenn Account und Policy passen.</span></div>
+    </li>
+    <li>
+      <div><strong>Client sendet Bearer-Token.</strong><span>Geschützte JSON-Endpunkte erwarten <code>Authorization: Bearer &lt;access_token&gt;</code>.</span></div>
+    </li>
+    <li>
+      <div><strong>Refresh erneuert kontrolliert.</strong><span>Refresh-Tokens können widerrufen werden; Logout und Rotation verhindern, dass alte Sessions endlos gültig bleiben.</span></div>
+    </li>
+    <li>
+      <div><strong>Server-zu-Server bleibt intern.</strong><span>Interne Play-Service- oder Observability-Secrets werden nur backendseitig verwendet und dürfen nicht in Browser-Bundles landen.</span></div>
+    </li>
+  </ol>
+</section>
+<section class="info-section">
   <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
     <li><strong>SPA- und Mobile-Clients</strong> — Bearer-Token gegen <code>/api/v1/auth/*</code>; Refresh-Flows wie in der Referenz.</li>
     <li><strong>Administration-tool</strong> — eigene Session/Secret-Konfiguration beim Aufruf privilegierter Admin-Endpunkte.</li>
-    <li><strong>Sicherheits-Audits</strong> — nachvollziehen, warum <code>api_v1</code> CSRF-exempt ist und welche Header gesetzt werden.</li>
+    <li><strong>Sicherheits-Audits</strong> — nachvollziehen, warum <code>api_v1</code> CSRF-exempt ist, welche Cookie-Flows mutieren und welche Header gesetzt werden.</li>
   </ul>
 </section>
 <section class="info-section">
@@ -32,12 +49,29 @@
       <tr><td>JWT Access (Bearer)</td><td><code>/api/v1/*</code></td><td>API-Clients, modernes Frontend</td></tr>
       <tr><td>JWT Refresh + Widerruf</td><td><code>/api/v1/auth/refresh</code>, Blacklist</td><td>Alle JWT-Clients</td></tr>
       <tr><td>Server-Session-Cookie</td><td>Legacy-Web-Routen (z.&nbsp;B. Logout)</td><td>Alte Browser-Flows</td></tr>
-      <tr><td>CSRF</td><td>Global aktiv; <code>api_v1</code> exempt</td><td>Formulare vs. JSON-API</td></tr>
+      <tr><td>CSRF</td><td>Global aktiv; <code>api_v1</code> exempt; Matrix in <code>docs/security/csrf-matrix.md</code></td><td>Cookie-Formulare vs. Bearer-JSON-API</td></tr>
       <tr><td>CORS</td><td><code>CORS_ORIGINS</code></td><td>Cross-Origin-SPAs</td></tr>
       <tr><td>Security-Header</td><td>CSP, X-Frame-Options, HSTS optional</td><td>Alle HTTP-Antworten</td></tr>
     </tbody>
   </table>
   <p>Cookie-Flags und JWT-Parameter: <span class="path">app.config</span> (<code>JWT_*</code>, <code>SESSION_*</code>) im Clone.</p>
+</section>
+<section class="info-section">
+  <h2>Auth-Limit-Inventar</h2>
+  <p>Auth-Routen sind einzeln inventarisiert, damit Login, Refresh, Passwort-Reset und Verifikationsflüsse ihre Schutzgrenzen sichtbar behalten. Die Werte stammen aus den Route-Decorators und laufen auch in den API-Explorer-Katalog ein.</p>
+  {{ route_limit_table(backend_limit_inventory.auth_routes, "Auth Route-Limits") }}
+</section>
+<section class="info-section">
+  <h2>Was ein Client konkret sendet</h2>
+  <table class="doc-table" aria-label="Auth-Beispiele">
+    <thead><tr><th>Situation</th><th>Beispiel</th><th>Erwartung</th></tr></thead>
+    <tbody>
+      <tr><td>Health oder öffentliche Inhalte</td><td><code>GET /api/v1/health</code></td><td>Kein Bearer-Token nötig, aber Rate-Limits gelten weiterhin.</td></tr>
+      <tr><td>Login</td><td><code>POST /api/v1/auth/login</code></td><td>Credentials im JSON-Body; danach Token aus der Antwort speichern.</td></tr>
+      <tr><td>Geschützte API</td><td><code>Authorization: Bearer &lt;access_token&gt;</code></td><td>401 bei fehlendem/ungültigem Token, 403 bei fehlender Rolle oder Policy.</td></tr>
+      <tr><td>Admin- oder Runtime-Interna</td><td>Serverseitige Secrets</td><td>Nur Backend/Worker. Nicht in Frontend, Admin-Bundle oder World-Engine-Browser-UI ausliefern.</td></tr>
+    </tbody>
+  </table>
 </section>
 <section class="info-section">
   <h2>Direkt zu Details</h2>

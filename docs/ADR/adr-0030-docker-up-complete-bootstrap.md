@@ -12,6 +12,8 @@ Accepted
 - All required secrets (`SECRET_KEY`, `JWT_SECRET_KEY`, `SECRETS_KEK`, `PLAY_SERVICE_SHARED_SECRET`, `PLAY_SERVICE_INTERNAL_API_KEY`, `FRONTEND_SECRET_KEY`, `INTERNAL_RUNTIME_CONFIG_TOKEN`) and runtime URLs (`REDIS_URL`, etc.) are generated on first run.
 - `docker-compose.yml` includes `redis` service; Redis is not optional in the standard Docker path.
 - Langfuse bootstrap is optional import (credentials from `.env` only if both keys present); not governed by legacy `LANGFUSE_ENABLED` flag.
+- Production secret stores are explicitly out of scope for `docker-up.py`; the helper remains the local `.env` bootstrap path and must not require Vault/KMS/cloud-secret access.
+- Production Redis hardening for Compose is automated through `docker-up.py init-production-redis` and `docker-compose.redis-production.yml`.
 - Exit-code contract (0–6) is in force.
 - Test coverage: `tests/test_docker_up_complete_bootstrap.py`.
 
@@ -41,6 +43,7 @@ Three implementation realities are important:
 1. Platform secrets are generated on the host and persisted in the repository-root `.env`.
 2. The Docker stack now includes Redis as shared runtime-governance storage because backend runs multiple Gunicorn workers.
 3. Langfuse is runtime-configured in backend settings; `docker-up.py` only imports `LANGFUSE_*` credentials when they are explicitly present in `.env`.
+4. Local Redis and production Redis have different security postures: local app Redis remains internal with no host port, while production must enforce separate app/Langfuse Redis instances, passwords, ACL users, and TLS.
 
 This ADR replaces older assumptions such as:
 
@@ -137,6 +140,25 @@ The current exit-code contract stays in force for `up`:
 - `5` backend health check failure
 - `6` `.env` validation/materialization failure
 
+### 6. Production secret stores must not break local bootstrap
+
+Production deployments should source secrets from a dedicated secret store with rotation, audit logging, and separated access. That production store is a deployment responsibility outside this local helper.
+
+`docker-up.py` must remain able to create or repair a local repository-root `.env` without contacting a central secret manager. Any future production integration must inject environment variables before the services start, or wrap deployment-specific infrastructure outside `docker-up.py`, while preserving the existing `init-env`, `up`, `build`, and `restart` behavior for local Compose.
+
+### 7. Production Redis hardening is a first-class bootstrap path
+
+`docker-up.py init-production-redis` must materialize the production Redis contract without manual file authoring:
+
+- `APP_REDIS_USERNAME`, `APP_REDIS_PASSWORD`, `APP_REDIS_URL`, and TLS CA path for backend runtime governance Redis
+- `LANGFUSE_REDIS_USERNAME`, `LANGFUSE_REDIS_PASSWORD`, `LANGFUSE_REDIS_CONNECTION_STRING`, TLS paths, and CA validation for Langfuse Redis
+- ignored local ACL files under `.docker/redis-production/` with `default` disabled
+- ignored local TLS certificates for the separate app Redis and Langfuse Redis services
+
+`docker-compose.redis-production.yml` is layered only when `--production-redis`, `WOS_DOCKER_PRODUCTION_REDIS=1`, or `production-redis-up` is used. The override keeps Redis services internal, switches Redis to TLS-only, and injects the hardened app Redis URL into backend as `REDIS_URL`.
+
+Validation is explicit: `python docker-up.py validate-production-redis` fails if URLs are not `rediss://`, TLS flags are false, ACL users/passwords are missing or shared, app and Langfuse Redis hosts are not separate, or generated ACL/cert assets are missing.
+
 ## Consequences
 
 ### Positive
@@ -145,6 +167,7 @@ The current exit-code contract stays in force for `up`:
 - The generated `.env` and Redis service reflect the actual current runtime architecture.
 - MVP4 governance data stays coherent across backend workers in Docker.
 - Langfuse setup supports both env-preseed and backend-managed configuration.
+- Production operators get a repeatable Redis hardening path instead of hand-editing passwords, ACL files, and TLS paths.
 
 ### Negative / risks
 
@@ -174,12 +197,14 @@ flowchart TD
 - missing placeholder secrets are regenerated
 - `REDIS_URL` is present by default
 - backend bootstrap can import Langfuse credentials if explicitly provided
+- production Redis password/TLS/ACL material can be generated and validated on demand
 
 ### What it does not guarantee
 
 - live provider API keys are valid
 - Langfuse is enabled unless credentials were supplied or backend settings already contain it
 - operator dashboards are meaningful outside the running backend/play-service traffic they summarize
+- production-grade secret rotation, audit, or access separation; use a dedicated deployment secret store for that
 
 ## Testing
 
@@ -192,16 +217,20 @@ flowchart TD
 - [ ] `python docker-up.py up` reaches healthy backend and bootstrap admin creation
 - [ ] if both `LANGFUSE_*` keys are present, backend observability initialization succeeds
 - [ ] if only one `LANGFUSE_*` key is present, `docker-up.py up` fails with exit code `4`
+- [ ] `python docker-up.py init-production-redis` creates Redis ACL/TLS material and distinct app/Langfuse Redis URLs
+- [ ] `python docker-up.py validate-production-redis` fails if Redis TLS, ACL users, passwords, or instance separation are missing
 
 ### Canonical test locations
 
 - `tests/test_docker_up_complete_bootstrap.py`
+- `tests/test_production_redis_docker_config.py`
 - Compose validation via `docker compose -f docker-compose.yml config`
 
 ## References
 
 - `docker-up.py`
 - `docker-compose.yml`
+- `docker-compose.redis-production.yml`
 - `.env.example`
 - `backend/.env.example`
 - `backend/app/factory_app.py`

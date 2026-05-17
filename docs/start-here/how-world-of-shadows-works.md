@@ -1,4 +1,4 @@
-# How World of Shadows works
+# How Better Tomorrow works
 
 > **Projection governance**
 > contractify-projection:
@@ -38,7 +38,7 @@ The first vertical slice is **God of Carnage**—a scene-led dramatic module wit
 
 ## Related
 
-- [What is World of Shadows?](what-is-world-of-shadows.md)
+- [What is Better Tomorrow?](what-is-world-of-shadows.md)
 - [User documentation root](../user/README.md)
 - [Admin documentation root](../admin/README.md)
 - [Developer documentation root](../dev/README.md)
