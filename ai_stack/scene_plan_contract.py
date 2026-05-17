@@ -60,6 +60,26 @@ class ScenePlanRecord(BaseModel):
         default_factory=dict,
         description="How the director returns control or affordance to the player after the planned beats.",
     )
+    content_frame: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Canonical content slice selected for this turn: path step, scene node, objects, location, quote anchors, and access decisions.",
+    )
+    speech_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Director decision for whether NPC speech is required, recommended, or suppressed for the selected content frame.",
+    )
+    quote_moment_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Moment-locked quote policy; exact quote anchors are rare and must satisfy the listed requirements.",
+    )
+    dialogue_plan: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Ordered content-guided NPC speech beats selected by the director.",
+    )
+    capability_manager_plan: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Director-selected capability gate: which runtime dramatic capabilities should run for this turn.",
+    )
     continuity_obligation: dict[str, Any] = Field(
         default_factory=dict,
         description="Planner-facing continuity carry obligation; does not commit world truth.",

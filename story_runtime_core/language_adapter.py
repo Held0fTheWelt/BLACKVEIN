@@ -1,10 +1,10 @@
-"""Thin semantic language adapter.
+"""Focused semantic language adapter.
 
 This module deliberately contains no verb ontology, language lookup table, action map,
-or alias dictionary. It exposes the content that already exists in module files
-as an AI-readable semantic catalog and defines the shape of the model-produced
-resolution. Meaning is inferred from the player's utterance against that
-catalog by the AI layer, not by code-level word maps.
+or alias dictionary. Its responsibility is to expose the content that already
+exists in module files as an AI-readable semantic catalog and to define the
+shape of the model-produced resolution. Meaning is inferred from the player's
+utterance against that catalog by the AI layer, not by code-level word maps.
 """
 
 from __future__ import annotations

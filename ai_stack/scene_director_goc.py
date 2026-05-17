@@ -10,19 +10,16 @@ from typing import Any
 from ai_stack.goc_frozen_vocab import (
     CONTINUITY_CLASSES,
     CONTINUITY_CLASS_SEVERITY_ORDER,
+    GOC_CANONICAL_ACTOR_IDS,
     GOC_MODULE_ID,
     SCENE_FUNCTIONS,
     assert_pacing_mode,
     assert_scene_function,
     assert_silence_brevity_mode,
 )
-from ai_stack.goc_actor_aliases import resolve_goc_actor_alias
 from ai_stack.goc_scene_identity import GOC_DEFAULT_GUIDANCE_PHASE_KEY, guidance_phase_key_for_scene_id
 from ai_stack.goc_yaml_authority import scene_assessment_phase_hints, scene_guidance_snippets
 from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label_in_matrix
-from ai_stack.scene_director_goc_legacy_keyword_candidates import (
-    legacy_keyword_scene_candidates as _legacy_keyword_scene_candidates,
-)
 from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.silence_negative_space_contract import (
     build_silence_negative_space_decision,
@@ -335,7 +332,7 @@ def semantic_move_to_scene_candidates(
     prior_planner_truth: dict[str, Any] | None = None,
 ) -> tuple[list[str], dict[str, str], list[str]]:
     """Map semantic move_type to scene-function candidates —
-    planner-primary (not keyword surface).
+    planner-primary, grounded in the bounded semantic move contract.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -352,9 +349,7 @@ def semantic_move_to_scene_candidates(
             Returns a value of type ``tuple[list[str], dict[str, str],
             list[str]]``; see the function body for structure, error paths, and sentinels.
     """
-    text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
-    move_class = str(interpreted_move.get("move_class") or "").lower()
-    intent = str(interpreted_move.get("player_intent") or "").lower()
+    del player_input, interpreted_move
     implied: dict[str, str] = {}
     candidates: list[str] = []
     heuristic_trace: list[str] = []
@@ -371,17 +366,6 @@ def semantic_move_to_scene_candidates(
         candidates.append("reveal_surface")
         implied["reveal_surface"] = "revealed_fact"
         heuristic_trace.append("semantic:competing_repair_and_reveal->repair_plus_reveal_candidates")
-        _merge_continuity_supplements(
-            candidates,
-            implied,
-            heuristic_trace,
-            prior_classes,
-            text,
-            move_class,
-            intent,
-            player_input,
-            pacing_mode,
-        )
         return candidates, implied, heuristic_trace
 
     if pacing_mode == "thin_edge":
@@ -395,25 +379,10 @@ def semantic_move_to_scene_candidates(
                 candidates.append("withhold_or_evade")
                 implied["withhold_or_evade"] = "silent_carry"
                 heuristic_trace.append("semantic:thin_edge+silence_withdrawal->withhold_or_evade")
-        elif "silent" in text or "say nothing" in text:
-            candidates.append("withhold_or_evade")
-            implied["withhold_or_evade"] = "silent_carry"
-            heuristic_trace.append("semantic:thin_edge_silence_compat->withhold_or_evade")
         else:
             candidates.append("establish_pressure")
             implied["establish_pressure"] = "situational_pressure"
             heuristic_trace.append("semantic:thin_edge_default->establish_pressure")
-        _merge_continuity_supplements(
-            candidates,
-            implied,
-            heuristic_trace,
-            prior_classes,
-            text,
-            move_class,
-            intent,
-            player_input,
-            pacing_mode,
-        )
         return candidates, implied, heuristic_trace
 
     primary_map: dict[str, tuple[str, str]] = {
@@ -435,78 +404,12 @@ def semantic_move_to_scene_candidates(
     implied[fn] = cont
     heuristic_trace.append(f"semantic:move_type={move_type}->{fn}")
 
-    _merge_continuity_supplements(
-        candidates,
-        implied,
-        heuristic_trace,
-        prior_classes,
-        text,
-        move_class,
-        intent,
-        player_input,
-        pacing_mode,
-    )
-
     if not candidates:
         candidates.append("establish_pressure")
         implied["establish_pressure"] = "situational_pressure"
         heuristic_trace.append("semantic:fallback_empty->establish_pressure")
 
     return candidates, implied, heuristic_trace
-
-
-def _merge_continuity_supplements(
-    candidates: list[str],
-    implied: dict[str, str],
-    heuristic_trace: list[str],
-    prior_classes: list[str],
-    text: str,
-    move_class: str,
-    intent: str,
-    player_input: str,
-    pacing_mode: str,
-) -> None:
-    """Add carry-forward and structural nudges (bounded compatibility
-    layer).
-    
-    Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-    
-    Args:
-        candidates: ``candidates`` (list[str]); meaning follows the type and call sites.
-        implied: ``implied`` (dict[str, str]); meaning follows the type and call sites.
-        heuristic_trace: ``heuristic_trace`` (list[str]); meaning follows the type and call sites.
-        prior_classes: ``prior_classes`` (list[str]); meaning follows the type and call sites.
-        text: ``text`` (str); meaning follows the type and call sites.
-        move_class: ``move_class`` (str); meaning follows the type and call sites.
-        intent: ``intent`` (str); meaning follows the type and call sites.
-        player_input: ``player_input`` (str); meaning follows the type and call sites.
-        pacing_mode: ``pacing_mode`` (str); meaning follows the type and call sites.
-    """
-    if (
-        ("question" in move_class or "question" in intent or player_input.strip().endswith("?"))
-        and "probe_motive" not in candidates
-        and pacing_mode != "containment"
-    ):
-        candidates.append("probe_motive")
-        implied["probe_motive"] = "situational_pressure"
-        heuristic_trace.append("compat:question_shape->probe_motive")
-
-    if "blame_pressure" in prior_classes and not candidates:
-        candidates.append("redirect_blame")
-        implied["redirect_blame"] = "blame_pressure"
-        heuristic_trace.append("continuity:blame_pressure_fallback->redirect_blame")
-    if "dignity_injury" in prior_classes and not candidates:
-        candidates.append("redirect_blame")
-        implied["redirect_blame"] = "dignity_injury"
-        heuristic_trace.append("continuity:dignity_injury_fallback->redirect_blame")
-    if "alliance_shift" in prior_classes and "probe_motive" not in candidates and "why" in text:
-        candidates.append("probe_motive")
-        implied["probe_motive"] = "alliance_shift"
-        heuristic_trace.append("continuity:alliance_shift_nudge->probe_motive")
-    if "blame_pressure" in prior_classes and "redirect_blame" not in candidates and "watch" in text:
-        candidates.append("redirect_blame")
-        implied["redirect_blame"] = "blame_pressure"
-        heuristic_trace.append("continuity:watch_under_blame->redirect_blame")
 
 
 def _narrative_thread_feedback_signal(
@@ -547,7 +450,11 @@ def _narrative_thread_feedback_signal(
 
 
 def _actor_from_thread_entities(entities: list[str]) -> str | None:
-    return resolve_goc_actor_alias(" ".join(entities))
+    for raw in entities:
+        actor_id = str(raw or "").strip()
+        if actor_id in GOC_CANONICAL_ACTOR_IDS:
+            return actor_id
+    return None
 
 
 def _goc_primary_responder_from_context(
@@ -580,13 +487,8 @@ def _goc_primary_responder_from_context(
         tuple[str, str]:
             Returns a value of type ``tuple[str, str]``; see the function body for structure, error paths, and sentinels.
     """
-    if hint and (
-        hint.endswith("_reille") or hint.endswith("longstreet") or hint.endswith("vallon")
-    ):
+    if hint and hint in GOC_CANONICAL_ACTOR_IDS:
         return hint, "semantic_target_actor_hint"
-    actor_from_text = resolve_goc_actor_alias(text)
-    if actor_from_text:
-        return actor_from_text, "named_in_player_move"
     tf = thread_feedback if isinstance(thread_feedback, dict) else {}
     actor_from_thread = _actor_from_thread_entities(
         tf.get("related_entities") if isinstance(tf.get("related_entities"), list) else []
@@ -680,7 +582,6 @@ def _build_responder_set(
     social = social_state_record if isinstance(social_state_record, dict) else {}
     social_risk_band = str(social.get("social_risk_band") or "").strip().lower()
     move_type = str(interpreted_move.get("move_type") or "").strip().lower()
-    move_class = str(interpreted_move.get("move_class") or "").strip().lower()
     is_high_pressure = (
         scene_fn in {"escalate_conflict", "redirect_blame", "scene_pivot"}
         or pacing_mode in {"multi_pressure", "compressed"}
@@ -712,11 +613,7 @@ def _build_responder_set(
     interruption_trigger = (
         thread_pressure >= 3
         or scene_fn in {"escalate_conflict", "scene_pivot"}
-        or "interrupt" in text
-        or "cut in" in text
-        or "talk over" in text
         or move_type in {"direct_accusation", "escalation_threat"}
-        or "accus" in move_class
     )
     if interruption_trigger:
         interrupter = _GOC_INTERRUPTER_BY_PRIMARY.get(primary_actor)
@@ -798,13 +695,14 @@ def build_responder_and_function(
                 prior_planner_truth=prior_planner_truth,
             )
     else:
-        selection_source = "legacy_fallback"
-        candidates, implied, heuristic_trace = _legacy_keyword_scene_candidates(
-            pacing_mode=pacing_mode,
-            player_input=player_input,
-            interpreted_move=interpreted_move,
-            prior_classes=prior_classes,
-        )
+        selection_source = "semantic_move_required"
+        candidates = ["scene_pivot"] if pacing_mode == "containment" else ["establish_pressure"]
+        implied = {
+            candidates[0]: "refused_cooperation" if pacing_mode == "containment" else "situational_pressure"
+        }
+        heuristic_trace = [
+            "semantic:missing_semantic_move_record->neutral_scene_candidate"
+        ]
 
     thread_feedback = _narrative_thread_feedback_signal(prior_narrative_thread_state)
     if (
@@ -856,7 +754,8 @@ def build_responder_and_function(
         ),
         "heuristic_trace": heuristic_trace[:16],
         "selection_source": selection_source,
-        "legacy_keyword_scene_candidates_used": selection_source == "legacy_fallback",
+        "legacy_keyword_scene_candidates_used": False,
+        "semantic_move_required": selection_source == "semantic_move_required",
         "semantic_move_contract_valid": selection_source != "invalid_semantic_move",
         "player_input_kind": player_input_kind or None,
         "narrator_response_expected": narrator_expected,
@@ -971,7 +870,6 @@ def _semantic_silence_signal(
     move_class = str(interpreted_move.get("move_class") or "").strip().lower()
     player_input_kind = str(interpreted_move.get("player_input_kind") or "").strip().lower()
     trimmed = player_input.strip()
-    lowered = trimmed.lower()
     no_lexical = _no_lexical_player_input(trimmed)
 
     if sem_move_type == "silence_withdrawal":
@@ -981,14 +879,8 @@ def _semantic_silence_signal(
         elif no_lexical:
             silence_kind = "non_lexical_input"
             interpreter_signal = "semantic_move:silence_withdrawal+non_lexical_input"
-        elif "awkward pause" in lowered or "long pause" in lowered:
-            silence_kind = "awkward_pause"
-            interpreter_signal = "semantic_move:silence_withdrawal+pause"
-        elif "do not answer" in lowered or "won't answer" in lowered or "dont answer" in lowered:
-            silence_kind = "withheld_answer"
-            interpreter_signal = "semantic_move:silence_withdrawal+withheld_answer"
         else:
-            silence_kind = "explicit_silence"
+            silence_kind = str(sem.get("silence_kind") or "").strip() or "explicit_silence"
             interpreter_signal = "semantic_move:silence_withdrawal"
         return {
             "source": "semantic_move",
@@ -1041,11 +933,6 @@ def build_pacing_and_silence(
         tuple[str, dict[str, Any]]:
             Returns a value of type ``tuple[str, dict[str, Any]]``; see the function body for structure, error paths, and sentinels.
     """
-    text = (
-        f"{player_input} {interpreted_move.get('move_class', '')} "
-        f"{interpreted_move.get('player_intent', '')}"
-    ).lower()
-    intent = str(interpreted_move.get("player_intent") or "").lower()
     if module_id != GOC_MODULE_ID:
         return _finalize_pacing_silence(
             assert_pacing_mode("standard"),
@@ -1057,21 +944,16 @@ def build_pacing_and_silence(
                 "dramatic_function": "not_applicable",
             },
         )
-    off_scope_keywords = (
-        "mars",
-        "spaceship",
-        "lighthouse",
-        "dragon",
-        "bitcoin",
-        "stock market",
-        "weather forecast",
-        "football match",
-        "tax return",
-        "election campaign",
-        "recipe blog",
-    )
-    off_scope = any(k in text for k in off_scope_keywords) and "carnage" not in text
-    if off_scope:
+
+    sem = semantic_move_record if isinstance(semantic_move_record, dict) else {}
+    sem_move_type = str(sem.get("move_type") or "").strip()
+    subtext = sem.get("subtext") if isinstance(sem.get("subtext"), dict) else {}
+    subtext_function = str(subtext.get("subtext_function") or "").strip()
+    trimmed = player_input.strip()
+    words = [w for w in trimmed.replace(".", " ").split() if w]
+    thin_fragment = len(trimmed) <= 10 and len(words) <= 2 and "?" not in trimmed
+
+    if sem_move_type == "off_scope_containment":
         return _finalize_pacing_silence(
             assert_pacing_mode("containment"),
             {
@@ -1082,30 +964,16 @@ def build_pacing_and_silence(
                 "dramatic_function": "contain_boundary",
             },
         )
-    escalation_lexicon = (
-        "angry",
-        "furious",
-        "fight",
-        "shout",
-        "attack",
-        "rage",
-        "accus",
-    )
-    player_text = player_input.lower()
-    explicit_escalation = any(token in player_text for token in escalation_lexicon) and not (
-        "multi" in player_text and "pressure" in player_text
-    )
-    if explicit_escalation:
+
+    if sem_move_type == "escalation_threat":
         return _finalize_pacing_silence(
             assert_pacing_mode("standard"),
             {
                 "mode": assert_silence_brevity_mode("normal"),
-                "reason": "explicit_escalation_player_input",
+                "reason": "semantic_escalation_threat",
             },
         )
-    trimmed = player_input.strip()
-    words = [w for w in trimmed.replace(".", " ").split() if w]
-    thin_fragment = len(trimmed) <= 10 and len(words) <= 2 and "?" not in trimmed
+
     semantic_silence = _semantic_silence_signal(
         player_input=player_input,
         interpreted_move=interpreted_move,
@@ -1140,80 +1008,17 @@ def build_pacing_and_silence(
                 interpreter_signal=str(semantic_silence.get("interpreter_signal") or ""),
             ),
         )
-    awkward_pause = (
-        "awkward pause" in text
-        or "long pause" in text
-        or "won't answer" in text
-        or "do not answer" in text
-    )
-    if "thin edge" in text or "one beat" in text or awkward_pause:
-        if "silent" in text or "say nothing" in text or awkward_pause:
-            # Wave 3: if prior tension exists, do not drop to withheld — use compressed instead
-            if _has_unresolved_carry_forward_tension(prior_planner_truth):
-                return _finalize_pacing_silence(
-                    assert_pacing_mode("compressed"),
-                    {
-                        "mode": assert_silence_brevity_mode("brief"),
-                        "reason": "thin_edge_withheld_upgraded_by_prior_tension",
-                    },
-                )
-            return _finalize_pacing_silence(
-                assert_pacing_mode("thin_edge"),
-                {
-                    "mode": assert_silence_brevity_mode("withheld"),
-                    "reason": "thin_edge_plus_withheld",
-                },
-            )
-        return _finalize_pacing_silence(
-            assert_pacing_mode("thin_edge"),
-            {
-                "mode": assert_silence_brevity_mode("brief"),
-                "reason": "thin_edge_brevity_pressure",
-            },
-        )
-    if thin_fragment and ("silent" in text or "say nothing" in text):
-        return _finalize_pacing_silence(
-            assert_pacing_mode("thin_edge"),
-            {
-                "mode": assert_silence_brevity_mode("withheld"),
-                "reason": "thin_edge_plus_withheld",
-            },
-        )
-    sparse_tone: str | None = None
-    if thin_fragment:
-        sparse_norm = " ".join(words).lower()
-        sparse_tokens = {w.strip(".,!?;:") for w in words if w.strip(".,!?;:")}
-        refusal_markers = {"no", "nope", "nah", "never", "stop", "leave"}
-        provocation_markers = {"whatever", "fine", "sure", "k", "ok", "okay"}
-        defensive_markers = {"...", "..", ".", "hmm", "hm", "uh", "um"}
-        discomfort_markers = {"maybe", "idk", "unsure"}
 
-        if sparse_tokens & refusal_markers or "won't" in sparse_norm or "dont" in sparse_norm or "don't" in sparse_norm:
-            sparse_tone = "refusal_pressure"
-        elif (
-            "whatever" in sparse_norm
-            or "yeah right" in sparse_norm
-            or sparse_tokens & provocation_markers == {"whatever"}
-            or sparse_tokens == {"fine"}
-        ):
-            sparse_tone = "provocation_pressure"
-        elif sparse_norm in defensive_markers or sparse_tokens & defensive_markers:
-            sparse_tone = "defensive_pause"
-        elif sparse_tokens & discomfort_markers or "not sure" in sparse_norm or "dont know" in sparse_norm or "don't know" in sparse_norm:
-            sparse_tone = "discomfort_pause"
-
-    sem = semantic_move_record if isinstance(semantic_move_record, dict) else {}
-    sem_move_type = str(sem.get("move_type") or "").strip()
-    subtext = sem.get("subtext") if isinstance(sem.get("subtext"), dict) else {}
-    subtext_function = str(subtext.get("subtext_function") or "").strip()
-    if sparse_tone in {"refusal_pressure", "provocation_pressure"} or (
-        sem_move_type in {"direct_accusation", "indirect_provocation", "escalation_threat"} and thin_fragment
-    ):
+    if sem_move_type in {
+        "competing_repair_and_reveal",
+        "direct_accusation",
+        "indirect_provocation",
+    } and thin_fragment:
         return _finalize_pacing_silence(
             assert_pacing_mode("multi_pressure"),
             {
                 "mode": assert_silence_brevity_mode("normal"),
-                "reason": "sparse_fragment_refusal_or_provocation_pressure",
+                "reason": "semantic_sparse_pressure_move",
             },
         )
     if subtext_function in {"force_accountability", "raise_pressure", "reveal_under_repair"}:
@@ -1232,14 +1037,6 @@ def build_pacing_and_silence(
                 "reason": "subtext_thin_edge_probe_or_boundary",
             },
         )
-    if sparse_tone in {"defensive_pause", "discomfort_pause"}:
-        return _finalize_pacing_silence(
-            assert_pacing_mode("compressed"),
-            {
-                "mode": assert_silence_brevity_mode("brief"),
-                "reason": "sparse_fragment_defensive_pause_pressure",
-            },
-        )
     if thin_fragment:
         return _finalize_pacing_silence(
             assert_pacing_mode("thin_edge"),
@@ -1248,41 +1045,16 @@ def build_pacing_and_silence(
                 "reason": "thin_edge_brevity_pressure",
             },
         )
-    if "brief" in text or "short" in text:
-        pacing = assert_pacing_mode("compressed")
-        silence = {"mode": assert_silence_brevity_mode("brief"), "reason": "player_requested_brevity"}
-    elif "silent" in text or "say nothing" in text:
-        pacing = assert_pacing_mode("standard")
-        silence = {"mode": assert_silence_brevity_mode("withheld"), "reason": "dramatic_silence_move"}
-    elif "multi" in text and "pressure" in text:
+
+    if sem_move_type == "competing_repair_and_reveal":
         pacing = assert_pacing_mode("multi_pressure")
-        silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "default_verbal_density"}
-    elif ("repair_attempt" in text or "repair" in intent) and "why" in text:
+        silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "semantic_repair_and_reveal_compete"}
+    elif sem_move_type == "probe_inquiry" and "repair_attempt" in (prior_planner_truth or {}).get(
+        "carry_forward_classes", []
+    ):
         pacing = assert_pacing_mode("compressed")
-        silence = {"mode": assert_silence_brevity_mode("brief"), "reason": "continuity_compact_probe_after_repair"}
-    elif "repair" in text and ("truth" in text or "reveal" in text or "secret" in text):
-        pacing = assert_pacing_mode("multi_pressure")
-        silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "repair_and_exposure_compete"}
+        silence = {"mode": assert_silence_brevity_mode("brief"), "reason": "semantic_probe_after_repair"}
     else:
-        escalation_lexicon = (
-            "angry",
-            "furious",
-            "fight",
-            "shout",
-            "attack",
-            "rage",
-            "accus",
-        )
-        explicit_escalation = any(token in text for token in escalation_lexicon) and not (
-            "multi" in text and "pressure" in text
-        )
-        if explicit_escalation:
-            pacing = assert_pacing_mode("standard")
-            silence = {
-                "mode": assert_silence_brevity_mode("normal"),
-                "reason": "explicit_escalation_player_input",
-            }
-            return _finalize_pacing_silence(pacing, silence)
         thread_feedback = _narrative_thread_feedback_signal(prior_narrative_thread_state)
         thread_pressure = int(thread_feedback.get("thread_pressure_level") or 0)
         dominant_thread_kind = thread_feedback.get("dominant_thread_kind")

@@ -386,8 +386,7 @@ class TestSemanticMoveToSceneCandidates:
         assert "withhold_or_evade" in candidates
         assert implied["withhold_or_evade"] == "silent_carry"
 
-    def test_thin_edge_silence_keyword(self):
-        """Thin edge with silence keyword (lines 233-236)."""
+    def test_thin_edge_non_silence_semantics_default(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="probe_inquiry",
             pacing_mode="thin_edge",
@@ -395,7 +394,7 @@ class TestSemanticMoveToSceneCandidates:
             player_input="say nothing",
             interpreted_move={"player_intent": "silence"},
         )
-        assert "withhold_or_evade" in candidates
+        assert candidates == ["establish_pressure"]
 
     def test_thin_edge_non_silence_default(self):
         """Thin edge without silence returns establish_pressure (lines 237-240)."""
@@ -466,8 +465,7 @@ class TestSemanticMoveToSceneCandidates:
         # Should have establish_pressure from primary map
         assert "establish_pressure" in candidates
 
-    def test_question_shape_adds_probe_motive(self):
-        """Question shape adds probe_motive (lines 305-312)."""
+    def test_question_shape_does_not_override_semantic_move(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="reveal_surface",
             pacing_mode="standard",
@@ -475,7 +473,7 @@ class TestSemanticMoveToSceneCandidates:
             player_input="why did you do that?",
             interpreted_move={"move_class": "question"},
         )
-        assert "probe_motive" in candidates
+        assert candidates == ["reveal_surface"]
 
     def test_blame_pressure_fallback(self):
         """Blame pressure continuity fallback (lines 314-317)."""
@@ -501,8 +499,7 @@ class TestSemanticMoveToSceneCandidates:
         # Should add redirect_blame fallback
         assert "redirect_blame" in candidates or "establish_pressure" in candidates
 
-    def test_alliance_shift_why_nudge(self):
-        """Alliance shift with 'why' adds probe_motive (lines 322-325)."""
+    def test_alliance_shift_why_text_does_not_nudge_without_semantics(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -510,10 +507,10 @@ class TestSemanticMoveToSceneCandidates:
             player_input="but why would you do this?",
             interpreted_move={},
         )
-        assert "probe_motive" in candidates
+        assert "probe_motive" not in candidates
+        assert candidates == ["withhold_or_evade"]
 
-    def test_blame_pressure_watch_nudge(self):
-        """Blame pressure with 'watch' adds redirect_blame (lines 326-329)."""
+    def test_blame_pressure_watch_text_does_not_nudge_without_semantics(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -521,243 +518,42 @@ class TestSemanticMoveToSceneCandidates:
             player_input="I watch you carefully",
             interpreted_move={},
         )
-        assert "redirect_blame" in candidates
+        assert "redirect_blame" not in candidates
+        assert candidates == ["withhold_or_evade"]
 
 
-class TestLegacyKeywordSceneCandidates:
-    """Test _legacy_keyword_scene_candidates (lines 332-454)."""
+class TestSemanticRequiredSceneFallback:
+    """Scene candidates are driven by semantic move payloads, not keyword lists."""
 
-    def test_legacy_containment_pacing(self):
-        """Legacy: containment pacing returns scene_pivot (lines 347-350)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
+    def test_missing_semantic_move_record_defaults_neutral(self):
+        from ai_stack.scene_director_goc import build_responder_and_function
 
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
+        _responders, scene_fn, implied, resolution = build_responder_and_function(
+            player_input="arbitrary player language",
+            interpreted_move={},
+            pacing_mode="standard",
+            semantic_move_record=None,
+        )
+
+        assert scene_fn == "establish_pressure"
+        assert implied == {"establish_pressure": "situational_pressure"}
+        assert resolution["selection_source"] == "semantic_move_required"
+        assert resolution["semantic_move_required"] is True
+        assert resolution["legacy_keyword_scene_candidates_used"] is False
+
+    def test_containment_pacing_still_routes_to_scene_pivot_without_keyword_scan(self):
+        from ai_stack.scene_director_goc import build_responder_and_function
+
+        _responders, scene_fn, implied, resolution = build_responder_and_function(
+            player_input="arbitrary player language",
+            interpreted_move={},
             pacing_mode="containment",
-            player_input="test input",
-            interpreted_move={},
-            prior_classes=[],
+            semantic_move_record=None,
         )
-        assert "scene_pivot" in candidates
 
-    def test_legacy_thin_edge_silence(self):
-        """Legacy: thin_edge with silence keyword (lines 351-355)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="thin_edge",
-            player_input="say nothing",
-            interpreted_move={},
-            prior_classes=[],
-        )
-        assert "withhold_or_evade" in candidates
-
-    def test_legacy_thin_edge_default(self):
-        """Legacy: thin_edge without silence defaults (lines 356-359)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="thin_edge",
-            player_input="speak",
-            interpreted_move={},
-            prior_classes=[],
-        )
-        assert "establish_pressure" in candidates
-
-    def test_legacy_keyword_silence_pause(self):
-        """Legacy: silence/pause keywords (lines 361-371)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["silent", "say nothing", "awkward pause", "long pause"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "withhold_or_evade" in candidates
-
-    def test_legacy_keyword_humiliation(self):
-        """Legacy: humiliation keywords (lines 372-381)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["humiliat", "embarrass", "ashamed", "ridicule", "mock"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "redirect_blame" in candidates
-
-    def test_legacy_keyword_evasion(self):
-        """Legacy: evasion keywords (lines 382-390)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["evade", "deflect", "avoid answering", "change subject"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "withhold_or_evade" in candidates
-
-    def test_legacy_keyword_repair(self):
-        """Legacy: repair keywords (lines 391-394)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["sorry", "apolog", "repair"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "repair_or_stabilize" in candidates
-
-    def test_legacy_keyword_reveal(self):
-        """Legacy: reveal keywords (lines 395-398)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["reveal", "secret", "truth", "admit"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "reveal_surface" in candidates
-
-    def test_legacy_keyword_blame(self):
-        """Legacy: blame keywords (lines 399-402)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["blame", "fault"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "redirect_blame" in candidates
-
-    def test_legacy_keyword_probe(self):
-        """Legacy: probe keywords (lines 403-406)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["why", "motive", "reason"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "probe_motive" in candidates
-
-    def test_legacy_keyword_escalation(self):
-        """Legacy: escalation keywords (lines 407-410)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in ["escalat", "fight", "angry", "furious", "attack"]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "escalate_conflict" in candidates
-
-    def test_legacy_keyword_alliance(self):
-        """Legacy: alliance keywords (lines 411-421)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        for keyword in [
-            "side with",
-            "siding with",
-            "ally with",
-            "stand with",
-            "against your wife",
-            "against your husband",
-        ]:
-            candidates, implied, trace = _legacy_keyword_scene_candidates(
-                pacing_mode="standard",
-                player_input=keyword,
-                interpreted_move={},
-                prior_classes=[],
-            )
-            assert "scene_pivot" in candidates
-
-    def test_legacy_keyword_question(self):
-        """Legacy: question shape (lines 423-430)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="why are you here?",
-            interpreted_move={"move_class": "question"},
-            prior_classes=[],
-        )
-        assert "probe_motive" in candidates
-
-    def test_legacy_blame_pressure_fallback(self):
-        """Legacy: blame_pressure continuity fallback (lines 432-435)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="unknown input",
-            interpreted_move={},
-            prior_classes=["blame_pressure"],
-        )
-        assert "redirect_blame" in candidates
-
-    def test_legacy_dignity_injury_fallback(self):
-        """Legacy: dignity_injury continuity fallback (lines 436-439)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="unknown input",
-            interpreted_move={},
-            prior_classes=["dignity_injury"],
-        )
-        assert "redirect_blame" in candidates
-
-    def test_legacy_alliance_shift_why_nudge(self):
-        """Legacy: alliance_shift with 'why' (lines 440-443)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="but why?",
-            interpreted_move={},
-            prior_classes=["alliance_shift"],
-        )
-        assert "probe_motive" in candidates
-
-    def test_legacy_blame_pressure_watch_nudge(self):
-        """Legacy: blame_pressure with 'watch' (lines 444-447)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="watch what you say",
-            interpreted_move={},
-            prior_classes=["blame_pressure"],
-        )
-        assert "redirect_blame" in candidates
-
-    def test_legacy_default_fallback(self):
-        """Legacy: default fallback (lines 449-452)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="xyz abc 123",
-            interpreted_move={},
-            prior_classes=[],
-        )
-        assert "establish_pressure" in candidates
+        assert scene_fn == "scene_pivot"
+        assert implied == {"scene_pivot": "refused_cooperation"}
+        assert resolution["selection_source"] == "semantic_move_required"
 
 
 class TestGocPrimaryResponderFromContext:
@@ -779,8 +575,8 @@ class TestGocPrimaryResponderFromContext:
         assert actor == "annette_reille"
         assert reason == "semantic_target_actor_hint"
 
-    def test_responder_from_named_annette(self):
-        """Annette named in player move (lines 471-472)."""
+    def test_raw_player_text_no_longer_selects_responder_by_name(self):
+        """Target actors must arrive through semantic_target_actor_hint."""
         from ai_stack.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
@@ -792,46 +588,15 @@ class TestGocPrimaryResponderFromContext:
             scene_fn="establish_pressure",
             implied={},
         )
-        assert actor == "annette_reille"
-        assert reason == "named_in_player_move"
+        assert actor in {"annette_reille", "michel_longstreet", "veronique_vallon", "alain_reille"}
+        assert reason != "named_in_player_move"
 
-    def test_responder_from_named_alain(self):
-        """Alain named in player move (lines 473-474)."""
+    def test_semantic_hint_selects_veronique(self):
         from ai_stack.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
-            text="alain please help",
-            hint=None,
-            yaml_slice=None,
-            prior_classes=[],
-            current_scene_id="",
-            scene_fn="establish_pressure",
-            implied={},
-        )
-        assert actor == "alain_reille"
-
-    def test_responder_from_named_michel(self):
-        """Michel named in player move (lines 475-476)."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
-
-        actor, reason = _goc_primary_responder_from_context(
-            text="michel listen to me",
-            hint=None,
-            yaml_slice=None,
-            prior_classes=[],
-            current_scene_id="",
-            scene_fn="establish_pressure",
-            implied={},
-        )
-        assert actor == "michel_longstreet"
-
-    def test_responder_from_named_veronique(self):
-        """Veronique named in player move (lines 477-478)."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
-
-        actor, reason = _goc_primary_responder_from_context(
-            text="veronique what do you think",
-            hint=None,
+            text="véronique what do you think",
+            hint="veronique_vallon",
             yaml_slice=None,
             prior_classes=[],
             current_scene_id="",
@@ -839,25 +604,7 @@ class TestGocPrimaryResponderFromContext:
             implied={},
         )
         assert actor == "veronique_vallon"
-
-    def test_responder_from_named_veronique_accent_folded(self):
-        """Responder lookup follows the canonical GoC alias matcher."""
-        from ai_stack.goc_actor_aliases import GOC_ACTOR_ALIASES
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
-
-        actor_id = "veronique_vallon"
-        assert actor_id in GOC_ACTOR_ALIASES
-        actor, reason = _goc_primary_responder_from_context(
-            text="véronique what do you think",
-            hint=None,
-            yaml_slice=None,
-            prior_classes=[],
-            current_scene_id="",
-            scene_fn="establish_pressure",
-            implied={},
-        )
-        assert actor == actor_id
-        assert reason == "named_in_player_move"
+        assert reason == "semantic_target_actor_hint"
 
     def test_responder_from_dignity_injury_bias(self):
         """Dignity injury bias applies (lines 486-487)."""
@@ -911,15 +658,16 @@ class TestBuildResponderAndFunction:
         assert len(responders) > 0
         assert resolution["selection_source"] == "semantic_pipeline_v1"
 
-    def test_responder_function_legacy_fallback(self):
-        """Uses legacy fallback when semantic_move_record absent (lines 518-524)."""
+    def test_responder_function_requires_semantic_move_record(self):
+        """Missing semantic_move_record uses a neutral diagnostic fallback."""
         responders, scene_fn, implied, resolution = build_responder_and_function(
             player_input="you are wrong",
             interpreted_move={"move_class": "accusation"},
             pacing_mode="standard",
         )
         assert scene_fn in SCENE_FUNCTIONS
-        assert resolution["selection_source"] == "legacy_fallback"
+        assert resolution["selection_source"] == "semantic_move_required"
+        assert resolution["semantic_move_required"] is True
 
     def test_responder_function_with_semantic_trace(self):
         """Semantic trace reference extracted (lines 530-533)."""
@@ -1187,68 +935,50 @@ class TestBuildPacingAndSilence:
         assert silence["reason"] == "non_goc_slice_default"
 
     def test_explicit_escalation_player_input_stays_standard_despite_thread_pressure(self):
-        """Angry full-sentence escalation uses standard pacing before thread-pressure override."""
+        """Semantic escalation uses standard pacing before thread-pressure override."""
         pacing, silence = build_pacing_and_silence(
             player_input="I am so angry I want to fight and shout at Michel now.",
             interpreted_move={"player_intent": "escalate"},
             module_id=GOC_MODULE_ID,
             prior_narrative_thread_state={"thread_pressure_level": 4},
+            semantic_move_record={"move_type": "escalation_threat"},
         )
         assert pacing == "standard"
-        assert silence["reason"] == "explicit_escalation_player_input"
+        assert silence["reason"] == "semantic_escalation_threat"
 
-    def test_off_scope_keywords_returns_containment(self):
-        """Off-scope keywords trigger containment (lines 586-607)."""
+    def test_off_scope_semantic_move_returns_containment(self):
         pacing, silence = build_pacing_and_silence(
             player_input="let's talk about mars",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
-    def test_off_scope_keywords_spaceship(self):
-        """Off-scope: spaceship keyword."""
+    def test_off_scope_semantic_move_ignores_raw_topic(self):
         pacing, silence = build_pacing_and_silence(
             player_input="spaceship details",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
-    def test_off_scope_keywords_lighthouse(self):
-        """Off-scope: lighthouse keyword."""
-        pacing, silence = build_pacing_and_silence(
-            player_input="the lighthouse",
-            interpreted_move={},
-            module_id=GOC_MODULE_ID,
-        )
-        assert pacing == "containment"
-
-    def test_off_scope_keywords_dragon(self):
-        """Off-scope: dragon keyword."""
-        pacing, silence = build_pacing_and_silence(
-            player_input="dragon slaying",
-            interpreted_move={},
-            module_id=GOC_MODULE_ID,
-        )
-        assert pacing == "containment"
-
-    def test_off_scope_keywords_carnage_exception(self):
-        """'carnage' exempts from off-scope (line 599)."""
+    def test_raw_off_scope_words_do_not_trigger_containment_without_semantics(self):
         pacing, silence = build_pacing_and_silence(
             player_input="mars and carnage",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        # Should not be containment because carnage exempts
         assert pacing != "containment"
 
     def test_thin_fragment_with_silence(self):
-        """Thin fragment with silence returns withheld (lines 617-625)."""
+        """A semantic silence move returns withheld."""
         pacing, silence = build_pacing_and_silence(
             player_input="silent",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal"},
         )
         assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
@@ -1264,33 +994,34 @@ class TestBuildPacingAndSilence:
         assert silence["mode"] == "brief"
 
     def test_sparse_refusal_fragment_stays_alive_with_pressure(self):
-        """Sparse refusal should drive pressure, not withheld dead-air."""
+        """Sparse pressure depends on semantic move type, not a refusal word."""
         pacing, silence = build_pacing_and_silence(
             player_input="no",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "direct_accusation"},
         )
         assert pacing == "multi_pressure"
         assert silence["mode"] == "normal"
-        assert silence["reason"] == "sparse_fragment_refusal_or_provocation_pressure"
+        assert silence["reason"] == "semantic_sparse_pressure_move"
 
     def test_sparse_defensive_fragment_uses_compressed_brief(self):
-        """Sparse discomfort/defensive pause should stay active with brief response."""
+        """Raw sparse discomfort is treated structurally unless the AI adds semantics."""
         pacing, silence = build_pacing_and_silence(
             player_input="hmm",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        assert pacing == "compressed"
+        assert pacing == "thin_edge"
         assert silence["mode"] == "brief"
-        assert silence["reason"] == "sparse_fragment_defensive_pause_pressure"
 
     def test_awkward_pause_returns_withheld(self):
-        """Awkward pause returns withheld (lines 611-625)."""
+        """Pause-like text returns withheld only with semantic silence."""
         pacing, silence = build_pacing_and_silence(
             player_input="awkward pause here",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal", "silence_kind": "awkward_pause"},
         )
         assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
@@ -1301,6 +1032,7 @@ class TestBuildPacingAndSilence:
             player_input="long pause",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal", "silence_kind": "awkward_pause"},
         )
         assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
@@ -1311,6 +1043,7 @@ class TestBuildPacingAndSilence:
             player_input="won't answer",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal", "silence_kind": "withheld_answer"},
         )
         assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
@@ -1321,66 +1054,70 @@ class TestBuildPacingAndSilence:
             player_input="do not answer",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal", "silence_kind": "withheld_answer"},
         )
         assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
 
-    def test_brief_keyword_returns_compressed(self):
-        """'brief' keyword returns compressed pacing (lines 633-635)."""
+    def test_brief_word_does_not_control_pacing_without_semantics(self):
         pacing, silence = build_pacing_and_silence(
             player_input="brief response",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        assert pacing == "compressed"
-        assert silence["mode"] == "brief"
+        assert pacing == "standard"
+        assert silence["mode"] == "normal"
 
-    def test_short_keyword_returns_compressed(self):
-        """'short' keyword returns compressed pacing."""
+    def test_short_word_does_not_control_pacing_without_semantics(self):
         pacing, silence = build_pacing_and_silence(
             player_input="short answer",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        assert pacing == "compressed"
-        assert silence["mode"] == "brief"
+        assert pacing == "standard"
+        assert silence["mode"] == "normal"
 
-    def test_silent_keyword_standard_pacing(self):
-        """'silent' keyword with standard pacing (lines 636-638)."""
+    def test_silence_move_standard_text_returns_withheld(self):
         pacing, silence = build_pacing_and_silence(
             player_input="I remain silent",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal"},
         )
-        assert pacing == "standard"
+        assert pacing == "thin_edge"
         assert silence["mode"] == "withheld"
 
-    def test_multi_pressure_keyword(self):
-        """'multi pressure' keywords (lines 639-641)."""
+    def test_subtext_pressure_function_returns_multi_pressure(self):
         pacing, silence = build_pacing_and_silence(
             player_input="multi pressure response",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={
+                "move_type": "establish_situational_pressure",
+                "subtext": {"subtext_function": "raise_pressure"},
+            },
         )
         assert pacing == "multi_pressure"
         assert silence["mode"] == "normal"
 
-    def test_repair_attempt_with_why(self):
-        """Repair attempt with 'why' (lines 642-644)."""
+    def test_probe_after_repair_uses_semantic_context(self):
         pacing, silence = build_pacing_and_silence(
             player_input="repair_attempt but why",
             interpreted_move={"player_intent": "repair"},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "probe_inquiry"},
+            prior_planner_truth={"carry_forward_classes": ["repair_attempt"]},
         )
         assert pacing == "compressed"
         assert silence["mode"] == "brief"
 
     def test_repair_and_exposure_compete(self):
-        """Repair and exposure compete (lines 645-647)."""
+        """Repair and exposure compete via semantic move."""
         pacing, silence = build_pacing_and_silence(
             player_input="repair and reveal truth",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "competing_repair_and_reveal"},
         )
         assert pacing == "multi_pressure"
         assert silence["mode"] == "normal"
@@ -1391,6 +1128,7 @@ class TestBuildPacingAndSilence:
             player_input="repair the secret",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "competing_repair_and_reveal"},
         )
         assert pacing == "multi_pressure"
         assert silence["mode"] == "normal"
@@ -1543,40 +1281,36 @@ class TestBuildSceneAssessmentHints:
             assert result["guidance_ai_hint"]
 
 
-class TestLegacyQuestionWithContainment:
-    """Test legacy keyword candidate question shape with containment (lines 428-430)."""
+class TestSemanticQuestionWithContainment:
+    """Question routing is expressed by the semantic move payload."""
 
-    def test_legacy_question_containment_excluded(self):
-        """Question probe excluded in containment pacing (line 426)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="containment",
-            player_input="why?",
-            interpreted_move={"move_class": "question"},
-            prior_classes=[],
-        )
-        # With containment pacing, question probe may not be added if already has scene_pivot
-        assert isinstance(candidates, list)
-
-    def test_legacy_endswith_question_mark(self):
-        """Question detected by ending with ? (line 424)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
+    def test_probe_move_routes_to_probe_motive(self):
+        candidates, implied, trace = semantic_move_to_scene_candidates(
+            move_type="probe_inquiry",
             pacing_mode="standard",
+            prior_classes=[],
             player_input="what is this?",
             interpreted_move={},
-            prior_classes=[],
         )
-        assert "probe_motive" in candidates
+        assert candidates == ["probe_motive"]
+        assert implied["probe_motive"] == "situational_pressure"
+
+    def test_containment_pacing_overrides_probe_shape(self):
+        candidates, implied, trace = semantic_move_to_scene_candidates(
+            move_type="probe_inquiry",
+            pacing_mode="containment",
+            prior_classes=[],
+            player_input="what is this?",
+            interpreted_move={},
+        )
+        assert candidates == ["scene_pivot"]
+        assert implied["scene_pivot"] == "refused_cooperation"
 
 
 class TestSemanticQuestionMerge:
-    """Test semantic move question merge supplement (lines 305-312)."""
+    """Questions are represented by semantic move type, not punctuation or raw intent."""
 
     def test_semantic_question_without_probe_motive(self):
-        """Question merge only adds probe_motive if not already present (line 307)."""
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="probe_inquiry",
             pacing_mode="standard",
@@ -1584,10 +1318,9 @@ class TestSemanticQuestionMerge:
             player_input="who did this?",
             interpreted_move={"move_class": "question"},
         )
-        assert "probe_motive" in candidates
+        assert candidates == ["probe_motive"]
 
     def test_semantic_question_with_move_class(self):
-        """Question detected in move_class (line 306)."""
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="reveal_surface",
             pacing_mode="standard",
@@ -1595,10 +1328,9 @@ class TestSemanticQuestionMerge:
             player_input="reveal",
             interpreted_move={"move_class": "question", "player_intent": "question"},
         )
-        assert "probe_motive" in candidates
+        assert candidates == ["reveal_surface"]
 
     def test_semantic_question_with_player_intent(self):
-        """Question detected in player_intent (line 306)."""
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="establish_situational_pressure",
             pacing_mode="standard",
@@ -1606,7 +1338,7 @@ class TestSemanticQuestionMerge:
             player_input="establish",
             interpreted_move={"player_intent": "question"},
         )
-        assert "probe_motive" in candidates
+        assert candidates == ["establish_pressure"]
 
 
 class TestSemanticNonContainmentQuestion:
@@ -1677,8 +1409,7 @@ class TestSemanticContinuityEdgeCases:
         # Should have candidates from containment
         assert len(candidates) > 0
 
-    def test_alliance_shift_only_with_why(self):
-        """Alliance shift nudge only applies when 'why' in text (line 322)."""
+    def test_alliance_shift_does_not_parse_raw_why_text(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -1686,11 +1417,10 @@ class TestSemanticContinuityEdgeCases:
             player_input="just deflect",
             interpreted_move={},
         )
-        # No 'why' so probe_motive should not be added
         assert "withhold_or_evade" in candidates
+        assert "probe_motive" not in candidates
 
-    def test_alliance_shift_nudge_triggers_with_why(self):
-        """Alliance shift nudge applies when 'why' present (lines 322-325)."""
+    def test_alliance_shift_requires_probe_semantic_move(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -1698,11 +1428,9 @@ class TestSemanticContinuityEdgeCases:
             player_input="why would you do that?",
             interpreted_move={},
         )
-        # 'why' present and probe_motive not already in candidates
-        assert "probe_motive" in candidates
+        assert "probe_motive" not in candidates
 
-    def test_blame_pressure_watch_only_when_present(self):
-        """Blame pressure watch nudge only when 'watch' in text (line 326)."""
+    def test_blame_pressure_does_not_parse_raw_watch_text(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -1710,11 +1438,10 @@ class TestSemanticContinuityEdgeCases:
             player_input="just deflect",
             interpreted_move={},
         )
-        # No 'watch' so redirect_blame should not be added via this nudge
         assert "withhold_or_evade" in candidates
+        assert "redirect_blame" not in candidates
 
-    def test_blame_pressure_watch_nudge_triggers(self):
-        """Blame pressure watch nudge applies when 'watch' present (lines 326-329)."""
+    def test_blame_pressure_watch_text_still_requires_accusation_semantics(self):
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="evasive_deflection",
             pacing_mode="standard",
@@ -1722,8 +1449,7 @@ class TestSemanticContinuityEdgeCases:
             player_input="watch your step",
             interpreted_move={},
         )
-        # 'watch' present and redirect_blame not already in candidates
-        assert "redirect_blame" in candidates
+        assert "redirect_blame" not in candidates
 
 
 class TestThresholdEdgeCases:
@@ -1760,14 +1486,13 @@ class TestThresholdEdgeCases:
         # Should not be thin_edge due to question mark
         assert pacing != "thin_edge" or silence["mode"] != "brief"
 
-    def test_thin_edge_keyword_trigger(self):
-        """'thin edge' keyword triggers thin_edge pacing (line 617)."""
+    def test_thin_edge_words_do_not_trigger_pacing_without_semantics(self):
         pacing, silence = build_pacing_and_silence(
             player_input="thin edge moment here",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        assert pacing == "thin_edge"
+        assert pacing == "standard"
 
     def test_one_beat_keyword_trigger(self):
         """'one beat' keyword triggers thin_edge pacing (line 617)."""
@@ -1779,8 +1504,8 @@ class TestThresholdEdgeCases:
         assert pacing == "thin_edge"
 
 
-class TestOffScopeKeywordVariations:
-    """Test all off-scope keywords (lines 586-599)."""
+class TestOffScopeSemanticVariations:
+    """Off-scope containment is a semantic move decision."""
 
     def test_off_scope_bitcoin(self):
         """Off-scope: bitcoin keyword."""
@@ -1788,6 +1513,7 @@ class TestOffScopeKeywordVariations:
             player_input="bitcoin investment",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1797,6 +1523,7 @@ class TestOffScopeKeywordVariations:
             player_input="stock market crash",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1806,6 +1533,7 @@ class TestOffScopeKeywordVariations:
             player_input="weather forecast tomorrow",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1815,6 +1543,7 @@ class TestOffScopeKeywordVariations:
             player_input="football match score",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1824,6 +1553,7 @@ class TestOffScopeKeywordVariations:
             player_input="tax return filing",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1833,6 +1563,7 @@ class TestOffScopeKeywordVariations:
             player_input="election campaign strategy",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1842,6 +1573,7 @@ class TestOffScopeKeywordVariations:
             player_input="recipe blog post",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert pacing == "containment"
 
@@ -1938,83 +1670,54 @@ class TestYamlDefaultResponderMoreVariations:
         assert isinstance(actor, str)
 
 
-class TestLegacyKeywordWontAnswerVariations:
-    """Test legacy keyword variations for won't answer (lines 365-367)."""
+class TestSemanticSilenceAndQuestionVariations:
+    """Silence/question variations depend on semantic contracts."""
 
-    def test_legacy_wont_answer_keyword(self):
-        """Legacy: won't answer keyword (line 366)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
+    def test_silence_move_routes_to_withhold_or_evade(self):
+        candidates, implied, trace = semantic_move_to_scene_candidates(
+            move_type="silence_withdrawal",
             pacing_mode="standard",
-            player_input="won't answer",
-            interpreted_move={},
             prior_classes=[],
+            player_input="",
+            interpreted_move={},
         )
-        assert "withhold_or_evade" in candidates
+        assert candidates == ["withhold_or_evade"]
+        assert implied["withhold_or_evade"] == "silent_carry"
 
-    def test_legacy_won_t_answer_variation(self):
-        """Legacy: won't answer variant (line 367)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
+    def test_raw_question_without_semantic_move_stays_neutral(self):
+        candidates, implied, trace = semantic_move_to_scene_candidates(
+            move_type="establish_situational_pressure",
             pacing_mode="standard",
-            player_input="I won't answer that",
-            interpreted_move={},
             prior_classes=[],
-        )
-        assert "withhold_or_evade" in candidates
-
-
-class TestLegacyKeywordQuestionInContainment:
-    """Test legacy question shape in containment mode (lines 423-430)."""
-
-    def test_legacy_question_in_containment_mode(self):
-        """Question nudge excluded in containment mode (line 426)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="containment",
             player_input="why do you think?",
             interpreted_move={"move_class": "question"},
-            prior_classes=[],
         )
-        # Should have scene_pivot from containment, but not probe_motive
-        assert "scene_pivot" in candidates
-
-    def test_legacy_question_not_in_containment(self):
-        """Question nudge added when not in containment (line 426)."""
-        from ai_stack.scene_director_goc import _legacy_keyword_scene_candidates
-
-        candidates, implied, trace = _legacy_keyword_scene_candidates(
-            pacing_mode="standard",
-            player_input="why do you think?",
-            interpreted_move={"move_class": "question"},
-            prior_classes=[],
-        )
-        assert "probe_motive" in candidates
+        assert candidates == ["establish_pressure"]
+        assert implied["establish_pressure"] == "situational_pressure"
 
 
 class TestPacingSilenceReasonFields:
     """Test reason field assignment in pacing/silence."""
 
     def test_slice_boundary_containment_reason(self):
-        """Slice boundary containment move reason (line 605)."""
+        """Slice boundary containment is supplied by semantic move."""
         pacing, silence = build_pacing_and_silence(
             player_input="mars discussion",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "off_scope_containment"},
         )
         assert silence["reason"] == "slice_boundary_containment_move"
 
     def test_thin_edge_withheld_reason(self):
-        """Thin edge withheld reason (line 623)."""
+        """Thin-edge withheld reason comes from semantic silence."""
         pacing, silence = build_pacing_and_silence(
             player_input="silent",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal"},
         )
-        assert silence["reason"] == "thin_edge_plus_withheld"
+        assert silence["reason"] == "silence_withdrawal"
 
     def test_thin_edge_brevity_reason(self):
         """Thin edge brevity pressure reason (line 630)."""
@@ -2025,23 +1728,22 @@ class TestPacingSilenceReasonFields:
         )
         assert silence["reason"] == "thin_edge_brevity_pressure"
 
-    def test_player_requested_brevity_reason(self):
-        """Player requested brevity reason (line 635)."""
+    def test_brevity_words_do_not_select_reason_without_semantics(self):
         pacing, silence = build_pacing_and_silence(
             player_input="please keep it brief response",  # Longer to avoid thin_fragment
             interpreted_move={},
             module_id=GOC_MODULE_ID,
         )
-        assert silence["reason"] == "player_requested_brevity"
+        assert silence["reason"] == "default_verbal_density"
 
-    def test_dramatic_silence_move_reason(self):
-        """Dramatic silence move reason (line 638)."""
+    def test_dramatic_silence_reason_requires_semantic_move(self):
         pacing, silence = build_pacing_and_silence(
             player_input="I remain silent",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "silence_withdrawal"},
         )
-        assert silence["reason"] == "dramatic_silence_move"
+        assert silence["reason"] == "silence_withdrawal"
 
     def test_default_verbal_density_reason(self):
         """Default verbal density reason (lines 641, 650)."""
@@ -2058,8 +1760,10 @@ class TestPacingSilenceReasonFields:
             player_input="repair_attempt but why",
             interpreted_move={"player_intent": "repair"},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "probe_inquiry"},
+            prior_planner_truth={"carry_forward_classes": ["repair_attempt"]},
         )
-        assert silence["reason"] == "continuity_compact_probe_after_repair"
+        assert silence["reason"] == "semantic_probe_after_repair"
 
     def test_repair_and_exposure_compete_reason(self):
         """Repair and exposure compete reason (line 647)."""
@@ -2067,8 +1771,9 @@ class TestPacingSilenceReasonFields:
             player_input="repair and reveal truth",
             interpreted_move={},
             module_id=GOC_MODULE_ID,
+            semantic_move_record={"move_type": "competing_repair_and_reveal"},
         )
-        assert silence["reason"] == "repair_and_exposure_compete"
+        assert silence["reason"] == "semantic_repair_and_reveal_compete"
 
 
 def _thread_feedback_state() -> dict:
@@ -2174,7 +1879,7 @@ def test_build_responder_and_function_marks_advisory_mode_for_movement_action() 
     assert responders and responders[0]["role"] == "advisory_reaction"
 
 
-def test_build_responder_and_function_marks_legacy_fallback_usage() -> None:
+def test_build_responder_and_function_marks_semantic_move_required() -> None:
     _responders, _scene_fn, _implied, resolution = build_responder_and_function(
         player_input="continue",
         interpreted_move={},
@@ -2182,4 +1887,5 @@ def test_build_responder_and_function_marks_legacy_fallback_usage() -> None:
         pacing_mode="standard",
         semantic_move_record=None,
     )
-    assert resolution["legacy_keyword_scene_candidates_used"] is True
+    assert resolution["legacy_keyword_scene_candidates_used"] is False
+    assert resolution["semantic_move_required"] is True

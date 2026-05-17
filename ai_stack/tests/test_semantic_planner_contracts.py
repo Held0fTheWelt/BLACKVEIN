@@ -27,10 +27,10 @@ def test_semantic_move_record_roundtrip_json() -> None:
         pressure_tactic="blame_assignment",
         scene_risk_band="high",
         interpretation_trace=[
-            InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:x"),
+            InterpretationTraceItem(step_id="read_ai_semantic_move", detail_code="present"),
         ],
         interpreter_kind="narrative",
-        feature_snapshot={"syn_accusation": True},
+        feature_snapshot={"semantic_move_ai_present": True},
         ranked_move_candidates=[
             RankedMoveCandidate(
                 move_type="direct_accusation",
@@ -40,7 +40,7 @@ def test_semantic_move_record_roundtrip_json() -> None:
                 scene_risk_band="high",
                 rank=1,
                 confidence=0.91,
-                trace_detail="rule:accusation_synset",
+                trace_detail="ai_semantic_move:direct_accusation",
             )
         ],
         secondary_move_type=None,
@@ -51,7 +51,7 @@ def test_semantic_move_record_roundtrip_json() -> None:
             hidden_intent_hypothesis="force_accountability",
             subtext_function="force_accountability",
             sincerity_band="high",
-            evidence_codes=["rule:accusation_synset"],
+            evidence_codes=["ai_semantic_move:direct_accusation"],
             policy_rule_id="direct_accusation",
         ),
     )
@@ -163,6 +163,35 @@ def test_scene_plan_record_roundtrip() -> None:
             }
         ],
         handover_policy={"policy": "offer_player_action", "player_control_preserved": True},
+        content_frame={
+            "canonical_path_step_id": "opening_009_wording_dispute_armed_carrying",
+            "location_id": "living_room",
+            "object_focus_ids": ["written_statement"],
+        },
+        speech_policy={
+            "speech_required": True,
+            "speech_function": "wording_dispute",
+            "line_shape": "short_contested_exchange",
+        },
+        quote_moment_policy={
+            "mode": "moment_locked",
+            "exact_quote_allowed": True,
+            "max_words_per_runtime_quote": 5,
+        },
+        dialogue_plan=[
+            {
+                "dialogue_order": 1,
+                "beat_kind": "npc_speak",
+                "actor_id": "annette_reille",
+                "beat_pattern_ref": "single_word_challenge",
+            }
+        ],
+        capability_manager_plan={
+            "schema_version": "director_capability_manager_plan.v1",
+            "run_only_selected_capabilities": True,
+            "selected_capabilities": ["npc.social_reaction.optional"],
+            "required_capabilities": ["npc.social_reaction.optional"],
+        },
         continuity_obligation={
             "continuity_class": "situational_pressure",
             "carry_forward_required": False,

@@ -148,3 +148,112 @@ def test_scene_planner_uses_non_pressure_target_for_player_action() -> None:
     assert enrichment["scene_target"]["target_function"] == "render_action_consequence"
     assert enrichment["actor_directives"][0]["directive"] == "narrate_without_forcing_npc"
     assert enrichment["handover_policy"]["policy"] == "return_control_after_narration"
+
+
+def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> None:
+    step_id = "opening_009_wording_dispute_armed_carrying"
+    enrichment = build_semantic_scene_plan_enrichment(
+        selected_scene_function="redirect_blame",
+        selected_responder_set=[{"actor_id": "alain_reille", "role": "primary_responder"}],
+        pacing_mode="standard",
+        silence_brevity_decision={"mode": "normal", "reason": "default"},
+        semantic_move_record={
+            "move_type": "direct_accusation",
+            "scene_risk_band": "high",
+            "subtext": {"subtext_function": "force_accountability"},
+        },
+        social_state_record={"social_risk_band": "high"},
+        character_mind_records=[],
+        scene_assessment={
+            "canonical_path_step_id": step_id,
+            "scene_node_id": "written_statement_negotiation",
+        },
+        canonical_path={
+            "steps": [
+                {
+                    "id": step_id,
+                    "sequence": 9,
+                    "mode": "procedure_pressure",
+                    "name": "Wording dispute: armed/carrying",
+                    "location_ref": {"location_id": "living_room", "source": "locations/living_room.yaml"},
+                    "object_refs": [{"object_id": "written_statement"}],
+                    "quote_anchor_refs": [
+                        "knowledge/opening_quote_anchors.yaml#quote_armed",
+                        "knowledge/opening_quote_anchors.yaml#quote_carrying",
+                    ],
+                    "path_point": {
+                        "present": {
+                            "named_characters": ["veronique", "michel", "annette", "alain"]
+                        },
+                        "action_beats": ["accusatory word challenged"],
+                        "player_windows": ["object to accusatory word"],
+                        "narrator_tasks": ["keep every spoken line short"],
+                    },
+                    "next_point": {"step_id": "opening_010_injury_detail_dental_consequence"},
+                }
+            ]
+        },
+        scene_graph={
+            "nodes": [
+                {
+                    "id": "written_statement_negotiation",
+                    "phase_id": "opening",
+                    "canonical_path_step_id": step_id,
+                }
+            ]
+        },
+        locations={"places": [{"id": "living_room", "inventory_object_ids": ["written_statement"]}]},
+        objects={"object_documents": {"written_statement": {"id": "written_statement"}}},
+        content_access_policy={"blocked_entities": [], "gated_entities": []},
+        beat_library={
+            "patterns": {
+                "single_word_challenge": {"id": "single_word_challenge"},
+                "paraphrase_required_with_facts": {"id": "paraphrase_required_with_facts"},
+            },
+            "pattern_files": {
+                "single_word_challenge": "direction/beat_library/npc_speak/single_word_challenge.yaml",
+                "paraphrase_required_with_facts": "direction/beat_library/npc_speak/paraphrase_required_with_facts.yaml",
+            },
+        },
+        opening_quote_anchors={
+            "copyright_policy": {
+                "quote_usage": "short_anchor_only",
+                "max_words_per_runtime_quote": 5,
+                "must_not": ["continuous_verbatim_dialogue"],
+            }
+        },
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "ai_forbidden_actor_ids": ["annette_reille"],
+        },
+        current_scene_id="written_statement_negotiation",
+        turn_input_class="player_input",
+        selection_source="semantic_pipeline_v1",
+    )
+
+    assert enrichment["content_frame"]["canonical_path_step_id"] == step_id
+    assert enrichment["content_frame"]["object_focus_ids"] == ["written_statement"]
+    assert enrichment["speech_policy"]["speech_required"] is True
+    assert enrichment["speech_policy"]["speech_function"] == "wording_dispute"
+    assert enrichment["quote_moment_policy"]["mode"] == "moment_locked"
+    assert enrichment["quote_moment_policy"]["exact_quote_allowed"] is True
+    assert enrichment["quote_moment_policy"]["max_words_per_runtime_quote"] == 5
+
+    dialogue = enrichment["dialogue_plan"]
+    assert dialogue[0]["beat_pattern_ref"] == "single_word_challenge"
+    assert dialogue[0]["actor_id"] == "alain_reille"
+    assert dialogue[0]["quote_use"] == "exact_anchor_allowed"
+    assert dialogue[0]["forces_response_chain"]["target_actor_id"] == "veronique_vallon"
+    assert dialogue[1]["actor_id"] == "veronique_vallon"
+    assert dialogue[1]["forced_by_previous_beat"] is True
+
+    assert any(beat["beat_kind"] == "npc_speak_beat" for beat in enrichment["dramatic_beats"])
+    assert enrichment["handover_policy"]["policy"] == "offer_player_action_after_dialogue_chain"
+
+    manager_plan = enrichment["capability_manager_plan"]
+    assert manager_plan["run_only_selected_capabilities"] is True
+    assert manager_plan["decision_basis"]["canonical_path_step_id"] == step_id
+    assert manager_plan["decision_basis"]["speech_required"] is True
+    assert "npc.social_reaction.optional" in manager_plan["required_capabilities"]
+    assert "npc.direct_answer.allowed" in manager_plan["selected_capabilities"]
+    assert "capability_manager:selective_capability_gate" in enrichment["planner_rationale_codes"]

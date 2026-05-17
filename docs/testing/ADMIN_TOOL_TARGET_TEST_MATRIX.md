@@ -201,13 +201,13 @@ The Administration Tool (`administration-tool/`) is a lightweight Flask public f
 ---
 
 ### Layer 6: Internationalization (i18n)
-**Scope**: Language detection, translation loading, locale resolution
+**Scope**: UI language detection, translation loading, and session language persistence
 **Type**: Integration + Contract
 
 | Component | Current Tests | Target Tests | Markers | Test Examples |
 |-----------|---------------|--------------|---------|---------------|
 | Translation File Loading | 2 | 3 | integration, contract | test_translations_load_for_supported_languages, test_missing_translation_falls_back_to_default |
-| Language Resolution Priority | 2 | 4 | integration, contract | test_query_param_overrides_session, test_session_overrides_accept_language |
+| UI Language Resolution Priority | 2 | 4 | integration, contract | test_query_param_overrides_session, test_session_overrides_accept_language |
 | Default Language Fallback | 1 | 2 | contract, integration | test_unsupported_lang_uses_default, test_missing_translation_file_uses_default |
 | Translation Context in Templates | 1 | 2 | integration, contract | test_template_receives_translation_dict, test_template_renders_translated_strings |
 | **Layer 6 Total** | **6** | **11** | | |
@@ -218,6 +218,10 @@ The Administration Tool (`administration-tool/`) is a lightweight Flask public f
 3. Accept-Language header: en-US → use "en"
 4. No lang specified → DEFAULT_LANGUAGE ("de")
 5. Missing translation file → fallback to DEFAULT_LANGUAGE
+
+**Runtime note**: This admin-tool layer concerns UI strings. Story runtime
+language uses `session_input_language` and `session_output_language`; it must
+not be implemented through locale phrase maps or command translation files.
 
 **Negative Tests**:
 - Unsupported language code (fr, es) → ignored, use default

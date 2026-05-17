@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.content.module_loader import load_module
+from app.content.module_loader import (
+    content_modules_root,
+    load_module,
+    resolve_content_module_directory_id,
+)
 from app.content.module_models import ContentModule
 
 from .models import CanonicalCompileOutput, RetrievalChunk, RetrievalCorpusSeed, ReviewExportSeed, RuntimeProjection
+from .retrieval_chunks import build_entity_retrieval_chunks
 
 
 def _resolve_start_scene_id(module: ContentModule) -> str:
@@ -216,15 +221,6 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "runtime_language_adapter_available": False,
     },
     {
-        "field": "apartment_layout",
-        "source_path": "content/modules/{module_id}/locations/appartment_vallon/apartment_layout.yaml",
-        "content_kind": "apartment_layout",
-        "authority": "module_canonical",
-        "use_for": ("affordance_resolution", "player_local_context"),
-        "language": "en",
-        "runtime_language_adapter_available": True,
-    },
-    {
         "field": "actor_pressure_profiles",
         "source_path": "content/modules/{module_id}/characters/details/actor_pressure_profiles.yaml",
         "content_kind": "actor_pressure_profiles",
@@ -239,15 +235,6 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "content_kind": "phase_beat_policy",
         "authority": "module_canonical",
         "use_for": ("scene_director_dramatic_parameters", "pacing_gate"),
-        "language": "en",
-        "runtime_language_adapter_available": False,
-    },
-    {
-        "field": "canonical_path",
-        "source_path": "content/modules/{module_id}/canonical_path/index.yaml",
-        "content_kind": "canonical_path",
-        "authority": "module_canonical",
-        "use_for": ("opening_realization", "story_direction", "narrator_packet"),
         "language": "en",
         "runtime_language_adapter_available": False,
     },
@@ -270,38 +257,11 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "runtime_language_adapter_available": False,
     },
     {
-        "field": "locations",
-        "source_path": "content/modules/{module_id}/locations/index.yaml",
-        "content_kind": "locations",
-        "authority": "module_canonical",
-        "use_for": ("affordance_resolution", "scene_director_navigation", "player_local_context"),
-        "language": "en",
-        "runtime_language_adapter_available": True,
-    },
-    {
-        "field": "objects",
-        "source_path": "content/modules/{module_id}/objects/index.yaml",
-        "content_kind": "objects",
-        "authority": "module_canonical",
-        "use_for": ("object_authority", "symbolic_object_resonance", "narrator_packet"),
-        "language": "en",
-        "runtime_language_adapter_available": True,
-    },
-    {
         "field": "content_access_policy",
         "source_path": "content/modules/{module_id}/knowledge/content_access_policy.yaml",
         "content_kind": "content_access_policy",
         "authority": "module_canonical",
         "use_for": ("hard_forbidden_gate", "affordance_resolution", "scene_director_navigation"),
-        "language": "en",
-        "runtime_language_adapter_available": False,
-    },
-    {
-        "field": "character_documents",
-        "source_path": "content/modules/{module_id}/characters/definitions/*.yaml",
-        "content_kind": "character_documents",
-        "authority": "module_canonical",
-        "use_for": ("character_mind", "character_voice", "scene_director_responder_selection"),
         "language": "en",
         "runtime_language_adapter_available": False,
     },
@@ -329,7 +289,13 @@ def _knowledge_text_excerpt(field: str, payload: dict) -> str:
     return "\n".join(head_lines)[:1200]
 
 
-def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
+def _resolve_module_root(module: ContentModule, *, root_path: Path | None = None) -> Path:
+    modules_root = Path(root_path) if root_path is not None else content_modules_root()
+    directory_id = resolve_content_module_directory_id(module.metadata.module_id)
+    return modules_root / directory_id
+
+
+def _build_retrieval_seed(module: ContentModule, *, module_root: Path) -> RetrievalCorpusSeed:
     chunks: list[RetrievalChunk] = []
     module_id = module.metadata.module_id
     scene_nodes = (
@@ -417,6 +383,8 @@ def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
                 },
             )
         )
+    chunks.extend(build_entity_retrieval_chunks(module, module_root=module_root))
+    chunks.sort(key=lambda chunk: chunk.chunk_id)
     return RetrievalCorpusSeed(
         module_id=module.metadata.module_id,
         module_version=module.metadata.version,
@@ -442,9 +410,15 @@ def _build_review_export_seed(module: ContentModule, runtime_projection: Runtime
     )
 
 
-def compile_loaded_module(module: ContentModule) -> CanonicalCompileOutput:
+def compile_loaded_module(
+    module: ContentModule,
+    *,
+    module_root: Path | None = None,
+    root_path: Path | None = None,
+) -> CanonicalCompileOutput:
+    resolved_root = module_root or _resolve_module_root(module, root_path=root_path)
     runtime_projection = _build_runtime_projection(module)
-    retrieval_corpus_seed = _build_retrieval_seed(module)
+    retrieval_corpus_seed = _build_retrieval_seed(module, module_root=resolved_root)
     review_export_seed = _build_review_export_seed(module, runtime_projection)
     return CanonicalCompileOutput(
         runtime_projection=runtime_projection,
@@ -455,4 +429,6 @@ def compile_loaded_module(module: ContentModule) -> CanonicalCompileOutput:
 
 def compile_module(module_id: str, *, root_path: Path | None = None) -> CanonicalCompileOutput:
     module = load_module(module_id, root_path=root_path)
-    return compile_loaded_module(module)
+    modules_root = Path(root_path) if root_path is not None else content_modules_root()
+    module_root = modules_root / resolve_content_module_directory_id(module_id)
+    return compile_loaded_module(module, module_root=module_root, root_path=root_path)

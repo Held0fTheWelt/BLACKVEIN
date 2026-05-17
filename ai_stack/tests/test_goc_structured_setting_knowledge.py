@@ -384,6 +384,7 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
         "scene_graph",
         "canonical_path",
         "modularity_policy",
+        "beat_library",
         "opening_quote_anchors",
         "locations",
         "objects",
@@ -406,6 +407,7 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
         "scene_graph_loaded",
         "canonical_path_loaded",
         "modularity_policy_loaded",
+        "beat_library_loaded",
         "opening_quote_anchors_loaded",
         "locations_loaded",
         "objects_loaded",
@@ -422,6 +424,7 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
     contract = update.get("goc_runtime_knowledge_contract")
     assert isinstance(contract, dict)
     assert contract.get("opening_scene_sequence_id") == "goc_opening_sequence_v1"
+    assert "single_word_challenge" in update["beat_library"]["patterns"]
 
 
 def test_semantic_interaction_surface_is_derived_from_content_authorities() -> None:

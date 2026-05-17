@@ -53,16 +53,11 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
         "hard_forbidden_rules",
         "premise_and_backstory",
         "narrator_sensory_palette",
-        "apartment_layout",
-        "objects",
         "actor_pressure_profiles",
         "phase_beat_policy",
-        "canonical_path",
         "modularity_policy",
         "scene_graph",
-        "locations",
         "content_access_policy",
-        "character_documents",
     }
     missing = required - set(by_kind.keys())
     assert not missing, f"retrieval seed missing knowledge content_kinds: {sorted(missing)}"
@@ -78,18 +73,62 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
         ), f"{kind} source_path not module-rooted: {md.get('source_path')}"
         assert isinstance(md.get("runtime_language_adapter_available"), bool)
 
-    assert by_kind["apartment_layout"].metadata["runtime_language_adapter_available"] is True
-    assert by_kind["objects"].metadata["runtime_language_adapter_available"] is True
     assert by_kind["opening_scene_sequence"].metadata["runtime_language_adapter_available"] is False
     assert by_kind["opening_quote_anchors"].metadata["runtime_language_adapter_available"] is False
     assert by_kind["hard_forbidden_rules"].metadata["runtime_language_adapter_available"] is False
-    assert by_kind["locations"].metadata["runtime_language_adapter_available"] is True
 
     # Opening + hard-forbidden must list their downstream consumers explicitly.
     assert "opening_realization" in by_kind["opening_scene_sequence"].metadata["use_for"]
     assert "quote_anchor_policy" in by_kind["opening_quote_anchors"].metadata["use_for"]
     assert "hard_forbidden_gate" in by_kind["hard_forbidden_rules"].metadata["use_for"]
-    assert "story_direction" in by_kind["canonical_path"].metadata["use_for"]
     assert "reference_integrity" in by_kind["modularity_policy"].metadata["use_for"]
     assert "scene_director_navigation" in by_kind["scene_graph"].metadata["use_for"]
     assert "affordance_resolution" in by_kind["content_access_policy"].metadata["use_for"]
+
+
+def test_retrieval_corpus_seed_emits_entity_chunks_for_god_of_carnage():
+    """Granular retrieval: one chunk per location, object, character, canonical step, and hint."""
+    output = compile_module("god_of_carnage")
+    chunks = output.retrieval_corpus_seed.chunks
+    by_id = {chunk.chunk_id: chunk for chunk in chunks}
+
+    removed_coarse = {
+        "knowledge:locations",
+        "knowledge:objects",
+        "knowledge:apartment_layout",
+        "knowledge:character_documents",
+        "knowledge:canonical_path",
+    }
+    assert not removed_coarse.intersection(by_id.keys())
+
+    locations = [c for c in chunks if c.kind == "location"]
+    objects = [c for c in chunks if c.kind == "object"]
+    characters = [c for c in chunks if c.kind == "character"]
+    steps = [c for c in chunks if c.kind == "canonical_step"]
+    topology = [c for c in chunks if c.kind == "location_topology"]
+    hints = [c for c in chunks if c.kind == "director_hint"]
+
+    assert len(locations) >= 10
+    assert len(objects) >= 15
+    assert len(characters) >= 4
+    assert len(steps) >= 15
+    assert len(topology) >= 10
+    assert len(hints) >= 3
+
+    living_room = by_id["location:living_room"]
+    assert "primary social stage" in living_room.text.lower()
+    assert living_room.metadata["entity_id"] == "living_room"
+    assert living_room.metadata["runtime_language_adapter_available"] is True
+
+    art_books = by_id["object:art_books"]
+    assert art_books.metadata["placement_location_id"] == "living_room"
+
+    step = by_id["canonical_step:opening_009_wording_dispute_armed_carrying"]
+    assert step.metadata["sequence"] == 9
+    assert step.metadata["location_id"] == "living_room"
+
+    hallway_topology = by_id["location_topology:hallway"]
+    assert "primary social stage" not in hallway_topology.text.lower()
+
+    for hint in hints:
+        assert hint.metadata.get("player_visible") is False

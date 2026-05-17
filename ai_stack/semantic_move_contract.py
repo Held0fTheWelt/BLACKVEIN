@@ -155,7 +155,7 @@ class InterpretationTraceItem(BaseModel):
     step_id: InterpretationTraceStep
     detail_code: str = Field(
         ...,
-        description="Bounded machine-readable code (e.g. rule:direct_accusation_synset_hit).",
+        description="Bounded machine-readable code for semantic payload/runtime-signal audit.",
     )
 
 
@@ -172,7 +172,7 @@ class RankedMoveCandidate(BaseModel):
         ...,
         ge=0.0,
         le=1.0,
-        description="Deterministic confidence-like ordering score for audit and packet handoff.",
+        description="AI-provided or runtime fallback confidence-like ordering score for audit and packet handoff.",
     )
     trace_detail: str
 
@@ -185,7 +185,7 @@ class RankedMoveCandidate(BaseModel):
 
 
 class SemanticMoveRecord(BaseModel):
-    """Planner-facing semantic move — deterministic for fixed module inputs."""
+    """Planner-facing semantic move from bounded AI semantics and runtime signals."""
 
     model_config = {"extra": "forbid"}
 

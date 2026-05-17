@@ -1,4 +1,4 @@
-"""Deterministic pre-AI interpretation of natural-language operator input (Task 1A).
+"""Thin pre-AI structural preview of natural-language operator input (Task 1A).
 
 Produces a bounded, inspectable envelope for diagnostics and AdapterRequest attachment.
 This is not authoritative committed runtime truth; guards and validators remain unchanged.
@@ -27,47 +27,8 @@ PARSER_VERSION = "1a/2"
 
 _QUOTED_DOUBLE = re.compile(r'"([^"]*)"')
 _QUOTED_SINGLE = re.compile(r"'([^']*)'")
-_SPEECH_LEAD_IN = re.compile(
-    r"(?:^|\b)(?:i\s+)?(?:say|says|said|tell|tells|told|ask|asks|asked|whisper|whispers|"
-    r"shout|shouts|mutter|mutters|reply|replies|answered|answer|answers)\b",
-    re.IGNORECASE,
-)
-_SPEECH_TELL_THEM = re.compile(r"\b(?:tell|ask)\s+(?:him|her|them)\b", re.IGNORECASE)
-_ACTION_I = re.compile(
-    r"\bi\s+(?:step|steps|walk|walks|move|moves|take|takes|grab|grabs|reach|reaches|"
-    r"open|opens|close|closes|pick|picks|put|puts|turn|turns|run|runs|sit|sits|stand|stands|"
-    r"enter|leaves?|leave|pull|pulls|push|pushes|give|gives|hand|hands|approach|approaches)\b",
-    re.IGNORECASE,
-)
-_IMPERATIVE_LEAD = re.compile(
-    r"^(?:step|walk|move|take|grab|reach|open|close|pick|put|turn|run|sit|stand|enter|"
-    r"leave|pull|push|give|hand|approach|go|get|drop|use)\b",
-    re.IGNORECASE,
-)
-# Chained physical actions after comma / "and" / "then" (same verb whitelist as _ACTION_I;
-# two-word phrases first so "sit down" wins over bare "sit").
-_ACTION_CHAIN_TAIL = (
-    r"sit down|stand up|look around|step back|move away|"
-    r"step|steps|walk|walks|move|moves|take|takes|grab|grabs|reach|reaches|"
-    r"open|opens|close|closes|pick|picks|put|puts|turn|turns|run|runs|sit|sits|stand|stands|"
-    r"enter|leave|leaves|pull|pulls|push|pushes|give|gives|hand|hands|approach|approaches"
-)
-_CHAINED_ACTION = re.compile(
-    rf"(?:,|\band\b|\bthen\b)\s+({_ACTION_CHAIN_TAIL})\b",
-    re.IGNORECASE,
-)
-_REACTION = re.compile(
-    r"\b(?:flinch(?:es)?|sigh(?:s)?|pause(?:s)?|hesitate(?:s)?|recoil(?:s)?|stare(?:s)?|"
-    r"shrug(?:s)?|nod(?:s)?|gasp(?:s)?|wince(?:s)?|tremble(?:s)?|shudder(?:s)?|"
-    r"look(?:s)?\s+away|freeze(?:s)?|swallow(?:s)?)\b",
-    re.IGNORECASE,
-)
 _SILENCE_EXPLICIT = re.compile(
     r"^\s*(?:\.\.\.|…)\s*$|^\s*\(?\s*silence\s*\)?\s*$",
-    re.IGNORECASE,
-)
-_WITHHOLD_SILENCE = re.compile(
-    r"\b(?:do\s+not|don'?t)\s+answer\b|\bwon'?t\s+answer\b|\b(?:stay|remain)\s+silent\b|\bjust\s+stare\b|\bwithout\s+say(?:ing)?\b",
     re.IGNORECASE,
 )
 
@@ -121,31 +82,13 @@ def _extract_spoken_segments(text: str) -> list[str]:
 
 
 def _find_reaction_cues(lowered: str) -> list[str]:
-    cues: list[str] = []
-    for m in _REACTION.finditer(lowered):
-        cues.append(m.group(0).strip().lower())
-    return cues
+    del lowered
+    return []
 
 
 def _find_action_cues(lowered: str, original: str) -> list[str]:
-    """Collect first-person, imperative-leading, and chained action cues (deterministic, deduped)."""
-    seen: set[str] = set()
-    cues: list[str] = []
-
-    def add(cue: str) -> None:
-        c = cue.strip().lower()
-        if c and c not in seen:
-            seen.add(c)
-            cues.append(c)
-
-    for m in _ACTION_I.finditer(lowered):
-        add(m.group(0))
-    if _IMPERATIVE_LEAD.match(original.strip()):
-        first = original.strip().split(None, 1)[0].lower()
-        add(first)
-    for m in _CHAINED_ACTION.finditer(lowered):
-        add(m.group(1))
-    return cues
+    del lowered, original
+    return []
 
 
 def _envelope_empty_silence(raw_text: str) -> InputInterpretationEnvelope:
@@ -207,8 +150,8 @@ def _mode_signals_from_cues(
     reaction_cues = _find_reaction_cues(lowered)
     action_cues = _find_action_cues(lowered, normalized_text)
     has_quotes = len(spoken) > 0
-    has_speech_verb = bool(_SPEECH_LEAD_IN.search(lowered) or _SPEECH_TELL_THEM.search(lowered))
-    dialogue_signal = has_quotes or has_speech_verb
+    has_speech_verb = False
+    dialogue_signal = has_quotes
     reaction_signal = len(reaction_cues) > 0
     action_signal = len(action_cues) > 0
     return (
@@ -261,7 +204,7 @@ def _classify_primary_and_meta(
 
     if dialogue_signal:
         primary = InputPrimaryMode.DIALOGUE
-        confidence = 0.82 if has_quotes and has_speech_verb else 0.68 if has_quotes else 0.62
+        confidence = 0.68
         if ambiguity:
             ambiguity.append("dialogue_possible_acknowledgment")
             confidence = min(confidence, 0.48)
@@ -272,48 +215,21 @@ def _classify_primary_and_meta(
                 "dialogue secondary."
             )
         else:
-            rationale = "Quoted speech and/or speech-act verbs indicate dialogue."
+            rationale = "Quoted speech provides a structural dialogue preview."
         return primary, secondary, ambiguity, confidence, rationale
 
-    if reaction_signal and not action_signal:
-        return (
-            InputPrimaryMode.REACTION,
-            [],
-            ambiguity,
-            0.78 if not ambiguity else 0.5,
-            "Reaction cues (e.g. sigh, flinch) without competing action phrasing.",
-        )
-
-    if action_signal and not dialogue_signal:
-        return (
-            InputPrimaryMode.ACTION,
-            [],
-            ambiguity,
-            0.78 if not ambiguity else 0.52,
-            "First-person or imperative physical action cues detected.",
-        )
-
-    if reaction_signal and action_signal:
-        return (
-            InputPrimaryMode.MIXED,
-            [InputPrimaryMode.REACTION, InputPrimaryMode.ACTION],
-            ambiguity,
-            0.7,
-            "Both reaction and action cues present.",
-        )
-
-    ambiguity.append("no_strong_mode_pattern")
+    ambiguity.append("semantic_ai_resolution_required")
     return (
         InputPrimaryMode.UNKNOWN,
         [],
         ambiguity,
         0.35,
-        "No reliable dialogue, action, or reaction pattern; classified as unknown.",
+        "No structural dialogue marker; authoritative meaning is deferred to semantic AI resolution.",
     )
 
 
 def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
-    """Classify and extract bounded cues from operator text using deterministic rules only."""
+    """Return a bounded structural preview without language or verb maps."""
     raw_text = text if text is not None else ""
     normalized_text = raw_text.strip()
     lowered = normalized_text.lower()
@@ -328,10 +244,6 @@ def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
 
     if _SILENCE_EXPLICIT.match(normalized_text):
         return _envelope_explicit_silence(raw_text, collapsed)
-    if _WITHHOLD_SILENCE.search(normalized_text):
-        env = _envelope_explicit_silence(raw_text, collapsed)
-        env.rationale = "Withheld answer or silence-like nonverbal input detected."
-        return env
 
     (
         spoken,

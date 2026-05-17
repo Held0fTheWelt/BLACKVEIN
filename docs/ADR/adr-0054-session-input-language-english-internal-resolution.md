@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2026-05-17
+2026-05-18
 
 ## Context
 
@@ -21,8 +21,10 @@ input side implicit. That creates a brittle seam: German player input can be
 passed directly into an English semantic catalog, causing missed object,
 location, or action grounding.
 
-The language adapter must remain thin. It must not become a phrase table,
-translation dictionary, verb ontology, or per-module language lookup system.
+The language adapter is a focused semantic boundary: it publishes the
+content-derived catalog and the AI resolution contract. It must not become a
+phrase table, translation dictionary, verb ontology, actor alias matcher,
+scene-keyword router, or per-module language lookup system.
 
 ## Decision
 
@@ -94,6 +96,34 @@ Meaning is inferred by the AI from the player utterance and the content-derived
 semantic catalog. Unknown or underspecified input remains a clarification path,
 not a code-level guess.
 
+### D6 - No deterministic phrase routing for semantic moves or scene candidates
+
+Semantic move interpretation and scene-direction routing SHALL NOT infer social
+moves, target actors, responder focus, pacing, or scene candidates from raw
+player-text keyword lists.
+
+The God of Carnage runtime may use bounded runtime signals such as empty input,
+punctuation-only input, explicit semantic payload fields, prior committed
+continuity, and validated content IDs. It must not classify `why`, `watch`,
+`silent`, actor names, or off-scope topics through hardcoded phrase lists.
+
+If no `semantic_move` payload is present, the director uses a neutral
+`semantic_move_required` diagnostic fallback. It does not resurrect a
+keyword-based legacy path.
+
+### D7 - Thin structural input previews only
+
+Pre-AI input preview code may identify:
+
+- empty or punctuation-only input,
+- slash or bang commands,
+- out-of-character/meta prefixes,
+- quoted speech spans.
+
+It SHALL NOT classify unquoted natural language as action, reaction, movement,
+perception, target selection, or social intent through language-specific
+wordlists. Such input is marked for AI semantic resolution.
+
 ## Consequences
 
 ### Positive
@@ -101,9 +131,12 @@ not a code-level guess.
 - German input can be resolved against English-authored objects, locations, and
   affordances without duplicating content.
 - `session_output_language` remains a pure player-visible output contract.
-- The adapter stays thin and content-derived.
+- The adapter has a clear responsibility boundary: expose the content-derived
+  semantic surface and resolution contract without owning language lookup data.
 - Tests and diagnostics can distinguish raw player text from internal English
   grounding evidence.
+- GoC scene direction no longer changes behavior because a raw phrase happens
+  to match an English keyword fixture.
 
 ### Risks
 
@@ -132,9 +165,26 @@ Implemented as of 2026-05-17:
 - `world-engine/app/story_runtime/manager.py` stores the field on
   `StorySession` and forwards it into opening and player turns.
 
+Updated on 2026-05-18:
+
+- `ai_stack/semantic_move_interpretation_goc.py` reads bounded AI semantic move
+  payloads and runtime silence signals only; phrase synsets and priority-rule
+  stacks were removed.
+- `ai_stack/scene_director_goc.py` no longer imports legacy keyword scene
+  candidates or actor alias matching from raw text. Missing semantic moves use
+  `selection_source=semantic_move_required`.
+- `story_runtime_core/input_interpreter.py` and
+  `backend/app/runtime/input_interpreter.py` are thin structural previews, not
+  verb/reaction/question classifiers.
+- Deleted obsolete runtime helpers:
+  `ai_stack/goc_semantic_priority_rules.py`,
+  `ai_stack/scene_director_goc_legacy_keyword_candidates.py`,
+  `ai_stack/scene_director_goc_legacy_keyword_constants.py`, and
+  `ai_stack/goc_actor_aliases.py`.
+
 ## Acceptance Evidence
 
-Targeted verification completed on 2026-05-17:
+Targeted verification completed on 2026-05-17 and refreshed on 2026-05-18:
 
 - `python -m py_compile` for the touched runtime, backend, and World-Engine
   modules.
@@ -142,6 +192,8 @@ Targeted verification completed on 2026-05-17:
 - Backend canonical player session language tests.
 - World-Engine session language tests.
 - Player action resolution regression tests for normalized English evidence.
+- Semantic move, scene director, input preview, and GoC structured-content
+  regression tests after removal of keyword routing.
 
 ## Related ADRs
 
@@ -161,6 +213,7 @@ flowchart LR
   P["Player input\nsession_input_language"] --> A["Language Adapter\nsemantic contract"]
   A --> N["AI normalization\ninternal_resolution_language = en"]
   N --> G["Ground against\nEnglish-authored content catalog"]
-  G --> F["Player action frame\nnormalized_english_text + content IDs"]
+  G --> S["Semantic payloads\ncontent IDs + bounded labels"]
+  S --> F["Runtime frames\nnormalized_english_text + diagnostics"]
   F --> O["Visible response\nsession_output_language"]
 ```

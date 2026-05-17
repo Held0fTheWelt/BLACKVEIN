@@ -39,85 +39,42 @@ def test_interpreter_handles_out_of_character_meta_prefix():
     assert result.runtime_delivery_hint is None
 
 
-def test_interpreter_handles_mixed_input():
-    result = interpret_player_input('I say "sorry" and open the door')
-    assert result.kind == InterpretedInputKind.MIXED
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.SAY
-
-
-def test_interpreter_handles_pure_dialogue():
+def test_interpreter_handles_quoted_dialogue_structurally():
     result = interpret_player_input('I say "we should calm down"')
     assert result.kind == InterpretedInputKind.SPEECH
+    assert result.intent == "quoted_dialogue"
     assert result.runtime_delivery_hint == RuntimeDeliveryHint.SAY
 
 
-def test_interpreter_handles_pure_action():
+def test_unquoted_action_like_text_requires_ai_semantic_resolution():
     result = interpret_player_input("open the chest")
-    assert result.kind == InterpretedInputKind.ACTION
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.EMOTE
-
-
-def test_interpreter_handles_reaction_input():
-    result = interpret_player_input("wow")
-    assert result.kind == InterpretedInputKind.REACTION
+    assert result.kind == InterpretedInputKind.AMBIGUOUS
+    assert result.ambiguity == "semantic_ai_resolution_required"
+    assert result.intent == "semantic_resolution_required"
     assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
 
 
-def test_interpreter_handles_ambiguous_input():
+def test_unquoted_reaction_like_text_requires_ai_semantic_resolution():
+    result = interpret_player_input("wow")
+    assert result.kind == InterpretedInputKind.AMBIGUOUS
+    assert result.ambiguity == "semantic_ai_resolution_required"
+
+
+def test_interpreter_handles_punctuation_only_as_silence():
     result = interpret_player_input("...")
     assert result.kind == InterpretedInputKind.AMBIGUOUS
-    assert result.ambiguity is not None
+    assert result.ambiguity == "no_lexical_tokens"
     assert result.intent == "withheld_response_or_silence"
     assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
 
 
-def test_interpreter_handles_intent_only_input():
-    """Short non-meta lines default to speech so the runtime can attribute them (HUMAN-INPUT-ATTRIBUTION-01)."""
-    result = interpret_player_input("escape now")
-    assert result.kind == InterpretedInputKind.SPEECH
-    assert result.intent == "short_utterance_default_speech"
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.SAY
-
-
-def test_interpreter_tell_him_without_quotes_is_speech():
-    result = interpret_player_input("Tell him I am not leaving.")
-    assert result.kind == InterpretedInputKind.SPEECH
-    assert result.intent == "dialogue"
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.SAY
-
-
-def test_interpreter_action_plus_reaction_is_mixed_with_ambiguity():
-    result = interpret_player_input("open door wow")
-    assert result.kind == InterpretedInputKind.MIXED
-    assert result.ambiguity == "conflicting_action_reaction"
-    assert result.confidence < 0.62
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
-
-
-def test_interpreter_withhold_silence_is_intent_only():
-    result = interpret_player_input("I do not answer. I just stare at him.")
-    assert result.kind == InterpretedInputKind.INTENT_ONLY
-    assert result.intent == "withheld_response_or_silence"
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.EMOTE
-
-
-def test_interpreter_i_ask_pattern_is_speech():
-    result = interpret_player_input("I ask if we can pause.")
-    assert result.kind == InterpretedInputKind.SPEECH
-
-
-def test_interpreter_mixed_with_conflicting_signals_uses_narrative_delivery():
-    result = interpret_player_input("move wow")
-    assert result.kind == InterpretedInputKind.MIXED
-    assert result.ambiguity == "conflicting_action_reaction"
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
-
-
-def test_interpreter_german_question_defaults_to_speech():
-    result = interpret_player_input("Wieso sind wir hier?")
-    assert result.kind == InterpretedInputKind.SPEECH
-
-
-def test_interpreter_short_german_declarative_defaults_to_speech():
+def test_short_unquoted_lines_do_not_default_to_speech():
     result = interpret_player_input("Das reicht.")
-    assert result.kind == InterpretedInputKind.SPEECH
+    assert result.kind == InterpretedInputKind.AMBIGUOUS
+    assert result.ambiguity == "semantic_ai_resolution_required"
+
+
+def test_unquoted_questions_do_not_use_language_specific_question_maps():
+    result = interpret_player_input("Wieso sind wir hier?")
+    assert result.kind == InterpretedInputKind.AMBIGUOUS
+    assert result.ambiguity == "semantic_ai_resolution_required"

@@ -14,8 +14,8 @@ severity:
   neutral: []
   insufficient_evidence: []
 suggested_repair_areas:
-  - locale prompt injection
-  - content module locale binding
+  - session_output_language enforcement
+  - session_input_language / internal-normalization leakage
   - output-language enforcement on narrator/NPC blocks
   - scaffold / system-language leakage suppression
 ---
@@ -61,6 +61,8 @@ Pay attention to:
 - mixed German/English/French inside one card
 - internal prompt language leaking into visible text
 - whether the output language matches metadata if available
+- whether internal English normalization or semantic grounding labels leaked
+  into player-visible prose
 
 Rubric:
 

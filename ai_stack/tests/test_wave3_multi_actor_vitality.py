@@ -146,7 +146,7 @@ class TestW31ResponderSetStrengthening:
                     **rule,
                     "contract": "subtext_interpretation.v1",
                     "explicit_intent": "accuse",
-                    "evidence_codes": ["rule:accusation_synset"],
+                    "evidence_codes": ["ai_semantic_move:direct_accusation"],
                     "policy_source": "content/modules/god_of_carnage/direction/subtext_policy.yaml",
                     "policy_rule_id": policy_rule_id,
                 },

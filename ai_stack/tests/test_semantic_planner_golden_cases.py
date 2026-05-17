@@ -57,6 +57,11 @@ def _assert_planner_state(result: dict) -> None:
     assert isinstance(sp.get("actor_directives"), list)
     assert isinstance(sp.get("dramatic_beats"), list)
     assert isinstance(sp.get("handover_policy"), dict)
+    assert isinstance(sp.get("content_frame"), dict)
+    assert isinstance(sp.get("speech_policy"), dict)
+    assert isinstance(sp.get("quote_moment_policy"), dict)
+    assert isinstance(sp.get("dialogue_plan"), list)
+    assert isinstance(sp.get("capability_manager_plan"), dict)
     assert isinstance(sp.get("continuity_obligation"), dict)
     assert sp.get("expected_transition_pattern") in {"hard", "soft", "carry_forward", "diagnostics_only"}
     assert sp.get("semantic_scene_planner_version") == "goc_semantic_scene_planner_v1"

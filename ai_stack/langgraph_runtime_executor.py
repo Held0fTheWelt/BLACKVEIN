@@ -2228,6 +2228,77 @@ def _build_runtime_aspect_validation(
         if isinstance(state.get("module_runtime_policy"), dict)
         else None,
     )
+    scene_plan_record = (
+        state.get("scene_plan_record")
+        if isinstance(state.get("scene_plan_record"), dict)
+        else {}
+    )
+    director_capability_plan = (
+        scene_plan_record.get("capability_manager_plan")
+        if isinstance(scene_plan_record.get("capability_manager_plan"), dict)
+        else {}
+    )
+    if director_capability_plan.get("run_only_selected_capabilities"):
+        for key in ("requested_capabilities", "selected_capabilities"):
+            existing = capability_selection.get(key)
+            if not isinstance(existing, list):
+                existing = []
+            for cap in director_capability_plan.get("selected_capabilities") or []:
+                text = str(cap or "").strip()
+                if text and text not in existing:
+                    existing.append(text)
+            capability_selection[key] = existing
+        existing_required = capability_selection.get("required_capabilities")
+        if not isinstance(existing_required, list):
+            existing_required = []
+        for cap in director_capability_plan.get("required_capabilities") or []:
+            text = str(cap or "").strip()
+            if text and text not in existing_required:
+                existing_required.append(text)
+        capability_selection["required_capabilities"] = existing_required
+        capability_selection["director_capability_manager_plan"] = director_capability_plan
+        capability_selection["suppressed_capabilities"] = [
+            str(cap).strip()
+            for cap in director_capability_plan.get("suppressed_capabilities") or []
+            if str(cap).strip()
+        ]
+        realized_caps = capability_selection.get("realized_capabilities")
+        if not isinstance(realized_caps, list):
+            realized_caps = []
+        narr_actual_for_manager = (
+            narrator_authority.get("actual")
+            if isinstance(narrator_authority.get("actual"), dict)
+            else {}
+        )
+        npc_actual_for_manager = (
+            npc_authority.get("actual") if isinstance(npc_authority.get("actual"), dict) else {}
+        )
+        narrator_present_for_manager = bool(
+            narr_actual_for_manager.get("narrator_block_present")
+            or narr_actual_for_manager.get("consequence_realized")
+        )
+        npc_spoken_for_manager = int(npc_actual_for_manager.get("spoken_line_count") or 0) > 0
+        npc_action_for_manager = int(npc_actual_for_manager.get("action_line_count") or 0) > 0
+        for cap in director_capability_plan.get("selected_capabilities") or []:
+            text = str(cap or "").strip()
+            if not text or text in realized_caps:
+                continue
+            if text.startswith("narrator.") and narrator_present_for_manager:
+                realized_caps.append(text)
+            elif text in {"npc.social_reaction.optional", "npc.direct_answer.allowed"} and npc_spoken_for_manager:
+                realized_caps.append(text)
+            elif text == "npc.action_gesture.optional" and npc_action_for_manager:
+                realized_caps.append(text)
+        capability_selection["realized_capabilities"] = realized_caps
+        realized_set = set(realized_caps)
+        missing_required = [cap for cap in existing_required if cap not in realized_set]
+        capability_selection["missing_required_capabilities"] = missing_required
+        if capability_selection.get("violations"):
+            capability_selection["status"] = "failed"
+        elif missing_required:
+            capability_selection["status"] = "partial"
+        else:
+            capability_selection["status"] = "passed"
     cap_violations = capability_selection.get("violations")
     cap_violation = cap_violations[0] if isinstance(cap_violations, list) and cap_violations else {}
     cap_missing = capability_selection.get("missing_required_capabilities")
@@ -2250,12 +2321,14 @@ def _build_runtime_aspect_validation(
                 "blocked_capabilities": capability_selection.get("blocked_capabilities"),
                 "required_capabilities": capability_selection.get("required_capabilities"),
                 "selected_capabilities_must_be_realized_or_marked_missing": True,
+                "director_capability_manager_plan": capability_selection.get("director_capability_manager_plan"),
             },
             selected={
                 "requested_capabilities": capability_selection.get("requested_capabilities"),
                 "selected_capabilities": capability_selection.get("selected_capabilities"),
                 "blocked_capabilities": capability_selection.get("blocked_capabilities"),
                 "required_capabilities": capability_selection.get("required_capabilities"),
+                "suppressed_capabilities": capability_selection.get("suppressed_capabilities"),
             },
             actual={
                 "realized_capabilities": capability_selection.get("realized_capabilities"),
@@ -4378,15 +4451,33 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "handover_policy": scene_plan.get("handover_policy")
             if isinstance(scene_plan.get("handover_policy"), dict)
             else {},
+            "content_frame": scene_plan.get("content_frame")
+            if isinstance(scene_plan.get("content_frame"), dict)
+            else {},
+            "speech_policy": scene_plan.get("speech_policy")
+            if isinstance(scene_plan.get("speech_policy"), dict)
+            else {},
+            "quote_moment_policy": scene_plan.get("quote_moment_policy")
+            if isinstance(scene_plan.get("quote_moment_policy"), dict)
+            else {},
+            "dialogue_plan": scene_plan.get("dialogue_plan")
+            if isinstance(scene_plan.get("dialogue_plan"), list)
+            else [],
+            "capability_manager_plan": scene_plan.get("capability_manager_plan")
+            if isinstance(scene_plan.get("capability_manager_plan"), dict)
+            else {},
             "continuity_obligation": scene_plan.get("continuity_obligation")
             if isinstance(scene_plan.get("continuity_obligation"), dict)
             else {},
             "expected_transition_pattern": scene_plan.get("expected_transition_pattern"),
             "instruction": (
                 "Treat scene_plan as bounded short-horizon dramatic direction. Realize scene_target, "
-                "actor_directives, handover_policy, and dramatic_beats only through structured, "
+                "actor_directives, handover_policy, dramatic_beats, and dialogue_plan only through structured, "
                 "validation-safe visible action; do not commit world truth or resolve continuity outside "
-                "the commit seam. pressure_target is a compatibility alias for pressure-specific targets."
+                "the commit seam. Use speech_policy to decide whether NPC speech is required; use "
+                "quote_moment_policy only for rare moment-locked short anchors. capability_manager_plan "
+                "is the selected runtime capability gate: do not realize unselected branches. "
+                "pressure_target is a compatibility alias for pressure-specific targets."
             ),
         },
         "scene_energy": {
@@ -6089,6 +6180,7 @@ class RuntimeTurnGraphExecutor:
                     "scene_graph",
                     "canonical_path",
                     "modularity_policy",
+                    "beat_library",
                     "opening_quote_anchors",
                     "locations",
                     "objects",
@@ -6128,6 +6220,7 @@ class RuntimeTurnGraphExecutor:
                     "scene_graph_loaded": bool(isinstance(yaml_slice.get("scene_graph"), dict) and yaml_slice.get("scene_graph")),
                     "canonical_path_loaded": bool(isinstance(yaml_slice.get("canonical_path"), dict) and yaml_slice.get("canonical_path")),
                     "modularity_policy_loaded": bool(isinstance(yaml_slice.get("modularity_policy"), dict) and yaml_slice.get("modularity_policy")),
+                    "beat_library_loaded": bool(isinstance(yaml_slice.get("beat_library"), dict) and yaml_slice.get("beat_library")),
                     "opening_quote_anchors_loaded": bool(isinstance(yaml_slice.get("opening_quote_anchors"), dict) and yaml_slice.get("opening_quote_anchors")),
                     "locations_loaded": bool(isinstance(yaml_slice.get("locations"), dict) and yaml_slice.get("locations")),
                     "objects_loaded": bool(isinstance(yaml_slice.get("objects"), dict) and yaml_slice.get("objects")),
@@ -6533,6 +6626,35 @@ class RuntimeTurnGraphExecutor:
             if isinstance(state.get("prior_planner_truth"), dict)
             else None,
             selection_source=semantic_planner_selection_source,
+            current_scene_id=str(state.get("current_scene_id") or ""),
+            turn_input_class=str(state.get("turn_input_class") or ""),
+            canonical_path=state.get("canonical_path")
+            if isinstance(state.get("canonical_path"), dict)
+            else (yslice.get("canonical_path") if isinstance(yslice, dict) else None),
+            scene_graph=state.get("scene_graph")
+            if isinstance(state.get("scene_graph"), dict)
+            else (yslice.get("scene_graph") if isinstance(yslice, dict) else None),
+            locations=state.get("locations")
+            if isinstance(state.get("locations"), dict)
+            else (yslice.get("locations") if isinstance(yslice, dict) else None),
+            objects=state.get("objects")
+            if isinstance(state.get("objects"), dict)
+            else (yslice.get("objects") if isinstance(yslice, dict) else None),
+            content_access_policy=state.get("content_access_policy")
+            if isinstance(state.get("content_access_policy"), dict)
+            else (yslice.get("content_access_policy") if isinstance(yslice, dict) else None),
+            beat_library=state.get("beat_library")
+            if isinstance(state.get("beat_library"), dict)
+            else (yslice.get("beat_library") if isinstance(yslice, dict) else None),
+            opening_quote_anchors=state.get("opening_quote_anchors")
+            if isinstance(state.get("opening_quote_anchors"), dict)
+            else (yslice.get("opening_quote_anchors") if isinstance(yslice, dict) else None),
+            actor_lane_context=state.get("actor_lane_context")
+            if isinstance(state.get("actor_lane_context"), dict)
+            else None,
+            environment_state=state.get("environment_state")
+            if isinstance(state.get("environment_state"), dict)
+            else None,
         )
         for code in semantic_scene_plan.get("planner_rationale_codes") or []:
             text = str(code or "").strip()
@@ -6566,6 +6688,21 @@ class RuntimeTurnGraphExecutor:
             handover_policy=semantic_scene_plan.get("handover_policy")
             if isinstance(semantic_scene_plan.get("handover_policy"), dict)
             else {},
+            content_frame=semantic_scene_plan.get("content_frame")
+            if isinstance(semantic_scene_plan.get("content_frame"), dict)
+            else {},
+            speech_policy=semantic_scene_plan.get("speech_policy")
+            if isinstance(semantic_scene_plan.get("speech_policy"), dict)
+            else {},
+            quote_moment_policy=semantic_scene_plan.get("quote_moment_policy")
+            if isinstance(semantic_scene_plan.get("quote_moment_policy"), dict)
+            else {},
+            dialogue_plan=semantic_scene_plan.get("dialogue_plan")
+            if isinstance(semantic_scene_plan.get("dialogue_plan"), list)
+            else [],
+            capability_manager_plan=semantic_scene_plan.get("capability_manager_plan")
+            if isinstance(semantic_scene_plan.get("capability_manager_plan"), dict)
+            else {},
             continuity_obligation=semantic_scene_plan.get("continuity_obligation")
             if isinstance(semantic_scene_plan.get("continuity_obligation"), dict)
             else {},
@@ -6592,6 +6729,7 @@ class RuntimeTurnGraphExecutor:
             ("scene_graph", "scene_graph_loaded"),
             ("canonical_path", "canonical_path_loaded"),
             ("modularity_policy", "modularity_policy_loaded"),
+            ("beat_library", "beat_library_loaded"),
             ("opening_quote_anchors", "opening_quote_anchors_loaded"),
             ("locations", "locations_loaded"),
             ("objects", "objects_loaded"),
@@ -6673,12 +6811,29 @@ class RuntimeTurnGraphExecutor:
         if scene_fn not in candidate_functions:
             candidate_functions.append(scene_fn)
         deterministic_beat_id = f"{scene_id}:{scene_fn}"
+        capability_manager_plan = (
+            scene_plan_dict.get("capability_manager_plan")
+            if isinstance(scene_plan_dict.get("capability_manager_plan"), dict)
+            else {}
+        )
+        manager_selected_capabilities = [
+            str(item).strip()
+            for item in (
+                capability_manager_plan.get("requested_visible_functions")
+                or capability_manager_plan.get("selected_capabilities")
+                or []
+            )
+            if str(item).strip()
+        ]
         expected_realization: list[str] = []
         interp_for_beat = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
-        if bool(interp_for_beat.get("narrator_response_expected")):
-            expected_realization.append(NARRATOR_ACTION_CONSEQUENCE_DESCRIBE)
-        if bool(interp_for_beat.get("npc_response_expected")) or responders:
-            expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
+        if capability_manager_plan.get("run_only_selected_capabilities") and manager_selected_capabilities:
+            expected_realization = list(dict.fromkeys(manager_selected_capabilities))
+        else:
+            if bool(interp_for_beat.get("narrator_response_expected")):
+                expected_realization.append(NARRATOR_ACTION_CONSEQUENCE_DESCRIBE)
+            if bool(interp_for_beat.get("npc_response_expected")) or responders:
+                expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
         beat_candidates = phase_beat_candidates(
             module_policy=state.get("module_runtime_policy")
             if isinstance(state.get("module_runtime_policy"), dict)
@@ -6705,8 +6860,15 @@ class RuntimeTurnGraphExecutor:
         }
         scene_plan_dict["selected_capabilities"] = list(expected_realization)
         scene_plan_dict["authority_expectations"] = {
-            "narrator_required": bool(interp_for_beat.get("narrator_response_expected")),
-            "npc_policy": "optional_social_reaction" if responders or bool(interp_for_beat.get("npc_response_expected")) else "none",
+            "narrator_required": bool(interp_for_beat.get("narrator_response_expected"))
+            or any(str(cap).startswith("narrator.") for cap in expected_realization),
+            "npc_policy": "director_selected"
+            if any(str(cap).startswith("npc.") for cap in expected_realization)
+            else "none",
+            "capability_manager_plan_applied": bool(
+                capability_manager_plan.get("run_only_selected_capabilities")
+                and manager_selected_capabilities
+            ),
         }
         update["scene_plan_record"] = scene_plan_dict
         update["turn_aspect_ledger"] = set_aspect_record(

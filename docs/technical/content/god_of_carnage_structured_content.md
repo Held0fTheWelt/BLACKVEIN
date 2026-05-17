@@ -7,12 +7,19 @@ Status: implementation-facing reference (GOC-KNOWLEDGE-RUNTIME-INTEGRATION).
 - Authored module content is **English**. Player input declares
   `session_input_language`; player-visible output declares
   `session_output_language`.
-- The English knowledge layer lives in:
-  - `content/modules/god_of_carnage/knowledge/` (machine-readable runtime contracts)
+- The English content layer is modular:
   - `content/modules/god_of_carnage/module.yaml`
-  - `content/modules/god_of_carnage/{apartment_layout,apartment_objects,actor_pressure_profiles,phase_beat_policy,memory_policy}.yaml`
+  - `content/modules/god_of_carnage/canonical_path/`
+  - `content/modules/god_of_carnage/locations/`
+  - `content/modules/god_of_carnage/objects/`
+  - `content/modules/god_of_carnage/characters/`
+  - `content/modules/god_of_carnage/knowledge/`
+  - `content/modules/god_of_carnage/direction/`
+  - policy files such as `phase_beat_policy.yaml`, `memory_policy.yaml`,
+    `information_disclosure_policy.yaml`, and `narrative_aspect_policy.yaml`
 - Runtime language realization is handled by the universal semantic language
-  adapter. The module must not define language lookup directories or phrase maps.
+  adapter. The module must not define language lookup directories, phrase maps,
+  action maps, or raw-text actor alias files.
 
 ## Authority precedence
 
@@ -24,13 +31,14 @@ decide hard-forbidden pass/fail.
 
 | File | Consumer(s) | Diagnostic surface |
 |---|---|---|
+| `canonical_path/*.yaml` | canonical path loader, scene planner, opening/canonical prompt packet, authoring diagnostics | `canonical_path`, canonical step ids, theme coverage, handover/next-point hints |
+| `locations/**/*.yaml` | language adapter semantic catalog, environment/player-local context, RAG, affordance grounding | `location_refs`, interaction surface, player-local context |
+| `objects/**/*.yaml` | language adapter semantic catalog, environment/player-local context, object affordance grounding, RAG | object ids, object refs, interaction surface |
+| `characters/**/*.yaml` | character profile builders, voice policy, semantic catalog, scene planner | actor ids, character voice profiles, target hints |
 | `knowledge/opening_scene_sequence.yaml` | `_goc_resolve_canonical_content`, `build_opening_scene_plan_metadata`, opening prompt builder | `opening_scene_sequence_id`, `opening_event_ids`, `opening_render_policy`, `opening_event_coverage_pass`, `opening_handover_contract_pass` |
 | `knowledge/hard_forbidden_rules.yaml` | `detect_hard_forbidden_runtime` (validation seam), narrator packet | `hard_forbidden_detection`, `hard_forbidden_absent`, `opening_summary_only_absent`, per-category absent scores (`opening_player_speech_absent`, `opening_npc_exposition_absent`, `meta_runtime_language_absent`, `stage_direction_labels_absent`, `source_reproduction_absent`, `player_agency_violation_absent`) |
 | `knowledge/premise_and_backstory.yaml` | narrator packet, opening prompt, RAG seed | `knowledge_runtime_loaded.premise_and_backstory_loaded` |
 | `knowledge/narrator_sensory_palette.yaml` | narrator packet, scene-director dramatic parameters, `sensory_context` layer derivation | `narrator_sensory_palette_loaded`, `sensory_context_state`, `sensory_context_target`, `turn_aspect_ledger.sensory_context` |
-| `apartment_layout.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, player-local context, RAG | `apartment_layout_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
-| `apartment_objects.yaml` | `EnvironmentModel`, `StorySession.environment_state`, affordance resolution, narrator packet, RAG | `apartment_objects_loaded`, `environment_state`, `environment_render_context`, `environment_state_now` |
-| `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
 | `direction/character_voice.yaml` | character voice profile builder, prompt packet, runtime voice validator | `character_voice_profiles`, `voice_consistency_validation`, `turn_aspect_ledger.voice_consistency` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
 | `module.yaml` / `runtime_intelligence` | `ModuleRuntimePolicy.runtime_governance_policy`, runtime route/capability/projection gates, sensory-context policy | `runtime_governance_policy`, `selection_source`, `capability_selection_valid`, `visible_projection_contract_pass`, `sensory_context_contract_pass`, `committed_result` |
@@ -101,13 +109,34 @@ Module-specific actor names, room aliases, phase names, beat ids, and sample
 prose stay in content files. Generic runtime validators read the policy and
 ledger fields; they must not hardcode God of Carnage literals.
 
+## Language and semantic input policy
+
+The module is not responsible for translating player input. Runtime receives
+`session_input_language`, asks the AI semantic adapter to normalize the raw
+input to internal English, and grounds that normalized meaning against the
+English-authored content catalog.
+
+The module must not add:
+
+- `locale/` directories,
+- `module_strings` or translated command files,
+- action outcome maps,
+- actor alias matchers for raw player text,
+- scene keyword candidate lists,
+- synonym sets that classify semantic moves.
+
+When a player names an actor, object, or room in any supported input language,
+the expected contract is an AI semantic payload with a canonical content ID or
+groundable English query. The engine does not scan the raw phrase to decide the
+target.
+
 ## Environment state / Pi15
 
 The Pi15 environmental-story slice is implemented as bounded canonical state,
-not as free-form narrator memory. `apartment_layout.yaml` and
-`apartment_objects.yaml` are normalized into `EnvironmentModel`; session start
-initializes `StorySession.environment_state` with current room, actor
-locations, prop states, visible rooms, salient object ids, and recent
+not as free-form narrator memory. Location and object files under `locations/`
+and `objects/` are normalized into the environment and interaction surfaces;
+session start initializes `StorySession.environment_state` with current room,
+actor locations, prop states, visible rooms, salient object ids, and recent
 environment events.
 
 Runtime consumers use the same state through the turn:

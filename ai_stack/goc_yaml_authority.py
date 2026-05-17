@@ -77,6 +77,11 @@ def goc_canonical_path_yaml_dir() -> Path:
     return goc_module_yaml_dir() / "canonical_path"
 
 
+def goc_beat_library_yaml_dir() -> Path:
+    """Directory for reusable scene-direction beat pattern YAML."""
+    return goc_module_yaml_dir() / "direction" / "beat_library"
+
+
 def load_goc_canonical_module_yaml() -> dict[str, Any]:
     """Load authoritative module.yaml for god_of_carnage from the
     repository tree.
@@ -383,6 +388,37 @@ def load_goc_modularity_policy_yaml() -> dict[str, Any]:
     return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "modularity_policy")
 
 
+def load_goc_beat_library_yaml() -> dict[str, Any]:
+    """Load reusable scene-direction beat patterns from direction/beat_library/."""
+    beat_dir = goc_beat_library_yaml_dir()
+    if not beat_dir.is_dir():
+        return {}
+
+    index = _safe_load_yaml_mapping(beat_dir / "_index.yaml")
+    library = _unwrap_top_level_mapping(index, "beat_library_index") or index
+    patterns: dict[str, Any] = {}
+    pattern_files: dict[str, str] = {}
+    for path in sorted(beat_dir.glob("*.yaml")):
+        if path.name == "_index.yaml":
+            continue
+        payload = _safe_load_yaml_mapping(path)
+        pattern = payload.get("beat_pattern") if isinstance(payload, dict) else None
+        if not isinstance(pattern, dict):
+            continue
+        pattern_id = str(pattern.get("id") or path.stem).strip()
+        if not pattern_id:
+            continue
+        pattern = dict(pattern)
+        pattern.setdefault("source_ref", path.relative_to(goc_module_yaml_dir()).as_posix())
+        patterns[pattern_id] = pattern
+        pattern_files[pattern_id] = path.relative_to(goc_module_yaml_dir()).as_posix()
+
+    out = dict(library) if isinstance(library, dict) else {}
+    out["patterns"] = patterns
+    out["pattern_files"] = pattern_files
+    return out
+
+
 def load_goc_locations_yaml() -> dict[str, Any]:
     """Load authored location/accessibility surface from index plus location files."""
     data = _safe_load_first_yaml_mapping(
@@ -667,6 +703,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "scene_graph": load_goc_scene_graph_yaml(),
         "canonical_path": load_goc_canonical_path_yaml(),
         "modularity_policy": load_goc_modularity_policy_yaml(),
+        "beat_library": load_goc_beat_library_yaml(),
         "director_surface_hints": load_goc_director_surface_hints_yaml(),
         "relationship_axes": relationships["relationship_axes"],
         "relationships": relationships["relationships"],
