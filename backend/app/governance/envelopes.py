@@ -11,7 +11,10 @@ from app.governance.errors import GovernanceError
 
 def ok(data: dict[str, Any], status_code: int = 200):
     """Return a standard success envelope."""
-    return jsonify({"ok": True, "data": data}), status_code
+    response = jsonify({"ok": True, "data": data})
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response, status_code
 
 
 def fail(code: str, message: str, status_code: int, details: dict[str, Any] | None = None):

@@ -48,8 +48,14 @@
     }
   }
 
+  function renderDiagnosisAudit(data) {
+    var pre = document.getElementById("manage-diagnosis-json");
+    if (!pre || !window.ManageUI || typeof window.ManageUI.jsonViewer !== "function") return;
+    window.ManageUI.jsonViewer(pre, data, { label: "Diagnosis snapshot" });
+  }
+
   function renderMeta(data) {
-    var el = document.getElementById("manage-diagnosis-meta");
+    var el = document.getElementById("manage-diagnosis-meta-grid");
     if (!el) return;
     var rows = [];
     if (data.generated_at) {
@@ -122,10 +128,13 @@
     if (!detailsHasContent(c.details)) {
       return "";
     }
+    var label = escapeHtml(c.label || c.id || "Check");
     return (
       "<details class=\"manage-dx-check-details\">" +
       "<summary>Technical details</summary>" +
-      "<pre class=\"manage-dx-details-json\">" +
+      "<pre class=\"manage-psc-json\" data-json-viewer data-json-label=\"" +
+      label +
+      " details\">" +
       escapeHtml(JSON.stringify(c.details, null, 2)) +
       "</pre>" +
       "</details>"
@@ -248,6 +257,7 @@
           throw { status: 0, message: "Diagnosis response missing groups — check proxy and backend route." };
         }
         renderMeta(data);
+        renderDiagnosisAudit(data);
         renderOverall(data);
         renderGroups(data);
         syncRailBadges(data);

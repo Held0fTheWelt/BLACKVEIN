@@ -69,49 +69,49 @@
         {# ─────────────  Rail  ───────────── #}
         <aside class="mui-deck-rail" aria-label="Runtime settings sections">
             <a href="#presets" class="mui-rail-btn" data-deck-target="presets">
-                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Runtime presets</span>
                     <span class="mui-rail-secondary">apply canonical defaults</span>
                 </span>
             </a>
             <a href="#advanced" class="mui-rail-btn" data-deck-target="advanced">
-                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-badge"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Advanced settings</span>
                     <span class="mui-rail-secondary">bounded overrides</span>
                 </span>
             </a>
             <a href="#story" class="mui-rail-btn" data-deck-target="story">
-                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-badge"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Story Runtime Experience</span>
                     <span class="mui-rail-secondary">scene delivery + NPCs</span>
                 </span>
             </a>
             <a href="#effective" class="mui-rail-btn" data-deck-target="effective">
-                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Effective config</span>
                     <span class="mui-rail-secondary">what is honored</span>
                 </span>
             </a>
             <a href="#changes" class="mui-rail-btn" data-deck-target="changes">
-                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Recent changes</span>
                     <span class="mui-rail-secondary">audit trail</span>
                 </span>
             </a>
             <a href="#related" class="mui-rail-btn" data-deck-target="related">
-                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Canonical pages</span>
                     <span class="mui-rail-secondary">related dashboards</span>
                 </span>
             </a>
             <a href="#audit" class="mui-rail-btn" data-deck-target="audit">
-                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-badge mui-rail-badge--setup"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Technical audit</span>
                     <span class="mui-rail-secondary">full JSON payload</span>
@@ -483,6 +483,6 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_runtime_settings.js') }}"></script>
-<script src="{{ url_for('static', filename='manage_story_runtime_experience.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_story_runtime_experience.js', v='20260517c') }}"></script>
 <script src="{{ url_for('static', filename='manage_runtime_settings_deck.js') }}"></script>
 {% endblock %}

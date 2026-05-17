@@ -33,15 +33,10 @@
     margin: 0 0 0.75rem 0;
 }
 
-.narrative-card pre {
+/* JSON panels use shared ManageUI viewer (.mui-json / .manage-psc-json) from manage.css */
+.narrative-card .mui-json {
     margin: 0;
-    max-height: 28rem;
-    overflow: auto;
-    font-size: 0.78rem;
-    line-height: 1.4;
-    background: rgba(0, 0, 0, 0.35);
-    padding: 0.75rem;
-    border-radius: 6px;
+    max-width: 100%;
 }
 
 /* Narrative runtime (/manage/narrative/runtime) */

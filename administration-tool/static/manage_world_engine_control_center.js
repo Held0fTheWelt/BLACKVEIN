@@ -167,9 +167,23 @@
     return { msg: msg, next: next };
   }
 
+  function updateIssuesRailBadge(blockerCount) {
+    var rail = document.querySelector('.mui-rail-btn[data-deck-target="issues"] .mui-rail-badge');
+    if (!rail) return;
+    rail.className = "mui-rail-badge";
+    if (blockerCount > 0) {
+      rail.classList.add("mui-rail-badge--fail");
+    } else {
+      rail.classList.add("mui-rail-badge--ok");
+    }
+  }
+
   function renderBlockersWarnings(payload) {
     var blockers = payload.blockers || [];
     var warnings = payload.warnings || [];
+    var st = payload.status || {};
+    var blockerCount = st.blocker_count != null ? st.blocker_count : blockers.length;
+    updateIssuesRailBadge(blockerCount);
     var bEl = document.getElementById("wecc-blockers");
     var wEl = document.getElementById("wecc-warnings");
     if (bEl) {

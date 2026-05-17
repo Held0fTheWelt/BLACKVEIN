@@ -117,7 +117,7 @@
         if (token) headers["Authorization"] = "Bearer " + token;
 
         return new Promise(function(resolve, reject) {
-            fetch(url, { method: method, headers: headers, body: opts.body })
+            fetch(url, { method: method, headers: headers, body: opts.body, cache: "no-store" })
                 .then(function(res) {
                     if (res.status === 401) {
                         clearToken();

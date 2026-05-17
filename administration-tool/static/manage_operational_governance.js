@@ -6,6 +6,8 @@
     providers: [],
     models: [],
     routes: [],
+    readiness: null,
+    modes: null,
   };
 
   /** Unwrap governance envelope `{ ok, data }` when present. */
@@ -158,6 +160,69 @@
     ul.appendChild(li);
   }
 
+  /**
+   * Rail badge for Runtime modes: fail = AI posture not viable, warn = works but needs review, ok = aligned.
+   */
+  function computeRuntimeModesRailStatus(readiness, modes) {
+    if (!readiness || !modes) return "warn";
+    var gen = String(modes.generation_execution_mode || "").toLowerCase();
+    var aiOnlyValid = !!readiness.ai_only_valid;
+    var mockOnlyRequired = !!readiness.mock_only_required;
+    var severity = String(readiness.readiness_severity || "").toLowerCase();
+    var aiModes = gen === "ai_only" || gen === "routed_llm_slm";
+    var mockSafeModes = gen === "mock_only" || gen === "hybrid_routed_with_mock_fallback";
+
+    if (aiModes && !aiOnlyValid) return "fail";
+    if (gen === "hybrid_routed_with_mock_fallback") {
+      var routes = state.routes || [];
+      if (routes.length) {
+        var hasMock = routes.some(function (r) {
+          return r.is_enabled && r.mock_model_id;
+        });
+        if (!hasMock) return "fail";
+      }
+    }
+    if (aiModes && aiOnlyValid) return "ok";
+    if (mockSafeModes && mockOnlyRequired) return "ok";
+    if (mockSafeModes && !mockOnlyRequired && aiOnlyValid) return "warn";
+    if (severity === "degraded" || severity === "blocked") return "warn";
+    return mockSafeModes ? "ok" : "warn";
+  }
+
+  function currentModesSnapshot() {
+    if (state.modes) {
+      return {
+        generation_execution_mode: value("manage-og-generation-mode", state.modes.generation_execution_mode),
+        retrieval_execution_mode: value("manage-og-retrieval-mode", state.modes.retrieval_execution_mode),
+        validation_execution_mode: value("manage-og-validation-mode", state.modes.validation_execution_mode),
+        provider_selection_mode: value("manage-og-provider-selection", state.modes.provider_selection_mode),
+        runtime_profile: value("manage-og-runtime-profile", state.modes.runtime_profile),
+      };
+    }
+    return {
+      generation_execution_mode: value("manage-og-generation-mode", "mock_only"),
+      retrieval_execution_mode: value("manage-og-retrieval-mode", "disabled"),
+      validation_execution_mode: value("manage-og-validation-mode", "schema_only"),
+      provider_selection_mode: value("manage-og-provider-selection", "local_only"),
+      runtime_profile: value("manage-og-runtime-profile", "safe_local"),
+    };
+  }
+
+  function updateRuntimeModesRailBadge() {
+    var modes = currentModesSnapshot();
+    var status = computeRuntimeModesRailStatus(state.readiness, modes);
+    if (window.ManageUI && typeof window.ManageUI.railBadgeForDeckTarget === "function") {
+      window.ManageUI.railBadgeForDeckTarget("modes", status);
+    }
+    var sub = document.getElementById("manage-og-rail-modes-sub");
+    if (sub) {
+      var gen = modes.generation_execution_mode || "?";
+      if (status === "fail") sub.textContent = gen + " · not viable";
+      else if (status === "warn") sub.textContent = gen + " · review posture";
+      else sub.textContent = gen + " · operational";
+    }
+  }
+
   function renderReadinessPanel(data) {
     var head = document.getElementById("manage-og-readiness-headline");
     var sev = document.getElementById("manage-og-readiness-severity");
@@ -277,11 +342,13 @@
   function loadModes() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/runtime/modes").then(function (res) {
       var data = govPayload(res);
+      state.modes = data;
       setValue("manage-og-generation-mode", data.generation_execution_mode);
       setValue("manage-og-retrieval-mode", data.retrieval_execution_mode);
       setValue("manage-og-validation-mode", data.validation_execution_mode);
       setValue("manage-og-provider-selection", data.provider_selection_mode);
       setValue("manage-og-runtime-profile", data.runtime_profile);
+      updateRuntimeModesRailBadge();
     });
   }
 
@@ -294,8 +361,10 @@
   function loadReadiness() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/runtime-readiness").then(function (res) {
       var data = govPayload(res);
+      state.readiness = data;
       renderReadinessPanel(data);
       setJson("manage-og-readiness-json", data || {});
+      updateRuntimeModesRailBadge();
     });
   }
 
@@ -334,7 +403,15 @@
       loadReadiness(),
     ]).then(function () {
       renderPanelHints();
+      updateRuntimeModesRailBadge();
     });
+  }
+
+  function bindRuntimeModesRailPreview() {
+    var genSelect = document.getElementById("manage-og-generation-mode");
+    if (genSelect) {
+      genSelect.addEventListener("change", updateRuntimeModesRailBadge);
+    }
   }
 
   function selectedProviderId() {
@@ -718,6 +795,7 @@
     window.ManageAuth.ensureAuth()
       .then(function () {
         bindSelectionHydration();
+        bindRuntimeModesRailPreview();
         bindActions();
         return refreshAll();
       })

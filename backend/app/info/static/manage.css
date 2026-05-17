@@ -2366,6 +2366,7 @@ textarea:focus-visible {
 .mui-rail-badge--ok   { background: #2ea043; box-shadow: 0 0 0 2px rgba(46, 160, 67, 0.2); }
 .mui-rail-badge--warn { background: #d29922; box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.22); }
 .mui-rail-badge--fail { background: #f85149; box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.2); }
+.mui-rail-badge--setup { background: #e879f9; box-shadow: 0 0 0 2px rgba(232, 121, 249, 0.28); }
 .mui-rail-badge--off  { background: transparent; border: 1px solid var(--text-muted); }
 
 .mui-rail-label {

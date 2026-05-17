@@ -124,7 +124,22 @@
         + " -> " + (row.next_step || "no next step")
         + (row.fix_path ? " (" + row.fix_path + ")" : "");
     }), "No guidance rows.");
+    updateOrchestrationRailBadges();
     setJson("manage-orch-json", { status: state.status, settings: state.settings });
+  }
+
+  function updateOrchestrationRailBadges() {
+    if (!window.ManageUI) return;
+    var MU = window.ManageUI;
+    var st = state.status || {};
+    var lg = st.langgraph || {};
+    var lc = st.langchain || {};
+    MU.railBadgeForDeckTarget("langgraph", MU.railStatusFromHealthState(lg.state));
+    MU.railBadgeForDeckTarget("langchain", MU.railStatusFromHealthState(lc.state));
+    MU.railBadgeForDeckTarget("comparison", MU.railStatusFromHealthState(st.overall_state));
+    MU.railBadgeForDeckTarget("controls", "setup");
+    MU.railBadgeForDeckTarget("related", "setup");
+    MU.railBadgeForDeckTarget("audit", "setup");
   }
 
   function renderSettings(payload) {

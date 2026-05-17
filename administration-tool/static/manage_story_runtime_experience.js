@@ -118,6 +118,18 @@
     }
     var pre = document.getElementById("manage-sre-json");
     if (pre) pre.textContent = JSON.stringify(truth, null, 2);
+    updateStoryRailBadge(truth);
+  }
+
+  function updateStoryRailBadge(truth) {
+    if (!window.ManageUI) return;
+    var status = "ok";
+    if (!truth.experience_mode_honored_fully || (truth.degradation_markers || []).length) {
+      status = "fail";
+    } else if ((truth.validation_warnings || []).length) {
+      status = "warn";
+    }
+    window.ManageUI.railBadgeForDeckTarget("story", status);
   }
 
   function collectPayload() {
@@ -144,15 +156,15 @@
       method: "PUT",
       body: JSON.stringify(payload)
     }).then(function (res) {
-      var truth = (res && res.data) || res || {};
-      applyConfigured(truth.configured || {});
-      renderTruthSurface(truth);
-      var warns = truth.update_warnings || [];
-      if (warns.length) {
-        show("err", "Saved with warnings: " + warns.join(" | "));
-      } else {
-        show("ok", "Story Runtime Experience saved.");
-      }
+      var putTruth = (res && res.data) || res || {};
+      var warns = putTruth.update_warnings || [];
+      return refresh().then(function () {
+        if (warns.length) {
+          show("err", "Saved with warnings: " + warns.join(" | "));
+        } else {
+          show("ok", "Story Runtime Experience saved.");
+        }
+      });
     }).catch(function (err) {
       show("err", parseError(err));
     });

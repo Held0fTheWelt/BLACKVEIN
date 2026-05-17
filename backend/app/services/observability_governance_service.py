@@ -588,6 +588,7 @@ def get_observability_config() -> dict[str, Any]:
             "credential_configured": False,
             "credential_fingerprint": None,
             "health_status": "unconfigured",
+            "last_tested_at": None,
         }
 
     # Validate health_status against current credential state
@@ -624,6 +625,7 @@ def get_observability_config() -> dict[str, Any]:
         "credential_configured": credential_configured,
         "credential_fingerprint": config.credential_fingerprint,
         "health_status": health_status,
+        "last_tested_at": config.last_tested_at.isoformat() if config.last_tested_at else None,
     }
 
 
@@ -775,23 +777,52 @@ def _candidate_langfuse_base_urls(configured_base_url: str) -> list[str]:
 
 
 def _langfuse_projects_for_host(*, public_key: str, secret_key: str, base_url: str) -> tuple[bool, list[str], str | None]:
-    """Return whether auth succeeds on ``base_url`` and visible project names."""
-    import langfuse
+    """Return whether auth succeeds on ``base_url`` and visible project names.
 
-    client = langfuse.Langfuse(public_key=public_key, secret_key=secret_key, base_url=base_url)
+    Uses the public REST projects endpoint instead of constructing a Langfuse SDK
+    client. Spawning a short-lived SDK client inside a running worker and calling
+    ``shutdown()`` can block on background ingestion queues and wedge Gunicorn (HTTP 500
+    on admin "Test connection" while startup probes still appear healthy).
+    """
+    import base64
+
+    import httpx
+
+    endpoint = f"{base_url.rstrip('/')}/api/public/projects"
+    token = base64.b64encode(f"{public_key}:{secret_key}".encode("utf-8")).decode("ascii")
+    headers = {
+        "Authorization": f"Basic {token}",
+        "Accept": "application/json",
+    }
     try:
-        projects = client.api.projects.get()
-        names = [str(getattr(item, "name", "") or "") for item in (projects.data or [])]
-        if not names:
-            return False, [], "auth_check returned no projects for these credentials"
-        return True, names, None
-    except Exception as exc:
+        response = httpx.get(endpoint, headers=headers, timeout=20.0)
+    except httpx.HTTPError as exc:
         return False, [], str(exc)
-    finally:
-        try:
-            client.shutdown()
-        except Exception:
-            pass
+    if response.status_code == 401:
+        return False, [], "Unauthorized (invalid public/secret key pair)"
+    if response.status_code >= 400:
+        snippet = (response.text or "").strip()
+        if len(snippet) > 500:
+            snippet = snippet[:497] + "..."
+        return False, [], f"HTTP {response.status_code}: {snippet or 'request failed'}"
+    try:
+        payload = response.json()
+    except json.JSONDecodeError:
+        return False, [], "Invalid JSON from Langfuse projects API"
+    rows = payload.get("data") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        return False, [], "Unexpected projects payload shape"
+    names: list[str] = []
+    for row in rows:
+        if isinstance(row, dict):
+            name = str(row.get("name") or "").strip()
+        else:
+            name = str(getattr(row, "name", "") or "").strip()
+        if name:
+            names.append(name)
+    if not names:
+        return False, [], "auth_check returned no projects for these credentials"
+    return True, names, None
 
 
 def _resolve_langfuse_base_url_for_credentials(
@@ -1101,9 +1132,13 @@ def verify_langfuse_runtime_connectivity(
             last_error = exc
             time.sleep(poll_interval_s)
 
-    trace_url = client.get_trace_url(trace_id=trace_id)
+    trace_url = None
     try:
-        client.shutdown()
+        trace_url = client.get_trace_url(trace_id=trace_id)
+    except Exception as exc:
+        logger.debug("Langfuse get_trace_url failed during probe: %s", exc)
+    try:
+        client.flush()
     except Exception:
         pass
 
@@ -1140,15 +1175,66 @@ def verify_langfuse_runtime_connectivity(
     }
 
 
+def persist_observability_health_probe(
+    result: dict[str, Any],
+    *,
+    actor: str,
+) -> dict[str, Any]:
+    """Persist operator-visible health probe outcome on the Langfuse config row."""
+    from app.extensions import db
+    from app.models.governance_core import ObservabilityConfig
+
+    config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
+    if config is None:
+        return result
+
+    health_status = str(result.get("health_status") or "unknown").strip() or "unknown"
+    config.health_status = health_status
+    config.last_tested_at = datetime.now(timezone.utc)
+    config.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    logger.info(
+        "Langfuse health probe persisted by %s: %s",
+        actor,
+        health_status,
+    )
+    return result
+
+
 def test_observability_connection(actor: str = "system") -> dict[str, Any]:
     """Test Langfuse using the same backend-stored credentials as runtime tracing."""
-    result = verify_langfuse_runtime_connectivity(poll_attempts=15, poll_interval_s=1.0)
+    try:
+        result = verify_langfuse_runtime_connectivity(poll_attempts=15, poll_interval_s=1.0)
+    except Exception as exc:  # noqa: BLE001 — operator probe must not wedge the worker
+        result = {
+            "ok": False,
+            "health_status": "export_failed",
+            "message": f"Langfuse connection test failed: {exc}",
+        }
+    persist_observability_health_probe(result, actor=actor)
     logger.info(
         "Langfuse connection test by %s: %s (%s)",
         actor,
         result.get("health_status"),
         result.get("message"),
     )
+    return result
+
+
+def run_startup_observability_health_check(actor: str = "system_startup") -> dict[str, Any] | None:
+    """Probe Langfuse on backend boot when observability is enabled and credentialed."""
+    snapshot = get_observability_config()
+    if not snapshot.get("is_enabled") or not snapshot.get("credential_configured"):
+        return None
+    try:
+        result = verify_langfuse_runtime_connectivity(poll_attempts=8, poll_interval_s=1.0)
+    except Exception as exc:  # noqa: BLE001 — startup probe must not block app boot
+        result = {
+            "ok": False,
+            "health_status": "export_failed",
+            "message": f"Startup Langfuse health probe failed: {exc}",
+        }
+    persist_observability_health_probe(result, actor=actor)
     return result
 
 
@@ -1212,6 +1298,8 @@ def disable_observability(actor: str = "system") -> dict[str, Any]:
     if config:
         config.is_enabled = False
         config.credential_configured = False
+        config.health_status = "disabled"
+        config.last_tested_at = None
 
     db.session.commit()
     logger.info(f"Observability disabled by {actor}")

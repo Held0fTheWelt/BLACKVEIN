@@ -211,6 +211,47 @@
     else node.classList.remove(className);
   }
 
+  var HEALTH_POSITIVE = {
+    connected: true,
+    healthy: true,
+  };
+
+  var HEALTH_NEGATIVE = {
+    unhealthy: true,
+    auth_failed: true,
+    credential_missing: true,
+    credential_invalid: true,
+    host_mismatch: true,
+    export_failed: true,
+    ingest_delayed: true,
+    ingest_forbidden: true,
+    usage_limit_exceeded: true,
+    sdk_missing: true,
+  };
+
+  var HEALTH_LABELS = {
+    connected: "Connected",
+    healthy: "Healthy",
+    unconfigured: "Unconfigured",
+    disabled: "Disabled",
+    unknown: "Unknown",
+    unhealthy: "Unhealthy",
+    auth_failed: "Auth failed",
+    credential_missing: "Credential missing",
+    credential_invalid: "Credential invalid",
+    host_mismatch: "Host mismatch",
+    export_failed: "Export failed",
+    ingest_delayed: "Ingest delayed",
+    ingest_forbidden: "Ingest forbidden",
+    usage_limit_exceeded: "Usage limit exceeded",
+    sdk_missing: "SDK missing",
+  };
+
+  function formatHealthStatus(status) {
+    var key = (status || "unknown").toLowerCase();
+    return HEALTH_LABELS[key] || status || "Unknown";
+  }
+
   function resetStatusClasses() {
     classToggle(statusHeadline, "manage-obs-ok", false);
     classToggle(statusHeadline, "manage-obs-muted", false);
@@ -275,18 +316,32 @@
       classToggle(statusCredential, "manage-obs-danger-text", true);
     }
 
-    var health = currentConfig.health_status || "unknown";
-    statusHealth.textContent = health;
-    if (health === "healthy") classToggle(statusHealth, "manage-obs-health-healthy", true);
-    else if (health === "unhealthy") classToggle(statusHealth, "manage-obs-health-unhealthy", true);
+    var health = (currentConfig.health_status || "unknown").toLowerCase();
+    statusHealth.textContent = formatHealthStatus(health);
+    if (HEALTH_POSITIVE[health]) classToggle(statusHealth, "manage-obs-health-healthy", true);
+    else if (HEALTH_NEGATIVE[health]) classToggle(statusHealth, "manage-obs-health-unhealthy", true);
     else classToggle(statusHealth, "manage-obs-health-unknown", true);
 
     if (currentConfig.last_tested_at) {
       var dt = new Date(currentConfig.last_tested_at);
-      statusTested.textContent = dt.toLocaleString();
+      statusTested.textContent = Number.isNaN(dt.getTime())
+        ? String(currentConfig.last_tested_at)
+        : dt.toLocaleString();
     } else {
       statusTested.textContent = "Never tested";
     }
+
+    var cardIds = [
+      "manage-obs-status-enabled-card",
+      "manage-obs-status-credential-card",
+      "manage-obs-status-health-card",
+      "manage-obs-status-tested-card",
+    ];
+    cardIds.forEach(function (id) {
+      var pill = byId(id.replace("-card", ""));
+      var card = byId(id);
+      if (pill && card) card.textContent = pill.textContent;
+    });
   }
 
   function api(path, opts) {
@@ -442,20 +497,12 @@
       });
       await loadConfig(true);
       var details = unwrapEnvelope(response);
-      var status = details.health_status || "unknown";
+      var status = (details.health_status || "unknown").toLowerCase();
       var message = details.message || "No diagnostic message.";
-      var diag = details.diagnostics || {};
-      var suffix = "";
-      if (diag.public_key_prefix) {
-        suffix += " [key " + diag.public_key_prefix + "]";
-      }
-      if (details.langfuse_projects && details.langfuse_projects.length) {
-        suffix += " [projects: " + details.langfuse_projects.join(", ") + "]";
-      }
-      if (details.resolved_base_url && details.resolved_base_url !== details.base_url) {
-        suffix += " [use base URL " + details.resolved_base_url + "]";
-      }
-      showSuccess("Connection test result: " + status + " - " + message + suffix);
+      var shortMsg = message.length > 120 ? message.slice(0, 117) + "..." : message;
+      showSuccess(
+        "Connection test: " + formatHealthStatus(status) + " — " + shortMsg
+      );
       setTechnicalAudit({
         action: "test_connection",
         tested_at: new Date().toISOString(),

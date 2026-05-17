@@ -192,6 +192,32 @@ def test_runtime_readiness_payload_includes_actionable_fields(client, admin_head
         assert row.get("suggested_action"), f"missing suggested_action on {row!r}"
 
 
+def test_story_runtime_experience_put_then_get_roundtrip(client, admin_headers):
+    """Operator save must survive a follow-up GET (regression: stale browser cache)."""
+    headers = {**admin_headers, "Content-Type": "application/json"}
+    put_response = client.put(
+        "/api/v1/admin/story-runtime-experience",
+        headers=headers,
+        json={
+            "experience_mode": "dramatic_turn",
+            "delivery_profile": "lean_dramatic",
+            "npc_spoken_action_text_char_cap": 1500,
+        },
+    )
+    assert put_response.status_code == 200
+    put_body = put_response.get_json()
+    assert put_body["ok"] is True
+    assert put_body["data"]["configured"]["experience_mode"] == "dramatic_turn"
+    assert put_response.headers.get("Cache-Control") == "no-store, max-age=0"
+
+    get_response = client.get("/api/v1/admin/story-runtime-experience", headers=admin_headers)
+    assert get_response.status_code == 200
+    get_body = get_response.get_json()
+    assert get_body["data"]["configured"]["experience_mode"] == "dramatic_turn"
+    assert get_body["data"]["configured"]["npc_spoken_action_text_char_cap"] == 1500
+    assert get_response.headers.get("Cache-Control") == "no-store, max-age=0"
+
+
 def test_moderator_denied_ai_runtime_governance_api(client, moderator_headers):
     response = client.get("/api/v1/admin/ai/providers", headers=moderator_headers)
     assert response.status_code == 403

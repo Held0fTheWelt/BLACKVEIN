@@ -32,6 +32,14 @@
         return trimmed || def || null;
     }
 
+    function bindManageJsonViewer(pre, data, label) {
+        if (window.ManageUI && typeof window.ManageUI.jsonViewer === "function") {
+            window.ManageUI.jsonViewer(pre, data, { label: label || "JSON" });
+            return;
+        }
+        pre.textContent = JSON.stringify(data, null, 2);
+    }
+
     function renderJson(targetId, title, data, actionsBuilder) {
         var el = document.getElementById(targetId);
         if (!el) return;
@@ -40,15 +48,18 @@
         card.className = "narrative-card";
         var h = document.createElement("h2");
         h.textContent = title;
-        var pre = document.createElement("pre");
-        pre.textContent = JSON.stringify(data, null, 2);
         card.appendChild(h);
         if (typeof actionsBuilder === "function") {
             var actions = actionsBuilder();
             if (actions) card.appendChild(actions);
         }
+        var pre = document.createElement("pre");
+        pre.className = "manage-psc-json";
+        pre.setAttribute("data-json-viewer", "");
+        pre.dataset.jsonLabel = title;
         card.appendChild(pre);
         el.appendChild(card);
+        bindManageJsonViewer(pre, data, title);
     }
 
     function buildActions(buttons) {

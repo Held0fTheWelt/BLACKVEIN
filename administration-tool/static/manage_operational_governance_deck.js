@@ -70,7 +70,7 @@
     else if (text === "blocked" || text === "error") { cls = "mui-pill--fail"; railCls = "mui-rail-badge--fail"; }
     pill.classList.add(cls);
     if (railBadge) {
-      railBadge.classList.remove("mui-rail-badge--ok", "mui-rail-badge--warn", "mui-rail-badge--fail", "mui-rail-badge--off");
+      railBadge.classList.remove("mui-rail-badge--ok", "mui-rail-badge--warn", "mui-rail-badge--fail", "mui-rail-badge--setup", "mui-rail-badge--off");
       railBadge.classList.add(railCls);
     }
     if (railSub) railSub.textContent = text ? "severity: " + text : "health overview";

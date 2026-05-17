@@ -7,8 +7,11 @@ and provides operator-truth snapshots for the Administration Tool.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
+
+from sqlalchemy.orm.attributes import flag_modified
 
 from ai_stack.story_runtime_experience import (
     canonical_defaults,
@@ -98,8 +101,12 @@ def update_story_runtime_experience_settings(
             400,
             {},
         )
-    normalized = normalize_story_runtime_experience(payload)
+    # Merge onto the current persisted row (or canonical defaults when absent)
+    # so partial operator payloads cannot silently reset omitted keys.
+    merged = {**get_story_runtime_experience_settings(), **payload}
+    normalized = normalize_story_runtime_experience(merged)
     warnings = validate_story_runtime_experience(normalized)
+    stored_value = deepcopy(normalized)
 
     row = _load_row()
     if row is None:
@@ -107,16 +114,17 @@ def update_story_runtime_experience_settings(
             setting_id=_SETTING_ID,
             scope=STORY_RUNTIME_EXPERIENCE_SCOPE,
             setting_key=_SETTING_KEY,
-            setting_value_json=normalized,
+            setting_value_json=stored_value,
             is_secret_backed=False,
             is_user_visible=True,
             updated_by=actor,
         )
         db.session.add(row)
     else:
-        row.setting_value_json = normalized
+        row.setting_value_json = stored_value
         row.updated_by = actor
         row.updated_at = datetime.now(timezone.utc)
+        flag_modified(row, "setting_value_json")
     _audit(
         "story_runtime_experience_updated",
         actor,
@@ -124,6 +132,8 @@ def update_story_runtime_experience_settings(
         {"warnings": warnings, "experience_mode": normalized.get("experience_mode")},
     )
     db.session.commit()
+    if row is not None:
+        db.session.expire(row)
     return {"settings": normalized, "warnings": warnings}
 
 

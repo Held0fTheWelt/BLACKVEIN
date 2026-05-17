@@ -683,6 +683,43 @@
   };
 
   // ---------------------------------------------------------------------------
+  // Rail badge semantics: ok/warn/fail = diagnosable health; setup = config-only (pink).
+  // ---------------------------------------------------------------------------
+  var RAIL_BADGE_STATUSES = { ok: 1, warn: 1, fail: 1, setup: 1, off: 1 };
+
+  ManageUI.applyRailBadge = function (target, status) {
+    var el = typeof target === "string" ? document.querySelector(target) : target;
+    if (!el) return;
+    el.className = "mui-rail-badge";
+    if (RAIL_BADGE_STATUSES[status]) el.classList.add("mui-rail-badge--" + status);
+  };
+
+  ManageUI.railBadgeForDeckTarget = function (deckTarget, status) {
+    ManageUI.applyRailBadge(
+      '.mui-rail-btn[data-deck-target="' + deckTarget + '"] .mui-rail-badge',
+      status
+    );
+  };
+
+  ManageUI.railStatusFromGuardrails = function (rows) {
+    var worst = "ok";
+    (rows || []).forEach(function (row) {
+      var s = String((row && row.severity) || "").toLowerCase();
+      if (s === "error" || s === "fail" || s === "critical" || s === "blocked") worst = "fail";
+      else if ((s === "warn" || s === "warning" || s === "degraded") && worst !== "fail") worst = "warn";
+    });
+    return worst;
+  };
+
+  ManageUI.railStatusFromHealthState = function (state) {
+    var s = String(state || "").toLowerCase();
+    if (s === "healthy" || s === "ok" || s === "connected") return "ok";
+    if (s === "blocked" || s === "error" || s === "fail" || s === "unavailable") return "fail";
+    if (s === "degraded" || s === "warn" || s === "warning") return "warn";
+    return "warn";
+  };
+
+  // ---------------------------------------------------------------------------
   // Init
   // ---------------------------------------------------------------------------
   function init() {

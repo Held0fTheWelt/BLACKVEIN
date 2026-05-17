@@ -145,6 +145,19 @@ def _initialize_observability(app: Flask) -> None:
 
         app.langfuse_adapter = LangfuseAdapter.get_instance(config)
         print("[INFO] Langfuse observability initialized and ready")
+        try:
+            from app.services.observability_governance_service import (
+                run_startup_observability_health_check,
+            )
+
+            probe = run_startup_observability_health_check()
+            if probe:
+                print(
+                    "[INFO] Langfuse startup health: "
+                    f"{probe.get('health_status')} — {probe.get('message')}"
+                )
+        except Exception as probe_exc:
+            print(f"[WARN] Langfuse startup health probe failed: {probe_exc}")
 
     except Exception as e:
         print(f"[WARN] Failed to initialize Langfuse: {e}; using no-op adapter")

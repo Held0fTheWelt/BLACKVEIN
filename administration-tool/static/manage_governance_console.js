@@ -33,10 +33,16 @@
     }
   }
 
-  function renderJson(targetId, payload) {
+  function renderJson(targetId, payload, label) {
     var el = document.getElementById(targetId);
     if (!el) return;
-    el.innerHTML = escapeHtml(JSON.stringify(payload, null, 2));
+    if (window.ManageUI && typeof window.ManageUI.jsonViewer === "function") {
+      window.ManageUI.jsonViewer(el, payload, {
+        label: label || el.dataset.jsonLabel || targetId,
+      });
+      return;
+    }
+    el.textContent = JSON.stringify(payload, null, 2);
   }
 
   function buildUrl(path, params) {
@@ -69,14 +75,14 @@
 
     var common = { session_id: sessionId };
     var jobs = [
-      ["gov-runtime-readiness", buildUrl("/api/v1/admin/governance/runtime-readiness-authority", common)],
-      ["gov-adr0041-authority", buildUrl("/api/v1/admin/governance/adr0041-authority-state", common)],
-      ["gov-capability-matrix", buildUrl("/api/v1/admin/governance/capability-matrix", common)],
-      ["gov-validator-registry", "/api/v1/admin/governance/validators/registry"],
-      ["gov-evidence", "/api/v1/admin/governance/evidence/langfuse-mcp"],
-      ["gov-ledger", buildUrl("/api/v1/admin/governance/runtime-aspect-ledger", { session_id: sessionId, aspect: aspect })],
-      ["gov-narrative-systems", buildUrl("/api/v1/admin/governance/narrative-systems", { session_id: sessionId, module_id: moduleId })],
-      ["gov-feature-flags", "/api/v1/admin/governance/feature-flags"],
+      ["gov-runtime-readiness", buildUrl("/api/v1/admin/governance/runtime-readiness-authority", common), "Runtime Readiness"],
+      ["gov-adr0041-authority", buildUrl("/api/v1/admin/governance/adr0041-authority-state", common), "Capability Authority"],
+      ["gov-capability-matrix", buildUrl("/api/v1/admin/governance/capability-matrix", common), "Capability Matrix"],
+      ["gov-validator-registry", "/api/v1/admin/governance/validators/registry", "Validator Registry"],
+      ["gov-evidence", "/api/v1/admin/governance/evidence/langfuse-mcp", "Langfuse / MCP"],
+      ["gov-ledger", buildUrl("/api/v1/admin/governance/runtime-aspect-ledger", { session_id: sessionId, aspect: aspect }), "Runtime Aspect Ledger"],
+      ["gov-narrative-systems", buildUrl("/api/v1/admin/governance/narrative-systems", { session_id: sessionId, module_id: moduleId }), "Runtime Systems"],
+      ["gov-feature-flags", "/api/v1/admin/governance/feature-flags", "Feature Flag Ownership"],
     ];
 
     showStatus("Loading governance projections...", false);
@@ -86,12 +92,20 @@
         var path = job[1];
         try {
           var data = await api(path);
-          renderJson(target, data);
+          renderJson(target, data, job[2]);
         } catch (err) {
-          renderJson(target, { warning: "endpoint_unavailable", detail: String(err && err.message ? err.message : err) });
+          renderJson(
+            target,
+            { warning: "endpoint_unavailable", detail: String(err && err.message ? err.message : err) },
+            job[2]
+          );
         }
       })
     );
+    var section = document.querySelector('[data-page="governance-console"]');
+    if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+      window.ManageUI.scan(section || document);
+    }
     showStatus("Governance projections refreshed.", false);
   }
 

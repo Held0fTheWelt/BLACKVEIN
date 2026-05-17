@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='20260517b') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='manage.css', v='20260517b') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='20260517d') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='manage.css', v='20260517d') }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="manage-body"
@@ -135,9 +135,9 @@
     <script>
         window.__FRONTEND_CONFIG__ = {{ frontend_config | tojson }};
     </script>
-    <script src="{{ url_for('static', filename='main.js', v='20260517b') }}"></script>
-    <script src="{{ url_for('static', filename='manage_auth.js', v='20260517b') }}"></script>
-    <script src="{{ url_for('static', filename='manage_ui.js', v='20260517b') }}"></script>
+    <script src="{{ url_for('static', filename='main.js', v='20260517d') }}"></script>
+    <script src="{{ url_for('static', filename='manage_auth.js', v='20260517d') }}"></script>
+    <script src="{{ url_for('static', filename='manage_ui.js', v='20260517d') }}"></script>
     <script>
         (function manageSidebarShell() {
             const pathname = window.location.pathname.replace(/\/+$/, "");

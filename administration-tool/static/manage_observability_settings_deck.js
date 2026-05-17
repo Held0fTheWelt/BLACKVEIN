@@ -23,7 +23,7 @@
   var PILLS = [
     { src: "manage-obs-status-enabled",    card: "manage-obs-status-enabled-card",    pill: "manage-obs-pill-status",     positive: ["enabled"] },
     { src: "manage-obs-status-credential", card: "manage-obs-status-credential-card", pill: "manage-obs-pill-credential", positive: ["configured"], negative: ["not configured"] },
-    { src: "manage-obs-status-health",     card: "manage-obs-status-health-card",     pill: "manage-obs-pill-health",     positive: ["healthy"], negative: ["unhealthy"] },
+    { src: "manage-obs-status-health",     card: "manage-obs-status-health-card",     pill: "manage-obs-pill-health",     positive: ["healthy", "connected"], negative: ["unhealthy", "failed", "missing", "invalid", "mismatch", "delayed", "forbidden", "disabled", "unconfigured"] },
     { src: "manage-obs-status-tested",     card: "manage-obs-status-tested-card",     pill: "manage-obs-pill-tested",     positive: [], negative: ["never"] }
   ];
 
@@ -97,6 +97,12 @@
     });
   }
 
+  function truncateHeaderMirror(text, maxLen) {
+    maxLen = maxLen || 88;
+    if (!text || text.length <= maxLen) return text;
+    return text.slice(0, maxLen - 1) + "…";
+  }
+
   function bindBannerMirror(bannerId, successId) {
     function watch(elId, kind) {
       var el = $(elId);
@@ -109,7 +115,7 @@
           var header = $("manage-obs-header-result");
           if (header) {
             header.__muiToken = (header.__muiToken || 0) + 1;
-            ManageUI.setInlineResult(header, kind, text);
+            ManageUI.setInlineResult(header, kind, truncateHeaderMirror(text));
           }
           var chip = activeSectionChip();
           if (chip) {

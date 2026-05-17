@@ -439,8 +439,61 @@ class TestObservabilityDisable:
         assert data["credential_fingerprint"] is None
 
 
+class TestObservabilityTestConnectionRoute:
+    """HTTP contract for POST /api/v1/admin/observability/test-connection."""
+
+    def test_test_connection_returns_envelope_not_500(self, client, admin_jwt, monkeypatch):
+        monkeypatch.setattr(
+            "app.services.observability_governance_service.verify_langfuse_runtime_connectivity",
+            lambda **_: {
+                "ok": True,
+                "health_status": "connected",
+                "message": "mocked",
+                "credentials_source": "backend_observability_credentials",
+            },
+        )
+        resp = client.post(
+            "/api/v1/admin/observability/test-connection",
+            json={},
+            headers={"Authorization": f"Bearer {admin_jwt}"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        assert body["data"]["health_status"] == "connected"
+
+
 class TestServiceLayerFunctions:
     """Direct tests of service layer functions."""
+
+    def test_langfuse_projects_for_host_uses_rest_not_sdk(self, monkeypatch):
+        """Auth preflight must not construct a Langfuse SDK client (shutdown deadlock)."""
+        import httpx
+
+        from app.services.observability_governance_service import _langfuse_projects_for_host
+
+        class _Resp:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return {"data": [{"name": "demo"}]}
+
+        def fake_get(url, headers=None, timeout=0):
+            assert url.endswith("/api/public/projects")
+            assert headers and headers["Authorization"].startswith("Basic ")
+            return _Resp()
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+
+        ok, names, err = _langfuse_projects_for_host(
+            public_key="pk-lf-test",
+            secret_key="sk-lf-test",
+            base_url="http://langfuse-web:3000",
+        )
+        assert ok is True
+        assert names == ["demo"]
+        assert err is None
 
     def test_get_observability_config_returns_dict(self, db_session):
         """get_observability_config returns dict with all fields."""
@@ -500,6 +553,10 @@ class TestServiceLayerFunctions:
         result = check_observability_connection("pytest")
         assert result["ok"] is True
         assert result["health_status"] == "connected"
+
+        status = get_observability_config()
+        assert status["health_status"] == "connected"
+        assert status["last_tested_at"] is not None
 
     def test_verify_langfuse_reports_host_mismatch(self, db_session, monkeypatch):
         """When keys belong to another region host, return host_mismatch with fix instructions."""

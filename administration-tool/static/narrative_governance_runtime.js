@@ -210,9 +210,15 @@
         el.innerHTML =
             '<details class="manage-dx-check-details">' +
             "<summary>Technical payload (config &amp; diagnostics)</summary>" +
-            '<pre class="manage-dx-details-json">' +
-            escapeHtml(JSON.stringify(payload, null, 2)) +
-            "</pre></details>";
+            '<pre class="manage-psc-json" data-json-viewer data-json-label="Technical payload"></pre>' +
+            "</details>";
+        var pre = el.querySelector("pre.manage-psc-json");
+        if (!pre) return;
+        if (window.ManageUI && typeof window.ManageUI.jsonViewer === "function") {
+            window.ManageUI.jsonViewer(pre, payload, { label: "Technical payload" });
+        } else {
+            pre.textContent = JSON.stringify(payload, null, 2);
+        }
     }
 
     function setGovLoading(loading) {

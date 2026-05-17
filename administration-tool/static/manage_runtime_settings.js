@@ -195,11 +195,26 @@
     }), "No recent settings changes.");
   }
 
+  function updateRuntimeSettingsRailBadges() {
+    if (!window.ManageUI) return;
+    var MU = window.ManageUI;
+    MU.railBadgeForDeckTarget("presets", "setup");
+    var effective = state.effective || {};
+    var advancedStatus = MU.railStatusFromGuardrails(effective.guardrail_warnings || []);
+    if ((effective.drift_keys || []).length > 0 && advancedStatus === "ok") advancedStatus = "warn";
+    MU.railBadgeForDeckTarget("advanced", advancedStatus);
+    MU.railBadgeForDeckTarget("effective", "setup");
+    MU.railBadgeForDeckTarget("changes", "setup");
+    MU.railBadgeForDeckTarget("related", "setup");
+    MU.railBadgeForDeckTarget("audit", "setup");
+  }
+
   function renderAll() {
     renderPresets();
     renderAdvancedSettings();
     renderEffective();
     renderChanges();
+    updateRuntimeSettingsRailBadges();
     setJson({
       presets: state.presets,
       advanced: state.advanced,

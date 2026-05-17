@@ -61,7 +61,13 @@
                         <p class="mui-inspector-summary">Cache state and snapshot freshness for the most recent diagnosis call.</p>
                     </header>
                     <div class="mui-inspector-body">
-                        <div id="manage-diagnosis-meta" class="manage-dx-meta" aria-live="polite"></div>
+                        <div id="manage-diagnosis-meta" class="manage-dx-meta" aria-live="polite">
+                            <div id="manage-diagnosis-meta-grid"></div>
+                            <details class="manage-dx-check-details manage-dx-audit-details">
+                                <summary>Full diagnosis payload</summary>
+                                <pre id="manage-diagnosis-json" class="manage-psc-json" data-json-viewer data-json-label="Diagnosis snapshot"></pre>
+                            </details>
+                        </div>
                     </div>
                 </article>
             </section>

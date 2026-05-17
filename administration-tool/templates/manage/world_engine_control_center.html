@@ -42,7 +42,7 @@
                 </span>
             </a>
             <a href="#issues" class="mui-rail-btn" data-deck-target="issues">
-                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-badge mui-rail-badge--ok"></span>
                 <span class="mui-rail-label">
                     <span class="mui-rail-primary">Blockers &amp; warnings</span>
                     <span class="mui-rail-secondary">what to fix first</span>
@@ -193,6 +193,6 @@
 </section>
 {% endblock %}
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='manage_world_engine_control_center.js') }}"></script>
-<script src="{{ url_for('static', filename='manage_world_engine_control_center_deck.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_world_engine_control_center.js', v='20260517e') }}"></script>
+<script src="{{ url_for('static', filename='manage_world_engine_control_center_deck.js', v='20260517e') }}"></script>
 {% endblock %}
