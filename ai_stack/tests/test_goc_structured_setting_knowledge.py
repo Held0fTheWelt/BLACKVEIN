@@ -52,8 +52,37 @@ def test_scene_affordances_aligns_layout_room_ids() -> None:
     layout = load_goc_apartment_layout_yaml()
     loc_ids = {str(x.get("id")) for x in (inner.get("locations") or []) if isinstance(x, dict)}
     layout_room_ids = {r.get("id") for r in (layout.get("rooms") or []) if isinstance(r, dict)}
-    assert {"bathroom", "kitchen", "hallway"}.issubset(loc_ids)
-    assert layout_room_ids.issuperset({"bathroom", "kitchen", "hallway", "vallon_living_room"})
+    assert {"building_stairwell", "bathroom", "kitchen", "hallway", "pantry", "study"}.issubset(loc_ids)
+    assert layout_room_ids.issuperset(
+        {
+            "building_stairwell",
+            "bathroom",
+            "kitchen",
+            "hallway",
+            "pantry",
+            "study",
+            "vallon_living_room",
+            "bedroom_one_locked",
+            "bedroom_two_locked",
+        }
+    )
+
+
+def test_apartment_layout_models_requested_room_topology() -> None:
+    layout = load_goc_apartment_layout_yaml()
+    rooms = {str(r.get("id")): r for r in (layout.get("rooms") or []) if isinstance(r, dict)}
+    living = rooms["vallon_living_room"]
+    hallway = rooms["hallway"]
+    kitchen = rooms["kitchen"]
+
+    assert "building_stairwell" in (living.get("adjacent_room_ids") or [])
+    assert "kitchen" in (living.get("adjacent_room_ids") or [])
+    assert {"kitchen", "bathroom", "pantry", "study", "bedroom_one_locked", "bedroom_two_locked"}.issubset(
+        set(hallway.get("adjacent_room_ids") or [])
+    )
+    assert {"vallon_living_room", "hallway"}.issubset(set(kitchen.get("adjacent_room_ids") or []))
+    assert rooms["bedroom_one_locked"].get("access_pattern") == "locked_non_playable"
+    assert rooms["bedroom_two_locked"].get("access_pattern") == "locked_non_playable"
 
 
 def _read_yaml(path):
@@ -104,10 +133,13 @@ def test_p2_1_english_only_knowledge_files_contain_no_german_authoring_strings()
         knowledge_dir / "content_access_policy.yaml",
         knowledge_dir / "premise_and_backstory.yaml",
         knowledge_dir / "narrator_sensory_palette.yaml",
-        knowledge_dir.parent / "locations.yaml",
+        knowledge_dir.parent / "locations" / "index.yaml",
+        knowledge_dir.parent / "locations" / "opening" / "park_edge.yaml",
+        knowledge_dir.parent / "locations" / "opening" / "basketball_court.yaml",
+        knowledge_dir.parent / "locations" / "building" / "building_stairwell.yaml",
         knowledge_dir.parent / "scene_graph.yaml",
-        knowledge_dir.parent / "apartment_layout.yaml",
-        knowledge_dir.parent / "actor_pressure_profiles.yaml",
+        knowledge_dir.parent / "locations" / "appartment" / "apartment_layout.yaml",
+        knowledge_dir.parent / "characters" / "actor_pressure_profiles.yaml",
         knowledge_dir.parent / "phase_beat_policy.yaml",
     ]
     failures: list[str] = []
@@ -158,7 +190,7 @@ def test_opening_incident_content_is_concrete_in_direction_and_knowledge() -> No
     knowledge_text = (module_dir / "knowledge" / "opening_scene_sequence.yaml").read_text(encoding="utf-8").lower()
     premise_text = (module_dir / "knowledge" / "premise_and_backstory.yaml").read_text(encoding="utf-8").lower()
 
-    for token in ("paris park", "basketball", "bicycle", "stick"):
+    for token in ("parc montsouris", "basketball", "bicycle", "stick"):
         assert token in opening_doc
         assert token in direction_text
         assert token in knowledge_text or token in premise_text
@@ -187,9 +219,23 @@ def test_scene_graph_and_modular_character_documents_are_primary_surfaces() -> N
     }
     assert (bundle.get("characters") or {}).get("annette", {}).get("actor_id") == "annette_reille"
     assert {row.get("id") for row in (locations.get("places") or [])}.issuperset(
-        {"park_edge", "basketball_court", "vallon_living_room", "bathroom", "kitchen"}
+        {
+            "park_edge",
+            "basketball_court",
+            "building_stairwell",
+            "vallon_living_room",
+            "hallway",
+            "bathroom",
+            "kitchen",
+            "pantry",
+            "study",
+            "bedroom_one_locked",
+            "bedroom_two_locked",
+        }
     )
     assert set(access.get("scopes") or []).issuperset({"action", "location", "object", "scene_node"})
+    blocked_targets = {row.get("target_id") for row in (access.get("blocked_entities") or []) if isinstance(row, dict)}
+    assert {"bedroom_one_locked", "bedroom_two_locked"}.issubset(blocked_targets)
 
 
 def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state() -> None:

@@ -1,0 +1,48 @@
+# Location surface for God of Carnage.
+# This expands the usable place vocabulary beyond the initial apartment-only MVP.
+
+locations:
+  id: goc_locations_v1
+  authority: module_authorial_locations
+  default_access_policy: knowledge/content_access_policy.yaml
+
+  setting:
+    name: "Vallon apartment"
+    type: upscale_private_apartment
+    district_context: paris_working_district
+    topology_source: locations/appartment/apartment_layout.yaml
+    default_scene_location_id: vallon_living_room
+    scene_location_assignment_field: location_id
+
+  assignment_policy:
+    scene_nodes_may_reference_place_ids: true
+    live_playable_location_ids:
+      - building_stairwell
+      - vallon_living_room
+      - hallway
+      - kitchen
+      - bathroom
+      - pantry
+      - study
+    locked_non_playable_location_ids:
+      - bedroom_one_locked
+      - bedroom_two_locked
+
+  place_files:
+    - locations/opening/park_edge.yaml
+    - locations/opening/basketball_court.yaml
+    - locations/opening/playground.yaml
+    - locations/opening/bicycle_rack.yaml
+    - locations/opening/offscreen_parent_world.yaml
+    - locations/building/building_stairwell.yaml
+    - locations/appartment/apartment_entry.yaml
+    - locations/appartment/vallon_living_room.yaml
+    - locations/appartment/coffee_table.yaml
+    - locations/appartment/hallway.yaml
+    - locations/appartment/kitchen.yaml
+    - locations/appartment/bathroom.yaml
+    - locations/appartment/pantry.yaml
+    - locations/appartment/study.yaml
+    - locations/appartment/bedroom_one_locked.yaml
+    - locations/appartment/bedroom_two_locked.yaml
+    - locations/appartment/window.yaml

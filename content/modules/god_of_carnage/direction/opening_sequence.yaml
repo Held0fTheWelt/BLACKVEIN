@@ -8,7 +8,7 @@
 
 opening_sequence_version: "1.1.0"
 module_id: god_of_carnage
-setting_anchor: "Paris park edge prologue into a Paris apartment, evening — hosts and guests meet over the incident between their children"
+setting_anchor: "Parc Montsouris prologue into a Paris apartment, evening — hosts and guests meet over the incident between their children"
 
 # Two movements before phase_1 “polite table” dialogue accelerates.
 # Each part may map to one or more typed scene blocks (narrator / actor_line / actor_action)
@@ -20,20 +20,23 @@ parts:
     title: "Background / shared premise"
     dramaturgic_job: |
       Show the incident that forces this meeting as a brief scenic prologue at the edge of a
-      Paris park: a dozen boys around a basketball court under a gray autumn sky, bare trees,
-      a playground and bicycles nearby. Two boys play, argue, and separate; one takes a stick,
-      turns back when the other calls after him, strikes, then leaves while the others help the
-      injured boy and shout after him. Let the audience feel the gap between child-world
-      bluntness and the adult appointment — without yet turning the apartment into a courtroom
-      in direct speech.
+      Parc Montsouris basketball court near Boulevard Jourdan: a dozen boys under a gray
+      autumn sky, with bare trees, sloping lawns, winding paths, a playground, bicycles, and
+      the ordinary RER/Cité Universitaire edge of the city nearby. Two boys play, argue, and
+      separate; one takes a stick, turns back when the other calls after him, strikes, then
+      leaves while the others help the injured boy and shout after him. Let the audience feel
+      the gap between child-world bluntness and the adult appointment — without yet turning
+      the apartment into a courtroom in direct speech.
     paris_module_notes: |
       Open with the park/basketball-court incident, then the apartment; keep the Reza spine —
       bourgeois parents laundering violence through procedure — not a generic "conflict
-      resolution meeting." The incident is not a vague schoolyard rumor: it has weather,
+      resolution meeting." The incident is not a vague generic playground rumor: it has weather,
       objects, witnesses, a stick, a bicycle kicked over, and a boy disappearing from view.
+      Parc Montsouris detail should stay environmental: lake, paths, slopes, students,
+      transport noise, playground life. Do not pause for a park-history paragraph.
     suggested_block_emphasis:
       - "narrator — sensory and factual restraint; no omniscient moral verdict"
-      - "narrator — concrete exterior image: park edge, basketball court, playground, bicycles, autumn sky"
+      - "narrator — concrete exterior image: Parc Montsouris edge, basketball court, playground, bicycles, autumn sky"
       - "actor_action — the stick, the strike, the injured boy folding, the bicycle kicked over"
       - "optional environment_interaction — objects that carry the weight (coat, phone, papers)"
     narrator_bar:
@@ -54,15 +57,17 @@ parts:
     id: opening_part_2
     title: "Into the room — ritual civility"
     dramaturgic_job: |
-      Land the Paris living room: who hosts, who sits, the art books and tulips that advertise
-      culture, the espresso machine, the dessert that will later become a weapon of manners.
-      The four are trapped in politeness; let the last beat be a trapdoor into play (a
-      glance, a poured cup, a sentence left unfinished) — not an opening salvo from Véronique
-      or a prosecutorial line from Annette.
+      Land the Paris apartment through the building stairwell/elevator hallway into the living
+      room: who hosts, who sits, the art books and tulips that advertise culture, the attached
+      kitchen, the small interior hallway, the espresso machine, the dessert that will later
+      become a weapon of manners. The four are trapped in politeness; let the last beat be a
+      trapdoor into play (a glance, a poured cup, a sentence left unfinished) — not an opening
+      salvo from Véronique or a prosecutorial line from Annette.
     suggested_block_emphasis:
       - "narrator — spatial completion, rhythm, subtext the staging implies"
       - "actor_action — seating, pouring, avoiding eye contact"
       - "actor_line — polite formula, small talk, oblique reference to the children only"
+      - "environment_context — visible apartment topology: stairwell/elevator threshold, living room, attached kitchen, small hallway"
     narrator_bar:
       must: |
         Support the player’s mental staging; favour concrete sensual detail over abstract
@@ -75,8 +80,8 @@ parts:
 
 # Canonical fact seeds (non-dialogue); generation may adapt wording; do not contradict runtime.
 premise_fact_seeds:
-  - "At the edge of a Paris park, near a basketball court, two boys argued; one took a stick, struck the other, and left while other boys helped the injured child."
-  - "The exterior prologue includes a gray autumn sky, bare trees, a playground, bicycles, and a small group of boys calling after one another."
+  - "At the edge of Parc Montsouris, near the Boulevard Jourdan basketball court, two boys argued; one took a stick, struck the other, and left while other boys helped the injured child."
+  - "The exterior prologue includes a gray autumn sky, bare trees, sloping lawns, winding paths, a playground, bicycles, and a small group of boys calling after one another."
   - "The hosts feel a written or agreed account of the facts may be necessary; guests may want to leave quickly."
   - "Everyone is performing civility while already judging the other side."
 

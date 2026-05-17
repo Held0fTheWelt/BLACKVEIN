@@ -14,6 +14,29 @@ import pytest
 from pathlib import Path
 
 
+def _load_character_roster(module_root: Path) -> dict:
+    """Return compact character roster from characters/index.yaml or legacy map."""
+    index_path = module_root / "characters" / "index.yaml"
+    if not index_path.is_file():
+        index_path = module_root / "characters.yaml"
+    with open(index_path, encoding="utf-8") as f:
+        doc = yaml.safe_load(f) or {}
+    characters = doc.get("characters")
+    if isinstance(characters, dict):
+        return characters
+    index = doc.get("characters_index") or {}
+    documents = index.get("documents") if isinstance(index, dict) else {}
+    roster = {}
+    for char_id, rel_path in (documents or {}).items():
+        path = module_root / str(rel_path)
+        with open(path, encoding="utf-8") as f:
+            payload = yaml.safe_load(f) or {}
+        char_doc = payload.get("character_document") or payload.get("character") or payload
+        if isinstance(char_doc, dict):
+            roster[str(char_id)] = char_doc
+    return roster
+
+
 class TestGocModuleStructureSmoke:
     """Verify God of Carnage module canonical structure exists and is valid."""
 
@@ -21,20 +44,41 @@ class TestGocModuleStructureSmoke:
 
     REQUIRED_CORE_FILES = [
         "module.yaml",
-        "characters.yaml",
-        "relationships.yaml",
+        "characters/index.yaml",
+        "characters/relationships.yaml",
+        "characters/actor_pressure_profiles.yaml",
+        "characters/character_voice.yaml",
         "escalation_axes.yaml",
         "scenes.yaml",
         "transitions.yaml",
         "triggers.yaml",
         "endings.yaml",
+        "locations/index.yaml",
+        "locations/appartment/apartment_layout.yaml",
+        "locations/appartment/apartment_objects.yaml",
+        "locations/opening/park_edge.yaml",
+        "locations/opening/basketball_court.yaml",
+        "locations/opening/playground.yaml",
+        "locations/opening/bicycle_rack.yaml",
+        "locations/opening/offscreen_parent_world.yaml",
+        "locations/building/building_stairwell.yaml",
+        "locations/appartment/apartment_entry.yaml",
+        "locations/appartment/vallon_living_room.yaml",
+        "locations/appartment/coffee_table.yaml",
+        "locations/appartment/hallway.yaml",
+        "locations/appartment/kitchen.yaml",
+        "locations/appartment/bathroom.yaml",
+        "locations/appartment/pantry.yaml",
+        "locations/appartment/study.yaml",
+        "locations/appartment/bedroom_one_locked.yaml",
+        "locations/appartment/bedroom_two_locked.yaml",
+        "locations/appartment/window.yaml",
     ]
 
     REQUIRED_DIRECTION_FILES = [
         "direction/system_prompt.md",
         "direction/scene_guidance.yaml",
         "direction/opening_sequence.yaml",
-        "direction/character_voice.yaml",
     ]
 
     def test_module_root_exists(self):
@@ -92,12 +136,8 @@ class TestGocModuleStructureSmoke:
         assert module["contract_version"] == "0.2.0"
 
     def test_characters_yaml_structure(self):
-        """characters.yaml defines all 4 required characters."""
-        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
-            doc = yaml.safe_load(f)
-
-        assert "characters" in doc, "characters.yaml missing 'characters' key"
-        characters = doc["characters"]
+        """characters/index.yaml references all 4 required characters."""
+        characters = _load_character_roster(self.MODULE_ROOT)
 
         required_character_ids = ["veronique", "michel", "annette", "alain"]
         for char_id in required_character_ids:
@@ -111,18 +151,14 @@ class TestGocModuleStructureSmoke:
 
     def test_visitor_is_absent_from_canonical_module(self):
         """visitor must NOT exist as a character in the canonical module."""
-        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
-            doc = yaml.safe_load(f)
-        characters = doc.get("characters", {})
+        characters = _load_character_roster(self.MODULE_ROOT)
         assert "visitor" not in characters, (
             "visitor must not be defined as a canonical character — it is globally prohibited"
         )
 
     def test_annette_and_alain_are_playable_human_roles(self):
         """annette and alain must be defined and present as human-playable characters."""
-        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
-            doc = yaml.safe_load(f)
-        characters = doc.get("characters", {})
+        characters = _load_character_roster(self.MODULE_ROOT)
         assert "annette" in characters, "annette must be a canonical character (human-playable)"
         assert "alain" in characters, "alain must be a canonical character (human-playable)"
 
@@ -136,8 +172,8 @@ class TestGocModuleStructureSmoke:
         )
 
     def test_relationships_yaml_structure(self):
-        """relationships.yaml defines required axes and relationships."""
-        with open(self.MODULE_ROOT / "relationships.yaml", encoding="utf-8") as f:
+        """characters/relationships.yaml defines required axes and relationships."""
+        with open(self.MODULE_ROOT / "characters" / "relationships.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "relationship_axes" in doc, "Missing relationship_axes section"
@@ -283,9 +319,11 @@ class TestGocModuleConsistencySmoke:
         """Load all module YAML files."""
         with open(self.MODULE_ROOT / "module.yaml", encoding="utf-8") as f:
             module = yaml.safe_load(f)
-        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
-            characters = yaml.safe_load(f)
-        with open(self.MODULE_ROOT / "relationships.yaml", encoding="utf-8") as f:
+        with open(self.MODULE_ROOT / "characters" / "index.yaml", encoding="utf-8") as f:
+            characters = yaml.safe_load(f) or {}
+        if "characters" not in characters:
+            characters = {"characters": _load_character_roster(self.MODULE_ROOT)}
+        with open(self.MODULE_ROOT / "characters" / "relationships.yaml", encoding="utf-8") as f:
             relationships = yaml.safe_load(f)
         with open(self.MODULE_ROOT / "scenes.yaml", encoding="utf-8") as f:
             scenes = yaml.safe_load(f)
@@ -298,7 +336,7 @@ class TestGocModuleConsistencySmoke:
         }
 
     def test_character_references_valid(self, module_data):
-        """All character references in relationships exist in characters.yaml."""
+        """All character references in relationships exist in character documents."""
         char_ids = set(module_data["characters"]["characters"].keys())
         relationships = module_data["relationships"]["relationships"]
 

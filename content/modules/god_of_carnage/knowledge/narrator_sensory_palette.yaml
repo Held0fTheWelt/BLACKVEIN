@@ -10,14 +10,20 @@ narrator_sensory_palette:
     late_breakdown: "The air turns warm and rough; words leave traces like fingerprints."
 
   rooms:
+    building_stairwell:
+      ambient: "Common hallway air, elevator hush, stairwell echo, and the apartment door as a social border."
     vallon_living_room:
       ambient: "Salon light, distant street noise, the faint creak of fine furniture."
     hallway:
-      ambient: "A slightly cooler draft; voices from the salon sound filtered."
+      ambient: "A slightly cooler inner corridor; doors hold back service, privacy, and retreat."
     kitchen:
       ambient: "Tile, water, metal — domestic sounds without the heat of the argument."
     bathroom:
       ambient: "Fluorescent or warm light, mirror, brief acoustic isolation."
+    pantry:
+      ambient: "Dry shelves, narrow air, and the practical smell of stored domestic order."
+    study:
+      ambient: "Paper, desk polish, and the charged quiet of a host's private working room."
 
   objects:
     window:

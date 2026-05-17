@@ -1,4 +1,4 @@
-# Dramatic pressure vectors — English-authored; character ids align with characters.yaml keys.
+# Dramatic pressure vectors — English-authored; character ids align with characters/index.yaml keys.
 
 actor_pressure_profiles:
   authoring_language: en

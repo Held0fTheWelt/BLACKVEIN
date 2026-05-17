@@ -13,18 +13,18 @@ scene_graph:
     - id: prologue_park_edge
       phase_id: opening
       sequence: 1
-      title: "Paris park edge"
+      title: "Parc Montsouris edge"
       location_id: park_edge
       scene_function: opening_prologue_establish
       visibility: narrator_only
       required_event_ids:
         - event_01_triggering_incident
-      summary: "The exterior world is established: park edge, court, playground, bikes, autumn sky."
+      summary: "The exterior world is established: Parc Montsouris edge, court, playground, bikes, autumn sky, sloping lawns, and nearby city noise."
 
     - id: basketball_court_cluster
       phase_id: opening
       sequence: 2
-      title: "Boys around the court"
+      title: "Boys around the Boulevard Jourdan court"
       location_id: basketball_court
       scene_function: opening_group_pressure
       visibility: narrator_only
@@ -80,13 +80,13 @@ scene_graph:
     - id: apartment_threshold
       phase_id: opening
       sequence: 7
-      title: "Apartment threshold"
-      location_id: apartment_entry
+      title: "Building threshold"
+      location_id: building_stairwell
       scene_function: move_to_stage
       visibility: narrator_only
       required_event_ids:
         - event_03_arrival_threshold
-      summary: "Guests cross into the Vallon apartment and politeness becomes performance."
+      summary: "Guests move from the stairwell/elevator hallway directly into the Vallon living room and politeness becomes performance."
 
     - id: living_room_arrival
       phase_id: phase_1
@@ -188,7 +188,7 @@ scene_graph:
       phase_id: phase_5
       sequence: 18
       title: "Exit attempt"
-      location_id: apartment_entry
+      location_id: building_stairwell
       scene_function: closure_pressure
       visibility: playable
       summary: "Leaving becomes either escape, defeat, or a new form of accusation."

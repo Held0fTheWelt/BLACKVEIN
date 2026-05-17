@@ -6,17 +6,21 @@ that gate aligned so runtime validation knows which beats were intentionally aut
 
 ## Purpose
 
-The opening must begin outside the apartment, at the edge of a Paris park, and then hand the
-session into the Vallon apartment without turning the first playable moment into a trial.
+The opening must begin outside the apartment, at the edge of Parc Montsouris in southern Paris,
+and then hand the session into the Vallon apartment without turning the first playable moment
+into a trial.
 
 ## Exterior Prologue
 
-Location: edge of a Paris park near a basketball court.
+Location: edge of Parc Montsouris near the Boulevard Jourdan basketball court.
 
 Visible world:
 - gray autumn sky
 - bare trees
 - ordinary Paris-suburb background life
+- sloping lawns and paths rather than a flat anonymous park
+- the lake or lower green space as nearby visual depth
+- a trace of the Cité Universitaire / RER-side city edge
 - a playground within sight
 - bicycles near the boys
 - about a dozen boys gathered around the court
@@ -33,11 +37,20 @@ Action beats:
 - the attacker disappears from view
 
 Narration rule: describe the event concretely and briefly; do not assign final moral blame.
+Use Parc Montsouris as a lived-in local place, not as a tourist plaque or history lecture.
 
 ## Interior Handover
 
 The opening then moves to the Vallon apartment. The scene should make the room playable:
-doorway, coats, papers, seating, coffee, dessert, art books, tulips, host/guest pressure.
+building stairwell/elevator hallway, doorway, coats, papers, seating, coffee, dessert, art
+books, tulips, host/guest pressure.
+
+Spatial model:
+- from the building stairwell/elevator hallway, one enters directly into the living room
+- the kitchen is attached to the living room
+- a small interior hallway also reaches the kitchen
+- the hallway reaches the bathroom, a small pantry, the study, and two locked bedrooms
+- the locked bedrooms are not playable interiors; they may be noticed as closed private doors
 
 The selected player character is placed in the room without speech, decision, confession, or
 private emotion assigned by the narrator.
@@ -51,5 +64,5 @@ the player can choose a first gesture, silence, observation, or line.
 
 - `knowledge/opening_scene_sequence.yaml`: event ids and validation coverage.
 - `scene_graph.yaml`: scene nodes from exterior prologue through apartment handover.
-- `locations.yaml`: place ids referenced by the opening.
+- `locations/index.yaml` and `locations/opening/*.yaml`: place ids referenced by the opening.
 - `knowledge/content_access_policy.yaml`: blocked or gated actions/locations/objects.

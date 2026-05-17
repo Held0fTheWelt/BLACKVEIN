@@ -39,10 +39,11 @@ opening_scene_sequence:
         - triggering_incident
       narrator_task: >-
         Dramatize the event that makes the meeting necessary as a concrete prologue at the edge
-        of a Paris park, beside a basketball court, not as legal exposition.
+        of Parc Montsouris, beside the Boulevard Jourdan basketball court, not as legal exposition.
       must_show:
         - a dozen boys gathered near the basketball court
-        - gray autumn sky, bare trees, a playground, bicycles, and ordinary Paris-suburb background life
+        - gray autumn sky, bare trees, sloping lawns, winding paths, a playground, bicycles, and ordinary Paris background life
+        - a hint of the park's depth: lake, old trees, RER/Cité Universitaire edge, or student/public leisure nearby
         - two boys playing while the others talk excitedly at the edge
         - the argument between the two boys
         - one boy grabbing a stick
@@ -75,11 +76,14 @@ opening_scene_sequence:
     - id: event_03_arrival_threshold
       title: "Arrival and threshold"
       narrative_function: move_to_stage
+      location_id: building_stairwell
       establishes: []
       narrator_task: >-
-        Bring the guests into the apartment and make the social threshold visible.
+        Bring the guests from the building stairwell/elevator hallway into the apartment and
+        make the social threshold visible.
       must_show:
-        - doorway or entry transition
+        - stairwell/elevator hallway as the common building threshold
+        - direct transition from the building threshold into the living room
         - politeness as performance
         - the discomfort of becoming guests in a conflict
 
@@ -96,6 +100,8 @@ opening_scene_sequence:
         - important objects
         - the host/guest power relation
         - the controlled surface of the room
+        - the kitchen attached to the living room
+        - the small hallway leading to the kitchen, bathroom, pantry, study, and locked bedrooms
 
     - id: event_05_role_anchor
       title: "Selected player role anchor"

@@ -56,6 +56,26 @@ def test_gehe_kueche_resolves_kitchen_offscreen() -> None:
     assert frame["affordance_status"] == "allowed_offscreen"
 
 
+def test_gehe_arbeitszimmer_resolves_study_offscreen() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe ins Arbeitszimmer",
+        interpreted_input={
+            "player_input_kind": "action",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "projection_captures": {"room": "ins Arbeitszimmer"},
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=_root(),
+    )
+    frame = out["player_action_frame"]
+    assert frame["verb"] == "move_to"
+    assert frame["resolved_target_id"] == "study"
+    assert frame["affordance_status"] == "allowed_offscreen"
+
+
 def test_begruesse_accented_name_resolves_actor() -> None:
     out = resolve_player_action(
         raw_text="Begrüße Véronique",
