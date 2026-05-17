@@ -1,32 +1,56 @@
-# English-authored sensory and mood scaffolding for narrator / scene director.
-# Runtime German (or other) rendering is a localization concern, not duplicated here.
+# English-authored sensory selection scaffolding for narrator / scene director.
+# Room and object detail is referenced from locations/; this file does not own
+# place descriptions.
 
 narrator_sensory_palette:
   authoring_language: en
+  modularity_policy_ref: knowledge/modularity_policy.yaml
 
   global_mood:
-    opening: "Evening light, upholstery, muffled city — civility sits on the room like varnish."
-    mid_tension: "Glass and porcelain carry quietly; every pause becomes a question."
-    late_breakdown: "The air turns warm and rough; words leave traces like fingerprints."
+    opening: "civility_over_pressure"
+    mid_tension: "ritual_objects_under_strain"
+    late_breakdown: "control_surface_failing"
 
   rooms:
+    building_hallway:
+      ambient_ref:
+        source: locations/building/building_hallway.yaml
+        fields: [description, sensory_tags]
     building_stairwell:
-      ambient: "Common hallway air, elevator hush, stairwell echo, and the apartment door as a social border."
-    vallon_living_room:
-      ambient: "Salon light, distant street noise, the faint creak of fine furniture."
+      ambient_ref:
+        source: locations/building/building_stairwell.yaml
+        fields: [description, sensory_tags]
+    living_room:
+      ambient_ref:
+        source: locations/appartment_vallon/living_room.yaml
+        fields: [description, sensory_tags]
     hallway:
-      ambient: "A slightly cooler inner corridor; doors hold back service, privacy, and retreat."
+      ambient_ref:
+        source: locations/appartment_vallon/hallway.yaml
+        fields: [description, sensory_tags]
     kitchen:
-      ambient: "Tile, water, metal — domestic sounds without the heat of the argument."
+      ambient_ref:
+        source: locations/appartment_vallon/kitchen.yaml
+        fields: [description, sensory_tags]
     bathroom:
-      ambient: "Fluorescent or warm light, mirror, brief acoustic isolation."
+      ambient_ref:
+        source: locations/appartment_vallon/bathroom.yaml
+        fields: [description, sensory_tags]
     pantry:
-      ambient: "Dry shelves, narrow air, and the practical smell of stored domestic order."
+      ambient_ref:
+        source: locations/appartment_vallon/pantry.yaml
+        fields: [description, sensory_tags]
     study:
-      ambient: "Paper, desk polish, and the charged quiet of a host's private working room."
+      ambient_ref:
+        source: locations/appartment_vallon/study.yaml
+        fields: [description, sensory_tags]
 
   objects:
     window:
-      glance: "The gaze falls on the street and other lives — one breath outside the fight."
+      glance_ref:
+        source: objects/appartment_vallon/living_room/window.yaml
+        fields: [description, sensory_tags]
     television:
-      glance: "The screen stays dark; the room reflects itself there for a moment."
+      glance_ref:
+        source: objects/appartment_vallon/living_room/television.yaml
+        fields: [description, sensory_tags]

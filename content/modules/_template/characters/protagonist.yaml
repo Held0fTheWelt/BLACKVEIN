@@ -1,0 +1,27 @@
+character_document:
+  id: protagonist
+  canonical_id: protagonist
+  runtime_actor_id: protagonist_actor
+  name: Protagonist Name
+  role: "Replace with dramatic role"
+  playable_status: human_playable
+  public_identity: "Replace with how this character wants to be seen."
+  baseline_attitude: "Replace with the character's opening posture."
+  baseline_state:
+    emotional_state: 40
+    escalation_level: 0
+    engagement: 60
+  tension_markers:
+    - replace_with_pressure_marker
+  escalation_triggers:
+    - replace_with_trigger_id
+  voice:
+    register: replace_with_voice_register
+    pressure_leak: replace_with_how_control_slips
+    avoid:
+      - generic_exposition
+  scene_usage:
+    strongest_in:
+      - phase_1
+    vulnerable_in:
+      - phase_2

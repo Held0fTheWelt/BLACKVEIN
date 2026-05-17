@@ -1,0 +1,16 @@
+object:
+  id: dining_table
+  name: "Dining table"
+  category: hospitality_surface
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    Central furniture; plates, glasses, and the moral geography of seating.
+  interaction_notes: {}
+  risk_tags:
+    - territorial_anchor
+  plausible_actions: [look_at, sit_near, place_object]
+  forbidden_actions: [discover_unseeded_document, destroy_without_consequence]
+  symbolic_roles:
+    - territorial_anchor
+    - hospitality_surface

@@ -1,0 +1,15 @@
+narrator_sensory_palette:
+  authoring_language: en
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  palettes:
+    opening_anchor:
+      ambient_ref:
+        source: locations/opening/opening_anchor.yaml
+        fields: [description, sensory_tags]
+    main_room:
+      ambient_ref:
+        source: locations/appartment/main_room.yaml
+        fields: [description, sensory_tags]
+  constraints:
+    avoid_tourist_postcard: true
+    avoid_generic_room: true

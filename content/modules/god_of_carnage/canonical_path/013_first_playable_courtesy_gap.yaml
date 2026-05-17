@@ -1,0 +1,61 @@
+canonical_path_step:
+  sequence: 13
+  id: opening_013_first_playable_courtesy_gap
+  path_id: goc_opening_canonical_path
+  name: "013 - First playable courtesy gap"
+  mode: first_playable_handover
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions, entrances_exits]
+  object_refs:
+    - object_id: coffee_table
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+    - object_id: window
+      source: objects/appartment_vallon/living_room/window.yaml
+    - object_id: coffee_machine
+      source: objects/appartment_vallon/kitchen/coffee_machine.yaml
+  character_refs:
+    - characters/annette.yaml
+    - characters/alain.yaml
+
+  theme_threads:
+    - agency_inside_politeness
+    - silence_as_action
+    - player_defines_first_pressure
+  play_model:
+    estimated_minutes: 2
+    interaction_density: player_driven
+    player_agency: "first free action, gesture, observation, or line"
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    playable_prompt_shape:
+      allowed_openers:
+        - observe_room_or_object
+        - answer_courtesy
+        - adjust_statement_wording
+        - ask_about_injury
+        - stay_silent
+        - move_to_adjacent_room_if_consequence_allowed
+      disallowed_openers:
+        - narrator_forces_player_opinion
+        - npc_speaks_for_player_character
+    narrator_tasks:
+      - end_with_actionable_social_space
+      - name_present_options_without_instructional_tutorial_text
+      - preserve_player_inner_life
+    must_not:
+      - assign_player_speech
+      - assign_player_private_thought
+      - imply_only_one_correct_response
+
+  next_point:
+    step_id: opening_014_player_response_ripple
+    handoff: "Whatever the player does, convert it into social ripple rather than plot shortcut."
+    carry_forward:
+      - first_playable_moment
+      - player_action_interprets_civility
+      - statement_and_hospitality_both_available

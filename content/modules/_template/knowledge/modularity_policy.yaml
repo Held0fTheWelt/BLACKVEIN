@@ -1,0 +1,127 @@
+modularity_policy:
+  id: template_modularity_policy_v1
+  authority: module_authorial_structure_policy
+  authoring_language: en
+
+  principle: >-
+    Do not create parallel description databases. Put each kind of story truth
+    in one owning folder and reference it everywhere else.
+
+  authority_boundaries:
+    locations:
+      owns:
+        - place_description
+        - room_topology
+        - entrances_and_exits
+        - inventory_policy
+        - place_sensory_tags
+        - plausible_actions
+        - forbidden_actions
+        - prevented_actions
+      root: locations/
+      must_not_own:
+        - object_description
+        - object_materiality
+        - movable_or_focus_object_truth
+    objects:
+      owns:
+        - object_description
+        - object_materiality
+        - placement_location_id
+        - visible_from_location_ids
+        - object_interaction_notes
+        - object_symbolic_roles
+        - location_scoped_object_folders
+      root: objects/
+      must_reference:
+        - locations/
+    characters:
+      owns:
+        - character_identity
+        - relationship_axes
+        - pressure_profiles
+        - voice_guidance
+      root: characters/
+    canonical_path:
+      owns:
+        - directed_sequence
+        - beat_order
+        - narrative_handoff
+        - carry_forward_markers
+        - playable_pressure_windows
+        - theme_threads
+        - quote_anchor_refs
+      root: canonical_path/
+      must_reference:
+        - locations/
+        - objects/
+        - characters/
+        - knowledge/opening_quote_anchors.yaml
+      must_not_own:
+        - place_description
+        - room_topology
+        - inventory_description
+    direction:
+      owns:
+        - human_authoring_intent
+        - dramaturgic_emphasis
+      root: direction/
+      must_reference:
+        - canonical_path/
+        - locations/
+        - objects/
+    knowledge:
+      owns:
+        - runtime_contracts
+        - access_policy
+        - hard_runtime_rules
+        - quote_anchor_policy
+      root: knowledge/
+      must_reference:
+        - locations/
+        - objects/
+        - canonical_path/
+      must_not_own:
+        - place_description
+        - room_topology
+    scene_graph:
+      owns:
+        - runtime_node_ids
+        - phase_assignment
+        - playable_flags
+        - graph_edges
+      root: scene_graph.yaml
+      must_reference:
+        - canonical_path_step_id
+        - location_id
+      must_not_own:
+        - place_description
+        - directed_beat_order
+
+  duplication_controls:
+    - id: no_location_prose_outside_locations
+      rule: "Location prose belongs under locations/; other surfaces use location_ref or source_ref."
+    - id: no_object_prose_inside_locations
+      rule: "Object prose belongs under objects/; locations may list inventory_object_ids and placement refs."
+    - id: no_object_compendium_files
+      rule: "Objects are authored one object per file; indexes may list files but must not become object description databases."
+    - id: apartment_objects_grouped_by_location
+      rule: "Apartment objects live under objects/appartment/<location_id>/ so a room can be populated by adding object files to its folder."
+    - id: canonical_path_is_not_setting_database
+      rule: "Canonical path steps define action beats and handoffs, not environment summaries."
+    - id: scene_graph_is_index_not_story_bible
+      rule: "Scene graph summaries must remain runtime notes and point to canonical_path_step_id plus location_id."
+    - id: direction_and_knowledge_use_refs
+      rule: "Direction and knowledge files must cite refs instead of repeating visible-world or spatial-model lists."
+
+  authoring_checks:
+    required_in_canonical_path_steps:
+      - location_ref.source
+      - path_point
+      - next_point
+    forbidden_outside_locations:
+      - environment
+      - visible_world
+      - spatial_model
+      - room_description
+      - inventory_description

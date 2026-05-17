@@ -47,7 +47,7 @@ def test_return_movement_public_payload_contains_action_context_diagnostics() ->
         "affordance_resolution": {
             "affordance_status": "allowed",
             "action_commit_policy": "commit_action",
-            "resolved_target_id": "vallon_living_room",
+            "resolved_target_id": "living_room",
             "target_resolution_source": "player_local_context.previous_location_id",
         },
         "local_context_transition": {
@@ -61,7 +61,7 @@ def test_return_movement_public_payload_contains_action_context_diagnostics() ->
             "source": "scene_affordance_detail",
         },
         "player_local_context": {
-            "current_location_id": "vallon_living_room",
+            "current_location_id": "living_room",
             "previous_location_id": "bathroom",
         },
         "generation": {
@@ -82,8 +82,8 @@ def test_return_movement_public_payload_contains_action_context_diagnostics() ->
     }
     summary = _build_langfuse_path_summary(session=session, graph_state=graph_state, event=event)
     assert summary.get("movement_return_intent") is True
-    assert summary.get("resolved_target_id") == "vallon_living_room"
+    assert summary.get("resolved_target_id") == "living_room"
     diag = _compute_action_consequence_diagnostics(summary)
     assert diag["status"] == "evaluated"
     assert diag.get("movement_return_intent") is True
-    assert diag.get("resolved_target_id") == "vallon_living_room"
+    assert diag.get("resolved_target_id") == "living_room"

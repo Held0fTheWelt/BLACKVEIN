@@ -1,0 +1,26 @@
+premise_and_backstory:
+  authoring_language: en
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  canonical_facts:
+    inciting_context:
+      fact: >-
+        Replace with the factual premise that brings the characters into the
+        room; put place detail in locations/ and action order in canonical_path/.
+      canonical_path_refs:
+        - canonical_path/index.yaml#paths.opening
+      location_refs:
+        - locations/opening/opening_anchor.yaml
+    relationship_baseline:
+      fact: >-
+        Replace with what the characters believe the situation is before
+        pressure starts.
+      character_refs:
+        - characters/relationships.yaml
+    spatial_baseline:
+      fact: "Spatial truth is owned by referenced locations."
+      location_refs:
+        - locations/appartment/main_room.yaml
+        - locations/appartment/apartment_layout.yaml
+  forbidden_inferences:
+    - do_not_invent_final_blame
+    - do_not_introduce_unseeded_hidden_actor

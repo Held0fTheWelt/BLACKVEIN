@@ -1,0 +1,68 @@
+id: template_opening_sequence_v1
+authoring_language: en
+knowledge_contract: knowledge/opening_scene_sequence.yaml
+canonical_path_ref: canonical_path/index.yaml#paths.opening
+modularity_policy_ref: knowledge/modularity_policy.yaml
+quote_anchor_policy_ref: knowledge/opening_quote_anchors.yaml
+setting_anchor: "Replace with prologue into primary interior"
+
+handover_to_phase: phase_1
+first_playable_node_id: first_playable_courtesy_gap
+opening_play_duration:
+  minimum_minutes: 20
+  target_minutes: 30
+  governing_path: canonical_path/index.yaml#paths.opening
+
+premise_fact_seeds:
+  - "fact_ref: knowledge/premise_and_backstory.yaml#canonical_facts.inciting_context"
+  - "path_ref: canonical_path/index.yaml#paths.opening"
+  - "location_ref: locations/opening/opening_anchor.yaml"
+
+parts:
+  part_1_premise:
+    required: true
+    canonical_path_refs:
+      - canonical_path/001_opening_anchor.yaml#opening_001_anchor
+      - canonical_path/002_pressure_turn.yaml#opening_002_pressure_turn
+    location_refs:
+      - locations/opening/opening_anchor.yaml
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#replace_with_short_anchor
+    narrator_intent: >-
+      Establish the concrete event, memory, or social cause by using the
+      canonical path and location refs, without turning them into a verdict or
+      exposition dump.
+
+  part_2_room:
+    required: true
+    canonical_path_refs:
+      - canonical_path/003_handover_to_play.yaml#opening_003_handover_to_play
+    location_refs:
+      - locations/building/threshold.yaml
+      - locations/appartment/main_room.yaml
+    object_refs:
+      - objects/building/threshold_door.yaml
+      - objects/appartment/main_room/focal_table.yaml
+    narrator_intent: >-
+      Establish the playable setup using referenced room, threshold, object,
+      and character authority.
+
+  part_3_player_anchor:
+    required: true
+    narrator_intent: >-
+      Place the selected player character in the room without prescribing
+      speech, action, emotion, guilt, or private conclusion.
+
+first_playable_moment:
+  required_scene_phase: phase_1
+  required_location_id: main_room
+  target_opening_duration_minutes: 20
+  allowed_player_openers:
+    - observe
+    - gesture
+    - silence
+    - speak
+  forbidden_narrator_moves:
+    - assign_player_private_thought
+    - force_player_confession
+    - decide_player_moral_position

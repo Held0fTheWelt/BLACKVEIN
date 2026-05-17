@@ -1,0 +1,22 @@
+object:
+  id: elevator
+  name: "Elevator"
+  category: prevented_exit_object
+  placement_location_id: building_hallway
+  playable_access: prevented_currently
+  description: >-
+    Silent elevator doors in the dim hallway; the lift does not arrive.
+  interaction_notes:
+    call_elevator: "Prevented, not forbidden; Alain has no signal and is waiting for an urgent call."
+    open: "Prevented by the elevator not arriving."
+  risk_tags:
+    - prevented_exit
+    - urgent_call_pressure
+  plausible_actions: [look_at, call_elevator, wait]
+  prevented_actions:
+    - call_elevator
+    - enter_elevator
+    - open_elevator
+  forbidden_actions: [make_elevator_functional_exit]
+  symbolic_roles:
+    - stalled_departure_surface

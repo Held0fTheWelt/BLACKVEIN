@@ -1,0 +1,11 @@
+narrative_aspect_policy:
+  aspects:
+    character_voice:
+      enabled: true
+      priority: high
+    spatial_truth:
+      enabled: true
+      priority: high
+    relationship_pressure:
+      enabled: true
+      priority: medium

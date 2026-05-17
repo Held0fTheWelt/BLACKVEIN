@@ -102,6 +102,8 @@ def build_runtime_knowledge_contract(
             "narrative_function": event.get("narrative_function"),
             "narrator_task": event.get("narrator_task"),
             "establishes": _unique_strs(event.get("establishes")),
+            "canonical_path_refs": _unique_strs(event.get("canonical_path_refs")),
+            "location_refs": _unique_strs(event.get("location_refs")),
             "must_show": _unique_strs(event.get("must_show")),
             "must_not": _unique_strs(event.get("must_not")),
         }

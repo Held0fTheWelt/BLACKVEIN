@@ -227,6 +227,39 @@ def _palette_text(
     return value or None
 
 
+def _palette_ref(
+    narrator_sensory_palette: dict[str, Any] | None,
+    *path: str,
+) -> dict[str, Any] | None:
+    node: Any = narrator_sensory_palette if isinstance(narrator_sensory_palette, dict) else {}
+    for key in path:
+        if not isinstance(node, dict):
+            return None
+        node = node.get(key)
+    return node if isinstance(node, dict) else None
+
+
+def _palette_ref_source(ref: dict[str, Any] | None, fallback: str) -> str:
+    row = ref if isinstance(ref, dict) else {}
+    source = _clean_text(row.get("source"))
+    fields = row.get("fields")
+    if source:
+        if isinstance(fields, list):
+            clean_fields = [_clean_text(item) for item in fields if _clean_text(item)]
+            if clean_fields:
+                return f"{source}#{','.join(clean_fields)}"
+        return source
+    return fallback
+
+
+def _source_kind_from_ref(source_ref: str, fallback: str) -> str:
+    if source_ref.startswith("locations/"):
+        return "locations"
+    if source_ref.startswith("objects/"):
+        return "objects"
+    return fallback
+
+
 def _localized_detail(row: dict[str, Any], field: str, locale: str) -> str | None:
     detail_map = row.get(field) if isinstance(row.get(field), dict) else {}
     value = detail_map.get(locale) or detail_map.get("de") or detail_map.get("en")
@@ -342,70 +375,86 @@ def derive_sensory_context(
 
     if location_id:
         room_text = _palette_text(narrator_sensory_palette, "rooms", location_id, "ambient")
+        room_ref = _palette_ref(narrator_sensory_palette, "rooms", location_id, "ambient_ref")
+        room_source_ref = _palette_ref_source(
+            room_ref,
+            f"narrator_sensory_palette.rooms.{location_id}.ambient",
+        )
         room_layer = _layer(
             layer_id=f"room:{location_id}:ambient",
             layer_kind="room_ambient",
-            source="narrator_sensory_palette",
-            source_field=f"rooms.{location_id}.ambient",
-            source_ref=f"narrator_sensory_palette.rooms.{location_id}.ambient",
+            source=_source_kind_from_ref(room_source_ref, "narrator_sensory_palette") if room_ref else "narrator_sensory_palette",
+            source_field=f"rooms.{location_id}.ambient_ref" if room_ref else f"rooms.{location_id}.ambient",
+            source_ref=room_source_ref,
             text=room_text,
             locale=None,
             required=True,
         )
         if room_layer:
             selected.append(room_layer)
-            evidence.append(_evidence("narrator_sensory_palette", f"rooms.{location_id}.ambient", bool(room_text)))
+            evidence.append(_evidence(room_layer.source, room_layer.source_field, bool(room_text or room_ref)))
             rationale.append("sensory_context_room_ambient")
         loc_row = locations.get(location_id)
         if isinstance(loc_row, dict):
             entry_text = _localized_detail(loc_row, "entry_sensory_detail", locale)
+            entry_source_ref = _clean_text(loc_row.get("entry_sensory_source_ref")) or (
+                f"scene_affordances.locations.{location_id}.entry_sensory_detail"
+            )
             entry_layer = _layer(
                 layer_id=f"location:{location_id}:entry",
                 layer_kind="location_entry",
-                source="scene_affordances",
-                source_field=f"locations.{location_id}.entry_sensory_detail.{locale}",
-                source_ref=f"scene_affordances.locations.{location_id}.entry_sensory_detail",
+                source=_source_kind_from_ref(entry_source_ref, "scene_affordances"),
+                source_field=f"locations.{location_id}.entry_sensory_source_ref",
+                source_ref=entry_source_ref,
                 text=entry_text,
                 locale=locale,
                 required=bool(local_context_transition),
             )
             if entry_layer:
                 selected.append(entry_layer)
-                evidence.append(_evidence("scene_affordances", f"locations.{location_id}.entry_sensory_detail", bool(entry_text)))
+                evidence.append(_evidence(entry_layer.source, entry_layer.source_field, bool(entry_text)))
                 rationale.append("sensory_context_location_entry")
 
     if object_id:
         object_text = _palette_text(narrator_sensory_palette, "objects", object_id, "glance")
+        object_ref = _palette_ref(narrator_sensory_palette, "objects", object_id, "glance_ref")
+        object_source_ref = _palette_ref_source(
+            object_ref,
+            f"narrator_sensory_palette.objects.{object_id}.glance",
+        )
         obj_layer = _layer(
             layer_id=f"object:{object_id}:glance",
             layer_kind="object_perception",
-            source="narrator_sensory_palette",
-            source_field=f"objects.{object_id}.glance",
-            source_ref=f"narrator_sensory_palette.objects.{object_id}.glance",
+            source=_source_kind_from_ref(object_source_ref, "narrator_sensory_palette") if object_ref else "narrator_sensory_palette",
+            source_field=f"objects.{object_id}.glance_ref" if object_ref else f"objects.{object_id}.glance",
+            source_ref=object_source_ref,
             text=object_text,
             locale=None,
             required=True,
         )
         if obj_layer:
             selected.append(obj_layer)
-            evidence.append(_evidence("narrator_sensory_palette", f"objects.{object_id}.glance", bool(object_text)))
+            evidence.append(_evidence(obj_layer.source, obj_layer.source_field, bool(object_text or object_ref)))
             rationale.append("sensory_context_object_focus")
         obj_row = objects.get(object_id)
         if isinstance(obj_row, dict):
             perception_text = _localized_detail(obj_row, "perception_detail", locale)
+            perception_source_ref = _clean_text(obj_row.get("perception_source_ref")) or (
+                f"scene_affordances.objects.{object_id}.perception_detail"
+            )
             perception_layer = _layer(
                 layer_id=f"object:{object_id}:perception",
                 layer_kind="object_perception",
-                source="scene_affordances",
-                source_field=f"objects.{object_id}.perception_detail.{locale}",
-                source_ref=f"scene_affordances.objects.{object_id}.perception_detail",
+                source=_source_kind_from_ref(perception_source_ref, "scene_affordances"),
+                source_field=f"objects.{object_id}.perception_source_ref",
+                source_ref=perception_source_ref,
                 text=perception_text,
                 locale=locale,
                 required=True,
             )
             if perception_layer:
                 selected.append(perception_layer)
-                evidence.append(_evidence("scene_affordances", f"objects.{object_id}.perception_detail", bool(perception_text)))
+                evidence.append(_evidence(perception_layer.source, perception_layer.source_field, bool(perception_text)))
                 rationale.append("sensory_context_object_perception")
 
     min_layers = _bounded_int(policy.get("min_layers_per_turn"), 1, minimum=0, maximum=8)

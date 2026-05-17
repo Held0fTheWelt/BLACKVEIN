@@ -1,0 +1,24 @@
+phase_beat_policy:
+  authoring_language: en
+  phases:
+    phase_1:
+      allowed_scene_functions:
+        - establish_pressure
+        - probe_motive
+        - repair_or_stabilize
+      forbidden_early_beats:
+        - direct_accusation
+        - final_revelation
+    phase_2:
+      allowed_scene_functions:
+        - escalate_conflict
+        - redirect_blame
+        - reveal_surface
+      forbidden_early_beats:
+        - unseeded_confession
+    phase_3:
+      allowed_scene_functions:
+        - scene_pivot
+        - forced_exit
+        - repair_or_stabilize
+      forbidden_early_beats: []

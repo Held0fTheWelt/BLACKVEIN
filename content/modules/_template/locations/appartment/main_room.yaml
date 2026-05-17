@@ -1,0 +1,23 @@
+location:
+  id: main_room
+  name: "Main Room"
+  category: primary_play_space
+  playable_access: active
+  description: "Replace with the main social stage and its visible order."
+  room_profile:
+    role: social_stage
+    connected_place_ids:
+      - threshold
+      - service_room
+  entrances_exits:
+    exits:
+      - id: main_room_to_threshold
+        to_place_id: threshold
+        kind: entry_threshold
+      - id: main_room_to_service_room
+        to_place_id: service_room
+        kind: interior_threshold
+  inventory_policy: authored_salient_objects
+  sensory_tags: [seating, social_display, visible_order]
+  plausible_actions: [look_at, listen_to, sit_down, stand_up, move_to_adjacent_room]
+  forbidden_actions: [leave_without_exit_pressure]

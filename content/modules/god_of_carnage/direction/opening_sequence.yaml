@@ -1,89 +1,161 @@
-# Session opening handover — God of Carnage (runtime-facing summary)
+# Session opening handover -- God of Carnage (runtime-facing summary)
 # Human-editable opening brief lives in direction/opening.md.
 # Product contract: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
-# Dramaturgic reference (licensed where applicable): resources/carnage-2011.pdf
 #
-# Machine-oriented opening blueprint (narration_mode, hard prohibitions, narrative_events) lives in
-# knowledge/opening_scene_sequence.yaml and knowledge/hard_forbidden_rules.yaml (English module truth).
+# Machine-oriented opening blueprint lives in knowledge/opening_scene_sequence.yaml.
+# Place descriptions live in locations/ and are referenced here by id/path.
 
-opening_sequence_version: "1.1.0"
+opening_sequence_version: "1.2.0"
 module_id: god_of_carnage
-setting_anchor: "Parc Montsouris prologue into a Paris apartment, evening — hosts and guests meet over the incident between their children"
+setting_anchor: "Opening prologue into a Paris apartment, evening -- hosts and guests meet over the incident between their children"
 
-# Two movements before phase_1 “polite table” dialogue accelerates.
-# Each part may map to one or more typed scene blocks (narrator / actor_line / actor_action)
-# so the player shell can hand over attention block-by-block (ADR-0034 typewriter policy).
+authority_policy:
+  canonical_path_ref: canonical_path/index.yaml#paths.opening
+  location_authority_root: locations/
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  description_policy: reference_locations_do_not_rewrite_them
+  runtime_contract_ref: knowledge/opening_scene_sequence.yaml
+  quote_anchor_policy_ref: knowledge/opening_quote_anchors.yaml
+
+opening_play_duration:
+  minimum_minutes: 20
+  target_minutes: 30
+  stretch_minutes: 40
+  governing_path_steps: "opening_001 through opening_016"
 
 parts:
   part_1_background_and_premise:
     id: opening_part_1
     title: "Background / shared premise"
-    dramaturgic_job: |
-      Show the incident that forces this meeting as a brief scenic prologue at the edge of a
-      Parc Montsouris basketball court near Boulevard Jourdan: a dozen boys under a gray
-      autumn sky, with bare trees, sloping lawns, winding paths, a playground, bicycles, and
-      the ordinary RER/Cité Universitaire edge of the city nearby. Two boys play, argue, and
-      separate; one takes a stick, turns back when the other calls after him, strikes, then
-      leaves while the others help the injured boy and shout after him. Let the audience feel
-      the gap between child-world bluntness and the adult appointment — without yet turning
-      the apartment into a courtroom in direct speech.
-    paris_module_notes: |
-      Open with the park/basketball-court incident, then the apartment; keep the Reza spine —
-      bourgeois parents laundering violence through procedure — not a generic "conflict
-      resolution meeting." The incident is not a vague generic playground rumor: it has weather,
-      objects, witnesses, a stick, a bicycle kicked over, and a boy disappearing from view.
-      Parc Montsouris detail should stay environmental: lake, paths, slopes, students,
-      transport noise, playground life. Do not pause for a park-history paragraph.
-    suggested_block_emphasis:
-      - "narrator — sensory and factual restraint; no omniscient moral verdict"
-      - "narrator — concrete exterior image: Parc Montsouris edge, basketball court, playground, bicycles, autumn sky"
-      - "actor_action — the stick, the strike, the injured boy folding, the bicycle kicked over"
-      - "optional environment_interaction — objects that carry the weight (coat, phone, papers)"
+    canonical_path_refs:
+      - canonical_path/001_parc_montsouris_edge.yaml#opening_001_parc_montsouris_edge
+      - canonical_path/002_argument_stick_blow.yaml#opening_002_argument_stick_blow
+      - canonical_path/003_bicycle_disappearance.yaml#opening_003_bicycle_disappearance
+    location_refs:
+      - locations/opening/park_edge.yaml
+      - locations/opening/basketball_court.yaml
+      - locations/opening/playground.yaml
+    object_refs:
+      - objects/opening/bicycle_rack.yaml
+    dramaturgic_job: >-
+      Render the referenced canonical path steps as a short scenic prologue.
+      Use the location refs for place, weather, public background, and object
+      texture. Keep the Reza spine: bourgeois parents laundering violence
+      through procedure, not a generic conflict-resolution meeting.
     narrator_bar:
-      must: |
-        Complete imagination (space, weather of mood, social temperature) at hinge moments.
-      must_not: |
-        Repeat verbatim what a dialogue block just said; restate no obvious stage business.
+      must: >-
+        Complete imagination at hinge moments by drawing from the referenced
+        location fields and canonical path beats.
+      must_not: >-
+        Repeat location prose from locations/ here, summarize as legal
+        exposition, or assign final moral blame.
     npc_speech:
-      must_not: |
-        Accusatory or prosecutorial lines; no “X reacts immediately” attack dialogue.
-        Do not have Alain perform primary host-of-the-house welcome (that footing is
-        Véronique/Michel); he remains a guest alongside Annette.
-      may: |
-        Minimal ritual (greeting, apology formula deferred, procedural agreement) if it
-        stays non-inflammatory.
+      must_not: >-
+        Add adult accusations or prosecutorial lines during the prologue.
+      may: "Stay absent; this part can be narrator/action only."
 
   part_2_into_the_scene:
     id: opening_part_2
-    title: "Into the room — ritual civility"
-    dramaturgic_job: |
-      Land the Paris apartment through the building stairwell/elevator hallway into the living
-      room: who hosts, who sits, the art books and tulips that advertise culture, the attached
-      kitchen, the small interior hallway, the espresso machine, the dessert that will later
-      become a weapon of manners. The four are trapped in politeness; let the last beat be a
-      trapdoor into play (a glance, a poured cup, a sentence left unfinished) — not an opening
-      salvo from Véronique or a prosecutorial line from Annette.
+    title: "Into the apartment -- ritual civility"
+    canonical_path_refs:
+      - canonical_path/004_dark_building_hallway.yaml#opening_004_dark_building_hallway
+      - canonical_path/005_living_room_handover.yaml#opening_005_living_room_handover
+      - canonical_path/006_apartment_entry_greetings.yaml#opening_006_apartment_entry_greetings
+      - canonical_path/007_living_room_arrangement.yaml#opening_007_living_room_arrangement
+    location_refs:
+      - locations/building/building_hallway.yaml
+      - locations/building/building_stairwell.yaml
+      - locations/appartment_vallon/apartment_entry.yaml
+      - locations/appartment_vallon/living_room.yaml
+      - locations/appartment_vallon/apartment_layout.yaml
+    object_refs:
+      - objects/appartment_vallon/living_room/coffee_table.yaml
+      - objects/appartment_vallon/living_room/dining_table.yaml
+      - objects/appartment_vallon/living_room/window.yaml
+      - objects/building/elevator.yaml
+    dramaturgic_job: >-
+      Bring the guests through the referenced threshold into the first playable
+      apartment geometry. Use location and object refs for topology, prevented
+      exits, visible objects, and host/guest pressure.
     suggested_block_emphasis:
-      - "narrator — spatial completion, rhythm, subtext the staging implies"
-      - "actor_action — seating, pouring, avoiding eye contact"
-      - "actor_line — polite formula, small talk, oblique reference to the children only"
-      - "environment_context — visible apartment topology: stairwell/elevator threshold, living room, attached kitchen, small hallway"
+      - "narrator -- spatial completion from refs"
+      - "actor_action -- seating, pouring, avoiding eye contact"
+      - "actor_line -- polite formula or oblique small talk only"
+      - "environment_context -- cite location ids rather than restating topology"
     narrator_bar:
-      must: |
-        Support the player’s mental staging; favour concrete sensual detail over abstract
-        character essays.
-      must_not: |
-        Name every relationship axis or summarise the whole evening’s arc before play.
-        Do not offload all character speech and blocking into one narrator “novel paragraph”;
-        keep dialogue and gesture in their own per-person / per-beat channels so the shell can
-        render typed transcript cards.
+      must: >-
+        Support the player's mental staging with concrete cues sourced from
+        locations/ and canonical_path/.
+      must_not: >-
+        Name every relationship axis, summarize the evening's arc, or collapse
+        dialogue and gesture into one narrator paragraph.
 
-# Canonical fact seeds (non-dialogue); generation may adapt wording; do not contradict runtime.
+  part_3_statement_and_wording:
+    id: opening_part_3
+    title: "Statement, wording, injury"
+    canonical_path_refs:
+      - canonical_path/008_statement_on_table.yaml#opening_008_statement_on_table
+      - canonical_path/009_wording_dispute_armed_carrying.yaml#opening_009_wording_dispute_armed_carrying
+      - canonical_path/010_injury_detail_dental_consequence.yaml#opening_010_injury_detail_dental_consequence
+      - canonical_path/011_courtesy_community_pressure.yaml#opening_011_courtesy_community_pressure
+    location_refs:
+      - locations/appartment_vallon/living_room.yaml
+    object_refs:
+      - objects/appartment_vallon/living_room/coffee_table.yaml
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_armed
+      - knowledge/opening_quote_anchors.yaml#quote_carrying
+      - knowledge/opening_quote_anchors.yaml#quote_root_canal
+      - knowledge/opening_quote_anchors.yaml#quote_observation_period
+      - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
+    dramaturgic_job: >-
+      Make the written statement playable: word choice, concrete injury, and
+      community performance become pressure handles without reproducing source
+      dialogue as a transcript.
+    narrator_bar:
+      must: >-
+        Treat document handling, pauses, and short wording corrections as
+        social action.
+      must_not: >-
+        Quote the statement at length, resolve blame, or turn themes into
+        exposition.
+
+  part_4_hospitality_and_player_field:
+    id: opening_part_4
+    title: "Hospitality, player ripple, sustained opening"
+    canonical_path_refs:
+      - canonical_path/012_tulips_and_hospitality.yaml#opening_012_tulips_and_hospitality
+      - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
+      - canonical_path/014_player_response_ripple.yaml#opening_014_player_response_ripple
+      - canonical_path/015_phone_exit_pressure.yaml#opening_015_phone_exit_pressure
+      - canonical_path/016_opening_sustained_play_handoff.yaml#opening_016_opening_sustained_play_handoff
+    location_refs:
+      - locations/appartment_vallon/living_room.yaml
+      - locations/building/building_hallway.yaml
+    object_refs:
+      - objects/appartment_vallon/living_room/coffee_table.yaml
+      - objects/appartment_vallon/kitchen/coffee_machine.yaml
+      - objects/appartment_vallon/kitchen/glasses.yaml
+      - objects/building/elevator.yaml
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+      - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+    dramaturgic_job: >-
+      Keep the opening playable beyond the first free action by preserving
+      multiple unresolved handles: hospitality, statement wording, injury,
+      exit pressure, and spouse alignment.
+    narrator_bar:
+      must: >-
+        Convert player action into social ripple and keep all unresolved
+        handles available until substantive disagreement justifies phase_2.
+      must_not: >-
+        Advance to breakdown on a timer, make the elevator a working escape,
+        or require quote anchors as exact lines.
+
 premise_fact_seeds:
-  - "At the edge of Parc Montsouris, near the Boulevard Jourdan basketball court, two boys argued; one took a stick, struck the other, and left while other boys helped the injured child."
-  - "The exterior prologue includes a gray autumn sky, bare trees, sloping lawns, winding paths, a playground, bicycles, and a small group of boys calling after one another."
-  - "The hosts feel a written or agreed account of the facts may be necessary; guests may want to leave quickly."
-  - "Everyone is performing civility while already judging the other side."
+  - "fact_ref: knowledge/premise_and_backstory.yaml#canonical_facts.playground_incident"
+  - "path_ref: canonical_path/index.yaml#paths.opening"
+  - "location_ref: locations/opening/park_edge.yaml"
+  - "location_ref: locations/opening/basketball_court.yaml"
 
-# Link to formal phase once opening handover completes
 handover_to_scene_phase: phase_1

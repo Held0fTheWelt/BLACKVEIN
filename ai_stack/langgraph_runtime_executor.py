@@ -255,6 +255,7 @@ from ai_stack.scene_director_goc import (
     prior_continuity_classes,
 )
 from ai_stack.scene_plan_contract import ScenePlanRecord
+from ai_stack.semantic_scene_planner import build_semantic_scene_plan_enrichment
 from ai_stack.semantic_move_contract import SemanticMoveRecord
 from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
 from ai_stack.social_state_contract import SocialStateRecord
@@ -4230,6 +4231,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             f"{order_txt}. Secondary and interruption slots should appear when nominated unless validation "
             "constraints make that impossible."
         )
+    scene_plan = state.get("scene_plan_record") if isinstance(state.get("scene_plan_record"), dict) else {}
 
     packet = {
         "contract": "dramatic_generation_packet.v1",
@@ -4347,6 +4349,40 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "silence_brevity_decision": state.get("silence_brevity_decision")
         if isinstance(state.get("silence_brevity_decision"), dict)
         else {},
+        "scene_plan": {
+            "semantic_scene_planner_version": scene_plan.get("semantic_scene_planner_version"),
+            "narrative_scene_function": scene_plan.get("narrative_scene_function"),
+            "realization_mode": scene_plan.get("realization_mode"),
+            "pressure_function": scene_plan.get("pressure_function"),
+            "scene_target": scene_plan.get("scene_target")
+            if isinstance(scene_plan.get("scene_target"), dict)
+            else {},
+            "pressure_target": scene_plan.get("pressure_target")
+            if isinstance(scene_plan.get("pressure_target"), dict)
+            else {},
+            "target_obligations": scene_plan.get("target_obligations")
+            if isinstance(scene_plan.get("target_obligations"), list)
+            else [],
+            "actor_directives": scene_plan.get("actor_directives")
+            if isinstance(scene_plan.get("actor_directives"), list)
+            else [],
+            "dramatic_beats": scene_plan.get("dramatic_beats")
+            if isinstance(scene_plan.get("dramatic_beats"), list)
+            else [],
+            "handover_policy": scene_plan.get("handover_policy")
+            if isinstance(scene_plan.get("handover_policy"), dict)
+            else {},
+            "continuity_obligation": scene_plan.get("continuity_obligation")
+            if isinstance(scene_plan.get("continuity_obligation"), dict)
+            else {},
+            "expected_transition_pattern": scene_plan.get("expected_transition_pattern"),
+            "instruction": (
+                "Treat scene_plan as bounded short-horizon dramatic direction. Realize scene_target, "
+                "actor_directives, handover_policy, and dramatic_beats only through structured, "
+                "validation-safe visible action; do not commit world truth or resolve continuity outside "
+                "the commit seam. pressure_target is a compatibility alias for pressure-specific targets."
+            ),
+        },
         "scene_energy": {
             "target": state.get("scene_energy_target")
             if isinstance(state.get("scene_energy_target"), dict)
@@ -6035,10 +6071,13 @@ class RuntimeTurnGraphExecutor:
                 _structured_knowledge_keys = (
                     "character_documents",
                     "scene_graph",
+                    "canonical_path",
+                    "modularity_policy",
+                    "opening_quote_anchors",
                     "locations",
+                    "objects",
                     "content_access_policy",
                     "apartment_layout",
-                    "apartment_objects",
                     "premise_and_backstory",
                     "actor_pressure_profiles",
                     "phase_beat_policy",
@@ -6071,10 +6110,13 @@ class RuntimeTurnGraphExecutor:
                     "hard_forbidden_rules_loaded": bool(hard_forbidden_rules),
                     "character_documents_loaded": bool(isinstance(yaml_slice.get("character_documents"), dict) and yaml_slice.get("character_documents")),
                     "scene_graph_loaded": bool(isinstance(yaml_slice.get("scene_graph"), dict) and yaml_slice.get("scene_graph")),
+                    "canonical_path_loaded": bool(isinstance(yaml_slice.get("canonical_path"), dict) and yaml_slice.get("canonical_path")),
+                    "modularity_policy_loaded": bool(isinstance(yaml_slice.get("modularity_policy"), dict) and yaml_slice.get("modularity_policy")),
+                    "opening_quote_anchors_loaded": bool(isinstance(yaml_slice.get("opening_quote_anchors"), dict) and yaml_slice.get("opening_quote_anchors")),
                     "locations_loaded": bool(isinstance(yaml_slice.get("locations"), dict) and yaml_slice.get("locations")),
+                    "objects_loaded": bool(isinstance(yaml_slice.get("objects"), dict) and yaml_slice.get("objects")),
                     "content_access_policy_loaded": bool(isinstance(yaml_slice.get("content_access_policy"), dict) and yaml_slice.get("content_access_policy")),
                     "apartment_layout_loaded": bool(isinstance(yaml_slice.get("apartment_layout"), dict) and yaml_slice.get("apartment_layout")),
-                    "apartment_objects_loaded": bool(isinstance(yaml_slice.get("apartment_objects"), dict) and yaml_slice.get("apartment_objects")),
                     "premise_and_backstory_loaded": bool(isinstance(yaml_slice.get("premise_and_backstory"), dict) and yaml_slice.get("premise_and_backstory")),
                     "actor_pressure_profiles_loaded": bool(isinstance(yaml_slice.get("actor_pressure_profiles"), dict) and yaml_slice.get("actor_pressure_profiles")),
                     "phase_beat_policy_loaded": bool(isinstance(yaml_slice.get("phase_beat_policy"), dict) and yaml_slice.get("phase_beat_policy")),
@@ -6326,7 +6368,7 @@ class RuntimeTurnGraphExecutor:
         base_sa = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
         sem_rec = state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else None
         soc_rec = state.get("social_state_record") if isinstance(state.get("social_state_record"), dict) else None
-        responders, scene_fn, _implied, resolution = build_responder_and_function(
+        responders, scene_fn, implied, resolution = build_responder_and_function(
             player_input=player_input,
             interpreted_move=interpreted_move,
             interpreted_input=state.get("interpreted_input")
@@ -6453,14 +6495,74 @@ class RuntimeTurnGraphExecutor:
         ).strip()
         if pik:
             rationale_codes.append(f"player_input_kind:{pik}")
+        semantic_planner_selection_source = (
+            "engine_opening_turn"
+            if engine_opening_turn
+            else str(resolution.get("selection_source") or "semantic_pipeline_v1")
+        )
+        semantic_scene_plan = build_semantic_scene_plan_enrichment(
+            selected_scene_function=scene_fn,
+            selected_responder_set=responders,
+            pacing_mode=pacing,
+            silence_brevity_decision=silence,
+            semantic_move_record=sem_rec,
+            social_state_record=soc_rec,
+            character_mind_records=mind_dicts,
+            scene_assessment=update.get("scene_assessment")
+            if isinstance(update.get("scene_assessment"), dict)
+            else merged_sa,
+            implied_continuity_by_function=implied,
+            prior_continuity_impacts=prior,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            selection_source=semantic_planner_selection_source,
+        )
+        for code in semantic_scene_plan.get("planner_rationale_codes") or []:
+            text = str(code or "").strip()
+            if text and text not in rationale_codes:
+                rationale_codes.append(text)
         scene_plan = ScenePlanRecord(
             selected_scene_function=scene_fn,
             selected_responder_set=list(responders),
             pacing_mode=pacing,
             silence_brevity_decision=dict(silence),
+            narrative_scene_function=str(
+                semantic_scene_plan.get("narrative_scene_function") or ""
+            ),
+            realization_mode=str(semantic_scene_plan.get("realization_mode") or ""),
+            pressure_function=str(semantic_scene_plan.get("pressure_function") or ""),
+            scene_target=semantic_scene_plan.get("scene_target")
+            if isinstance(semantic_scene_plan.get("scene_target"), dict)
+            else {},
+            pressure_target=semantic_scene_plan.get("pressure_target")
+            if isinstance(semantic_scene_plan.get("pressure_target"), dict)
+            else {},
+            target_obligations=semantic_scene_plan.get("target_obligations")
+            if isinstance(semantic_scene_plan.get("target_obligations"), list)
+            else [],
+            actor_directives=semantic_scene_plan.get("actor_directives")
+            if isinstance(semantic_scene_plan.get("actor_directives"), list)
+            else [],
+            dramatic_beats=semantic_scene_plan.get("dramatic_beats")
+            if isinstance(semantic_scene_plan.get("dramatic_beats"), list)
+            else [],
+            handover_policy=semantic_scene_plan.get("handover_policy")
+            if isinstance(semantic_scene_plan.get("handover_policy"), dict)
+            else {},
+            continuity_obligation=semantic_scene_plan.get("continuity_obligation")
+            if isinstance(semantic_scene_plan.get("continuity_obligation"), dict)
+            else {},
+            expected_transition_pattern=str(
+                semantic_scene_plan.get("expected_transition_pattern") or "soft"
+            ),
             planner_rationale_codes=rationale_codes,
             semantic_move_fingerprint=sem_fp,
             social_state_fingerprint=soc_fp,
+            semantic_scene_planner_version=str(
+                semantic_scene_plan.get("semantic_scene_planner_version")
+                or "goc_semantic_scene_planner_v1"
+            ),
             selection_source=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
         )
         scene_plan_dict = scene_plan.to_runtime_dict()
@@ -6472,13 +6574,16 @@ class RuntimeTurnGraphExecutor:
             ("actor_pressure_profiles", "actor_pressure_profiles_loaded"),
             ("character_documents", "character_documents_loaded"),
             ("scene_graph", "scene_graph_loaded"),
+            ("canonical_path", "canonical_path_loaded"),
+            ("modularity_policy", "modularity_policy_loaded"),
+            ("opening_quote_anchors", "opening_quote_anchors_loaded"),
             ("locations", "locations_loaded"),
+            ("objects", "objects_loaded"),
             ("content_access_policy", "content_access_policy_loaded"),
             ("phase_beat_policy", "phase_beat_policy_loaded"),
             ("hard_forbidden_rules", "hard_forbidden_rules_loaded"),
             ("opening_scene_sequence", "opening_scene_sequence_loaded"),
             ("apartment_layout", "apartment_layout_loaded"),
-            ("apartment_objects", "apartment_objects_loaded"),
             ("scene_affordances", "scene_affordances_loaded"),
             ("narrator_sensory_palette", "narrator_sensory_palette_loaded"),
             ("premise_and_backstory", "premise_and_backstory_loaded"),
@@ -6956,9 +7061,6 @@ class RuntimeTurnGraphExecutor:
             else None,
             environment_model=state.get("environment_model")
             if isinstance(state.get("environment_model"), dict)
-            else None,
-            apartment_objects=state.get("apartment_objects")
-            if isinstance(state.get("apartment_objects"), dict)
             else None,
             scene_affordances=state.get("scene_affordances")
             if isinstance(state.get("scene_affordances"), dict)

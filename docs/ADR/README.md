@@ -67,6 +67,7 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0050](adr-0050-security-governance-browser-mutation-boundaries.md) | Security governance for browser mutation boundaries | Accepted |
 | [ADR-0051](adr-0051-storage-layer-encryption-governance.md) | Storage-layer encryption governance | Accepted |
 | [ADR-0052](adr-0052-security-governance-admin-control-plane.md) | Security Governance Admin Control Plane | Accepted |
+| [ADR-0053](adr-0053-bounded-semantic-scene-planner.md) | Bounded Semantic Scene Planner | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
 

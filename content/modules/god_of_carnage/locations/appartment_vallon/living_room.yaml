@@ -1,0 +1,34 @@
+location:
+  id: living_room
+  name: "Living room"
+  category: primary_play_space
+  playable_access: active
+  description: >-
+    The primary social stage of the apartment, curated and exposed by its
+    inventory and the performance of civilized hospitality.
+  room_profile:
+    role: social_stage
+    connected_place_ids:
+      - building_hallway
+      - hallway
+      - kitchen
+  entrances_exits:
+    exits:
+      - id: living_room_to_building_hallway
+        to_place_id: building_hallway
+        kind: apartment_door_threshold
+      - id: living_room_to_hallway
+        to_place_id: hallway
+        kind: interior_threshold
+      - id: living_room_to_kitchen
+        to_place_id: kitchen
+        kind: attached_room
+  inventory_policy: authored_salient_objects
+  inventory_object_ids:
+    - coffee_table
+    - window
+    - television
+    - dining_table
+  sensory_tags: [art_books, tulips, seating, social_display]
+  plausible_actions: [look_at, listen_to, sit_down, stand_up, move_to_adjacent_room]
+  forbidden_actions: [leave_without_exit_pressure, access_locked_bedrooms]

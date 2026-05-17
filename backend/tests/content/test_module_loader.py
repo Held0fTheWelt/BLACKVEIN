@@ -177,13 +177,16 @@ class TestModuleLoaderIntegration:
         assert "endings" in files
         assert "escalation_axes" in files
         assert "apartment_layout" in files
-        assert "apartment_objects" in files
+        assert "objects" in files
         assert "premise_and_backstory" in files
         assert "actor_pressure_profiles" in files
         assert "phase_beat_policy" in files
         assert "narrator_sensory_palette" in files
         assert "opening_scene_sequence" in files
+        assert "opening_quote_anchors" in files
         assert "hard_forbidden_rules" in files
+        assert "canonical_path" in files
+        assert "modularity_policy" in files
 
         # Structure validation
         validator = ModuleStructureValidator()

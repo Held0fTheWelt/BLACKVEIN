@@ -1,0 +1,58 @@
+canonical_path_step:
+  sequence: 8
+  id: opening_008_statement_on_table
+  path_id: goc_opening_canonical_path
+  name: "008 - Statement on the table"
+  mode: playable_opening_procedure
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions, sensory_tags]
+  object_refs:
+    - object_id: coffee_table
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+  character_refs:
+    - characters/veronique.yaml
+    - characters/alain.yaml
+
+  theme_threads:
+    - procedure_vs_feeling
+    - language_as_battlefield
+    - facts_before_blame
+  play_model:
+    estimated_minutes: 3
+    interaction_density: medium
+    player_agency: "read, ask, object, defer, gesture toward document"
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#quote_carrying
+    - knowledge/opening_quote_anchors.yaml#quote_armed
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    action_beats:
+      - written_account_is_introduced_as_shared_ground
+      - hosts_try_to_separate_facts_from_accusation
+      - guests_measure_each_word_for_consequence
+    player_windows:
+      - ask_to_read_statement
+      - let_spouse_or_host_read
+      - point_to_one_word_without_speaking
+      - accept_procedure_temporarily
+    narrator_tasks:
+      - make_document_handling_visible_without_quoting_full_text
+      - keep_all_four_adults_socially_active
+      - expose_pressure_through_timing_and_corrections
+    must_not:
+      - reproduce_long_statement_text
+      - make_player_sign_or_agree
+      - skip_to_parenting_principles
+
+  next_point:
+    step_id: opening_009_wording_dispute_armed_carrying
+    handoff: "Turn one factual word into the first playable pressure test."
+    carry_forward:
+      - statement_in_play
+      - wording_has_consequence
+      - blame_hidden_inside_fact_language

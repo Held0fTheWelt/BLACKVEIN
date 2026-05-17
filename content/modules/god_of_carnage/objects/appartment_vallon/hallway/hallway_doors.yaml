@@ -1,0 +1,17 @@
+object:
+  id: hallway_doors
+  name: "Interior hallway doors"
+  category: interior_threshold_cluster
+  placement_location_id: hallway
+  playable_access: topology_clarifier
+  description: >-
+    A tight run of interior doors: kitchen, bathroom, pantry, study, and two locked bedrooms.
+  interaction_notes:
+    look_at: "Clarifies topology without granting access to locked rooms."
+  risk_tags:
+    - privacy_boundary
+  plausible_actions: [look_at, listen_to, move_to_adjacent_room]
+  forbidden_actions: [enter_locked_bedroom]
+  symbolic_roles:
+    - privacy_boundary
+    - withheld_space

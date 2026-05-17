@@ -1,0 +1,12 @@
+# Character document index.
+
+characters_index:
+  authority: per_character_documents
+  directory: characters/
+  documents:
+    protagonist: characters/protagonist.yaml
+    counterpart: characters/counterpart.yaml
+  loader_contract: >-
+    Runtime loaders derive the compact character roster from these documents.
+    Add one file per character and keep ids stable across relationships,
+    scenes, actor pressure profiles, and opening role variants.

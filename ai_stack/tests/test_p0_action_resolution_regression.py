@@ -76,6 +76,51 @@ def test_gehe_arbeitszimmer_resolves_study_offscreen() -> None:
     assert frame["affordance_status"] == "allowed_offscreen"
 
 
+def test_gehe_treppenhaus_is_prevented_not_forbidden() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe ins Treppenhaus",
+        interpreted_input={
+            "player_input_kind": "action",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "projection_captures": {"room": "ins Treppenhaus"},
+            "actor_id": "alain_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=_root(),
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["verb"] == "move_to"
+    assert frame["resolved_target_id"] == "building_stairwell"
+    assert frame["affordance_status"] == "prevented"
+    assert aff["action_commit_policy"] == "no_commit"
+    assert aff["requires_narrator"] is True
+
+
+def test_oeffne_fahrstuhl_is_prevented_not_forbidden() -> None:
+    out = resolve_player_action(
+        raw_text="Öffne den Fahrstuhl",
+        interpreted_input={
+            "player_input_kind": "action",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "actor_id": "alain_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=_root(),
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["verb"] == "open"
+    assert frame["resolved_target_id"] == "elevator"
+    assert frame["affordance_status"] == "prevented"
+    assert aff["action_commit_policy"] == "no_commit"
+    assert aff["requires_narrator"] is True
+
+
 def test_begruesse_accented_name_resolves_actor() -> None:
     out = resolve_player_action(
         raw_text="Begrüße Véronique",

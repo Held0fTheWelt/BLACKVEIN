@@ -62,6 +62,16 @@ def goc_locations_yaml_dir() -> Path:
     return goc_module_yaml_dir() / "locations"
 
 
+def goc_objects_yaml_dir() -> Path:
+    """Directory for object authority YAML."""
+    return goc_module_yaml_dir() / "objects"
+
+
+def goc_canonical_path_yaml_dir() -> Path:
+    """Directory for numbered canonical path YAML."""
+    return goc_module_yaml_dir() / "canonical_path"
+
+
 def load_goc_canonical_module_yaml() -> dict[str, Any]:
     """Load authoritative module.yaml for god_of_carnage from the
     repository tree.
@@ -247,6 +257,35 @@ def load_goc_scene_graph_yaml() -> dict[str, Any]:
     return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "scene_graph")
 
 
+def load_goc_canonical_path_yaml() -> dict[str, Any]:
+    """Load numbered canonical path steps from canonical_path/."""
+    path_dir = goc_canonical_path_yaml_dir()
+    data = _safe_load_yaml_mapping(path_dir / "index.yaml")
+    canonical_path = _unwrap_top_level_mapping(data, "canonical_path")
+    if not canonical_path:
+        return {}
+
+    steps: list[dict[str, Any]] = []
+    for path in sorted(path_dir.glob("*.yaml")):
+        if path.name == "index.yaml":
+            continue
+        payload = _safe_load_yaml_mapping(path)
+        step = payload.get("canonical_path_step") or payload.get("step")
+        if isinstance(step, dict):
+            steps.append(step)
+
+    if steps:
+        canonical_path = dict(canonical_path)
+        canonical_path["steps"] = sorted(steps, key=lambda row: int(row.get("sequence") or 0))
+    return canonical_path
+
+
+def load_goc_modularity_policy_yaml() -> dict[str, Any]:
+    """Load content authority-boundary policy."""
+    path = goc_knowledge_yaml_dir() / "modularity_policy.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "modularity_policy")
+
+
 def load_goc_locations_yaml() -> dict[str, Any]:
     """Load authored location/accessibility surface from index plus location files."""
     data = _safe_load_first_yaml_mapping(
@@ -300,7 +339,7 @@ def _load_goc_location_documents_yaml() -> dict[str, Any]:
     if not loc_dir.is_dir():
         return {}
     docs: dict[str, Any] = {}
-    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml", "apartment_objects.yaml"}
+    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml"}
     for path in sorted(loc_dir.rglob("*.yaml")):
         if path.name in reserved:
             continue
@@ -312,6 +351,43 @@ def _load_goc_location_documents_yaml() -> dict[str, Any]:
         if place_id:
             docs[place_id] = inner
     return docs
+
+
+def _load_goc_object_documents_yaml() -> dict[str, Any]:
+    obj_dir = goc_objects_yaml_dir()
+    if not obj_dir.is_dir():
+        return {}
+    docs: dict[str, Any] = {}
+    reserved = {"index.yaml", "objects.yaml"}
+    for path in sorted(obj_dir.rglob("*.yaml")):
+        if path.name in reserved:
+            continue
+        data = _safe_load_yaml_mapping(path)
+        inner = data.get("object") or data.get("object_document")
+        if not isinstance(inner, dict):
+            continue
+        object_id = str(inner.get("id") or path.stem).strip()
+        if object_id:
+            object_doc = dict(inner)
+            object_doc.setdefault("source_ref", path.relative_to(goc_module_yaml_dir()).as_posix())
+            docs[object_id] = object_doc
+    return docs
+
+
+def load_goc_objects_yaml() -> dict[str, Any]:
+    data = _safe_load_first_yaml_mapping(
+        [
+            goc_objects_yaml_dir() / "index.yaml",
+            goc_objects_yaml_dir() / "objects.yaml",
+            goc_module_yaml_dir() / "objects.yaml",
+        ]
+    )
+    objects = _unwrap_top_level_mapping(data, "objects")
+    object_documents = _load_goc_object_documents_yaml()
+    if object_documents:
+        objects = dict(objects)
+        objects["object_documents"] = object_documents
+    return objects
 
 
 def load_goc_relationships_yaml() -> dict[str, Any]:
@@ -412,6 +488,7 @@ def load_goc_scene_affordances_block() -> dict[str, Any]:
 def load_goc_apartment_layout_yaml() -> dict[str, Any]:
     data = _safe_load_first_yaml_mapping(
         [
+            goc_locations_yaml_dir() / "appartment_vallon" / "apartment_layout.yaml",
             goc_locations_yaml_dir() / "appartment" / "apartment_layout.yaml",
             goc_locations_yaml_dir() / "apartment" / "apartment_layout.yaml",
             goc_locations_yaml_dir() / "apartment_layout.yaml",
@@ -419,18 +496,6 @@ def load_goc_apartment_layout_yaml() -> dict[str, Any]:
         ]
     )
     return _unwrap_top_level_mapping(data, "apartment_layout")
-
-
-def load_goc_apartment_objects_yaml() -> dict[str, Any]:
-    data = _safe_load_first_yaml_mapping(
-        [
-            goc_locations_yaml_dir() / "appartment" / "apartment_objects.yaml",
-            goc_locations_yaml_dir() / "apartment" / "apartment_objects.yaml",
-            goc_locations_yaml_dir() / "apartment_objects.yaml",
-            goc_module_yaml_dir() / "apartment_objects.yaml",
-        ]
-    )
-    return _unwrap_top_level_mapping(data, "apartment_objects")
 
 
 def load_goc_premise_and_backstory_yaml() -> dict[str, Any]:
@@ -461,6 +526,11 @@ def load_goc_narrator_sensory_palette_yaml() -> dict[str, Any]:
 def load_goc_opening_scene_sequence_yaml() -> dict[str, Any]:
     path = goc_knowledge_yaml_dir() / "opening_scene_sequence.yaml"
     return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "opening_scene_sequence")
+
+
+def load_goc_opening_quote_anchors_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "opening_quote_anchors.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "opening_quote_anchors")
 
 
 def load_goc_hard_forbidden_rules_yaml() -> dict[str, Any]:
@@ -499,6 +569,8 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "opening_document_excerpt": load_goc_opening_document_text()[:2400],
         "scene_phases": load_goc_scene_phases_yaml(),
         "scene_graph": load_goc_scene_graph_yaml(),
+        "canonical_path": load_goc_canonical_path_yaml(),
+        "modularity_policy": load_goc_modularity_policy_yaml(),
         "relationship_axes": relationships["relationship_axes"],
         "relationships": relationships["relationships"],
         "stability_constraints": relationships["stability_constraints"],
@@ -515,13 +587,14 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "system_prompt_excerpt": load_goc_system_prompt_text()[:2400],
         "scene_affordances": scene_aff,
         "locations": load_goc_locations_yaml(),
+        "objects": load_goc_objects_yaml(),
         "apartment_layout": load_goc_apartment_layout_yaml(),
-        "apartment_objects": load_goc_apartment_objects_yaml(),
         "premise_and_backstory": load_goc_premise_and_backstory_yaml(),
         "actor_pressure_profiles": load_goc_actor_pressure_profiles_yaml(),
         "phase_beat_policy": load_goc_phase_beat_policy_yaml(),
         "narrator_sensory_palette": load_goc_narrator_sensory_palette_yaml(),
         "opening_scene_sequence": load_goc_opening_scene_sequence_yaml(),
+        "opening_quote_anchors": load_goc_opening_quote_anchors_yaml(),
         "hard_forbidden_rules": load_goc_hard_forbidden_rules_yaml(),
         "content_access_policy": load_goc_content_access_policy_yaml(),
     }

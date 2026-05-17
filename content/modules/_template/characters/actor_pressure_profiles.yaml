@@ -1,0 +1,23 @@
+actor_pressure_profiles:
+  authoring_language: en
+  profiles:
+    protagonist:
+      display_name: "Protagonist Name"
+      core_wish: "Replace with what the character wants this scene to protect."
+      core_fear: "Replace with what the character cannot afford to have exposed."
+      stress_triggers:
+        - replace_with_trigger_id
+      reaction_policy:
+        early_phase: replace_with_contained_response
+        mid_phase: replace_with_escalating_response
+        late_phase: replace_with_breakdown_or_exit_response
+    counterpart:
+      display_name: "Counterpart Name"
+      core_wish: "Replace with what the character wants this scene to produce."
+      core_fear: "Replace with what the character cannot afford to lose."
+      stress_triggers:
+        - replace_with_trigger_id
+      reaction_policy:
+        early_phase: replace_with_contained_response
+        mid_phase: replace_with_escalating_response
+        late_phase: replace_with_breakdown_or_exit_response

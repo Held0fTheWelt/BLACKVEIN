@@ -1,0 +1,33 @@
+objects:
+  id: goc_objects_v1
+  authority: module_authorial_objects
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  placement_policy:
+    objects_must_have_placement_location_id: true
+    placement_location_ids_must_reference_locations: true
+    objects_are_not_locations: true
+    apartment_objects_grouped_by_location_subfolder: true
+    apartment_room_object_folder_pattern: objects/appartment_vallon/{location_id}/
+
+  location_object_folders:
+    living_room: objects/appartment_vallon/living_room/
+    hallway: objects/appartment_vallon/hallway/
+    kitchen: objects/appartment_vallon/kitchen/
+    bathroom: objects/appartment_vallon/bathroom/
+    pantry: objects/appartment_vallon/pantry/
+    study: objects/appartment_vallon/study/
+
+  object_files:
+    - objects/opening/bicycle_rack.yaml
+    - objects/appartment_vallon/living_room/coffee_table.yaml
+    - objects/appartment_vallon/living_room/dining_table.yaml
+    - objects/appartment_vallon/living_room/window.yaml
+    - objects/appartment_vallon/living_room/television.yaml
+    - objects/appartment_vallon/hallway/hallway_doors.yaml
+    - objects/appartment_vallon/kitchen/coffee_machine.yaml
+    - objects/appartment_vallon/kitchen/glasses.yaml
+    - objects/appartment_vallon/bathroom/bathroom_mirror.yaml
+    - objects/appartment_vallon/pantry/pantry_shelves.yaml
+    - objects/appartment_vallon/study/study_desk.yaml
+    - objects/building/apartment_door.yaml
+    - objects/building/elevator.yaml

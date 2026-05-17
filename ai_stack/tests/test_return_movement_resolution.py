@@ -29,7 +29,7 @@ def test_return_movement_without_target_uses_previous_location() -> None:
     raw = "Ich gehe zurück."
     interp = _classify(raw)
     assert interp.get("movement_return_intent") is True
-    plc = {"current_location_id": "bathroom", "previous_location_id": "vallon_living_room"}
+    plc = {"current_location_id": "bathroom", "previous_location_id": "living_room"}
     out = resolve_player_action(
         raw_text=raw,
         interpreted_input=interp,
@@ -39,7 +39,7 @@ def test_return_movement_without_target_uses_previous_location() -> None:
     )
     aff = out["affordance_resolution"]
     assert aff["affordance_status"] == "allowed"
-    assert aff["resolved_target_id"] == "vallon_living_room"
+    assert aff["resolved_target_id"] == "living_room"
     assert aff["target_resolution_source"] == "player_local_context.previous_location_id"
     frame = out["player_action_frame"]
     assert frame["player_input_kind"] == "movement_action"
@@ -60,7 +60,7 @@ def test_return_movement_with_explicit_german_target_resolves_living_room() -> N
     )
     aff = out["affordance_resolution"]
     assert aff["affordance_status"] == "allowed"
-    assert aff["resolved_target_id"] == "vallon_living_room"
+    assert aff["resolved_target_id"] == "living_room"
     assert aff["target_resolution_source"] == "scene_affordance_alias"
 
 
@@ -85,7 +85,7 @@ def test_return_movement_without_previous_location_needs_clarification() -> None
 def test_return_movement_synthetic_updates_player_local_context() -> None:
     raw = "Ich gehe zurück."
     interp = _classify(raw)
-    plc = {"current_location_id": "bathroom", "previous_location_id": "vallon_living_room"}
+    plc = {"current_location_id": "bathroom", "previous_location_id": "living_room"}
     out = resolve_player_action(
         raw_text=raw,
         interpreted_input=interp,
@@ -106,7 +106,7 @@ def test_return_movement_synthetic_updates_player_local_context() -> None:
     )
     meta = gen.get("metadata") or {}
     uplc = meta.get("updated_player_local_context") or {}
-    assert uplc.get("current_location_id") == "vallon_living_room"
+    assert uplc.get("current_location_id") == "living_room"
     assert uplc.get("previous_location_id") == "bathroom"
     narr = str(gen.get("content") or "")
     assert "sagt:" not in narr.lower()

@@ -1,0 +1,61 @@
+canonical_path_step:
+  sequence: 7
+  id: opening_007_living_room_arrangement
+  path_id: goc_opening_canonical_path
+  name: "007 - Living room arrangement"
+  mode: playable_opening_setup
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [description, entrances_exits, sensory_tags, plausible_actions]
+  topology_ref:
+    source: locations/appartment_vallon/apartment_layout.yaml
+    use_fields: [rooms.living_room, transitions]
+  object_refs:
+    - object_id: coffee_table
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+    - object_id: dining_table
+      source: objects/appartment_vallon/living_room/dining_table.yaml
+    - object_id: window
+      source: objects/appartment_vallon/living_room/window.yaml
+
+  theme_threads:
+    - room_as_moral_stage
+    - seating_as_alliance_map
+    - objects_as_pressure_surfaces
+  play_model:
+    estimated_minutes: 2
+    interaction_density: low_to_medium
+    player_agency: "choose posture, seat, gaze, distance from table"
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    action_beats:
+      - chairs_and_standing_positions_form_two_couples
+      - coffee_table_or_dining_table_becomes_the_document_surface
+      - safe_object_small_talk_delays_the_statement
+    player_windows:
+      - sit_or_remain_standing
+      - look_at_window_or_flowers_or_papers
+      - compliment_or_ignore_host_object
+      - choose_distance_from_spouse
+    narrator_tasks:
+      - make_the_room_playable_through_refs
+      - show_couple_geometry_without_commentary
+      - keep_object_attention_available_for_player_action
+    must_not:
+      - turn_objects_into_locations
+      - summarize_the_whole_room_again
+      - decide_player_social_posture
+
+  next_point:
+    step_id: opening_008_statement_on_table
+    handoff: "Let the room's safe objects give way to the written account."
+    carry_forward:
+      - four_adults_arranged
+      - statement_surface_visible
+      - safe_small_talk_available

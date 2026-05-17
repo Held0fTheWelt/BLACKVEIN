@@ -1,0 +1,16 @@
+object:
+  id: bicycle_rack
+  name: "Bicycles near the court"
+  category: exterior_memory_object_cluster
+  placement_location_id: basketball_court
+  visible_from_location_ids:
+    - park_edge
+    - basketball_court
+  playable_access: opening_narration_only
+  description: >-
+    A small cluster of bicycles near the court, included because the incident
+    report preserves small public damage alongside the injury.
+  inventory_policy: fixed_public_object_cluster
+  sensory_tags: [bicycle_frames, kicked_bicycle, small_public_damage]
+  plausible_actions: [notice_damage, recall_bicycle_contact]
+  forbidden_actions: [use_as_live_object, escalate_into_chase]

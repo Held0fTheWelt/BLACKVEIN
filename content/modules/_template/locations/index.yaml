@@ -1,0 +1,32 @@
+# Location index. Each playable, offscreen, or memory location gets its own file.
+
+locations:
+  id: template_locations_v1
+  authority: module_authorial_locations
+  default_access_policy: knowledge/content_access_policy.yaml
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  object_authority_ref: objects/index.yaml
+
+  setting:
+    name: "Replace with primary setting name"
+    type: replace_with_setting_type
+    district_context: replace_with_local_context
+    topology_source: locations/appartment/apartment_layout.yaml
+    default_scene_location_id: main_room
+    scene_location_assignment_field: location_id
+
+  assignment_policy:
+    scene_nodes_may_reference_place_ids: true
+    live_playable_location_ids:
+      - threshold
+      - main_room
+      - service_room
+    locked_non_playable_location_ids:
+      - private_locked_room
+
+  place_files:
+    - locations/opening/opening_anchor.yaml
+    - locations/building/threshold.yaml
+    - locations/appartment/main_room.yaml
+    - locations/appartment/service_room.yaml
+    - locations/appartment/private_locked_room.yaml

@@ -423,7 +423,7 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         "Michel",
         "bathroom",
         "living_room",
-        "vallon_living_room",
+        "living_room",
         "phase_1",
         "ritual_civility",
         "god_of_carnage",

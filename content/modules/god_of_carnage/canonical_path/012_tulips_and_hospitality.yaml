@@ -1,0 +1,60 @@
+canonical_path_step:
+  sequence: 12
+  id: opening_012_tulips_and_hospitality
+  path_id: goc_opening_canonical_path
+  name: "012 - Tulips, coffee, hospitality"
+  mode: playable_opening_object_pressure
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [sensory_tags, plausible_actions]
+  object_refs:
+    - object_id: coffee_table
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+    - object_id: dining_table
+      source: objects/appartment_vallon/living_room/dining_table.yaml
+    - object_id: coffee_machine
+      source: objects/appartment_vallon/kitchen/coffee_machine.yaml
+    - object_id: glasses
+      source: objects/appartment_vallon/kitchen/glasses.yaml
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+
+  theme_threads:
+    - object_small_talk_as_delay
+    - hospitality_surface_under_strain
+    - beauty_next_to_injury
+  play_model:
+    estimated_minutes: 2
+    interaction_density: medium
+    player_agency: "take refreshment, refuse it, compliment object, ignore object"
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    action_beats:
+      - a_safe_object_or_service_ritual_interrupts_the_statement_pressure
+      - compliment_or_service_response_can_buy_seconds
+      - the_room_returns_to_the_unfinished_statement
+    player_windows:
+      - accept_coffee_or_water
+      - refuse_refreshment_politely
+      - use_object_compliment_to_delay
+      - return_attention_to_document
+    narrator_tasks:
+      - let_objects_offer_real_playable_handles
+      - avoid_repeating_object_descriptions
+      - turn_delay_into_tension
+    must_not:
+      - invent_new_salient_objects
+      - let_hospitality_end_the_conflict
+      - make_player_action_symbolic_without_signal
+
+  next_point:
+    step_id: opening_013_first_playable_courtesy_gap
+    handoff: "Stop on a real courtesy gap where the player can steer the next beat."
+    carry_forward:
+      - hospitality_delay_used
+      - object_handles_available
+      - next_player_choice_matters

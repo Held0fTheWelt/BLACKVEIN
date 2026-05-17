@@ -1,0 +1,84 @@
+apartment_layout:
+  authoring_language: en
+  setting_id: template_primary_interior
+  narrative_anchor_area_id: main_room
+  summary: >-
+    Replace with the spatial premise of the main interior. Keep adjacency,
+    visibility, privacy, and locked-room rules factual and reusable.
+
+  global_rules:
+    offscreen_move_requires_narrator_consequence: true
+    line_of_sight_default: interior_partitioned
+    audio_bleed_between_adjacent_rooms: moderate
+    locked_private_doors_are_not_playable_rooms: true
+
+  location_assignment:
+    scene_nodes_use_location_id: true
+    live_play_default_location_id: main_room
+    playable_location_ids:
+      - threshold
+      - main_room
+      - service_room
+    non_playable_locked_location_ids:
+      - private_locked_room
+
+  rooms:
+    - id: threshold
+      dramatic_role: common_entry_threshold
+      privacy: public_common_area
+      adjacent_room_ids:
+        - main_room
+      exits:
+        - id: threshold_to_main_room
+          to_room_id: main_room
+          kind: entry_threshold
+      inventory_policy: sparse_threshold
+      plausible_actions: [wait, listen_to, enter_room, attempt_exit]
+      forbidden_actions: [summon_unestablished_bystanders]
+
+    - id: main_room
+      dramatic_role: primary_stage
+      privacy: semipublic_within_visit
+      adjacent_room_ids:
+        - threshold
+        - service_room
+      exits:
+        - id: main_room_to_threshold
+          to_room_id: threshold
+          kind: entry_threshold
+        - id: main_room_to_service_room
+          to_room_id: service_room
+          kind: interior_threshold
+      inventory_policy: authored_salient_objects
+      plausible_actions: [look_at, listen_to, sit_down, stand_up, move_to_adjacent_room]
+      forbidden_actions: [leave_without_exit_pressure]
+
+    - id: service_room
+      dramatic_role: secondary_service_or_retreat_space
+      privacy: semiprivate
+      adjacent_room_ids:
+        - main_room
+        - private_locked_room
+      exits:
+        - id: service_room_to_main_room
+          to_room_id: main_room
+          kind: interior_threshold
+        - id: service_room_to_private_locked_room
+          to_room_id: private_locked_room
+          kind: locked_private_door
+      inventory_policy: optional_minor_inventory
+      plausible_actions: [look_at, listen_to, take_minor_service_item]
+      forbidden_actions: [discover_decisive_unseeded_evidence]
+
+    - id: private_locked_room
+      dramatic_role: locked_private_space
+      privacy: private_locked
+      adjacent_room_ids:
+        - service_room
+      exits:
+        - id: private_locked_room_to_service_room
+          to_room_id: service_room
+          kind: locked_private_door
+      inventory_policy: hidden_not_authored_for_play
+      plausible_actions: [notice_locked_door]
+      forbidden_actions: [enter_room, open_locked_door, search_room]

@@ -1,0 +1,21 @@
+object:
+  id: coffee_table
+  name: "Coffee table"
+  category: object_zone
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    The living-room object zone where documents, cups, dessert, and negotiated
+    facts become visible social props.
+  inventory_policy: authored_salient_objects
+  sensory_tags: [papers, cups, dessert, negotiated_facts]
+  interaction_notes:
+    look_at: "Perception-only unless a scene gate authorizes document handling."
+    place_object: "Keeps action tied to hospitality or procedure."
+  risk_tags:
+    - territorial_anchor
+  plausible_actions: [look_at, place_object, take_minor_service_item]
+  forbidden_actions: [discover_unseeded_document, destroy_without_consequence]
+  symbolic_roles:
+    - negotiation_surface
+    - hospitality_surface

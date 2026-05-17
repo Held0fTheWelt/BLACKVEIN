@@ -1,0 +1,30 @@
+relationship_axes:
+  primary_axis:
+    id: primary_axis
+    name: "Primary Relationship Axis"
+    description: "Replace with the central relationship tension."
+    relationships:
+      - protagonist_counterpart
+    baseline:
+      status: "Replace with baseline alignment or distance."
+      stability: 60
+      dominance_shift: 0
+    escalation:
+      condition: "Replace with what makes this axis deteriorate."
+      examples:
+        - "Replace with a concrete pressure example."
+      stability_impact: -25
+
+relationships:
+  protagonist_counterpart:
+    id: protagonist_counterpart
+    type: replace_with_relationship_type
+    axis_membership: [primary_axis]
+    baseline_stability: 60
+    baseline_dominance_shift: 0
+    description: "Replace with pairwise relationship truth."
+
+stability_constraints:
+  min_stable: 30
+  min_civil: 50
+  baseline_broken: 0

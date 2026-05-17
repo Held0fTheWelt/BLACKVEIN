@@ -1,0 +1,10 @@
+subtext_policy:
+  enabled: true
+  authoring_language: en
+  principle: >-
+    Replace with the module's subtext rule. Characters should often protect
+    their public posture while revealing pressure through timing, objects, and
+    evasions.
+  forbidden:
+    - explain_every_motive_directly
+    - turn_subtext_into_author_note

@@ -17,11 +17,15 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
     assert output.runtime_projection.relationships
     assert output.runtime_projection.escalation_axes
     assert output.runtime_projection.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
+    assert output.runtime_projection.opening_quote_anchors.get("anchors")
     assert "hard_forbidden_detection" in output.runtime_projection.hard_forbidden_rules
     assert output.runtime_projection.start_scene_id == "prologue_park_edge"
     assert len(output.runtime_projection.scenes) > 10
+    assert output.runtime_projection.canonical_path.get("primary_direction_surface") is True
+    assert output.runtime_projection.modularity_policy.get("authority_boundaries")
     assert output.runtime_projection.scene_graph.get("id") == "goc_scene_graph_v1"
     assert output.runtime_projection.locations.get("places")
+    assert output.runtime_projection.objects.get("object_documents")
     assert output.runtime_projection.content_access_policy.get("blocked_entities")
     assert set(output.runtime_projection.character_documents.keys()) == {"veronique", "michel", "annette", "alain"}
     assert output.runtime_projection.characters
@@ -45,13 +49,16 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
     by_kind = {c.metadata.get("content_kind"): c for c in knowledge_chunks}
     required = {
         "opening_scene_sequence",
+        "opening_quote_anchors",
         "hard_forbidden_rules",
         "premise_and_backstory",
         "narrator_sensory_palette",
         "apartment_layout",
-        "apartment_objects",
+        "objects",
         "actor_pressure_profiles",
         "phase_beat_policy",
+        "canonical_path",
+        "modularity_policy",
         "scene_graph",
         "locations",
         "content_access_policy",
@@ -71,15 +78,19 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
         ), f"{kind} source_path not module-rooted: {md.get('source_path')}"
         assert isinstance(md.get("runtime_locale_available"), bool)
 
-    # Locale availability matches the actual repo layout: apartment_* live next to locale/.
+    # Locale availability matches the actual repo layout: apartment layout and objects live next to locale/.
     assert by_kind["apartment_layout"].metadata["runtime_locale_available"] is True
-    assert by_kind["apartment_objects"].metadata["runtime_locale_available"] is True
+    assert by_kind["objects"].metadata["runtime_locale_available"] is True
     assert by_kind["opening_scene_sequence"].metadata["runtime_locale_available"] is False
+    assert by_kind["opening_quote_anchors"].metadata["runtime_locale_available"] is False
     assert by_kind["hard_forbidden_rules"].metadata["runtime_locale_available"] is False
     assert by_kind["locations"].metadata["runtime_locale_available"] is True
 
     # Opening + hard-forbidden must list their downstream consumers explicitly.
     assert "opening_realization" in by_kind["opening_scene_sequence"].metadata["use_for"]
+    assert "quote_anchor_policy" in by_kind["opening_quote_anchors"].metadata["use_for"]
     assert "hard_forbidden_gate" in by_kind["hard_forbidden_rules"].metadata["use_for"]
+    assert "story_direction" in by_kind["canonical_path"].metadata["use_for"]
+    assert "reference_integrity" in by_kind["modularity_policy"].metadata["use_for"]
     assert "scene_director_navigation" in by_kind["scene_graph"].metadata["use_for"]
     assert "affordance_resolution" in by_kind["content_access_policy"].metadata["use_for"]

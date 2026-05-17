@@ -124,7 +124,6 @@ def _merge_object_row(rows: dict[str, dict[str, Any]], object_id: str, row: dict
 
 def _object_rows(
     *,
-    apartment_objects: dict[str, Any] | None,
     scene_affordances: dict[str, Any] | None,
     environment_model: dict[str, Any] | None,
     module_runtime_policy: dict[str, Any] | None,
@@ -150,11 +149,6 @@ def _object_rows(
     ).items():
         if isinstance(row, dict):
             _merge_object_row(rows, str(object_id), row)
-
-    objects_doc = _unwrap(apartment_objects, "apartment_objects")
-    for row in objects_doc.get("objects") if isinstance(objects_doc.get("objects"), list) else []:
-        if isinstance(row, dict):
-            _merge_object_row(rows, _text(row.get("id")), row)
 
     affordances = _unwrap(scene_affordances, "scene_affordances")
     for row in affordances.get("objects") if isinstance(affordances.get("objects"), list) else []:
@@ -264,7 +258,6 @@ def derive_symbolic_object_resonance(
     *,
     environment_state: dict[str, Any] | None = None,
     environment_model: dict[str, Any] | None = None,
-    apartment_objects: dict[str, Any] | None = None,
     scene_affordances: dict[str, Any] | None = None,
     player_action_frame: dict[str, Any] | None = None,
     sensory_context_target: dict[str, Any] | None = None,
@@ -288,7 +281,6 @@ def derive_symbolic_object_resonance(
     max_symbols = _bounded_int(policy.get("max_symbols_per_turn"), 2, minimum=0, maximum=8)
     max_refs = _bounded_int(policy.get("max_source_refs"), 6, minimum=0, maximum=16)
     rows = _object_rows(
-        apartment_objects=apartment_objects,
         scene_affordances=scene_affordances,
         environment_model=environment_model,
         module_runtime_policy=module_runtime_policy,

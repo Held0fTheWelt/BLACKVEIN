@@ -1,0 +1,52 @@
+canonical_path:
+  id: template_canonical_path_v1
+  authority: module_authorial_path
+  authoring_language: en
+  note: >-
+    Primary directed story spine for this module. Add numbered step files in
+    ascending order. Steps direct beats and handoffs; they reference location
+    and character authority instead of re-describing it.
+
+  reference_policy:
+    location_facts_live_under: locations/
+    object_facts_live_under: objects/
+    character_facts_live_under: characters/
+    quote_anchors_live_under: knowledge/opening_quote_anchors.yaml
+    steps_must_reference_location_files: true
+    steps_must_not_duplicate_location_descriptions: true
+    allowed_step_truth:
+      - action_beats
+      - present_actor_or_group_ids
+      - narrator_tasks
+      - constraints
+      - next_point
+      - carry_forward_markers
+      - theme_threads
+      - quote_anchor_refs
+      - play_model
+      - player_windows
+    required_step_fields:
+      - location_ref.source
+      - path_point
+      - next_point
+    forbidden_step_fields:
+      - point.environment
+      - environment
+      - visible_world
+      - spatial_model
+      - location_prose
+
+  paths:
+    opening:
+      id: template_opening_canonical_path
+      title: "Opening canonical path"
+      first_step_id: opening_001_anchor
+      step_files:
+        - canonical_path/001_opening_anchor.yaml
+        - canonical_path/002_pressure_turn.yaml
+        - canonical_path/003_handover_to_play.yaml
+
+  step_order:
+    - opening_001_anchor
+    - opening_002_pressure_turn
+    - opening_003_handover_to_play

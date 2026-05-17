@@ -27,7 +27,6 @@ GOC_SCENE_ID_TO_GUIDANCE_PHASE: dict[str, str] = {
     "boys_argument": "phase_1_polite_opening",
     "stick_and_turn": "phase_1_polite_opening",
     "strike_and_aftermath": "phase_1_polite_opening",
-    "adult_meeting_pressure": "phase_1_polite_opening",
     "apartment_threshold": "phase_1_polite_opening",
     "living_room_arrival": "phase_1_polite_opening",
     "selected_role_anchor": "phase_1_polite_opening",

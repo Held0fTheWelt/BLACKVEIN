@@ -1,0 +1,15 @@
+content_access_policy:
+  authoring_language: en
+  blocked_entities:
+    locations:
+      - private_locked_room
+    actions:
+      - enter_locked_private_room
+      - invent_unseeded_decisive_fact
+  gated_entities:
+    locations:
+      threshold:
+        gate: entry_or_exit_pressure
+      service_room:
+        gate: narrator_consequence
+  default_denial_style: recover_with_in_world_boundary

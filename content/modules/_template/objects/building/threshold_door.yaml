@@ -1,0 +1,15 @@
+object:
+  id: threshold_door
+  name: "Threshold door"
+  category: threshold_object
+  placement_location_id: threshold
+  playable_access: gated_threshold
+  description: "Replace with entry/exit object materiality."
+  interaction_notes:
+    open: "Entry or exit must stay tied to scene pressure."
+  risk_tags:
+    - exit_pressure
+  plausible_actions: [look_at, open, close]
+  forbidden_actions: [skip_scene_gate]
+  symbolic_roles:
+    - threshold_surface

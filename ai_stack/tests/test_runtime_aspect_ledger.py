@@ -482,7 +482,7 @@ def test_runtime_projection_exposes_sensory_context_aspect() -> None:
     target = {
         "schema_version": SENSORY_CONTEXT_SCHEMA_VERSION,
         "intensity": "medium",
-        "location_id": "vallon_living_room",
+        "location_id": "living_room",
         "object_id": "window",
         "mood_key": "mid_tension",
         "selected_layers": [layer],

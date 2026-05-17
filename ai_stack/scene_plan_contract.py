@@ -7,7 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from ai_stack.goc_frozen_vocab import TRANSITION_PATTERNS
 
 
 class ScenePlanRecord(BaseModel):
@@ -22,16 +24,68 @@ class ScenePlanRecord(BaseModel):
     selected_responder_set: list[dict[str, Any]]
     pacing_mode: str
     silence_brevity_decision: dict[str, Any]
+    narrative_scene_function: str = Field(
+        default="",
+        description="Richer narrative function selected by the scene director; advisory realization intent.",
+    )
+    realization_mode: str = Field(
+        default="",
+        description="Bounded realization channel such as narration, npc action, dialogue, or mixed setup.",
+    )
+    pressure_function: str = Field(
+        default="",
+        description="Optional pressure-specific function; may be none when the scene target is non-pressure.",
+    )
+    scene_target: dict[str, Any] = Field(
+        default_factory=dict,
+        description="General director target for the turn; replaces pressure_target as the broad concept.",
+    )
+    pressure_target: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Compatibility alias for pressure-oriented target data; advisory until validation/commit.",
+    )
+    target_obligations: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Director obligations that make the target playable and validation-safe.",
+    )
+    actor_directives: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Bounded NPC/director directives such as stage presence, force reaction, or hold silence.",
+    )
+    dramatic_beats: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Bounded immediate beat objects selected for realization; no prose oracle.",
+    )
+    handover_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="How the director returns control or affordance to the player after the planned beats.",
+    )
+    continuity_obligation: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Planner-facing continuity carry obligation; does not commit world truth.",
+    )
+    expected_transition_pattern: str = Field(
+        default="soft",
+        description="Expected transition pattern from the canonical GoC transition vocabulary.",
+    )
     planner_rationale_codes: list[str] = Field(
         default_factory=list,
         description="Bounded codes explaining selection (no free prose).",
     )
     semantic_move_fingerprint: str = ""
     social_state_fingerprint: str = ""
+    semantic_scene_planner_version: str = ""
     selection_source: str = Field(
         default="semantic_pipeline_v1",
         description="semantic_pipeline_v1 | legacy_fallback — compatibility trace only for legacy.",
     )
+
+    @field_validator("expected_transition_pattern")
+    @classmethod
+    def _expected_transition_pattern_in_contract(cls, value: str) -> str:
+        if value not in TRANSITION_PATTERNS:
+            raise ValueError(f"Invalid expected_transition_pattern: {value!r}")
+        return value
 
     def to_runtime_dict(self) -> dict:
         """``to_runtime_dict`` — see implementation for behaviour and contracts.

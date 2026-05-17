@@ -1,0 +1,74 @@
+opening_scene_sequence:
+  id: template_opening_sequence_v1
+  authoring_language: en
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  quote_anchor_policy_ref: knowledge/opening_quote_anchors.yaml
+  handover_to_scene_phase: phase_1
+  first_playable_node_id: first_playable_courtesy_gap
+
+  reference_policy:
+    location_descriptions_owned_by: locations/
+    directed_beats_owned_by: canonical_path/
+    quote_anchors_owned_by: knowledge/opening_quote_anchors.yaml
+
+  narrative_events:
+    - id: event_01_opening_anchor
+      location_id: opening_anchor
+      canonical_path_refs:
+        - canonical_path/001_opening_anchor.yaml#opening_001_anchor
+      location_refs:
+        - locations/opening/opening_anchor.yaml
+      narrator_role: premise
+      required_facts:
+        - canonical_path_step_used
+        - opening_location_ref_used
+        - unresolved_social_cost
+      forbidden_moves:
+        - duplicate_location_description
+        - final_moral_verdict
+        - unseeded_witness
+
+    - id: event_02_threshold
+      location_id: threshold
+      canonical_path_refs:
+        - canonical_path/003_handover_to_play.yaml#opening_003_handover_to_play
+      location_refs:
+        - locations/building/threshold.yaml
+      narrator_role: spatial_bridge
+      required_facts:
+        - threshold_ref_used
+      forbidden_moves:
+        - skip_spatial_orientation
+        - duplicate_location_description
+
+    - id: event_03_room_handover
+      location_id: main_room
+      canonical_path_refs:
+        - canonical_path/003_handover_to_play.yaml#opening_003_handover_to_play
+      location_refs:
+        - locations/appartment/main_room.yaml
+      object_refs:
+        - objects/appartment/main_room/focal_table.yaml
+      narrator_role: playable_setup
+      handover_to_scene_phase: phase_1
+      required_facts:
+        - all_required_actors_present
+        - focal_object_ref_used
+        - player_agency_open
+      forbidden_moves:
+        - assign_player_action
+        - assign_player_private_thought
+        - duplicate_location_description
+
+  playable_opening_extension:
+    minimum_minutes: 20
+    canonical_path_refs:
+      - canonical_path/002_pressure_turn.yaml#opening_002_pressure_turn
+      - canonical_path/003_handover_to_play.yaml#opening_003_handover_to_play
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#replace_with_short_anchor
+    player_action_windows:
+      - observe
+      - gesture
+      - remain_silent
+      - speak

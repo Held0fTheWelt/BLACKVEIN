@@ -1,0 +1,16 @@
+object:
+  id: pantry_shelves
+  name: "Pantry shelves"
+  category: storage_surface
+  placement_location_id: pantry
+  playable_access: minor_service_object
+  description: >-
+    Narrow shelves and domestic stores, useful only at minor scale.
+  interaction_notes:
+    take: "Minor service item only; no major plot object may be discovered here."
+  risk_tags:
+    - minor_storage
+  plausible_actions: [look_at, take_minor_service_item]
+  forbidden_actions: [discover_major_plot_object]
+  symbolic_roles:
+    - domestic_order

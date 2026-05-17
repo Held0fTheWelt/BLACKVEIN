@@ -361,16 +361,25 @@ def _resolve_movement_to_location_id(
             continue
         if fold_match(lid, rid) or lid.lower() == rid.lower():
             access = str(row.get("access") or "").strip() or None
-            status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
+            status, policy = _location_status_policy_for_access(access)
             return (
                 status,
-                "commit_action",
+                policy,
                 rid,
                 "location",
                 "player_local_context.previous_location_id",
                 access,
             )
     return ("ambiguous", "needs_clarification", None, None, "missing_previous_location_id", None)
+
+
+def _location_status_policy_for_access(access: str | None) -> tuple[str, str]:
+    raw = str(access or "").strip().lower()
+    if "prevented" in raw:
+        return ("prevented", "no_commit")
+    if "offscreen" in raw or "implied" in raw:
+        return ("allowed_offscreen", "commit_action")
+    return ("allowed", "commit_action")
 
 
 def _infer_source_query(raw_text: str, *, lang: str, verb: str) -> str | None:
@@ -437,11 +446,11 @@ def _resolve_target(
         aliases.append(str(row.get("id") or "").strip())
         if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
             access = str(row.get("access") or "").strip() or None
-            status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
+            status, policy = _location_status_policy_for_access(access)
             tid = str(row.get("id") or "").strip() or None
             return (
                 status,
-                "commit_action",
+                policy,
                 tid,
                 "location",
                 "scene_affordance_alias",
@@ -454,8 +463,10 @@ def _resolve_target(
         aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
         aliases.append(str(row.get("id") or "").strip())
         if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
+            access = str(row.get("access") or "").strip() or None
+            status, policy = _location_status_policy_for_access(access)
             tid = str(row.get("id") or "").strip() or None
-            return ("allowed", "commit_action", tid, "object", "scene_affordances.object_alias", None)
+            return (status, policy, tid, "object", "scene_affordances.object_alias", access)
 
     for row in affordance_model.get("actors") or []:
         if not isinstance(row, dict):
@@ -475,11 +486,11 @@ def _resolve_target(
             for a in aliases:
                 if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
                     access = str(row.get("access") or "").strip() or None
-                    status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
+                    status, policy = _location_status_policy_for_access(access)
                     tid = str(row.get("id") or "").strip() or None
                     return (
                         status,
-                        "commit_action",
+                        policy,
                         tid,
                         "location",
                         "scene_affordances.location_substring",
@@ -491,8 +502,10 @@ def _resolve_target(
             aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
             for a in aliases:
                 if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
+                    access = str(row.get("access") or "").strip() or None
+                    status, policy = _location_status_policy_for_access(access)
                     tid = str(row.get("id") or "").strip() or None
-                    return ("allowed", "commit_action", tid, "object", "scene_affordances.object_substring", None)
+                    return (status, policy, tid, "object", "scene_affordances.object_substring", access)
         for row in affordance_model.get("actors") or []:
             if not isinstance(row, dict):
                 continue

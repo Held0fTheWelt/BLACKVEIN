@@ -63,18 +63,21 @@ class RuntimeTurnState(TypedDict, total=False):
     goc_canonical_yaml: dict[str, Any]
     goc_yaml_slice: dict[str, Any]
     opening_scene_sequence: dict[str, Any]
+    opening_quote_anchors: dict[str, Any]
     hard_forbidden_rules: dict[str, Any]
+    canonical_path: dict[str, Any]
+    modularity_policy: dict[str, Any]
     goc_runtime_knowledge_contract: dict[str, Any]
     # GOC-KNOWLEDGE-RUNTIME-INTEGRATION P0.1: structured knowledge surfaces
     # exposed to scene director, narrator packet, and diagnostics so they
     # influence runtime behaviour without re-loading YAML in each node.
     apartment_layout: dict[str, Any]
-    apartment_objects: dict[str, Any]
     premise_and_backstory: dict[str, Any]
     actor_pressure_profiles: dict[str, Any]
     phase_beat_policy: dict[str, Any]
     narrator_sensory_palette: dict[str, Any]
     scene_affordances: dict[str, Any]
+    objects: dict[str, Any]
     knowledge_runtime_loaded: dict[str, bool]
     prior_continuity_impacts: list[dict[str, Any]]
     prior_dramatic_signature: dict[str, str]

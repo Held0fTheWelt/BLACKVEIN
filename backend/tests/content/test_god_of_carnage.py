@@ -75,6 +75,30 @@ class TestW1ContentFilesLoadable:
             root / "characters" / "annette.yaml",
             root / "characters" / "alain.yaml",
             root / "characters" / "relationships.yaml",
+            root / "canonical_path" / "index.yaml",
+            root / "canonical_path" / "001_parc_montsouris_edge.yaml",
+            root / "canonical_path" / "002_argument_stick_blow.yaml",
+            root / "canonical_path" / "003_bicycle_disappearance.yaml",
+            root / "canonical_path" / "004_dark_building_hallway.yaml",
+            root / "canonical_path" / "005_living_room_handover.yaml",
+            root / "canonical_path" / "006_apartment_entry_greetings.yaml",
+            root / "canonical_path" / "007_living_room_arrangement.yaml",
+            root / "canonical_path" / "008_statement_on_table.yaml",
+            root / "canonical_path" / "009_wording_dispute_armed_carrying.yaml",
+            root / "canonical_path" / "010_injury_detail_dental_consequence.yaml",
+            root / "canonical_path" / "011_courtesy_community_pressure.yaml",
+            root / "canonical_path" / "012_tulips_and_hospitality.yaml",
+            root / "canonical_path" / "013_first_playable_courtesy_gap.yaml",
+            root / "canonical_path" / "014_player_response_ripple.yaml",
+            root / "canonical_path" / "015_phone_exit_pressure.yaml",
+            root / "canonical_path" / "016_opening_sustained_play_handoff.yaml",
+            root / "objects" / "index.yaml",
+            root / "objects" / "opening" / "bicycle_rack.yaml",
+            root / "objects" / "appartment_vallon" / "living_room" / "coffee_table.yaml",
+            root / "objects" / "appartment_vallon" / "living_room" / "dining_table.yaml",
+            root / "objects" / "appartment_vallon" / "living_room" / "window.yaml",
+            root / "objects" / "appartment_vallon" / "living_room" / "television.yaml",
+            root / "objects" / "building" / "elevator.yaml",
             root / "scenes.yaml",
             root / "scene_graph.yaml",
             root / "transitions.yaml",
@@ -83,14 +107,16 @@ class TestW1ContentFilesLoadable:
             root / "escalation_axes.yaml",
             root / "locations" / "index.yaml",
             root / "locations" / "opening" / "park_edge.yaml",
+            root / "locations" / "building" / "building_hallway.yaml",
             root / "locations" / "building" / "building_stairwell.yaml",
-            root / "locations" / "appartment" / "apartment_layout.yaml",
-            root / "locations" / "appartment" / "apartment_objects.yaml",
+            root / "locations" / "appartment_vallon" / "apartment_layout.yaml",
             root / "characters" / "actor_pressure_profiles.yaml",
             root / "phase_beat_policy.yaml",
             root / "knowledge" / "premise_and_backstory.yaml",
+            root / "knowledge" / "modularity_policy.yaml",
             root / "knowledge" / "narrator_sensory_palette.yaml",
             root / "knowledge" / "opening_scene_sequence.yaml",
+            root / "knowledge" / "opening_quote_anchors.yaml",
             root / "knowledge" / "hard_forbidden_rules.yaml",
             root / "knowledge" / "content_access_policy.yaml",
         ]
@@ -111,7 +137,10 @@ class TestW1ContentFilesLoadable:
         assert isinstance(module.actor_pressure_profiles.get("profiles"), dict)
         assert "phase_1" in (module.phase_beat_policy.get("phases") or {})
         assert module.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
+        assert module.opening_quote_anchors.get("anchors")
         assert "hard_forbidden" in (module.hard_forbidden_rules or {})
+        assert module.canonical_path.get("primary_direction_surface") is True
+        assert module.modularity_policy.get("authority_boundaries")
         assert len((module.scene_graph.get("nodes") or [])) > 10
         assert (module.locations.get("places") or [])
         assert module.content_access_policy.get("blocked_entities")
@@ -135,6 +164,12 @@ class TestW1ContentFilesLoadable:
         locations_dir = god_of_carnage_module_root / "locations"
         if locations_dir.is_dir():
             yaml_files.extend(sorted(locations_dir.rglob("*.yaml")))
+        objects_dir = god_of_carnage_module_root / "objects"
+        if objects_dir.is_dir():
+            yaml_files.extend(sorted(objects_dir.rglob("*.yaml")))
+        canonical_path_dir = god_of_carnage_module_root / "canonical_path"
+        if canonical_path_dir.is_dir():
+            yaml_files.extend(sorted(canonical_path_dir.glob("*.yaml")))
         assert len(yaml_files) >= 8, "Should have at least 8 YAML files"
 
         for yaml_file in yaml_files:

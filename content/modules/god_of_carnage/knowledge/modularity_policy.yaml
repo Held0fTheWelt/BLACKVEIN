@@ -1,0 +1,105 @@
+modularity_policy:
+  id: goc_modularity_policy_v1
+  authority: module_authorial_structure_policy
+  authoring_language: en
+
+  principle: >-
+    Content surfaces must not become parallel description databases. A surface
+    either owns a kind of truth or references the owning surface by id and file.
+
+  authority_boundaries:
+    locations:
+      owns:
+        - place_description
+        - room_topology
+        - entrances_and_exits
+        - inventory_policy
+        - place_sensory_tags
+        - plausible_actions
+        - forbidden_actions
+        - prevented_actions
+      root: locations/
+      must_not_own:
+        - object_description
+        - object_materiality
+        - movable_or_focus_object_truth
+    objects:
+      owns:
+        - object_description
+        - object_materiality
+        - placement_location_id
+        - visible_from_location_ids
+        - object_interaction_notes
+        - object_symbolic_roles
+        - location_scoped_object_folders
+      root: objects/
+      must_reference:
+        - locations/
+    characters:
+      owns:
+        - character_identity
+        - playable_actor_mapping
+        - relationship_axes
+        - pressure_profiles
+        - voice_guidance
+      root: characters/
+    canonical_path:
+      owns:
+        - directed_sequence
+        - beat_order
+        - narrative_handoff
+        - carry_forward_markers
+        - playable_pressure_windows
+        - theme_threads
+        - quote_anchor_refs
+      root: canonical_path/
+      must_reference:
+        - locations/
+        - objects/
+        - characters/
+        - knowledge/opening_quote_anchors.yaml
+    knowledge:
+      owns:
+        - runtime_contracts
+        - premise_fact_ids
+        - access_policy
+        - hard_runtime_rules
+        - quote_anchor_policy
+        - playable_opening_coverage
+      root: knowledge/
+      must_not_own:
+        - place_description
+        - room_topology
+    direction:
+      owns:
+        - human_authoring_intent
+        - dramaturgic_emphasis
+      root: direction/
+      must_reference:
+        - canonical_path/
+        - locations/
+        - objects/
+    locale:
+      owns:
+        - player_visible_aliases
+        - localized_surface_text
+      root: locale/
+      source_truth_must_reference:
+        - locations/
+        - characters/
+
+  duplication_controls:
+    - id: no_location_prose_outside_locations
+      rule: "Location prose belongs under locations/; other surfaces use location_ref or source_ref."
+    - id: no_object_prose_inside_locations
+      rule: "Object prose belongs under objects/; locations may list inventory_object_ids and placement refs."
+    - id: no_object_compendium_files
+      rule: "Objects are authored one object per file; indexes may list files but must not become object description databases."
+    - id: apartment_objects_grouped_by_location
+      rule: "Apartment objects live under objects/appartment_vallon/<location_id>/ so a room can be populated by adding object files to its folder."
+    - id: canonical_path_is_not_setting_database
+      rule: "Canonical path steps define action beats and handoffs, not environment summaries."
+    - id: scene_graph_is_runtime_index
+      rule: "Scene graph nodes may point to canonical path steps and locations, but must not restate place descriptions."
+    - id: opening_contract_uses_refs
+      rule: "Opening contracts list event ids, step refs, and coverage rules instead of rewriting park or apartment descriptions."

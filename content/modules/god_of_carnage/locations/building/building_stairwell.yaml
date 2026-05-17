@@ -1,21 +1,27 @@
 location:
   id: building_stairwell
-  name: "Building stairwell and elevator hallway"
-  category: exit_route
-  playable_access: gated_scene_navigation
+  name: "Unreachable building stairwell"
+  category: prevented_exit_route
+  playable_access: prevented_currently
   description: >-
-    The common building threshold outside the Vallon apartment: echo, elevator,
-    door closer, and the pressure of arrival or attempted departure.
+    The stairwell belongs to the building but is not reachable in the current
+    hallway moment. It is a visible or implied exit pressure, not a playable route.
   room_profile:
-    role: common_building_threshold
+    role: unreachable_common_stairwell
     connected_place_ids:
-      - vallon_living_room
+      - building_hallway
   entrances_exits:
-    exits:
-      - id: stairwell_to_living_room
-        to_place_id: vallon_living_room
-        kind: apartment_door_threshold
-  inventory_policy: sparse_threshold
-  sensory_tags: [echo, elevator, door_closer, leaving_pressure]
-  plausible_actions: [listen_to, wait, enter_apartment, attempt_exit]
-  forbidden_actions: [summon_unestablished_neighbors, access_private_apartment_without_scene_gate]
+    prevented_exits:
+      - id: stairwell_to_building_hallway
+        to_place_id: building_hallway
+        kind: unreachable_stairwell_access
+        reason: alain_no_signal_waiting_for_urgent_call
+  inventory_policy: inaccessible_threshold
+  sensory_tags: [stairwell_beyond_reach, exit_pressure, weak_phone_signal]
+  plausible_actions: [notice_stairwell, listen_to]
+  prevented_actions:
+    - id: enter_stairwell
+      action: enter_stairwell
+      reason: stairwell_not_reachable_from_current_hallway_moment
+      pressure_source: alain_no_signal_waiting_for_urgent_call
+  forbidden_actions: [invent_unestablished_stairwell_scene]

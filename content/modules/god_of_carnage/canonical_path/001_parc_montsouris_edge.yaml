@@ -1,0 +1,49 @@
+canonical_path_step:
+  sequence: 1
+  id: opening_001_parc_montsouris_edge
+  path_id: goc_opening_canonical_path
+  name: "001 - Park edge and boys at the court"
+  mode: narrator_only_opening
+
+  location_ref:
+    location_id: park_edge
+    source: locations/opening/park_edge.yaml
+    use_fields:
+      - description
+      - entrances_exits
+      - sensory_tags
+  support_refs:
+    - location_id: basketball_court
+      source: locations/opening/basketball_court.yaml
+      use_fields: [description, sensory_tags]
+    - location_id: playground
+      source: locations/opening/playground.yaml
+      use_fields: [description, sensory_tags]
+  object_refs:
+    - object_id: bicycle_rack
+      source: objects/opening/bicycle_rack.yaml
+      use_fields: [description, sensory_tags]
+
+  path_point:
+    present:
+      groups:
+        - id: boys_group
+          count: about_a_dozen
+          anchor_location_id: basketball_court
+      named_characters: []
+    narrator_tasks:
+      - establish_the_public_edge_before_the_incident
+      - use_location_refs_for_weather_public_life_and_spatial_depth
+      - keep_the_establishing_image_brief
+    must_not:
+      - duplicate_location_description
+      - assign_final_moral_blame
+      - turn_into_legal_exposition
+
+  next_point:
+    step_id: opening_002_argument_stick_blow
+    handoff: "Move from establishing image to the boys' immediate play and quarrel."
+    carry_forward:
+      - boys_group_at_court
+      - ordinary_public_setting
+      - bicycles_nearby

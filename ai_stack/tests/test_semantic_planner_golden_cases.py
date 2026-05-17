@@ -48,7 +48,18 @@ def _assert_planner_state(result: dict) -> None:
     assert result.get("semantic_move_record", {}).get("move_type")
     assert result.get("social_state_record")
     assert isinstance(result.get("character_mind_records"), list)
-    assert result.get("scene_plan_record", {}).get("selected_scene_function")
+    sp = result.get("scene_plan_record", {})
+    assert sp.get("selected_scene_function")
+    assert sp.get("narrative_scene_function")
+    assert isinstance(sp.get("scene_target"), dict)
+    assert isinstance(sp.get("pressure_target"), dict)
+    assert isinstance(sp.get("target_obligations"), list)
+    assert isinstance(sp.get("actor_directives"), list)
+    assert isinstance(sp.get("dramatic_beats"), list)
+    assert isinstance(sp.get("handover_policy"), dict)
+    assert isinstance(sp.get("continuity_obligation"), dict)
+    assert sp.get("expected_transition_pattern") in {"hard", "soft", "carry_forward", "diagnostics_only"}
+    assert sp.get("semantic_scene_planner_version") == "goc_semantic_scene_planner_v1"
 
 
 @pytest.mark.parametrize(
@@ -77,6 +88,10 @@ def test_golden_semantic_move_and_scene_plan(tmp_path: Path, player_input: str, 
     sp = result.get("scene_plan_record") or {}
     assert sp.get("selected_scene_function") == min_scene_fn
     assert sp.get("selection_source") == "semantic_pipeline_v1"
+    assert sp.get("scene_target", {}).get("target_function")
+    assert sp.get("pressure_target", {}).get("pressure_axis")
+    assert sp.get("dramatic_beats")
+    assert sp.get("dramatic_beats", [{}])[0].get("beat_kind")
     _assert_planner_state(result)
 
 

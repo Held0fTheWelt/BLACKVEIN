@@ -234,7 +234,7 @@ def build_updated_player_local_context(
 
     if not base.get("current_area"):
         scene_af = (scene_affordance_model.get("scene_affordances") or {}) if isinstance(scene_affordance_model, dict) else {}
-        ca = scene_af.get("current_area") or "vallon_living_room"
+        ca = scene_af.get("current_area") or "living_room"
         base.setdefault("current_area", ca)
         base.setdefault("current_location_id", ca)
 

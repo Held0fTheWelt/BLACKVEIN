@@ -1,0 +1,27 @@
+characters:
+  protagonist:
+    voice_principle: "Replace with concise voice rule."
+    diction:
+      prefers:
+        - controlled_sentence
+      avoids:
+        - exposition_dump
+    escalation_arc:
+      polite_opening: "Replace with early restraint."
+      pressure: "Replace with how pressure changes syntax."
+      rupture: "Replace with late-scene leakage."
+  counterpart:
+    voice_principle: "Replace with concise voice rule."
+    diction:
+      prefers:
+        - concrete_countermove
+      avoids:
+        - generic_villainy
+    escalation_arc:
+      polite_opening: "Replace with early restraint."
+      pressure: "Replace with how pressure changes syntax."
+      rupture: "Replace with late-scene leakage."
+
+voice_consistency:
+  avoid_generic_dialogue: true
+  preserve_character_specific_register: true

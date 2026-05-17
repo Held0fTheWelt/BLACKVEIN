@@ -1,0 +1,23 @@
+location:
+  id: bathroom
+  name: "Bathroom"
+  category: adjacent_room
+  playable_access: gated_scene_navigation
+  description: >-
+    A private regrouping space off the hallway, with mirror, water, and enough
+    distance to shift pressure without granting new facts from the living room.
+  room_profile:
+    role: private_regroup
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: bathroom_to_hallway
+        to_place_id: hallway
+        kind: private_room_door
+  inventory_policy: bathroom_fixtures_only
+  inventory_object_ids:
+    - bathroom_mirror
+  sensory_tags: [mirror, water, temporary_retreat]
+  plausible_actions: [look_at, wash_hands, pause, use_toilet, flush_toilet, clean_up, use_light]
+  forbidden_actions: [overhear_precise_living_room_dialogue, discover_unseeded_evidence]

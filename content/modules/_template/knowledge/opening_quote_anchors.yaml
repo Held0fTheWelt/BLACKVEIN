@@ -1,0 +1,26 @@
+opening_quote_anchors:
+  id: template_opening_quote_anchors_v1
+  authority: module_source_quote_anchor_policy
+  authoring_language: en
+
+  purpose: >-
+    Optional short phrase anchors for an opening. Use this file to make source
+    influence reusable without turning the module into a transcript or a second
+    dialogue database.
+
+  source_policy:
+    short_excerpts_only: true
+    prefer_paraphrase_for_dialogue: true
+    must_not:
+      - reproduce_extended_source_dialogue
+      - make_exact_source_phrases_required_for_play
+      - replace_character_voice_with_source_transcription
+
+  anchors:
+    - id: replace_with_short_anchor
+      source_material_id: replace_with_source_id
+      source_hint: "Replace with a bounded source location such as act/page/scene."
+      excerpt: "replace"
+      use_for:
+        - replace_with_pressure_use
+      use_as: "Replace with how this tiny phrase can cue pressure, not dictate dialogue."

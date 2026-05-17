@@ -1,24 +1,48 @@
 scene_affordances:
-  current_area: vallon_living_room
+  current_area: living_room
   inferred_area_policy: residential_apartment
   locations:
-    - id: building_stairwell
-      aliases: ["Treppenhaus", "Fahrstuhl", "Aufzug", "Hausflur", "Gebaeudeflur", "building_stairwell", "stairwell", "elevator hallway"]
+    - id: building_hallway
+      location_ref: locations/building/building_hallway.yaml
+      aliases: ["Hausflur", "Gebaeudeflur", "dunkler Flur", "building_hallway", "building hallway", "elevator hallway"]
       access: gated_scene_navigation
       narrator_detail_policy: establish_entry_or_exit_gate
       privacy: public_common_area
+      entry_sensory_source_ref: locations/building/building_hallway.yaml#location.description
       entry_sensory_detail:
-        de: "Vor der Wohnung liegt der Hausflur mit Treppenhaus und Aufzug; hinter der Tür wartet der Salon."
-        en: "Outside the apartment is the building hallway with stairwell and elevator; beyond the door, the salon waits."
+        de: "Vor der Wohnung liegt ein dunkler Hausflur mit weiteren Türen und einem Aufzug, der nicht kommt; Alain prüft sein Telefon, weil er einen dringenden Anruf erwartet."
+        en: "Outside the apartment is a dark building hallway with other doors and an elevator that does not arrive; Alain checks his phone because he is waiting for an urgent call."
       available_affordances:
         - look_at
         - listen_to
         - move_to
-    - id: vallon_living_room
-      aliases: ["Wohnzimmer", "Salon", "Wohnsalon", "living_room", "salon", "vallon_living_room"]
+        - wait
+      prevented_actions:
+        - call_elevator
+        - enter_elevator
+        - enter_stairwell
+    - id: building_stairwell
+      location_ref: locations/building/building_stairwell.yaml
+      aliases: ["Treppenhaus", "Stiegenhaus", "Treppe", "building_stairwell", "stairwell", "stairs"]
+      access: prevented_currently
+      narrator_detail_policy: establish_prevented_exit_pressure
+      privacy: public_common_area
+      entry_sensory_source_ref: locations/building/building_stairwell.yaml#location.description
+      entry_sensory_detail:
+        de: "Das Treppenhaus bleibt als Ausweg spürbar, ist in diesem Moment aber nicht erreichbar; Alain hat kein Netz und wartet auf einen dringenden Anruf."
+        en: "The stairwell remains present as an exit pressure, but it is not reachable in this moment; Alain has no signal and is waiting for an urgent call."
+      available_affordances:
+        - look_at
+        - listen_to
+      prevented_actions:
+        - enter_stairwell
+    - id: living_room
+      location_ref: locations/appartment_vallon/living_room.yaml
+      aliases: ["Wohnzimmer", "Salon", "Wohnsalon", "living_room", "salon", "living_room"]
       access: present
       narrator_detail_policy: establish_return
       privacy: semiprivate
+      entry_sensory_source_ref: locations/appartment_vallon/living_room.yaml#location.description
       entry_sensory_detail:
         de: "Der Salon empfängt die Anspannung zurück; Tulpen, Kunstbände und vier Stühle warten."
         en: "The salon receives the tension back; tulips, art books, and four chairs are waiting."
@@ -28,10 +52,12 @@ scene_affordances:
         - move_to
         - sit_down
     - id: hallway
+      location_ref: locations/appartment_vallon/hallway.yaml
       aliases: ["Flur", "kleiner Flur", "Gang", "Innenflur", "hallway", "inner hallway"]
       access: adjacent
       narrator_detail_policy: establish_entry
       privacy: semiprivate
+      entry_sensory_source_ref: locations/appartment_vallon/hallway.yaml#location.description
       entry_sensory_detail:
         de: "Der kleine Flur sammelt die Türen zur Küche, zum Bad, zur Vorratskammer, zum Arbeitszimmer und zu den verschlossenen Schlafzimmern."
         en: "The small hallway gathers the doors to the kitchen, bathroom, pantry, study, and the locked bedrooms."
@@ -40,20 +66,24 @@ scene_affordances:
         - listen_to
         - move_to
     - id: bathroom
+      location_ref: locations/appartment_vallon/bathroom.yaml
       aliases: ["Bad", "Badezimmer", "Toilette", "bathroom"]
       access: offscreen_private
       narrator_detail_policy: offscreen_consequence
       privacy: private
+      entry_sensory_source_ref: locations/appartment_vallon/bathroom.yaml#location.description
       entry_sensory_detail:
         de: "Das Bad liegt hinter dem kleinen Flur; Spiegel, Wasser und gedämpfte Stimmen geben kurz Abstand."
         en: "The bathroom sits off the small hallway; mirror, water, and muffled voices give a brief distance."
       available_affordances:
         - look_at
     - id: kitchen
+      location_ref: locations/appartment_vallon/kitchen.yaml
       aliases: ["Küche", "Kueche", "kitchen"]
       access: attached_offscreen
       narrator_detail_policy: offscreen_consequence
       privacy: semiprivate
+      entry_sensory_source_ref: locations/appartment_vallon/kitchen.yaml#location.description
       entry_sensory_detail:
         de: "Die Küche ist vom Salon aus angeschlossen und über den kleinen Flur erreichbar; Gläser klingen leise."
         en: "The kitchen is attached to the salon and also reachable through the small hallway; glasses clink faintly."
@@ -63,10 +93,12 @@ scene_affordances:
         - move_to
         - take
     - id: pantry
+      location_ref: locations/appartment_vallon/pantry.yaml
       aliases: ["Vorratskammer", "Speisekammer", "Abstellkammer", "pantry", "small pantry"]
       access: offscreen_service
       narrator_detail_policy: offscreen_consequence
       privacy: semiprivate
+      entry_sensory_source_ref: locations/appartment_vallon/pantry.yaml#location.description
       entry_sensory_detail:
         de: "Die kleine Vorratskammer ist eng und zweckmäßig; Regale, Vorräte und Türangeln begrenzen jede Fluchtphantasie."
         en: "The small pantry is narrow and practical; shelves, supplies, and hinges limit any fantasy of escape."
@@ -75,10 +107,12 @@ scene_affordances:
         - listen_to
         - take
     - id: study
+      location_ref: locations/appartment_vallon/study.yaml
       aliases: ["Arbeitszimmer", "Büro", "Buero", "study", "office", "work room"]
       access: offscreen_private
       narrator_detail_policy: offscreen_consequence
       privacy: private_host_space
+      entry_sensory_source_ref: locations/appartment_vallon/study.yaml#location.description
       entry_sensory_detail:
         de: "Das Arbeitszimmer liegt am Flur; ein Schreibtisch und private Ordnung machen den Raum sofort weniger gastlich."
         en: "The study sits off the hallway; a desk and private order make the room immediately less hospitable."
@@ -88,16 +122,34 @@ scene_affordances:
         - move_to
   objects:
     - id: window
+      object_ref: objects/appartment_vallon/living_room/window.yaml
       aliases: ["Fenster", "window"]
       affordances: ["look_at"]
+      perception_source_ref: objects/appartment_vallon/living_room/window.yaml#object.description
       perception_detail:
         de: "Durch das Fenster fällt das Abendlicht auf die Straße; die Stadt geht ihren gewohnten Lauf."
         en: "Through the window, evening light falls on the street; the city moves at its usual pace."
       consequence_policy: perception_result
     - id: television
+      object_ref: objects/appartment_vallon/living_room/television.yaml
       aliases: ["Fernseher", "TV", "Fernsehgerät", "Fernsehapparat", "television"]
       affordances: ["activate", "deactivate", "look_at"]
+      perception_source_ref: objects/appartment_vallon/living_room/television.yaml#object.description
       perception_detail:
         de: "Der Fernseher steht unbeachtet in der Ecke; sein schwarzer Bildschirm spiegelt den Raum."
         en: "The television stands unnoticed in the corner; its dark screen reflects the room."
       consequence_policy: object_state_change
+    - id: elevator
+      object_ref: objects/building/elevator.yaml
+      aliases: ["Fahrstuhl", "Aufzug", "elevator", "lift"]
+      access: prevented_currently
+      affordances: ["look_at", "open", "activate"]
+      prevented_actions:
+        - call_elevator
+        - enter_elevator
+        - open_elevator
+      perception_source_ref: objects/building/elevator.yaml#object.description
+      perception_detail:
+        de: "Der Aufzug bleibt aus; Alain hat kein Netz und wartet auf einen dringenden Anruf."
+        en: "The elevator does not arrive; Alain has no signal and is waiting for an urgent call."
+      consequence_policy: prevented_not_forbidden

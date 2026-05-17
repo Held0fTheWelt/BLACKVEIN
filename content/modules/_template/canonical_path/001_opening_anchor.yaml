@@ -1,0 +1,34 @@
+canonical_path_step:
+  sequence: 1
+  id: opening_001_anchor
+  path_id: template_opening_canonical_path
+  name: "001 - Opening anchor"
+  mode: narrator_only_opening
+
+  location_ref:
+    location_id: opening_anchor
+    source: locations/opening/opening_anchor.yaml
+    use_fields:
+      - description
+      - entrances_exits
+      - sensory_tags
+
+  path_point:
+    present:
+      named_characters: []
+      groups:
+        - id: replace_with_group_id
+          anchor_location_id: opening_anchor
+    narrator_tasks:
+      - establish_opening_place_from_location_ref
+      - establish_first_pressure_seed
+    must_not:
+      - duplicate_location_description
+      - final_moral_verdict
+      - exposition_dump
+
+  next_point:
+    step_id: opening_002_pressure_turn
+    handoff: "Replace with how the opening image turns into action or pressure."
+    carry_forward:
+      - replace_with_fact_to_carry

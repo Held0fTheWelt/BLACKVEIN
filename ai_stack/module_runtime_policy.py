@@ -110,7 +110,7 @@ def _read_locations(module_dir: Path) -> dict[str, Any]:
         "locations",
     )
     loc_dir = module_dir / "locations"
-    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml", "apartment_objects.yaml"}
+    reserved = {"index.yaml", "locations.yaml", "apartment_layout.yaml"}
     merged: dict[str, Any] = {}
     for row in locations.get("places") if isinstance(locations.get("places"), list) else []:
         if not isinstance(row, dict):
@@ -133,6 +133,40 @@ def _read_locations(module_dir: Path) -> dict[str, Any]:
         locations = dict(locations)
         locations["places"] = list(merged.values())
     return locations
+
+
+def _read_objects(module_dir: Path) -> dict[str, Any]:
+    objects = _unwrap(
+        _read_first_yaml(
+            [
+                module_dir / "objects" / "index.yaml",
+                module_dir / "objects" / "objects.yaml",
+                module_dir / "objects.yaml",
+            ]
+        ),
+        "objects",
+    )
+    obj_dir = module_dir / "objects"
+    reserved = {"index.yaml", "objects.yaml"}
+    object_documents: dict[str, Any] = {}
+    if obj_dir.is_dir():
+        for path in sorted(obj_dir.rglob("*.yaml")):
+            if path.name in reserved:
+                continue
+            payload = _read_yaml(path)
+            row = payload.get("object") or payload.get("object_document")
+            if not isinstance(row, dict):
+                continue
+            oid = str(row.get("id") or path.stem).strip()
+            if not oid:
+                continue
+            object_doc = dict(row)
+            object_doc.setdefault("source_ref", path.relative_to(module_dir).as_posix())
+            object_documents[oid] = object_doc
+    if object_documents:
+        objects = dict(objects)
+        objects["object_documents"] = object_documents
+    return objects
 
 
 def _unwrap(payload: dict[str, Any], key: str) -> dict[str, Any]:
@@ -215,11 +249,33 @@ def _object_model(
     objects_payload: dict[str, Any],
     locale_payload: dict[str, Any],
 ) -> dict[str, Any]:
-    objects_doc = _unwrap(objects_payload, "apartment_objects")
+    objects_doc = _unwrap(objects_payload, "objects")
     locale = _unwrap(locale_payload, "scene_affordances")
     by_id: dict[str, Any] = {}
+    object_documents = (
+        objects_doc.get("object_documents")
+        if isinstance(objects_doc.get("object_documents"), dict)
+        else {}
+    )
+    for object_id, doc in object_documents.items():
+        if not isinstance(doc, dict):
+            continue
+        oid = str(doc.get("id") or object_id or "").strip()
+        if not oid:
+            continue
+        placement = doc.get("placement_location_id") or doc.get("placement_room_id")
+        by_id.setdefault(oid, {}).update(
+            _json_safe(
+                {
+                    "id": oid,
+                    "placement_location_id": placement,
+                    "placement_room_id": placement,
+                    "materiality": doc.get("description"),
+                    **doc,
+                }
+            )
+        )
     for source in (
-        objects_doc.get("objects") if isinstance(objects_doc.get("objects"), list) else [],
         locale.get("objects") if isinstance(locale.get("objects"), list) else [],
     ):
         for row in source:
@@ -230,7 +286,7 @@ def _object_model(
                 continue
             by_id.setdefault(oid, {}).update(_json_safe(row))
     return {
-        "default_placement_room_id": objects_doc.get("default_placement_room_id"),
+        "default_placement_room_id": objects_doc.get("default_placement_location_id"),
         "objects": by_id,
     }
 
@@ -449,20 +505,14 @@ def load_module_runtime_policy(
     )
     layout = _read_first_yaml(
             [
+                module_dir / "locations" / "appartment_vallon" / "apartment_layout.yaml",
                 module_dir / "locations" / "appartment" / "apartment_layout.yaml",
                 module_dir / "locations" / "apartment" / "apartment_layout.yaml",
                 module_dir / "locations" / "apartment_layout.yaml",
                 module_dir / "apartment_layout.yaml",
             ]
     )
-    objects = _read_first_yaml(
-            [
-                module_dir / "locations" / "appartment" / "apartment_objects.yaml",
-                module_dir / "locations" / "apartment" / "apartment_objects.yaml",
-                module_dir / "locations" / "apartment_objects.yaml",
-                module_dir / "apartment_objects.yaml",
-            ]
-    )
+    objects = _read_objects(module_dir)
     locations = _read_locations(module_dir)
     actor_pressure = _read_first_yaml(
         [
@@ -580,7 +630,7 @@ def load_module_runtime_policy(
         ("character_documents", character_documents),
         ("characters", characters),
         ("apartment_layout", layout),
-        ("apartment_objects", objects),
+        ("objects", objects),
         ("locations", locations),
         ("actor_pressure_profiles", actor_pressure),
         ("phase_beat_policy", phase_policy),

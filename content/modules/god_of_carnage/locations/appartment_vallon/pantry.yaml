@@ -1,0 +1,23 @@
+location:
+  id: pantry
+  name: "Small pantry"
+  category: service_storage
+  playable_access: gated_scene_navigation
+  description: >-
+    A narrow service-storage room off the hallway, usable only at domestic
+    scale and never as a source of decisive plot material.
+  room_profile:
+    role: service_storage
+    connected_place_ids:
+      - hallway
+  entrances_exits:
+    exits:
+      - id: pantry_to_hallway
+        to_place_id: hallway
+        kind: service_closet_door
+  inventory_policy: optional_minor_inventory
+  inventory_object_ids:
+    - pantry_shelves
+  sensory_tags: [shelves, domestic_storage, narrow_pause]
+  plausible_actions: [look_at, take_minor_service_item]
+  forbidden_actions: [find_major_plot_object, hide_without_consequence]

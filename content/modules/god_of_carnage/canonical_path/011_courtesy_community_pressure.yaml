@@ -1,0 +1,58 @@
+canonical_path_step:
+  sequence: 11
+  id: opening_011_courtesy_community_pressure
+  path_id: goc_opening_canonical_path
+  name: "011 - Courtesy and community pressure"
+  mode: playable_opening_civility
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions, sensory_tags]
+  character_refs:
+    - characters/veronique.yaml
+    - characters/michel.yaml
+    - characters/annette.yaml
+    - characters/alain.yaml
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+    - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
+    - knowledge/opening_quote_anchors.yaml#quote_our_kid
+
+  theme_threads:
+    - civility_as_performance
+    - community_self_image
+    - parental_identification_without_surrender
+  play_model:
+    estimated_minutes: 3
+    interaction_density: medium
+    player_agency: "thank, refuse thanks, agree in principle, expose the performance"
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    action_beats:
+      - someone_names_the_meeting_as_better_than_adversarial_process
+      - host_side_frames_the_room_as_community
+      - guest_side_can_concede_parental_relation_without_accepting_host_morality
+    player_windows:
+      - accept_the_community_frame
+      - answer_with_formal_politeness_only
+      - ask_whether_the_statement_is_truly_shared
+      - let_silence_make_the_frame_uncomfortable
+    narrator_tasks:
+      - make_courtesy_do_dramatic_work
+      - keep_every_spoken_line_short
+      - show_who_benefits_from_the_community_frame
+    must_not:
+      - turn_into_theme_lecture
+      - let_npc_monologue_define_the_player
+      - resolve_civility_tension
+
+  next_point:
+    step_id: opening_012_tulips_and_hospitality
+    handoff: "Use safe hospitality objects to delay conflict one last time."
+    carry_forward:
+      - civility_frame_active
+      - community_language_suspect
+      - guest_concession_possible_but_limited

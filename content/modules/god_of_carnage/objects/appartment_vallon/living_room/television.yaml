@@ -1,0 +1,18 @@
+object:
+  id: television
+  name: "Television"
+  category: domestic_attention_object
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    Flat panel in a corner; reflective black when off.
+  interaction_notes:
+    activate: "State change object; may redirect attention from dialogue."
+    deactivate: "Restores quiet domestic baseline."
+  risk_tags:
+    - attention_diversion
+  plausible_actions: [look_at, activate, deactivate]
+  forbidden_actions: [invent_broadcast_content_without_scene_gate]
+  symbolic_roles:
+    - attention_diversion
+    - status_surface

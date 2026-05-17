@@ -16,7 +16,7 @@ contract_version: "0.2.0"
 # Content specification
 content:
   # Duration and structure
-  duration_turns_estimated: "12-15"
+  duration_turns_estimated: "20-35"
   scene_phases: 5
 
   # Player roles and party composition
@@ -44,9 +44,40 @@ files:
   - characters/relationships.yaml           # Relationship axes and dynamics
   - characters/actor_pressure_profiles.yaml # Per-character pressure (English)
   - characters/character_voice.yaml         # Character voice and tone guidance
+  - canonical_path/index.yaml               # Primary directed story spine
+  - canonical_path/001_parc_montsouris_edge.yaml
+  - canonical_path/002_argument_stick_blow.yaml
+  - canonical_path/003_bicycle_disappearance.yaml
+  - canonical_path/004_dark_building_hallway.yaml
+  - canonical_path/005_living_room_handover.yaml
+  - canonical_path/006_apartment_entry_greetings.yaml
+  - canonical_path/007_living_room_arrangement.yaml
+  - canonical_path/008_statement_on_table.yaml
+  - canonical_path/009_wording_dispute_armed_carrying.yaml
+  - canonical_path/010_injury_detail_dental_consequence.yaml
+  - canonical_path/011_courtesy_community_pressure.yaml
+  - canonical_path/012_tulips_and_hospitality.yaml
+  - canonical_path/013_first_playable_courtesy_gap.yaml
+  - canonical_path/014_player_response_ripple.yaml
+  - canonical_path/015_phone_exit_pressure.yaml
+  - canonical_path/016_opening_sustained_play_handoff.yaml
+  - objects/index.yaml                         # Object index; apartment objects are grouped by location subfolders
+  - objects/opening/bicycle_rack.yaml
+  - objects/appartment_vallon/living_room/coffee_table.yaml
+  - objects/appartment_vallon/living_room/dining_table.yaml
+  - objects/appartment_vallon/living_room/window.yaml
+  - objects/appartment_vallon/living_room/television.yaml
+  - objects/appartment_vallon/hallway/hallway_doors.yaml
+  - objects/appartment_vallon/kitchen/coffee_machine.yaml
+  - objects/appartment_vallon/kitchen/glasses.yaml
+  - objects/appartment_vallon/bathroom/bathroom_mirror.yaml
+  - objects/appartment_vallon/pantry/pantry_shelves.yaml
+  - objects/appartment_vallon/study/study_desk.yaml
+  - objects/building/apartment_door.yaml
+  - objects/building/elevator.yaml
   - escalation_axes.yaml         # Escalation dimensions and measurement
   - scenes.yaml                  # Coarse phase layer
-  - scene_graph.yaml             # Primary authored scene-node graph
+  - scene_graph.yaml             # Runtime/compatibility scene-node index; canonical_path is the directed spine
   - transitions.yaml             # Scene transition conditions
   - triggers.yaml                # Trigger definitions and recognition set
   - endings.yaml                 # End state conditions and closure rules
@@ -59,29 +90,27 @@ files:
   - locale/model_directives/session_output_language_de.md
   - locale/model_directives/session_output_language_en.md
   - locations/index.yaml                      # Location index and assignment policy
-  - locations/appartment/apartment_layout.yaml           # Rooms, adjacency, visibility, privacy, offscreen rules (English)
-  - locations/appartment/apartment_objects.yaml          # Object placement and materiality (English; ids align with locale affordances)
+  - locations/appartment_vallon/apartment_layout.yaml           # Rooms, adjacency, visibility, privacy, offscreen rules (English)
   - locations/opening/park_edge.yaml
   - locations/opening/basketball_court.yaml
   - locations/opening/playground.yaml
-  - locations/opening/bicycle_rack.yaml
-  - locations/opening/offscreen_parent_world.yaml
+  - locations/building/building_hallway.yaml
   - locations/building/building_stairwell.yaml
-  - locations/appartment/apartment_entry.yaml
-  - locations/appartment/vallon_living_room.yaml
-  - locations/appartment/coffee_table.yaml
-  - locations/appartment/hallway.yaml
-  - locations/appartment/kitchen.yaml
-  - locations/appartment/bathroom.yaml
-  - locations/appartment/pantry.yaml
-  - locations/appartment/study.yaml
-  - locations/appartment/bedroom_one_locked.yaml
-  - locations/appartment/bedroom_two_locked.yaml
-  - locations/appartment/window.yaml
+  - locations/appartment_vallon/apartment_entry.yaml
+  - locations/appartment_vallon/living_room.yaml
+  - locations/appartment_vallon/hallway.yaml
+  - locations/appartment_vallon/kitchen.yaml
+  - locations/appartment_vallon/bathroom.yaml
+  - locations/appartment_vallon/pantry.yaml
+  - locations/appartment_vallon/study.yaml
+  - locations/appartment_vallon/bedroom_one_locked.yaml
+  - locations/appartment_vallon/bedroom_two_locked.yaml
   - phase_beat_policy.yaml             # Allowed beats and forbidden early escalations (English)
   - knowledge/premise_and_backstory.yaml
+  - knowledge/modularity_policy.yaml
   - knowledge/narrator_sensory_palette.yaml
   - knowledge/opening_scene_sequence.yaml
+  - knowledge/opening_quote_anchors.yaml
   - knowledge/hard_forbidden_rules.yaml
   - knowledge/content_access_policy.yaml
 

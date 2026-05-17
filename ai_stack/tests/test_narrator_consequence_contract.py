@@ -106,7 +106,7 @@ def test_move_to_bathroom_offscreen_transition_type():
     assert lct["to_area"] == "bathroom"
     assert lct["new_area_established"] is True
     assert lct["location_found"] is True
-    assert lct["from_area"] == "vallon_living_room"
+    assert lct["from_area"] == "living_room"
 
 
 def test_move_to_hallway_adjacent_transition_type():
@@ -361,7 +361,7 @@ def test_updated_context_after_kitchen_move():
 
 
 def test_updated_context_perception_does_not_change_area():
-    prior = {"current_area": "vallon_living_room", "available_affordances": ["look_at"]}
+    prior = {"current_area": "living_room", "available_affordances": ["look_at"]}
     lct = build_local_context_transition(
         player_action_frame=_frame("look_at", "window", "window"),
         affordance_resolution=_aff("allowed"),
@@ -381,7 +381,7 @@ def test_updated_context_perception_does_not_change_area():
         narrator_consequence_plan=ncp,
         scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
     )
-    assert uplc["current_area"] == "vallon_living_room"
+    assert uplc["current_area"] == "living_room"
     assert uplc.get("last_perception_target") == lct.get("target_id") or uplc.get("last_perception_result") is not None
 
 

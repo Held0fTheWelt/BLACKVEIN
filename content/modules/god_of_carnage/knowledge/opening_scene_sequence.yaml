@@ -1,12 +1,24 @@
-# Opening scene sequence — English module blueprint (dramatic functions, contracts, events).
-# Complements direction/opening_sequence.yaml (ADR-0035 two-part handover and narrator bar).
+# Opening scene sequence -- English runtime contract.
+# This file defines coverage and event semantics. It references canonical_path/
+# and locations/ instead of owning place descriptions.
 
 opening_scene_sequence:
   id: goc_opening_sequence_v1
   authority: module_authorial_blueprint
   references:
     - direction/opening_sequence.yaml
+    - canonical_path/index.yaml
+    - knowledge/opening_quote_anchors.yaml
+    - knowledge/modularity_policy.yaml
     - docs/ADR/adr-0035-story-opening-economy-and-warmup.md
+
+  reference_policy:
+    location_descriptions_owned_by: locations/
+    directed_beats_owned_by: canonical_path/
+    this_file_owns:
+      - opening_contract
+      - runtime_event_ids
+      - coverage_requirements
 
   narration_mode:
     type: scenic_dramatization
@@ -30,78 +42,104 @@ opening_scene_sequence:
       - let_npcs_explain_the_opening_premise
       - force_the_player_character_to_speak
       - force_the_player_character_to_feel_or_decide
+      - duplicate_location_descriptions
 
   narrative_events:
     - id: event_01_triggering_incident
       title: "The triggering incident"
       narrative_function: show_cause
+      canonical_path_refs:
+        - canonical_path/001_parc_montsouris_edge.yaml#opening_001_parc_montsouris_edge
+        - canonical_path/002_argument_stick_blow.yaml#opening_002_argument_stick_blow
+        - canonical_path/003_bicycle_disappearance.yaml#opening_003_bicycle_disappearance
+      location_refs:
+        - locations/opening/park_edge.yaml
+        - locations/opening/basketball_court.yaml
+        - locations/opening/playground.yaml
+      object_refs:
+        - objects/opening/bicycle_rack.yaml
       establishes:
         - triggering_incident
       narrator_task: >-
-        Dramatize the event that makes the meeting necessary as a concrete prologue at the edge
-        of Parc Montsouris, beside the Boulevard Jourdan basketball court, not as legal exposition.
+        Dramatize the referenced canonical path beats as concrete prologue
+        action. Pull all place and background texture from the location refs.
       must_show:
-        - a dozen boys gathered near the basketball court
-        - gray autumn sky, bare trees, sloping lawns, winding paths, a playground, bicycles, and ordinary Paris background life
-        - a hint of the park's depth: lake, old trees, RER/Cité Universitaire edge, or student/public leisure nearby
-        - two boys playing while the others talk excitedly at the edge
-        - the argument between the two boys
-        - one boy grabbing a stick
-        - the other boy calling after him without the words being audible
-        - the boy with the stick stopping, turning back, and striking
-        - the injured boy doubling over
-        - the other boys helping the injured boy up and shouting after the attacker
-        - the attacker kicking over a bicycle before disappearing
-        - why adults can no longer ignore it
+        - canonical_path_steps_001_to_003
+        - location_refs_used_for_public_park_context
+        - injury_and_small_public_damage
+        - no_final_moral_verdict
       must_not:
-        - assign final moral blame
-        - over-explain motives
-        - turn the scene into courtroom summary
-        - reduce the incident to a one-sentence backstory report
+        - assign_final_moral_blame
+        - over_explain_motives
+        - turn_the_scene_into_courtroom_summary
+        - reduce_the_incident_to_one_sentence_backstory
+        - duplicate_location_descriptions
 
     - id: event_02_adult_consequence
       title: "The incident reaches the adults"
       narrative_function: consequence_bridge
+      canonical_path_refs:
+        - canonical_path/003_bicycle_disappearance.yaml#opening_003_bicycle_disappearance
+        - canonical_path/004_dark_building_hallway.yaml#opening_004_dark_building_hallway
       establishes:
         - adult_consequence
         - reason_for_meeting
       narrator_task: >-
-        Show how the park incident moves from the children's world into the adult world.
+        Bridge from the children's incident to the adult appointment without
+        replaying the place description.
       must_show:
-        - the need for an adult meeting
-        - the attempt to remain civilized
-        - the first pressure beneath politeness
-        - the practical reason the parents have to discuss the injury rather than dismissing it as rough play
+        - need_for_adult_meeting
+        - attempt_to_remain_civilized
+        - first_pressure_beneath_politeness
 
     - id: event_03_arrival_threshold
       title: "Arrival and threshold"
       narrative_function: move_to_stage
-      location_id: building_stairwell
+      location_id: building_hallway
+      canonical_path_refs:
+        - canonical_path/004_dark_building_hallway.yaml#opening_004_dark_building_hallway
+      location_refs:
+        - locations/building/building_hallway.yaml
+        - locations/building/building_stairwell.yaml
+      object_refs:
+        - objects/building/elevator.yaml
       establishes: []
       narrator_task: >-
-        Bring the guests from the building stairwell/elevator hallway into the apartment and
-        make the social threshold visible.
+        Bring the guests through the referenced building threshold and make the
+        social threshold visible.
       must_show:
-        - stairwell/elevator hallway as the common building threshold
-        - direct transition from the building threshold into the living room
-        - politeness as performance
-        - the discomfort of becoming guests in a conflict
+        - building_hallway_location_ref_used
+        - prevented_exit_policy_used
+        - direct_transition_to_living_room
+        - politeness_as_performance
+        - discomfort_of_becoming_guests_in_conflict
 
     - id: event_04_apartment_as_stage
       title: "The apartment as social stage"
       narrative_function: establish_play_space
-      location_id: vallon_living_room
+      location_id: living_room
+      canonical_path_refs:
+        - canonical_path/005_living_room_handover.yaml#opening_005_living_room_handover
+        - canonical_path/006_apartment_entry_greetings.yaml#opening_006_apartment_entry_greetings
+        - canonical_path/007_living_room_arrangement.yaml#opening_007_living_room_arrangement
+      location_refs:
+        - locations/appartment_vallon/apartment_entry.yaml
+        - locations/appartment_vallon/living_room.yaml
+        - locations/appartment_vallon/apartment_layout.yaml
+      object_refs:
+        - objects/appartment_vallon/living_room/coffee_table.yaml
+        - objects/appartment_vallon/living_room/dining_table.yaml
+        - objects/appartment_vallon/living_room/window.yaml
       establishes:
         - apartment_as_social_stage
       narrator_task: >-
-        Make the room playable: spatially clear, socially charged, and full of usable details.
+        Make the first playable room spatially clear by using the referenced
+        room, topology, and object authority.
       must_show:
-        - seating arrangement
-        - important objects
-        - the host/guest power relation
-        - the controlled surface of the room
-        - the kitchen attached to the living room
-        - the small hallway leading to the kitchen, bathroom, pantry, study, and locked bedrooms
+        - first_playable_location_ref_used
+        - topology_ref_used
+        - object_refs_used
+        - host_guest_power_relation
 
     - id: event_05_role_anchor
       title: "Selected player role anchor"
@@ -109,8 +147,8 @@ opening_scene_sequence:
       establishes:
         - selected_player_role_presence
       narrator_task: >-
-        Place the selected human player character inside the room without speaking or deciding
-        for them.
+        Place the selected human player character inside the room without
+        speaking or deciding for them.
       role_variants:
         annette_reille:
           must_show:
@@ -130,14 +168,66 @@ opening_scene_sequence:
     - id: event_06_first_playable_moment
       title: "First playable moment"
       narrative_function: handover_to_play
+      canonical_path_refs:
+        - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
       establishes:
         - first_playable_moment
       narrator_task: >-
-        End the opening at a concrete playable moment, with the social room established and the
-        player free to choose the first action.
+        End the opening at a concrete playable moment, with the social room
+        established and the player free to choose the first action.
       must_show:
-        - who is present
-        - where the player character is
-        - what the immediate social pressure is
-        - what kind of actions are possible
+        - who_is_present
+        - where_the_player_character_is
+        - immediate_social_pressure
+        - possible_action_kinds
       handover_to_scene_phase: phase_1
+
+  playable_opening_extension:
+    id: goc_opening_playable_extension_v1
+    purpose: >-
+      Keep the opening playable for at least twenty minutes without expanding
+      this file into a second scene database. Directed beats live in
+      canonical_path/, place facts live in locations/, object truth lives in
+      objects/, and source phrase limits live in opening_quote_anchors.
+    duration:
+      minimum_minutes: 20
+      target_minutes: 30
+      stretch_minutes: 40
+    canonical_path_refs:
+      - canonical_path/006_apartment_entry_greetings.yaml#opening_006_apartment_entry_greetings
+      - canonical_path/007_living_room_arrangement.yaml#opening_007_living_room_arrangement
+      - canonical_path/008_statement_on_table.yaml#opening_008_statement_on_table
+      - canonical_path/009_wording_dispute_armed_carrying.yaml#opening_009_wording_dispute_armed_carrying
+      - canonical_path/010_injury_detail_dental_consequence.yaml#opening_010_injury_detail_dental_consequence
+      - canonical_path/011_courtesy_community_pressure.yaml#opening_011_courtesy_community_pressure
+      - canonical_path/012_tulips_and_hospitality.yaml#opening_012_tulips_and_hospitality
+      - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
+      - canonical_path/014_player_response_ripple.yaml#opening_014_player_response_ripple
+      - canonical_path/015_phone_exit_pressure.yaml#opening_015_phone_exit_pressure
+      - canonical_path/016_opening_sustained_play_handoff.yaml#opening_016_opening_sustained_play_handoff
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_armed
+      - knowledge/opening_quote_anchors.yaml#quote_carrying
+      - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+      - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
+      - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+      - knowledge/opening_quote_anchors.yaml#quote_root_canal
+      - knowledge/opening_quote_anchors.yaml#quote_observation_period
+    active_threads:
+      - statement_wording
+      - dental_consequence
+      - hospitality_delay
+      - guest_exit_pressure
+      - spouse_alignment
+      - civility_as_performance
+    player_action_windows:
+      - observe_or_hold_silence
+      - answer_or_refuse_courtesy
+      - challenge_or_soften_statement_wording
+      - ask_about_injury
+      - signal_spouse_alignment_or_distance
+      - attempt_pause_or_exit_with_consequence
+    handoff_rule: >-
+      Continue phase_1 until a substantive disagreement is earned by player or
+      NPC action. Do not advance to phase_2 simply because all opening facts
+      have been mentioned.

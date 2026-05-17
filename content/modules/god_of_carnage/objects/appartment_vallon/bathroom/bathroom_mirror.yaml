@@ -1,0 +1,16 @@
+object:
+  id: bathroom_mirror
+  name: "Bathroom mirror"
+  category: private_perception_surface
+  placement_location_id: bathroom
+  playable_access: perception_only
+  description: >-
+    A private reflective surface that gives distance without new information.
+  interaction_notes:
+    look_at: "Perception-only; does not reveal offscreen dialogue."
+  risk_tags:
+    - isolation
+  plausible_actions: [look_at]
+  forbidden_actions: [reveal_offscreen_dialogue]
+  symbolic_roles:
+    - self_exposure_surface

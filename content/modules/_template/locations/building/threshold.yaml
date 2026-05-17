@@ -1,0 +1,21 @@
+location:
+  id: threshold
+  name: "Building Threshold"
+  category: entry_exit_route
+  playable_access: gated_scene_navigation
+  description: >-
+    Replace with the corridor, stairwell, porch, lobby, or exterior threshold
+    that leads into the main playable space.
+  room_profile:
+    role: common_threshold
+    connected_place_ids:
+      - main_room
+  entrances_exits:
+    exits:
+      - id: threshold_to_main_room
+        to_place_id: main_room
+        kind: entry_threshold
+  inventory_policy: sparse_threshold
+  sensory_tags: [threshold_sound, arrival_pressure]
+  plausible_actions: [listen_to, wait, enter_room, attempt_exit]
+  forbidden_actions: [summon_unestablished_bystanders]

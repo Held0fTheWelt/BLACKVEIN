@@ -1,0 +1,17 @@
+object:
+  id: study_desk
+  name: "Study desk"
+  category: private_work_surface
+  placement_location_id: study
+  playable_access: privacy_gated_object
+  description: >-
+    Private work surface with papers and household order.
+  interaction_notes:
+    look_at: "May establish privacy pressure."
+    open: "Private documents require a scene gate."
+  risk_tags:
+    - privacy_boundary
+  plausible_actions: [look_at]
+  forbidden_actions: [open_private_documents_without_scene_gate]
+  symbolic_roles:
+    - private_order

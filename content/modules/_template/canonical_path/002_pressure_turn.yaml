@@ -1,0 +1,41 @@
+canonical_path_step:
+  sequence: 2
+  id: opening_002_pressure_turn
+  path_id: template_opening_canonical_path
+  name: "002 - Pressure turn"
+  mode: narrator_only_opening
+
+  location_ref:
+    location_id: opening_anchor
+    source: locations/opening/opening_anchor.yaml
+    use_fields:
+      - description
+      - plausible_actions
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#replace_with_short_anchor
+  theme_threads:
+    - replace_with_opening_theme_thread
+  play_model:
+    estimated_minutes: 3
+    interaction_density: low_to_medium
+    player_agency: "Replace with the action range this beat should allow."
+
+  path_point:
+    action_beats:
+      - replace_with_first_visible_action
+      - replace_with_pressure_change
+      - replace_with_consequence_that_makes_main_scene_necessary
+    player_windows:
+      - replace_with_optional_observation_or_gesture
+    narrator_tasks:
+      - keep_action_causal_and_visible
+    must_not:
+      - duplicate_location_description
+      - unseeded_witness
+      - hidden_motive_as_fact
+
+  next_point:
+    step_id: opening_003_handover_to_play
+    handoff: "Replace with the bridge into the playable location."
+    carry_forward:
+      - replace_with_unresolved_pressure

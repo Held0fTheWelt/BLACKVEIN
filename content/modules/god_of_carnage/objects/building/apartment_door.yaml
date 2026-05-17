@@ -1,0 +1,17 @@
+object:
+  id: apartment_door
+  name: "Apartment door"
+  category: threshold_object
+  placement_location_id: building_hallway
+  playable_access: gated_threshold
+  description: >-
+    Apartment door between the dark common building hallway and the living room threshold.
+  interaction_notes:
+    open: "Entry or exit must stay tied to scene pressure."
+  risk_tags:
+    - exit_pressure
+  plausible_actions: [look_at, open, close, wait_at]
+  forbidden_actions: [access_private_apartment_without_scene_gate]
+  symbolic_roles:
+    - threshold_surface
+    - departure_surface

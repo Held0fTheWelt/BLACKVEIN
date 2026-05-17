@@ -135,7 +135,7 @@ class AffordanceResolutionContract:
     def requires_narrator(self) -> bool:
         if self.requires_clarification:
             return True
-        return self.status in {"allowed", "allowed_offscreen", "partial"}
+        return self.status in {"allowed", "allowed_offscreen", "partial", "prevented"}
 
     @property
     def allows_npc_reaction(self) -> bool:

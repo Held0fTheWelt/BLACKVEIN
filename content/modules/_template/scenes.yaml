@@ -1,0 +1,57 @@
+scene_phases:
+  phase_1:
+    id: phase_1
+    name: "Polite Opening"
+    sequence: 1
+    description: "Replace with the contained opening pressure."
+    content_focus:
+      - establish_room
+      - establish_roles
+      - surface_civility
+    engine_tasks:
+      - maintain_civility
+      - introduce_pressure_without_verdict
+    active_triggers: []
+    enforced_constraints:
+      - no_early_rupture
+    turn_estimate: "2-3"
+    exit_condition: "A first substantive disagreement or pressure marker appears."
+
+  phase_2:
+    id: phase_2
+    name: "Pressure"
+    sequence: 2
+    description: "Replace with the phase where surface order starts to fail."
+    content_focus:
+      - test_accounts
+      - reveal_asymmetry
+      - shift_alliances
+    engine_tasks:
+      - track_relationship_pressure
+      - allow_controlled_escalation
+    active_triggers:
+      - contradiction
+      - exposure
+    enforced_constraints:
+      - preserve_character_specific_voice
+    turn_estimate: "4-6"
+    exit_condition: "The central relationship axis can no longer remain polite."
+
+  phase_3:
+    id: phase_3
+    name: "Rupture"
+    sequence: 3
+    description: "Replace with the late scene breakdown, exit, stalemate, or reversal."
+    content_focus:
+      - rupture_surface_identity
+      - force_choice_or_exit
+      - carry_residual_consequence
+    engine_tasks:
+      - resolve_or_preserve_core_pressure
+      - enforce_end_state_rules
+    active_triggers:
+      - collapse_indicator
+    enforced_constraints:
+      - no_unseeded_revelation
+    turn_estimate: "4-6"
+    exit_condition: "A defined ending condition becomes true."

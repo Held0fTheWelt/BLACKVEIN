@@ -1,0 +1,15 @@
+object:
+  id: focal_table
+  name: "Focal table"
+  category: social_pressure_surface
+  placement_location_id: main_room
+  playable_access: active_object
+  description: "Replace with a socially important surface or object cluster."
+  interaction_notes:
+    look_at: "Perception-only unless a scene gate authorizes more."
+  risk_tags:
+    - social_pressure_anchor
+  plausible_actions: [look_at]
+  forbidden_actions: [discover_unseeded_fact]
+  symbolic_roles:
+    - negotiation_surface

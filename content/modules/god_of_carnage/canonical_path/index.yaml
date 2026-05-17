@@ -1,0 +1,87 @@
+canonical_path:
+  id: goc_canonical_path_v1
+  authority: module_authorial_path
+  authoring_language: en
+  primary_direction_surface: true
+  replaces_for_direction:
+    - scene_graph_as_primary_director_surface
+  note: >-
+    The canonical path is the numbered story spine. It directs sequence,
+    emphasis, and handoff only; location facts are pulled by reference from
+    locations/.
+
+  reference_policy:
+    location_facts_live_under: locations/
+    object_facts_live_under: objects/
+    character_facts_live_under: characters/
+    quote_anchors_live_under: knowledge/opening_quote_anchors.yaml
+    steps_must_reference_location_files: true
+    steps_must_not_duplicate_location_descriptions: true
+    allowed_step_truth:
+      - action_beats
+      - present_actor_or_group_ids
+      - narrator_tasks
+      - constraints
+      - next_point
+      - carry_forward_markers
+      - theme_threads
+      - quote_anchor_refs
+      - play_model
+      - player_windows
+    forbidden_step_truth:
+      - environment_summary
+      - room_topology_rewrite
+      - inventory_rewrite
+      - long_verbatim_source_quotes
+
+  compatibility:
+    scene_graph: retained_as_runtime_index_until_replaced
+    opening_scene_sequence: retained_as_runtime_contract
+
+  paths:
+    opening:
+      id: goc_opening_canonical_path
+      title: "Opening playable canon: incident, threshold, statement, civility under pressure"
+      first_step_id: opening_001_parc_montsouris_edge
+      first_playable_step_id: opening_013_first_playable_courtesy_gap
+      minimum_play_duration_minutes: 20
+      target_play_duration_minutes: 30
+      runtime_shape: >-
+        Steps 001-005 can be rendered as a concise scenic prologue and handover.
+        Steps 006-016 sustain phase_1 play through ritual civility, wording,
+        medical consequence, quote cues, object pressure, and player response.
+      step_files:
+        - canonical_path/001_parc_montsouris_edge.yaml
+        - canonical_path/002_argument_stick_blow.yaml
+        - canonical_path/003_bicycle_disappearance.yaml
+        - canonical_path/004_dark_building_hallway.yaml
+        - canonical_path/005_living_room_handover.yaml
+        - canonical_path/006_apartment_entry_greetings.yaml
+        - canonical_path/007_living_room_arrangement.yaml
+        - canonical_path/008_statement_on_table.yaml
+        - canonical_path/009_wording_dispute_armed_carrying.yaml
+        - canonical_path/010_injury_detail_dental_consequence.yaml
+        - canonical_path/011_courtesy_community_pressure.yaml
+        - canonical_path/012_tulips_and_hospitality.yaml
+        - canonical_path/013_first_playable_courtesy_gap.yaml
+        - canonical_path/014_player_response_ripple.yaml
+        - canonical_path/015_phone_exit_pressure.yaml
+        - canonical_path/016_opening_sustained_play_handoff.yaml
+
+  step_order:
+    - opening_001_parc_montsouris_edge
+    - opening_002_argument_stick_blow
+    - opening_003_bicycle_disappearance
+    - opening_004_dark_building_hallway
+    - opening_005_living_room_handover
+    - opening_006_apartment_entry_greetings
+    - opening_007_living_room_arrangement
+    - opening_008_statement_on_table
+    - opening_009_wording_dispute_armed_carrying
+    - opening_010_injury_detail_dental_consequence
+    - opening_011_courtesy_community_pressure
+    - opening_012_tulips_and_hospitality
+    - opening_013_first_playable_courtesy_gap
+    - opening_014_player_response_ripple
+    - opening_015_phone_exit_pressure
+    - opening_016_opening_sustained_play_handoff

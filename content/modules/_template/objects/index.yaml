@@ -1,0 +1,17 @@
+objects:
+  id: template_objects_v1
+  authority: module_authorial_objects
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  placement_policy:
+    objects_must_have_placement_location_id: true
+    placement_location_ids_must_reference_locations: true
+    objects_are_not_locations: true
+    apartment_objects_grouped_by_location_subfolder: true
+    apartment_room_object_folder_pattern: objects/appartment/{location_id}/
+
+  location_object_folders:
+    main_room: objects/appartment/main_room/
+
+  object_files:
+    - objects/appartment/main_room/focal_table.yaml
+    - objects/building/threshold_door.yaml

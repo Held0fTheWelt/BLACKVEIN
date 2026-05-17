@@ -186,15 +186,18 @@ class ContentModule(BaseModel):
         ending_conditions: Dictionary of ending conditions keyed by ending ID
         escalation_axes: Escalation axes data structure
         apartment_layout: Room topology, adjacency, visibility, and offscreen rules
-        apartment_objects: Object placement and materiality keyed by object id
         premise_and_backstory: English-authored canonical facts and subtext (localized strings live under locale/)
         actor_pressure_profiles: Per-character dramatic pressure profiles
         phase_beat_policy: Beat allowances and forbidden early escalations per phase
         narrator_sensory_palette: English-authored sensory and mood scaffolding (runtime localization separate)
         opening_scene_sequence: Opening narrative blueprint (contracts, events, handover)
+        opening_quote_anchors: Short quote anchors for opening pressure cues
         hard_forbidden_rules: Machine-oriented hard prohibitions and detection hooks
+        modularity_policy: Content authority-boundary policy preventing duplicate truth surfaces
+        canonical_path: Primary numbered directed story spine
         scene_graph: Authored scene-node graph beyond phase buckets
         locations: Authored accessible/offscreen locations and locality metadata
+        objects: Authored object surface with placement at locations
         character_documents: Per-character authoring documents keyed by character id
         content_access_policy: Data-driven action/location/object/scene access policy
     """
@@ -214,10 +217,6 @@ class ContentModule(BaseModel):
     apartment_layout: dict[str, Any] = Field(
         default_factory=dict,
         description="Structured apartment topology (rooms, transitions, visibility, offscreen rules)",
-    )
-    apartment_objects: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Structured object knowledge keyed by canonical object ids",
     )
     premise_and_backstory: dict[str, Any] = Field(
         default_factory=dict,
@@ -239,9 +238,21 @@ class ContentModule(BaseModel):
         default_factory=dict,
         description="Opening narrative blueprint: narration mode, contract, events, scene-phase handover",
     )
+    opening_quote_anchors: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Short source quote anchors for opening pressure cues; not a dialogue transcript",
+    )
     hard_forbidden_rules: dict[str, Any] = Field(
         default_factory=dict,
         description="Hard runtime prohibitions, severities, and optional detection hooks",
+    )
+    modularity_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Content authority-boundary policy preventing duplicate truth surfaces",
+    )
+    canonical_path: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Primary numbered directed story spine: ordered steps, handoffs, locations, and carry-forward facts",
     )
     scene_graph: dict[str, Any] = Field(
         default_factory=dict,
@@ -250,6 +261,10 @@ class ContentModule(BaseModel):
     locations: dict[str, Any] = Field(
         default_factory=dict,
         description="Authored location surface beyond the apartment layout, with access and narration metadata",
+    )
+    objects: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Authored object surface with placement at locations",
     )
     character_documents: dict[str, Any] = Field(
         default_factory=dict,

@@ -1,0 +1,49 @@
+canonical_path_step:
+  sequence: 2
+  id: opening_002_argument_stick_blow
+  path_id: goc_opening_canonical_path
+  name: "002 - Argument, stick, blow"
+  mode: narrator_only_opening
+
+  location_ref:
+    location_id: basketball_court
+    source: locations/opening/basketball_court.yaml
+    use_fields:
+      - description
+      - entrances_exits
+      - sensory_tags
+  support_refs:
+    - location_id: playground
+      source: locations/opening/playground.yaml
+      use_fields: [sensory_tags]
+  object_refs:
+    - object_id: bicycle_rack
+      source: objects/opening/bicycle_rack.yaml
+      use_fields: [sensory_tags]
+
+  path_point:
+    action_beats:
+      - two_boys_keep_playing_while_group_talks_at_edge
+      - boys_discuss_then_argue
+      - one_boy_takes_a_stick
+      - other_boy_calls_after_him_words_inaudible
+      - boy_with_stick_stops_turns_and_strikes
+      - injured_boy_bends_over
+      - surrounding_boys_help_him_up
+      - surrounding_boys_shout_after_attacker
+    narrator_tasks:
+      - use_support_refs_for_nearby_public_objects
+      - show_physical_consequence_without_courtroom_commentary
+    must_not:
+      - make_attacker_speak_audible_line
+      - explain_motive_as_certainty
+      - add_adult_intervention
+      - duplicate_location_description
+
+  next_point:
+    step_id: opening_003_bicycle_disappearance
+    handoff: "Follow the attacker only long enough to register the bicycle and disappearance."
+    carry_forward:
+      - injured_boy_helped_up
+      - boys_shouting_after_attacker
+      - stick_as_visible_action_object

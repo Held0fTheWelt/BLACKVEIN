@@ -1,0 +1,11 @@
+information_disclosure_policy:
+  enabled: true
+  units:
+    opening_incident:
+      disclosure_phase: phase_1
+      allowed_mode: concise_context
+      forbidden_mode: legal_deposition
+    private_motive:
+      disclosure_phase: phase_2
+      allowed_mode: implication_before_statement
+      forbidden_mode: unseeded_confession

@@ -6,23 +6,21 @@ phase_1_polite_opening:
   duration: "2-3 turns estimated"
 
   narrative_context: |
-    Véronique and Michel have invited Annette and Alain into their Paris apartment for the
-    reckoning after their boys fought near the Parc Montsouris court — insults, a stick, the injury that
-    forced this bourgeois ritual of “talking it through.” The table is set for an evening
-    dinner that is also a tribunal: coffee, something sweet, careful seating, smiles that
-    cost effort. Each couple performs reasonableness while taking the other’s measure; every
-    pleasantry is a feint, every pause a small test of who will blink first. The children are
-    upstairs or out of sight, but their shame and fury hang in the room — the adults must not
-    yet admit how much they want to wound each other. If a session opening handover already
-    staged the premise, stay here at the salon: do not replay the whole incident as fresh
-    accusation; let the first lines stay oblique, comic, and excruciatingly polite.
+    The opening premise is already owned by canonical_path/ and
+    knowledge/premise_and_backstory.yaml; the playable room is owned by
+    locations/appartment_vallon/living_room.yaml and the object refs in
+    objects/index.yaml. This phase starts from that
+    referenced situation: hosts and guests perform reasonableness while taking
+    the other's measure. If a session opening handover already staged the
+    premise, stay with oblique civility and do not replay the whole incident as
+    a fresh accusation.
 
   ai_guidance:
     - "Hosts (Véronique, Michel) and guests (Annette, Alain) trade ritual courtesy; every line is a probe under the smile"
-    - "The Parc Montsouris incident surfaces only in glances, euphemism, or deferred topics — not a second full recap if opening_sequence already landed premise"
+    - "The triggering incident surfaces only in glances, euphemism, or deferred topics; use canonical_path refs instead of a second recap"
     - "Véronique’s composure as moral host; Michel’s jokes or deflection as peace-keeping — never early prosecution in plain speech"
     - "Annette’s intellectual edge and cynicism show only as polite questions or feigned agreement; Alain’s mediation as tact and procedure, not opening attack"
-    - "Use the meal frame (coffee, pour, seat, tulips on the table) as rhythm and subtext; short beats, no keynote speeches"
+    - "Use object refs from objects/**/*.yaml as rhythm and subtext; short beats, no keynote speeches"
 
   trigger_watch:
     - "No triggers should fire in phase_1; watch for signs that civility is fraying"
@@ -184,7 +182,13 @@ phase_5_loss_of_control_escalation_or_collapse:
 # General Guidance Across All Phases
 
 environmental_constants:
-  setting: "Parisian apartment, evening. Dinner table. Wine glasses, food, dessert in progress."
+  setting_ref: "locations/index.yaml#locations.setting"
+  primary_room_ref: "locations/appartment_vallon/living_room.yaml"
+  object_refs:
+    - objects/appartment_vallon/living_room/coffee_table.yaml
+    - objects/appartment_vallon/living_room/dining_table.yaml
+    - objects/appartment_vallon/living_room/window.yaml
+    - objects/appartment_vallon/living_room/television.yaml
   temporal_flow: "Real-time; each turn is 1-2 minutes of conversation"
   background: "School incident happened recently (days prior); child is now at home with grandmother or nanny"
   children_absent: "Children never appear on stage; incident is entirely discussed by adults"

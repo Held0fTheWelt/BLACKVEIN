@@ -1,0 +1,16 @@
+object:
+  id: glasses
+  name: "Glasses"
+  category: service_object_cluster
+  placement_location_id: kitchen
+  playable_access: minor_service_object
+  description: >-
+    Clean glasses and faint clinks from the attached kitchen.
+  interaction_notes:
+    take: "Minor service object only; no weaponization without authored escalation."
+  risk_tags:
+    - fragile_hospitality
+  plausible_actions: [look_at, take, place_object]
+  forbidden_actions: [weaponize_without_authored_escalation]
+  symbolic_roles:
+    - hospitality_surface

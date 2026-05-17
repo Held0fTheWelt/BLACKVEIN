@@ -1,0 +1,19 @@
+object:
+  id: window
+  name: "Window / outside view"
+  category: perception_anchor
+  placement_location_id: living_room
+  playable_access: perception_only
+  description: >-
+    The living-room window as a perception anchor: city light and outside air
+    without becoming an exit or a fresh scene.
+  inventory_policy: fixed_perception_surface
+  sensory_tags: [city_light, distance, outside_air]
+  interaction_notes:
+    look_at: "Perception-only; does not change social geometry."
+  risk_tags: []
+  plausible_actions: [look_at, notice_outside]
+  forbidden_actions: [climb_out, introduce_new_street_scene]
+  symbolic_roles:
+    - exposure_surface
+    - departure_surface

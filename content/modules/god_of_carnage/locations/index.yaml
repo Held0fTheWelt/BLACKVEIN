@@ -5,25 +5,29 @@ locations:
   id: goc_locations_v1
   authority: module_authorial_locations
   default_access_policy: knowledge/content_access_policy.yaml
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  object_authority_ref: objects/index.yaml
 
   setting:
     name: "Vallon apartment"
     type: upscale_private_apartment
     district_context: paris_working_district
-    topology_source: locations/appartment/apartment_layout.yaml
-    default_scene_location_id: vallon_living_room
+    topology_source: locations/appartment_vallon/apartment_layout.yaml
+    default_scene_location_id: living_room
     scene_location_assignment_field: location_id
 
   assignment_policy:
     scene_nodes_may_reference_place_ids: true
     live_playable_location_ids:
-      - building_stairwell
-      - vallon_living_room
+      - building_hallway
+      - living_room
       - hallway
       - kitchen
       - bathroom
       - pantry
       - study
+    prevented_location_ids:
+      - building_stairwell
     locked_non_playable_location_ids:
       - bedroom_one_locked
       - bedroom_two_locked
@@ -32,17 +36,14 @@ locations:
     - locations/opening/park_edge.yaml
     - locations/opening/basketball_court.yaml
     - locations/opening/playground.yaml
-    - locations/opening/bicycle_rack.yaml
-    - locations/opening/offscreen_parent_world.yaml
+    - locations/building/building_hallway.yaml
     - locations/building/building_stairwell.yaml
-    - locations/appartment/apartment_entry.yaml
-    - locations/appartment/vallon_living_room.yaml
-    - locations/appartment/coffee_table.yaml
-    - locations/appartment/hallway.yaml
-    - locations/appartment/kitchen.yaml
-    - locations/appartment/bathroom.yaml
-    - locations/appartment/pantry.yaml
-    - locations/appartment/study.yaml
-    - locations/appartment/bedroom_one_locked.yaml
-    - locations/appartment/bedroom_two_locked.yaml
-    - locations/appartment/window.yaml
+    - locations/appartment_vallon/apartment_entry.yaml
+    - locations/appartment_vallon/living_room.yaml
+    - locations/appartment_vallon/hallway.yaml
+    - locations/appartment_vallon/kitchen.yaml
+    - locations/appartment_vallon/bathroom.yaml
+    - locations/appartment_vallon/pantry.yaml
+    - locations/appartment_vallon/study.yaml
+    - locations/appartment_vallon/bedroom_one_locked.yaml
+    - locations/appartment_vallon/bedroom_two_locked.yaml

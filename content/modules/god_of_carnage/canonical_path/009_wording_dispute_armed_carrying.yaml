@@ -1,0 +1,56 @@
+canonical_path_step:
+  sequence: 9
+  id: opening_009_wording_dispute_armed_carrying
+  path_id: goc_opening_canonical_path
+  name: "009 - Wording dispute: armed or carrying"
+  mode: playable_opening_pressure
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions]
+  object_refs:
+    - object_id: coffee_table
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+  quote_anchor_refs:
+    - knowledge/opening_quote_anchors.yaml#quote_armed
+    - knowledge/opening_quote_anchors.yaml#quote_carrying
+
+  theme_threads:
+    - euphemism_vs_accuracy
+    - legal_pragmatism_vs_moral_precision
+    - first_crack_in_civility
+  play_model:
+    estimated_minutes: 3
+    interaction_density: medium_to_high
+    player_agency: "challenge wording, soften wording, stay neutral, ask who wrote it"
+
+  path_point:
+    present:
+      named_characters: [veronique, michel, annette, alain]
+    action_beats:
+      - accusatory_word_is_challenged
+      - softer_word_is_tested_as_compromise
+      - the_room_treats_word_choice_as_if_it_were_minor
+      - everyone_understands_it_is_not_minor
+    player_windows:
+      - object_to_accusatory_word
+      - accept_compromise_word
+      - ask_for_child_names_to_be_spoken_less_legally
+      - say_nothing_and_let_pressure_fall_on_spouse
+    narrator_tasks:
+      - let_short_quote_anchors_work_as_pressure_not_transcript
+      - make_the_word_change_a_social_event
+      - keep_player_choice_open_after_the_correction
+    must_not:
+      - require_verbatim_quote
+      - force_consensus
+      - escalate_to_shouting
+
+  next_point:
+    step_id: opening_010_injury_detail_dental_consequence
+    handoff: "After wording, make the injury concrete enough to resist abstraction."
+    carry_forward:
+      - statement_wording_contested
+      - compromise_language_possible
+      - accusation_deferred_not_removed

@@ -1,0 +1,17 @@
+location:
+  id: opening_anchor
+  name: "Opening Anchor"
+  category: exterior_or_memory_prologue
+  playable_access: opening_narration_only
+  description: >-
+    Replace with the concrete place where the inciting incident, remembered
+    image, or pre-apartment event occurred.
+  entrances_exits:
+    visible_routes:
+      - replace_with_route
+    connected_place_ids:
+      - threshold
+  inventory_policy: opening_background_only
+  sensory_tags: [replace_with_weather, replace_with_sound, replace_with_public_texture]
+  plausible_actions: [look_at, recall_incident]
+  forbidden_actions: [turn_into_unplanned_live_scene, invent_unseeded_witness]

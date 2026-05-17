@@ -1,47 +1,58 @@
-# Canonical premise and backstory — English-authored module truth.
-# Localized player/runtime prose belongs under locale/ and session_output_language.
+# Canonical premise and backstory -- English-authored module truth.
+# Location texture belongs under locations/ and is referenced here by id/path.
 
 premise_and_backstory:
   authoring_language: en
+  modularity_policy_ref: knowledge/modularity_policy.yaml
 
   module_premise: >-
-    Two couples meet to resolve, with civility, a playground injury between their sons;
-    politeness decays into moral accusation and relational collapse.
+    Two couples meet to resolve, with civility, a playground injury between
+    their sons; politeness decays into moral accusation and relational collapse.
 
   canonical_facts:
     - id: playground_incident
       fact: >-
-        At the edge of Parc Montsouris, near the Boulevard Jourdan basketball court, two boys
-        argued; one grabbed a stick, struck the other, kicked over a bicycle as he left, and
-        the surrounding boys helped the injured child up while calling after him.
-      authority: canonical_module
+        A public child-world incident creates the adult meeting: two boys argue,
+        one takes a stick and strikes the other, and the aftermath includes a
+        bicycle being kicked over before the attacker leaves.
+      authority: canonical_path
+      canonical_path_refs:
+        - canonical_path/001_parc_montsouris_edge.yaml#opening_001_parc_montsouris_edge
+        - canonical_path/002_argument_stick_blow.yaml#opening_002_argument_stick_blow
+        - canonical_path/003_bicycle_disappearance.yaml#opening_003_bicycle_disappearance
+      location_refs:
+        - locations/opening/park_edge.yaml
+        - locations/opening/basketball_court.yaml
+      object_refs:
+        - objects/opening/bicycle_rack.yaml
       player_visibility: public_diegetic
       subtext: "Each family protects its self-image as competent parents."
 
-    - id: park_prologue_environment
-      fact: >-
-        The remembered prologue carries ordinary public details: gray autumn sky, bare trees,
-        sloping lawns, winding paths, a playground, bicycles, boys clustered at the edge of play,
-        and background Paris life near the Cité Universitaire/RER edge of the park.
-      authority: canonical_module
-      player_visibility: public_diegetic
-      subtext: "The violence is small in scale but public enough that no family can keep it private."
-
     - id: host_guest_asymmetry
       fact: >-
-        Hosts control hospitality resources; guests carry an obligation to restraint — until they
-        do not.
+        Hosts control hospitality resources; guests carry an obligation to
+        restraint until that obligation frays.
       authority: canonical_module
+      location_refs:
+        - locations/appartment_vallon/living_room.yaml
+      object_refs:
+        - objects/appartment_vallon/living_room/coffee_table.yaml
+        - objects/appartment_vallon/living_room/dining_table.yaml
+        - objects/appartment_vallon/living_room/window.yaml
       player_visibility: public_diegetic
       subtext: "Power oscillates with shame, debt, and who claims the moral high ground."
 
     - id: marriage_pressure_cooker
       fact: "Each marriage is on display; alliances can invert within minutes."
       authority: canonical_module
+      character_refs:
+        - characters/relationships.yaml
+        - characters/actor_pressure_profiles.yaml
       player_visibility: implied
       subtext: >-
-        Spouses may punish each other for humiliation suffered in front of the other couple.
+        Spouses may punish each other for humiliation suffered in front of the
+        other couple.
 
   non_canonical_player_invention_policy: >-
-    Players may propose new micro-details; the engine must not treat them as backstory truth
-    until committed under governance.
+    Players may propose new micro-details; the engine must not treat them as
+    backstory truth until committed under governance.

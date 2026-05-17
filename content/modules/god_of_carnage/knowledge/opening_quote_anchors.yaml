@@ -1,0 +1,87 @@
+opening_quote_anchors:
+  id: goc_opening_quote_anchors_v1
+  authority: module_source_quote_anchor_policy
+  source_material:
+    - id: carnage_2011_script
+      local_ref: resources/carnage-2011.pdf
+      source_note: "User-provided local screenplay PDF; use only short anchors, never long reproduced dialogue."
+  copyright_policy:
+    max_words_per_runtime_quote: 5
+    quote_usage: short_anchor_only
+    must_not:
+      - reproduce_extended_dialogue
+      - make_verbatim_quotes_required_for_play
+      - replace_character_voice_with_script_transcription
+
+  anchors:
+    - id: quote_armed
+      source_material_id: carnage_2011_script
+      source_hint: "early statement wording exchange"
+      excerpt: "Armed?"
+      use_for:
+        - legal_word_pressure
+        - alain_pragmatic_interruption
+      use_as: "A short wording-pressure cue when the group debates how accusatory the statement may become."
+
+    - id: quote_carrying
+      source_material_id: carnage_2011_script
+      source_hint: "early statement wording exchange"
+      excerpt: "Carrying"
+      use_for:
+        - compromise_language
+        - procedural_civility
+      use_as: "A softer replacement word that lets everyone pretend the argument is only lexical."
+
+    - id: quote_adversarial_mindset
+      source_material_id: carnage_2011_script
+      source_hint: "early courtesy exchange"
+      excerpt: "adversarial mindset"
+      use_for:
+        - anti_lawsuit_performance
+        - civility_as_mask
+      use_as: "A phrase to make the meeting define itself as humane rather than legalistic."
+
+    - id: quote_sense_of_community
+      source_material_id: carnage_2011_script
+      source_hint: "early courtesy exchange"
+      excerpt: "sense of community"
+      use_for:
+        - veronique_moral_hosting
+        - bourgeois_self_image
+      use_as: "A moral self-image cue; it should sound generous and faintly coercive."
+
+    - id: quote_our_kid
+      source_material_id: carnage_2011_script
+      source_hint: "guest-side concession"
+      excerpt: "our kid"
+      use_for:
+        - parental_identification
+        - guest_defense_softened
+      use_as: "A pressure cue where the Reille side may concede form without accepting moral trial."
+
+    - id: quote_tulips_gorgeous
+      source_material_id: carnage_2011_script
+      source_hint: "living-room courtesy beat"
+      excerpt: "tulips are gorgeous"
+      use_for:
+        - hospitality_small_talk
+        - object_pressure
+      use_as: "A safe object compliment that keeps conflict delayed for one more exchange."
+
+    - id: quote_root_canal
+      source_material_id: carnage_2011_script
+      source_hint: "dental consequence discussion"
+      excerpt: "root canal"
+      use_for:
+        - bodily_consequence
+        - practical_detail_becomes_moral_pressure
+      use_as: "A short medical-detail anchor that makes the injury concrete without melodrama."
+
+    - id: quote_observation_period
+      source_material_id: carnage_2011_script
+      source_hint: "dental consequence discussion"
+      excerpt: "observation period"
+      use_for:
+        - deferred_consequence
+        - time_pressure
+      use_as: "A factual delay cue: the injury is not finished, and neither is the conversation."

@@ -1,0 +1,82 @@
+scene_graph:
+  id: template_scene_graph_v1
+  authority: module_runtime_scene_index
+  primary_direction_document: canonical_path/index.yaml
+  modularity_policy_ref: knowledge/modularity_policy.yaml
+  default_start_node_id: prologue_opening_anchor
+  first_playable_node_id: first_playable_courtesy_gap
+
+  node_authoring_policy:
+    summaries_are_runtime_notes_only: true
+    place_detail_source: location_id
+    beat_order_source: canonical_path_step_id
+    must_not_duplicate_location_descriptions: true
+
+  nodes:
+    - id: prologue_opening_anchor
+      sequence: 1
+      phase_id: phase_1
+      title: "Opening Anchor"
+      location_id: opening_anchor
+      canonical_path_step_id: opening_001_anchor
+      scene_function: establish_pressure
+      playable: false
+      runtime_note: "Use canonical_path_step_id for beat order and location_id for place detail."
+      next_node_ids:
+        - threshold_arrival
+
+    - id: threshold_arrival
+      sequence: 2
+      phase_id: phase_1
+      title: "Threshold Arrival"
+      location_id: threshold
+      canonical_path_step_id: opening_003_handover_to_play
+      scene_function: establish_pressure
+      playable: false
+      runtime_note: "Use location_id for threshold detail; do not describe the threshold here."
+      next_node_ids:
+        - room_handover
+
+    - id: room_handover
+      sequence: 3
+      phase_id: phase_1
+      title: "Room Handover"
+      location_id: main_room
+      canonical_path_step_id: opening_003_handover_to_play
+      scene_function: establish_pressure
+      playable: false
+      runtime_note: "Use canonical path and location refs for the first playable setup."
+      next_node_ids:
+        - first_playable_courtesy_gap
+
+    - id: first_playable_courtesy_gap
+      sequence: 4
+      phase_id: phase_1
+      title: "First Playable Courtesy Gap"
+      location_id: main_room
+      scene_function: probe_motive
+      playable: true
+      runtime_note: "Player agency opens without prescribed speech, thought, or action."
+      next_node_ids:
+        - pressure_exchange
+
+    - id: pressure_exchange
+      sequence: 5
+      phase_id: phase_2
+      title: "Pressure Exchange"
+      location_id: main_room
+      scene_function: escalate_conflict
+      playable: true
+      runtime_note: "Use phase policy and character refs; place detail stays behind location_id."
+      next_node_ids:
+        - rupture_or_exit
+
+    - id: rupture_or_exit
+      sequence: 6
+      phase_id: phase_3
+      title: "Rupture Or Exit"
+      location_id: main_room
+      scene_function: scene_pivot
+      playable: true
+      runtime_note: "Resolve through authored endings or preserve a named residual."
+      next_node_ids: []

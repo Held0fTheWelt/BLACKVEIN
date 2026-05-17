@@ -1,0 +1,17 @@
+object:
+  id: coffee_machine
+  name: "Coffee machine"
+  category: service_object
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    Domestic machine and cups; hospitality becomes mechanism.
+  interaction_notes:
+    activate: "May redirect attention into service ritual."
+    deactivate: "Restores the kitchen's quieter baseline."
+  risk_tags:
+    - attention_diversion
+  plausible_actions: [look_at, activate, deactivate]
+  forbidden_actions: [turn_service_ritual_into_unseeded_plot_device]
+  symbolic_roles:
+    - hospitality_surface

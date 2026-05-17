@@ -1,0 +1,23 @@
+location:
+  id: service_room
+  name: "Service Room"
+  category: adjacent_room
+  playable_access: gated_scene_navigation
+  description: "Replace with a kitchen, side room, office, bath, or other adjacent space."
+  room_profile:
+    role: service_or_retreat_space
+    connected_place_ids:
+      - main_room
+      - private_locked_room
+  entrances_exits:
+    exits:
+      - id: service_room_to_main_room
+        to_place_id: main_room
+        kind: interior_threshold
+      - id: service_room_to_private_locked_room
+        to_place_id: private_locked_room
+        kind: locked_private_door
+  inventory_policy: optional_minor_inventory
+  sensory_tags: [offscreen_pause, domestic_or_work_detail]
+  plausible_actions: [look_at, listen_to, take_minor_service_item]
+  forbidden_actions: [discover_decisive_unseeded_evidence]

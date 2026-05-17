@@ -6,7 +6,18 @@ location:
   description: >-
     The public-park edge of the opening incident: grey sky, autumn air,
     sloping lawns, paths, mature trees, and the sense that the lower park and
-    lake continue beyond the boys' immediate line of sight.
+    lake continue beyond the boys' immediate line of sight. The park feels
+    large enough for ordinary public life to continue around the incident.
+  real_world_context:
+    source_refs:
+      - https://www.paris.fr/lieux/parc-montsouris-1810
+      - https://parisjetaime.com/culture/parc-montsouris-p3531
+    usable_texture:
+      - large_public_green_space_in_14th_arrondissement
+      - lake_lawns_mature_trees_and_statues
+      - cite_universitaire_and_boulevard_jourdan_edges
+      - weather_observatory_and_park_services_as_distant_background
+      - students_families_birds_and_after_school_public_life
   entrances_exits:
     visible_routes:
       - park_paths
@@ -15,7 +26,8 @@ location:
     connected_place_ids:
       - basketball_court
       - playground
-      - bicycle_rack
+  visible_object_ids:
+    - bicycle_rack
   inventory_policy: public_park_background_only
   sensory_tags: [gray_sky, bare_trees, autumn_air, sloping_lawns, lake_below, cite_universitaire_edge, public_space]
   plausible_actions: [look_at, notice_route, recall_incident]

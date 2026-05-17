@@ -1,0 +1,21 @@
+hard_forbidden_rules:
+  authoring_language: en
+  hard_forbidden:
+    - id: assign_player_private_thought
+      description: "Narrator may not decide the human player's private emotion, motive, speech, or action."
+      applies_to:
+        - narrator
+        - npc
+    - id: invent_unseeded_decisive_fact
+      description: "Do not invent decisive evidence, hidden people, weapons, or records not seeded in module truth."
+      applies_to:
+        - narrator
+        - npc
+    - id: enter_locked_private_room
+      description: "Locked private rooms are boundaries, not playable interiors."
+      applies_to:
+        - player_action_resolution
+
+  detection_hooks:
+    require_player_agency_boundary: true
+    require_seeded_fact_boundary: true

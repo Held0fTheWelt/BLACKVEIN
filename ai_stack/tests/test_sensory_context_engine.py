@@ -69,12 +69,17 @@ def test_sensory_context_derives_layers_from_authored_sources() -> None:
     assert result["policy"]["source"] == "module_runtime_policy.sensory_context"
     target = result["target"]
     assert target["intensity"] == "high"
-    assert target["location_id"] == "vallon_living_room"
+    assert target["location_id"] == "living_room"
     assert target["object_id"] == "window"
     assert target["selected_layers"]
     source_refs = {layer["source_ref"] for layer in target["selected_layers"]}
-    assert any(ref.startswith("narrator_sensory_palette.") for ref in source_refs)
-    assert any(ref.startswith("scene_affordances.") for ref in source_refs)
+    assert any(ref.startswith("objects/") for ref in source_refs)
+    assert all(
+        ref.startswith("locations/")
+        or ref.startswith("objects/")
+        or ref.startswith("narrator_sensory_palette.")
+        for ref in source_refs
+    )
 
 
 def test_sensory_context_validation_uses_structured_layer_events() -> None:

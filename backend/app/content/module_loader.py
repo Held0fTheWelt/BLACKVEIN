@@ -245,9 +245,6 @@ class ModuleFileLoader:
                 if yaml_file.stem == "apartment_layout":
                     result["apartment_layout"] = payload
                     continue
-                if yaml_file.stem == "apartment_objects":
-                    result["apartment_objects"] = payload
-                    continue
                 inner = payload.get("location") or payload.get("place")
                 if isinstance(inner, dict):
                     place_id = str(inner.get("id") or yaml_file.stem).strip()
@@ -271,6 +268,83 @@ class ModuleFileLoader:
                 merged_places.update(location_documents)
                 locations_inner["places"] = list(merged_places.values())
                 result["locations"] = {"locations": locations_inner}
+
+        objects_dir = module_root / "objects"
+        if objects_dir.is_dir():
+            try:
+                object_files = sorted(objects_dir.rglob("*.yaml"))
+            except (PermissionError, OSError) as e:
+                raise ModuleFileReadError(
+                    message="Failed to read module objects directory",
+                    module_id="unknown",
+                    file_path=str(objects_dir),
+                    errors=[str(e)],
+                )
+            object_documents: dict[str, Any] = {}
+            for yaml_file in object_files:
+                payload = self.load_file(yaml_file)
+                if not isinstance(payload, dict):
+                    continue
+                if yaml_file.parent == objects_dir and yaml_file.stem in {"index", "objects"}:
+                    result["objects"] = payload
+                    continue
+                inner = payload.get("object") or payload.get("object_document")
+                if isinstance(inner, dict):
+                    object_id = str(inner.get("id") or yaml_file.stem).strip()
+                    if object_id:
+                        object_doc = dict(inner)
+                        object_doc.setdefault(
+                            "source_ref",
+                            yaml_file.relative_to(module_root).as_posix(),
+                        )
+                        object_documents[object_id] = object_doc
+            if object_documents:
+                objects_payload = result.get("objects") if isinstance(result.get("objects"), dict) else {}
+                objects_inner = (
+                    objects_payload.get("objects")
+                    if isinstance(objects_payload.get("objects"), dict)
+                    else objects_payload
+                )
+                objects_inner = dict(objects_inner) if isinstance(objects_inner, dict) else {}
+                objects_inner["object_documents"] = object_documents
+                result["objects"] = {"objects": objects_inner}
+
+        canonical_path_dir = module_root / "canonical_path"
+        if canonical_path_dir.is_dir():
+            try:
+                canonical_path_files = sorted(canonical_path_dir.glob("*.yaml"))
+            except (PermissionError, OSError) as e:
+                raise ModuleFileReadError(
+                    message="Failed to read module canonical_path directory",
+                    module_id="unknown",
+                    file_path=str(canonical_path_dir),
+                    errors=[str(e)],
+                )
+            canonical_path_payload: dict[str, Any] = {}
+            canonical_path_steps: list[dict[str, Any]] = []
+            for yaml_file in canonical_path_files:
+                payload = self.load_file(yaml_file)
+                if not isinstance(payload, dict):
+                    continue
+                if yaml_file.stem == "index":
+                    canonical_path_payload = payload
+                    continue
+                step = payload.get("canonical_path_step") or payload.get("step")
+                if isinstance(step, dict):
+                    canonical_path_steps.append(step)
+            if canonical_path_payload or canonical_path_steps:
+                inner = (
+                    canonical_path_payload.get("canonical_path")
+                    if isinstance(canonical_path_payload.get("canonical_path"), dict)
+                    else canonical_path_payload
+                )
+                inner = dict(inner) if isinstance(inner, dict) else {}
+                if canonical_path_steps:
+                    inner["steps"] = sorted(
+                        canonical_path_steps,
+                        key=lambda row: int(row.get("sequence") or 0),
+                    )
+                result["canonical_path"] = {"canonical_path": inner}
 
         # Unwrap nested dictionaries where YAML files wrap content under a root key.
         #
@@ -308,15 +382,18 @@ class ModuleFileLoader:
             "transitions": "phase_transitions",
             "escalation_axes": "escalation_axes",
             "apartment_layout": "apartment_layout",
-            "apartment_objects": "apartment_objects",
             "premise_and_backstory": "premise_and_backstory",
             "actor_pressure_profiles": "actor_pressure_profiles",
             "phase_beat_policy": "phase_beat_policy",
             "narrator_sensory_palette": "narrator_sensory_palette",
             "opening_scene_sequence": "opening_scene_sequence",
+            "opening_quote_anchors": "opening_quote_anchors",
             "hard_forbidden_rules": "hard_forbidden_rules",
+            "modularity_policy": "modularity_policy",
             "scene_graph": "scene_graph",
+            "canonical_path": "canonical_path",
             "locations": "locations",
+            "objects": "objects",
             "content_access_policy": "content_access_policy",
         }
 

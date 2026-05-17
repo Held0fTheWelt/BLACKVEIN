@@ -126,6 +126,49 @@ def test_scene_plan_record_roundtrip() -> None:
         selected_responder_set=[{"actor_id": "annette_reille", "reason": "yaml"}],
         pacing_mode="standard",
         silence_brevity_decision={"mode": "normal", "reason": "default"},
+        narrative_scene_function="probe_motive",
+        realization_mode="npc_dialogue_and_visible_reaction",
+        pressure_function="probe_motive",
+        scene_target={
+            "target_kind": "actor",
+            "target_actor_id": "annette_reille",
+            "target_function": "draw_out_motive",
+        },
+        pressure_target={
+            "target_kind": "actor",
+            "target_actor_id": "annette_reille",
+            "pressure_axis": "motive",
+        },
+        target_obligations=[
+            {
+                "obligation_order": 1,
+                "obligation_kind": "respect_commit_authority",
+                "required": True,
+            }
+        ],
+        actor_directives=[
+            {
+                "directive_order": 1,
+                "actor_id": "annette_reille",
+                "directive": "force_npc_reaction",
+            }
+        ],
+        dramatic_beats=[
+            {
+                "beat_order": 1,
+                "beat_kind": "npc_dialogue_beat",
+                "beat_function": "probe_motive",
+                "beat_intent": "press_for_motive",
+                "required": True,
+            }
+        ],
+        handover_policy={"policy": "offer_player_action", "player_control_preserved": True},
+        continuity_obligation={
+            "continuity_class": "situational_pressure",
+            "carry_forward_required": False,
+            "commit_authority": "commit_seam",
+        },
+        expected_transition_pattern="soft",
         planner_rationale_codes=["semantic_pipeline_v1"],
         semantic_move_fingerprint="abc123",
         social_state_fingerprint="def456",

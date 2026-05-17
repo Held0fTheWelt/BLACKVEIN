@@ -24,23 +24,30 @@ def test_yaml_slice_bundle_exposes_structured_setting_keys() -> None:
     for key in (
         "character_documents",
         "scene_graph",
+        "canonical_path",
+        "modularity_policy",
         "locations",
+        "objects",
         "content_access_policy",
         "scene_affordances",
         "apartment_layout",
-        "apartment_objects",
         "premise_and_backstory",
         "actor_pressure_profiles",
         "phase_beat_policy",
         "narrator_sensory_palette",
         "opening_scene_sequence",
+        "opening_quote_anchors",
         "hard_forbidden_rules",
     ):
         assert key in bundle
     assert bundle["opening_scene_sequence"].get("id") == "goc_opening_sequence_v1"
+    assert (bundle.get("opening_quote_anchors") or {}).get("anchors")
     assert "hard_forbidden" in (bundle.get("hard_forbidden_rules") or {})
     assert len((bundle.get("scene_graph") or {}).get("nodes") or []) > 10
+    assert len((bundle.get("canonical_path") or {}).get("steps") or []) >= 16
+    assert (bundle.get("modularity_policy") or {}).get("authority_boundaries")
     assert (bundle.get("locations") or {}).get("places")
+    assert (bundle.get("objects") or {}).get("object_documents")
     assert (bundle.get("content_access_policy") or {}).get("blocked_entities")
     assert set((bundle.get("character_documents") or {}).keys()) == {"veronique", "michel", "annette", "alain"}
     assert bundle["apartment_layout"].get("setting_id") == "vallon_paris_evening_apartment"
@@ -52,16 +59,17 @@ def test_scene_affordances_aligns_layout_room_ids() -> None:
     layout = load_goc_apartment_layout_yaml()
     loc_ids = {str(x.get("id")) for x in (inner.get("locations") or []) if isinstance(x, dict)}
     layout_room_ids = {r.get("id") for r in (layout.get("rooms") or []) if isinstance(r, dict)}
-    assert {"building_stairwell", "bathroom", "kitchen", "hallway", "pantry", "study"}.issubset(loc_ids)
+    assert {"building_hallway", "building_stairwell", "bathroom", "kitchen", "hallway", "pantry", "study"}.issubset(loc_ids)
     assert layout_room_ids.issuperset(
         {
+            "building_hallway",
             "building_stairwell",
             "bathroom",
             "kitchen",
             "hallway",
             "pantry",
             "study",
-            "vallon_living_room",
+            "living_room",
             "bedroom_one_locked",
             "bedroom_two_locked",
         }
@@ -71,16 +79,21 @@ def test_scene_affordances_aligns_layout_room_ids() -> None:
 def test_apartment_layout_models_requested_room_topology() -> None:
     layout = load_goc_apartment_layout_yaml()
     rooms = {str(r.get("id")): r for r in (layout.get("rooms") or []) if isinstance(r, dict)}
-    living = rooms["vallon_living_room"]
+    living = rooms["living_room"]
     hallway = rooms["hallway"]
     kitchen = rooms["kitchen"]
+    building_hallway = rooms["building_hallway"]
+    building_stairwell = rooms["building_stairwell"]
 
-    assert "building_stairwell" in (living.get("adjacent_room_ids") or [])
+    assert "building_hallway" in (living.get("adjacent_room_ids") or [])
     assert "kitchen" in (living.get("adjacent_room_ids") or [])
+    assert "building_stairwell" in (building_hallway.get("adjacent_room_ids") or [])
+    assert building_stairwell.get("access_pattern") == "prevented_currently"
+    assert building_stairwell.get("prevented_actions")
     assert {"kitchen", "bathroom", "pantry", "study", "bedroom_one_locked", "bedroom_two_locked"}.issubset(
         set(hallway.get("adjacent_room_ids") or [])
     )
-    assert {"vallon_living_room", "hallway"}.issubset(set(kitchen.get("adjacent_room_ids") or []))
+    assert {"living_room", "hallway"}.issubset(set(kitchen.get("adjacent_room_ids") or []))
     assert rooms["bedroom_one_locked"].get("access_pattern") == "locked_non_playable"
     assert rooms["bedroom_two_locked"].get("access_pattern") == "locked_non_playable"
 
@@ -129,16 +142,36 @@ def test_p2_1_english_only_knowledge_files_contain_no_german_authoring_strings()
     knowledge_dir = Path(__file__).resolve().parents[2] / "content" / "modules" / "god_of_carnage" / "knowledge"
     english_only_files = [
         knowledge_dir / "opening_scene_sequence.yaml",
+        knowledge_dir / "opening_quote_anchors.yaml",
         knowledge_dir / "hard_forbidden_rules.yaml",
         knowledge_dir / "content_access_policy.yaml",
         knowledge_dir / "premise_and_backstory.yaml",
+        knowledge_dir / "modularity_policy.yaml",
         knowledge_dir / "narrator_sensory_palette.yaml",
         knowledge_dir.parent / "locations" / "index.yaml",
         knowledge_dir.parent / "locations" / "opening" / "park_edge.yaml",
         knowledge_dir.parent / "locations" / "opening" / "basketball_court.yaml",
+        knowledge_dir.parent / "objects" / "opening" / "bicycle_rack.yaml",
+        knowledge_dir.parent / "locations" / "building" / "building_hallway.yaml",
         knowledge_dir.parent / "locations" / "building" / "building_stairwell.yaml",
         knowledge_dir.parent / "scene_graph.yaml",
-        knowledge_dir.parent / "locations" / "appartment" / "apartment_layout.yaml",
+        knowledge_dir.parent / "locations" / "appartment_vallon" / "apartment_layout.yaml",
+        knowledge_dir.parent / "objects" / "appartment_vallon" / "living_room" / "coffee_table.yaml",
+        knowledge_dir.parent / "objects" / "appartment_vallon" / "living_room" / "dining_table.yaml",
+        knowledge_dir.parent / "objects" / "appartment_vallon" / "living_room" / "window.yaml",
+        knowledge_dir.parent / "objects" / "appartment_vallon" / "living_room" / "television.yaml",
+        knowledge_dir.parent / "objects" / "building" / "elevator.yaml",
+        knowledge_dir.parent / "canonical_path" / "index.yaml",
+        knowledge_dir.parent / "canonical_path" / "001_parc_montsouris_edge.yaml",
+        knowledge_dir.parent / "canonical_path" / "002_argument_stick_blow.yaml",
+        knowledge_dir.parent / "canonical_path" / "003_bicycle_disappearance.yaml",
+        knowledge_dir.parent / "canonical_path" / "004_dark_building_hallway.yaml",
+        knowledge_dir.parent / "canonical_path" / "005_living_room_handover.yaml",
+        knowledge_dir.parent / "canonical_path" / "006_apartment_entry_greetings.yaml",
+        knowledge_dir.parent / "canonical_path" / "007_living_room_arrangement.yaml",
+        knowledge_dir.parent / "canonical_path" / "008_statement_on_table.yaml",
+        knowledge_dir.parent / "canonical_path" / "009_wording_dispute_armed_carrying.yaml",
+        *sorted((knowledge_dir.parent / "canonical_path").glob("01*.yaml")),
         knowledge_dir.parent / "characters" / "actor_pressure_profiles.yaml",
         knowledge_dir.parent / "phase_beat_policy.yaml",
     ]
@@ -189,23 +222,81 @@ def test_opening_incident_content_is_concrete_in_direction_and_knowledge() -> No
     direction_text = (module_dir / "direction" / "opening_sequence.yaml").read_text(encoding="utf-8").lower()
     knowledge_text = (module_dir / "knowledge" / "opening_scene_sequence.yaml").read_text(encoding="utf-8").lower()
     premise_text = (module_dir / "knowledge" / "premise_and_backstory.yaml").read_text(encoding="utf-8").lower()
+    location_text = "\n".join(
+        p.read_text(encoding="utf-8").lower()
+        for p in sorted((module_dir / "locations" / "opening").glob("*.yaml"))
+    )
+    canonical_text = "\n".join(
+        p.read_text(encoding="utf-8").lower()
+        for p in sorted((module_dir / "canonical_path").glob("*.yaml"))
+    )
+
+    for text in (opening_doc, direction_text, knowledge_text, premise_text):
+        assert "canonical_path/" in text or "canonical_path" in text
+        assert "locations/" in text or "location_refs" in text
 
     for token in ("parc montsouris", "basketball", "bicycle", "stick"):
-        assert token in opening_doc
-        assert token in direction_text
-        assert token in knowledge_text or token in premise_text
+        assert token in location_text or token in canonical_text or token in premise_text
 
 
-def test_scene_graph_and_modular_character_documents_are_primary_surfaces() -> None:
+def test_goc_content_surfaces_reference_locations_instead_of_rewriting_them() -> None:
+    module_dir = Path(__file__).resolve().parents[2] / "content" / "modules" / "god_of_carnage"
+    non_location_files = [
+        module_dir / "direction" / "opening.md",
+        module_dir / "direction" / "opening_sequence.yaml",
+        module_dir / "direction" / "scene_guidance.yaml",
+        module_dir / "knowledge" / "opening_scene_sequence.yaml",
+        module_dir / "knowledge" / "premise_and_backstory.yaml",
+        module_dir / "knowledge" / "narrator_sensory_palette.yaml",
+        module_dir / "scene_graph.yaml",
+        *sorted((module_dir / "canonical_path").glob("*.yaml")),
+    ]
+    banned_location_rewrites = (
+        "gray autumn sky, bare trees",
+        "sloping lawns, winding paths",
+        "other apartment doors and an elevator that does not arrive",
+        "the kitchen attached to the living room",
+        "the small hallway leading to the kitchen",
+        "art books, tulips, coffee, dessert",
+    )
+    failures: list[str] = []
+    for path in non_location_files:
+        text = path.read_text(encoding="utf-8").lower()
+        for phrase in banned_location_rewrites:
+            if phrase in text:
+                failures.append(f"{path.relative_to(module_dir)} repeats '{phrase}'")
+    assert not failures
+
+    canonical = _read_yaml(module_dir / "canonical_path" / "index.yaml").get("canonical_path") or {}
+    assert (canonical.get("reference_policy") or {}).get("steps_must_not_duplicate_location_descriptions") is True
+    for step_path in sorted((module_dir / "canonical_path").glob("00*.yaml")):
+        step = (_read_yaml(step_path).get("canonical_path_step") or {})
+        loc_ref = step.get("location_ref")
+        assert isinstance(loc_ref, dict) and loc_ref.get("source"), f"{step_path.name} missing location_ref.source"
+        assert "path_point" in step, f"{step_path.name} should use path_point, not a second description surface"
+        assert "point" not in step, f"{step_path.name} still uses legacy descriptive point block"
+
+
+def test_canonical_path_scene_index_and_modular_character_documents_are_primary_surfaces() -> None:
     clear_goc_yaml_slice_cache()
     bundle = load_goc_yaml_slice_bundle()
     graph = bundle.get("scene_graph") or {}
+    canonical_path = bundle.get("canonical_path") or {}
     docs = bundle.get("character_documents") or {}
     locations = bundle.get("locations") or {}
+    objects = bundle.get("objects") or {}
     access = bundle.get("content_access_policy") or {}
 
     nodes = graph.get("nodes") or []
     assert len(nodes) >= 12
+    assert canonical_path.get("primary_direction_surface") is True
+    sequences = [step.get("sequence") for step in (canonical_path.get("steps") or [])]
+    assert sequences == list(range(1, len(sequences) + 1))
+    assert len(sequences) >= 16
+    assert all((step.get("location_ref") or {}).get("source") for step in (canonical_path.get("steps") or []))
+    assert "bicycle_rack" in (objects.get("object_documents") or {})
+    assert "coffee_table" in (objects.get("object_documents") or {})
+    assert "window" in (objects.get("object_documents") or {})
     assert graph.get("default_start_node_id") == "prologue_park_edge"
     assert graph.get("first_playable_node_id") == "first_playable_courtesy_gap"
     assert all(isinstance(row, dict) and row.get("location_id") for row in nodes)
@@ -222,8 +313,9 @@ def test_scene_graph_and_modular_character_documents_are_primary_surfaces() -> N
         {
             "park_edge",
             "basketball_court",
+            "building_hallway",
             "building_stairwell",
-            "vallon_living_room",
+            "living_room",
             "hallway",
             "bathroom",
             "kitchen",
@@ -250,10 +342,13 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
     for key in (
         "character_documents",
         "scene_graph",
+        "canonical_path",
+        "modularity_policy",
+        "opening_quote_anchors",
         "locations",
+        "objects",
         "content_access_policy",
         "apartment_layout",
-        "apartment_objects",
         "premise_and_backstory",
         "actor_pressure_profiles",
         "phase_beat_policy",
@@ -269,10 +364,13 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
         "hard_forbidden_rules_loaded",
         "character_documents_loaded",
         "scene_graph_loaded",
+        "canonical_path_loaded",
+        "modularity_policy_loaded",
+        "opening_quote_anchors_loaded",
         "locations_loaded",
+        "objects_loaded",
         "content_access_policy_loaded",
         "apartment_layout_loaded",
-        "apartment_objects_loaded",
         "premise_and_backstory_loaded",
         "actor_pressure_profiles_loaded",
         "phase_beat_policy_loaded",
@@ -301,6 +399,9 @@ def test_narrator_fixture_surface_has_german_runtime_cues_for_bathroom_kitchen_w
     win = objs.get("window") or {}
     aliases = win.get("aliases") if isinstance(win.get("aliases"), list) else []
     assert aliases
+    assert kitchen.get("entry_sensory_source_ref")
+    assert bathroom.get("entry_sensory_source_ref")
+    assert win.get("perception_source_ref")
     detail = win.get("perception_detail") or {}
     assert detail.get("de") and detail.get("en")
     assert detail["de"] != detail["en"]

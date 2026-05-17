@@ -1,0 +1,9 @@
+memory_policy:
+  enabled: true
+  memory_scopes:
+    scene:
+      retain_open_pressures: true
+      retain_location_changes: true
+    character:
+      retain_voice_leakage: true
+      retain_relationship_damage: true

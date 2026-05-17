@@ -48,31 +48,60 @@ class TestGocModuleStructureSmoke:
         "characters/relationships.yaml",
         "characters/actor_pressure_profiles.yaml",
         "characters/character_voice.yaml",
+        "canonical_path/index.yaml",
+        "canonical_path/001_parc_montsouris_edge.yaml",
+        "canonical_path/002_argument_stick_blow.yaml",
+        "canonical_path/003_bicycle_disappearance.yaml",
+        "canonical_path/004_dark_building_hallway.yaml",
+        "canonical_path/005_living_room_handover.yaml",
+        "canonical_path/006_apartment_entry_greetings.yaml",
+        "canonical_path/007_living_room_arrangement.yaml",
+        "canonical_path/008_statement_on_table.yaml",
+        "canonical_path/009_wording_dispute_armed_carrying.yaml",
+        "canonical_path/010_injury_detail_dental_consequence.yaml",
+        "canonical_path/011_courtesy_community_pressure.yaml",
+        "canonical_path/012_tulips_and_hospitality.yaml",
+        "canonical_path/013_first_playable_courtesy_gap.yaml",
+        "canonical_path/014_player_response_ripple.yaml",
+        "canonical_path/015_phone_exit_pressure.yaml",
+        "canonical_path/016_opening_sustained_play_handoff.yaml",
         "escalation_axes.yaml",
         "scenes.yaml",
         "transitions.yaml",
         "triggers.yaml",
         "endings.yaml",
         "locations/index.yaml",
-        "locations/appartment/apartment_layout.yaml",
-        "locations/appartment/apartment_objects.yaml",
+        "locations/appartment_vallon/apartment_layout.yaml",
+        "objects/index.yaml",
+        "objects/opening/bicycle_rack.yaml",
+        "objects/appartment_vallon/living_room/coffee_table.yaml",
+        "objects/appartment_vallon/living_room/dining_table.yaml",
+        "objects/appartment_vallon/living_room/window.yaml",
+        "objects/appartment_vallon/living_room/television.yaml",
+        "objects/appartment_vallon/hallway/hallway_doors.yaml",
+        "objects/appartment_vallon/kitchen/coffee_machine.yaml",
+        "objects/appartment_vallon/kitchen/glasses.yaml",
+        "objects/appartment_vallon/bathroom/bathroom_mirror.yaml",
+        "objects/appartment_vallon/pantry/pantry_shelves.yaml",
+        "objects/appartment_vallon/study/study_desk.yaml",
+        "objects/building/apartment_door.yaml",
+        "objects/building/elevator.yaml",
         "locations/opening/park_edge.yaml",
         "locations/opening/basketball_court.yaml",
         "locations/opening/playground.yaml",
-        "locations/opening/bicycle_rack.yaml",
-        "locations/opening/offscreen_parent_world.yaml",
+        "locations/building/building_hallway.yaml",
         "locations/building/building_stairwell.yaml",
-        "locations/appartment/apartment_entry.yaml",
-        "locations/appartment/vallon_living_room.yaml",
-        "locations/appartment/coffee_table.yaml",
-        "locations/appartment/hallway.yaml",
-        "locations/appartment/kitchen.yaml",
-        "locations/appartment/bathroom.yaml",
-        "locations/appartment/pantry.yaml",
-        "locations/appartment/study.yaml",
-        "locations/appartment/bedroom_one_locked.yaml",
-        "locations/appartment/bedroom_two_locked.yaml",
-        "locations/appartment/window.yaml",
+        "locations/appartment_vallon/apartment_entry.yaml",
+        "locations/appartment_vallon/living_room.yaml",
+        "locations/appartment_vallon/hallway.yaml",
+        "locations/appartment_vallon/kitchen.yaml",
+        "locations/appartment_vallon/bathroom.yaml",
+        "locations/appartment_vallon/pantry.yaml",
+        "locations/appartment_vallon/study.yaml",
+        "locations/appartment_vallon/bedroom_one_locked.yaml",
+        "locations/appartment_vallon/bedroom_two_locked.yaml",
+        "knowledge/modularity_policy.yaml",
+        "knowledge/opening_quote_anchors.yaml",
     ]
 
     REQUIRED_DIRECTION_FILES = [
@@ -92,6 +121,39 @@ class TestGocModuleStructureSmoke:
             filepath = self.MODULE_ROOT / filename
             assert filepath.exists(), f"Required file {filename} not found"
             assert filepath.is_file(), f"Required file {filename} is not a file"
+
+    def test_objects_are_not_modeled_as_locations(self):
+        """Objects live under objects/ and locations only reference object ids."""
+        obsolete_location_files = [
+            "locations/opening/bicycle_rack.yaml",
+            "locations/appartment_vallon/apartment_objects.yaml",
+            "locations/appartment_vallon/coffee_table.yaml",
+            "locations/appartment_vallon/window.yaml",
+            "objects/appartment_vallon/apartment_objects.yaml",
+        ]
+        for filename in obsolete_location_files:
+            assert not (self.MODULE_ROOT / filename).exists(), f"Object file must not live in locations/: {filename}"
+
+        locations_index = yaml.safe_load((self.MODULE_ROOT / "locations" / "index.yaml").read_text(encoding="utf-8"))
+        locations = locations_index["locations"]
+        assert locations["object_authority_ref"] == "objects/index.yaml"
+        for place_file in locations.get("place_files") or []:
+            assert str(place_file).startswith("locations/"), f"Location index must not list object file: {place_file}"
+
+        living_room = yaml.safe_load(
+            (self.MODULE_ROOT / "locations" / "appartment_vallon" / "living_room.yaml").read_text(encoding="utf-8")
+        )["location"]
+        assert "inventory_object_ids" in living_room
+        assert "coffee_table" in living_room["inventory_object_ids"]
+        assert "window" in living_room["inventory_object_ids"]
+
+        object_index = yaml.safe_load((self.MODULE_ROOT / "objects" / "index.yaml").read_text(encoding="utf-8"))[
+            "objects"
+        ]
+        assert object_index["placement_policy"]["apartment_objects_grouped_by_location_subfolder"] is True
+        assert object_index["location_object_folders"]["living_room"] == "objects/appartment_vallon/living_room/"
+        assert "objects/appartment_vallon/living_room/coffee_table.yaml" in object_index["object_files"]
+        assert not list((self.MODULE_ROOT / "objects" / "appartment_vallon").glob("*.yaml"))
 
     def test_direction_files_exist(self):
         """All optional direction guidance files exist."""
@@ -352,7 +414,9 @@ class TestGocModuleConsistencySmoke:
         """Module duration estimates are reasonable."""
         duration = module_data["module"].get("content", {}).get("duration_turns_estimated", "")
         assert duration, "Module missing duration_turns_estimated"
-        assert "12-15" in duration or "10-15" in duration, f"Duration seems incorrect: {duration}"
+        assert any(expected in duration for expected in ("20-35", "20-30", "20+")), (
+            f"Duration should reflect the expanded playable opening: {duration}"
+        )
 
     def test_phases_have_exit_conditions(self, module_data):
         """All scene phases define exit conditions."""

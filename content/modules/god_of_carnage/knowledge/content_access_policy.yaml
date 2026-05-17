@@ -21,6 +21,9 @@ content_access_policy:
     gated:
       meaning: "Allowed only when listed requirements are met."
       runtime_expectation: resolve_with_narrator_or_scene_transition
+    prevented:
+      meaning: "Temporarily blocked by authored scene pressure, not morally or physically impossible."
+      runtime_expectation: narrate_as_pressure_and_hold_or_redirect
     narrator_only:
       meaning: "Can be described by the narrator, but not directly entered or manipulated."
       runtime_expectation: block_as_player_affordance
@@ -30,43 +33,43 @@ content_access_policy:
       scope: location
       target_id: park_edge
       decision: narrator_only
-      reason: "The park is opening memory/prologue material, not a live navigation destination."
+      reason_ref: locations/opening/park_edge.yaml#location.playable_access
 
     - id: no_live_basketball_court_navigation
       scope: location
       target_id: basketball_court
       decision: narrator_only
-      reason: "The court can be shown in the opening only."
+      reason_ref: locations/opening/basketball_court.yaml#location.playable_access
 
     - id: no_live_playground_navigation
       scope: location
       target_id: playground
       decision: narrator_only
-      reason: "The playground is opening background texture, not a live navigation destination."
+      reason_ref: locations/opening/playground.yaml#location.playable_access
 
     - id: no_live_bicycle_manipulation
       scope: object
       target_id: bicycle_rack
       decision: narrator_only
-      reason: "The kicked bicycle is prologue evidence and must not become a player toy."
+      reason_ref: objects/opening/bicycle_rack.yaml#object.playable_access
 
     - id: no_enter_locked_bedroom_one
       scope: location
       target_id: bedroom_one_locked
       decision: hard_deny
-      reason: "This bedroom is known as a locked private door off the hallway, not a playable room."
+      reason_ref: locations/appartment_vallon/bedroom_one_locked.yaml#location.playable_access
 
     - id: no_enter_locked_bedroom_two
       scope: location
       target_id: bedroom_two_locked
       decision: hard_deny
-      reason: "This bedroom is known as a locked private door off the hallway, not a playable room."
+      reason_ref: locations/appartment_vallon/bedroom_two_locked.yaml#location.playable_access
 
     - id: no_open_locked_bedroom_doors
       scope: action
       target_id: open_locked_bedroom_door
       decision: hard_deny
-      reason: "Locked bedroom doors may be noticed, but not opened, entered, or searched."
+      reason_ref: locations/appartment_vallon/bedroom_one_locked.yaml#location.forbidden_actions
 
     - id: no_player_controls_other_child
       scope: action
@@ -87,13 +90,21 @@ content_access_policy:
       reason: "Use transformed module facts, not long source-text reproduction."
 
   gated_entities:
-    - id: building_stairwell_navigation
+    - id: building_hallway_navigation
       scope: location
-      target_id: building_stairwell
+      target_id: building_hallway
       decision: gated
       requirements:
         - current_scene_node_allows_exit_or_entry
         - narrator_transition_required
+
+    - id: building_stairwell_access_prevented
+      scope: location
+      target_id: building_stairwell
+      decision: prevented
+      requirements:
+        - alain_no_signal_waiting_for_urgent_call
+        - stairwell_not_reachable_from_current_hallway_moment
 
     - id: apartment_entry_navigation
       scope: location

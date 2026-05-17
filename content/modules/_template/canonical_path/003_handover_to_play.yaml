@@ -1,0 +1,48 @@
+canonical_path_step:
+  sequence: 3
+  id: opening_003_handover_to_play
+  path_id: template_opening_canonical_path
+  name: "003 - Handover to play"
+  mode: first_playable_handover
+
+  location_ref:
+    location_id: main_room
+    source: locations/appartment/main_room.yaml
+    use_fields:
+      - description
+      - entrances_exits
+      - sensory_tags
+      - plausible_actions
+  topology_ref:
+    source: locations/appartment/apartment_layout.yaml
+    use_fields:
+      - location_assignment
+      - rooms.main_room
+  play_model:
+    estimated_minutes: 4
+    interaction_density: player_driven
+    player_agency: "First free action, silence, observation, gesture, or line."
+
+  path_point:
+    present:
+      named_characters:
+        - protagonist
+        - counterpart
+    narrator_tasks:
+      - establish_first_playable_location_from_refs
+      - leave_player_agency_open
+    player_windows:
+      - observe
+      - gesture
+      - remain_silent
+      - speak
+    must_not:
+      - duplicate_location_description
+      - assign_player_speech
+      - assign_player_private_thought
+
+  next_point:
+    step_id: null
+    handoff: "Stop at first playable moment."
+    carry_forward:
+      - replace_with_open_pressure

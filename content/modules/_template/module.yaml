@@ -1,0 +1,81 @@
+# Template content module.
+# Copy this directory and replace ids, names, and prose with module-specific material.
+
+module_id: _template
+title: Content Module Template
+description: |-
+  Template-only module skeleton for drafting a new World of Shadows scenario.
+  This is not published story content; it is a structural starting point.
+
+version: "0.1.0"
+contract_version: "0.2.0"
+
+content:
+  lifecycle: template_only
+  duration_turns_estimated: "10-15"
+  scene_phases: 3
+  num_player_characters: 1
+  num_npc_characters: 1
+  total_characters: 2
+  setting: "Replace with the primary setting"
+  narrative_scope: "Replace with the dramatic promise of the module"
+  max_escalation_level: 100
+  max_emotional_state: 100
+  relationship_stability_min: 0
+  relationship_stability_max: 100
+
+files:
+  - README.md
+  - module.yaml
+  - characters/index.yaml
+  - characters/protagonist.yaml
+  - characters/counterpart.yaml
+  - characters/relationships.yaml
+  - characters/actor_pressure_profiles.yaml
+  - characters/character_voice.yaml
+  - canonical_path/index.yaml
+  - canonical_path/001_opening_anchor.yaml
+  - canonical_path/002_pressure_turn.yaml
+  - canonical_path/003_handover_to_play.yaml
+  - objects/index.yaml
+  - objects/appartment/main_room/focal_table.yaml
+  - objects/building/threshold_door.yaml
+  - direction/system_prompt.md
+  - direction/scene_guidance.yaml
+  - direction/opening.md
+  - direction/opening_sequence.yaml
+  - direction/subtext_policy.yaml
+  - locale/module_strings.yaml
+  - locale/player_input_rules.yaml
+  - locale/model_directives/session_output_language_de.md
+  - locale/model_directives/session_output_language_en.md
+  - locations/index.yaml
+  - locations/opening/opening_anchor.yaml
+  - locations/building/threshold.yaml
+  - locations/appartment/apartment_layout.yaml
+  - locations/appartment/main_room.yaml
+  - locations/appartment/service_room.yaml
+  - locations/appartment/private_locked_room.yaml
+  - scenes.yaml
+  - scene_graph.yaml
+  - transitions.yaml
+  - triggers.yaml
+  - endings.yaml
+  - escalation_axes.yaml
+  - phase_beat_policy.yaml
+  - narrative_aspect_policy.yaml
+  - information_disclosure_policy.yaml
+  - memory_policy.yaml
+  - knowledge/premise_and_backstory.yaml
+  - knowledge/modularity_policy.yaml
+  - knowledge/narrator_sensory_palette.yaml
+  - knowledge/opening_scene_sequence.yaml
+  - knowledge/opening_quote_anchors.yaml
+  - knowledge/hard_forbidden_rules.yaml
+  - knowledge/content_access_policy.yaml
+
+quality_principles:
+  - "Keep character ids, runtime actor ids, relationship ids, scene ids, and location ids stable."
+  - "Put story truth in module files; keep engine logic generic."
+  - "Use locale files for player-visible localization, not as hidden story authority."
+  - "Do not duplicate location descriptions outside locations/; reference location ids instead."
