@@ -198,6 +198,7 @@ class ContentModule(BaseModel):
         scene_graph: Authored scene-node graph beyond phase buckets
         locations: Authored accessible/offscreen locations and locality metadata
         objects: Authored object surface with placement at locations
+        action_outcome_map: Data-driven mapping from grounded actions to outcome families
         character_documents: Per-character authoring documents keyed by character id
         content_access_policy: Data-driven action/location/object/scene access policy
     """
@@ -265,6 +266,10 @@ class ContentModule(BaseModel):
     objects: dict[str, Any] = Field(
         default_factory=dict,
         description="Authored object surface with placement at locations",
+    )
+    action_outcome_map: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Action-to-outcome relationship map including portability handling",
     )
     character_documents: dict[str, Any] = Field(
         default_factory=dict,

@@ -8,13 +8,12 @@ canonical_path_step:
   scene_anchor:
     scene: 5
     summary: >-
-      Alains Telefon vibriert. Zweiter Walter-Call: Strategiefragen zur
-      Aktionärsversammlung. Letter-to-the-editor wird abgelehnt. Walter
-      schildert die spezifische Nebenwirkung 'Ataxie' (Gleichgewichts-
-      verlust, ungleichmäßiger Gang). Alain hängt ab, wählt sofort Dennis
-      an: 'Sie haben zweieinhalb Jahre von den Risiken gewusst.' Dennis
-      reagiert. Im Hintergrund verzehrt Alain den Cobbler. Annette wirft
-      ihm zu: 'Alan, wir warten alle auf dich.'
+      Alain's phone vibrates. Second Walter call: strategy questions about the
+      shareholders' meeting. Letter-to-the-editor is rejected. Walter describes
+      the specific side effect 'ataxia' (loss of balance, uneven gait). Alain
+      hangs up and immediately calls Dennis: 'You have known about the risks for
+      two and a half years.' Dennis reacts. In the background Alain shovels in
+      cobbler. Annette throws at him: 'Alain, we are all waiting for you.'
 
   duration_target_seconds: 90
   duration_max_seconds: 120
@@ -55,14 +54,14 @@ canonical_path_step:
         interrupted_in_step_id: opening_v2_017_alain_second_walter_call
         interrupted_at_beat_id: annette_novel_way_carryover
         alain_visible_facts:
-          - "letter_to_editor_token: keine Leserbriefe, fan the flames"
-          - "scheduled_token: war es eingeplant — nein, sie haben es laufen lassen"
-          - "ataxia_explained_token: Ataxie ist Gleichgewichtsverlust, ungleichmäßiger Gang"
-          - "normal_doses_token: in Normaldosis selten"
-          - "two_and_a_half_years_token: zweieinhalb Jahre"
-          - "no_recall_token: keine Rückrufaktion"
-          - "chapter_13_token: gleich Bankrottanmeldung"
-          - "half_billion_revenue_token: Umsatz im Bereich Halbmilliarde"
+          - "letter_to_editor_token: no letters to the editor, fan the flames"
+          - "scheduled_token: was it scheduled — no, they let it run"
+          - "ataxia_explained_token: ataxia is loss of balance, uneven gait"
+          - "normal_doses_token: rare at normal doses"
+          - "two_and_a_half_years_token: two and a half years"
+          - "no_recall_token: no recall action"
+          - "chapter_13_token: basically bankruptcy filing"
+          - "half_billion_revenue_token: revenue in the half-billion range"
         call_audible_duration_seconds: 50
         returns_to_room_with: silent_continuation_of_prior_thread
         leaves_phone_in_view: true
@@ -77,11 +76,11 @@ canonical_path_step:
         intent: chain_immediately_to_dennis_about_known_risks
         required_facts:
           - "dennis_call_token: Dennis"
-          - "talked_to_him_token: hast du mit ihm gesprochen"
-          - "known_risks_token: sie haben zweieinhalb Jahre von den Risiken gewusst"
+          - "talked_to_him_token: did you talk to him"
+          - "known_risks_token: you have known about the risks for two and a half years"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_dennis_call
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "drei kurze Repliken, gehetzt"
+        minimum_visible: "three short lines, harried"
         forbidden_drift: [explain_to_the_room_what_dennis_is_about]
       player_status: observer_window_open
 
@@ -91,7 +90,7 @@ canonical_path_step:
       beat_pattern_ref: narrator_perception_block
       beat_pattern_params:
         perception_lines:
-          - "Alain schaufelt während des Telefongesprächs den Cobbler in sich hinein."
+          - "Alain shovels cobbler into himself during the phone conversation."
       player_status: observer_window_open
 
     - id: annette_we_are_all_waiting
@@ -101,10 +100,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: annette
         intent: call_out_alain_we_are_all_waiting
-        required_facts: ["waiting_token: Alain, wir warten alle auf dich"]
+        required_facts: ["waiting_token: Alain, we are all waiting for you"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_dennis_call
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "fünf bis sechs Wörter, leise gereizt"
+        minimum_visible: "five or six words, quietly irritated"
       forces_response_chain:
         target_actor: alain
         target_intent: defer_with_yeah_one_second
@@ -118,10 +117,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: alain
         intent: defer_with_one_second
-        required_facts: ["one_second_token: ja, eine Sekunde"]
+        required_facts: ["one_second_token: yes, one second"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_dennis_call
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "zwei Wörter, ohne zu schauen"
+        minimum_visible: "two words, without looking up"
       player_status: observer_window_open
 
   optional_micro_beats:
@@ -130,24 +129,24 @@ canonical_path_step:
       condition: any_visible_fact_lands
       director_instruction:
         narrator_perception_only:
-          - "Veronique zieht die Augenbrauen hoch."
-          - "Michel sieht zu Boden."
+          - "Veronique raises her eyebrows."
+          - "Michel looks at the floor."
         player_status: observer_window_open
 
   themes_realized_here:
     - actor: alain
       theme: deny_deny_deny_directive
-      mechanism: "letter-to-editor verbieten + scheduled-nein-Auseinandersetzung"
+      mechanism: "forbid letter-to-editor + scheduled-no confrontation"
       evidence_required: [alain_speaks_letter_to_editor_token]
       blocks_progression_if_missing: true
     - actor: alain
       theme: no_letters_to_the_editor
-      mechanism: "explizite Strategie-Ansage"
+      mechanism: "explicit strategy statement"
       evidence_required: [alain_speaks_letter_to_editor_token]
       blocks_progression_if_missing: true
     - actor: alain
       theme: dennis_chained_call
-      mechanism: "second-call immediately chained shows pharma_crisis_active in foreground"
+      mechanism: "second call immediately chained shows pharma_crisis_active in foreground"
       evidence_required: [alain_speaks_dennis_call_token, alain_speaks_known_risks_token]
       blocks_progression_if_missing: true
 
@@ -174,9 +173,9 @@ canonical_path_step:
   next_point:
     step_id: opening_v2_018_hamster_moral_inquiry
     handoff: >-
-      Nachdem Alain endlich aufgelegt hat, kommt das Hamster-Thema in
-      schärfer zurück. Annette stellt die moralische Frage explizit.
-      Erste Allianz-Brüche werden sichtbar.
+      After Alain finally hangs up, the hamster topic returns more sharply.
+      Annette asks the moral question explicitly. First alliance breaks become
+      visible.
     carry_forward:
       - second_call_overheard_facts_irreversible
       - alain_call_dependency_visible_to_room

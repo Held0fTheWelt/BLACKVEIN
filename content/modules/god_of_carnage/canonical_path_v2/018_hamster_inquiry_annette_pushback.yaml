@@ -8,12 +8,12 @@ canonical_path_step:
   scene_anchor:
     scene: 5
     summary: >-
-      Nach Alains zweitem Call kehrt das Hamster-Thema in schärfer zurück.
-      Michel macht den Snitch-Witz auf Alain ('außer es stimmt'). Annette
-      reagiert spitz, fragt 'Ist mein Sohn ein Snitch?'. Michel weicht aus
-      ('Witz'), aber Annette spitzt zu: 'Eurer ist auch einer.' Veronique
-      versucht zu schlichten ('wir sind komplett vom Thema ab'). Annettes
-      Pushback wird zum ersten echten Bruch der Höflichkeit.
+      After Alain's second call the hamster topic returns more sharply. Michel
+      makes the snitch joke at Alain ('unless it's true'). Annette reacts
+      sharply, asks 'Is my son a snitch?'. Michel retreats ('joke'), but
+      Annette sharpens: 'Yours is one too.' Veronique tries to mediate ('we are
+      completely off the point'). Annette's pushback becomes the first real
+      break in civility.
 
   duration_target_seconds: 70
   duration_max_seconds: 95
@@ -52,10 +52,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: alain
         intent: drop_remark_about_call_me_a_snitch_gets_a_rise
-        required_facts: ["snitch_remark_token: nenn mich einen Snitch, das treibt mich an"]
+        required_facts: ["snitch_remark_token: call me a snitch, that gets me going"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "ein Halbsatz, beim Telefon-Wegstecken"
+        minimum_visible: "one half-sentence, while putting the phone away"
       player_status: observer_window_open
 
     - id: michel_unless_its_true
@@ -91,10 +91,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: michel
         intent: complete_the_joke_with_if_the_shoe_fits
-        required_facts: ["shoe_fits_token: wenn es passt"]
+        required_facts: ["shoe_fits_token: if the shoe fits"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "drei bis vier Wörter, joke-tone, halb defensiv"
+        minimum_visible: "three or four words, joke-tone, half defensive"
       forces_response_chain:
         target_actor: annette
         target_intent: sharp_question_is_my_son_a_snitch
@@ -108,10 +108,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: annette
         intent: ask_sharply_my_son_is_a_snitch
-        required_facts: ["my_son_snitch_token: mein Sohn ist ein Snitch"]
+        required_facts: ["my_son_snitch_token: my son is a snitch"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "fünf bis sechs Wörter, harte Frage"
+        minimum_visible: "five or six words, hard question"
         forbidden_drift: [voice_softens_again]
       forces_response_chain:
         target_actor: michel
@@ -126,10 +126,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: michel
         intent: retreat_with_come_on_was_joking
-        required_facts: ["joke_retreat_token: komm schon, war ein Witz"]
+        required_facts: ["joke_retreat_token: come on, it was a joke"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "fünf bis sechs Wörter, defensiv-jovial"
+        minimum_visible: "five or six words, defensive-jovial"
       forces_response_chain:
         target_actor: annette
         target_intent: counter_so_is_yours_anyway
@@ -143,10 +143,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: annette
         intent: counter_so_is_your_son_anyway
-        required_facts: ["yours_is_too_token: eurer ist auch einer"]
+        required_facts: ["yours_is_too_token: yours is one too"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "fünf Wörter, sharp counter"
+        minimum_visible: "five words, sharp counter"
       forces_response_chain:
         target_actor: michel
         target_intent: defend_we_coaxed_it_out
@@ -160,10 +160,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: michel
         intent: defend_we_coaxed_it_out_of_him
-        required_facts: ["coaxed_token: wir haben es ihm abgerungen"]
+        required_facts: ["coaxed_token: we coaxed it out of him"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_coaxed
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "fünf bis sechs Wörter, fest"
+        minimum_visible: "five or six words, firm"
       player_status: observer_window_open
 
     - id: veronique_completely_off_point
@@ -173,10 +173,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: veronique
         intent: try_to_redirect_we_are_completely_off_point
-        required_facts: ["off_point_token: wir sind komplett vom Thema ab"]
+        required_facts: ["off_point_token: we are completely off the point"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_off_point
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "vier bis sechs Wörter, mediating"
+        minimum_visible: "four to six words, mediating"
       player_status: observer_window_open
 
     - id: annette_maybe_you_coaxed_but_he_snitched
@@ -187,11 +187,11 @@ canonical_path_step:
         actor: annette
         intent: insist_with_maybe_you_coaxed_but_he_did_snitch
         required_facts:
-          - "maybe_coaxed_token: vielleicht habt ihr ihn dazu gedrängt"
-          - "but_he_snitched_token: aber er hat ihn ans Messer geliefert"
+          - "maybe_coaxed_token: maybe you pressured him into it"
+          - "but_he_snitched_token: but he turned him in"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_coaxed
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "zwei Halbsätze, scharf-präzisierend"
+        minimum_visible: "two half-sentences, sharp and precise"
       forces_response_chain:
         target_actor: alain
         target_intent: try_to_calm_wife_nancy
@@ -208,7 +208,7 @@ canonical_path_step:
         required_facts: ["name_call_token: Annette"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_coaxed
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "ein Wort"
+        minimum_visible: "one word"
       forces_response_chain:
         target_actor: annette
         target_intent: rebound_with_what_to_alain
@@ -223,12 +223,12 @@ canonical_path_step:
         actor: annette
         intent: turn_to_michel_directly_you_think_my_son_is_a_snitch
         required_facts:
-          - "what_token: was"
-          - "to_michel_token: zu Michel"
-          - "snitch_pressing_token: glaubst du, mein Sohn ist ein Snitch"
+          - "what_token: what"
+          - "to_michel_token: to Michel"
+          - "snitch_pressing_token: do you think my son is a snitch"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "zwei Sätze, harte Konfrontation an Michel adressiert"
+        minimum_visible: "two sentences, hard confrontation addressed to Michel"
       forces_response_chain:
         target_actor: michel
         target_intent: deny_thinking_anything
@@ -242,10 +242,10 @@ canonical_path_step:
       beat_pattern_params:
         actor: michel
         intent: deny_with_i_dont_think_anything
-        required_facts: ["dont_think_token: ich denke gar nichts"]
+        required_facts: ["dont_think_token: I do not think anything"]
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_off_point
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "drei Wörter, defensiv"
+        minimum_visible: "three words, defensive"
       player_status: observer_window_open
 
     - id: annette_dont_make_insinuations
@@ -256,22 +256,22 @@ canonical_path_step:
         actor: annette
         intent: lay_down_dont_make_insinuations_if_no_opinion
         required_facts:
-          - "nothing_token: wenn du nichts denkst"
-          - "no_insinuations_token: dann mach keine Andeutungen"
+          - "nothing_token: if you do not think anything"
+          - "no_insinuations_token: then do not make insinuations"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_off_point
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "zwei kurze Sätze, hart-prinzipientreu"
+        minimum_visible: "two short sentences, hard and principled"
       player_status: observer_window_open
 
   themes_realized_here:
     - actor: annette
       theme: zachary_has_never_been_violent_apology_seed
-      mechanism: "verlässt politeness und verteidigt Sohn explizit gegen Snitch-Vorwurf"
+      mechanism: "leaves politeness and defends son explicitly against snitch accusation"
       evidence_required: [annette_speaks_my_son_snitch_token, annette_speaks_no_insinuations_token]
       blocks_progression_if_missing: true
     - actor: michel
       theme: we_coaxed_it_out_of_him_about_snitching
-      mechanism: "first defense of own son in same room"
+      mechanism: "first defense of own son in the same room"
       evidence_required: [michel_speaks_coaxed_token]
       blocks_progression_if_missing: true
 
@@ -298,9 +298,9 @@ canonical_path_step:
   next_point:
     step_id: opening_v2_019_apology_stalemate_new_teeth
     handoff: >-
-      Aus dem Snitch-Pushback wird die offene Apologie-Sackgasse. Veronique
-      versucht zu glätten, Alain wirft 'er kriegt neue Zähne' rein, und der
-      'caring parent crap'-Ton bricht durch.
+      From the snitch pushback comes the open apology stalemate. Veronique
+      tries to smooth things over, Alain throws in 'he'll get new teeth', and
+      the 'caring parent crap' tone breaks through.
     carry_forward:
       - second_civility_crack_logged_irreversible
       - annette_voice_transition_logged

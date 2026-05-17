@@ -95,7 +95,7 @@ class TestGocModuleStructureSmoke:
         "objects/appartment_vallon/hallway/locked_bathroom_door.yaml",
         "objects/building/apartment_door.yaml",
         "objects/building/elevator.yaml",
-        "locale/action_outcome_map.yaml",
+        "knowledge/action_outcome_map.yaml",
         "locations/opening/park_edge.yaml",
         "locations/opening/basketball_court.yaml",
         "locations/opening/playground.yaml",
@@ -174,6 +174,18 @@ class TestGocModuleStructureSmoke:
         for rel_path in object_index["object_files"]:
             object_doc = yaml.safe_load((self.MODULE_ROOT / rel_path).read_text(encoding="utf-8"))["object"]
             assert isinstance(object_doc.get("portable"), bool), f"{rel_path} must declare boolean portable"
+
+    def test_action_outcome_map_declares_cardinality_shapes(self):
+        """Action-outcome map supports 1:1, 1:n, n:1, and n:n relationships."""
+        action_map = yaml.safe_load(
+            (self.MODULE_ROOT / "knowledge" / "action_outcome_map.yaml").read_text(encoding="utf-8")
+        )["action_outcome_map"]
+        relationships = {row.get("cardinality") for row in action_map.get("mappings") or []}
+        assert {"one_to_one", "one_to_many", "many_to_one", "many_to_many"}.issubset(relationships)
+        assert (action_map.get("portability_rules") or {}).get("take_requires_portable") is True
+        assert "locked_bathroom_door" in {
+            row.get("target_id") for row in action_map.get("target_overrides") or [] if isinstance(row, dict)
+        }
 
     def test_obsolete_orchestration_files_are_absent(self):
         """Old second-source orchestration files must not return to the module."""
