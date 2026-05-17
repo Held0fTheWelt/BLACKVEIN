@@ -46,8 +46,8 @@ premise_and_backstory:
       fact: "Each marriage is on display; alliances can invert within minutes."
       authority: canonical_module
       character_refs:
-        - characters/relationships.yaml
-        - characters/actor_pressure_profiles.yaml
+        - characters/details/relationships.yaml
+        - characters/details/actor_pressure_profiles.yaml
       player_visibility: implied
       subtext: >-
         Spouses may punish each other for humiliation suffered in front of the

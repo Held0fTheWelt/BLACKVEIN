@@ -24,6 +24,51 @@ from .module_exceptions import (
 from .module_models import ContentModule
 
 
+def _as_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
+
+
+def _derive_scene_phases_from_phase_beat_policy(policy: dict[str, Any]) -> dict[str, Any]:
+    """Compatibility projection from phase_beat_policy into legacy scene_phases."""
+    phases = policy.get("phases") if isinstance(policy, dict) else None
+    if not isinstance(phases, dict):
+        return {}
+    derived: dict[str, Any] = {}
+    for fallback_sequence, (phase_id, block) in enumerate(phases.items(), start=1):
+        if not isinstance(block, dict):
+            continue
+        phase_key = str(block.get("id") or phase_id)
+        sequence = block.get("sequence")
+        if not isinstance(sequence, int):
+            digits = "".join(ch for ch in phase_key if ch.isdigit())
+            sequence = int(digits) if digits else fallback_sequence
+        derived[phase_key] = {
+            "id": phase_key,
+            "name": str(block.get("name") or phase_key.replace("_", " ").title()),
+            "sequence": sequence,
+            "description": str(block.get("description") or block.get("pacing_note") or phase_key),
+            "content_focus": _as_string_list(
+                block.get("content_focus")
+                or block.get("allowed_narrator_beats")
+                or block.get("allowed_scene_functions")
+                or []
+            ),
+            "engine_tasks": _as_string_list(
+                block.get("engine_tasks")
+                or block.get("allowed_scene_functions")
+                or block.get("allowed_narrator_beats")
+                or []
+            ),
+            "active_triggers": _as_string_list(block.get("active_triggers") or []),
+            "enforced_constraints": _as_string_list(block.get("enforced_constraints") or []),
+            "turn_estimate": str(block.get("turn_estimate") or ""),
+            "exit_condition": str(block.get("exit_condition") or ""),
+        }
+    return derived
+
+
 def content_modules_root() -> Path:
     """Absolute path to the directory that contains module folders (e.g. ``god_of_carnage/``).
 
@@ -171,7 +216,7 @@ class ModuleFileLoader:
         character_dir = module_root / "characters"
         if character_dir.is_dir():
             try:
-                character_files = sorted(character_dir.glob("*.yaml"))
+                character_files = sorted(character_dir.rglob("*.yaml"))
             except (PermissionError, OSError) as e:
                 raise ModuleFileReadError(
                     message="Failed to read module characters directory",
@@ -355,7 +400,7 @@ class ModuleFileLoader:
         #   relationships.yaml:
         #     relationship_axes:
         #       axis_1: {...}
-        #   scenes.yaml:
+        #   legacy phase file:
         #     scene_phases:
         #       phase_1: {...}
         #
@@ -470,9 +515,14 @@ class ModuleStructureValidator:
         elif "ending_types" in raw_data:
             raw_data["ending_conditions"] = raw_data.pop("ending_types")
 
-        # Map scenes -> scene_phases
+        # Legacy support: old phase files -> scene_phases. New modules should use
+        # phase_beat_policy.yaml as the coarse phase authority.
         if "scenes" in raw_data:
             raw_data["scene_phases"] = raw_data.pop("scenes")
+        elif "scene_phases" not in raw_data:
+            raw_data["scene_phases"] = _derive_scene_phases_from_phase_beat_policy(
+                raw_data.get("phase_beat_policy") if isinstance(raw_data.get("phase_beat_policy"), dict) else {}
+            )
 
         # Map transitions -> phase_transitions
         if "transitions" in raw_data:

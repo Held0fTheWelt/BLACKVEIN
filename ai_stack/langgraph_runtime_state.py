@@ -77,6 +77,7 @@ class RuntimeTurnState(TypedDict, total=False):
     phase_beat_policy: dict[str, Any]
     narrator_sensory_palette: dict[str, Any]
     scene_affordances: dict[str, Any]
+    action_outcome_map: dict[str, Any]
     objects: dict[str, Any]
     knowledge_runtime_loaded: dict[str, bool]
     prior_continuity_impacts: list[dict[str, Any]]

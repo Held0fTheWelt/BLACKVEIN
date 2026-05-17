@@ -10,10 +10,10 @@ canonical_path_step:
     source: locations/appartment_vallon/living_room.yaml
     use_fields: [plausible_actions]
   character_refs:
-    - characters/veronique.yaml
-    - characters/michel.yaml
-    - characters/annette.yaml
-    - characters/alain.yaml
+    - characters/definitions/veronique.yaml
+    - characters/definitions/michel.yaml
+    - characters/definitions/annette.yaml
+    - characters/definitions/alain.yaml
   object_refs:
     - object_id: coffee_table
       source: objects/appartment_vallon/living_room/coffee_table.yaml

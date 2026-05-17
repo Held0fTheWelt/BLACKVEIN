@@ -2,6 +2,7 @@ object:
   id: bathroom_mirror
   name: "Bathroom mirror"
   category: private_perception_surface
+  portable: false
   placement_location_id: bathroom
   playable_access: perception_only
   description: >-

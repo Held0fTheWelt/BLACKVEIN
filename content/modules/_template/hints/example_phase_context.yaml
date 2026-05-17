@@ -1,0 +1,15 @@
+director_surface_hint:
+  id: template_hint_example_phase_context
+  hint_type: phase_context
+  text: >-
+    Replace with a short director note for this phase (one or two sentences,
+    concrete staging or subtext — not player-visible dialogue).
+  source: hints/example_phase_context.yaml
+  player_visible: false
+  applies_when:
+    guidance_phase_keys:
+      - phase_1_example
+    scene_ids:
+      - main_room
+    pacing_modes:
+      - standard

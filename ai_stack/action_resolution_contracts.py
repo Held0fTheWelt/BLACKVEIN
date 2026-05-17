@@ -6,7 +6,6 @@ Alias matching uses Unicode folding — no phrase-specific runtime branches.
 
 from __future__ import annotations
 
-import re
 import unicodedata
 from dataclasses import dataclass, field
 from typing import Any
@@ -25,42 +24,6 @@ def fold_unicode(text: str) -> str:
 def fold_match(query: str, candidate: str) -> bool:
     fq, fc = fold_unicode(query), fold_unicode(candidate)
     return bool(fq and fc and fq == fc)
-
-
-def longest_embedded_alias_match(
-    raw_text: str,
-    *,
-    rows: list[dict[str, Any]],
-    id_key: str = "id",
-) -> tuple[str | None, str | None, int]:
-    """Return (entity_id, matched_alias, length) for the longest alias substring of folded raw.
-
-    ``rows`` are location/object/actor dicts with ``aliases`` list and ``id``.
-    """
-    folded_raw = fold_unicode(raw_text)
-    if not folded_raw:
-        return None, None, 0
-    best_id: str | None = None
-    best_alias: str | None = None
-    best_len = 0
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        eid = str(row.get(id_key) or "").strip()
-        aliases: list[str] = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-        if eid:
-            aliases.append(eid)
-        seen: set[str] = set()
-        for alias in aliases:
-            fa = fold_unicode(alias)
-            if not fa or len(fa) < 2 or fa in seen:
-                continue
-            seen.add(fa)
-            if fa in folded_raw and len(fa) > best_len:
-                best_len = len(fa)
-                best_id = eid or None
-                best_alias = alias
-    return best_id, best_alias, best_len
 
 
 @dataclass(slots=True)
@@ -220,42 +183,6 @@ class PlayerActionFrameContract:
         }
         return base
 
-
-def strip_directional_prefixes(phrase: str, *, lang: str = "de") -> str:
-    """Remove locale path prefixes from a target fragment (content-driven normalization)."""
-    p = str(phrase or "").strip().rstrip(".")
-    if not p:
-        return ""
-    low = p.lower()
-    lg = (lang or "de").strip().lower()[:2] or "de"
-    prefs = (
-        (
-            "in die ",
-            "in das ",
-            "in den ",
-            "in der ",
-            "ins ",
-            "in ",
-            "zur ",
-            "zum ",
-            "nach ",
-            "zu ",
-            "aus dem ",
-            "aus der ",
-            "an das ",
-            "an die ",
-            "ans ",
-            "an ",
-        )
-        if lg == "de"
-        else ("to the ", "to ", "toward ", "towards ", "into ", "in ", "out of ", "out the ")
-    )
-    for pref in prefs:
-        if low.startswith(pref):
-            p = p[len(pref) :].strip()
-            low = p.lower()
-            break
-    return p.strip()
 
 
 _WS_COLLAPSE = re.compile(r"\s+")

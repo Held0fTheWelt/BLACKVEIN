@@ -9,4 +9,4 @@ characters_index:
   loader_contract: >-
     Runtime loaders derive the compact character roster from these documents.
     Add one file per character and keep ids stable across relationships,
-    scenes, actor pressure profiles, and opening role variants.
+    canonical path steps, actor pressure profiles, and opening role variants.

@@ -6083,6 +6083,7 @@ class RuntimeTurnGraphExecutor:
                     "phase_beat_policy",
                     "narrator_sensory_palette",
                     "scene_affordances",
+                    "action_outcome_map",
                 )
                 for _knowledge_key in _structured_knowledge_keys:
                     _value = yaml_slice.get(_knowledge_key)
@@ -6122,6 +6123,7 @@ class RuntimeTurnGraphExecutor:
                     "phase_beat_policy_loaded": bool(isinstance(yaml_slice.get("phase_beat_policy"), dict) and yaml_slice.get("phase_beat_policy")),
                     "narrator_sensory_palette_loaded": bool(isinstance(yaml_slice.get("narrator_sensory_palette"), dict) and yaml_slice.get("narrator_sensory_palette")),
                     "scene_affordances_loaded": bool(isinstance(yaml_slice.get("scene_affordances"), dict) and yaml_slice.get("scene_affordances")),
+                    "action_outcome_map_loaded": bool(isinstance(yaml_slice.get("action_outcome_map"), dict) and yaml_slice.get("action_outcome_map")),
                 }
                 update["goc_runtime_knowledge_contract"] = build_runtime_knowledge_contract(
                     opening_scene_sequence=opening_scene_sequence,
@@ -6585,6 +6587,7 @@ class RuntimeTurnGraphExecutor:
             ("opening_scene_sequence", "opening_scene_sequence_loaded"),
             ("apartment_layout", "apartment_layout_loaded"),
             ("scene_affordances", "scene_affordances_loaded"),
+            ("action_outcome_map", "action_outcome_map_loaded"),
             ("narrator_sensory_palette", "narrator_sensory_palette_loaded"),
             ("premise_and_backstory", "premise_and_backstory_loaded"),
         ):

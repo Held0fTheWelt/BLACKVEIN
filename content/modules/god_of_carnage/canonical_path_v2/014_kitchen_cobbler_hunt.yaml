@@ -1,0 +1,190 @@
+canonical_path_step:
+  sequence: 14
+  id: opening_v2_014_kitchen_cobbler_hunt
+  path_id: goc_opening_canonical_path_v2
+  name: "014 - Kitchen interlude: cobbler hunt, hosts privately"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 4
+    summary: >-
+      Brief scene change. Veronique hunts for the cobbler — it was wrongly put
+      in the fridge again. Michel sets out plates and spoons. Private exchange
+      between the two: compliments to the guests ('they're nice, aren't they?'),
+      Veronique's self-defense as a writer. Tension half released.
+
+  duration_target_seconds: 35
+  duration_max_seconds: 55
+
+  theme_coverage_phase_refs:
+    - actor: veronique
+      phase_id: hospitality_under_strain
+      realization_step: true
+    - actor: michel
+      phase_id: hospitable_husband_with_first_cracks
+      realization_step: true
+
+  location_ref:
+    location_id: kitchen
+    source: locations/appartment_vallon/kitchen.yaml
+    use_fields: [description, sensory_tags, plausible_actions]
+  object_refs:
+    - object_id: espresso_machine
+      source: objects/appartment_vallon/kitchen/coffee_machine.yaml
+    - object_id: cobbler_dish
+      source: objects/appartment_vallon/kitchen/cobbler.yaml
+    - object_id: kitchen_refrigerator
+      source: objects/appartment_vallon/kitchen/refrigerator.yaml
+    - object_id: kitchen_tray
+      source: objects/appartment_vallon/kitchen/tray.yaml
+
+  present:
+    named_characters: [veronique, michel]
+    offstage_in_living_room: [annette, alain]
+
+  mandatory_beats:
+
+    - id: kitchen_perception_busy
+      order: 1
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "In the kitchen Veronique is busy at the espresso machine."
+          - "Michel comes in."
+      player_status: spectator_blocked
+
+    - id: michel_wheres_the_cobbler
+      order: 2
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: ask_where_the_cobbler_is
+        required_facts: ["cobbler_question_token: where is the cobbler"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_fridge
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words, domestic questioning"
+      player_status: spectator_blocked
+
+    - id: search_for_cobbler
+      order: 3
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Both look around the room."
+          - "Veronique opens the refrigerator and takes out a dish."
+      player_status: spectator_blocked
+
+    - id: veronique_she_put_it_in_fridge_again
+      order: 4
+      duration_target_seconds: 7
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: complain_housekeeper_put_cobbler_in_fridge_again
+        required_facts:
+          - "fridge_complaint_token: she put the cobbler in the fridge again"
+          - "language_complaint_token: I do not know in what language to tell her anymore"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_fridge
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two short sentences, familiar groaning"
+      player_status: spectator_blocked
+
+    - id: michel_takes_out_plates
+      order: 5
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel takes plates and spoons from the cupboard."
+      player_status: spectator_blocked
+
+    - id: michel_theyre_nice_right
+      order: 6
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: validate_guests_as_nice
+        required_facts: ["validation_token: they're nice, aren't they"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_theyre_nice
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words, searching"
+      player_status: spectator_blocked
+
+    - id: veronique_do_you_need_to_say_im_a_writer
+      order: 7
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: complain_about_being_called_writer
+        required_facts:
+          - "writer_complaint_token: do you have to tell everyone I am a writer"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_writer_complaint
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence, quietly irritated"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: defend_with_you_wrote_a_book
+        max_delay_seconds: 3
+      player_status: spectator_blocked
+
+    - id: michel_sets_tray_and_you_are_a_writer
+      order: 8
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: defend_you_are_a_writer_you_wrote_a_book
+        required_facts: ["youre_a_writer_token: you are a writer, you wrote a book"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_writer_complaint
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence, matter-of-fact and warm + visible setting down of the tray"
+      player_status: spectator_blocked
+
+  player_intrusion_windows: []
+  # Player is in living room (passive observation of empty room), kitchen is hosts-only
+
+  themes_realized_here:
+    - actor: veronique
+      theme: cobbler_pride_inherited_from_mother
+      mechanism: "preparation — activated in step 016 as recipe detail"
+      evidence_required: [veronique_finds_cobbler_in_fridge]
+      blocks_progression_if_missing: false
+    - actor: michel
+      theme: amiable_supporter_posture
+      mechanism: "last clear amiable-husband moment before the cracks"
+      evidence_required: [michel_speaks_youre_a_writer_token]
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: environment_state.cobbler_state
+      to_value: retrieved_from_fridge_on_tray
+      commit_irreversible: false
+    - key: environment_state.current_location_hosts
+      to_value: kitchen
+      commit_irreversible: false
+    - key: environment_state.current_location_guests
+      to_value: living_room_alone
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: false
+    minimum_seconds_elapsed: 30
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_v2_015_back_to_living_room_cobbler
+    handoff: >-
+      While the hosts are in the kitchen, the guests in the living room change
+      their seating — Annette switches places, Alain sits down now. Michel
+      returns with the tray and serves.
+    carry_forward:
+      - cobbler_on_tray
+      - hosts_return_imminent
+      - guests_repositioned_offscreen

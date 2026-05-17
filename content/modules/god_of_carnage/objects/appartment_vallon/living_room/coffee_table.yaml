@@ -2,6 +2,7 @@ object:
   id: coffee_table
   name: "Coffee table"
   category: object_zone
+  portable: false
   placement_location_id: living_room
   playable_access: active_object
   description: >-

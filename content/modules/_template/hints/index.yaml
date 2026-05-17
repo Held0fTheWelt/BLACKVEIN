@@ -1,0 +1,24 @@
+director_surface_hints_catalog:
+  id: template_director_surface_hints_v1
+  schema_version: director_surface_hints_catalog.v1
+  authority: module_director_staging_hints
+  authoring_language: en
+  projection_target: render_support.director_surface_hints
+  player_visible_default: false
+  note: >-
+    Copy this folder when authoring a new module. Each file defines one
+    director_surface_hint that merges into render_support at runtime when the
+    engine loads module hints (GoC reference implementation).
+
+  allowed_hint_types:
+    - phase_context
+    - responder_role
+    - tonal_pressure
+    - character_pressure_arc
+    - phase_pressure_cue
+    - staging_symbol
+    - physical_cue
+    - subtext_pressure
+
+  entries:
+    - hints/example_phase_context.yaml

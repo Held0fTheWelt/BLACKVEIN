@@ -11,11 +11,11 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
     for row in output.runtime_projection.scenes:
         assert row.get("id") == row.get("scene_id")
         assert row.get("id")
-    assert output.runtime_projection.triggers
-    assert output.runtime_projection.endings
+    assert output.runtime_projection.triggers == []
+    assert output.runtime_projection.endings == []
     assert output.runtime_projection.relationship_axes
     assert output.runtime_projection.relationships
-    assert output.runtime_projection.escalation_axes
+    assert output.runtime_projection.escalation_axes == {}
     assert output.runtime_projection.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
     assert output.runtime_projection.opening_quote_anchors.get("anchors")
     assert "hard_forbidden_detection" in output.runtime_projection.hard_forbidden_rules
@@ -30,8 +30,8 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
     assert set(output.runtime_projection.character_documents.keys()) == {"veronique", "michel", "annette", "alain"}
     assert output.runtime_projection.characters
     assert any(row.get("engine_tasks") for row in output.runtime_projection.scenes)
-    assert any(row.get("active_triggers") for row in output.runtime_projection.scenes)
-    assert any(row.get("trigger_conditions") for row in output.runtime_projection.transition_hints)
+    assert all(not row.get("active_triggers") for row in output.runtime_projection.scenes)
+    assert output.runtime_projection.transition_hints == []
     assert output.retrieval_corpus_seed.chunks
     assert output.review_export_seed.summary["scene_count"] == len(output.runtime_projection.scenes)
 
@@ -39,7 +39,7 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
 def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
     """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.3: knowledge YAML must produce dedicated chunks
     with source_path / content_kind / authority / use_for / module_id / language /
-    runtime_locale_available metadata so retrievers can cite the canonical source."""
+    runtime_language_adapter_available metadata so retrievers can cite the canonical source."""
     from app.content.compiler import compile_module
 
     output = compile_module("god_of_carnage")
@@ -76,15 +76,14 @@ def test_retrieval_corpus_seed_indexes_structured_knowledge_with_metadata():
         assert isinstance(md.get("source_path"), str) and md["source_path"].startswith(
             "content/modules/god_of_carnage/"
         ), f"{kind} source_path not module-rooted: {md.get('source_path')}"
-        assert isinstance(md.get("runtime_locale_available"), bool)
+        assert isinstance(md.get("runtime_language_adapter_available"), bool)
 
-    # Locale availability matches the actual repo layout: apartment layout and objects live next to locale/.
-    assert by_kind["apartment_layout"].metadata["runtime_locale_available"] is True
-    assert by_kind["objects"].metadata["runtime_locale_available"] is True
-    assert by_kind["opening_scene_sequence"].metadata["runtime_locale_available"] is False
-    assert by_kind["opening_quote_anchors"].metadata["runtime_locale_available"] is False
-    assert by_kind["hard_forbidden_rules"].metadata["runtime_locale_available"] is False
-    assert by_kind["locations"].metadata["runtime_locale_available"] is True
+    assert by_kind["apartment_layout"].metadata["runtime_language_adapter_available"] is True
+    assert by_kind["objects"].metadata["runtime_language_adapter_available"] is True
+    assert by_kind["opening_scene_sequence"].metadata["runtime_language_adapter_available"] is False
+    assert by_kind["opening_quote_anchors"].metadata["runtime_language_adapter_available"] is False
+    assert by_kind["hard_forbidden_rules"].metadata["runtime_language_adapter_available"] is False
+    assert by_kind["locations"].metadata["runtime_language_adapter_available"] is True
 
     # Opening + hard-forbidden must list their downstream consumers explicitly.
     assert "opening_realization" in by_kind["opening_scene_sequence"].metadata["use_for"]

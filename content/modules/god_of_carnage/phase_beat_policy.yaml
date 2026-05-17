@@ -1,10 +1,33 @@
-# Pacing and beat policy — English module truth; phase ids align with scenes.yaml.
+# Phase and beat policy -- English module truth.
+# Coarse phase authority. Directed story order lives in canonical_path/;
+# scene_graph.yaml remains a runtime index.
 
 phase_beat_policy:
   authoring_language: en
-  linked_scene_phases_source: scenes.yaml
+  phase_authority: phase_beat_policy
+  canonical_path_source: canonical_path/index.yaml
   phases:
     phase_1:
+      id: phase_1
+      name: "Polite Opening"
+      sequence: 1
+      description: "Ritual civility, small talk, framing the social contract"
+      content_focus:
+        - social_pleasantries_and_ritual_greetings
+        - establishment_of_conversational_norms
+        - first_playable_room_and_statement_pressure
+      engine_tasks:
+        - initialize_scene_state
+        - activate_all_characters
+        - establish_baseline_relationship_values
+        - set_civility_as_active_constraint
+      pressure_markers: []
+      enforced_constraints:
+        - civility_required: true
+        - max_emotional_state: 60
+        - no_personal_attacks: true
+      turn_estimate: "expanded opening, 20-35 minutes if played through canonical_path"
+      exit_condition: "First substantive disagreement emerges"
       allowed_narrator_beats:
         - ritual_greeting
         - hospitality_fiction
@@ -19,6 +42,27 @@ phase_beat_policy:
         Hold the social contract visible; disagreements stay abstract and polite.
 
     phase_2:
+      id: phase_2
+      name: "Moral Negotiation"
+      sequence: 2
+      description: "First substantive disagreement on parenting, culpability, ethics"
+      content_focus:
+        - parental_responsibility
+        - idealistic_vs_pragmatic_worldviews
+        - first_relationship_containment_test
+      engine_tasks:
+        - track_position_divergence
+        - monitor_spousal_alignment
+        - activate_moral_vs_pragmatic_worldview_axis
+        - track_emotional_state_increases
+      pressure_markers:
+        - contradiction
+        - exposure
+      enforced_constraints:
+        - civility_required: true
+        - max_escalation_level: 30
+      turn_estimate: "3-4 turns"
+      exit_condition: "Character takes stronger stance; relationship axis begins to shift"
       allowed_narrator_beats:
         - first_moral_friction
         - parenting_frame_clash
@@ -31,6 +75,27 @@ phase_beat_policy:
         Disagreement sharpens; insults remain deniable.
 
     phase_3:
+      id: phase_3
+      name: "Faction Shifts"
+      sequence: 3
+      description: "Coalition changes; spouses challenge each other; power dynamics flip"
+      content_focus:
+        - alliance_changes
+        - spouse_challenges_spouse
+        - host_guest_power_redraw
+      engine_tasks:
+        - update_relationship_state_from_position_shifts
+        - recalculate_host_guest_power_dynamics
+        - monitor_spousal_integrity
+      pressure_markers:
+        - contradiction
+        - relativization
+        - exposure
+      enforced_constraints:
+        - civility_required: true
+        - max_escalation_level: 50
+      turn_estimate: "2-3 turns"
+      exit_condition: "Emotional control visibly weakens"
       allowed_narrator_beats:
         - coalition_shift
         - spousal_crossfire
@@ -42,6 +107,31 @@ phase_beat_policy:
         Alliances wobble; the room's moral map redraws.
 
     phase_4:
+      id: phase_4
+      name: "Emotional Derailment"
+      sequence: 4
+      description: "Control lost; personal attacks, accusations, or overt emotional rupture"
+      content_focus:
+        - direct_personal_attacks
+        - overt_emotional_expression
+        - civility_abandoned_by_at_least_one_character
+      engine_tasks:
+        - escalate_character_emotional_state
+        - drop_relationship_stability_below_civility_threshold
+        - monitor_recovery_or_retreat_possibility
+      pressure_markers:
+        - contradiction
+        - exposure
+        - relativization
+        - apology_or_non_apology
+        - cynicism
+        - flight_into_sideplots
+      enforced_constraints:
+        - civility_required: false
+        - max_escalation_level: 85
+        - relationship_stability_min_for_civility: 50
+      turn_estimate: "2-3 turns"
+      exit_condition: "Escalation reaches critical threshold or recovery impulse appears"
       allowed_narrator_beats:
         - direct_personal_attack
         - tears_or_rage
@@ -52,6 +142,28 @@ phase_beat_policy:
         Civility may fail; consequences are interpersonal, not cinematic gore.
 
     phase_5:
+      id: phase_5
+      name: "Loss of Control / Escalation or Collapse"
+      sequence: 5
+      description: "Explosive confrontation, emotional breakdown, retreat, or forced closure"
+      content_focus:
+        - final_escalation_or_collapse
+        - ultimatum_accusation_or_retreat
+        - natural_or_forced_endpoint
+      engine_tasks:
+        - evaluate_end_conditions
+        - apply_ending_rule
+        - record_final_state
+        - determine_narrative_outcome
+      pressure_markers:
+        - apology_or_non_apology
+        - collapse_indicators
+        - retreat_signals
+      enforced_constraints:
+        - max_turns: "2-3"
+        - no_recovery_possible_if_escalation_above_90: true
+      turn_estimate: "1-2 turns, then forced closure"
+      exit_condition: "Session end: character exit, emotional breakdown, or natural stopping point"
       allowed_narrator_beats:
         - terminal_confrontation
         - collapse_or_retreat

@@ -1,148 +1,58 @@
-"""Player action resolution: ontology-driven verbs, entity registry matching, affordance contracts."""
+"""Player action resolution through AI-provided semantics and content grounding.
+
+This module intentionally does not infer verbs from raw language. It accepts a
+semantic resolution produced by the AI layer and grounds its target ids against
+the content-derived interaction surface. Without that semantic resolution it
+returns an explicit clarification/AI-required contract instead of falling back
+to hidden maps.
+"""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from ai_stack.action_ontology import infer_verb_and_action_kind
 from ai_stack.action_resolution_contracts import (
     AffordanceResolutionContract,
     PlayerActionFrameContract,
     ResolvedTarget,
-    collapse_ws,
     fold_match,
-    fold_unicode,
-    longest_embedded_alias_match,
-    strip_directional_prefixes,
 )
 from ai_stack.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
-from story_runtime_core.content_locale import (
-    greeting_imperative_addressee_fragment,
-    resolve_content_modules_root,
-)
+from story_runtime_core.content_locale import build_interaction_surface, resolve_content_modules_root
 from story_runtime_core.player_input_intent_contract import (
-    is_action_like_player_input_kind,
     is_mixed_player_input_kind,
-    is_narrator_only_player_input_kind,
     is_non_story_control_player_input_kind,
-    is_perception_like_player_input_kind,
     is_speech_like_player_input_kind,
 )
-
-
-def _normalize(value: str) -> str:
-    low = str(value or "").strip().lower()
-    low = re.sub(r"^[\s]+", "", low)
-    low = re.sub(r"^(?:in\s+die|ins|in\s+den|in\s+das|in|zum|zur|zu|nach)\s+", "", low)
-    low = re.sub(r"[.!:,;]+$", "", low)
-    return low.strip()
-
-
-# Verbs whose missing direct object should surface as unknown_target (not vague ambiguous).
-_OBJECT_ACTION_VERBS: frozenset[str] = frozenset(
-    {"activate", "deactivate", "open", "place", "take"}
-)
-
-_DE_ARTICLE = r"(?:den|die|das|einen|eine|ein|einem|einer|dem|der|des)"
-
-
-def _strip_leading_german_article(phrase: str) -> str:
-    p = str(phrase or "").strip()
-    if not p:
-        return ""
-    return re.sub(
-        rf"(?is)^{_DE_ARTICLE}\s+",
-        "",
-        p,
-        count=1,
-    ).strip()
-
-
-def _extract_german_imperative_object_phrase(raw_text: str, verb: str) -> str | None:
-    """Accusative object head for imperative / separable-verb lines (regex-driven, no noun tables)."""
-    t = str(raw_text or "").strip()
-    if not t:
-        return None
-    art = _DE_ARTICLE
-    v = str(verb or "").strip().lower()
-    if v == "activate":
-        m = re.search(rf"(?is)\bschalt(?:e|est|et|en)?\s+{art}\s+(.+?)\s+(?:ein|an)\b", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+an\b", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        return None
-    if v == "deactivate":
-        m = re.search(rf"(?is)\bschalt(?:e|est|et|en)?\s+{art}\s+(.+?)\s+aus\b", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+aus\b", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        return None
-    if v == "open":
-        m = re.search(rf"(?is)\böffn(?:e|est|et|en)?\s+{art}\s+([^\n.?!]+)", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+auf\b", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        return None
-    if v == "place":
-        m = re.search(rf"(?is)\bleg(?:e|est|et|en)?\s+{art}\s+(.+?)\s+auf\s+{art}\s+([^\n.?!]+)", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        return None
-    if v == "take":
-        m = re.search(rf"(?is)\b(?:nimm|nehme)\s+{art}\s+([^\n.?!]+)", t)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        return None
-    return None
 
 
 def _load_characters_blob(module_id: str, *, content_modules_root: Path | None = None) -> dict[str, Any]:
     root = resolve_content_modules_root(content_modules_root)
     module_dir = root / str(module_id).strip()
     char_dir = module_dir / "characters"
-    if char_dir.is_dir():
-        out: dict[str, Any] = {}
-        for path in sorted(char_dir.glob("*.yaml")):
-            try:
-                payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-            except Exception:
-                continue
-            if not isinstance(payload, dict):
-                continue
-            blob = payload.get("character_document") or payload.get("character")
-            if not isinstance(blob, dict):
-                continue
-            char_id = str(blob.get("id") or blob.get("canonical_id") or path.stem).strip()
-            if char_id:
-                out[char_id] = blob
-        if out:
-            return out
-    path = module_dir / "characters" / "index.yaml"
-    if not path.exists():
-        path = module_dir / "characters.yaml"
-    if not path.exists():
+    if not char_dir.is_dir():
         return {}
-    try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    if not isinstance(payload, dict):
-        return {}
-    ch = payload.get("characters")
-    return ch if isinstance(ch, dict) else {}
+    out: dict[str, Any] = {}
+    for path in sorted(char_dir.rglob("*.yaml")):
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        blob = payload.get("character_document") or payload.get("character")
+        if not isinstance(blob, dict):
+            continue
+        char_id = str(blob.get("id") or blob.get("canonical_id") or path.stem).strip()
+        if char_id:
+            out[char_id] = blob
+    return out
 
 
 def _enrich_actor_aliases(
@@ -158,24 +68,19 @@ def _enrich_actor_aliases(
             continue
         r = dict(row)
         aid = str(r.get("id") or "").strip()
-        aliases = [str(a).strip() for a in r.get("aliases") or [] if str(a).strip()]
+        terms = [str(a).strip() for a in r.get("content_terms") or [] if str(a).strip()]
+        terms.append(aid) if aid and aid not in terms else None
         base_slug = aid.split("_")[0].lower() if aid else ""
-        for _ck, blob in chars.items():
+        for key, blob in chars.items():
             if not isinstance(blob, dict):
                 continue
             cid = str(blob.get("id") or "").strip().lower()
             name = str(blob.get("name") or "").strip()
-            slug = str(_ck).strip().lower()
-            if not name:
-                continue
-            if aid.lower() == cid or aid.lower().startswith(slug) or base_slug == slug or base_slug == cid:
-                if name not in aliases:
-                    aliases.append(name)
-                # ASCII folding companion for accented display names
-                ascii_name = name.encode("ascii", "ignore").decode("ascii").strip()
-                if ascii_name and ascii_name not in aliases and ascii_name.lower() != name.lower():
-                    aliases.append(ascii_name)
-        r["aliases"] = aliases
+            slug = str(key).strip().lower()
+            if name and (aid.lower() == cid or aid.lower().startswith(slug) or base_slug in {slug, cid}):
+                if name not in terms:
+                    terms.append(name)
+        r["content_terms"] = terms
         out.append(r)
     return out
 
@@ -187,43 +92,28 @@ def _actor_rows_from_runtime_projection(runtime_projection: dict[str, Any]) -> l
     if isinstance(lanes, dict):
         for actor_id in lanes.keys():
             aid = str(actor_id or "").strip()
-            if not aid or aid in seen:
-                continue
-            seen.add(aid)
-            alias = aid.replace("_", " ").split(" ")[0].strip().capitalize()
-            actor_rows.append({"id": aid, "aliases": [aid, alias], "type": "actor"})
+            if aid and aid not in seen:
+                seen.add(aid)
+                actor_rows.append({"id": aid, "content_terms": [aid], "type": "actor"})
     for key in ("human_actor_id", "selected_player_role"):
         aid = str(runtime_projection.get(key) or "").strip()
         if aid and aid not in seen:
             seen.add(aid)
-            alias = aid.replace("_", " ").split(" ")[0].strip().capitalize()
-            actor_rows.append({"id": aid, "aliases": [aid, alias], "type": "actor"})
+            actor_rows.append({"id": aid, "content_terms": [aid], "type": "actor"})
     for aid_raw in runtime_projection.get("npc_actor_ids") or []:
         aid = str(aid_raw or "").strip()
         if aid and aid not in seen:
             seen.add(aid)
-            alias = aid.replace("_", " ").split(" ")[0].strip().capitalize()
-            actor_rows.append({"id": aid, "aliases": [aid, alias], "type": "actor"})
+            actor_rows.append({"id": aid, "content_terms": [aid], "type": "actor"})
     return actor_rows
 
 
-def _load_scene_affordances(
+def _load_interaction_surface(
     module_id: str,
     *,
     content_modules_root: Path | None = None,
 ) -> dict[str, Any]:
-    root = resolve_content_modules_root(content_modules_root)
-    path = root / module_id / "locale" / "scene_affordances.yaml"
-    if not path.exists():
-        return {}
-    try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    if not isinstance(payload, dict):
-        return {}
-    scene_affordances = payload.get("scene_affordances")
-    return scene_affordances if isinstance(scene_affordances, dict) else {}
+    return build_interaction_surface(module_id, content_modules_root=content_modules_root)
 
 
 def build_scene_affordance_model(
@@ -234,22 +124,17 @@ def build_scene_affordance_model(
     environment_state: dict[str, Any] | None = None,
     environment_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    scene_affordances = _load_scene_affordances(
-        module_id,
-        content_modules_root=content_modules_root,
-    )
+    surface = _load_interaction_surface(module_id, content_modules_root=content_modules_root)
     raw_actors = _actor_rows_from_runtime_projection(runtime_projection)
     actors = _enrich_actor_aliases(raw_actors, module_id=module_id, content_modules_root=content_modules_root)
     model: dict[str, Any] = {
         "module_id": module_id,
-        "current_area": scene_affordances.get("current_area"),
-        "inferred_area_policy": scene_affordances.get("inferred_area_policy"),
-        "locations": scene_affordances.get("locations")
-        if isinstance(scene_affordances.get("locations"), list)
-        else [],
-        "objects": scene_affordances.get("objects")
-        if isinstance(scene_affordances.get("objects"), list)
-        else [],
+        "schema_version": surface.get("schema_version"),
+        "current_area": surface.get("current_area"),
+        "inferred_area_policy": surface.get("setting_id"),
+        "semantic_resolution_contract": surface.get("semantic_resolution_contract"),
+        "locations": surface.get("locations") if isinstance(surface.get("locations"), list) else [],
+        "objects": surface.get("objects") if isinstance(surface.get("objects"), list) else [],
         "actors": actors,
     }
     return scene_affordance_model_with_environment_state(
@@ -259,296 +144,150 @@ def build_scene_affordance_model(
     )
 
 
-def _entity_rows_for_scan(affordance_model: dict[str, Any]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for cat in ("locations", "objects", "actors"):
-        for row in affordance_model.get(cat) or []:
-            if isinstance(row, dict):
-                rows.append(row)
-    return rows
-
-
-def _infer_target_query(
-    raw_text: str,
-    interpreted_input: dict[str, Any],
-    verb: str,
-    action_kind: str,
-    *,
-    module_id: str,
-    lang: str,
-    affordance_model: dict[str, Any],
-    content_modules_root: Path | None = None,
-) -> str | None:
-    captures = (
-        interpreted_input.get("projection_captures")
-        if isinstance(interpreted_input.get("projection_captures"), dict)
-        else {}
-    )
-    room = str(captures.get("room") or "").strip()
-    if room:
-        return strip_directional_prefixes(room, lang=lang)
-    if verb == "greet" and action_kind == "social_action":
-        frag = greeting_imperative_addressee_fragment(
-            raw_text,
-            lang=lang,
-            module_id=module_id,
-            content_modules_root=content_modules_root,
-        )
-        if frag:
-            return collapse_ws(frag)
-    lg = str(lang or "de").strip().lower()[:2] or "de"
-    if lg == "de" and (action_kind == "object_interaction" or verb in {"activate", "deactivate", "open", "place"}):
-        frag = _extract_german_imperative_object_phrase(raw_text, verb)
-        if frag:
-            return collapse_ws(frag)
-    pik = str(interpreted_input.get("player_input_kind") or "").strip().lower()
-    if (
-        is_action_like_player_input_kind(pik)
-        or is_perception_like_player_input_kind(pik)
-        or is_mixed_player_input_kind(pik)
-    ) and verb in {
-        "look_at",
-        "listen_to",
-        "move_to",
-        "take",
-        "interact",
-        "activate",
-        "deactivate",
-        "open",
-        "place",
-    }:
-        ent_rows = _entity_rows_for_scan(affordance_model)
-        eid, alias, _ln = longest_embedded_alias_match(raw_text, rows=ent_rows)
-        if alias:
-            return collapse_ws(alias)
-    return None
-
-
-def _merge_player_local_context(
-    base: dict[str, Any] | None,
-    overlay: dict[str, Any] | None,
-) -> dict[str, Any]:
-    """Merge persistent runtime context with per-turn overlay (overlay wins on key clashes)."""
-    out = dict(base or {})
-    if isinstance(overlay, dict):
-        out.update(overlay)
+def _terms(row: dict[str, Any]) -> list[str]:
+    values = row.get("content_terms") if isinstance(row.get("content_terms"), list) else []
+    out = [str(v).strip() for v in values if str(v).strip()]
+    for key in ("id", "name", "display_name"):
+        value = str(row.get(key) or "").strip()
+        if value and value not in out:
+            out.append(value)
     return out
 
 
-def _extract_previous_location_id(plc: dict[str, Any] | None) -> str | None:
-    if not isinstance(plc, dict):
-        return None
-    pid = str(plc.get("previous_location_id") or "").strip()
-    if pid:
-        return pid
-    prev_area = str(plc.get("previous_area") or "").strip()
-    return prev_area or None
+def _access(row: dict[str, Any]) -> str | None:
+    for key in ("playable_access", "access", "access_pattern"):
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return None
 
 
-def _resolve_movement_to_location_id(
-    location_id: str,
-    affordance_model: dict[str, Any],
-) -> tuple[str, str, str | None, str | None, str | None, str | None]:
-    """Resolve a canonical location id against the affordance model (strict id / fold match)."""
-    lid = str(location_id or "").strip()
-    if not lid:
-        return ("ambiguous", "needs_clarification", None, None, "missing_previous_location_id", None)
-    for row in affordance_model.get("locations") or []:
-        if not isinstance(row, dict):
-            continue
-        rid = str(row.get("id") or "").strip()
-        if not rid:
-            continue
-        if fold_match(lid, rid) or lid.lower() == rid.lower():
-            access = str(row.get("access") or "").strip() or None
-            status, policy = _location_status_policy_for_access(access)
-            return (
-                status,
-                policy,
-                rid,
-                "location",
-                "player_local_context.previous_location_id",
-                access,
-            )
-    return ("ambiguous", "needs_clarification", None, None, "missing_previous_location_id", None)
-
-
-def _location_status_policy_for_access(access: str | None) -> tuple[str, str]:
+def _status_policy_for_access(access: str | None) -> tuple[str, str]:
     raw = str(access or "").strip().lower()
     if "prevented" in raw:
         return ("prevented", "no_commit")
+    if "locked" in raw:
+        return ("blocked", "no_commit")
     if "offscreen" in raw or "implied" in raw:
         return ("allowed_offscreen", "commit_action")
     return ("allowed", "commit_action")
 
 
-def _infer_source_query(raw_text: str, *, lang: str, verb: str) -> str | None:
-    """Extract a generic source/container phrase for transitive object actions."""
-    text = str(raw_text or "").strip()
-    if not text:
-        return None
-    lg = str(lang or "de").strip().lower()[:2] or "de"
-    if lg == "de" and verb in {"take", "open", "place"}:
-        m = re.search(rf"(?is)\baus\s+{_DE_ARTICLE}\s+([^\n.?!,;]+)", text)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-        m = re.search(rf"(?is)\bvon\s+{_DE_ARTICLE}\s+([^\n.?!,;]+)", text)
-        if m:
-            return collapse_ws(_strip_leading_german_article(m.group(1)))
-    if lg == "en" and verb in {"take", "open", "place"}:
-        m = re.search(r"(?is)\b(?:from|out of)\s+(?:the|a|an)?\s*([^\n.?!,;]+)", text)
-        if m:
-            return collapse_ws(m.group(1))
-    return None
-
-
-def _resolve_target(
-    target_query: str | None,
+def _row_by_id(
     affordance_model: dict[str, Any],
-    *,
-    verb: str,
-) -> tuple[str, str, str | None, str | None, str | None, str | None]:
-    """Return tuple: status, policy, target_id, target_type, source, access."""
-    query = str(target_query or "").strip()
-    nq = _normalize(query)
-    if not nq and verb == "stand_up":
-        return (
-            "allowed",
-            "commit_action",
-            None,
-            None,
-            "posture_local_no_target",
-            None,
-        )
-    if not nq:
-        if verb in _OBJECT_ACTION_VERBS:
-            return (
-                "unknown_target",
-                "needs_clarification",
-                None,
-                None,
-                "missing_object_interaction_target",
-                None,
-            )
-        return (
-            "ambiguous",
-            "needs_clarification",
-            None,
-            None,
-            "missing_target_query",
-            None,
-        )
-
-    for row in affordance_model.get("locations") or []:
-        if not isinstance(row, dict):
-            continue
-        aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-        aliases.append(str(row.get("id") or "").strip())
-        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
-            access = str(row.get("access") or "").strip() or None
-            status, policy = _location_status_policy_for_access(access)
-            tid = str(row.get("id") or "").strip() or None
-            return (
-                status,
-                policy,
-                tid,
-                "location",
-                "scene_affordance_alias",
-                access,
-            )
-
-    for row in affordance_model.get("objects") or []:
-        if not isinstance(row, dict):
-            continue
-        aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-        aliases.append(str(row.get("id") or "").strip())
-        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
-            access = str(row.get("access") or "").strip() or None
-            status, policy = _location_status_policy_for_access(access)
-            tid = str(row.get("id") or "").strip() or None
-            return (status, policy, tid, "object", "scene_affordances.object_alias", access)
-
-    for row in affordance_model.get("actors") or []:
-        if not isinstance(row, dict):
-            continue
-        aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-        aliases.append(str(row.get("id") or "").strip())
-        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
-            tid = str(row.get("id") or "").strip() or None
-            return ("allowed", "commit_action", tid, "actor", "runtime_roster.actor_alias", None)
-
-    folded_q = fold_unicode(nq)
-    if len(folded_q) >= 2:
-        for row in affordance_model.get("locations") or []:
-            if not isinstance(row, dict):
-                continue
-            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-            for a in aliases:
-                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
-                    access = str(row.get("access") or "").strip() or None
-                    status, policy = _location_status_policy_for_access(access)
-                    tid = str(row.get("id") or "").strip() or None
-                    return (
-                        status,
-                        policy,
-                        tid,
-                        "location",
-                        "scene_affordances.location_substring",
-                        access,
-                    )
-        for row in affordance_model.get("objects") or []:
-            if not isinstance(row, dict):
-                continue
-            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-            for a in aliases:
-                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
-                    access = str(row.get("access") or "").strip() or None
-                    status, policy = _location_status_policy_for_access(access)
-                    tid = str(row.get("id") or "").strip() or None
-                    return (status, policy, tid, "object", "scene_affordances.object_substring", access)
-        for row in affordance_model.get("actors") or []:
-            if not isinstance(row, dict):
-                continue
-            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-            for a in aliases:
-                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
-                    tid = str(row.get("id") or "").strip() or None
-                    return ("allowed", "commit_action", tid, "actor", "runtime_roster.actor_substring", None)
-
-    return ("unknown_target", "needs_clarification", None, None, "no_target_match", None)
+    target_id: str | None,
+    target_type: str | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    tid = str(target_id or "").strip()
+    if not tid:
+        return None, None
+    groups = (
+        (("locations", "location"),)
+        if target_type == "location"
+        else (("objects", "object"),)
+        if target_type == "object"
+        else (("actors", "actor"),)
+        if target_type == "actor"
+        else (("locations", "location"), ("objects", "object"), ("actors", "actor"))
+    )
+    for group, resolved_type in groups:
+        for row in affordance_model.get(group) or []:
+            if isinstance(row, dict) and fold_match(tid, str(row.get("id") or "")):
+                return row, resolved_type
+    return None, None
 
 
-def _resolve_entity_query(
+def _resolve_query(
     query: str | None,
     affordance_model: dict[str, Any],
-) -> tuple[str | None, str | None, str | None]:
-    """Resolve a non-authoritative source/container query without changing commit policy."""
-    nq = _normalize(str(query or ""))
-    if not nq:
-        return None, None, None
-    for cat, target_type in (("locations", "location"), ("objects", "object"), ("actors", "actor")):
-        for row in affordance_model.get(cat) or []:
+) -> tuple[str, str, str | None, str | None, str, str | None]:
+    q = str(query or "").strip()
+    if not q:
+        return ("ambiguous", "needs_clarification", None, None, "semantic_resolution_missing_target", None)
+    for group, target_type in (("locations", "location"), ("objects", "object"), ("actors", "actor")):
+        for row in affordance_model.get(group) or []:
             if not isinstance(row, dict):
                 continue
-            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-            aliases.append(str(row.get("id") or "").strip())
-            if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
-                return str(row.get("id") or "").strip() or None, target_type, f"scene_affordances.{target_type}_alias"
-    folded_q = fold_unicode(nq)
-    if len(folded_q) >= 2:
-        for cat, target_type in (("locations", "location"), ("objects", "object"), ("actors", "actor")):
-            for row in affordance_model.get(cat) or []:
-                if not isinstance(row, dict):
-                    continue
-                aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
-                for alias in aliases:
-                    if fold_unicode(alias) in folded_q or folded_q in fold_unicode(alias):
-                        return (
-                            str(row.get("id") or "").strip() or None,
-                            target_type,
-                            f"scene_affordances.{target_type}_substring",
-                        )
-    return None, None, "no_source_match"
+            if any(fold_match(q, term) for term in _terms(row)):
+                access = _access(row)
+                status, policy = _status_policy_for_access(access)
+                return (
+                    status,
+                    policy,
+                    str(row.get("id") or "").strip() or None,
+                    target_type,
+                    "content_semantic_catalog",
+                    access,
+                )
+    return ("unknown_target", "needs_clarification", None, None, "semantic_catalog_no_match", None)
+
+
+def _resolved_target(
+    *,
+    target_id: str | None,
+    target_type: str | None,
+    matched_alias: str | None,
+    confidence: str,
+    access: str | None,
+) -> ResolvedTarget | None:
+    if not target_id:
+        return None
+    return ResolvedTarget.from_outcome(
+        resolved_target_id=target_id,
+        resolved_target_type=target_type,
+        matched_alias=matched_alias,
+        resolution_confidence=confidence,
+        access_status=access,
+    )
+
+
+def _semantic_payload(interpreted_input: dict[str, Any]) -> dict[str, Any]:
+    for key in ("semantic_action", "semantic_resolution", "ai_semantic_resolution"):
+        value = interpreted_input.get(key)
+        if isinstance(value, dict) and value:
+            return value
+    return {}
+
+
+def _make_frame(
+    *,
+    raw_text: str,
+    pik: str,
+    action_kind: str,
+    verb: str,
+    speech_text: str | None,
+    target_query: str | None,
+    rt: ResolvedTarget | None,
+    aff: AffordanceResolutionContract,
+    narrator_expected: bool,
+    npc_expected: bool,
+    actor_id: str | None,
+    selected_actor_id: str | None,
+    source_query: str | None = None,
+    resolved_source: ResolvedTarget | None = None,
+    source_resolution_source: str | None = None,
+    validation_surface: str | None = None,
+    projection_rule_id: str | None = None,
+) -> PlayerActionFrameContract:
+    return PlayerActionFrameContract(
+        raw_text=str(raw_text or "").strip(),
+        input_kind=pik,
+        action_kind=action_kind,
+        verb=verb,
+        speech_text=speech_text,
+        target_query=target_query,
+        resolved_target=rt,
+        affordance_resolution=aff,
+        narrator_response_expected=narrator_expected,
+        npc_response_expected=npc_expected,
+        actor_id=actor_id or None,
+        selected_actor_id=selected_actor_id,
+        source_query=source_query,
+        resolved_source=resolved_source,
+        source_resolution_source=source_resolution_source,
+        validation_surface=validation_surface,
+        projection_rule_id=projection_rule_id,
+    )
 
 
 def resolve_player_action(
@@ -562,8 +301,8 @@ def resolve_player_action(
     environment_state: dict[str, Any] | None = None,
     environment_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
-    lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    del player_local_context
+    pik = str(interpreted_input.get("player_input_kind") or "ambiguous").strip().lower() or "ambiguous"
     actor_id = str(interpreted_input.get("actor_id") or interpreted_input.get("player_input_actor_id") or "").strip()
     selected_actor_id = str(
         runtime_projection.get("human_actor_id")
@@ -571,6 +310,7 @@ def resolve_player_action(
         or actor_id
         or ""
     ).strip() or None
+
     if is_non_story_control_player_input_kind(pik):
         aff = AffordanceResolutionContract(
             status="skipped",
@@ -580,48 +320,24 @@ def resolve_player_action(
             target_resolution_source="meta_control_path",
             access_status=None,
         )
-        frame = PlayerActionFrameContract(
-            raw_text=str(raw_text or "").strip(),
-            input_kind=pik,
+        frame = _make_frame(
+            raw_text=raw_text,
+            pik=pik,
             action_kind="control",
             verb="meta",
             speech_text=None,
             target_query=None,
-            resolved_target=None,
-            affordance_resolution=aff,
-            narrator_response_expected=False,
-            npc_response_expected=False,
-            actor_id=actor_id or None,
+            rt=None,
+            aff=aff,
+            narrator_expected=False,
+            npc_expected=False,
+            actor_id=actor_id,
             selected_actor_id=selected_actor_id,
-            source_query=None,
-            resolved_source=None,
-            source_resolution_source=None,
             validation_surface="meta_control_path",
             projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
         )
-        return {
-            "player_action_frame": frame.to_dict(),
-            "affordance_resolution": aff.to_dict(),
-            "scene_affordance_model": {},
-        }
-    # Upstream intent can label bounded German device imperatives as ``speech``. If the
-    # action-only ontology path resolves a concrete object-interaction verb, treat as
-    # ``action`` so affordances and P0 evidence match resolver semantics (no NPC speech lane).
-    if is_speech_like_player_input_kind(pik):
-        v_act, ak_act = infer_verb_and_action_kind(
-            raw_text,
-            module_id=module_id,
-            player_input_kind="action",
-            content_modules_root=content_modules_root,
-        )
-        if ak_act == "object_interaction" and v_act in _OBJECT_ACTION_VERBS:
-            pik = "action"
-    verb, action_kind = infer_verb_and_action_kind(
-        raw_text,
-        module_id=module_id,
-        player_input_kind=pik,
-        content_modules_root=content_modules_root,
-    )
+        return {"player_action_frame": frame.to_dict(), "affordance_resolution": aff.to_dict(), "scene_affordance_model": {}}
+
     affordance_model = build_scene_affordance_model(
         module_id=module_id,
         runtime_projection=runtime_projection,
@@ -629,198 +345,149 @@ def resolve_player_action(
         environment_state=environment_state,
         environment_model=environment_model,
     )
-    speech_text: str | None = None
-    if is_mixed_player_input_kind(pik):
-        caps = interpreted_input.get("projection_captures") if isinstance(interpreted_input.get("projection_captures"), dict) else {}
-        st = str(caps.get("speech") or "").strip()
-        speech_text = st or None
-        if verb not in {"stand_up"}:
-            verb, action_kind = infer_verb_and_action_kind(
-                raw_text,
-                module_id=module_id,
-                player_input_kind="action",
-                content_modules_root=content_modules_root,
-            )
+    semantic = _semantic_payload(interpreted_input)
 
-    target_query = _infer_target_query(
-        raw_text,
-        interpreted_input,
-        verb,
-        action_kind,
-        module_id=module_id,
-        lang=lang,
-        affordance_model=affordance_model,
-        content_modules_root=content_modules_root,
-    )
-    source_query = _infer_source_query(raw_text, lang=lang, verb=verb)
-
-    merged_plc = _merge_player_local_context(
-        environment_state_to_player_local_context(environment_state),
-        player_local_context,
-    )
-    merged_plc = _merge_player_local_context(
-        merged_plc,
-        interpreted_input.get("player_local_context") if isinstance(interpreted_input.get("player_local_context"), dict) else None,
-    )
-    movement_return_intent = bool(interpreted_input.get("movement_return_intent"))
-    implicit_return = False
-    aff_reason: str | None = None
-
-    if is_speech_like_player_input_kind(pik) or pik == "meta":
-        status, policy, tid, ttyp, src, access = (
-            "allowed",
-            "commit_speech",
-            None,
-            None,
-            "speech_turn",
-            None,
+    if not semantic and not is_speech_like_player_input_kind(pik):
+        aff = AffordanceResolutionContract(
+            status="ambiguous",
+            action_commit_policy="needs_clarification",
+            reason="semantic_ai_resolution_required",
+            resolved_target=None,
+            target_resolution_source="semantic_ai_resolution_required",
+            access_status=None,
         )
+        frame = _make_frame(
+            raw_text=raw_text,
+            pik=pik,
+            action_kind="semantic_resolution_required",
+            verb="semantic_resolution_required",
+            speech_text=None,
+            target_query=None,
+            rt=None,
+            aff=aff,
+            narrator_expected=True,
+            npc_expected=False,
+            actor_id=actor_id,
+            selected_actor_id=selected_actor_id,
+            validation_surface="semantic_ai_resolution_required",
+            projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
+        )
+        return {
+            "player_action_frame": frame.to_dict(),
+            "affordance_resolution": aff.to_dict(),
+            "scene_affordance_model": affordance_model,
+        }
+
+    if is_speech_like_player_input_kind(pik) and not semantic:
+        aff = AffordanceResolutionContract(
+            status="allowed",
+            action_commit_policy="commit_speech",
+            reason=None,
+            resolved_target=None,
+            target_resolution_source="speech_turn",
+            access_status=None,
+        )
+        frame = _make_frame(
+            raw_text=raw_text,
+            pik=pik,
+            action_kind="speech",
+            verb="utterance",
+            speech_text=str(raw_text or "").strip(),
+            target_query=None,
+            rt=None,
+            aff=aff,
+            narrator_expected=False,
+            npc_expected=True,
+            actor_id=actor_id,
+            selected_actor_id=selected_actor_id,
+            validation_surface="speech_without_action_resolution",
+        )
+        return {
+            "player_action_frame": frame.to_dict(),
+            "affordance_resolution": aff.to_dict(),
+            "scene_affordance_model": affordance_model,
+        }
+
+    pik = str(semantic.get("player_input_kind") or pik).strip().lower() or pik
+    action_kind = str(semantic.get("action_kind") or "semantic_action").strip() or "semantic_action"
+    verb = str(semantic.get("verb") or "semantic_action").strip() or "semantic_action"
+    speech_text = str(semantic.get("speech_text") or "").strip() or None
+    if is_mixed_player_input_kind(pik) and not speech_text:
+        caps = interpreted_input.get("projection_captures")
+        if isinstance(caps, dict):
+            speech_text = str(caps.get("speech") or "").strip() or None
+
+    target_query = str(semantic.get("target_query") or "").strip() or None
+    target_id = str(semantic.get("resolved_target_id") or semantic.get("target_id") or "").strip() or None
+    target_type = str(semantic.get("resolved_target_type") or semantic.get("target_type") or "").strip() or None
+
+    row, row_type = _row_by_id(affordance_model, target_id, target_type)
+    if row:
+        access = _access(row)
+        status, policy = _status_policy_for_access(access)
+        tid = str(row.get("id") or target_id or "").strip() or None
+        ttyp = row_type or target_type
+        source = "ai_semantic_resolution.content_id"
     else:
-        tq_stripped = str(target_query or "").strip()
-        implicit_return = movement_return_intent and verb == "move_to" and not tq_stripped
-        if implicit_return:
-            prev_id = _extract_previous_location_id(merged_plc)
-            if prev_id:
-                status, policy, tid, ttyp, src, access = _resolve_movement_to_location_id(
-                    prev_id,
-                    affordance_model,
-                )
-                if not tid:
-                    aff_reason = "missing_previous_location_id"
-            else:
-                status, policy, tid, ttyp, src, access = (
-                    "ambiguous",
-                    "needs_clarification",
-                    None,
-                    None,
-                    "missing_previous_location_id",
-                    None,
-                )
-                aff_reason = "missing_previous_location_id"
-        else:
-            status, policy, tid, ttyp, src, access = _resolve_target(
-                target_query,
-                affordance_model,
-                verb=verb,
-            )
-            if (
-                movement_return_intent
-                and verb == "move_to"
-                and tid
-                and ttyp == "location"
-                and isinstance(src, str)
-                and "location_alias" in src
-            ):
-                src = "scene_affordance_alias"
-            if (
-                movement_return_intent
-                and verb == "move_to"
-                and tid
-                and ttyp == "location"
-                and isinstance(src, str)
-                and "location_substring" in src
-            ):
-                src = "scene_affordance_substring"
-        if verb in {"look_at", "listen_to"} and status == "unknown_target":
-            status, policy = "partial", "commit_action"
+        status, policy, tid, ttyp, source, access = _resolve_query(target_query, affordance_model)
 
-    narrator_expected = bool(interpreted_input.get("narrator_response_expected"))
-    npc_expected = bool(interpreted_input.get("npc_response_expected"))
-    if is_narrator_only_player_input_kind(pik) or is_mixed_player_input_kind(pik):
-        narrator_expected = True
-    if (is_narrator_only_player_input_kind(pik) or is_mixed_player_input_kind(pik)) and verb in {
-        "move_to",
-        "look_at",
-        "listen_to",
-        "stand_up",
-        "take",
-        "activate",
-        "deactivate",
-        "open",
-        "place",
-    }:
-        npc_expected = False
-    if is_mixed_player_input_kind(pik):
-        npc_expected = bool(interpreted_input.get("npc_response_expected", True))
-
-    matched_alias = None
-    if tid:
-        if str(target_query or "").strip():
-            matched_alias = str(target_query).strip()
-        elif implicit_return:
-            matched_alias = str(_extract_previous_location_id(merged_plc) or "").strip() or None
-
-    res_conf = "high" if tid else ("medium" if status == "partial" else "low")
-    rt = ResolvedTarget.from_outcome(
-        resolved_target_id=tid,
-        resolved_target_type=ttyp,
-        matched_alias=matched_alias,
-        resolution_confidence=res_conf,
-        access_status=access,
+    ai_policy = str(semantic.get("commit_policy") or "").strip()
+    if ai_policy in {"commit_action", "commit_speech", "no_commit", "needs_clarification", "recover_or_reject"}:
+        policy = ai_policy
+    confidence = str(semantic.get("confidence") or ("high" if tid else "low")).strip() or "low"
+    rt = _resolved_target(
+        target_id=tid,
+        target_type=ttyp,
+        matched_alias=target_query,
+        confidence=confidence,
+        access=access,
     )
-    if aff_reason is None and status == "ambiguous" and policy == "needs_clarification":
-        aff_reason = str(src) if src == "missing_previous_location_id" else None
     aff = AffordanceResolutionContract(
         status=status,
         action_commit_policy=policy,
-        reason=aff_reason,
+        reason=str(semantic.get("reason") or semantic.get("reasoning_summary") or "").strip() or None,
         resolved_target=rt,
-        target_resolution_source=src,
+        target_resolution_source=source,
         access_status=access,
     )
 
-    speech_only = is_speech_like_player_input_kind(pik) and not is_action_like_player_input_kind(pik)
-    rt_for_frame = None if speech_only or pik == "meta" else rt
+    source_query = str(semantic.get("source_query") or "").strip() or None
     resolved_source = None
     source_resolution_source = None
-    if source_query and not (speech_only or pik == "meta"):
-        src_id, src_type, source_resolution_source = _resolve_entity_query(source_query, affordance_model)
-        if src_id:
-            resolved_source = ResolvedTarget.from_outcome(
-                resolved_target_id=src_id,
-                resolved_target_type=src_type,
+    source_id = str(semantic.get("resolved_source_id") or "").strip() or None
+    if source_id:
+        source_row, source_type = _row_by_id(affordance_model, source_id, None)
+        if source_row:
+            resolved_source = _resolved_target(
+                target_id=str(source_row.get("id") or source_id),
+                target_type=source_type,
                 matched_alias=source_query,
-                resolution_confidence="high",
-                access_status=None,
+                confidence=confidence,
+                access=_access(source_row),
             )
-        elif status in {"allowed", "allowed_offscreen", "partial"}:
-            status = "unknown_target"
-            policy = "needs_clarification"
-            aff = AffordanceResolutionContract(
-                status=status,
-                action_commit_policy=policy,
-                reason="source_query_unresolved",
-                resolved_target=rt,
-                target_resolution_source=src,
-                access_status=access,
-            )
-    frame_input_kind = pik
-    if verb == "move_to" and (
-        is_action_like_player_input_kind(frame_input_kind)
-        or is_mixed_player_input_kind(frame_input_kind)
-    ):
-        frame_input_kind = "movement_action"
+            source_resolution_source = "ai_semantic_resolution.content_id"
 
-    frame = PlayerActionFrameContract(
-        raw_text=str(raw_text or "").strip(),
-        input_kind=frame_input_kind,
+    narrator_expected = bool(semantic.get("narrator_response_expected", interpreted_input.get("narrator_response_expected", True)))
+    npc_expected = bool(semantic.get("npc_response_expected", interpreted_input.get("npc_response_expected", False)))
+    frame = _make_frame(
+        raw_text=raw_text,
+        pik=pik,
         action_kind=action_kind,
         verb=verb,
         speech_text=speech_text,
         target_query=target_query,
-        resolved_target=rt_for_frame,
-        affordance_resolution=aff,
-        narrator_response_expected=narrator_expected,
-        npc_response_expected=npc_expected,
-        actor_id=actor_id or None,
+        rt=rt,
+        aff=aff,
+        narrator_expected=narrator_expected,
+        npc_expected=npc_expected,
+        actor_id=actor_id,
         selected_actor_id=selected_actor_id,
         source_query=source_query,
         resolved_source=resolved_source,
         source_resolution_source=source_resolution_source,
-        validation_surface=None,
+        validation_surface="ai_semantic_resolution",
         projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
     )
-
     return {
         "player_action_frame": frame.to_dict(),
         "affordance_resolution": aff.to_dict(),

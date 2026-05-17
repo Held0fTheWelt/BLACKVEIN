@@ -186,7 +186,7 @@ class ContentModule(BaseModel):
         ending_conditions: Dictionary of ending conditions keyed by ending ID
         escalation_axes: Escalation axes data structure
         apartment_layout: Room topology, adjacency, visibility, and offscreen rules
-        premise_and_backstory: English-authored canonical facts and subtext (localized strings live under locale/)
+        premise_and_backstory: English-authored canonical facts and subtext
         actor_pressure_profiles: Per-character dramatic pressure profiles
         phase_beat_policy: Beat allowances and forbidden early escalations per phase
         narrator_sensory_palette: English-authored sensory and mood scaffolding (runtime localization separate)

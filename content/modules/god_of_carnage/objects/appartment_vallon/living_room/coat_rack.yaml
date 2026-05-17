@@ -1,0 +1,19 @@
+object:
+  id: coat_rack
+  name: "Coat rack by the apartment door"
+  category: threshold_storage
+  portable: false
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    A compact entry coat rack with visitors' coats, a dark umbrella, a canvas
+    tote, and a pair of neatly aligned guest shoes beneath it.
+  interaction_notes:
+    look_at: "Marks arrival and the pressure of departure."
+    take: "Only the player's own coat or a clearly offered item may be handled."
+  sensory_tags: [coats, umbrella, guest_threshold]
+  plausible_actions: [look_at, take_own_coat, hang_coat]
+  forbidden_actions: [search_guest_pockets]
+  symbolic_roles:
+    - departure_surface
+    - guest_obligation

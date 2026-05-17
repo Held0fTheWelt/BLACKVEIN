@@ -1,0 +1,19 @@
+object:
+  id: cookline
+  name: "Right-side cookline"
+  category: kitchen_fixture
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    The right side of the kitchen holds the cooking line: hob, oven, extractor,
+    spice jars, a wooden spoon in a jar, and a pan left clean but not put away.
+  interaction_notes:
+    look_at: "Shows domestic readiness."
+    activate: "Cooking remains service texture, not a new plot branch."
+  sensory_tags: [hob, oven, spice_jars, pan]
+  plausible_actions: [look_at, activate, deactivate]
+  forbidden_actions: [discover_unseeded_weapon, start_unbounded_cooking_scene]
+  symbolic_roles:
+    - domestic_mechanism
+    - hospitality_surface

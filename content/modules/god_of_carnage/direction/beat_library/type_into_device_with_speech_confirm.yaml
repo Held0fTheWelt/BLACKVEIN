@@ -1,0 +1,94 @@
+beat_pattern:
+  id: type_into_device_with_speech_confirm
+  version: v1
+  category: narrator
+  purpose: >-
+    An actor performs a small writing or typing action on an object (laptop,
+    paper, phone) and half-speaks the confirmed value while doing so. Used
+    when a state change is committed to a document visible in the room. The
+    speech here is minimal (single word or phrase) and tightly bound to the
+    typing perception.
+
+  parameters:
+    - name: actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+
+    - name: device_ref
+      type: ref
+      required: true
+      description: "Object ref the actor types into. E.g. objects/.../laptop.yaml."
+
+    - name: confirmed_token
+      type: string
+      required: true
+      description: "The corrected/entered value as a token. The actor says this token half-aloud."
+
+    - name: typing_rhythm
+      type: enum
+      values:
+        - single_strike_then_pause
+        - steady_stream
+        - one_letter_at_a_time_with_visible_correction
+      default: single_strike_then_pause
+
+    - name: quote_anchor
+      type: ref
+      required: false
+
+  expands_to:
+    director_instruction:
+      npc_speak:
+        actor: "{{ actor }}"
+        intent: read_back_the_corrected_token_while_typing
+        required_facts:
+          - "confirmed_token: {{ confirmed_token }}"
+        quote_anchor: "{{ quote_anchor or none }}"
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "das eine korrigierte Token, halblaut beim Tippen wiederholt"
+        forbidden_drift:
+          - say_a_full_sentence_about_the_correction
+          - apologize_for_the_first_value
+          - thank_the_person_who_caused_the_correction
+      narrator_perception_only:
+        - "{{ actor }} tippt nach {{ typing_rhythm }} in {{ device_ref }}."
+      player_status: observer_window_open
+
+  validation_when_used:
+    - rule_id: speech_under_three_words
+      severity: error
+      description: "The half-spoken token must remain at or below three words."
+
+    - rule_id: typing_action_visible
+      severity: error
+      description: >-
+        The device_ref must be resolvable and its location must match the
+        current step's location_ref. A character cannot type into a device
+        that is not in the room.
+
+    - rule_id: paired_state_commit
+      severity: warning
+      description: >-
+        When this pattern fires, the parent step should have a corresponding
+        state_changes_committed entry that records the document/value change.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: veronique_types_correction
+        order: 5
+        duration_target_seconds: 10
+        beat_pattern_ref: type_into_device_with_speech_confirm
+        beat_pattern_params:
+          actor: veronique
+          device_ref: objects/appartment_vallon/den/laptop.yaml
+          confirmed_token: carrying
+          typing_rhythm: single_strike_then_pause
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+    state_changes_committed:
+      - key: environment_state.statement_text_state
+        to_value: written_corrected_with_word_carrying
+        commit_irreversible: true
+
+  used_in_pilots:
+    - canonical_path_v2/006_armed_vs_carrying.yaml#veronique_types_correction

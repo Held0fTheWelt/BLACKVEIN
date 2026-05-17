@@ -1,0 +1,142 @@
+beat_library_index:
+  id: goc_beat_library_v1
+  version: v1.0.0-phase2
+  status: draft
+  produced_by_phase: 2
+  consumed_by_schema: canonical_path_v2/_schema_v2.yaml
+  consumed_by_engine: ai_stack/live_dramatic_scene_simulator.py  # planned Phase 5
+
+  purpose: >-
+    Reusable beat patterns extracted from canonical_path_v2 pilots and the
+    god_of_carnage shooting script. Each pattern defines a parametrised
+    director_instruction shape that step files reference via
+    `beat_pattern_ref: <id>` instead of inlining the full instruction.
+
+  reference_syntax_in_steps: |
+    mandatory_beats:
+      - id: my_beat_id
+        order: 1
+        duration_target_seconds: 14
+        beat_pattern_ref: paraphrase_required_with_facts
+        beat_pattern_params:
+          actor: veronique
+          intent: read_aloud_first_half_of_written_statement
+          required_facts: [...]
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+        player_status: spectator_blocked
+
+  resolution_policy:
+    when_step_uses_pattern:
+      - validator_must_resolve_pattern_at_validation_time: true
+      - inline_overrides_allowed: limited_to_forbidden_drift_additions
+      - missing_required_params: hard_error
+    when_pattern_and_inline_conflict:
+      precedence: pattern_definition_wins_unless_explicitly_overridden
+
+  categories:
+    - id: narrator
+      purpose: "Patterns that produce narrator_perception_only output"
+      patterns:
+        - narrator_perception_block
+        - silence_perception_pause
+        - type_into_device_with_speech_confirm
+
+    - id: npc_speak
+      purpose: "Patterns that produce npc_speak director_instruction"
+      patterns:
+        - paraphrase_required_with_facts
+        - scripted_monologue_segmented
+        - single_word_challenge
+        - amiable_echo
+
+    - id: dialog_chain
+      purpose: "Patterns that declare forces_response_from chains"
+      patterns:
+        - forces_response_chain
+
+    - id: structural
+      purpose: "Patterns that govern player intrusion and state commits"
+      patterns:
+        - player_intrusion_redirect_strict
+        - consequence_irreversible_commit
+
+    - id: recurrent
+      purpose: "Patterns that recur across many steps (e.g. phone calls)"
+      patterns:
+        - phone_interruption_recurrent
+
+  pattern_inventory:
+    - id: narrator_perception_block
+      file: narrator_perception_block.yaml
+      first_observed_in: canonical_path_v2/004_den_arrival_positioning.yaml
+      criticality: high
+
+    - id: silence_perception_pause
+      file: silence_perception_pause.yaml
+      first_observed_in: canonical_path_v2/005_statement_reading.yaml#beat_silence_after_reading
+      criticality: high
+
+    - id: type_into_device_with_speech_confirm
+      file: type_into_device_with_speech_confirm.yaml
+      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_veronique_types_correction
+      criticality: medium
+
+    - id: paraphrase_required_with_facts
+      file: paraphrase_required_with_facts.yaml
+      first_observed_in: canonical_path_v2/005_statement_reading.yaml
+      criticality: critical
+      most_used: true
+
+    - id: scripted_monologue_segmented
+      file: scripted_monologue_segmented.yaml
+      first_observed_in: canonical_path_v2/005_statement_reading.yaml
+      criticality: high
+
+    - id: single_word_challenge
+      file: single_word_challenge.yaml
+      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_alain_single_word_challenge
+      criticality: high
+      script_signature: "single-word probe, no apology, no smile"
+
+    - id: amiable_echo
+      file: amiable_echo.yaml
+      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_michel_amiable_echo
+      criticality: high
+      character_signature: michel
+
+    - id: forces_response_chain
+      file: forces_response_chain.yaml
+      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml
+      criticality: critical
+      script_signature: "NPC-A speaks → NPC-B must respond within N seconds"
+
+    - id: player_intrusion_redirect_strict
+      file: player_intrusion_redirect_strict.yaml
+      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml
+      criticality: critical
+
+    - id: consequence_irreversible_commit
+      file: consequence_irreversible_commit.yaml
+      first_observed_in: canonical_path_v2/005_statement_reading.yaml#injury_facts_visible_to_all
+      criticality: high
+
+    - id: phone_interruption_recurrent
+      file: phone_interruption_recurrent.yaml
+      forward_looking: true
+      anticipated_steps:
+        - opening_v2_008  # first Walter call (goc.txt Z. 205-251)
+        - opening_v2_014  # second Walter call (goc.txt Z. 517-583)
+        - opening_v2_022  # CNN panel call
+        - opening_v2_028  # late call
+      criticality: critical
+      character_signature: alain
+
+  phase_2_deliverable:
+    pattern_files: 11
+    index_file: _index.yaml
+    coverage_of_pilots: 100%
+    not_yet_built:
+      - theme_coverage_map.yaml          (Phase 3)
+      - full_step_rewrite_for_004_to_038 (Phase 4)
+      - LDSS_pattern_resolver            (Phase 5)
+      - tests/gates/test_beat_pattern_resolution.py  (Phase 6)

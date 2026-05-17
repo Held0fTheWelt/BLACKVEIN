@@ -1,0 +1,19 @@
+object:
+  id: countertop_base_cabinet
+  name: "Countertop with base cabinet"
+  category: kitchen_work_surface
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    A left-side worktop over a base cabinet, holding a cutting board, a dish
+    towel, a corkscrew, a bowl with two apples, and a damp ring where a glass
+    was recently set down.
+  interaction_notes:
+    look_at: "Establishes ordinary service use."
+    place_object: "Suitable surface for a glass, cup, or paper."
+  sensory_tags: [countertop, cutting_board, dish_towel, corkscrew]
+  plausible_actions: [look_at, place_object, take_minor_service_item]
+  forbidden_actions: [weaponize_without_authored_escalation]
+  symbolic_roles:
+    - service_surface

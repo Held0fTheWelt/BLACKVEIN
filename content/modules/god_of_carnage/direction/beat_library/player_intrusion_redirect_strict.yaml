@@ -1,0 +1,151 @@
+beat_pattern:
+  id: player_intrusion_redirect_strict
+  version: v1
+  category: structural
+  purpose: >-
+    Defines a player_intrusion_window between two mandatory_beats with a
+    strict redirect_policy that keeps the script chain intact when the
+    player attempts to act outside the allowed envelope. Critical for
+    script-fidelity: without this pattern, a player who speaks during a
+    forces_response chain could derail the canonical_path.
+
+  parameters:
+    - name: between_beat_a
+      type: string
+      required: true
+      description: "ID of the preceding mandatory beat."
+
+    - name: between_beat_b
+      type: string
+      required: true
+      description: "ID of the next mandatory beat. May be null if window is the step's tail."
+
+    - name: allowed
+      type: array
+      item_type: player_action_kind
+      required: true
+      min_items: 1
+      values:
+        - silent_observation
+        - shift_weight_or_posture
+        - look_at_named_object
+        - small_gesture
+        - speak_minimally
+        - speak
+        - move_in_room
+        - acknowledge_outcome
+        - point_to_screen_or_object
+        - look_to_spouse
+
+    - name: forbidden
+      type: array
+      item_type: player_action_kind
+      required: true
+      min_items: 1
+      values:
+        - speak
+        - speak_for_another_npc
+        - leave_the_room
+        - touch_named_object
+        - propose_alternative_for_npc
+        - dismiss_the_compromise
+        - take_over_npc_authority
+
+    - name: redirect_kind
+      type: enum
+      values:
+        - narrator_perception_redirect
+        - queued_input_no_visible_reaction
+        - mark_player_initiative_log_only
+      default: narrator_perception_redirect
+      description: >-
+        How the LDSS handles a player attempt at a forbidden action.
+        narrator_perception_redirect → emit a short narrator line that
+        absorbs the action without acknowledging it, then resume canon.
+        queued_input_no_visible_reaction → store the input for evaluation
+        at the next observer_window_open beat.
+        mark_player_initiative_log_only → log to runtime_intelligence but
+        emit no narrator response.
+
+    - name: redirect_narrator_line_template
+      type: string
+      required: false
+      description: >-
+        Optional template line the LDSS uses for narrator_perception_redirect.
+        Must pass narrator_perception_block's lexical filter. If omitted,
+        the LDSS generates a default ('Niemand reagiert. [Source actor]
+        wartet einen Atemzug länger.').
+
+    - name: log_to_runtime_intelligence
+      type: boolean
+      default: true
+      description: >-
+        Whether to record the player's blocked action in
+        runtime_intelligence.player_canonical_path_deviations for later
+        analysis. Recommended true for all script-mandatory windows.
+
+  expands_to:
+    player_intrusion_window_entry:
+      between: ["{{ between_beat_a }}", "{{ between_beat_b }}"]
+      allowed: "{{ allowed }}"
+      forbidden: "{{ forbidden }}"
+      redirect_policy: |
+        On forbidden action:
+          if redirect_kind == narrator_perception_redirect:
+            emit narrator_perception line (template or generated)
+            resume next mandatory_beat
+          if redirect_kind == queued_input_no_visible_reaction:
+            queue input timestamp
+            no visible output
+            resume next mandatory_beat
+          if redirect_kind == mark_player_initiative_log_only:
+            write to runtime_intelligence.player_canonical_path_deviations
+            no visible output
+      log_to_runtime_intelligence: "{{ log_to_runtime_intelligence }}"
+
+  validation_when_used:
+    - rule_id: allowed_and_forbidden_disjoint
+      severity: error
+      description: "An action_kind cannot appear in both allowed and forbidden."
+
+    - rule_id: between_beats_are_consecutive
+      severity: error
+      description: >-
+        between_beat_a and between_beat_b must be consecutive
+        mandatory_beats in the parent step, OR between_beat_b == null and
+        between_beat_a is the last mandatory beat.
+
+    - rule_id: redirect_template_passes_narrator_filter
+      severity: error
+      description: >-
+        If redirect_narrator_line_template is set, it must pass the same
+        lexical filter that governs narrator_perception_block.
+
+    - rule_id: not_used_inside_forces_response_window
+      severity: error
+      description: >-
+        A player_intrusion_window cannot be placed between a beat with a
+        forces_response_from and its target response. The chain is
+        atomic. Use a window AFTER the chain completes instead.
+
+  example_usage_in_step:
+    player_intrusion_windows:
+      - beat_pattern_ref: player_intrusion_redirect_strict
+        beat_pattern_params:
+          between_beat_a: veronique_offers_compromise_with_michel_consult
+          between_beat_b: alain_accepts_carrying
+          allowed:
+            - speak_minimally
+            - look_to_spouse
+            - point_to_screen_or_object
+          forbidden:
+            - propose_alternative_for_npc
+            - leave_the_room
+            - take_over_npc_authority
+          redirect_kind: narrator_perception_redirect
+          redirect_narrator_line_template: >-
+            Niemand antwortet auf den Player. Veronique wartet auf Alain.
+
+  used_in_pilots:
+    - canonical_path_v2/004_den_arrival_positioning.yaml (between positions and mood)
+    - canonical_path_v2/006_armed_vs_carrying.yaml (two strict windows + one open trailing window)

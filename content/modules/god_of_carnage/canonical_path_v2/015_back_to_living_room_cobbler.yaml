@@ -1,0 +1,301 @@
+canonical_path_step:
+  sequence: 15
+  id: opening_v2_015_back_to_living_room_cobbler
+  path_id: goc_opening_canonical_path_v2
+  name: "015 - Back to living room: cobbler arrival, hamster echo, jobs continued"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 5
+    summary: >-
+      In the hosts' absence the Cowans have changed seats: Annette now sits
+      elsewhere, Alain has sat down. They exchanged privately ('A very nice
+      couple, admit it.' — 'Very.'). Michel returns with the tray, praises the
+      cobbler, begins serving. Annette asks again — more quietly, more
+      personally — why Michel did not bring the terrified hamster home.
+
+  duration_target_seconds: 60
+  duration_max_seconds: 85
+
+  theme_coverage_phase_refs:
+    - actor: michel
+      phase_id: hospitable_husband_with_first_cracks
+      realization_step: true
+    - actor: annette
+      phase_id: maternal_defense_first_signal
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions, sensory_tags]
+  object_refs:
+    - object_id: cobbler_dish_on_tray
+      source: objects/appartment_vallon/kitchen/cobbler.yaml
+    - object_id: coffee_table_art_books
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - cobbler_on_tray
+      - apology_thread_opened_irreversible
+      - hamster_admission_irreversible
+
+  mandatory_beats:
+
+    - id: cowans_repositioning_perception
+      order: 1
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Annette now sits in a different armchair, as if she had looked at something in the meantime."
+          - "Alain has sat down."
+      player_status: observer_window_open
+
+    - id: annette_a_very_nice_couple
+      order: 2
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: assess_hosts_as_nice_couple_privately
+        required_facts: ["assessment_token: a very nice couple, admit it"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_nice_couple
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four to five words, quiet to Alain"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: minimal_agreement
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: alain_very
+      order: 3
+      duration_target_seconds: 1
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: alain
+        echoed_phrase_token: "very"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_nice_couple
+        word_count_target: 1
+        tone: dry_agreement
+      player_status: observer_window_open
+
+    - id: michel_returns_with_tray
+      order: 4
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel comes back with the tray."
+      player_status: observer_no_initiative
+
+    - id: michel_good_cobbler_isnt_easy
+      order: 5
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: brag_good_cobbler_isnt_easy_to_make
+        required_facts: ["cobbler_pride_token: a good cobbler is not easy to make"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_pride
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence, host pride"
+      forces_response_chain:
+        target_actor: annette
+        target_intent: agree_briefly
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: annette_true
+      order: 6
+      duration_target_seconds: 1
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: annette
+        echoed_phrase_token: "true"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_pride
+        word_count_target: 1
+        tone: polite_neutral
+      player_status: observer_window_open
+
+    - id: michel_sets_tray_and_starts_serving
+      order: 7
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel sets the tray on the coffee table."
+          - "As the conversation continues, he cuts portions and passes plates around."
+      player_status: observer_window_open
+
+    - id: alain_what_do_you_sell
+      order: 8
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: ask_michel_what_he_sells
+        required_facts: ["business_question_token: what do you sell"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_houseware
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: describe_houseware_business
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: michel_describes_houseware
+      order: 9
+      duration_target_seconds: 10
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: describe_houseware_business_in_detail
+        required_facts:
+          - "decorative_hardware_token: decorative hardware, locks, handles, copper fixtures"
+          - "kitchen_pots_token: pots and pans"
+          - "tough_starting_out_token: was tough at first"
+          - "cast_iron_holidays_token: the cast-iron Dutch ovens sell around the holidays"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_houseware
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "three or four sentences, salesman-warm"
+      player_status: observer_window_open
+
+    - id: alain_yeah_neutral
+      order: 10
+      duration_target_seconds: 1
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: alain
+        echoed_phrase_token: "uh-huh"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_houseware
+        word_count_target: 1
+        tone: dry_agreement
+      player_status: observer_window_open
+
+    - id: silence_beat
+      order: 11
+      duration_target_seconds: 2
+      beat_pattern_ref: silence_perception_pause
+      beat_pattern_params:
+        trigger_after_beat: alain_yeah_neutral
+        silence_duration_seconds: 2
+        perception_lines: ["A brief beat."]
+      player_status: observer_window_open
+
+    - id: annette_why_didnt_you_bring_hamster_home
+      order: 12
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: ask_softly_why_michel_didnt_bring_terrified_hamster_home
+        required_facts:
+          - "terrified_token: when you saw the hamster was terrified to death"
+          - "why_not_home_token: why did you not bring him back home"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_home
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two half-sentences, quiet and personally concerned"
+        forbidden_drift: [scold_openly, lecture_on_animal_rights]
+      forces_response_chain:
+        target_actor: michel
+        target_intent: admit_with_i_dont_touch_them
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: michel_i_dont_touch_them
+      order: 13
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: admit_he_doesnt_touch_them
+        required_facts: ["dont_touch_token: I do not touch those things"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_home
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five words, quiet and defensive"
+      player_status: observer_window_open
+
+    - id: annette_you_put_it_on_the_sidewalk
+      order: 14
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: state_back_with_sharper_edge_he_put_it_on_sidewalk
+        required_facts: ["sidewalk_emphasis_token: you put him out on the sidewalk"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_home
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five or six words, precise with an edge"
+      player_status: observer_window_open
+
+    - id: veronique_returns_with_coffee
+      order: 15
+      duration_target_seconds: 3
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Veronique comes back with the coffee."
+      player_status: observer_window_open
+
+    - id: michel_cage_flipped_no_way_touching
+      order: 16
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: defend_he_only_flipped_cage_wouldnt_touch
+        required_facts:
+          - "cage_flip_token: he was in the cage, I only flipped it over"
+          - "no_way_touching_token: I will not touch animals like that"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_home
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two half-sentences, defensive and firm"
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: michel
+      theme: I_dont_touch_them_self_revelation
+      mechanism: "preparation for the later hamster-metaphor theme; Michel shows physical distance"
+      evidence_required: [michel_speaks_dont_touch_token, michel_speaks_no_way_touching_token]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: why_didnt_you_bring_the_hamster_home
+      mechanism: "explicit question, harder than in step 012"
+      evidence_required: [annette_speaks_terrified_token, annette_speaks_sidewalk_emphasis_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: environment_state.cobbler_state
+      to_value: on_coffee_table_being_served
+      commit_irreversible: false
+    - key: runtime_intelligence.michel_dont_touch_them_logged
+      to_value: true
+      commit_irreversible: true
+    - key: runtime_intelligence.annette_hamster_pressure_log
+      to_value: { times_raised: 2, sharpness_trajectory: increasing }
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 50
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_v2_016_cobbler_eating_recipe
+    handoff: >-
+      With cobbler on the plates the hamster topic cools briefly. Veronique
+      offers sugar, Alain declines and asks about the cobbler variety. Recipe
+      talk, then Alain's first sarcastic remark about the teeth.
+    carry_forward:
+      - hamster_pressure_increasing
+      - dont_touch_them_logged_irreversible
+      - cobbler_being_eaten

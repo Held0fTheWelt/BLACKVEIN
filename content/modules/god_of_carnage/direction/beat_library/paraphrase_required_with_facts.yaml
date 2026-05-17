@@ -1,0 +1,149 @@
+beat_pattern:
+  id: paraphrase_required_with_facts
+  version: v1
+  category: npc_speak
+  purpose: >-
+    The general-purpose NPC speech pattern. An actor speaks an intent
+    that must structurally paraphrase the source script: every required_fact
+    must surface as a recognisable token in the line, but the wording may
+    differ. A quote_anchor scopes the dramatic register without forcing
+    verbatim text. This is the most-used pattern in canonical_path_v2.
+
+  parameters:
+    - name: actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+
+    - name: intent
+      type: string
+      required: true
+      description: >-
+        Imperative phrase describing what the actor accomplishes in this
+        utterance. NOT the line itself. Examples:
+        'object_to_word_armed', 'offer_compromise_word_carrying',
+        'read_aloud_first_half_of_written_statement'.
+
+    - name: required_facts
+      type: array
+      item_type: fact_token
+      min_items: 1
+      required: true
+      description: >-
+        Tokens that must surface in the spoken line. The LDSS validates each
+        token against the generated text using fuzzy semantic matching, not
+        literal string match. Token format: `<slot>: <expected_concept>`.
+
+    - name: quote_anchor
+      type: ref
+      required: true
+      pattern: "knowledge/opening_quote_anchors.yaml#<anchor_id>"
+
+    - name: paraphrase_policy
+      type: enum
+      values:
+        - structural_paraphrase_required
+        - short_anchor_quote_allowed
+        - verbatim_forbidden
+      default: structural_paraphrase_required
+
+    - name: minimum_visible
+      type: string
+      required: true
+      description: >-
+        Floor of what the line must visibly contain. E.g. 'zwei Sätze mit
+        Datum und Ort', 'ein einzelnes Wort als Frage'.
+
+    - name: forbidden_drift
+      type: array
+      item_type: string
+      required: false
+      description: >-
+        Specific failure modes the line must not exhibit. Inline-extendable
+        when a step needs extra constraints (e.g. forbid a specific tone for
+        this beat only).
+
+    - name: tone_hint
+      type: string
+      required: false
+      description: >-
+        Optional voice register. Should reference direction/character_voice.yaml
+        entries when used.
+
+  expands_to:
+    director_instruction:
+      npc_speak:
+        actor: "{{ actor }}"
+        intent: "{{ intent }}"
+        required_facts: "{{ required_facts }}"
+        quote_anchor: "{{ quote_anchor }}"
+        paraphrase_policy: "{{ paraphrase_policy }}"
+        minimum_visible: "{{ minimum_visible }}"
+        forbidden_drift: "{{ forbidden_drift or [] }}"
+        tone_hint: "{{ tone_hint or none }}"
+
+  validation_when_used:
+    - rule_id: every_required_fact_surfaced
+      severity: error
+      description: >-
+        LDSS post-generation check: each required_fact must be detected in
+        the produced line via semantic-token matching. Missing fact →
+        regenerate or fall back.
+
+    - rule_id: quote_anchor_resolves
+      severity: error
+      description: "quote_anchor must resolve in knowledge/opening_quote_anchors.yaml."
+
+    - rule_id: paraphrase_policy_respected
+      severity: error
+      description: >-
+        structural_paraphrase_required → line MUST NOT match the anchor
+        verbatim across more than 5 consecutive tokens.
+        short_anchor_quote_allowed → up to 1 short anchor phrase ≤7 words
+        may appear verbatim.
+        verbatim_forbidden → 0 verbatim phrases allowed.
+
+    - rule_id: actor_voice_consistency
+      severity: warning
+      description: >-
+        Line must pass runtime_voice_consistency_v1/v2 (ai_stack) against the
+        actor's voice profile in direction/character_voice.yaml.
+
+    - rule_id: minimum_visible_floor
+      severity: error
+      description: >-
+        Line length and content must meet the floor described by
+        minimum_visible. Validator parses the floor description into
+        structural assertions (sentence count, must-contain tokens).
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: veronique_reads_date_and_aggression
+        order: 2
+        duration_target_seconds: 14
+        beat_pattern_ref: paraphrase_required_with_facts
+        beat_pattern_params:
+          actor: veronique
+          intent: read_aloud_first_half_of_written_statement
+          required_facts:
+            - "date_token: 11. Januar 14:30"
+            - "location_token: Parc Montsouris"
+            - "aggressor_id: ferdinand"
+            - "aggressor_age: 11"
+            - "aggressor_carried_word: armed"
+            - "struck_action: schlug ihm ins Gesicht"
+            - "victim_id: bruno"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "zwei Sätze, die Datum, Ort, Akteur, Opfer und das Wort 'bewaffnet' enthalten"
+          forbidden_drift:
+            - skip_word_armed
+            - add_moral_commentary_inside_reading
+            - read_in_journalistic_neutral_voice
+        player_status: spectator_blocked
+
+  used_in_pilots:
+    - canonical_path_v2/005_statement_reading.yaml#veronique_glance_back_before_reading
+    - canonical_path_v2/005_statement_reading.yaml#veronique_reads_date_and_aggression
+    - canonical_path_v2/005_statement_reading.yaml#veronique_reads_injury_detail
+    - canonical_path_v2/006_armed_vs_carrying.yaml#veronique_offers_compromise_with_michel_consult

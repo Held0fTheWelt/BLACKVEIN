@@ -2,6 +2,7 @@ object:
   id: pantry_shelves
   name: "Pantry shelves"
   category: storage_surface
+  portable: false
   placement_location_id: pantry
   playable_access: minor_service_object
   description: >-

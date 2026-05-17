@@ -1,0 +1,18 @@
+object:
+  id: entry_mirror
+  name: "Mirror beside the door"
+  category: threshold_reflection_surface
+  portable: false
+  placement_location_id: living_room
+  playable_access: perception_only
+  description: >-
+    A mirror beside the apartment door, catching coats, shoulders, and the
+    awkward arrangement of people as they enter or try not to leave.
+  interaction_notes:
+    look_at: "Reflects posture and social arrangement, not hidden information."
+  sensory_tags: [mirror, doorway, reflected_posture]
+  plausible_actions: [look_at]
+  forbidden_actions: [discover_hidden_observer]
+  symbolic_roles:
+    - self_exposure_surface
+    - threshold_surface

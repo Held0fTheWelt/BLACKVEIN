@@ -177,7 +177,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("opening_realization", "narrator_packet", "opening_event_coverage_gate"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "opening_quote_anchors",
@@ -186,7 +186,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("opening_realization", "quote_anchor_policy", "scene_director_dramatic_parameters"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "hard_forbidden_rules",
@@ -195,7 +195,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("hard_forbidden_gate", "narrator_packet", "validation_seam"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "premise_and_backstory",
@@ -204,7 +204,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("opening_realization", "narrator_packet"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "narrator_sensory_palette",
@@ -213,7 +213,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("narrator_packet", "scene_director_dramatic_parameters"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "apartment_layout",
@@ -222,16 +222,16 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("affordance_resolution", "player_local_context"),
         "language": "en",
-        "runtime_locale_available": True,
+        "runtime_language_adapter_available": True,
     },
     {
         "field": "actor_pressure_profiles",
-        "source_path": "content/modules/{module_id}/characters/actor_pressure_profiles.yaml",
+        "source_path": "content/modules/{module_id}/characters/details/actor_pressure_profiles.yaml",
         "content_kind": "actor_pressure_profiles",
         "authority": "module_canonical",
         "use_for": ("scene_director_responder_selection", "narrator_packet"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "phase_beat_policy",
@@ -240,7 +240,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("scene_director_dramatic_parameters", "pacing_gate"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "canonical_path",
@@ -249,7 +249,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("opening_realization", "story_direction", "narrator_packet"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "modularity_policy",
@@ -258,7 +258,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("content_authority_boundaries", "reference_integrity", "authoring_audit"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "scene_graph",
@@ -267,7 +267,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("scene_director_navigation", "retrieval_scene_context", "runtime_projection"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "locations",
@@ -276,7 +276,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("affordance_resolution", "scene_director_navigation", "player_local_context"),
         "language": "en",
-        "runtime_locale_available": True,
+        "runtime_language_adapter_available": True,
     },
     {
         "field": "objects",
@@ -285,7 +285,7 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("object_authority", "symbolic_object_resonance", "narrator_packet"),
         "language": "en",
-        "runtime_locale_available": True,
+        "runtime_language_adapter_available": True,
     },
     {
         "field": "content_access_policy",
@@ -294,16 +294,16 @@ _KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
         "authority": "module_canonical",
         "use_for": ("hard_forbidden_gate", "affordance_resolution", "scene_director_navigation"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
     {
         "field": "character_documents",
-        "source_path": "content/modules/{module_id}/characters/*.yaml",
+        "source_path": "content/modules/{module_id}/characters/definitions/*.yaml",
         "content_kind": "character_documents",
         "authority": "module_canonical",
         "use_for": ("character_mind", "character_voice", "scene_director_responder_selection"),
         "language": "en",
-        "runtime_locale_available": False,
+        "runtime_language_adapter_available": False,
     },
 )
 
@@ -411,7 +411,10 @@ def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
                     "use_for": list(profile["use_for"]),
                     "module_id": module_id,
                     "language": profile["language"],
-                    "runtime_locale_available": bool(profile["runtime_locale_available"]),
+                    "runtime_language_adapter_available": bool(
+                        profile["runtime_language_adapter_available"]
+                    ),
+                    "runtime_locale_available": bool(profile["runtime_language_adapter_available"]),
                 },
             )
         )

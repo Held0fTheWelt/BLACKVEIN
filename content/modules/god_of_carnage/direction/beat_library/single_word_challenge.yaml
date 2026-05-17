@@ -1,0 +1,111 @@
+beat_pattern:
+  id: single_word_challenge
+  version: v1
+  category: npc_speak
+  purpose: >-
+    A minimal challenge utterance — at most three words, often a single word
+    framed as a question. Used to introduce pedantic resistance without
+    apparent confrontation. Signature beat for Alain's first appearance in
+    the statement reading, and for similar low-volume challenges later in
+    the script.
+
+  parameters:
+    - name: actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+
+    - name: challenge_target_word
+      type: string
+      required: true
+      description: "The word the actor isolates. Must already be present in the immediately preceding dialog."
+
+    - name: quote_anchor
+      type: ref
+      required: true
+
+    - name: max_words
+      type: integer
+      range: [1, 3]
+      default: 1
+
+    - name: question_inflection_required
+      type: boolean
+      default: true
+      description: "If true, the line must end with a question mark or be parseable as a question."
+
+  expands_to:
+    director_instruction:
+      npc_speak:
+        actor: "{{ actor }}"
+        intent: object_to_target_word_with_a_single_word_question
+        required_facts:
+          - "challenge_target_word: {{ challenge_target_word }}"
+        quote_anchor: "{{ quote_anchor }}"
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "ein einzelnes Wort als Frage, höchstens drei Wörter"
+        forbidden_drift:
+          - explain_why_the_word_is_wrong
+          - propose_alternative_word_in_same_beat
+          - smile_or_apologize_while_objecting
+          - speak_more_than_three_words
+          - elaborate_after_the_challenge_word
+      player_status: observer_no_initiative
+
+  validation_when_used:
+    - rule_id: word_count_within_max
+      severity: error
+      description: "Generated line must contain at most max_words tokens (excluding punctuation)."
+
+    - rule_id: challenge_target_word_present
+      severity: error
+      description: >-
+        The line must contain the target word as a recognisable token, OR
+        a near-paraphrase that points unambiguously at the same word in the
+        prior speaker's utterance.
+
+    - rule_id: question_inflection
+      severity: error
+      description: "If question_inflection_required, line ends with '?' or has interrogative structure."
+
+    - rule_id: no_alternative_in_same_beat
+      severity: error
+      description: >-
+        Critical: the challenger MUST NOT propose the replacement word in
+        this beat. That work belongs to the forces_response_from target.
+        Pattern fails if the line contains both the target word and a
+        proposed alternative.
+
+    - rule_id: typically_pairs_with_forces_response
+      severity: warning
+      description: >-
+        single_word_challenge beats almost always have forces_response_from
+        declared on the same beat, pointing at the actor expected to offer
+        the compromise. Validator warns if absent.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: alain_single_word_challenge
+        order: 1
+        duration_target_seconds: 4
+        beat_pattern_ref: single_word_challenge
+        beat_pattern_params:
+          actor: alain
+          challenge_target_word: armed
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+          max_words: 1
+        # Note: forces_response_from is declared on the step's inline beat
+        # config, not inside this pattern, because the response target may
+        # vary by step (in some later challenges Annette becomes the responder).
+        forces_response_from:
+          actor: veronique
+          intent: offer_compromise_word_carrying
+          max_delay_seconds: 6
+
+  used_in_pilots:
+    - canonical_path_v2/006_armed_vs_carrying.yaml#alain_single_word_challenge
+
+  anticipated_recurrences:
+    # Other single-word challenges this pattern absorbs across canonical_path_v2:
+    - canonical_step: opening_v2_018  # snitch challenge ("Snitch?" implied)
+    - canonical_step: opening_v2_026  # name-calling challenge in alliance-shift phase

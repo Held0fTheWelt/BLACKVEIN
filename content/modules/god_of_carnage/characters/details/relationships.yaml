@@ -1,0 +1,190 @@
+# Relationship authority for God of Carnage.
+# Character truth lives in characters/definitions/. Directed opening order lives in canonical_path/.
+
+authoring_language: en
+authority: character_relationship_authority
+canonical_path_ref: canonical_path/index.yaml#canonical_path.paths.opening
+phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+
+relationship_axes:
+  axis_1:
+    id: axis_1
+    name: "Spousal Internal"
+    description: "Solidarity within couples vs. cross-couple dynamics"
+
+    # Relationships involved
+    relationships:
+      - veronique_michel
+      - annette_alain
+      - veronique_annette
+      - veronique_alain
+      - michel_annette
+      - michel_alain
+
+    # Baseline state (session start)
+    baseline:
+      status: "Assumed alignment within couples; nominal deference between couples"
+      stability: 80              # High initial trust within couples
+      dominance_shift: 0         # Equal power initially
+      opening_canon: >-
+        Both couples arrive as public units. The opening should keep those units
+        intact long enough for small word choices, silences, and guest/host gestures
+        to make later fractures meaningful.
+
+    # Escalation states
+    escalation:
+      condition: "Spouses split on key judgments"
+      examples:
+        - "Véronique defends child; Michel sides with guests"
+        - "Annette holds injury pressure while Alain converts conflict into procedure"
+      stability_impact: -30      # Drops when spouses diverge
+      canonical_pressure_refs:
+        - canonical_path/014_player_response_ripple.yaml
+        - canonical_path/015_phone_exit_pressure.yaml
+
+  axis_2:
+    id: axis_2
+    name: "Host ↔ Guest Power"
+    description: "Véronique/Michel as authority (their home, rules) vs. Annette/Alain as challengers"
+
+    relationships:
+      - hosts_vs_guests
+      - veronique_guests
+      - michel_guests
+
+    baseline:
+      status: "Guests nominally defer to hosts"
+      stability: 70              # Initial host authority
+      dominance_shift: 5         # Hosts +5 (slight advantage)
+      opening_canon: >-
+        The apartment gives Véronique and Michel practical control: door, seating,
+        coffee, table, statement. Guest agency must remain real inside that control.
+
+    escalation:
+      condition: "Guests dominate conversation; hosts lose control"
+      examples:
+        - "Annette controls topic despite host objection"
+        - "Alain challenges wording while remaining formally polite"
+      stability_impact: -40      # Major shift when control lost
+      canonical_pressure_refs:
+        - canonical_path/006_apartment_entry_greetings.yaml
+        - canonical_path/008_statement_on_table.yaml
+        - canonical_path/012_tulips_and_hospitality.yaml
+
+  axis_3:
+    id: axis_3
+    name: "Moral vs. Pragmatic Worldview"
+    description: "Véronique's idealism and moral language vs. pragmatic/legal attempts to reduce exposure"
+
+    relationships:
+      - veronique_annette
+
+    baseline:
+      status: "Tension acknowledged but contained within civility"
+      stability: 60              # Fundamental disagreement
+      dominance_shift: 0         # Initial balance
+      opening_canon: >-
+        In the opening this axis hides inside wording: factual precision, softened
+        compromise, parental care, and whether community language is generous or coercive.
+
+    escalation:
+      condition: "Mutual contempt; no shared moral ground found"
+      examples:
+        - "Véronique treats procedural distance as moral cowardice"
+        - "Guest side treats moral language as self-protective theatre"
+        - "Core worldview positions become weapons"
+      stability_impact: -50      # Complete breakdown when worldviews collide
+      canonical_pressure_refs:
+        - canonical_path/009_wording_dispute_armed_carrying.yaml
+        - canonical_path/011_courtesy_community_pressure.yaml
+
+  axis_4:
+    id: axis_4
+    name: "Latent Dominance / Devaluation"
+    description: "Individual status claims (who superior: parent, intellectual, moralist, pragmatist)"
+
+    relationships:
+      - veronique_annette
+      - michel_annette
+      - veronique_alain
+      - all_characters_pairwise
+
+    baseline:
+      status: "Masks of civility; unstated hierarchy"
+      stability: 70              # Civility covers underlying contempt
+      dominance_shift: 0         # Hidden dynamics
+      opening_canon: >-
+        No one should name contempt early. It appears as who corrects whom, who gets
+        to interpret silence, and who controls the document on the coffee table.
+
+    escalation:
+      condition: "Contempt becomes explicit; status claims overt"
+      examples:
+        - "Annette dismisses Véronique as narrow-minded"
+        - "Véronique questions Annette's capacity for genuine parental care"
+        - "Michel asserts superior business judgment"
+      stability_impact: -45      # Contempt incompatible with civility
+      canonical_pressure_refs:
+        - canonical_path/013_first_playable_courtesy_gap.yaml
+        - canonical_path/016_opening_sustained_play_handoff.yaml
+
+relationships:
+  veronique_michel:
+    id: veronique_michel
+    type: spousal
+    axis_membership: [axis_1]
+    baseline_stability: 85
+    baseline_dominance_shift: 0
+    description: "Married couple; normally aligned; vulnerable to spousal split"
+    opening_canon: "Hosts must initially seem coordinated; Michel's practical softness should not erase Véronique's authority."
+
+  annette_alain:
+    id: annette_alain
+    type: spousal
+    axis_membership: [axis_1]
+    baseline_stability: 75
+    baseline_dominance_shift: 5  # Alain slightly subordinate (mediator role)
+    description: "Married couple; higher baseline tension; Alain mediates"
+    opening_canon: "Guests arrive as a pair, but Alain's divided attention can leave Annette exposed before any overt fight."
+
+  veronique_annette:
+    id: veronique_annette
+    type: host_guest
+    axis_membership: [axis_1, axis_2, axis_3, axis_4]
+    baseline_stability: 50
+    baseline_dominance_shift: 5  # Véronique initially dominant (host)
+    description: "Idealist vs. cynic; high conflict potential"
+    opening_canon: "Their conflict begins through politeness: injury detail, wording, and whether civility protects or pressures."
+
+  veronique_alain:
+    id: veronique_alain
+    type: host_guest
+    axis_membership: [axis_1, axis_2, axis_4]
+    baseline_stability: 70
+    baseline_dominance_shift: 10 # Véronique dominant (host authority)
+    description: "Host to mediator; normally civil; little direct conflict"
+    opening_canon: "He may help her keep procedure civil, but his legal distance can also drain moral force from her account."
+
+  michel_annette:
+    id: michel_annette
+    type: host_guest
+    axis_membership: [axis_1, axis_2, axis_4]
+    baseline_stability: 60
+    baseline_dominance_shift: 5  # Michel initially dominant (host)
+    description: "Pragmatist to cynic; business-minded; potential alignment vs. Véronique"
+    opening_canon: "A brief practical alignment is possible if both want the meeting to stop being moral theatre."
+
+  michel_alain:
+    id: michel_alain
+    type: host_guest
+    axis_membership: [axis_1, axis_2]
+    baseline_stability: 75
+    baseline_dominance_shift: 5  # Michel dominant (host)
+    description: "Pragmatist to mediator; potential alliance"
+    opening_canon: "They can cooperate through small procedural gestures, but neither owns the emotional center."
+
+# Stability bounds (0-100)
+stability_constraints:
+  min_stable: 30                 # Below this: relationship in crisis
+  min_civil: 50                  # Below this: civility abandoned
+  baseline_broken: 0             # Relationship severed

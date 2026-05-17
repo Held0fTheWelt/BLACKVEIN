@@ -40,6 +40,7 @@ from ai_stack.symbolic_object_resonance_contracts import (
 )
 from ai_stack.temporal_control_contracts import normalize_temporal_control_policy
 from ai_stack.tonal_consistency_contracts import normalize_tonal_consistency_policy
+from story_runtime_core.language_adapter import build_interaction_surface
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -79,7 +80,7 @@ def _read_character_documents(module_dir: Path) -> dict[str, Any]:
     if not char_dir.is_dir():
         return {}
     chars: dict[str, Any] = {}
-    for path in sorted(char_dir.glob("*.yaml")):
+    for path in sorted(char_dir.rglob("*.yaml")):
         payload = _read_yaml(path)
         doc = payload.get("character_document") or payload.get("character")
         if not isinstance(doc, dict):
@@ -216,14 +217,18 @@ def _playable_roles_from_opening(opening_policy: dict[str, Any]) -> list[str]:
 def _location_model(
     *,
     layout_payload: dict[str, Any],
-    locale_payload: dict[str, Any],
+    interaction_surface_payload: dict[str, Any],
     locations_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     layout = _unwrap(layout_payload, "apartment_layout")
-    locale = _unwrap(locale_payload, "scene_affordances")
+    interaction_surface = _unwrap(interaction_surface_payload, "scene_affordances")
     authored_locations = _unwrap(locations_payload or {}, "locations")
     rooms = layout.get("rooms") if isinstance(layout.get("rooms"), list) else []
-    locations = locale.get("locations") if isinstance(locale.get("locations"), list) else []
+    locations = (
+        interaction_surface.get("locations")
+        if isinstance(interaction_surface.get("locations"), list)
+        else []
+    )
     authored_places = (
         authored_locations.get("places") if isinstance(authored_locations.get("places"), list) else []
     )
@@ -237,7 +242,8 @@ def _location_model(
         by_id.setdefault(rid, {}).update(_json_safe(row))
     return {
         "setting_id": layout.get("setting_id"),
-        "narrative_anchor_area_id": layout.get("narrative_anchor_area_id") or locale.get("current_area"),
+        "narrative_anchor_area_id": layout.get("narrative_anchor_area_id")
+        or interaction_surface.get("current_area"),
         "global_rules": layout.get("global_rules") if isinstance(layout.get("global_rules"), dict) else {},
         "locations": by_id,
         "transitions": layout.get("transitions") if isinstance(layout.get("transitions"), list) else [],
@@ -247,10 +253,10 @@ def _location_model(
 def _object_model(
     *,
     objects_payload: dict[str, Any],
-    locale_payload: dict[str, Any],
+    interaction_surface_payload: dict[str, Any],
 ) -> dict[str, Any]:
     objects_doc = _unwrap(objects_payload, "objects")
-    locale = _unwrap(locale_payload, "scene_affordances")
+    interaction_surface = _unwrap(interaction_surface_payload, "scene_affordances")
     by_id: dict[str, Any] = {}
     object_documents = (
         objects_doc.get("object_documents")
@@ -276,7 +282,9 @@ def _object_model(
             )
         )
     for source in (
-        locale.get("objects") if isinstance(locale.get("objects"), list) else [],
+        interaction_surface.get("objects")
+        if isinstance(interaction_surface.get("objects"), list)
+        else [],
     ):
         for row in source:
             if not isinstance(row, dict):
@@ -466,6 +474,7 @@ class ModuleRuntimePolicy:
     capability_policy: dict[str, Any] = field(default_factory=dict)
     hard_forbidden_policy: dict[str, Any] = field(default_factory=dict)
     opening_policy: dict[str, Any] = field(default_factory=dict)
+    language_policy: dict[str, Any] = field(default_factory=dict)
     locale_policy: dict[str, Any] = field(default_factory=dict)
     narrative_aspect_policy: dict[str, Any] = field(default_factory=dict)
     information_disclosure_policy: dict[str, Any] = field(default_factory=dict)
@@ -516,6 +525,7 @@ def load_module_runtime_policy(
     locations = _read_locations(module_dir)
     actor_pressure = _read_first_yaml(
         [
+            module_dir / "characters" / "details" / "actor_pressure_profiles.yaml",
             module_dir / "characters" / "actor_pressure_profiles.yaml",
             module_dir / "actor_pressure_profiles.yaml",
         ]
@@ -530,12 +540,11 @@ def load_module_runtime_policy(
         _read_yaml(module_dir / "knowledge" / "hard_forbidden_rules.yaml"),
         "hard_forbidden_rules",
     )
-    scene_affordances = _unwrap(
-        _read_yaml(module_dir / "locale" / "scene_affordances.yaml"),
-        "scene_affordances",
+    scene_affordances = build_interaction_surface(mid, content_modules_root=root)
+    action_outcome_map = _unwrap(
+        _read_yaml(module_dir / "knowledge" / "action_outcome_map.yaml"),
+        "action_outcome_map",
     )
-    player_input_rules = _read_yaml(module_dir / "locale" / "player_input_rules.yaml")
-    module_strings = _read_yaml(module_dir / "locale" / "module_strings.yaml")
     narrative_aspect_policy = normalize_narrative_aspect_policy(
         _unwrap(
             _read_yaml(module_dir / "narrative_aspect_policy.yaml"),
@@ -636,9 +645,9 @@ def load_module_runtime_policy(
         ("phase_beat_policy", phase_policy),
         ("opening_scene_sequence", opening_policy),
         ("hard_forbidden_rules", hard_forbidden),
-        ("scene_affordances", scene_affordances),
-        ("player_input_rules", player_input_rules),
-        ("module_strings", module_strings),
+        ("interaction_surface", scene_affordances),
+        ("action_outcome_map", action_outcome_map),
+        ("universal_language_adapter", {"enabled": True}),
         ("narrative_aspect_policy", narrative_aspect_policy if narrative_aspect_policy.get("aspects") else {}),
         (
             "information_disclosure_policy",
@@ -663,13 +672,19 @@ def load_module_runtime_policy(
 
     actor_roster = _actors_from_characters(characters)
     playable_roles = _playable_roles_from_opening(opening_policy)
-    locale_policy = {
-        "scene_affordances": scene_affordances,
-        "player_input_rules": player_input_rules,
-        "module_strings": {
-            "available": bool(module_strings),
-            "top_level_keys": sorted(module_strings.keys()) if isinstance(module_strings, dict) else [],
+    language_policy = {
+        "interaction_surface": scene_affordances,
+        "action_outcome_map": action_outcome_map,
+        "adapter": {
+            "id": "universal_language_adapter",
+            "module_locale_files_required": False,
+            "engine_maps_allowed": False,
+            "player_input_resolution_source": "ai_semantic_resolution",
+            "visible_language_source": "ai_semantic_generation",
         },
+    }
+    locale_policy = {
+        "action_outcome_map": action_outcome_map,
     }
 
     return ModuleRuntimePolicy(
@@ -679,10 +694,13 @@ def load_module_runtime_policy(
         playable_roles=playable_roles,
         location_model=_location_model(
             layout_payload=layout,
-            locale_payload=scene_affordances,
+            interaction_surface_payload=scene_affordances,
             locations_payload=locations,
         ),
-        object_model=_object_model(objects_payload=objects, locale_payload=scene_affordances),
+        object_model=_object_model(
+            objects_payload=objects,
+            interaction_surface_payload=scene_affordances,
+        ),
         phase_policy=phase_policy,
         beat_policy={
             "phase_policy": phase_policy,
@@ -694,6 +712,7 @@ def load_module_runtime_policy(
         capability_policy=_capability_policy(hard_forbidden),
         hard_forbidden_policy=hard_forbidden,
         opening_policy=opening_policy,
+        language_policy=language_policy,
         locale_policy=locale_policy,
         narrative_aspect_policy=narrative_aspect_policy,
         information_disclosure_policy=information_disclosure_policy,

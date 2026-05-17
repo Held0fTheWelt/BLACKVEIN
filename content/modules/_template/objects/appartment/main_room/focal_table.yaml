@@ -2,6 +2,7 @@ object:
   id: focal_table
   name: "Focal table"
   category: social_pressure_surface
+  portable: false
   placement_location_id: main_room
   playable_access: active_object
   description: "Replace with a socially important surface or object cluster."

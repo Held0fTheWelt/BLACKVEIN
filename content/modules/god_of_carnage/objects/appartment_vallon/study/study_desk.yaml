@@ -2,16 +2,19 @@ object:
   id: study_desk
   name: "Study desk"
   category: private_work_surface
+  portable: false
   placement_location_id: study
   playable_access: privacy_gated_object
   description: >-
-    Private work surface with papers and household order.
+    A cramped desk by the window with a computer, papers, a desk lamp, and the
+    kind of household order that has started to lose its battle against daily use.
   interaction_notes:
     look_at: "May establish privacy pressure."
     open: "Private documents require a scene gate."
   risk_tags:
     - privacy_boundary
-  plausible_actions: [look_at]
+  plausible_actions: [look_at, use_computer, open_drawer]
   forbidden_actions: [open_private_documents_without_scene_gate]
   symbolic_roles:
     - private_order
+    - work_surface

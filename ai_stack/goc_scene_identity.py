@@ -1,10 +1,10 @@
 """
-Single owned surface: GoC runtime scene_id → scene_guidance.yaml phase
-keys.
+Single owned runtime mapping: GoC runtime scene_id → phase_beat_policy-derived
+guidance keys.
 
 See ADR-0003: the mapping here is the **source of truth**; tests verify
-consistency against ``scene_guidance.yaml`` and ``scenes.yaml`` phase
-ids. Do not duplicate this mapping elsewhere (CI enforces via
+consistency against phase_beat_policy-derived phase blocks. Do not duplicate
+this mapping elsewhere (CI enforces via
 ``tools/verify_goc_scene_identity_single_source.py``).
 """
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 # Default when scene_id is unknown or empty (director staging bias).
 GOC_DEFAULT_GUIDANCE_PHASE_KEY: str = "phase_2_moral_negotiation"
 
-# Runtime / slice scene identifiers → top-level keys in direction/scene_guidance.yaml
+# Runtime / slice scene identifiers → legacy-compatible phase guidance keys.
 GOC_SCENE_ID_TO_GUIDANCE_PHASE: dict[str, str] = {
     "courtesy": "phase_1_polite_opening",
     "living_room": "phase_2_moral_negotiation",
@@ -52,7 +52,7 @@ GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY: dict[str, str] = {
 
 
 def guidance_phase_key_for_scene_id(scene_id: str) -> str:
-    """Resolve a runtime scene id to a scene_guidance.yaml block key.
+    """Resolve a runtime scene id to a phase-policy-derived guidance block key.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -67,7 +67,7 @@ def guidance_phase_key_for_scene_id(scene_id: str) -> str:
 
 
 def all_expected_guidance_phase_keys() -> frozenset[str]:
-    """Phase block keys that must exist in merged scene_guidance.yaml for
+    """Phase guidance keys that must be derivable from phase_beat_policy for
     GoC.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.

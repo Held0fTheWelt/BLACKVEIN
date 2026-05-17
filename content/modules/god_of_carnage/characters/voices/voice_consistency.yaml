@@ -1,0 +1,61 @@
+# Voice Consistency Guidelines
+
+voice_consistency:
+  authority: character_voice_consistency_policy
+  voice_documents:
+    veronique: characters/voices/character_voice_veronique.yaml
+    michel: characters/voices/character_voice_michel.yaml
+    annette: characters/voices/character_voice_annette.yaml
+    alain: characters/voices/character_voice_alain.yaml
+  canon_refs:
+    - canonical_path/index.yaml#canonical_path.paths.opening
+    - phase_beat_policy.yaml#phase_beat_policy.phases
+
+  maintain_consistency:
+    - "Each character has a voice that should be recognizable across the playable path"
+    - "Escalation changes *tone* and *passion*, not fundamental vocabulary or syntax"
+    - "Even in anger, Véronique remains articulate; even in collapse, her language remains educated"
+    - "Even in conflict, Michel remains pragmatic and slightly detached; even in defeat, he doesn't become poetic"
+    - "Annette is controlled and guarded in the opening; do not rewrite her as a default cynic or automatic attacker"
+    - "Alain is lawyerly and divided; mediation is one tactic, not his whole identity"
+    - "For human-playable Annette or Alain, silence can be agency and must not be overwritten as consent"
+
+  pitfalls_to_avoid:
+    - "Don't make characters sound alike; differentiate vocabulary and rhythm sharply"
+    - "Don't have characters suddenly wise or forgiving; maintain their worldview even in breakdown"
+    - "Don't have Annette apologize, Alain leave, or either playable character confess without player support"
+    - "Don't have Véronique abandon principles; don't have Michel become heroic or perfectly assertive"
+    - "Don't use slang or contemporary speech; these are educated Parisians, circa late 20th century"
+    - "Don't drop character voice even in rapid dialogue; urgency accelerates speech but doesn't change it"
+    - "Don't use quote anchors as mandatory verbatim dialogue"
+
+  forbidden_language_markers:
+    contemporary_slang:
+      policy_basis_path: "voice_consistency.pitfalls_to_avoid[3]"
+      markers:
+        - "lol"
+        - "omg"
+        - "bro"
+        - "dude"
+        - "yolo"
+        - "cringe"
+        - "vibe check"
+        - "okay boomer"
+
+  semantic_classification:
+    enabled: true
+    classifier_version: "profile_semantic_overlap_v1"
+    gate_mode: "observe_then_reject"
+    thresholds:
+      min_profile_alignment: 0.45
+      max_cross_actor_confusion: 0.20
+      min_confidence_to_block: 0.65
+      max_ambiguous_margin: 0.08
+      min_dimension_alignment: 0.35
+      min_mixed_dimensions: 2
+    dimensions:
+      worldview: 0.30
+      register: 0.20
+      syntax_rhythm: 0.20
+      rhetorical_strategy: 0.20
+      phase_alignment: 0.10

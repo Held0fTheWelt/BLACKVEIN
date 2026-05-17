@@ -1,7 +1,25 @@
 phase_beat_policy:
   authoring_language: en
+  phase_authority: phase_beat_policy
+  canonical_path_source: canonical_path/index.yaml
   phases:
     phase_1:
+      id: phase_1
+      name: "Polite Opening"
+      sequence: 1
+      description: "Replace with the contained opening pressure."
+      content_focus:
+        - establish_room
+        - establish_roles
+        - surface_civility
+      engine_tasks:
+        - maintain_civility
+        - introduce_pressure_without_verdict
+      pressure_markers: []
+      enforced_constraints:
+        - no_early_rupture
+      turn_estimate: "2-3"
+      exit_condition: "A first substantive disagreement or pressure marker appears."
       allowed_scene_functions:
         - establish_pressure
         - probe_motive
@@ -10,6 +28,24 @@ phase_beat_policy:
         - direct_accusation
         - final_revelation
     phase_2:
+      id: phase_2
+      name: "Pressure"
+      sequence: 2
+      description: "Replace with the phase where surface order starts to fail."
+      content_focus:
+        - test_accounts
+        - reveal_asymmetry
+        - shift_alliances
+      engine_tasks:
+        - track_relationship_pressure
+        - allow_controlled_escalation
+      pressure_markers:
+        - contradiction
+        - exposure
+      enforced_constraints:
+        - preserve_character_specific_voice
+      turn_estimate: "4-6"
+      exit_condition: "The central relationship axis can no longer remain polite."
       allowed_scene_functions:
         - escalate_conflict
         - redirect_blame
@@ -17,6 +53,23 @@ phase_beat_policy:
       forbidden_early_beats:
         - unseeded_confession
     phase_3:
+      id: phase_3
+      name: "Rupture"
+      sequence: 3
+      description: "Replace with the late scene breakdown, exit, stalemate, or reversal."
+      content_focus:
+        - rupture_surface_identity
+        - force_choice_or_exit
+        - carry_residual_consequence
+      engine_tasks:
+        - resolve_or_preserve_core_pressure
+        - preserve_or_close_residual_pressure
+      pressure_markers:
+        - collapse_indicator
+      enforced_constraints:
+        - no_unseeded_revelation
+      turn_estimate: "4-6"
+      exit_condition: "The module reaches a named closure, exit, or residual consequence."
       allowed_scene_functions:
         - scene_pivot
         - forced_exit

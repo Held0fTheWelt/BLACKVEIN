@@ -1,0 +1,94 @@
+beat_pattern:
+  id: narrator_perception_block
+  version: v1
+  category: narrator
+  purpose: >-
+    Pure narrator perception. One to three sentences describing only what is
+    visibly present in the room. No theme commentary, no character private
+    thought, no prediction. Pulls sensory tags from referenced location and
+    object files instead of inventing fresh description.
+
+  parameters:
+    - name: perception_lines
+      type: array
+      item_type: string
+      min_items: 1
+      max_items: 3
+      required: true
+      constraint: each_line_must_pass_lexical_filter
+      description: "Short perception sentences. Present tense, third person, visible only."
+
+    - name: sensory_anchors
+      type: array
+      item_type: ref
+      required: false
+      description: >-
+        Optional explicit refs into location.sensory_tags or
+        object.sensory_tags that the perception lines draw from. Used by the
+        validator to confirm no fresh fact was invented.
+
+    - name: filler_action_visible
+      type: object
+      required: false
+      fields:
+        actor: { type: enum, values: [veronique, michel, annette, alain] }
+        action: { type: string }
+      description: >-
+        Optional single small action by a named actor that does not count as
+        speech (a nod, a glance, weight shift). Must be visible to all
+        characters in the room.
+
+  expands_to:
+    director_instruction:
+      narrator_perception_only: "{{ perception_lines }}"
+      # If filler_action_visible is set, the actor's small action is appended
+      # as an additional perception line by the resolver, NOT as npc_speak.
+
+  validation_when_used:
+    - rule_id: lexical_filter_pass
+      severity: error
+      description: >-
+        Each perception line must not contain forbidden vocabulary from
+        narrator_global_rules.must_not in _schema_v2.yaml. Keyword filter:
+        no 'fühlt', 'denkt', 'weiß', 'plant', 'wird gleich', 'symbolisiert',
+        'bedeutet', 'steht für', moral evaluators, future tense.
+
+    - rule_id: sensory_anchors_resolve
+      severity: warning
+      description: >-
+        If sensory_anchors provided, each ref must resolve in
+        locations/ or objects/. Otherwise the validator logs a soft warning.
+
+    - rule_id: sentence_length_cap
+      severity: warning
+      description: "Each line should stay under 18 words for pacing."
+
+    - rule_id: no_private_thought_attribution
+      severity: error
+      description: >-
+        Lines that attribute knowledge or feeling to a character ('Veronique
+        weiß, dass...', 'Michel fühlt...') are rejected. Body posture is OK
+        ('Veronique hebt den Blick', 'Michel nickt einmal') because it is
+        externally visible.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: room_perception_winter_light
+        order: 1
+        duration_target_seconds: 8
+        beat_pattern_ref: narrator_perception_block
+        beat_pattern_params:
+          perception_lines:
+            - "Schmaler Raum, als Heimbüro genutzt. Winterlicht durch das einzige Fenster."
+            - "Auf einem Wandtisch Stapel von Magazinen und Drucksachen."
+          sensory_anchors:
+            - locations/appartment_vallon/den.yaml#sensory_tags
+            - objects/appartment_vallon/den/periodicals.yaml#sensory_tags
+        player_status: spectator_blocked
+
+  used_in_pilots:
+    - canonical_path_v2/004_den_arrival_positioning.yaml#room_perception_winter_light
+    - canonical_path_v2/004_den_arrival_positioning.yaml#positions_around_laptop
+    - canonical_path_v2/004_den_arrival_positioning.yaml#mood_register_serious_cordial_tolerant
+    - canonical_path_v2/005_statement_reading.yaml#filler_perception_inside_reading_beats
+    - canonical_path_v2/006_armed_vs_carrying.yaml#beat_annette_settles_one_step_closer

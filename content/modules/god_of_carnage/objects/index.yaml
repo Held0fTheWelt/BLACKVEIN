@@ -6,6 +6,7 @@ objects:
     objects_must_have_placement_location_id: true
     placement_location_ids_must_reference_locations: true
     objects_are_not_locations: true
+    objects_must_declare_portable: true
     apartment_objects_grouped_by_location_subfolder: true
     apartment_room_object_folder_pattern: objects/appartment_vallon/{location_id}/
 
@@ -13,6 +14,8 @@ objects:
     living_room: objects/appartment_vallon/living_room/
     hallway: objects/appartment_vallon/hallway/
     kitchen: objects/appartment_vallon/kitchen/
+    dining_room: objects/appartment_vallon/dining_room/
+    bedroom: objects/appartment_vallon/bedroom/
     bathroom: objects/appartment_vallon/bathroom/
     pantry: objects/appartment_vallon/pantry/
     study: objects/appartment_vallon/study/
@@ -21,13 +24,50 @@ objects:
     - objects/opening/bicycle_rack.yaml
     - objects/appartment_vallon/living_room/coffee_table.yaml
     - objects/appartment_vallon/living_room/dining_table.yaml
+    - objects/appartment_vallon/living_room/entry_mirror.yaml
+    - objects/appartment_vallon/living_room/coat_rack.yaml
+    - objects/appartment_vallon/living_room/blue_vase_lamp_table.yaml
+    - objects/appartment_vallon/living_room/living_room_cabinets.yaml
+    - objects/appartment_vallon/living_room/left_bookshelf.yaml
     - objects/appartment_vallon/living_room/window.yaml
+    - objects/appartment_vallon/living_room/champagne_curtains.yaml
+    - objects/appartment_vallon/living_room/facing_couches.yaml
+    - objects/appartment_vallon/living_room/art_books.yaml
+    - objects/appartment_vallon/living_room/mantel_display.yaml
+    - objects/appartment_vallon/living_room/glassware_cabinet.yaml
     - objects/appartment_vallon/living_room/television.yaml
     - objects/appartment_vallon/hallway/hallway_doors.yaml
+    - objects/appartment_vallon/hallway/locked_bathroom_door.yaml
+    - objects/appartment_vallon/kitchen/kitchen_window.yaml
+    - objects/appartment_vallon/kitchen/cookline.yaml
+    - objects/appartment_vallon/kitchen/pantry_cabinet.yaml
+    - objects/appartment_vallon/kitchen/refrigerator.yaml
+    - objects/appartment_vallon/kitchen/countertop_base_cabinet.yaml
+    - objects/appartment_vallon/kitchen/wall_cabinets.yaml
+    - objects/appartment_vallon/kitchen/kitchen_drawers.yaml
     - objects/appartment_vallon/kitchen/coffee_machine.yaml
     - objects/appartment_vallon/kitchen/glasses.yaml
+    - objects/appartment_vallon/dining_room/dining_room_table.yaml
+    - objects/appartment_vallon/dining_room/dining_room_sideboard.yaml
+    - objects/appartment_vallon/dining_room/china_cabinet.yaml
+    - objects/appartment_vallon/dining_room/place_settings.yaml
+    - objects/appartment_vallon/dining_room/fruit_bowl.yaml
+    - objects/appartment_vallon/dining_room/linen_napkins.yaml
+    - objects/appartment_vallon/dining_room/dining_room_wall_clock.yaml
+    - objects/appartment_vallon/bedroom/bedroom_bed.yaml
+    - objects/appartment_vallon/bedroom/bedside_tables.yaml
+    - objects/appartment_vallon/bedroom/bedroom_wardrobe.yaml
+    - objects/appartment_vallon/bedroom/laundry_chair.yaml
+    - objects/appartment_vallon/bedroom/ensuite_bathroom_door.yaml
     - objects/appartment_vallon/bathroom/bathroom_mirror.yaml
+    - objects/appartment_vallon/bathroom/bathroom_sink.yaml
+    - objects/appartment_vallon/bathroom/towel_rail.yaml
+    - objects/appartment_vallon/bathroom/medicine_cabinet.yaml
     - objects/appartment_vallon/pantry/pantry_shelves.yaml
     - objects/appartment_vallon/study/study_desk.yaml
+    - objects/appartment_vallon/study/study_bookshelves.yaml
+    - objects/appartment_vallon/study/study_clutter.yaml
+    - objects/appartment_vallon/study/study_pinboard.yaml
+    - objects/appartment_vallon/study/africa_map_darfur_pins.yaml
     - objects/building/apartment_door.yaml
     - objects/building/elevator.yaml

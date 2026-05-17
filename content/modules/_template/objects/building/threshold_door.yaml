@@ -2,6 +2,7 @@ object:
   id: threshold_door
   name: "Threshold door"
   category: threshold_object
+  portable: false
   placement_location_id: threshold
   playable_access: gated_threshold
   description: "Replace with entry/exit object materiality."

@@ -2,6 +2,7 @@ object:
   id: window
   name: "Window / outside view"
   category: perception_anchor
+  portable: false
   placement_location_id: living_room
   playable_access: perception_only
   description: >-

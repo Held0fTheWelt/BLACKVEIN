@@ -1,0 +1,18 @@
+object:
+  id: refrigerator
+  name: "Refrigerator"
+  category: kitchen_fixture
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    A left-side refrigerator with a child's magnet, a folded receipt, a small
+    calendar, cheese, mineral water, lemons, and a covered dish inside.
+  interaction_notes:
+    open: "Domestic service action only."
+  sensory_tags: [refrigerator, magnets, mineral_water, lemons]
+  plausible_actions: [look_at, open, take_minor_service_item]
+  forbidden_actions: [discover_unseeded_secret]
+  symbolic_roles:
+    - domestic_order
+    - private_household_surface

@@ -1,5 +1,5 @@
-# Structured apartment topology — English module truth for resolution, director, RAG.
-# Operational affordances (aliases, localized entry detail) remain in locale/scene_affordances.yaml.
+# Structured apartment topology — English module truth for semantic resolution, director, RAG.
+# Player-language interpretation is handled by the engine AI adapter against this content.
 
 apartment_layout:
   authoring_language: en
@@ -8,8 +8,9 @@ apartment_layout:
   summary: >-
     An upscale Paris apartment in a working district where the salon hosts the confrontation;
     a dark building hallway/elevator landing opens directly into the living room, while a small
-    interior hallway gives access to service and private rooms. The building stairwell is a
-    separate but currently unreachable exit pressure.
+    interior hallway gives access to service, dining, and private rooms. The bedroom
+    leads onward to the bathroom, while a second hallway bathroom is locked. The
+    building stairwell is a separate but currently unreachable exit pressure.
 
   global_rules:
     offscreen_move_requires_narrator_consequence: true
@@ -26,12 +27,15 @@ apartment_layout:
       - living_room
       - hallway
       - kitchen
+      - dining_room
       - bathroom
+      - bedroom
       - pantry
       - study
     prevented_location_ids:
       - building_stairwell
     non_playable_locked_location_ids:
+      - hallway_bathroom_locked
       - bedroom_one_locked
       - bedroom_two_locked
 
@@ -50,7 +54,10 @@ apartment_layout:
         cannot_directly_perceive_room_ids:
           - hallway
           - kitchen
+          - dining_room
           - bathroom
+          - bedroom
+          - hallway_bathroom_locked
           - pantry
           - study
           - bedroom_one_locked
@@ -107,7 +114,10 @@ apartment_layout:
           - living_room
           - hallway
           - kitchen
+          - dining_room
           - bathroom
+          - bedroom
+          - hallway_bathroom_locked
           - pantry
           - study
           - bedroom_one_locked
@@ -134,7 +144,7 @@ apartment_layout:
     - id: living_room
       dramatic_role: primary_stage
       privacy: semipublic_within_visit
-      aliases_policy: inherits_from_scene_affordances_current_area
+      language_adapter_policy: derive_semantic_terms_from_location_and_object_content
       adjacent_room_ids:
         - building_hallway
         - hallway
@@ -146,7 +156,10 @@ apartment_layout:
           - kitchen
         cannot_directly_perceive_room_ids:
           - building_stairwell
+          - dining_room
           - bathroom
+          - bedroom
+          - hallway_bathroom_locked
           - pantry
           - study
           - bedroom_one_locked
@@ -272,6 +285,7 @@ apartment_layout:
         can_directly_perceive_room_ids: []
         cannot_directly_perceive_room_ids:
           - living_room
+          - hallway
           - kitchen
           - pantry
           - study
@@ -430,11 +444,27 @@ apartment_layout:
       to_area_id: hallway
       kind: service_threshold
     - from_area_id: hallway
-      to_area_id: bathroom
+      to_area_id: dining_room
+      kind: interior_threshold
+    - from_area_id: dining_room
+      to_area_id: hallway
+      kind: interior_threshold
+    - from_area_id: hallway
+      to_area_id: bedroom
       kind: offscreen_private
-    - from_area_id: bathroom
+    - from_area_id: bedroom
       to_area_id: hallway
       kind: offscreen_private
+    - from_area_id: bedroom
+      to_area_id: bathroom
+      kind: ensuite_private
+    - from_area_id: bathroom
+      to_area_id: bedroom
+      kind: ensuite_private
+    - from_area_id: hallway
+      to_area_id: hallway_bathroom_locked
+      kind: locked_private_door
+      access: locked_non_playable
     - from_area_id: hallway
       to_area_id: pantry
       kind: service_storage

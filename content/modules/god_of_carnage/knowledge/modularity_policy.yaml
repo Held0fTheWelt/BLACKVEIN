@@ -43,6 +43,10 @@ modularity_policy:
         - pressure_profiles
         - voice_guidance
       root: characters/
+      subfolders:
+        definitions: characters/definitions/
+        details: characters/details/
+        voices: characters/voices/
     canonical_path:
       owns:
         - directed_sequence
@@ -58,6 +62,18 @@ modularity_policy:
         - objects/
         - characters/
         - knowledge/opening_quote_anchors.yaml
+    phase_beat_policy:
+      owns:
+        - coarse_phase_order
+        - allowed_phase_beats
+        - phase_pressure_markers
+        - phase_constraints
+        - exit_conditions
+      root: phase_beat_policy.yaml
+      must_not_own:
+        - location_description
+        - object_description
+        - character_backstory_database
     knowledge:
       owns:
         - runtime_contracts
@@ -79,13 +95,34 @@ modularity_policy:
         - canonical_path/
         - locations/
         - objects/
-    locale:
+    hints:
       owns:
-        - player_visible_aliases
-        - localized_surface_text
-      root: locale/
+        - director_surface_hint_catalog
+        - non_player_visible_staging_notes
+        - symbolic_staging_lifecycle_notes
+        - thematic_director_framing_not_stated_elsewhere
+      root: hints/
+      must_reference:
+        - locations/
+        - objects/
+        - characters/
+        - direction/beat_library/
+        - phase_beat_policy.yaml
+      must_not_own:
+        - place_description
+        - object_description
+        - executable_beat_parameters
+        - player_visible_dialogue
+        - external_document_citations
+    language_adapter:
+      owns:
+        - player_visible_language_projection
+        - ai_semantic_resolution_contract
+        - content_catalog_projection
+      root: engine
       source_truth_must_reference:
         - locations/
+        - objects/
         - characters/
 
   duplication_controls:
@@ -103,3 +140,5 @@ modularity_policy:
       rule: "Scene graph nodes may point to canonical path steps and locations, but must not restate place descriptions."
     - id: opening_contract_uses_refs
       rule: "Opening contracts list event ids, step refs, and coverage rules instead of rewriting park or apartment descriptions."
+    - id: no_parallel_trigger_transition_ending_compendia
+      rule: "Do not reintroduce standalone triggers.yaml, transitions.yaml, endings.yaml, or escalation_axes.yaml for this module; use phase_beat_policy, canonical_path, relationships, and runtime state instead."

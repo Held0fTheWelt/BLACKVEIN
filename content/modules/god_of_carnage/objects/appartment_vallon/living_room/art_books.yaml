@@ -1,0 +1,20 @@
+object:
+  id: art_books
+  name: "Art books"
+  category: cultural_object_cluster
+  portable: true
+  placement_location_id: living_room
+  playable_access: minor_service_object
+  description: >-
+    Heavy art books laid where guests can notice them: catalogues on painters,
+    sculpture, African masks, and modern exhibitions, all too deliberate to be
+    accidental.
+  interaction_notes:
+    look_at: "Reinforces cultivated taste."
+    take: "A book can be picked up, but not mined for new plot facts."
+  sensory_tags: [art_books, catalogues, cultivated_display]
+  plausible_actions: [look_at, take, place_object]
+  forbidden_actions: [discover_hidden_note_in_book]
+  symbolic_roles:
+    - cultural_display
+    - status_surface

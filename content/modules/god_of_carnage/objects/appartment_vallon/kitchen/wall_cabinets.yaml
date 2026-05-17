@@ -1,0 +1,17 @@
+object:
+  id: wall_cabinets
+  name: "Wall cabinets on both sides"
+  category: kitchen_storage_surface
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    Upper cabinets on both sides of the kitchen, their doors slightly uneven,
+    with plates, cups, a small stack of napkins, and mismatched serving bowls.
+  interaction_notes:
+    open: "Reveals domestic service objects only."
+  sensory_tags: [upper_cabinets, plates, cups, napkins]
+  plausible_actions: [look_at, open, take_minor_service_item]
+  forbidden_actions: [discover_unseeded_evidence]
+  symbolic_roles:
+    - domestic_order

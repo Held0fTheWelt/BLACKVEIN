@@ -1,0 +1,92 @@
+beat_pattern:
+  id: silence_perception_pause
+  version: v1
+  category: narrator
+  purpose: >-
+    A bounded silence beat after a scripted exchange. Marks the moment with
+    one or two narrator_perception lines, then opens an observer_window so
+    the player can register the silence without colliding with a mandatory
+    forces_response chain that has not yet fired.
+
+  parameters:
+    - name: trigger_after_beat
+      type: string
+      required: true
+      description: "ID of the immediately preceding beat that demands this pause."
+
+    - name: silence_duration_seconds
+      type: integer
+      range: [3, 8]
+      required: true
+
+    - name: perception_lines
+      type: array
+      item_type: string
+      min_items: 1
+      max_items: 2
+      required: true
+      constraint: must_describe_breath_or_stillness_not_thought
+
+    - name: body_marker_visible
+      type: array
+      item_type: object
+      max_items: 2
+      required: false
+      fields:
+        actor: { type: enum, values: [veronique, michel, annette, alain] }
+        marker: { type: string }
+      description: >-
+        Up to two visible body signals from named actors during the silence
+        (e.g. 'Veronique hebt den Blick vom Bildschirm'). NOT speech.
+
+    - name: closes_window_when
+      type: enum
+      values:
+        - duration_elapsed
+        - player_speaks
+        - next_mandatory_beat_due
+      default: duration_elapsed
+
+  expands_to:
+    director_instruction:
+      narrator_perception_only: "{{ perception_lines + body_markers_rendered }}"
+      player_status: observer_window_open
+    # silence_duration_seconds is used by the LDSS to gate the next beat;
+    # if the player speaks during the window, the speech is timestamped and
+    # may either dissolve the silence or get queued depending on the parent
+    # step's player_intrusion_windows policy.
+
+  validation_when_used:
+    - rule_id: no_speech_in_silence
+      severity: error
+      description: "perception_lines must not contain dialog or quoted speech."
+
+    - rule_id: no_inner_thought
+      severity: error
+      description: >-
+        Lines must not attribute thinking, knowing, planning to anyone. Only
+        bodily stillness ('niemand atmet hörbar'), light shifts, room state.
+
+    - rule_id: silence_does_not_replace_dialog
+      severity: error
+      description: >-
+        A silence_perception_pause must follow a mandatory_beat that already
+        delivered the required dialog. It cannot substitute for missing
+        npc_speak.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: silence_after_reading
+        order: 4
+        duration_target_seconds: 5
+        beat_pattern_ref: silence_perception_pause
+        beat_pattern_params:
+          trigger_after_beat: veronique_reads_injury_detail
+          silence_duration_seconds: 5
+          perception_lines:
+            - "Veronique hebt den Blick vom Bildschirm."
+            - "Niemand atmet hörbar."
+          closes_window_when: next_mandatory_beat_due
+
+  used_in_pilots:
+    - canonical_path_v2/005_statement_reading.yaml#silence_after_reading

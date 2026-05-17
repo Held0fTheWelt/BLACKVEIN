@@ -26,7 +26,17 @@ location:
   inventory_policy: authored_salient_objects
   inventory_object_ids:
     - coffee_table
+    - entry_mirror
+    - coat_rack
+    - blue_vase_lamp_table
+    - living_room_cabinets
+    - left_bookshelf
     - window
+    - champagne_curtains
+    - facing_couches
+    - art_books
+    - mantel_display
+    - glassware_cabinet
     - television
     - dining_table
   sensory_tags: [art_books, tulips, seating, social_display]

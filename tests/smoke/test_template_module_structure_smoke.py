@@ -71,11 +71,30 @@ def test_template_keeps_objects_out_of_locations() -> None:
 
     object_index = _read_yaml(MODULE_ROOT / "objects" / "index.yaml")["objects"]
     assert object_index["placement_policy"]["objects_are_not_locations"] is True
+    assert object_index["placement_policy"]["objects_must_declare_portable"] is True
     assert object_index["placement_policy"]["apartment_objects_grouped_by_location_subfolder"] is True
     assert object_index["location_object_folders"]["main_room"] == "objects/appartment/main_room/"
     assert "objects/appartment/main_room/focal_table.yaml" in object_index["object_files"]
     assert "objects/building/threshold_door.yaml" in object_index["object_files"]
     assert not list((MODULE_ROOT / "objects" / "appartment").glob("*.yaml"))
+    for rel_path in object_index["object_files"]:
+        object_doc = _read_yaml(MODULE_ROOT / rel_path)["object"]
+        assert isinstance(object_doc.get("portable"), bool), f"{rel_path} must declare boolean portable"
+
+
+def test_template_keeps_old_orchestration_files_out() -> None:
+    obsolete = [
+        "scenes.yaml",
+        "transitions.yaml",
+        "triggers.yaml",
+        "endings.yaml",
+        "escalation_axes.yaml",
+        "direction/scene_guidance.yaml",
+        "locale",
+        "runtime/action_outcome_map.yaml",
+    ]
+    for rel in obsolete:
+        assert not (MODULE_ROOT / rel).exists(), f"Template should not include obsolete file: {rel}"
 
 
 def test_template_canonical_path_is_reference_only() -> None:

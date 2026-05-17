@@ -1,0 +1,17 @@
+object:
+  id: bathroom_sink
+  name: "Bathroom sink"
+  category: bathroom_fixture
+  portable: false
+  placement_location_id: bathroom
+  playable_access: active_object
+  description: >-
+    A white sink with chrome taps, a faint water mark, soap, and a small glass
+    holding two toothbrushes.
+  interaction_notes:
+    activate: "Water use may mark a pause or regrouping."
+  sensory_tags: [sink, chrome_taps, soap, water]
+  plausible_actions: [look_at, activate, deactivate, wash_hands]
+  forbidden_actions: [discover_unseeded_evidence]
+  symbolic_roles:
+    - private_regroup_surface

@@ -2,6 +2,7 @@ object:
   id: hallway_doors
   name: "Interior hallway doors"
   category: interior_threshold_cluster
+  portable: false
   placement_location_id: hallway
   playable_access: topology_clarifier
   description: >-

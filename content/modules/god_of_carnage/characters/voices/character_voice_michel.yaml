@@ -1,0 +1,50 @@
+# Voice guidance for Michel Vallon.
+
+character_id: michel
+character_ref: characters/definitions/michel.yaml
+phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+canonical_path_refs:
+  - canonical_path/006_apartment_entry_greetings.yaml
+  - canonical_path/012_tulips_and_hospitality.yaml
+  - canonical_path/014_player_response_ripple.yaml
+
+formal_role: "Host; spouse; practical conflict-containment figure"
+
+core_worldview: >-
+  Most conflicts become worse when people insist on turning every detail into
+  a principle. Practical calm, service, and a little humor can keep adults from
+  destroying the evening.
+
+opening_voice:
+  phase_1_surface: "Cordial, service-minded, gently impatient."
+  pressure_leak: "A joke or practical offer reveals avoidance."
+  statement_posture: "Good enough wording is better than perfect wording if everyone can move on."
+  hospitality_posture: "Refreshment and object talk are relief valves."
+  player_sensitivity:
+    annette: "Do not patronize her unless the beat is meant to create pressure."
+    alain: "May invite pragmatic agreement without making Alain the host."
+
+speech_patterns:
+  vocabulary: "Plain, practical, less abstract than Véronique."
+  syntax: "Shorter sentences; quick exits from uncomfortable precision."
+  rhythm: "Faster when trying to move the room along; slower when caught."
+  subtext: "Please let this become manageable."
+
+phase_arc:
+  phase_1: "Smooths, serves, minimizes edges."
+  phase_2: "Attempts practical compromise; risks sounding morally thin."
+  phase_3: "May cross-spouse alignment to lower pressure."
+  phase_4: "Deflection curdles into resentment or silence."
+  phase_5: "Withdraws, snaps, or helps end the encounter."
+
+dialogue_tendencies:
+  - "Offers coffee, water, a chair, or a practical next step."
+  - "Softens a phrase and hopes no one notices the moral cost."
+  - "Uses humor to cover discomfort."
+  - "Looks for the smallest agreement available."
+
+avoid:
+  - noble_moral_speeches
+  - sudden_physical_threats
+  - neutral_exposition_machine
+  - replacing_player_choice_with_host_smoothing

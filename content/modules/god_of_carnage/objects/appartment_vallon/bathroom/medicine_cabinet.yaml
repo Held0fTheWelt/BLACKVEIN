@@ -1,0 +1,18 @@
+object:
+  id: medicine_cabinet
+  name: "Medicine cabinet"
+  category: private_storage_surface
+  portable: false
+  placement_location_id: bathroom
+  playable_access: privacy_gated_object
+  description: >-
+    A mirrored medicine cabinet with aspirin, cotton pads, cough syrup, a spare
+    toothbrush, and an old prescription box pushed to the back.
+  interaction_notes:
+    open: "Private medical storage requires a scene gate."
+  sensory_tags: [medicine_cabinet, aspirin, cotton_pads, mirrored_door]
+  plausible_actions: [look_at, open]
+  forbidden_actions: [read_private_medical_details_without_scene_gate]
+  symbolic_roles:
+    - privacy_boundary
+    - private_regroup_surface

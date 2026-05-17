@@ -1,0 +1,19 @@
+object:
+  id: glassware_cabinet
+  name: "Cabinet with glasses"
+  category: service_storage_surface
+  portable: false
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    A cabinet to the right with glasses arranged behind a door, catching small
+    lines of light whenever someone moves near the mantel.
+  interaction_notes:
+    open: "Service action only; may shift hospitality pressure."
+    take: "Permits a glass when hospitality context supports it."
+  sensory_tags: [glassware, cabinet, service_display]
+  plausible_actions: [look_at, open, take_minor_service_item]
+  forbidden_actions: [weaponize_without_authored_escalation]
+  symbolic_roles:
+    - hospitality_surface
+    - fragile_hospitality

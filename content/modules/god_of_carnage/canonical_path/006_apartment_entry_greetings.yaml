@@ -16,10 +16,10 @@ canonical_path_step:
     - object_id: apartment_door
       source: objects/building/apartment_door.yaml
   character_refs:
-    - characters/veronique.yaml
-    - characters/michel.yaml
-    - characters/annette.yaml
-    - characters/alain.yaml
+    - characters/definitions/veronique.yaml
+    - characters/definitions/michel.yaml
+    - characters/definitions/annette.yaml
+    - characters/definitions/alain.yaml
 
   theme_threads:
     - hospitality_as_social_control

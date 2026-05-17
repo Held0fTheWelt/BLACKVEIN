@@ -1,0 +1,17 @@
+object:
+  id: living_room_cabinets
+  name: "Living-room cabinets"
+  category: storage_furniture
+  portable: false
+  placement_location_id: living_room
+  playable_access: perception_only
+  description: >-
+    Low cabinets with closed doors, polished handles, and a few framed prints
+    leaning above them as if the final arrangement was never quite finished.
+  interaction_notes:
+    look_at: "Adds domestic density without becoming a search surface."
+  sensory_tags: [cabinets, polished_handles, framed_prints]
+  plausible_actions: [look_at]
+  forbidden_actions: [open_storage_without_scene_gate, discover_unseeded_evidence]
+  symbolic_roles:
+    - domestic_order

@@ -7,9 +7,9 @@ These tests verify the 10 required W1 coverage items:
 3. Character ids are unique and complete
 4. Relationship references point to real characters
 5. Scene ids are unique and structurally valid
-6. Transitions point to valid scenes or endings
-7. Triggers are from the supported trigger set
-8. Endings are structurally valid
+6. Standalone transitions are absent; phase policy and canonical path direct flow
+7. Pressure markers live in phase_beat_policy, not triggers.yaml
+8. Closure pressure lives in phase_beat_policy, not endings.yaml
 9. At least one full legal story path exists
 10. Malformed fixtures fail validation cleanly
 """
@@ -70,11 +70,11 @@ class TestW1ContentFilesLoadable:
         required_paths = [
             root / "module.yaml",
             root / "characters" / "index.yaml",
-            root / "characters" / "veronique.yaml",
-            root / "characters" / "michel.yaml",
-            root / "characters" / "annette.yaml",
-            root / "characters" / "alain.yaml",
-            root / "characters" / "relationships.yaml",
+            root / "characters" / "definitions" / "veronique.yaml",
+            root / "characters" / "definitions" / "michel.yaml",
+            root / "characters" / "definitions" / "annette.yaml",
+            root / "characters" / "definitions" / "alain.yaml",
+            root / "characters" / "details" / "relationships.yaml",
             root / "canonical_path" / "index.yaml",
             root / "canonical_path" / "001_parc_montsouris_edge.yaml",
             root / "canonical_path" / "002_argument_stick_blow.yaml",
@@ -99,18 +99,13 @@ class TestW1ContentFilesLoadable:
             root / "objects" / "appartment_vallon" / "living_room" / "window.yaml",
             root / "objects" / "appartment_vallon" / "living_room" / "television.yaml",
             root / "objects" / "building" / "elevator.yaml",
-            root / "scenes.yaml",
             root / "scene_graph.yaml",
-            root / "transitions.yaml",
-            root / "triggers.yaml",
-            root / "endings.yaml",
-            root / "escalation_axes.yaml",
             root / "locations" / "index.yaml",
             root / "locations" / "opening" / "park_edge.yaml",
             root / "locations" / "building" / "building_hallway.yaml",
             root / "locations" / "building" / "building_stairwell.yaml",
             root / "locations" / "appartment_vallon" / "apartment_layout.yaml",
-            root / "characters" / "actor_pressure_profiles.yaml",
+            root / "characters" / "details" / "actor_pressure_profiles.yaml",
             root / "phase_beat_policy.yaml",
             root / "knowledge" / "premise_and_backstory.yaml",
             root / "knowledge" / "modularity_policy.yaml",
@@ -264,11 +259,11 @@ class TestW1RelationshipValidation:
             assert axis.relationships, f"Axis {axis_id} has no relationships"
 
 
-class TestW1SceneValidation:
-    """Test requirement #5: Scene ids are unique and structurally valid."""
+class TestW1PhasePolicyValidation:
+    """Test requirement #5: Phase ids are derived from phase_beat_policy."""
 
     def test_scenes_exist(self):
-        """Module has scenes defined."""
+        """Module has phase policy projections defined."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -277,7 +272,7 @@ class TestW1SceneValidation:
         assert len(module.scene_phases) > 0
 
     def test_scene_ids_unique(self):
-        """All scene ids are unique."""
+        """All derived phase ids are unique."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -287,7 +282,7 @@ class TestW1SceneValidation:
         assert len(scene_ids) == len(set(scene_ids))
 
     def test_required_scenes_present(self):
-        """All 5 required phases present."""
+        """All 5 required phase policy entries are present."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -299,7 +294,7 @@ class TestW1SceneValidation:
         assert required_phases == actual_phases
 
     def test_scene_sequence_linear(self):
-        """Scene sequence is linear (1,2,3,4,5)."""
+        """Phase policy sequence is linear (1,2,3,4,5)."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -312,7 +307,7 @@ class TestW1SceneValidation:
             assert phase.sequence == i
 
     def test_scenes_have_required_fields(self):
-        """All scenes have required fields."""
+        """All derived phase policy projections have required fields."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -334,32 +329,21 @@ class TestW1SceneValidation:
 
 
 class TestW1TransitionValidation:
-    """Test requirement #6: Transitions point to valid scenes or endings."""
+    """Test requirement #6: Old standalone transition files are gone."""
 
-    def test_transitions_exist(self):
-        """Module has transitions defined."""
+    def test_transitions_are_not_a_parallel_content_surface(self):
+        """Phase progression now comes from phase_beat_policy and canonical_path."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
             pytest.skip("God of Carnage module not found")
 
-        assert len(module.phase_transitions) > 0
-
-    def test_transitions_reference_valid_phases(self):
-        """All transitions reference valid phases."""
-        try:
-            module = load_module("god_of_carnage")
-        except ModuleNotFoundError:
-            pytest.skip("God of Carnage module not found")
-
-        phase_ids = set(module.scene_phases.keys())
-
-        for trans_id, transition in module.phase_transitions.items():
-            assert transition.from_phase in phase_ids, f"Transition {trans_id} references invalid phase {transition.from_phase}"
-            assert transition.to_phase in phase_ids, f"Transition {trans_id} references invalid phase {transition.to_phase}"
+        assert module.phase_transitions == {}
+        assert module.phase_beat_policy.get("phases")
+        assert module.canonical_path.get("step_order")
 
     def test_transitions_reference_valid_triggers(self):
-        """All transition conditions reference valid triggers."""
+        """The remaining phase projection has no undefined formal trigger refs."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
@@ -372,25 +356,25 @@ class TestW1TransitionValidation:
 
 
 class TestW1TriggerValidation:
-    """Test requirement #7: Triggers are from the supported trigger set."""
+    """Test requirement #7: Phase pressure markers replace trigger definition files."""
 
-    def test_triggers_exist(self):
-        """Module has triggers defined."""
+    def test_trigger_definitions_are_not_a_parallel_content_surface(self):
+        """The old trigger definition database is intentionally absent."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
             pytest.skip("God of Carnage module not found")
 
-        assert len(module.trigger_definitions) > 0
+        assert module.trigger_definitions == {}
 
-    def test_required_trigger_types_present(self):
-        """All required trigger types are present."""
+    def test_phase_pressure_markers_are_present(self):
+        """Pressure markers are authored inside phase_beat_policy."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
             pytest.skip("God of Carnage module not found")
 
-        required_triggers = {
+        expected_markers = {
             "contradiction",
             "exposure",
             "relativization",
@@ -401,72 +385,29 @@ class TestW1TriggerValidation:
             "retreat_signals",
         }
 
-        actual_triggers = set(module.trigger_definitions.keys())
-        assert required_triggers.issubset(actual_triggers)
-
-    def test_triggers_have_required_fields(self):
-        """All triggers have required fields."""
-        try:
-            module = load_module("god_of_carnage")
-        except ModuleNotFoundError:
-            pytest.skip("God of Carnage module not found")
-
-        required_fields = {
-            "id",
-            "name",
-            "description",
-            "recognition_markers",
-            "escalation_impact",
-            "active_in_phases",
+        phases = module.phase_beat_policy.get("phases") or {}
+        actual_markers = {
+            marker
+            for phase in phases.values()
+            for marker in (phase.get("pressure_markers") or [])
         }
-
-        for trigger_id, trigger in module.trigger_definitions.items():
-            for field in required_fields:
-                assert hasattr(trigger, field), f"Trigger {trigger_id} missing field {field}"
+        assert expected_markers.issubset(actual_markers)
 
 
 class TestW1EndingValidation:
-    """Test requirement #8: Endings are structurally valid."""
+    """Test requirement #8: Closure pressure lives in phase policy, not endings.yaml."""
 
-    def test_endings_exist(self):
-        """Module has endings defined."""
+    def test_endings_are_not_a_parallel_content_surface(self):
+        """The old ending condition database is intentionally absent."""
         try:
             module = load_module("god_of_carnage")
         except ModuleNotFoundError:
             pytest.skip("God of Carnage module not found")
 
-        assert len(module.ending_conditions) > 0
-
-    def test_required_ending_types_present(self):
-        """All required ending types are present."""
-        try:
-            module = load_module("god_of_carnage")
-        except ModuleNotFoundError:
-            pytest.skip("God of Carnage module not found")
-
-        required_endings = {
-            "emotional_breakdown",
-            "forced_exit",
-            "stalemate_resolution",
-            "maximum_escalation_breach",
-            "maximum_turn_limit",
-        }
-
-        actual_endings = set(module.ending_conditions.keys())
-        assert required_endings.issubset(actual_endings)
-
-    def test_endings_have_required_fields(self):
-        """All endings have required fields."""
-        try:
-            module = load_module("god_of_carnage")
-        except ModuleNotFoundError:
-            pytest.skip("God of Carnage module not found")
-
-        required_fields = {"id", "name", "description", "trigger_conditions", "outcome"}
-
-        for ending_id, ending in module.ending_conditions.items():
-            for field in required_fields:
-                assert hasattr(ending, field), f"Ending {ending_id} missing field {field}"
+        assert module.ending_conditions == {}
+        phase_5 = (module.phase_beat_policy.get("phases") or {}).get("phase_5") or {}
+        assert "exit_condition" in phase_5
+        assert phase_5["exit_condition"]
 
 
 class TestW1LegalStoryPath:
@@ -487,14 +428,9 @@ class TestW1LegalStoryPath:
         assert "phase_4" in phases
         assert "phase_5" in phases
 
-        # Verify transitions connect phases linearly
-        transitions = {
-            t.from_phase: t.to_phase for t in module.phase_transitions.values()
-        }
-        assert transitions.get("phase_1") == "phase_2"
-        assert transitions.get("phase_2") == "phase_3"
-        assert transitions.get("phase_3") == "phase_4"
-        assert transitions.get("phase_4") == "phase_5"
+        # Verify phase policy sequence connects the playable arc linearly.
+        ordered = [phase.id for phase in sorted(phases.values(), key=lambda phase: phase.sequence)]
+        assert ordered == ["phase_1", "phase_2", "phase_3", "phase_4", "phase_5"]
 
     def test_story_path_has_valid_endings(self):
         """Story path can reach valid endings from phase_5."""
@@ -503,12 +439,12 @@ class TestW1LegalStoryPath:
         except ModuleNotFoundError:
             pytest.skip("God of Carnage module not found")
 
-        # Phase_5 triggers must reference valid endings
+        # Phase_5 owns closure pressure without requiring endings.yaml.
         phase_5 = module.scene_phases.get("phase_5")
         assert phase_5 is not None
 
-        # At least one ending must exist
-        assert len(module.ending_conditions) > 0
+        phase_5_policy = (module.phase_beat_policy.get("phases") or {}).get("phase_5") or {}
+        assert phase_5_policy.get("exit_condition")
 
     def test_full_path_validation(self):
         """Full module validates cleanly (entire path from load to end)."""

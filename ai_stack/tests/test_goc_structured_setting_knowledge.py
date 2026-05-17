@@ -59,7 +59,18 @@ def test_scene_affordances_aligns_layout_room_ids() -> None:
     layout = load_goc_apartment_layout_yaml()
     loc_ids = {str(x.get("id")) for x in (inner.get("locations") or []) if isinstance(x, dict)}
     layout_room_ids = {r.get("id") for r in (layout.get("rooms") or []) if isinstance(r, dict)}
-    assert {"building_hallway", "building_stairwell", "bathroom", "kitchen", "hallway", "pantry", "study"}.issubset(loc_ids)
+    assert {
+        "building_hallway",
+        "building_stairwell",
+        "bathroom",
+        "kitchen",
+        "hallway",
+        "dining_room",
+        "bedroom",
+        "hallway_bathroom_locked",
+        "pantry",
+        "study",
+    }.issubset(loc_ids)
     assert layout_room_ids.issuperset(
         {
             "building_hallway",
@@ -67,6 +78,9 @@ def test_scene_affordances_aligns_layout_room_ids() -> None:
             "bathroom",
             "kitchen",
             "hallway",
+            "dining_room",
+            "bedroom",
+            "hallway_bathroom_locked",
             "pantry",
             "study",
             "living_room",
@@ -90,12 +104,36 @@ def test_apartment_layout_models_requested_room_topology() -> None:
     assert "building_stairwell" in (building_hallway.get("adjacent_room_ids") or [])
     assert building_stairwell.get("access_pattern") == "prevented_currently"
     assert building_stairwell.get("prevented_actions")
-    assert {"kitchen", "bathroom", "pantry", "study", "bedroom_one_locked", "bedroom_two_locked"}.issubset(
-        set(hallway.get("adjacent_room_ids") or [])
+    hallway_adjacent = set(hallway.get("adjacent_room_ids") or [])
+    assert {"kitchen", "dining_room", "bedroom", "pantry", "study", "bedroom_one_locked", "bedroom_two_locked"}.issubset(
+        hallway_adjacent
     )
+    assert "bathroom" not in hallway_adjacent
+    assert "bathroom" in set(rooms["bedroom"].get("adjacent_room_ids") or [])
+    assert "bedroom" in set(rooms["bathroom"].get("adjacent_room_ids") or [])
+    assert "hallway_bathroom_locked" in hallway_adjacent
+    assert rooms["hallway_bathroom_locked"].get("access_pattern") == "locked_non_playable"
     assert {"living_room", "hallway"}.issubset(set(kitchen.get("adjacent_room_ids") or []))
     assert rooms["bedroom_one_locked"].get("access_pattern") == "locked_non_playable"
     assert rooms["bedroom_two_locked"].get("access_pattern") == "locked_non_playable"
+
+
+def test_apartment_objects_cover_requested_new_room_surfaces() -> None:
+    inner = load_goc_scene_affordances_yaml_inner()
+    objects = {str(x.get("id")): x for x in (inner.get("objects") or []) if isinstance(x, dict)}
+    assert {
+        "study_pinboard",
+        "africa_map_darfur_pins",
+        "glassware_cabinet",
+        "dining_room_table",
+        "bedroom_wardrobe",
+        "locked_bathroom_door",
+    }.issubset(objects)
+    assert objects["study_pinboard"].get("portable") is False
+    assert objects["dining_room_table"].get("portable") is False
+    assert objects["locked_bathroom_door"].get("portable") is False
+    assert objects["study_pinboard"].get("description_source_ref")
+    assert objects["africa_map_darfur_pins"].get("description_source_ref")
 
 
 def _read_yaml(path):
@@ -244,7 +282,6 @@ def test_goc_content_surfaces_reference_locations_instead_of_rewriting_them() ->
     non_location_files = [
         module_dir / "direction" / "opening.md",
         module_dir / "direction" / "opening_sequence.yaml",
-        module_dir / "direction" / "scene_guidance.yaml",
         module_dir / "knowledge" / "opening_scene_sequence.yaml",
         module_dir / "knowledge" / "premise_and_backstory.yaml",
         module_dir / "knowledge" / "narrator_sensory_palette.yaml",
@@ -297,11 +334,14 @@ def test_canonical_path_scene_index_and_modular_character_documents_are_primary_
     assert "bicycle_rack" in (objects.get("object_documents") or {})
     assert "coffee_table" in (objects.get("object_documents") or {})
     assert "window" in (objects.get("object_documents") or {})
+    assert all(isinstance(row.get("portable"), bool) for row in (objects.get("object_documents") or {}).values())
+    assert (objects.get("object_documents") or {}).get("glasses", {}).get("portable") is True
+    assert (objects.get("object_documents") or {}).get("coffee_table", {}).get("portable") is False
     assert graph.get("default_start_node_id") == "prologue_park_edge"
     assert graph.get("first_playable_node_id") == "first_playable_courtesy_gap"
     assert all(isinstance(row, dict) and row.get("location_id") for row in nodes)
     assert set(docs) == {"veronique", "michel", "annette", "alain"}
-    assert all((doc.get("scene_usage") or {}) for doc in docs.values())
+    assert all((doc.get("canonical_path_usage") or {}) for doc in docs.values())
     assert {doc.get("runtime_actor_id") for doc in docs.values()} == {
         "veronique_vallon",
         "michel_longstreet",
@@ -319,6 +359,9 @@ def test_canonical_path_scene_index_and_modular_character_documents_are_primary_
             "hallway",
             "bathroom",
             "kitchen",
+            "dining_room",
+            "bedroom",
+            "hallway_bathroom_locked",
             "pantry",
             "study",
             "bedroom_one_locked",
@@ -327,7 +370,7 @@ def test_canonical_path_scene_index_and_modular_character_documents_are_primary_
     )
     assert set(access.get("scopes") or []).issuperset({"action", "location", "object", "scene_node"})
     blocked_targets = {row.get("target_id") for row in (access.get("blocked_entities") or []) if isinstance(row, dict)}
-    assert {"bedroom_one_locked", "bedroom_two_locked"}.issubset(blocked_targets)
+    assert {"bedroom_one_locked", "bedroom_two_locked", "hallway_bathroom_locked"}.issubset(blocked_targets)
 
 
 def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state() -> None:
@@ -354,6 +397,7 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
         "phase_beat_policy",
         "narrator_sensory_palette",
         "scene_affordances",
+        "action_outcome_map",
     ):
         assert isinstance(update.get(key), dict) and update[key], f"state missing {key}"
 
@@ -376,6 +420,7 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
         "phase_beat_policy_loaded",
         "narrator_sensory_palette_loaded",
         "scene_affordances_loaded",
+        "action_outcome_map_loaded",
     ):
         assert loaded.get(flag) is True, f"flag {flag} not True"
 
@@ -384,24 +429,31 @@ def test_goc_resolve_canonical_content_projects_structured_knowledge_onto_state(
     assert contract.get("opening_scene_sequence_id") == "goc_opening_sequence_v1"
 
 
-def test_narrator_fixture_surface_has_german_runtime_cues_for_bathroom_kitchen_window() -> None:
+def test_semantic_interaction_surface_is_derived_from_content_authorities() -> None:
     block = load_goc_scene_affordances_block()
     sa = block.get("scene_affordances") or {}
     locs = {str(x.get("id")): x for x in (sa.get("locations") or []) if isinstance(x, dict)}
     objs = {str(x.get("id")): x for x in (sa.get("objects") or []) if isinstance(x, dict)}
     kitchen = locs.get("kitchen") or {}
     bathroom = locs.get("bathroom") or {}
-    assert "de" in ((kitchen.get("entry_sensory_detail") or {}) or {})
-    assert "en" in ((kitchen.get("entry_sensory_detail") or {}) or {})
-    de_bath = ((bathroom.get("entry_sensory_detail") or {}) or {}).get("de", "")
-    en_bath = ((bathroom.get("entry_sensory_detail") or {}) or {}).get("en", "")
-    assert de_bath and en_bath and de_bath != en_bath
+    assert kitchen.get("description")
+    assert bathroom.get("description")
+    assert kitchen.get("description_source_ref")
+    assert bathroom.get("description_source_ref")
     win = objs.get("window") or {}
-    aliases = win.get("aliases") if isinstance(win.get("aliases"), list) else []
-    assert aliases
-    assert kitchen.get("entry_sensory_source_ref")
-    assert bathroom.get("entry_sensory_source_ref")
-    assert win.get("perception_source_ref")
-    detail = win.get("perception_detail") or {}
-    assert detail.get("de") and detail.get("en")
-    assert detail["de"] != detail["en"]
+    assert win.get("description")
+    assert win.get("description_source_ref")
+    contract = sa.get("semantic_resolution_contract") or {}
+    assert contract.get("policy", {}).get("no_hardcoded_language_maps") is True
+
+
+def test_action_outcome_map_models_required_relationship_shapes() -> None:
+    action_map = load_goc_action_outcome_map_yaml()
+    relationships = {str(row.get("cardinality")) for row in action_map.get("mappings") or [] if isinstance(row, dict)}
+    assert {"one_to_one", "one_to_many", "many_to_one", "many_to_many"}.issubset(relationships)
+    assert (action_map.get("portability_rules") or {}).get("take_requires_portable") is True
+    outcomes = action_map.get("outcome_definitions") or {}
+    assert "portable_item_handled" in outcomes
+    assert "non_portable_object_resists_transport" in outcomes
+    override_ids = {str(row.get("target_id")) for row in action_map.get("target_overrides") or [] if isinstance(row, dict)}
+    assert {"locked_bathroom_door", "study_pinboard", "dining_room_table", "bedroom_wardrobe"}.issubset(override_ids)

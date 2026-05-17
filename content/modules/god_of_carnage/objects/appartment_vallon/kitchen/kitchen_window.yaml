@@ -1,0 +1,17 @@
+object:
+  id: kitchen_window
+  name: "Kitchen window"
+  category: service_room_perception_anchor
+  portable: false
+  placement_location_id: kitchen
+  playable_access: perception_only
+  description: >-
+    A window straight ahead in the kitchen, pale with evening light and the
+    faint reflection of upper cabinets on the glass.
+  interaction_notes:
+    look_at: "Provides kitchen atmosphere, not a new exterior route."
+  sensory_tags: [kitchen_window, reflected_cabinets, evening_light]
+  plausible_actions: [look_at]
+  forbidden_actions: [climb_out, introduce_new_neighbor_scene]
+  symbolic_roles:
+    - exposure_surface

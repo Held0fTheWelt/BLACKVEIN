@@ -47,7 +47,11 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["actor_roster"]
     assert policy["playable_roles"]
     assert policy["location_model"]["locations"]
+    assert policy["object_model"]["objects"]["glasses"]["portable"] is True
+    assert policy["object_model"]["objects"]["coffee_table"]["portable"] is False
     assert policy["phase_policy"]["phases"]
+    assert policy["language_policy"]["adapter"]["engine_maps_allowed"] is False
+    assert policy["language_policy"]["interaction_surface"]["semantic_resolution_contract"]
     assert policy["narrative_aspect_policy"]["aspects"]
     assert policy["information_disclosure_policy"]["enabled"] is True
     assert policy["information_disclosure_policy"]["units"]
@@ -153,6 +157,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "character_documents" in policy["content_sources"]
     assert "actor_pressure_profiles" in policy["content_sources"]
+    assert "universal_language_adapter" in policy["content_sources"]
     assert "narrative_aspect_policy" in policy["content_sources"]
     assert "information_disclosure_policy" in policy["content_sources"]
     assert "memory_policy" in policy["content_sources"]

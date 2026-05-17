@@ -1,0 +1,124 @@
+# Dramatic pressure vectors — English-authored; character ids align with characters/index.yaml keys.
+
+actor_pressure_profiles:
+  authoring_language: en
+  authority: per_character_pressure_profiles
+  phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+  canonical_path_ref: canonical_path/index.yaml#canonical_path.paths.opening
+  authoring_note: >-
+    These profiles define character pressure and response tendencies. They do
+    not define locations, objects, path order, or a separate trigger database.
+  profiles:
+    veronique:
+      display_name: "Véronique Vallon"
+      character_ref: characters/definitions/veronique.yaml
+      core_wish: "Make the adult meeting prove that language, responsibility, and hospitality can contain violence."
+      core_fear: "Being judged as pretentious, negligent, or morally inferior in her own home."
+      opening_handles:
+        - statement_wording
+        - community_frame
+        - hospitality_objects
+        - host_authority
+      pressure_markers:
+        - parenting_competence_questioned
+        - home_territory_disrespected
+        - public_spousal_undermining
+        - compromise_language_feels_like_moral_erasure
+      reaction_policy:
+        phase_1: measured_civility_with_counterpositioning
+        phase_2: moral_high_ground_and_hospitality_leverage
+        phase_3: shocked_response_to_alignment_shift
+        phase_4: brittle_control_or_accusatory_precision
+        phase_5: exhausted_closure_without_clean_resolution
+      canonical_path_pressure:
+        opening_008_statement_on_table: "Document becomes her instrument of civilized control."
+        opening_011_courtesy_community_pressure: "Community language becomes generous and coercive at once."
+        opening_012_tulips_and_hospitality: "Hospitality delays conflict but also keeps guests in her frame."
+
+    michel:
+      display_name: "Michel Vallon"
+      character_ref: characters/definitions/michel.yaml
+      core_wish: "Contain damage; keep the visit practical, finite, and socially survivable."
+      core_fear: "Humiliation through association — his wife's fight becomes his indictment."
+      opening_handles:
+        - coffee_or_refreshment
+        - practical_minimization
+        - spouse_alignment
+        - room_tempo
+      pressure_markers:
+        - being_sided_against_by_spouse
+        - pragmatic_solutions_reframed_as_cowardice
+        - loss_of_peacemaker_role
+        - guest_silence_forces_him_to_fill_gap
+      reaction_policy:
+        phase_1: deflect_minimize_and_keep_service_moving
+        phase_2: tactical_retreat_or_jokes
+        phase_3: possible_alignment_break_to_reduce_pressure
+        phase_4: explosive_release_or_sullen_withdrawal
+        phase_5: withdrawal_departure_support_or_tired_concession
+      canonical_path_pressure:
+        opening_012_tulips_and_hospitality: "Service and object talk buy time."
+        opening_014_player_response_ripple: "Player response determines whether he smooths, jokes, or retreats."
+
+    annette:
+      display_name: "Annette Reille"
+      character_ref: characters/definitions/annette.yaml
+      core_wish: "Keep dignity as guest while securing recognition of her child's harm."
+      core_fear: "Being framed as hysterical, dishonest, or a bad mother."
+      opening_handles:
+        - injury_detail
+        - statement_wording
+        - silence
+        - spouse_attention
+        - possible_retreat
+      pressure_markers:
+        - victim_blaming
+        - tone_policing
+        - medical_or_bodily_mockery
+        - host_civility_frames_her_response_as_excess
+        - alain_treats_room_as_procedural_problem
+      reaction_policy:
+        phase_1: controlled_civility_or_meaningful_silence
+        phase_2: sharpened_challenge_if_player_signals_pressure
+        phase_3: alliance_shift_around_maternal_dignity
+        phase_4: loss_of_composure_with_agency_preserved
+        phase_5: exit_pressure_collapse_or_counterattack
+      canonical_path_pressure:
+        opening_010_injury_detail_dental_consequence: "Medical fact gives her pressure without requiring speech."
+        opening_013_first_playable_courtesy_gap: "First player action may define her public stance."
+        opening_015_phone_exit_pressure: "Alain's divided attention can expose her isolation."
+      player_agency_constraints:
+        - no_forced_private_thought
+        - no_forced_apology
+        - no_npc_speaks_for_player_character
+
+    alain:
+      display_name: "Alain Reille"
+      character_ref: characters/definitions/alain.yaml
+      core_wish: "Finish the meeting quickly while keeping legal, social, and marital costs low."
+      core_fear: "Trapped in someone else's moral theatre with escalating ticket price."
+      opening_handles:
+        - wording_compromise
+        - phone_pressure
+        - hallway_or_elevator_pressure
+        - procedural_distance
+      pressure_markers:
+        - forced_apology
+        - class_ridicule
+        - spouse_public_distress_without_exit
+        - no_mobile_signal_when_call_expected
+        - statement_language_creates_liability
+      reaction_policy:
+        phase_1: dry_irony_distance_and_lexical_compromise
+        phase_2: procedural_objection_or_mediation
+        phase_3: detachment_becomes_spousal_pressure
+        phase_4: contempt_failed_retreat_or_abandonment_of_restraint
+        phase_5: exit_attempt_or_exhausted_shutdown
+      canonical_path_pressure:
+        opening_004_dark_building_hallway: "No signal and non-arriving elevator seed divided attention."
+        opening_009_wording_dispute_armed_carrying: "Legal distance becomes visible through one word."
+        opening_015_phone_exit_pressure: "Exit is pressured and prevented, not simply forbidden."
+      player_agency_constraints:
+        - no_forced_call_answer
+        - no_forced_exit
+        - no_forced_spousal_betrayal

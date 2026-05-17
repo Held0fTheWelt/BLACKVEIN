@@ -1,0 +1,326 @@
+canonical_path_step:
+  sequence: 13
+  id: opening_v2_013_apology_pressure_eleven
+  path_id: goc_opening_canonical_path_v2
+  name: "013 - Apology pressure: 'Could Ferdinand apologize?', 'He's eleven'"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 3
+    continues_scene_from_step: opening_v2_012_jobs_and_hamster
+    summary: >-
+      Veronique asks directly whether Ferdinand can apologize to Bruno. Alain
+      deflects with 'it would be good if they talked'. Annette demands a real
+      apology and turns to Alain. Alain pushes back: 'He's eleven, he didn't
+      realize how serious it was.' Veronique counters: 'Eleven is not a baby'.
+      Michel: 'But not an adult either.' Michel offers coffee to dissipate
+      tension.
+
+  duration_target_seconds: 75
+  duration_max_seconds: 100
+
+  theme_coverage_phase_refs:
+    - actor: veronique
+      phase_id: parental_principle_pressure
+      realization_step: true
+    - actor: michel
+      phase_id: defending_pragmatic_realism
+      realization_step: true
+    - actor: alain
+      phase_id: pedantic_corrections_inside_room
+      realization_step: true
+      climax: true
+    - actor: annette
+      phase_id: maternal_defense_first_signal
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions]
+  object_refs:
+    - object_id: coffee_machine
+      source: objects/appartment_vallon/kitchen/coffee_machine.yaml
+    - object_id: cobbler_dish
+      source: objects/appartment_vallon/kitchen/cobbler.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  mandatory_beats:
+
+    - id: veronique_direct_apology_request
+      order: 1
+      duration_target_seconds: 10
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: ask_directly_if_ferdinand_can_apologize
+        required_facts:
+          - "directness_marker_token: I am asking you straight out"
+          - "apology_question_token: could Ferdinand apologize to Bruno"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_apologize
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two sentences, principled directness"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: deflect_with_it_would_be_good_if_they_talked
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: alain_it_would_be_good_if_they_talked
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: deflect_apology_request_with_neutral_talking_suggestion
+        required_facts: ["deflection_token: it would be good if they talked"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_apologize
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five to seven words, neutral and evasive"
+      player_status: observer_window_open
+
+    - id: annette_he_has_to_actually_say_sorry
+      order: 3
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: insist_to_alain_that_ferdinand_must_apologize
+        required_facts:
+          - "must_apologize_token: he has to apologize"
+          - "address_alain_token: Alain"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_apologize
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence addressing spouse, firm"
+        forbidden_drift: [emotional_overwrought]
+      forces_response_chain:
+        target_actor: alain
+        target_intent: half_yield_with_uncertainty
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: alain_yeah_probably
+      order: 4
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: half_yield_to_wife_with_visible_doubt
+        required_facts: ["half_yield_token: yes, probably"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_apologize
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words, half muttered"
+      player_status: observer_window_open
+
+    - id: veronique_is_he_sorry
+      order: 5
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: press_with_is_he_actually_sorry
+        required_facts: ["sorry_check_token: is he even sorry"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_eleven
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four words, sharp"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: full_eleven_defense
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: alain_he_didnt_realize_he_is_eleven
+      order: 6
+      duration_target_seconds: 10
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: defend_with_he_didnt_realize_how_serious_he_is_eleven
+        required_facts:
+          - "knows_what_he_did_token: he knows what he did"
+          - "didnt_realize_seriousness_token: not how serious it was"
+          - "he_is_eleven_token: he is eleven years old"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_eleven
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two or three sentences, defensive and lawyerly"
+      forces_response_chain:
+        target_actor: veronique
+        target_intent: counter_eleven_is_not_a_baby
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: veronique_eleven_is_not_a_baby
+      order: 7
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: counter_with_eleven_is_not_a_baby
+        required_facts: ["eleven_no_baby_token: eleven is not a baby"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_eleven
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words, principled"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: pivot_to_eleven_not_adult_and_offer_coffee
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: michel_eleven_not_adult_offer_coffee
+      order: 8
+      duration_target_seconds: 14
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: pivot_through_eleven_not_adult_and_offer_coffee_and_cobbler
+        required_facts:
+          - "eleven_not_adult_token: but not an adult either"
+          - "coffee_offer_token: would you like coffee or tea"
+          - "cobbler_brag_token: Veronique's cobbler is wonderful"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_offer
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "three short sentences: differentiation + offer + praise"
+        forbidden_drift: [sound_evasive_obvious]
+      forces_response_chain:
+        target_actor: alain
+        target_intent: accept_espresso_with_watch_check
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: alain_espresso_with_watch_check
+      order: 9
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: accept_espresso_with_visible_watch_check
+        required_facts:
+          - "espresso_token: an espresso please"
+          - "watch_check_token: looks at his watch"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_offer
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words speech + visible watch gesture"
+      player_status: observer_window_open
+
+    - id: annette_glass_of_water
+      order: 10
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: order_glass_of_water
+        required_facts: ["water_order_token: a glass of water"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_offer
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words, minimal"
+      player_status: observer_window_open
+
+    - id: michel_orders_espresso_for_self_and_calls_for_cobbler
+      order: 11
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: order_espresso_for_self_and_request_cobbler
+        required_facts:
+          - "self_order_token: espresso for me too, honey"
+          - "cobbler_request_token: and bring the cobbler"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_offer
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two half-sentences, warm and pragmatic"
+      player_status: observer_window_open
+
+    - id: veronique_leaves_for_kitchen
+      order: 12
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Veronique stands up and goes into the kitchen."
+          - "A brief pause."
+      player_status: observer_window_open
+
+    - id: michel_you_have_to_taste_this_cobbler
+      order: 13
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: insist_guests_must_try_the_cobbler
+        required_facts: ["taste_insist_token: you have to try the cobbler"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_cobbler_offer
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four to six words, inviting"
+      player_status: observer_window_open
+
+    - id: michel_follows_to_kitchen
+      order: 14
+      duration_target_seconds: 3
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel suddenly stands up and follows Veronique into the kitchen."
+      player_status: observer_no_initiative
+
+  themes_realized_here:
+    - actor: alain
+      theme: he_didnt_realize_how_serious_it_was
+      mechanism: "lawyerly age defense with knowledge differentiation"
+      evidence_required: [alain_speaks_didnt_realize_seriousness_token, alain_speaks_he_is_eleven_token]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: he_s_eleven_years_old_dismissal
+      mechanism: "age card as ultimate defense"
+      evidence_required: [alain_speaks_he_is_eleven_token]
+      blocks_progression_if_missing: true
+    - actor: veronique
+      theme: eleven_is_not_a_baby
+      mechanism: "principled counter, brief"
+      evidence_required: [veronique_speaks_eleven_no_baby_token]
+      blocks_progression_if_missing: true
+    - actor: michel
+      theme: hes_eleven_not_an_adult_either
+      mechanism: "pragmatic middle ground between Veronique and Alain"
+      evidence_required: [michel_speaks_eleven_not_adult_token]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: he_has_to_actually_say_he_s_sorry
+      mechanism: "turns to spouse with pressure"
+      evidence_required: [annette_speaks_must_apologize_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.apology_thread_opened_irreversible
+      to_value: true
+      commit_irreversible: true
+    - key: runtime_intelligence.apology_position_log
+      to_value:
+        veronique: requests_actual_apology
+        alain: defends_age_not_sorry
+        annette: demands_real_apology_from_son
+        michel: pivots_to_hospitality
+      commit_irreversible: false
+    - key: environment_state.cobbler_state
+      to_value: about_to_be_served
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 65
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_v2_014_kitchen_cobbler_hunt
+    handoff: >-
+      Veronique and Michel leave the living room. Brief kitchen interlude with
+      cobbler hunt and private exchange. The guests remain alone with
+      unresolved apology pressure.
+    carry_forward:
+      - apology_thread_opened_irreversible
+      - eleven_year_old_debate_logged
+      - hosts_leave_room_temporarily
+      - cobbler_pending_arrival

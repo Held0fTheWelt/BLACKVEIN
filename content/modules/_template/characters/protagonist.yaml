@@ -13,15 +13,15 @@ character_document:
     engagement: 60
   tension_markers:
     - replace_with_pressure_marker
-  escalation_triggers:
-    - replace_with_trigger_id
+  pressure_markers:
+    - replace_with_pressure_marker
   voice:
     register: replace_with_voice_register
     pressure_leak: replace_with_how_control_slips
     avoid:
       - generic_exposition
-  scene_usage:
+  canonical_path_usage:
     strongest_in:
-      - phase_1
+      - opening_001_anchor
     vulnerable_in:
       - phase_2

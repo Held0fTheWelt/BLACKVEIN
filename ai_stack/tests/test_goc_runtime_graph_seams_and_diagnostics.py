@@ -224,9 +224,11 @@ def test_goc_yaml_slice_bundle_carries_runtime_law_surfaces() -> None:
     assert bundle.get("scene_phases")
     assert bundle.get("relationship_axes")
     assert bundle.get("relationships")
-    assert bundle.get("trigger_types")
-    assert bundle.get("phase_transitions")
-    assert bundle.get("transition_safeguards")
-    assert bundle.get("ending_types")
-    assert bundle.get("escalation_axes")
+    assert bundle.get("canonical_path")
+    assert bundle.get("phase_beat_policy")
+    assert bundle.get("trigger_types") == {}
+    assert bundle.get("phase_transitions") == {}
+    assert bundle.get("transition_safeguards") == {}
+    assert bundle.get("ending_types") == {}
+    assert bundle.get("escalation_axes") == {}
     assert bundle.get("system_prompt_excerpt")

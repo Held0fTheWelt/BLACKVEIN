@@ -1,0 +1,19 @@
+director_surface_hint:
+  id: goc_hint_art_books_civilization_veil
+  hint_type: staging_symbol
+  text: >-
+    Stage art_books as an intact civilization veil on the table; preserve until a
+    breakdown beat stains or dismisses them. Do not restate object catalogue prose.
+  source: hints/symbols/art_books_opening_staging.yaml
+  player_visible: false
+  authority_refs:
+    object_ref: objects/appartment_vallon/living_room/art_books.yaml
+  applies_when:
+    scene_ids:
+      - living_room
+      - living_room_arrival
+      - first_playable_courtesy_gap
+      - written_statement_negotiation
+    guidance_phase_keys:
+      - phase_1_polite_opening
+      - phase_2_moral_negotiation

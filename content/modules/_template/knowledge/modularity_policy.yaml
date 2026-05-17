@@ -61,6 +61,18 @@ modularity_policy:
         - place_description
         - room_topology
         - inventory_description
+    phase_beat_policy:
+      owns:
+        - coarse_phase_order
+        - allowed_phase_beats
+        - phase_pressure_markers
+        - phase_constraints
+        - exit_conditions
+      root: phase_beat_policy.yaml
+      must_not_own:
+        - location_description
+        - object_description
+        - character_backstory_database
     direction:
       owns:
         - human_authoring_intent
@@ -70,6 +82,25 @@ modularity_policy:
         - canonical_path/
         - locations/
         - objects/
+    hints:
+      owns:
+        - director_surface_hint_catalog
+        - non_player_visible_staging_notes
+        - symbolic_staging_links
+        - thematic_director_framing_not_stated_elsewhere
+      root: hints/
+      must_reference:
+        - locations/
+        - objects/
+        - characters/
+        - direction/
+        - phase_beat_policy.yaml
+      must_not_own:
+        - place_description
+        - object_description
+        - executable_beat_parameters
+        - player_visible_dialogue
+        - external_document_citations
     knowledge:
       owns:
         - runtime_contracts
@@ -113,6 +144,8 @@ modularity_policy:
       rule: "Scene graph summaries must remain runtime notes and point to canonical_path_step_id plus location_id."
     - id: direction_and_knowledge_use_refs
       rule: "Direction and knowledge files must cite refs instead of repeating visible-world or spatial-model lists."
+    - id: no_parallel_trigger_transition_ending_compendia
+      rule: "Do not create standalone triggers.yaml, transitions.yaml, endings.yaml, or escalation_axes.yaml; keep phase pressure in phase_beat_policy and concrete sequence in canonical_path."
 
   authoring_checks:
     required_in_canonical_path_steps:

@@ -1,0 +1,17 @@
+object:
+  id: towel_rail
+  name: "Towel rail"
+  category: bathroom_fixture
+  portable: false
+  placement_location_id: bathroom
+  playable_access: active_object
+  description: >-
+    A towel rail with one clean towel, one damp towel, and a bathrobe belt
+    hanging loose over the end.
+  interaction_notes:
+    take: "Minor textile handling only."
+  sensory_tags: [towel, damp_fabric, bathrobe_belt]
+  plausible_actions: [look_at, take_minor_service_item]
+  forbidden_actions: [invent_hidden_item_in_towel]
+  symbolic_roles:
+    - private_order

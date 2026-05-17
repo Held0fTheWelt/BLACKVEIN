@@ -1,0 +1,56 @@
+action_outcome_map:
+  id: template_action_outcome_map_v1
+  authority: module_action_consequence_policy
+  authoring_language: en
+  scope: template_interaction_surface
+  description: >-
+    Template for mapping grounded actions to outcome families. Copy and replace
+    target overrides with module-specific locations and objects.
+
+  portability_rules:
+    take_requires_portable: true
+    portable_field_ref: objects/*#object.portable
+    portable_success_outcome_id: portable_item_handled
+    non_portable_failure_outcome_id: non_portable_object_resists_transport
+
+  outcome_definitions:
+    perception_result:
+      description: "Narration reveals grounded sensory detail from content."
+      commits_world_state: false
+    object_state_change:
+      description: "A plausible target changes state."
+      commits_world_state: true
+    portable_item_handled:
+      description: "A portable item can be taken, placed, moved, or used."
+      commits_world_state: true
+    non_portable_object_resists_transport:
+      description: "A non-portable object cannot be transported."
+      commits_world_state: false
+    social_pressure_check:
+      description: "The action may invite character reaction."
+      commits_world_state: true
+    scene_navigation:
+      description: "The player moves to an authored reachable location."
+      commits_world_state: true
+
+  mappings:
+    - id: look_at_to_perception_result
+      cardinality: one_to_one
+      actions: [look_at]
+      outcomes: [perception_result]
+      applies_to: [locations, objects]
+    - id: manipulation_to_state_and_pressure
+      cardinality: one_to_many
+      actions: [open, activate, deactivate]
+      outcomes: [object_state_change, social_pressure_check]
+      applies_to: [objects]
+    - id: perception_cluster_to_perception_result
+      cardinality: many_to_one
+      actions: [inspect, observe, listen_to]
+      outcomes: [perception_result]
+      applies_to: [locations, objects]
+    - id: handling_cluster_to_material_outcomes
+      cardinality: many_to_many
+      actions: [take, move, place, use]
+      outcomes: [portable_item_handled, non_portable_object_resists_transport, social_pressure_check]
+      applies_to: [objects]

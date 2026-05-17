@@ -15,9 +15,11 @@ Suggested workflow:
    reference locations instead of re-describing them.
 6. Rename and edit location documents in `locations/opening/`,
    `locations/building/`, and `locations/appartment/`.
-7. Update `scene_graph.yaml`, `scenes.yaml`, `transitions.yaml`, and the
-   knowledge files together so scene ids, location ids, character ids, and
-   opening beats stay aligned.
+7. Update `scene_graph.yaml`, `phase_beat_policy.yaml`, and the knowledge files
+   together so runtime node ids, location ids, character ids, and opening beats
+   stay aligned.
+8. Add non-player-visible director notes under `hints/` (see `hints/index.yaml`);
+   they project into `render_support.director_surface_hints` at runtime.
 
 The template keeps the same folder boundaries as the current GoC module:
 characters and relationships live under `characters/`; locations are authored
@@ -38,5 +40,5 @@ per location under `locations/`.
 - Do not add `environment`, `visible_world`, `spatial_model`, or room-summary
   blocks outside `locations/`.
 - Keep `scene_graph.yaml` as a runtime index: node ids, phase ids,
-  `location_id`, `canonical_path_step_id`, transitions, and compact runtime
-  notes only.
+  `location_id`, `canonical_path_step_id`, graph edges, and compact runtime notes
+  only.

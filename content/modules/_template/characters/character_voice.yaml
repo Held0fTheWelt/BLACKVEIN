@@ -9,7 +9,7 @@ characters:
     escalation_arc:
       polite_opening: "Replace with early restraint."
       pressure: "Replace with how pressure changes syntax."
-      rupture: "Replace with late-scene leakage."
+      rupture: "Replace with late-phase leakage."
   counterpart:
     voice_principle: "Replace with concise voice rule."
     diction:
@@ -20,7 +20,7 @@ characters:
     escalation_arc:
       polite_opening: "Replace with early restraint."
       pressure: "Replace with how pressure changes syntax."
-      rupture: "Replace with late-scene leakage."
+      rupture: "Replace with late-phase leakage."
 
 voice_consistency:
   avoid_generic_dialogue: true

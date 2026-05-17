@@ -1,0 +1,109 @@
+# Cross-character interaction patterns for God of Carnage.
+# Relationship facts live in relationships.yaml; this file only adds playable
+# pressure tendencies and canonical-path handoff notes.
+
+interaction_patterns:
+  authoring_language: en
+  authority: character_interaction_pressure_notes
+  relationship_ref: characters/details/relationships.yaml
+  canonical_path_ref: canonical_path/index.yaml#canonical_path.paths.opening
+  phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+
+  patterns:
+    veronique_michel:
+      relationship_id: veronique_michel
+      baseline: "United hosts, with friction between moral precision and practical containment."
+      opening_pressure:
+        - "Véronique uses document and hospitality as one moral frame."
+        - "Michel uses coffee, timing, and small practicalities to keep the meeting finite."
+      canonical_path_refs:
+        - canonical_path/006_apartment_entry_greetings.yaml
+        - canonical_path/012_tulips_and_hospitality.yaml
+        - canonical_path/014_player_response_ripple.yaml
+      phase_pressure:
+        phase_1: "They appear aligned; tiny differences should be legible but deniable."
+        phase_2: "Michel may soften a point that Véronique needs to keep sharp."
+        phase_3: "A practical concession can feel like betrayal."
+        phase_4: "Conjugal hurt becomes public."
+
+    veronique_annette:
+      relationship_id: veronique_annette
+      baseline: "Host idealist and guest mother meet through restraint, not open accusation."
+      opening_pressure:
+        - "Wording tests who controls moral meaning."
+        - "Injury detail lets Annette hold pressure without forced speech."
+        - "Community language can sound generous to Véronique and coercive to Annette."
+      canonical_path_refs:
+        - canonical_path/009_wording_dispute_armed_carrying.yaml
+        - canonical_path/010_injury_detail_dental_consequence.yaml
+        - canonical_path/011_courtesy_community_pressure.yaml
+      phase_pressure:
+        phase_1: "Politeness stays intact, but every correction matters."
+        phase_2: "Principle and parental defense become explicit."
+        phase_3: "They may briefly align against male minimization before splitting again."
+        phase_4: "Moral judgment becomes personal."
+
+    veronique_alain:
+      relationship_id: veronique_alain
+      baseline: "Cordial host and lawyerly guest; conflict stays procedural at first."
+      opening_pressure:
+        - "Alain can help the statement feel reasonable by softening wording."
+        - "His divided attention risks insulting Véronique's idea of responsible presence."
+      canonical_path_refs:
+        - canonical_path/008_statement_on_table.yaml
+        - canonical_path/009_wording_dispute_armed_carrying.yaml
+        - canonical_path/015_phone_exit_pressure.yaml
+      phase_pressure:
+        phase_1: "Respectful, dry, and controlled."
+        phase_2: "Procedure starts to look like evasion."
+        phase_3: "Véronique may appeal to him to restore order."
+        phase_4: "His distance can become contempt."
+
+    michel_annette:
+      relationship_id: michel_annette
+      baseline: "Pragmatist and controlled guest can seem temporarily compatible."
+      opening_pressure:
+        - "Michel may read Annette's restraint as consent to move on."
+        - "Annette may read his practical relief as minimization."
+      canonical_path_refs:
+        - canonical_path/010_injury_detail_dental_consequence.yaml
+        - canonical_path/012_tulips_and_hospitality.yaml
+        - canonical_path/014_player_response_ripple.yaml
+      phase_pressure:
+        phase_1: "Almost friendly if both choose surface calm."
+        phase_2: "Practicality becomes suspect."
+        phase_3: "A brief alignment against moral overstatement is possible."
+        phase_4: "Alignment curdles into bitterness or withdrawal."
+
+    michel_alain:
+      relationship_id: michel_alain
+      baseline: "Two pragmatic men in a room governed by host courtesy and parental injury."
+      opening_pressure:
+        - "Both may prefer lexical compromise and quick closure."
+        - "Neither should be allowed to erase Annette or Véronique's pressure."
+      canonical_path_refs:
+        - canonical_path/008_statement_on_table.yaml
+        - canonical_path/009_wording_dispute_armed_carrying.yaml
+        - canonical_path/015_phone_exit_pressure.yaml
+      phase_pressure:
+        phase_1: "Dry cooperation is possible."
+        phase_2: "Their pragmatism can look like collusion."
+        phase_3: "A tactical alliance can isolate one spouse."
+        phase_4: "Both may go silent when mediation fails."
+
+    annette_alain:
+      relationship_id: annette_alain
+      baseline: "Guest couple under unequal pressure: Annette carries injury, Alain carries exit pressure."
+      opening_pressure:
+        - "Alain's legal compromise may protect them socially while abandoning Annette emotionally."
+        - "Annette's silence or restraint should not be overwritten by Alain."
+        - "Phone and hallway pressure make his divided attention visible."
+      canonical_path_refs:
+        - canonical_path/013_first_playable_courtesy_gap.yaml
+        - canonical_path/014_player_response_ripple.yaml
+        - canonical_path/015_phone_exit_pressure.yaml
+      phase_pressure:
+        phase_1: "They remain formally paired, but the room can see different priorities."
+        phase_2: "Annette may need recognition while Alain wants procedure."
+        phase_3: "Spousal misalignment becomes active pressure."
+        phase_4: "Silence, contempt, retreat, or bodily strain can rupture the pair."

@@ -1,9 +1,0 @@
-module_strings:
-  de:
-    narrator_label: "Erzähler"
-    first_prompt: "Was tust du?"
-    unknown_target: "Das Ziel ist unklar. Worauf genau bezieht sich deine Aktion?"
-  en:
-    narrator_label: "Narrator"
-    first_prompt: "What do you do?"
-    unknown_target: "The target is unclear. What exactly is your action aimed at?"

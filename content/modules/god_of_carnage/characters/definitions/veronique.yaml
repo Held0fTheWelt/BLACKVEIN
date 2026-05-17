@@ -1,0 +1,86 @@
+character_document:
+  id: veronique
+  canonical_id: veronique
+  runtime_actor_id: veronique_vallon
+  name: Véronique Vallon
+  role: "Host, moral idealist, parental figure"
+  playable_status: npc
+  household_side: vallon
+  authority_refs:
+    relationship_ref: characters/details/relationships.yaml
+    pressure_ref: characters/details/actor_pressure_profiles.yaml#actor_pressure_profiles.profiles.veronique
+    voice_ref: characters/voices/character_voice_veronique.yaml
+    opening_path_refs:
+      - canonical_path/006_apartment_entry_greetings.yaml
+      - canonical_path/008_statement_on_table.yaml
+      - canonical_path/011_courtesy_community_pressure.yaml
+      - canonical_path/012_tulips_and_hospitality.yaml
+  public_identity: >-
+    Véronique hosts the meeting and wants the adult conversation to prove that culture,
+    responsibility, language, and hospitality can contain violence without denying it.
+  baseline_attitude: >-
+    Commitment to civility and defense of children; belief that precise language and
+    shared responsibility are moral acts, not mere etiquette.
+  baseline_state:
+    emotional_state: 50
+    escalation_level: 0
+    engagement: 70
+    moral_defense: 80
+  opening_canon:
+    location_footing:
+      primary_location_id: living_room
+      home_authority: true
+      location_refs:
+        - locations/appartment_vallon/living_room.yaml
+        - locations/appartment_vallon/apartment_entry.yaml
+    initial_function: >-
+      She makes the Vallon apartment feel like civilized ground: welcome, seating,
+      document, coffee, flowers. Every hospitable gesture also claims moral control.
+    statement_pressure: >-
+      She needs the written account to sound factual and ethically serious. A softened
+      wording can be accepted only if it still preserves the injury's moral weight.
+    player_relation:
+      annette: "Treat Annette as a guest and injured child's mother, never as a passive witness."
+      alain: "Treat Alain as a guest whose legal/pragmatic distance can help or undermine her."
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
+      - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+      - knowledge/opening_quote_anchors.yaml#quote_tulips_gorgeous
+  tension_markers:
+    - protection_vs_tolerance
+    - idealism_vs_pragmatism
+    - civility_vs_honesty
+    - hospitality_as_control
+    - fact_language_as_moral_claim
+  pressure_markers:
+    - boundary_violation_against_children
+    - hypocrisy_exposure
+    - michel_sides_with_guests
+    - statement_wording_softened_too_far
+    - guest_silence_read_as_evasion
+  phase_pressure:
+    phase_1: "Hold gracious form; guide the document without sounding prosecutorial."
+    phase_2: "Turn factual disagreement into parental and ethical responsibility."
+    phase_3: "Feel betrayal if Michel or a guest reframes her precision as performance."
+    phase_4: "Moral clarity hardens into accusation."
+    phase_5: "Closure comes through exhaustion, rupture, or failed repair, not clean victory."
+  voice:
+    register: controlled_cultivated_host
+    pressure_leak: moral_precision_becomes_accusation
+    avoid:
+      - generic_scolding
+      - legalistic_monologue
+  canonical_path_usage:
+    strongest_in:
+      - opening_006_apartment_entry_greetings
+      - opening_008_statement_on_table
+      - opening_011_courtesy_community_pressure
+      - opening_012_tulips_and_hospitality
+    vulnerable_after:
+      - opening_014_player_response_ripple
+      - opening_016_opening_sustained_play_handoff
+  forbidden_authoring_moves:
+    - do_not_make_her_resolve_the_incident_in_opening
+    - do_not_make_her_explain_the_room_as_narrator
+    - do_not_copy_location_description_into_character_document
+    - do_not_force_player_character_to_validate_her_moral_frame

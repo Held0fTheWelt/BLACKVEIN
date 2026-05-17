@@ -2,6 +2,7 @@ object:
   id: coffee_machine
   name: "Coffee machine"
   category: service_object
+  portable: false
   placement_location_id: kitchen
   playable_access: active_object
   description: >-

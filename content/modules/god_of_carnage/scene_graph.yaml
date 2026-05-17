@@ -8,7 +8,7 @@ scene_graph:
   primary_opening_document: direction/opening.md
   primary_direction_document: canonical_path/index.yaml
   modularity_policy_ref: knowledge/modularity_policy.yaml
-  phase_layer: scenes.yaml
+  phase_layer: phase_beat_policy.yaml#phase_beat_policy.phases
   default_start_node_id: prologue_park_edge
   first_playable_node_id: first_playable_courtesy_gap
 

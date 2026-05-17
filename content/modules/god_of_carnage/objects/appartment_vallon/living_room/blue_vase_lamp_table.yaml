@@ -1,0 +1,19 @@
+object:
+  id: blue_vase_lamp_table
+  name: "Small table with blue glass vase and shaded lamp"
+  category: decorative_surface
+  portable: false
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    A side table carrying a blue glass vase, a shaded lamp, and a small stack
+    of invitation cards half-hidden under the lamp base.
+  interaction_notes:
+    look_at: "Establishes composed domestic display."
+    place_object: "Can receive a glass, paper, or small service item."
+  sensory_tags: [blue_glass, lamp_shade, side_table]
+  plausible_actions: [look_at, place_object, adjust_lamp]
+  forbidden_actions: [discover_unseeded_letter]
+  symbolic_roles:
+    - domestic_display
+    - hospitality_surface

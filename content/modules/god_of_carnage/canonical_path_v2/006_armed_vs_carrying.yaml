@@ -1,0 +1,281 @@
+canonical_path_step:
+  sequence: 6
+  id: opening_v2_006_armed_vs_carrying
+  path_id: goc_opening_canonical_path_v2
+  name: "006 - Word challenge: armed → carrying, the first compromise"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 2
+    continues_scene_from_step: opening_v2_005_statement_reading
+    summary: >-
+      Alain challenges the word 'armed' with a single word. Veronique consults
+      Michel and offers 'carrying' or 'was carrying a stick' as a compromise.
+      Alain accepts minimally, Michel echoes the chosen phrase, Veronique
+      types the correction aloud under her breath.
+
+  duration_target_seconds: 38
+  duration_max_seconds: 55
+
+  location_ref:
+    location_id: longstreet_den
+    source: locations/appartment_vallon/den.yaml
+    use_fields:
+      - plausible_actions
+  object_refs:
+    - object_id: laptop_on_desk
+      source: objects/appartment_vallon/den/laptop.yaml
+      use_fields: [interaction_notes]
+  character_refs:
+    - characters/definitions/veronique.yaml
+    - characters/definitions/michel.yaml
+    - characters/definitions/alain.yaml
+    - characters/definitions/annette.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+    speaker_in_focus_per_beat:
+      beat_1: alain
+      beat_2: veronique
+      beat_3: michel
+      beat_4: veronique
+
+  preconditions:
+    inherited_from_previous_step:
+      - statement_word_armed_visible
+      - first_pressure_seed_loaded
+      - speaking_floor_held_by_veronique
+
+  mandatory_beats:
+
+    - id: alain_single_word_challenge
+      order: 1
+      duration_target_seconds: 4
+      director_instruction:
+        npc_speak:
+          actor: alain
+          intent: object_to_word_armed_with_a_single_word_question
+          required_facts:
+            - challenge_target_word: armed
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+          paraphrase_policy: short_anchor_quote_allowed
+          minimum_visible: "a single word as a question, question mark audible"
+          forbidden_drift:
+            - explain_why_armed_is_wrong
+            - propose_alternative_word_in_same_beat
+            - smile_or_apologize_while_objecting
+            - speak_more_than_three_words
+        forces_response_from:
+          actor: veronique
+          intent: offer_compromise_word_carrying
+          required_state_change: statement_word_replaced
+          max_delay_seconds: 6
+        player_status: observer_no_initiative
+
+    - id: veronique_offers_compromise_with_michel_consult
+      order: 2
+      duration_target_seconds: 14
+      director_instruction:
+        npc_speak:
+          actor: veronique
+          intent: offer_alternatives_consulting_michel
+          required_facts:
+            - acknowledge_objection: "briefly repeats the word 'armed'"
+            - turn_to_michel_token: "Michel, what could we say?"
+            - propose_alternatives: ["with it", "was carrying", "was carrying a stick"]
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "three small beats: repeat word, turn to Michel, offer alternative"
+          forbidden_drift:
+            - sound_defensive
+            - skip_the_michel_consult  # this is what makes Veronique look civil rather than capitulating
+            - phrase_alternatives_as_one_block_question
+        forces_response_from:
+          actor: alain
+          intent: accept_one_of_the_alternatives_minimally
+          required_state_change: alternative_word_marked_acceptable
+          max_delay_seconds: 4
+        player_status: observer_window_open
+
+    - id: alain_accepts_carrying
+      order: 3
+      duration_target_seconds: 3
+      director_instruction:
+        npc_speak:
+          actor: alain
+          intent: accept_word_carrying_with_minimum_words
+          required_facts:
+            - chosen_word_token: carrying
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+          paraphrase_policy: short_anchor_quote_allowed
+          minimum_visible: "word plus confirmation particle, at most two words"
+          forbidden_drift:
+            - thank_veronique
+            - elaborate_on_why_carrying_is_better
+            - smile_warmly
+        player_status: observer_window_open
+
+    - id: michel_amiable_echo
+      order: 4
+      duration_target_seconds: 4
+      director_instruction:
+        npc_speak:
+          actor: michel
+          intent: echo_the_chosen_phrasing_to_seal_the_compromise
+          required_facts:
+            - echoed_phrase_token: "was carrying a stick"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "four to six words, friendly confirming tone"
+          forbidden_drift:
+            - take_authorship_credit_for_the_phrase
+            - add_a_joke
+            - lengthen_into_full_sentence_with_subject_clause
+        player_status: observer_window_open
+
+    - id: veronique_types_correction
+      order: 5
+      duration_target_seconds: 10
+      director_instruction:
+        npc_speak:
+          actor: veronique
+          intent: read_back_the_corrected_word_while_typing
+          required_facts:
+            - confirmed_word_token: carrying
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+          paraphrase_policy: short_anchor_quote_allowed
+          minimum_visible: "the one corrected word, repeated under breath while typing"
+          forbidden_drift:
+            - say_a_full_sentence_about_the_correction
+            - apologize_for_the_first_word_choice
+            - thank_alain
+        narrator_perception_only:
+          - "Veronique types once into the laptop, pauses briefly, then another keystroke for the period."
+        player_status: observer_window_open
+
+  optional_micro_beats:
+
+    - id: annette_settles_one_step_closer
+      trigger: after(michel_amiable_echo)
+      condition: player_remained_silent_in_last_two_beats
+      director_instruction:
+        narrator_perception_only:
+          - "Annette takes half a step closer to the table."
+        player_status: observer_window_open
+
+  player_intrusion_windows:
+
+    - between: [veronique_offers_compromise_with_michel_consult, alain_accepts_carrying]
+      allowed:
+        - speak_minimally
+        - look_to_spouse
+        - point_to_screen_or_object
+      forbidden:
+        - propose_a_different_word_as_player
+        - leave_the_den
+        - take_over_alain_authority
+      redirect_policy: >-
+        If the player suggests a word instead of observing, the director
+        writes a brief narrator_perception ("No one answers the player.
+        Veronique waits for Alain.") and completes the forces_response chain.
+        The player's word is stored in runtime_intelligence as
+        'player_word_suggestion_not_canonical' but is not adopted into the
+        committed statement text.
+
+    - between: [alain_accepts_carrying, michel_amiable_echo]
+      allowed:
+        - silent_observation
+        - small_gesture
+      forbidden:
+        - speak
+      redirect_policy: >-
+        Micro-window for body language. If the player speaks, narrator_perception
+        ("Michel has already drawn breath.") and Michel's echo runs immediately.
+
+    - between: [veronique_types_correction, null]
+      allowed:
+        - speak
+        - move_in_room
+        - acknowledge_outcome
+      forbidden:
+        - dismiss_the_compromise
+      redirect_policy: >-
+        First real player window with room to maneuver. The player may comment
+        on the compromise, point at the statement, or try a new direction. The
+        LDSS uses the response as a routing signal for step 007.
+
+  themes_realized_here:
+
+    - actor: alain
+      theme: detached_pedantry_first_signal
+      mechanism: "one-word objection without context, without a smile"
+      evidence_required:
+        - alain_speaks_one_word_question
+        - alain_does_not_apologize_after
+      blocks_progression_if_missing: true
+
+    - actor: veronique
+      theme: compromise_without_yielding_authority
+      mechanism: "accepts word change but keeps meeting leadership via Michel consult"
+      evidence_required:
+        - veronique_consults_michel_before_yielding
+        - veronique_is_the_one_who_types_the_change
+      blocks_progression_if_missing: true
+
+    - actor: michel
+      theme: amiable_mirror_reinforcer
+      mechanism: "echo of the chosen phrase, no proposal of his own"
+      evidence_required:
+        - michel_repeats_chosen_phrase
+        - michel_adds_no_new_information
+      blocks_progression_if_missing: true
+
+    - actor: annette
+      theme: silent_during_first_word_dispute
+      mechanism: "lets Alain lead, does not comment"
+      evidence_required:
+        - annette_does_not_speak_during_beats_1_to_5
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: environment_state.statement_text_state
+      from_value: read_aloud_with_word_armed
+      to_value: written_corrected_with_word_carrying
+      commit_irreversible: true
+    - key: runtime_intelligence.first_compromise_log
+      to_value:
+        challenged_by: alain
+        offered_by: veronique
+        seconded_by: michel
+        accepted_by: alain
+        outcome_word: carrying
+        elapsed_seconds_estimated: 35
+      commit_irreversible: true
+    - key: runtime_intelligence.alain_voice_seed
+      to_value: pedantic_minimal_speech_baseline
+      commit_irreversible: false
+    - key: runtime_intelligence.veronique_voice_seed
+      to_value: civil_arbiter_with_authorship
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 28
+    escape_via_player_initiative:
+      allowed: true
+      command_kinds:
+        - explicit_topic_break
+      condition: only_after_veronique_types_correction
+
+  next_point:
+    step_id: opening_v2_007_drift_toward_foyer
+    handoff: >-
+      The written text lies corrected before them. Alain begins drifting
+      backward toward the foyer. Handoff to the irony_of_the_safer_park shift.
+    carry_forward:
+      - statement_text_corrected_to_carrying
+      - first_compromise_logged
+      - alain_voice_seed_pedantic_minimal
+      - veronique_voice_seed_civil_arbiter
+      - speaking_floor_now_open_to_any_actor

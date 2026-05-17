@@ -13,8 +13,8 @@ canonical_path_step:
     - object_id: coffee_table
       source: objects/appartment_vallon/living_room/coffee_table.yaml
   character_refs:
-    - characters/veronique.yaml
-    - characters/alain.yaml
+    - characters/definitions/veronique.yaml
+    - characters/definitions/alain.yaml
 
   theme_threads:
     - procedure_vs_feeling

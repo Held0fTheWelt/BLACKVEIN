@@ -2,6 +2,7 @@ object:
   id: glasses
   name: "Glasses"
   category: service_object_cluster
+  portable: true
   placement_location_id: kitchen
   playable_access: minor_service_object
   description: >-

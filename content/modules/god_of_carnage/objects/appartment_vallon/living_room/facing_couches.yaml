@@ -1,0 +1,19 @@
+object:
+  id: facing_couches
+  name: "Couches on both sides of the table"
+  category: seating_geometry
+  portable: false
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    Two couches facing across the coffee table, close enough to be polite and
+    too close for anyone to forget the argument between the families.
+  interaction_notes:
+    sit_near: "Changes social geometry."
+    look_at: "Clarifies seating pressure."
+  sensory_tags: [couches, social_distance, seating]
+  plausible_actions: [look_at, sit_near, stand_up]
+  forbidden_actions: [force_other_actor_to_move]
+  symbolic_roles:
+    - social_geometry
+    - territorial_anchor

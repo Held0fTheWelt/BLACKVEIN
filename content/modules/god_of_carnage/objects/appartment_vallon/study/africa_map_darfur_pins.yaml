@@ -1,0 +1,18 @@
+object:
+  id: africa_map_darfur_pins
+  name: "Map of Africa with Darfur pins"
+  category: political_conscience_surface
+  portable: false
+  placement_location_id: study
+  playable_access: perception_only
+  description: >-
+    A wall map of Africa with several small pins gathered around Darfur, plus
+    a few penciled notes in the margin and a clipping folded under one corner.
+  interaction_notes:
+    look_at: "Signals public conscience and moral self-image without creating a new research thread."
+  sensory_tags: [map, pins, darfur, moral_attention]
+  plausible_actions: [look_at, notice_pins]
+  forbidden_actions: [open_unbounded_political_exposition]
+  symbolic_roles:
+    - moral_display
+    - public_conscience_surface

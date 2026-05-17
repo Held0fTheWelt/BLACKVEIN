@@ -1,0 +1,19 @@
+director_surface_hint:
+  id: goc_hint_alain_phone_civility_breach
+  hint_type: physical_cue
+  text: >-
+    Phone pulls are host-ritual breaches, not neutral background: minimal apology,
+    extract, return mid-sentence to the dropped thread. Follow beat rhythm, not ad-lib exits.
+  source: hints/character/alain_phone_distraction.yaml
+  player_visible: false
+  authority_refs:
+    character_ref: characters/definitions/alain.yaml
+    beat_pattern_ref: direction/beat_library/phone_interruption_recurrent.yaml
+  applies_when:
+    guidance_phase_keys:
+      - phase_2_moral_negotiation
+      - phase_3_faction_shifts
+      - phase_4_emotional_derailment
+    pacing_modes:
+      - compressed
+      - multi_pressure

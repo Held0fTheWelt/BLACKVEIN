@@ -1,0 +1,172 @@
+action_outcome_map:
+  id: goc_action_outcome_map_v1
+  authority: module_action_consequence_policy
+  authoring_language: en
+  scope: apartment_and_opening_interaction_surface
+  description: >-
+    Data-driven mapping from grounded player actions to expected outcome
+    families. Relationships may be one-to-one, one-to-many, many-to-one, or
+    many-to-many; target overrides bind generic action families to authored
+    rooms and objects.
+
+  portability_rules:
+    take_requires_portable: true
+    portable_field_ref: objects/*#object.portable
+    portable_success_outcome_id: portable_item_handled
+    non_portable_failure_outcome_id: non_portable_object_resists_transport
+    allow_minor_component_handling_when_parent_non_portable: true
+
+  outcome_definitions:
+    perception_result:
+      description: "The narrator returns grounded sensory detail from the referenced content."
+      commits_world_state: false
+    object_state_change:
+      description: "A device, door, lamp, curtain, or fixture changes visible state if plausible."
+      commits_world_state: true
+    portable_item_handled:
+      description: "A portable item or minor loose component can be picked up, moved, placed, or used."
+      commits_world_state: true
+    non_portable_object_resists_transport:
+      description: "A fixed, heavy, built-in, or furniture-scale object can be inspected or used but not carried away."
+      commits_world_state: false
+    hospitality_pressure:
+      description: "Handling service objects, seating, glasses, books, or table settings shifts politeness pressure."
+      commits_world_state: true
+    privacy_pressure:
+      description: "Intruding into private rooms or belongings produces social resistance before new facts appear."
+      commits_world_state: true
+    private_boundary_gate:
+      description: "The action is acknowledged but held at a private-room boundary unless scene state opens it."
+      commits_world_state: false
+    locked_access_denied:
+      description: "The locked target remains closed; narration may register the boundary without treating it as hard story failure."
+      commits_world_state: false
+    social_pressure_check:
+      description: "Nearby characters may react because the action changes etiquette, privacy, or control."
+      commits_world_state: true
+    scene_navigation:
+      description: "The player moves to an authored adjacent location if topology and access policy allow it."
+      commits_world_state: true
+    prevented_not_forbidden:
+      description: "The action is narratively prevented for the current moment rather than illegal in the story world."
+      commits_world_state: false
+
+  mappings:
+    - id: look_at_to_perception_result
+      cardinality: one_to_one
+      actions: [look_at]
+      outcomes: [perception_result]
+      applies_to: [locations, objects]
+
+    - id: inspect_variants_to_perception_result
+      cardinality: many_to_one
+      actions: [inspect, observe, read_surface, notice_picture, notice_pins, listen_to]
+      outcomes: [perception_result]
+      applies_to: [locations, objects]
+
+    - id: open_or_switch_to_state_and_reaction
+      cardinality: one_to_many
+      actions: [open, close, activate, deactivate, use_light, draw_curtains]
+      outcomes: [object_state_change, social_pressure_check]
+      applies_to: [objects]
+
+    - id: handling_cluster_to_material_and_social_outcomes
+      cardinality: many_to_many
+      actions: [take, take_minor_item, move_aside, place_object, sit_near, serve, pour, use]
+      outcomes:
+        - portable_item_handled
+        - non_portable_object_resists_transport
+        - hospitality_pressure
+        - privacy_pressure
+      applies_to: [objects, locations]
+
+    - id: movement_to_scene_navigation
+      cardinality: many_to_one
+      actions: [move_to, enter_room, move_to_adjacent_room, return_to_room]
+      outcomes: [scene_navigation]
+      applies_to: [locations]
+
+    - id: locked_access_to_boundary
+      cardinality: many_to_one
+      actions: [open_locked_door, enter_locked_room, enter_locked_bathroom, open_locked_hallway_bathroom]
+      outcomes: [locked_access_denied]
+      applies_to: [locations, objects]
+
+  target_overrides:
+    - target_id: hallway_bathroom_locked
+      target_type: location
+      actions: [move_to, enter_room, enter_locked_bathroom]
+      outcomes: [locked_access_denied, private_boundary_gate]
+      consequence_policy: prevented_not_forbidden
+
+    - target_id: locked_bathroom_door
+      target_type: object
+      actions: [look_at, listen_to, open, open_locked_hallway_bathroom]
+      outcomes: [perception_result, locked_access_denied, privacy_pressure]
+      consequence_policy: prevented_not_forbidden
+
+    - target_id: bedroom
+      target_type: location
+      actions: [move_to, enter_room, look_at]
+      outcomes: [scene_navigation, private_boundary_gate, privacy_pressure]
+      consequence_policy: privacy_or_scene_gate
+
+    - target_id: bathroom
+      target_type: location
+      actions: [move_to, wash_hands, clean_up, pause, use_toilet]
+      outcomes: [scene_navigation, object_state_change, privacy_pressure]
+      consequence_policy: private_regroup
+
+    - target_id: study_desk
+      target_type: object
+      actions: [look_at, use_computer, open_drawer]
+      outcomes: [perception_result, privacy_pressure, social_pressure_check]
+      consequence_policy: privacy_or_scene_gate
+
+    - target_id: study_clutter
+      target_type: object
+      actions: [look_at, take_minor_item, move_aside]
+      outcomes: [perception_result, portable_item_handled, privacy_pressure]
+      consequence_policy: minor_private_handling
+
+    - target_id: study_pinboard
+      target_type: object
+      actions: [look_at, notice_picture]
+      outcomes: [perception_result, privacy_pressure]
+      consequence_policy: perception_result
+
+    - target_id: africa_map_darfur_pins
+      target_type: object
+      actions: [look_at, notice_pins]
+      outcomes: [perception_result]
+      consequence_policy: perception_result
+
+    - target_id: glassware_cabinet
+      target_type: object
+      actions: [look_at, open, take]
+      outcomes: [perception_result, object_state_change, portable_item_handled, hospitality_pressure]
+      consequence_policy: hospitality_pressure
+
+    - target_id: dining_room_table
+      target_type: object
+      actions: [look_at, sit_near, place_object]
+      outcomes: [perception_result, hospitality_pressure, scene_navigation]
+      consequence_policy: hospitality_pressure
+
+    - target_id: china_cabinet
+      target_type: object
+      actions: [look_at, open, take]
+      outcomes: [perception_result, object_state_change, portable_item_handled, hospitality_pressure]
+      consequence_policy: hospitality_pressure
+
+    - target_id: bedroom_wardrobe
+      target_type: object
+      actions: [look_at, open]
+      outcomes: [perception_result, privacy_pressure, private_boundary_gate]
+      consequence_policy: privacy_or_scene_gate
+
+    - target_id: kitchen_drawers
+      target_type: object
+      actions: [look_at, open, take]
+      outcomes: [perception_result, object_state_change, portable_item_handled, hospitality_pressure]
+      consequence_policy: service_object_handling

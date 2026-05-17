@@ -1,0 +1,19 @@
+object:
+  id: kitchen_drawers
+  name: "Kitchen drawers"
+  category: kitchen_storage_surface
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    Drawers with cutlery, cork stoppers, rubber bands, birthday candles, a spare
+    lighter, takeout menus, and a roll of tape gone gray at the edges.
+  interaction_notes:
+    open: "Minor domestic inventory only; no decisive hidden object."
+    take: "Small ordinary items may be handled if scene pressure allows."
+  sensory_tags: [drawers, cutlery, birthday_candles, takeout_menus]
+  plausible_actions: [look_at, open, take_minor_service_item]
+  forbidden_actions: [discover_unseeded_weapon, discover_major_plot_object]
+  symbolic_roles:
+    - domestic_disorder
+    - service_surface

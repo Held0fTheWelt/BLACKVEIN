@@ -1,0 +1,19 @@
+object:
+  id: mantel_display
+  name: "Mantel display"
+  category: decorative_memory_surface
+  portable: true
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    A mantel arranged with a small sculpture, framed pictures, half-burned
+    candles, and a narrow ceramic dish holding matches and a single bent paperclip.
+  interaction_notes:
+    look_at: "Shows curated intimacy and ritualized domestic warmth."
+    take: "Only minor visible objects may be handled."
+  sensory_tags: [sculpture, framed_pictures, candles, mantel]
+  plausible_actions: [look_at, take_minor_service_item, place_object]
+  forbidden_actions: [invent_family_secret_from_picture]
+  symbolic_roles:
+    - domestic_ritual
+    - memory_surface

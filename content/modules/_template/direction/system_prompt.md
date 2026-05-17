@@ -12,3 +12,5 @@ Core rules:
   to the selected human character.
 - Use `characters/character_voice.yaml` for voice guidance.
 - Use `locations/index.yaml` and per-location files for spatial truth.
+- Use `canonical_path/index.yaml` for directed story order.
+- Use `phase_beat_policy.yaml` for coarse phase pressure and constraints.

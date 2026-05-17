@@ -71,6 +71,18 @@ content_access_policy:
       decision: hard_deny
       reason_ref: locations/appartment_vallon/bedroom_one_locked.yaml#location.forbidden_actions
 
+    - id: no_enter_locked_hallway_bathroom
+      scope: location
+      target_id: hallway_bathroom_locked
+      decision: hard_deny
+      reason_ref: locations/appartment_vallon/hallway_bathroom_locked.yaml#location.playable_access
+
+    - id: no_open_locked_hallway_bathroom
+      scope: action
+      target_id: open_locked_hallway_bathroom
+      decision: hard_deny
+      reason_ref: locations/appartment_vallon/hallway_bathroom_locked.yaml#location.forbidden_actions
+
     - id: no_player_controls_other_child
       scope: action
       target_id: control_child_actor
@@ -122,11 +134,28 @@ content_access_policy:
         - current_scene_phase_allows_adjacent_room
         - narrator_consequence_required
 
+    - id: dining_room_navigation
+      scope: location
+      target_id: dining_room
+      decision: gated
+      requirements:
+        - current_scene_phase_allows_adjacent_room
+        - narrator_consequence_required
+
+    - id: bedroom_navigation
+      scope: location
+      target_id: bedroom
+      decision: gated
+      requirements:
+        - privacy_boundary_acknowledged
+        - narrator_consequence_required
+
     - id: bathroom_navigation
       scope: location
       target_id: bathroom
       decision: gated
       requirements:
+        - bedroom_route_acknowledged
         - retreat_or_bodily_stress_signal
         - narrator_consequence_required
 

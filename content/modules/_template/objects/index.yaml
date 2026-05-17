@@ -6,6 +6,7 @@ objects:
     objects_must_have_placement_location_id: true
     placement_location_ids_must_reference_locations: true
     objects_are_not_locations: true
+    objects_must_declare_portable: true
     apartment_objects_grouped_by_location_subfolder: true
     apartment_room_object_folder_pattern: objects/appartment/{location_id}/
 

@@ -1,0 +1,21 @@
+object:
+  id: study_clutter
+  name: "Study clutter"
+  category: loose_private_object_cluster
+  portable: true
+  placement_location_id: study
+  playable_access: privacy_gated_object
+  description: >-
+    A small, cramped scatter of ordinary things: printer cartridges, a cracked
+    ruler, receipts from a copy shop, a dry fountain pen, a half-used packet of
+    sticky notes, and a folded school circular.
+  interaction_notes:
+    look_at: "Shows congestion and everyday pressure."
+    take: "Minor objects only; handling them raises privacy pressure."
+  risk_tags:
+    - privacy_boundary
+  plausible_actions: [look_at, take_minor_item, move_aside]
+  forbidden_actions: [discover_decisive_hidden_evidence]
+  symbolic_roles:
+    - domestic_disorder
+    - private_pressure

@@ -1,0 +1,19 @@
+object:
+  id: pantry_cabinet
+  name: "Kitchen pantry cabinet"
+  category: service_storage_surface
+  portable: false
+  placement_location_id: kitchen
+  playable_access: active_object
+  description: >-
+    A tall pantry cupboard on the right with tea tins, pasta, coffee filters,
+    sugar, a jar of almonds, and a shopping list tucked under a magnet inside
+    the door.
+  interaction_notes:
+    open: "Minor service access only."
+    take: "Only ordinary service items may be handled."
+  sensory_tags: [pantry_cabinet, tea_tins, coffee_filters, shopping_list]
+  plausible_actions: [look_at, open, take_minor_service_item]
+  forbidden_actions: [discover_major_plot_object]
+  symbolic_roles:
+    - domestic_order

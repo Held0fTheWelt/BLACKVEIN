@@ -1,0 +1,27 @@
+director_surface_hints_catalog:
+  id: goc_director_surface_hints_v1
+  schema_version: director_surface_hints_catalog.v1
+  authority: module_director_staging_hints
+  authoring_language: en
+  projection_target: render_support.director_surface_hints
+  player_visible_default: false
+  note: >-
+    Self-contained module authority for director_surface_hints. Hints merge at
+    render time (ai_stack/goc_turn_seams.py); they are not player-visible prose.
+    Reference owning surfaces via authority_refs; do not duplicate object, location,
+    character, or beat_library prose here.
+
+  allowed_hint_types:
+    - phase_context
+    - responder_role
+    - tonal_pressure
+    - character_pressure_arc
+    - phase_pressure_cue
+    - staging_symbol
+    - physical_cue
+    - subtext_pressure
+
+  entries:
+    - hints/themes/violence_vs_civilization.yaml
+    - hints/symbols/art_books_opening_staging.yaml
+    - hints/character/alain_phone_distraction.yaml

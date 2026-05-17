@@ -1,0 +1,141 @@
+beat_pattern:
+  id: scripted_monologue_segmented
+  version: v1
+  category: npc_speak
+  purpose: >-
+    A multi-beat monologue (typically a reading or recital) split into
+    consecutive segments. Each segment is its own beat with its own
+    required_facts and quote_anchor. The pattern guarantees the segments
+    fire in order with bounded inter-segment delays, no player intrusion,
+    and that filler narrator_perception lines sit between segments to mark
+    pacing rather than break flow.
+
+  parameters:
+    - name: actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+
+    - name: segments
+      type: array
+      min_items: 2
+      max_items: 6
+      required: true
+      item:
+        fields:
+          segment_id:
+            type: string
+            required: true
+          intent:
+            type: string
+            required: true
+          required_facts:
+            type: array
+            required: true
+          quote_anchor:
+            type: ref
+            required: true
+          minimum_visible:
+            type: string
+            required: true
+          duration_target_seconds:
+            type: integer
+            range: [6, 20]
+            required: true
+          filler_perception_after:
+            type: array
+            item_type: string
+            max_items: 1
+            required: false
+            description: >-
+              Optional one-line narrator perception after this segment
+              (e.g. 'Michel nickt einmal kurz').
+
+    - name: paraphrase_policy
+      type: enum
+      values:
+        - structural_paraphrase_required
+        - short_anchor_quote_allowed
+      default: structural_paraphrase_required
+
+    - name: inter_segment_max_pause_seconds
+      type: integer
+      range: [1, 4]
+      default: 2
+
+  expands_to:
+    # Resolver produces one mandatory_beat per segment, with paraphrase_required_with_facts
+    # parameters propagated, plus optional narrator_perception_block beats between segments
+    # carrying filler_perception_after lines.
+    mandatory_beats_expansion: |
+      For each segment in segments:
+        emit beat {
+          id: "{{ segment.segment_id }}"
+          order: next
+          duration_target_seconds: "{{ segment.duration_target_seconds }}"
+          beat_pattern_ref: paraphrase_required_with_facts
+          beat_pattern_params: {
+            actor, intent, required_facts, quote_anchor, minimum_visible,
+            paraphrase_policy
+          }
+          player_status: spectator_blocked
+        }
+        if segment.filler_perception_after exists:
+          emit beat {
+            beat_pattern_ref: narrator_perception_block
+            beat_pattern_params: { perception_lines: filler_perception_after }
+            player_status: spectator_blocked
+            duration_target_seconds: 2
+          }
+
+  validation_when_used:
+    - rule_id: at_least_two_segments
+      severity: error
+
+    - rule_id: monologue_total_under_step_max
+      severity: error
+      description: >-
+        Sum of segment durations + filler durations + inter_segment pauses
+        must not exceed the parent step's duration_max_seconds.
+
+    - rule_id: all_segments_same_actor
+      severity: error
+      description: "A segmented monologue cannot switch speakers mid-pattern."
+
+    - rule_id: no_player_intrusion_window_inside_monologue
+      severity: error
+      description: >-
+        The parent step must declare player_intrusion_windows: [] for the
+        span covered by this pattern, or omit windows entirely between
+        segments. Player input is queued.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - beat_pattern_ref: scripted_monologue_segmented
+        beat_pattern_params:
+          actor: veronique
+          paraphrase_policy: structural_paraphrase_required
+          segments:
+            - segment_id: veronique_reads_date_and_aggression
+              intent: read_aloud_first_half_of_written_statement
+              required_facts:
+                - "date_token: 11. Januar 14:30"
+                - "aggressor_id: ferdinand"
+                - "aggressor_carried_word: armed"
+              quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+              minimum_visible: "zwei Sätze mit Datum und Aggressor"
+              duration_target_seconds: 14
+              filler_perception_after:
+                - "Michel nickt einmal kurz, ohne den Blick zu heben."
+            - segment_id: veronique_reads_injury_detail
+              intent: read_aloud_second_half_injury_clinical
+              required_facts:
+                - "injury_token_1: Schwellung_und_Bluterguss_Oberlippe"
+                - "injury_token_2: zwei_abgebrochene_Schneidezähne"
+                - "injury_token_3: Nervenverletzung_rechter_Schneidezahn"
+              quote_anchor: knowledge/opening_quote_anchors.yaml#quote_injury_detail
+              minimum_visible: "klinische Aufzählung der drei Verletzungselemente"
+              duration_target_seconds: 12
+
+  used_in_pilots:
+    - canonical_path_v2/005_statement_reading.yaml

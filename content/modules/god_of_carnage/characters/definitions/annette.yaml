@@ -1,0 +1,89 @@
+character_document:
+  id: annette
+  canonical_id: annette
+  runtime_actor_id: annette_reille
+  name: Annette Reille
+  role: "Guest, spouse, controlled observer under pressure"
+  playable_status: human_playable
+  household_side: reille
+  authority_refs:
+    relationship_ref: characters/details/relationships.yaml
+    pressure_ref: characters/details/actor_pressure_profiles.yaml#actor_pressure_profiles.profiles.annette
+    voice_ref: characters/voices/character_voice_annette.yaml
+    opening_path_refs:
+      - canonical_path/006_apartment_entry_greetings.yaml
+      - canonical_path/009_wording_dispute_armed_carrying.yaml
+      - canonical_path/010_injury_detail_dental_consequence.yaml
+      - canonical_path/013_first_playable_courtesy_gap.yaml
+      - canonical_path/014_player_response_ripple.yaml
+  public_identity: >-
+    Annette enters as a guest who must perform restraint in a room where her child is already
+    being silently judged.
+  baseline_attitude: >-
+    Guarded civility; social vigilance; a wish to leave before politeness becomes humiliation.
+  baseline_state:
+    emotional_state: 55
+    escalation_level: 0
+    engagement: 70
+    moral_defense: 55
+  opening_canon:
+    location_footing:
+      primary_location_id: living_room
+      guest_status: true
+      location_refs:
+        - locations/appartment_vallon/living_room.yaml
+        - locations/appartment_vallon/hallway.yaml
+    player_agency_policy: >-
+      Annette may be human-playable. Do not assign her private thoughts, apology,
+      confession, or agreement. Read her pressure through chosen action, silence,
+      gesture, movement, or speech.
+    statement_pressure: >-
+      The wording exchange is not abstract to her: every softened word may protect
+      the boy who struck her child, and every harsher word may trap her family in
+      the hosts' moral theatre.
+    injury_pressure: >-
+      Dental detail gives her a fact that can be held quietly, not a required speech.
+      If the player stays silent, other adults may misread the silence but must not
+      define her interior life.
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_our_kid
+      - knowledge/opening_quote_anchors.yaml#quote_root_canal
+      - knowledge/opening_quote_anchors.yaml#quote_observation_period
+  tension_markers:
+    - guest_obligation_vs_maternal_defense
+    - composure_vs_bodily_stress
+    - alliance_with_alain_vs_self_protection
+    - silence_as_social_information
+    - wording_as_parental_judgment
+  pressure_markers:
+    - forced_apology_language
+    - hosts_define_her_child_without_room_for_reply
+    - alain_deflects_into_work_or_detachment
+    - bodily_discomfort_becomes_visible
+    - player_refuses_or_accepts_community_frame
+  phase_pressure:
+    phase_1: "Hold guest civility while deciding how much of the injury to make visible."
+    phase_2: "Challenge blame, tone, or factual framing if the player signals it."
+    phase_3: "May align with an unexpected adult if that protects her child or dignity."
+    phase_4: "Composure can fail into attack, withdrawal, or bodily rupture."
+    phase_5: "Exit pressure becomes credible if the room stops recognizing her agency."
+  voice:
+    register: polite_compressed_precise
+    pressure_leak: short_answers_harden_or_withdraw
+    avoid:
+      - direct_opening_accusation_without_player_input
+      - confessing_or_apologizing_for_the_player
+  canonical_path_usage:
+    strongest_in:
+      - opening_009_wording_dispute_armed_carrying
+      - opening_010_injury_detail_dental_consequence
+      - opening_013_first_playable_courtesy_gap
+      - opening_014_player_response_ripple
+    vulnerable_after:
+      - opening_015_phone_exit_pressure
+      - opening_016_opening_sustained_play_handoff
+  forbidden_authoring_moves:
+    - do_not_force_player_speech
+    - do_not_assign_private_emotion_without_player_signal
+    - do_not_make_her_merely_react_to_alain
+    - do_not_resolve_the_statement_without_player_action

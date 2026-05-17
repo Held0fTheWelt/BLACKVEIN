@@ -6,8 +6,9 @@ module_id: god_of_carnage
 title: God of Carnage
 description: |-
   Single two-act play scenario: a dinner party escalating from polite negotiation
-  to emotional and relational breakdown. Four characters, multiple relationship axes,
-  formal trigger recognition system, and defined end states.
+  to emotional and relational breakdown. Four characters, relationship pressure,
+  a numbered canonical path, and reference-based locations, objects, and character
+  documents.
 
 # Module versioning
 version: "0.1.0"
@@ -17,7 +18,8 @@ contract_version: "0.2.0"
 content:
   # Duration and structure
   duration_turns_estimated: "20-35"
-  scene_phases: 5
+  phase_count: 5
+  phase_policy_source: phase_beat_policy.yaml
 
   # Player roles and party composition
   num_player_characters: 2
@@ -36,14 +38,19 @@ content:
 
 # Module organization references
 files:
-  - characters/index.yaml        # Character document index; per-character authority lives in characters/*.yaml
-  - characters/veronique.yaml
-  - characters/michel.yaml
-  - characters/annette.yaml
-  - characters/alain.yaml
-  - characters/relationships.yaml           # Relationship axes and dynamics
-  - characters/actor_pressure_profiles.yaml # Per-character pressure (English)
-  - characters/character_voice.yaml         # Character voice and tone guidance
+  - characters/index.yaml        # Character document index; per-character authority lives in characters/definitions/*.yaml
+  - characters/definitions/veronique.yaml
+  - characters/definitions/michel.yaml
+  - characters/definitions/annette.yaml
+  - characters/definitions/alain.yaml
+  - characters/details/relationships.yaml           # Relationship axes and dynamics
+  - characters/details/actor_pressure_profiles.yaml # Per-character pressure (English)
+  - characters/details/interaction_patterns.yaml    # Cross-character interaction pattern notes
+  - characters/voices/character_voice_veronique.yaml
+  - characters/voices/character_voice_michel.yaml
+  - characters/voices/character_voice_annette.yaml
+  - characters/voices/character_voice_alain.yaml
+  - characters/voices/voice_consistency.yaml
   - canonical_path/index.yaml               # Primary directed story spine
   - canonical_path/001_parc_montsouris_edge.yaml
   - canonical_path/002_argument_stick_blow.yaml
@@ -65,30 +72,58 @@ files:
   - objects/opening/bicycle_rack.yaml
   - objects/appartment_vallon/living_room/coffee_table.yaml
   - objects/appartment_vallon/living_room/dining_table.yaml
+  - objects/appartment_vallon/living_room/entry_mirror.yaml
+  - objects/appartment_vallon/living_room/coat_rack.yaml
+  - objects/appartment_vallon/living_room/blue_vase_lamp_table.yaml
+  - objects/appartment_vallon/living_room/living_room_cabinets.yaml
+  - objects/appartment_vallon/living_room/left_bookshelf.yaml
   - objects/appartment_vallon/living_room/window.yaml
+  - objects/appartment_vallon/living_room/champagne_curtains.yaml
+  - objects/appartment_vallon/living_room/facing_couches.yaml
+  - objects/appartment_vallon/living_room/art_books.yaml
+  - objects/appartment_vallon/living_room/mantel_display.yaml
+  - objects/appartment_vallon/living_room/glassware_cabinet.yaml
   - objects/appartment_vallon/living_room/television.yaml
   - objects/appartment_vallon/hallway/hallway_doors.yaml
+  - objects/appartment_vallon/hallway/locked_bathroom_door.yaml
+  - objects/appartment_vallon/kitchen/kitchen_window.yaml
+  - objects/appartment_vallon/kitchen/cookline.yaml
+  - objects/appartment_vallon/kitchen/pantry_cabinet.yaml
+  - objects/appartment_vallon/kitchen/refrigerator.yaml
+  - objects/appartment_vallon/kitchen/countertop_base_cabinet.yaml
+  - objects/appartment_vallon/kitchen/wall_cabinets.yaml
+  - objects/appartment_vallon/kitchen/kitchen_drawers.yaml
   - objects/appartment_vallon/kitchen/coffee_machine.yaml
   - objects/appartment_vallon/kitchen/glasses.yaml
+  - objects/appartment_vallon/dining_room/dining_room_table.yaml
+  - objects/appartment_vallon/dining_room/dining_room_sideboard.yaml
+  - objects/appartment_vallon/dining_room/china_cabinet.yaml
+  - objects/appartment_vallon/dining_room/place_settings.yaml
+  - objects/appartment_vallon/dining_room/fruit_bowl.yaml
+  - objects/appartment_vallon/dining_room/linen_napkins.yaml
+  - objects/appartment_vallon/dining_room/dining_room_wall_clock.yaml
+  - objects/appartment_vallon/bedroom/bedroom_bed.yaml
+  - objects/appartment_vallon/bedroom/bedside_tables.yaml
+  - objects/appartment_vallon/bedroom/bedroom_wardrobe.yaml
+  - objects/appartment_vallon/bedroom/laundry_chair.yaml
+  - objects/appartment_vallon/bedroom/ensuite_bathroom_door.yaml
   - objects/appartment_vallon/bathroom/bathroom_mirror.yaml
+  - objects/appartment_vallon/bathroom/bathroom_sink.yaml
+  - objects/appartment_vallon/bathroom/towel_rail.yaml
+  - objects/appartment_vallon/bathroom/medicine_cabinet.yaml
   - objects/appartment_vallon/pantry/pantry_shelves.yaml
   - objects/appartment_vallon/study/study_desk.yaml
+  - objects/appartment_vallon/study/study_bookshelves.yaml
+  - objects/appartment_vallon/study/study_clutter.yaml
+  - objects/appartment_vallon/study/study_pinboard.yaml
+  - objects/appartment_vallon/study/africa_map_darfur_pins.yaml
   - objects/building/apartment_door.yaml
   - objects/building/elevator.yaml
-  - escalation_axes.yaml         # Escalation dimensions and measurement
-  - scenes.yaml                  # Coarse phase layer
+  - knowledge/action_outcome_map.yaml  # Action-to-outcome relationship policy; includes portability handling
   - scene_graph.yaml             # Runtime/compatibility scene-node index; canonical_path is the directed spine
-  - transitions.yaml             # Scene transition conditions
-  - triggers.yaml                # Trigger definitions and recognition set
-  - endings.yaml                 # End state conditions and closure rules
   - direction/system_prompt.md           # LLM system prompt guidance
-  - direction/scene_guidance.yaml        # Per-scene constraints and context
   - direction/opening.md                 # Human-editable opening authoring document
   - direction/opening_sequence.yaml      # Session opening: two-part handover + narrator bar (ADR-0035)
-  - locale/module_strings.yaml           # Shell / diegetic player-visible strings per session_output_language
-  - locale/player_input_rules.yaml       # Data-only player-input patterns (greeting imperative, future rules)
-  - locale/model_directives/session_output_language_de.md
-  - locale/model_directives/session_output_language_en.md
   - locations/index.yaml                      # Location index and assignment policy
   - locations/appartment_vallon/apartment_layout.yaml           # Rooms, adjacency, visibility, privacy, offscreen rules (English)
   - locations/opening/park_edge.yaml
@@ -100,7 +135,10 @@ files:
   - locations/appartment_vallon/living_room.yaml
   - locations/appartment_vallon/hallway.yaml
   - locations/appartment_vallon/kitchen.yaml
+  - locations/appartment_vallon/dining_room.yaml
+  - locations/appartment_vallon/bedroom.yaml
   - locations/appartment_vallon/bathroom.yaml
+  - locations/appartment_vallon/hallway_bathroom_locked.yaml
   - locations/appartment_vallon/pantry.yaml
   - locations/appartment_vallon/study.yaml
   - locations/appartment_vallon/bedroom_one_locked.yaml
@@ -113,13 +151,17 @@ files:
   - knowledge/opening_quote_anchors.yaml
   - knowledge/hard_forbidden_rules.yaml
   - knowledge/content_access_policy.yaml
+  - hints/index.yaml
+  - hints/themes/violence_vs_civilization.yaml
+  - hints/symbols/art_books_opening_staging.yaml
+  - hints/character/alain_phone_distraction.yaml
 
 # Quality principles
 quality_principles:
   - "This module is reference, not exception: all engine logic must work for any similarly-structured module"
   - "No special-case God of Carnage runtime logic in the engine"
-  - "All character behavior flows through formal state transitions and validated triggers"
-  - "Relationships and escalation governed by explicit axes, not narrative prose"
+  - "Canonical path directs story order; phase_beat_policy governs coarse dramatic pacing"
+  - "Locations, objects, characters, and quote anchors are referenced, not restated as parallel databases"
 
 # Runtime intelligence policy
 # Module data opts into generic runtime governance features. The engine consumes

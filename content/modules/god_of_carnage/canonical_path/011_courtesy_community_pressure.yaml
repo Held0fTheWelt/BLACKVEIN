@@ -10,10 +10,10 @@ canonical_path_step:
     source: locations/appartment_vallon/living_room.yaml
     use_fields: [plausible_actions, sensory_tags]
   character_refs:
-    - characters/veronique.yaml
-    - characters/michel.yaml
-    - characters/annette.yaml
-    - characters/alain.yaml
+    - characters/definitions/veronique.yaml
+    - characters/definitions/michel.yaml
+    - characters/definitions/annette.yaml
+    - characters/definitions/alain.yaml
   quote_anchor_refs:
     - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
     - knowledge/opening_quote_anchors.yaml#quote_sense_of_community

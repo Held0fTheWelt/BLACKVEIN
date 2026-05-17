@@ -1,0 +1,408 @@
+canonical_path_schema:
+  id: goc_canonical_path_schema_v2
+  status: draft
+  version: v2.0.0-phase1
+  authoring_language: en
+  authority: module_authorial_path
+  primary_direction_surface: true
+  deprecates:
+    - canonical_path_step.v1
+  rationale: >-
+    v1 steps were theme-abstract (e.g. "hospitality_as_social_control") and
+    gave the Scene Director no concrete speech or action assignments. v2 binds
+    every step to a film-script anchor, decomposes it into ordered
+    mandatory_beats with explicit NPC-speak intents, required_facts,
+    quote_anchor references and forces_response chains. The narrator surface is
+    restricted to perception and action-filler; no theme-lecturing.
+
+  scope:
+    applies_to: content/modules/god_of_carnage/canonical_path_v2/*.yaml
+    source_release:
+      kind: shooting_script
+      release: polanski_2011_carnage
+      note: >-
+        The Polanski 2011 release is the dramaturgical reference. The
+        canonical_path_v2 is self-contained: every load-bearing fact lives
+        inside its step file, so the external script source need not be
+        bundled with the module.
+      name_mapping_ref: script_anchor/polanski_to_reza_name_map.yaml
+
+  # ------------------------------------------------------------------
+  # Step schema
+  # ------------------------------------------------------------------
+  step_schema:
+    required_fields:
+      - sequence
+      - id
+      - path_id
+      - name
+      - scene_anchor
+      - mode
+      - duration_target_seconds
+      - duration_max_seconds
+      - mandatory_beats
+      - themes_realized_here
+      - state_changes_committed
+      - next_step_unlock_when
+
+    optional_fields:
+      - location_ref
+      - support_refs
+      - object_refs
+      - character_refs
+      - optional_micro_beats
+      - player_intrusion_windows
+      - carry_forward_state
+
+    field_definitions:
+
+      sequence:
+        type: integer
+        constraint: monotonically_increasing_within_path
+
+      id:
+        type: string
+        pattern: "opening_v2_NNN_<slug>"
+        unique_within: canonical_path_v2
+
+      path_id:
+        type: string
+        allowed_values:
+          - goc_opening_canonical_path_v2
+
+      scene_anchor:
+        type: object
+        required:
+          - scene
+          - summary
+        fields:
+          scene:
+            type: integer
+            description: "Scene number in the Polanski 2011 release dramaturgy"
+          summary:
+            type: string
+            description: "Self-contained one-line description of what happens in this step"
+          continues_scene_from_step:
+            type: string
+            description: "Optional id of an earlier step that began the same scene"
+            optional: true
+
+      mode:
+        type: string
+        allowed_values:
+          - narrator_only_prologue        # 001-003-equivalents: no characters speak
+          - narrator_perception_handover  # transition with NPCs present but silent
+          - scripted_mandatory_dialog     # NPC speech is required and ordered
+          - scripted_with_player_window   # NPC speech required + bounded player turns
+          - player_driven_with_npc_reactions  # player leads, NPCs react per pattern
+          - phase_1_play_handoff          # final step, hands off to scene_graph
+
+      duration_target_seconds:
+        type: integer
+        range: [15, 180]
+
+      duration_max_seconds:
+        type: integer
+        range: [30, 240]
+        constraint: greater_than_or_equal_to(duration_target_seconds)
+
+      mandatory_beats:
+        type: array
+        min_items: 1
+        item: beat_schema
+        order_enforced: true
+
+      optional_micro_beats:
+        type: array
+        item: beat_schema
+        description: >-
+          Beats that may be added if the player is silent or the LDSS detects
+          pacing drift. Never required for step completion.
+
+      player_intrusion_windows:
+        type: array
+        item:
+          fields:
+            between:
+              type: array
+              items: beat_id
+              constraint: must_be_consecutive_pair_in_mandatory_beats
+            allowed:
+              type: array
+              items: player_action_kind
+            forbidden:
+              type: array
+              items: player_action_kind
+            redirect_policy:
+              type: string
+              description: >-
+                Narrator directive used when player attempts a forbidden action.
+                Must keep the player in the room without explicit refusal text.
+
+      themes_realized_here:
+        type: array
+        min_items: 1
+        item:
+          fields:
+            actor:
+              type: enum
+              values: [veronique, michel, annette, alain]
+            theme:
+              type: string
+              constraint: must_appear_in_actor_pressure_profiles_yaml
+            mechanism:
+              type: string
+              description: "How the theme enters in this step (one short phrase)"
+            evidence_required:
+              type: array
+              items: observable_state_or_speech_marker
+            blocks_progression_if_missing:
+              type: boolean
+              default: false
+              description: >-
+                If true, the step does not unlock the next step until this
+                theme is observably realized. Used for theme-arc gate.
+
+      state_changes_committed:
+        type: array
+        item:
+          fields:
+            key:
+              type: string
+              constraint: must_be_in_environment_state_or_runtime_intelligence_keys
+            from_value:
+              type: any
+              optional: true
+            to_value:
+              type: any
+            commit_irreversible:
+              type: boolean
+              default: false
+
+      next_step_unlock_when:
+        type: object
+        fields:
+          all_mandatory_beats_realized:
+            type: boolean
+            default: true
+          all_blocking_themes_realized:
+            type: boolean
+            default: true
+          minimum_seconds_elapsed:
+            type: integer
+            optional: true
+          escape_via_player_initiative:
+            type: object
+            optional: true
+            fields:
+              allowed: { type: boolean, default: false }
+              command_kinds:
+                type: array
+                items: enum
+                values:
+                  - explicit_scene_break
+                  - explicit_exit_attempt
+                  - explicit_topic_break
+
+  # ------------------------------------------------------------------
+  # Beat schema (used inside mandatory_beats and optional_micro_beats)
+  # ------------------------------------------------------------------
+  beat_schema:
+    required_fields:
+      - id
+      - order
+      - duration_target_seconds
+      - director_instruction
+      - player_status
+
+    field_definitions:
+
+      id:
+        type: string
+        pattern: "<slug>"
+        unique_within: step
+
+      order:
+        type: integer
+        constraint: monotonically_increasing_within_step_beats
+
+      duration_target_seconds:
+        type: integer
+        range: [4, 45]
+
+      director_instruction:
+        type: object
+        anyOf:
+          - npc_speak
+          - narrator_perception_only
+          - forces_response_from
+        allOf:
+          - player_status
+        fields:
+
+          npc_speak:
+            type: object
+            optional: true
+            fields:
+              actor:
+                type: enum
+                values: [veronique, michel, annette, alain]
+              intent:
+                type: string
+                description: >-
+                  Short imperative describing what the actor must accomplish in
+                  speech (NOT the literal line). E.g.
+                  "object_to_word_armed", "offer_compromise_word_carrying",
+                  "read_aloud_written_statement".
+              required_facts:
+                type: array
+                items: fact_token
+                description: >-
+                  Facts that must appear in the spoken line. The LDSS validates
+                  that the generated line contains paraphrases of each token.
+              quote_anchor:
+                type: string
+                pattern: "<path>#<anchor_id>"
+                description: >-
+                  Reference into knowledge/opening_quote_anchors.yaml. The
+                  spoken line should evoke this anchor without verbatim
+                  reproduction unless paraphrase_policy says otherwise.
+              paraphrase_policy:
+                type: enum
+                values:
+                  - structural_paraphrase_required
+                  - short_anchor_quote_allowed
+                  - verbatim_forbidden
+                default: structural_paraphrase_required
+              minimum_visible:
+                type: string
+                description: >-
+                  Floor of what the line must visibly contain. E.g. "single
+                  word as question", "two sentences with the injury detail".
+              forbidden_drift:
+                type: array
+                items: string
+                description: "Specific failure modes the line must not exhibit."
+
+          narrator_perception_only:
+            type: array
+            optional: true
+            items:
+              type: string
+              constraint: must_describe_only_perception_or_filler_action
+            forbidden_content:
+              - thematic_commentary
+              - moral_evaluation
+              - private_thoughts_of_any_character
+              - prediction_of_future_state
+            allowed_content:
+              - sensory_detail_from_location_or_object_refs
+              - body_posture_and_position
+              - light_sound_atmosphere_taken_from_sensory_tags
+              - small_filler_action_visible_to_all
+              - silence_or_pause_markers
+
+          forces_response_from:
+            type: object
+            optional: true
+            description: >-
+              Declares that another actor MUST respond to this beat's speech
+              before the step continues. Used to enforce script-mandated
+              dialog chains.
+            fields:
+              actor:
+                type: enum
+                values: [veronique, michel, annette, alain]
+              intent:
+                type: string
+              required_state_change:
+                type: string
+                optional: true
+              max_delay_seconds:
+                type: integer
+                default: 8
+
+          player_status:
+            type: enum
+            values:
+              - spectator_blocked          # player input is queued, no visible action
+              - observer_no_initiative      # player can observe; cannot speak
+              - observer_window_open        # player may speak or act, low-pressure
+              - fully_playable              # player drives the beat
+            default: spectator_blocked
+
+  # ------------------------------------------------------------------
+  # Narrator constraints (global; enforced per beat)
+  # ------------------------------------------------------------------
+  narrator_global_rules:
+    role: perception_and_filler_action_only
+    must_not:
+      - lecture_themes_or_morals
+      - assign_player_private_thought
+      - assign_player_speech
+      - predict_consequences
+      - summarize_back_what_was_just_said
+      - reproduce_long_verbatim_source_quotes
+    must:
+      - keep_each_perception_block_under_two_sentences
+      - reference_sensory_tags_from_locations_or_objects_files
+      - use_present_tense_visible_third_person
+      - leave_subtext_inside_npc_speech_not_narration
+
+  # ------------------------------------------------------------------
+  # Reference policy (inherited from v1, hardened)
+  # ------------------------------------------------------------------
+  reference_policy:
+    location_facts_live_under: locations/
+    object_facts_live_under: objects/
+    character_facts_live_under: characters/
+    quote_anchors_live_under: knowledge/opening_quote_anchors.yaml
+    name_mapping_lives_under: script_anchor/polanski_to_reza_name_map.yaml
+    steps_must_reference_location_files: true
+    steps_must_not_duplicate_location_descriptions: true
+    steps_must_declare_scene_anchor: true
+    beat_patterns_live_under: direction/beat_library/
+
+  # ------------------------------------------------------------------
+  # Validation gates (enforced via tests/gates/test_canonical_path_v2_*)
+  # ------------------------------------------------------------------
+  validation_gates:
+    - id: every_step_has_scene_anchor
+      severity: error
+      description: "scene_anchor.scene must be a positive integer; summary must be non-empty"
+    - id: mandatory_beats_have_directors_instruction
+      severity: error
+      description: "Each beat must contain at least one of npc_speak / narrator_perception_only / forces_response_from"
+    - id: quote_anchors_resolve
+      severity: error
+      description: "Every quote_anchor ref must resolve in knowledge/opening_quote_anchors.yaml"
+    - id: forces_response_targets_present_actor
+      severity: error
+      description: "forces_response_from.actor must be among present characters of the step"
+    - id: narrator_perception_blocks_pass_lexical_filter
+      severity: error
+      description: "narrator_perception_only entries must not contain theme-lecture vocabulary (keyword filter from narrator_global_rules.must_not)"
+    - id: theme_arc_realization_within_path
+      severity: error
+      description: "Every actor's themes_to_realize list (see theme_coverage_map.yaml, Phase 3) must be hit by at least one step before its declared deadline step"
+    - id: step_duration_within_target
+      severity: warning
+      description: "Sum of beat durations must be within [duration_target_seconds, duration_max_seconds]"
+
+  # ------------------------------------------------------------------
+  # Phase tracking (this file is Phase 1 deliverable)
+  # ------------------------------------------------------------------
+  phase_1_deliverable:
+    schema_spec: _schema_v2.yaml
+    pilot_steps:
+      - canonical_path_v2/004_den_arrival_positioning.yaml
+      - canonical_path_v2/005_statement_reading.yaml
+      - canonical_path_v2/006_armed_vs_carrying.yaml
+    pilot_coverage:
+      scenes: [2]
+      content_range: "den arrival through armed vs carrying compromise"
+    not_yet_built:
+      - beat_library/  (Phase 2)
+      - theme_coverage_map.yaml  (Phase 3)
+      - tests/gates/test_canonical_path_v2_*  (Phase 6)
+      - LDSS-engine consumption  (Phase 5)

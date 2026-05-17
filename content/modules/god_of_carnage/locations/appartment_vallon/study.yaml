@@ -18,6 +18,10 @@ location:
   inventory_policy: authored_or_optional_work_inventory
   inventory_object_ids:
     - study_desk
+    - study_bookshelves
+    - study_clutter
+    - study_pinboard
+    - africa_map_darfur_pins
   sensory_tags: [desk, papers, books, private_host_space]
   plausible_actions: [look_at, listen_to, inspect_work_surface]
   forbidden_actions: [read_private_documents_without_scene_gate, invent_decisive_hidden_evidence]

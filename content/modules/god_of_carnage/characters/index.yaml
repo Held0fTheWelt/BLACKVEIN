@@ -1,14 +1,14 @@
 # Character document index for God of Carnage.
-# Canonical character authoring lives in characters/*.yaml.
+# Canonical character authoring lives in characters/definitions/*.yaml.
 
 characters_index:
   authority: per_character_documents
-  directory: characters/
+  directory: characters/definitions/
   documents:
-    veronique: characters/veronique.yaml
-    michel: characters/michel.yaml
-    annette: characters/annette.yaml
-    alain: characters/alain.yaml
+    veronique: characters/definitions/veronique.yaml
+    michel: characters/definitions/michel.yaml
+    annette: characters/definitions/annette.yaml
+    alain: characters/definitions/alain.yaml
   loader_contract: >-
     Runtime loaders derive the compact character roster from these documents. Do not restore
-    a full character collection here; edit the per-character files instead.
+    a full character collection here; edit the per-character files in definitions/ instead.

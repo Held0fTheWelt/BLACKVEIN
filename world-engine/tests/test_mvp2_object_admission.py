@@ -311,8 +311,9 @@ def test_god_of_carnage_content_module_owns_story_truth():
     goc_dir = repo_root / "content" / "modules" / "god_of_carnage"
 
     assert goc_dir.is_dir(), "content/modules/god_of_carnage/ must exist"
-    assert (goc_dir / "characters.yaml").exists(), "characters.yaml must exist in canonical content"
-    assert (goc_dir / "scenes.yaml").exists(), "scenes.yaml must exist in canonical content"
+    assert (goc_dir / "characters" / "index.yaml").exists(), "characters/index.yaml must exist in canonical content"
+    assert (goc_dir / "canonical_path" / "index.yaml").exists(), "canonical_path/index.yaml must exist in canonical content"
+    assert (goc_dir / "phase_beat_policy.yaml").exists(), "phase_beat_policy.yaml must exist in canonical content"
 
 
 def test_goc_solo_not_under_content_modules():

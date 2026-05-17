@@ -185,9 +185,9 @@ class TestModuleValidatorGodOfCarnage:
         assert phases["phase_4"].sequence == 4
         assert phases["phase_5"].sequence == 5
 
-    def test_god_of_carnage_has_triggers(self, god_of_carnage_module):
-        """Verify God of Carnage has expected trigger types."""
-        expected_triggers = {
+    def test_god_of_carnage_uses_phase_pressure_markers(self, god_of_carnage_module):
+        """Verify God of Carnage keeps pressure markers in phase_beat_policy."""
+        expected_markers = {
             "contradiction",
             "exposure",
             "relativization",
@@ -197,20 +197,20 @@ class TestModuleValidatorGodOfCarnage:
             "collapse_indicators",
             "retreat_signals",
         }
-        actual_triggers = set(god_of_carnage_module.trigger_definitions.keys())
-        assert expected_triggers.issubset(actual_triggers)
-
-    def test_god_of_carnage_has_endings(self, god_of_carnage_module):
-        """Verify God of Carnage has expected ending types."""
-        expected_endings = {
-            "emotional_breakdown",
-            "forced_exit",
-            "stalemate_resolution",
-            "maximum_escalation_breach",
-            "maximum_turn_limit",
+        phases = god_of_carnage_module.phase_beat_policy.get("phases") or {}
+        actual_markers = {
+            marker
+            for phase in phases.values()
+            for marker in (phase.get("pressure_markers") or [])
         }
-        actual_endings = set(god_of_carnage_module.ending_conditions.keys())
-        assert expected_endings.issubset(actual_endings)
+        assert expected_markers.issubset(actual_markers)
+        assert god_of_carnage_module.trigger_definitions == {}
+
+    def test_god_of_carnage_uses_phase_closure_pressure(self, god_of_carnage_module):
+        """Verify God of Carnage no longer owns a separate endings database."""
+        phase_5 = (god_of_carnage_module.phase_beat_policy.get("phases") or {}).get("phase_5") or {}
+        assert phase_5.get("exit_condition")
+        assert god_of_carnage_module.ending_conditions == {}
 
 
 class TestModuleValidatorSyntheticErrors:

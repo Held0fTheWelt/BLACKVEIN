@@ -22,6 +22,13 @@ location:
         kind: service_threshold
   inventory_policy: domestic_service_objects
   inventory_object_ids:
+    - kitchen_window
+    - cookline
+    - pantry_cabinet
+    - refrigerator
+    - countertop_base_cabinet
+    - wall_cabinets
+    - kitchen_drawers
     - coffee_machine
     - glasses
   sensory_tags: [coffee_machine, dishes, offscreen_pause]

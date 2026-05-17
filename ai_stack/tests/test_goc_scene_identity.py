@@ -1,4 +1,4 @@
-"""Contract tests for GoC scene_id → scene_guidance phase identity (ADR-0003)."""
+"""Contract tests for GoC scene_id → phase-policy guidance identity (ADR-0003)."""
 
 from __future__ import annotations
 
@@ -20,16 +20,18 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _load_scenes_yaml_phase_ids() -> set[str]:
+def _load_phase_policy_phase_ids() -> set[str]:
     try:
         import yaml
     except ModuleNotFoundError:  # pragma: no cover
         pytest.skip("PyYAML required")
-    path = _repo_root() / "content" / "modules" / GOC_MODULE_ID / "scenes.yaml"
+    path = _repo_root() / "content" / "modules" / GOC_MODULE_ID / "phase_beat_policy.yaml"
     raw = path.read_text(encoding="utf-8")
     data = yaml.safe_load(raw)
     assert isinstance(data, dict)
-    phases = data.get("scene_phases")
+    policy = data.get("phase_beat_policy")
+    assert isinstance(policy, dict)
+    phases = policy.get("phases")
     assert isinstance(phases, dict)
     out: set[str] = set()
     for pid, block in phases.items():
@@ -42,25 +44,25 @@ def _load_scenes_yaml_phase_ids() -> set[str]:
     return out
 
 
-def test_every_mapping_target_exists_in_scene_guidance() -> None:
+def test_every_mapping_target_exists_in_phase_policy_guidance() -> None:
     sg = load_goc_scene_guidance_yaml()
     for scene_id, phase_key in GOC_SCENE_ID_TO_GUIDANCE_PHASE.items():
         assert phase_key in sg, f"scene_id {scene_id!r} maps to missing guidance key {phase_key!r}"
 
 
-def test_guidance_phase_blocks_are_dicts() -> None:
+def test_phase_policy_guidance_blocks_are_dicts() -> None:
     sg = load_goc_scene_guidance_yaml()
     for key in all_expected_guidance_phase_keys():
         block = sg.get(key)
         assert isinstance(block, dict), f"guidance key {key!r} must be a mapping block"
 
 
-def test_scenes_yaml_phase_ids_resolve_through_canonical_map() -> None:
+def test_phase_policy_ids_resolve_through_canonical_map() -> None:
     """Runtime projection uses phase_1..phase_5 ids; each must map to a real guidance block."""
-    for pid in sorted(_load_scenes_yaml_phase_ids()):
+    for pid in sorted(_load_phase_policy_phase_ids()):
         resolved = guidance_phase_key_for_scene_id(pid)
         sg = load_goc_scene_guidance_yaml()
-        assert resolved in sg, f"scenes.yaml id {pid!r} resolved to {resolved!r} missing from guidance"
+        assert resolved in sg, f"phase policy id {pid!r} resolved to {resolved!r} missing from guidance"
 
 
 def test_unknown_scene_id_uses_default() -> None:

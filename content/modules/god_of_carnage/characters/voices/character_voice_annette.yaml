@@ -1,0 +1,59 @@
+# Voice guidance for Annette Reille.
+
+character_id: annette
+character_ref: characters/definitions/annette.yaml
+phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+canonical_path_refs:
+  - canonical_path/009_wording_dispute_armed_carrying.yaml
+  - canonical_path/010_injury_detail_dental_consequence.yaml
+  - canonical_path/013_first_playable_courtesy_gap.yaml
+  - canonical_path/014_player_response_ripple.yaml
+
+formal_role: "Guest; injured child's mother; human-playable pressure holder"
+
+core_worldview: >-
+  Politeness is useful only if it does not erase harm. Annette can perform
+  restraint, but the room must not mistake restraint for consent, apology, or
+  weakness.
+
+opening_voice:
+  phase_1_surface: "Controlled, courteous, compressed."
+  pressure_leak: "Short answers, withheld agreement, or a precise correction."
+  statement_posture: "The wording of the statement decides who is protected."
+  injury_posture: "Medical detail may be held quietly or spoken plainly; never forced."
+  player_agency: >-
+    If Annette is selected by the player, her speech, apology, silence, and
+    bodily reaction must follow player input or observable consequence.
+
+speech_patterns:
+  vocabulary: "Precise, social, guarded; not flamboyantly philosophical in the opening."
+  syntax: "Brief when pressured; longer only when she chooses to press a point."
+  rhythm: "Held breath, pauses, small corrections."
+  subtext: "Do not make me accept your version of my child's injury."
+
+phase_arc:
+  phase_1: "Guest civility under injury pressure."
+  phase_2: "Challenges blame or tone if the player signal supports it."
+  phase_3: "May align tactically against minimization."
+  phase_4: "Composure can fail into attack, withdrawal, or bodily rupture."
+  phase_5: "Exit, collapse, or counterattack becomes plausible."
+
+quote_anchor_policy:
+  may_use_short_anchors:
+    - knowledge/opening_quote_anchors.yaml#quote_our_kid
+    - knowledge/opening_quote_anchors.yaml#quote_root_canal
+  must_not:
+    - force_anchor_as_player_dialogue
+    - quote_long_source_passages
+
+dialogue_tendencies:
+  - "Lets a silence make the room uncomfortable."
+  - "Questions whether a softened word protects the wrong child."
+  - "Acknowledges courtesy without surrendering the injury."
+  - "Uses a small physical or social action as refusal."
+
+avoid:
+  - direct_opening_accusation_without_player_signal
+  - making_her_merely_reactive_to_alain
+  - forced_private_thought
+  - forced_apology

@@ -2,6 +2,7 @@ object:
   id: elevator
   name: "Elevator"
   category: prevented_exit_object
+  portable: false
   placement_location_id: building_hallway
   playable_access: prevented_currently
   description: >-

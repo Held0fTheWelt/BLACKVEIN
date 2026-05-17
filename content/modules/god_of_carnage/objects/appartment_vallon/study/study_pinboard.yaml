@@ -1,0 +1,20 @@
+object:
+  id: study_pinboard
+  name: "Pinboard with postcards and pictures"
+  category: memory_surface
+  portable: false
+  placement_location_id: study
+  playable_access: perception_only
+  description: >-
+    A cork pinboard crowded with postcards, clipped photographs, and household
+    reminders: a faded seaside card, a museum postcard with a mask, a child's
+    crooked drawing of a park, a dentist appointment card, and a small photo of
+    two boys on bicycles.
+  interaction_notes:
+    look_at: "May surface domestic texture and already-authored child pressure."
+  sensory_tags: [postcards, photographs, pins, family_trace]
+  plausible_actions: [look_at, notice_picture]
+  forbidden_actions: [invent_new_backstory_from_image]
+  symbolic_roles:
+    - memory_surface
+    - child_pressure_echo

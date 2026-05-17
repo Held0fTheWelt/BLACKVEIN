@@ -1,0 +1,16 @@
+director_surface_hint:
+  id: goc_hint_violence_vs_civilization_master
+  hint_type: phase_context
+  text: >-
+    Master conflict: civilization as affect self-control versus violence when a
+    protagonist feels attacked (verbal or non-verbal). Civility fails at the
+    perceived insult, not abstract debate. Moral negotiation often hinges on
+    whether an apology is voluntary and owns full responsibility, or is managed
+    away as natural boyish conflict.
+  source: hints/themes/violence_vs_civilization.yaml
+  player_visible: false
+  applies_when:
+    guidance_phase_keys:
+      - phase_1_polite_opening
+      - phase_2_moral_negotiation
+      - phase_3_faction_shifts

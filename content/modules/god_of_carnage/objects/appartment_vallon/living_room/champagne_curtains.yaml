@@ -1,0 +1,19 @@
+object:
+  id: champagne_curtains
+  name: "Champagne curtains"
+  category: textile_perception_surface
+  portable: false
+  placement_location_id: living_room
+  playable_access: active_object
+  description: >-
+    Champagne-colored curtains to the right of the room, softening the window
+    light and making the outside feel curated rather than open.
+  interaction_notes:
+    look_at: "Perception-only unless someone adjusts them."
+    open: "Reveals more window light, not a new exterior scene."
+  sensory_tags: [curtains, champagne_fabric, filtered_light]
+  plausible_actions: [look_at, open, close]
+  forbidden_actions: [turn_window_into_exit]
+  symbolic_roles:
+    - exposure_surface
+    - domestic_display

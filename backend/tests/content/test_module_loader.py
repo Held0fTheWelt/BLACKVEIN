@@ -171,11 +171,7 @@ class TestModuleLoaderIntegration:
         assert "module" in files
         assert "characters" in files
         assert "relationships" in files
-        assert "scenes" in files
-        assert "transitions" in files
-        assert "triggers" in files
-        assert "endings" in files
-        assert "escalation_axes" in files
+        assert "phase_beat_policy" in files
         assert "apartment_layout" in files
         assert "objects" in files
         assert "premise_and_backstory" in files
@@ -187,6 +183,10 @@ class TestModuleLoaderIntegration:
         assert "hard_forbidden_rules" in files
         assert "canonical_path" in files
         assert "modularity_policy" in files
+        assert "transitions" not in files
+        assert "triggers" not in files
+        assert "endings" not in files
+        assert "escalation_axes" not in files
 
         # Structure validation
         validator = ModuleStructureValidator()

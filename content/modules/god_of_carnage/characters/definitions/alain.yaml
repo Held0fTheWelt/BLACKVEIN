@@ -1,0 +1,89 @@
+character_document:
+  id: alain
+  canonical_id: alain
+  runtime_actor_id: alain_reille
+  name: Alain Reille
+  role: "Guest, spouse, lawyerly pragmatist, phone-tethered avoider"
+  playable_status: human_playable
+  household_side: reille
+  authority_refs:
+    relationship_ref: characters/details/relationships.yaml
+    pressure_ref: characters/details/actor_pressure_profiles.yaml#actor_pressure_profiles.profiles.alain
+    voice_ref: characters/voices/character_voice_alain.yaml
+    opening_path_refs:
+      - canonical_path/004_dark_building_hallway.yaml
+      - canonical_path/008_statement_on_table.yaml
+      - canonical_path/009_wording_dispute_armed_carrying.yaml
+      - canonical_path/015_phone_exit_pressure.yaml
+  public_identity: >-
+    Alain treats the meeting as a social problem to contain while other obligations keep pulling
+    his attention away from the room.
+  baseline_attitude: >-
+    Manage the conversation, avoid emotional exposure, and preserve exit routes.
+  baseline_state:
+    emotional_state: 45
+    escalation_level: 0
+    engagement: 55
+    moral_defense: 45
+  opening_canon:
+    location_footing:
+      primary_location_id: living_room
+      guest_status: true
+      pressure_location_refs:
+        - locations/building/building_hallway.yaml
+        - locations/building/building_stairwell.yaml
+      object_refs:
+        - objects/building/elevator.yaml
+        - objects/building/apartment_door.yaml
+    player_agency_policy: >-
+      Alain may be human-playable. Do not make him apologize, abandon Annette,
+      take a call, or leave unless the player action supports it.
+    statement_pressure: >-
+      He hears wording as liability and procedure. The "armed" / "carrying" exchange
+      lets him appear reasonable while reducing moral exposure.
+    prevented_exit_pressure: >-
+      The dark building hallway and non-arriving elevator are pressure references,
+      not free exits. His lack of signal and expected call create pressure without
+      turning movement into a forbidden action.
+    quote_anchor_refs:
+      - knowledge/opening_quote_anchors.yaml#quote_armed
+      - knowledge/opening_quote_anchors.yaml#quote_carrying
+      - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+  tension_markers:
+    - legal_pragmatism_vs_parental_presence
+    - spouse_loyalty_vs_detachment
+    - exit_desire_vs_social_obligation
+    - phone_pressure_vs_room_presence
+    - procedure_as_emotional_avoidance
+  pressure_markers:
+    - phone_or_work_intrudes_at_wrong_moment
+    - annette_is_left_exposed
+    - hosts_turn_procedure_into_moral_trial
+    - prevented_exit_becomes_socially_visible
+    - player_silence_reads_as_calculation
+  phase_pressure:
+    phase_1: "Keep language procedural; look for exit handles without openly fleeing."
+    phase_2: "Offer compromise language or legal distance if conflict becomes moralized."
+    phase_3: "Risk isolation from Annette if his detachment becomes too visible."
+    phase_4: "Distance can turn into contempt or failed retreat."
+    phase_5: "Departure pressure or collapse of mediation becomes the likely closure shape."
+  voice:
+    register: dry_controlled_pragmatic
+    pressure_leak: legal_distance_becomes_contempt
+    avoid:
+      - host_of_house_welcome
+      - emotional_confession_in_opening
+  canonical_path_usage:
+    strongest_in:
+      - opening_004_dark_building_hallway
+      - opening_008_statement_on_table
+      - opening_009_wording_dispute_armed_carrying
+      - opening_015_phone_exit_pressure
+    vulnerable_after:
+      - opening_014_player_response_ripple
+      - opening_016_opening_sustained_play_handoff
+  forbidden_authoring_moves:
+    - do_not_make_him_host_the_apartment
+    - do_not_make_him_speak_for_annette_player
+    - do_not_make_prevented_exit_a_forbidden_action
+    - do_not_invent_phone_content_beyond_authored_pressure

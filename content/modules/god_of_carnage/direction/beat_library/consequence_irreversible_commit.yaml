@@ -1,0 +1,131 @@
+beat_pattern:
+  id: consequence_irreversible_commit
+  version: v1
+  category: structural
+  purpose: >-
+    Declares a state change that is committed irreversibly once a beat
+    fires. Used for canon-load-bearing facts that must remain true for the
+    rest of the run regardless of LLM drift. Examples: the injury facts
+    (two broken incisors, nerve damage right incisor) once read aloud by
+    Veronique; the corrected word 'carrying' once typed; Nancy's vomiting
+    on the Kokoschka catalog; the destruction of Alan's phone in the
+    tulips. Once these commit, the runtime treats them as authored truth.
+
+  parameters:
+    - name: trigger_beat_id
+      type: string
+      required: true
+      description: "ID of the mandatory_beat that, on completion, commits the change."
+
+    - name: state_key
+      type: string
+      required: true
+      description: >-
+        Dotted path in environment_state or runtime_intelligence.
+        Must be in the registered keys list of the canonical_path schema.
+
+    - name: to_value
+      type: any
+      required: true
+      description: "The value committed after trigger_beat completes."
+
+    - name: from_value
+      type: any
+      required: false
+      description: >-
+        Optional expected prior value. If set, the commit is rejected
+        when the actual prior value does not match. Used for protecting
+        ordered state transitions.
+
+    - name: rollback_policy
+      type: enum
+      values:
+        - never                  # truly irreversible (e.g. injury knowledge)
+        - only_via_explicit_adr  # rollback requires an architectural decision
+        - allowed_until_step_N   # may be rolled back before step N
+      default: never
+
+    - name: visibility_scope
+      type: enum
+      values:
+        - all_actors_in_room
+        - hosts_only
+        - guests_only
+        - operator_only_diagnostic
+      default: all_actors_in_room
+
+    - name: surface_in_committed_truth
+      type: boolean
+      default: true
+      description: >-
+        If true, the value appears in committed_state and is recallable
+        by RAG into later turns. Set false for diagnostic-only state.
+
+  expands_to:
+    state_changes_committed_entry:
+      key: "{{ state_key }}"
+      from_value: "{{ from_value or undefined }}"
+      to_value: "{{ to_value }}"
+      commit_irreversible: "{{ rollback_policy == 'never' }}"
+      committed_after_beat: "{{ trigger_beat_id }}"
+      visibility_scope: "{{ visibility_scope }}"
+      surface_in_committed_truth: "{{ surface_in_committed_truth }}"
+
+  validation_when_used:
+    - rule_id: trigger_beat_exists_in_step
+      severity: error
+      description: "trigger_beat_id must reference an actual mandatory_beat in the parent step."
+
+    - rule_id: state_key_in_registry
+      severity: error
+      description: >-
+        state_key must match a registered key in environment_state or
+        runtime_intelligence (see _schema_v2.yaml state registry). Unknown
+        keys are rejected to prevent state-namespace drift.
+
+    - rule_id: irreversible_requires_paired_npc_speak_or_perception
+      severity: error
+      description: >-
+        rollback_policy=never requires that the trigger_beat have at
+        least one npc_speak or narrator_perception_only block. A state
+        cannot commit irreversibly from an empty beat.
+
+    - rule_id: from_value_check
+      severity: warning
+      description: >-
+        If from_value is set, the LDSS verifies the current state matches
+        before commit. Mismatch is logged but does not block by default.
+
+    - rule_id: rag_visibility_for_committed_truth
+      severity: warning
+      description: >-
+        surface_in_committed_truth=true entries become RAG-retrievable.
+        Sensitive items (e.g. operator diagnostics) should set
+        visibility_scope=operator_only_diagnostic AND
+        surface_in_committed_truth=false.
+
+  example_usage_in_step:
+    state_changes_committed:
+      - beat_pattern_ref: consequence_irreversible_commit
+        beat_pattern_params:
+          trigger_beat_id: veronique_reads_injury_detail
+          state_key: runtime_intelligence.injury_facts_visible_to_all
+          to_value:
+            - swelling_upper_lip
+            - two_broken_incisors
+            - nerve_damage_right_incisor
+          rollback_policy: never
+          visibility_scope: all_actors_in_room
+          surface_in_committed_truth: true
+
+  used_in_pilots:
+    - canonical_path_v2/005_statement_reading.yaml#injury_facts_visible_to_all
+    - canonical_path_v2/005_statement_reading.yaml#first_pressure_seed (rollback_policy != never)
+    - canonical_path_v2/006_armed_vs_carrying.yaml#statement_text_state (rollback_policy: never)
+    - canonical_path_v2/006_armed_vs_carrying.yaml#first_compromise_log (rollback_policy: never)
+
+  anticipated_recurrences_across_path:
+    - canonical_step: opening_v2_023  # Annette vomits on Kokoschka catalog (catalog destroyed)
+    - canonical_step: opening_v2_033  # Annette soaks Alain's phone in tulip water (phone destroyed)
+    - canonical_step: opening_v2_035  # Veronique smashes the tulips (flowers destroyed)
+    - canonical_step: opening_v2_037  # hamster alive in park (ironic counter-commit)

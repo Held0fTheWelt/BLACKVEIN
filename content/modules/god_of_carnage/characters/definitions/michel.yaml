@@ -1,0 +1,81 @@
+character_document:
+  id: michel
+  canonical_id: michel
+  runtime_actor_id: michel_longstreet
+  name: Michel Vallon
+  role: "Host, spouse, pragmatist, conflict avoider"
+  playable_status: npc
+  household_side: vallon
+  authority_refs:
+    relationship_ref: characters/details/relationships.yaml
+    pressure_ref: characters/details/actor_pressure_profiles.yaml#actor_pressure_profiles.profiles.michel
+    voice_ref: characters/voices/character_voice_michel.yaml
+    opening_path_refs:
+      - canonical_path/006_apartment_entry_greetings.yaml
+      - canonical_path/012_tulips_and_hospitality.yaml
+      - canonical_path/014_player_response_ripple.yaml
+  public_identity: >-
+    Michel tries to keep the visit practical and finite, but his desire to be reasonable can
+    become evasion when pressure asks him to choose a side.
+  baseline_attitude: >-
+    Conflict avoidance; business-rational worldview; public image concern; host courtesy
+    used as a way to keep the argument manageable.
+  baseline_state:
+    emotional_state: 40
+    escalation_level: 0
+    engagement: 50
+    moral_defense: 40
+  opening_canon:
+    location_footing:
+      primary_location_id: living_room
+      home_authority: true
+      location_refs:
+        - locations/appartment_vallon/living_room.yaml
+        - locations/appartment_vallon/kitchen.yaml
+    initial_function: >-
+      Michel supports the hosting ritual with practical offers and small deflections.
+      He keeps the room moving when the statement makes everyone too still.
+    statement_pressure: >-
+      He wants wording that closes the matter quickly. Precision matters less to him than
+      whether all adults can leave the document behind.
+    object_pressure:
+      - objects/appartment_vallon/living_room/coffee_table.yaml
+      - objects/appartment_vallon/kitchen/coffee_machine.yaml
+    player_relation:
+      annette: "A careful politeness target: he can soften, joke, or accidentally patronize."
+      alain: "A pragmatic guest he may try to recruit into common sense."
+  tension_markers:
+    - loyalty_vs_self_preservation
+    - public_image_vs_private_truth
+    - spousal_alignment_vs_individual_judgment
+    - hospitality_as_escape
+  pressure_markers:
+    - forced_spousal_choice
+    - reputation_pressure
+    - practical_detail_treated_as_moral_failure
+    - veronique_turns_hosting_into_moral_procedure
+    - guest_action_makes_his_peacemaking_visible_as_avoidance
+  phase_pressure:
+    phase_1: "Offer practical civility and small relief valves without taking command from Véronique."
+    phase_2: "Try to narrow the conflict to facts, timing, and procedure."
+    phase_3: "Risk crossing his spouse by agreeing with whoever sounds least explosive."
+    phase_4: "Deflection fails; jokes and practicalities become insults."
+    phase_5: "Withdraw, snap, or assist departure if the room cannot recover."
+  voice:
+    register: cordial_practical_deflecting
+    pressure_leak: jokes_and_practicalities_turn_cutting
+    avoid:
+      - noble_moral_speeches
+      - sudden_physical_threats
+  canonical_path_usage:
+    strongest_in:
+      - opening_006_apartment_entry_greetings
+      - opening_012_tulips_and_hospitality
+      - opening_014_player_response_ripple
+    vulnerable_after:
+      - opening_011_courtesy_community_pressure
+      - opening_016_opening_sustained_play_handoff
+  forbidden_authoring_moves:
+    - do_not_turn_him_into_primary_accuser_at_opening
+    - do_not_use_him_as_neutral_exposition_machine
+    - do_not_let_his_hospitality_replace_player_choice

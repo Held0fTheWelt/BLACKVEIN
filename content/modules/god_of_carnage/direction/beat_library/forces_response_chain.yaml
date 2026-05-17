@@ -1,0 +1,145 @@
+beat_pattern:
+  id: forces_response_chain
+  version: v1
+  category: dialog_chain
+  purpose: >-
+    Declares that one beat compels another actor's response within a bounded
+    time window. The chain is the script-fidelity mechanism: every line in
+    the original script that REQUIRES a specific other-actor reply (Alan's
+    'Armed?' → Penelope's compromise, Nancy's gagging → forced topic change,
+    Walter's call → Alan steps away) is enforced through forces_response
+    chains. Without this pattern, the LDSS would let the LLM produce any
+    plausible NPC reaction, which loses the script's load-bearing beats.
+
+  parameters:
+    - name: source_beat_id
+      type: string
+      required: true
+      description: "ID of the beat that triggers the forced response."
+
+    - name: target_actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+      constraint: must_be_present_in_step
+
+    - name: target_intent
+      type: string
+      required: true
+      description: "Imperative phrase the target must accomplish."
+
+    - name: required_state_change
+      type: string
+      required: false
+      description: >-
+        Optional state mutation that must be visible as a consequence of
+        the forced response. E.g. 'statement_word_replaced',
+        'guest_actor_steps_back', 'phone_in_hand_visible'.
+
+    - name: max_delay_seconds
+      type: integer
+      range: [2, 12]
+      default: 6
+      description: >-
+        Wall-clock budget between source beat completion and target response
+        start. The LDSS must schedule the response within this window or
+        flag the chain as degraded.
+
+    - name: failure_handling
+      type: enum
+      values:
+        - regenerate_target_response
+        - escalate_to_narrator_perception_filler
+        - mark_chain_degraded_and_continue
+      default: regenerate_target_response
+      description: >-
+        What the LDSS does if the target response does not pass validation
+        within max_delay_seconds.
+
+    - name: target_pattern_ref
+      type: string
+      required: false
+      description: >-
+        Optional reference to another beat_pattern the target response
+        should use (e.g. paraphrase_required_with_facts, amiable_echo).
+
+    - name: chain_can_extend
+      type: boolean
+      default: false
+      description: >-
+        If true, the target response may itself declare its own
+        forces_response_from, creating a multi-link chain. Capped at 5 links.
+
+  expands_to:
+    # The pattern lives on the SOURCE beat and produces a forces_response_from
+    # block in its director_instruction:
+    director_instruction_addition:
+      forces_response_from:
+        actor: "{{ target_actor }}"
+        intent: "{{ target_intent }}"
+        required_state_change: "{{ required_state_change or none }}"
+        max_delay_seconds: "{{ max_delay_seconds }}"
+
+  validation_when_used:
+    - rule_id: target_actor_present_in_step
+      severity: error
+      description: >-
+        forces_response.target_actor must appear in the parent step's
+        present.named_characters. A chain cannot force an absent actor.
+
+    - rule_id: source_and_target_differ
+      severity: error
+      description: "An actor cannot force-respond to themselves."
+
+    - rule_id: no_player_intrusion_inside_chain
+      severity: error
+      description: >-
+        The parent step must not declare a player_intrusion_window that
+        falls between the source beat and its forced response. Player
+        speech inside the chain window is queued.
+
+    - rule_id: chain_completes_before_step_unlock
+      severity: error
+      description: >-
+        next_step_unlock_when.all_mandatory_beats_realized cannot evaluate
+        true until every forces_response chain in the step has fired.
+
+    - rule_id: max_chain_length
+      severity: error
+      description: "If chain_can_extend, total chain length ≤ 5 forced responses."
+
+    - rule_id: regenerate_budget
+      severity: warning
+      description: >-
+        failure_handling = regenerate_target_response permits at most 2
+        regenerate attempts before falling back to mark_chain_degraded.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: alain_single_word_challenge
+        order: 1
+        duration_target_seconds: 4
+        beat_pattern_ref: single_word_challenge
+        beat_pattern_params:
+          actor: alain
+          challenge_target_word: armed
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+        forces_response_chain:    # the chain pattern lives ON the source beat
+          source_beat_id: alain_single_word_challenge
+          target_actor: veronique
+          target_intent: offer_compromise_word_carrying
+          required_state_change: statement_word_replaced
+          max_delay_seconds: 6
+          failure_handling: regenerate_target_response
+          target_pattern_ref: paraphrase_required_with_facts
+        player_status: observer_no_initiative
+
+  used_in_pilots:
+    - canonical_path_v2/006_armed_vs_carrying.yaml#alain_single_word_challenge → veronique
+    - canonical_path_v2/006_armed_vs_carrying.yaml#veronique_offers_compromise_with_michel_consult → alain
+
+  anticipated_recurrences_across_path:
+    - canonical_step: opening_v2_011  # phone vibrates → Alain steps away
+    - canonical_step: opening_v2_023  # Annette gags → hosts forced concern response
+    - canonical_step: opening_v2_033  # phone-in-tulips → Alain forced retrieval beat
+    - canonical_step: opening_v2_035  # Veronique smashes tulips → Annette forced reaction

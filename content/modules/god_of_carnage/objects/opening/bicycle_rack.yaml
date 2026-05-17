@@ -2,6 +2,7 @@ object:
   id: bicycle_rack
   name: "Bicycles near the court"
   category: exterior_memory_object_cluster
+  portable: false
   placement_location_id: basketball_court
   visible_from_location_ids:
     - park_edge

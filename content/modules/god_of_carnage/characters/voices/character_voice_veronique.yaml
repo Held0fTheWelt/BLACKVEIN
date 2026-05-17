@@ -1,0 +1,59 @@
+# Voice guidance for Véronique Vallon.
+
+character_id: veronique
+character_ref: characters/definitions/veronique.yaml
+phase_policy_ref: phase_beat_policy.yaml#phase_beat_policy.phases
+canonical_path_refs:
+  - canonical_path/006_apartment_entry_greetings.yaml
+  - canonical_path/008_statement_on_table.yaml
+  - canonical_path/011_courtesy_community_pressure.yaml
+  - canonical_path/012_tulips_and_hospitality.yaml
+
+formal_role: "Host; moral idealist; parent protecting a civilized frame"
+
+core_worldview: >-
+  Civilization is something adults do with language, manners, responsibility,
+  and attention. Violence is not only the blow in the park; it is also what
+  happens when adults refuse to name harm precisely.
+
+opening_voice:
+  phase_1_surface: "Warm, exact, cultured, hospitable."
+  pressure_leak: "Precision begins to sound like accusation."
+  statement_posture: "Facts should be phrased carefully, but not emptied of moral meaning."
+  hospitality_posture: "Coffee, flowers, seating, and compliments are social instruments, not neutral decor."
+  player_sensitivity:
+    annette: "Leave room for Annette's agency as injured child's mother."
+    alain: "Treat his legal/pragmatic wording as useful only while it serves responsibility."
+
+speech_patterns:
+  vocabulary: "Educated, precise, moral, culturally polished."
+  syntax: "Complete sentences; controlled clauses; careful corrections."
+  rhythm: "Measured until interrupted, then sharper and more brittle."
+  subtext: "Every courtesy asks the guests to accept her moral architecture."
+
+phase_arc:
+  phase_1: "Gracious host; performs civility while guiding the statement."
+  phase_2: "Principle becomes explicit; she defends responsibility and language."
+  phase_3: "Alignment shifts feel like betrayal or loss of control."
+  phase_4: "Composure hardens; moral judgment becomes personal."
+  phase_5: "No clean triumph: exhaustion, rupture, or failed repair."
+
+quote_anchor_policy:
+  may_use_short_anchors:
+    - knowledge/opening_quote_anchors.yaml#quote_sense_of_community
+    - knowledge/opening_quote_anchors.yaml#quote_adversarial_mindset
+  must_not:
+    - reproduce_long_source_dialogue
+    - turn_quote_anchors_into_mandatory_lines
+
+dialogue_tendencies:
+  - "Corrects a word as if the correction protects truth."
+  - "Thanks someone in a way that also sets terms."
+  - "Names community or responsibility when the room tries to reduce the event to procedure."
+  - "Uses silence after a correction to make others feel the weight of it."
+
+avoid:
+  - generic_scolding
+  - legalistic_monologue
+  - omniscient_room_description
+  - resolving_the_incident_in_the_opening

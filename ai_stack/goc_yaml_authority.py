@@ -15,6 +15,11 @@ from ai_stack.goc_scene_identity import (
     GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY,
     guidance_phase_key_for_scene_id,
 )
+from story_runtime_core.director_surface_hints import (
+    load_module_director_surface_hints,
+    select_director_surface_hints,
+)
+from story_runtime_core.language_adapter import build_interaction_surface
 
 try:
     import yaml
@@ -201,7 +206,20 @@ def load_goc_character_voice_yaml() -> dict[str, Any]:
         ]
     )
     ch = data.get("characters")
-    return ch if isinstance(ch, dict) else {}
+    if isinstance(ch, dict):
+        return ch
+
+    voices_dir = goc_characters_yaml_dir() / "voices"
+    if not voices_dir.is_dir():
+        return {}
+    voices: dict[str, Any] = {}
+    for path in sorted(voices_dir.glob("character_voice_*.yaml")):
+        data = _safe_load_yaml_mapping(path)
+        if not data:
+            continue
+        char_id = path.stem.removeprefix("character_voice_")
+        voices[char_id] = data
+    return voices
 
 
 def load_goc_voice_consistency_yaml() -> dict[str, Any]:
@@ -209,6 +227,7 @@ def load_goc_voice_consistency_yaml() -> dict[str, Any]:
     data = _safe_load_first_yaml_mapping(
         [
             goc_characters_yaml_dir() / "character_voice.yaml",
+            goc_characters_yaml_dir() / "voices" / "voice_consistency.yaml",
             goc_module_yaml_dir() / "direction" / "character_voice.yaml",
         ]
     )
@@ -216,17 +235,75 @@ def load_goc_voice_consistency_yaml() -> dict[str, Any]:
     return policy if isinstance(policy, dict) else {}
 
 
+@lru_cache(maxsize=1)
+def load_goc_director_surface_hints_yaml() -> list[dict[str, Any]]:
+    """Load authored director_surface_hint records from content/modules/.../hints/."""
+    return load_module_director_surface_hints(goc_module_yaml_dir())
+
+
+def select_goc_director_surface_hints_for_turn(
+    *,
+    scene_id: str,
+    pacing_mode: str,
+) -> list[dict[str, str | bool]]:
+    """Filter module hints for the current scene phase and pacing."""
+    phase_key = guidance_phase_key_for_scene_id(scene_id)
+    return select_director_surface_hints(
+        load_goc_director_surface_hints_yaml(),
+        scene_id=scene_id,
+        pacing_mode=pacing_mode,
+        guidance_phase_key=phase_key,
+    )
+
+
 def load_goc_scene_guidance_yaml() -> dict[str, Any]:
-    """Load direction/scene_guidance.yaml (multi-document YAML merged).
-    
-    Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-    
-    Returns:
-        dict[str, Any]:
-            Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
+    """Project phase_beat_policy into the legacy scene-guidance shape.
+
+    The authored per-scene guidance file was removed to avoid a second
+    phase-description database. Runtime seams still consume the older mapping
+    keys, so this function derives those short hints from the single phase
+    authority instead.
     """
-    path = goc_module_yaml_dir() / "direction" / "scene_guidance.yaml"
-    return _safe_load_yaml_mapping(path)
+    policy = load_goc_phase_beat_policy_yaml()
+    phases = policy.get("phases") if isinstance(policy.get("phases"), dict) else {}
+    guidance: dict[str, Any] = {}
+
+    for guidance_key, phase_id in GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY.items():
+        block = phases.get(phase_id) if isinstance(phases, dict) else None
+        if not isinstance(block, dict):
+            continue
+
+        name = str(block.get("name") or phase_id.replace("_", " ").title())
+        description = str(block.get("description") or block.get("pacing_note") or "").strip()
+        pacing_note = str(block.get("pacing_note") or "").strip()
+        allowed_beats = [str(item) for item in list(block.get("allowed_narrator_beats") or [])]
+        pressure_markers = [str(item) for item in list(block.get("pressure_markers") or [])]
+
+        constraints: dict[str, Any] = {}
+        for item in list(block.get("enforced_constraints") or []):
+            if isinstance(item, dict):
+                constraints.update(item)
+            elif isinstance(item, str) and item.strip():
+                constraints[item.strip()] = True
+
+        ai_guidance: list[str] = []
+        if pacing_note:
+            ai_guidance.append(pacing_note)
+        if allowed_beats:
+            ai_guidance.append("Allowed narrator beats: " + ", ".join(allowed_beats[:6]))
+
+        guidance[guidance_key] = {
+            "title": name,
+            "duration": str(block.get("turn_estimate") or ""),
+            "phase_policy_ref": f"phase_beat_policy.yaml#phase_beat_policy.phases.{phase_id}",
+            "narrative_context": f"{name}: {description}",
+            "ai_guidance": ai_guidance,
+            "pressure_watch": pressure_markers,
+            "constraint_enforcement": constraints,
+            "exit_signal": str(block.get("exit_condition") or ""),
+        }
+
+    return guidance
 
 
 def load_goc_opening_sequence_yaml() -> dict[str, Any]:
@@ -244,11 +321,31 @@ def load_goc_opening_document_text() -> str:
 
 
 def load_goc_scene_phases_yaml() -> dict[str, Any]:
-    """Load scenes.yaml phase definitions as canonical runtime law."""
-    path = goc_module_yaml_dir() / "scenes.yaml"
-    data = _safe_load_yaml_mapping(path)
-    phases = data.get("scene_phases")
-    return phases if isinstance(phases, dict) else {}
+    """Project phase_beat_policy phases into the legacy scene_phases shape."""
+    policy = load_goc_phase_beat_policy_yaml()
+    phases = policy.get("phases") if isinstance(policy.get("phases"), dict) else {}
+    out: dict[str, Any] = {}
+    for fallback_sequence, (phase_id, block) in enumerate(phases.items(), start=1):
+        if not isinstance(block, dict):
+            continue
+        key = str(block.get("id") or phase_id)
+        sequence = block.get("sequence")
+        if not isinstance(sequence, int):
+            digits = "".join(ch for ch in key if ch.isdigit())
+            sequence = int(digits) if digits else fallback_sequence
+        out[key] = {
+            "id": key,
+            "name": str(block.get("name") or key.replace("_", " ").title()),
+            "sequence": sequence,
+            "description": str(block.get("description") or block.get("pacing_note") or key),
+            "content_focus": list(block.get("content_focus") or block.get("allowed_narrator_beats") or []),
+            "engine_tasks": list(block.get("engine_tasks") or block.get("allowed_narrator_beats") or []),
+            "active_triggers": list(block.get("active_triggers") or []),
+            "enforced_constraints": [str(item) for item in list(block.get("enforced_constraints") or [])],
+            "turn_estimate": str(block.get("turn_estimate") or ""),
+            "exit_condition": str(block.get("exit_condition") or ""),
+        }
+    return out
 
 
 def load_goc_scene_graph_yaml() -> dict[str, Any]:
@@ -323,7 +420,7 @@ def load_goc_character_documents_yaml() -> dict[str, Any]:
     if not char_dir.is_dir():
         return {}
     docs: dict[str, Any] = {}
-    for path in sorted(char_dir.glob("*.yaml")):
+    for path in sorted(char_dir.rglob("*.yaml")):
         data = _safe_load_yaml_mapping(path)
         inner = data.get("character_document") or data.get("character")
         if not isinstance(inner, dict):
@@ -394,6 +491,7 @@ def load_goc_relationships_yaml() -> dict[str, Any]:
     """Load relationship authority without dropping pairwise relationship data."""
     data = _safe_load_first_yaml_mapping(
         [
+            goc_characters_yaml_dir() / "details" / "relationships.yaml",
             goc_characters_yaml_dir() / "relationships.yaml",
             goc_module_yaml_dir() / "relationships.yaml",
         ]
@@ -472,11 +570,8 @@ def _unwrap_top_level_mapping(data: dict[str, Any], key: str) -> dict[str, Any]:
 
 
 def load_goc_scene_affordances_yaml_inner() -> dict[str, Any]:
-    """Return the ``scene_affordances`` mapping from locale/scene_affordances.yaml."""
-    path = goc_module_yaml_dir() / "locale" / "scene_affordances.yaml"
-    data = _safe_load_yaml_mapping(path)
-    inner = data.get("scene_affordances")
-    return inner if isinstance(inner, dict) else {}
+    """Return the runtime interaction surface derived from locations and objects."""
+    return build_interaction_surface(GOC_MODULE_ID, content_modules_root=goc_module_yaml_dir().parent)
 
 
 def load_goc_scene_affordances_block() -> dict[str, Any]:
@@ -506,6 +601,7 @@ def load_goc_premise_and_backstory_yaml() -> dict[str, Any]:
 def load_goc_actor_pressure_profiles_yaml() -> dict[str, Any]:
     data = _safe_load_first_yaml_mapping(
         [
+            goc_characters_yaml_dir() / "details" / "actor_pressure_profiles.yaml",
             goc_characters_yaml_dir() / "actor_pressure_profiles.yaml",
             goc_module_yaml_dir() / "actor_pressure_profiles.yaml",
         ]
@@ -571,6 +667,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "scene_graph": load_goc_scene_graph_yaml(),
         "canonical_path": load_goc_canonical_path_yaml(),
         "modularity_policy": load_goc_modularity_policy_yaml(),
+        "director_surface_hints": load_goc_director_surface_hints_yaml(),
         "relationship_axes": relationships["relationship_axes"],
         "relationships": relationships["relationships"],
         "stability_constraints": relationships["stability_constraints"],

@@ -1,0 +1,112 @@
+beat_pattern:
+  id: amiable_echo
+  version: v1
+  category: npc_speak
+  purpose: >-
+    An actor repeats the phrase just chosen by another actor without adding
+    information, in a register that confirms agreement and seals a small
+    consensus. Signature beat for Michel throughout the opening — his
+    voice profile is built around amiable mirroring rather than original
+    proposition. Reusable wherever a character must validate without
+    contributing.
+
+  parameters:
+    - name: actor
+      type: enum
+      values: [veronique, michel, annette, alain]
+      required: true
+      description: "Most often michel; occasionally annette in compliance moments."
+
+    - name: echoed_phrase_token
+      type: string
+      required: true
+      description: "The phrase being echoed. Must have surfaced in the immediately preceding beat."
+
+    - name: quote_anchor
+      type: ref
+      required: true
+
+    - name: word_count_target
+      type: integer
+      range: [3, 7]
+      default: 4
+
+    - name: tone
+      type: enum
+      values:
+        - friendly_confirmation
+        - polite_neutral
+        - dry_agreement
+      default: friendly_confirmation
+
+  expands_to:
+    director_instruction:
+      npc_speak:
+        actor: "{{ actor }}"
+        intent: echo_the_chosen_phrasing_to_seal_the_compromise
+        required_facts:
+          - "echoed_phrase_token: {{ echoed_phrase_token }}"
+        quote_anchor: "{{ quote_anchor }}"
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "drei bis sieben Wörter, {{ tone }}"
+        forbidden_drift:
+          - take_authorship_credit_for_the_phrase
+          - add_a_joke
+          - lengthen_into_full_sentence_with_subject_clause
+          - introduce_new_information_not_in_prior_beat
+          - undermine_the_consensus_with_a_qualifier
+        tone_hint: "{{ tone }}"
+      player_status: observer_window_open
+
+  validation_when_used:
+    - rule_id: word_count_in_range
+      severity: error
+      description: "Line must contain 3-7 words (inclusive), within ±1 of word_count_target."
+
+    - rule_id: contains_echoed_phrase
+      severity: error
+      description: >-
+        The echoed_phrase_token must surface as a near-verbatim token in the
+        line. This is one of the few patterns where verbatim echo of a
+        short phrase is expected.
+
+    - rule_id: no_new_information
+      severity: error
+      description: >-
+        The line must not add a fact, qualifier, condition, or subordinate
+        clause that was not in the echoed source. The validator scans for
+        novel content tokens and rejects if any are detected.
+
+    - rule_id: actor_voice_alignment
+      severity: warning
+      description: >-
+        amiable_echo is part of michel's canonical voice signature
+        (direction/character_voice.yaml#michel). When another actor uses
+        the pattern, voice validation issues a warning unless the parent
+        step explicitly authorises the deviation.
+
+  example_usage_in_step:
+    mandatory_beats:
+      - id: michel_amiable_echo
+        order: 4
+        duration_target_seconds: 4
+        beat_pattern_ref: amiable_echo
+        beat_pattern_params:
+          actor: michel
+          echoed_phrase_token: "trug einen Stock"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_carrying
+          word_count_target: 4
+          tone: friendly_confirmation
+        player_status: observer_window_open
+
+  used_in_pilots:
+    - canonical_path_v2/006_armed_vs_carrying.yaml#michel_amiable_echo
+
+  character_signature_owner: michel
+  signature_observation: >-
+    Across goc.txt Michel echoes Penelope frequently ('Carrying a stick',
+    'They want to give the tooth a chance', 'True', 'You can't' etc.). His
+    amiable mirror function breaks down only in the late drunk scene where
+    he reveals 'Don't you speak for me!' and the cynical hamster speech.
+    The pattern is therefore stable for the entire opening and most of
+    phase_1, then becomes degraded by phase_3.

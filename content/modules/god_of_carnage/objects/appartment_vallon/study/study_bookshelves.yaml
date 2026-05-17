@@ -1,0 +1,19 @@
+object:
+  id: study_bookshelves
+  name: "Study bookshelves"
+  category: private_library_surface
+  portable: false
+  placement_location_id: study
+  playable_access: perception_only
+  description: >-
+    Overfilled shelves: art catalogues, legal paperbacks, old travel guides,
+    school binders, and several books pushed in horizontally because there is no
+    clean space left.
+  interaction_notes:
+    look_at: "May reveal taste, workload, and mild disorder, but no decisive hidden fact."
+  sensory_tags: [books, tight_shelves, dust, private_order]
+  plausible_actions: [look_at, scan_titles]
+  forbidden_actions: [discover_unseeded_secret_document]
+  symbolic_roles:
+    - private_order
+    - intellectual_display

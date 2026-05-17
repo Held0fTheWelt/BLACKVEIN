@@ -1,0 +1,233 @@
+beat_pattern:
+  id: phone_interruption_recurrent
+  version: v1
+  category: recurrent
+  status: forward_looking_not_yet_used_in_pilots
+  purpose: >-
+    Alain's recurring pharma-crisis phone calls (Walter, Dennis, CNN panel
+    coordination) that interrupt the meeting throughout goc.txt. Each call
+    follows the same dramaturgical pattern: a vibration interrupts the
+    in-room dialog, Alain extracts himself with a minimal apology, takes
+    the call partly in earshot, returns mid-sentence to the dropped
+    conversation. The pattern carries Alain's 'detached professional'
+    theme arc and creates the play's secondary rhythm of pressure (legal
+    crisis offstage vs. social crisis onstage).
+
+  parameters:
+    - name: call_partner
+      type: enum
+      values: [walter, dennis, press_relations, cnn_producer]
+      required: true
+
+    - name: call_topic
+      type: enum
+      values:
+        - antril_lancet_disclosure
+        - asm_litigation_contingency
+        - press_release_strategy
+        - cnn_panel_decision
+        - letter_to_editor_rejection
+        - victim_panel_exclusion
+        - late_crisis_management
+      required: true
+
+    - name: interrupted_in_step_id
+      type: string
+      required: true
+      description: "ID of the canonical_path step the call interrupts."
+
+    - name: interrupted_at_beat_id
+      type: string
+      required: true
+      description: "ID of the beat that was about to start or just finished when phone vibrates."
+
+    - name: alain_visible_facts
+      type: array
+      item_type: fact_token
+      min_items: 1
+      required: true
+      description: >-
+        Tokens that must surface in Alain's audible side of the call so the
+        other actors in the room overhear the legal stakes. E.g.
+        'ataxia_mention', 'half_billion_revenue', 'two_and_a_half_years',
+        'asm_in_two_weeks'.
+
+    - name: call_audible_duration_seconds
+      type: integer
+      range: [10, 90]
+      required: true
+
+    - name: returns_to_room_with
+      type: enum
+      values:
+        - silent_continuation_of_prior_thread
+        - apology_then_return
+        - dismissive_what_were_we_saying
+        - explicit_topic_pivot
+      default: apology_then_return
+
+    - name: leaves_phone_in_view
+      type: boolean
+      default: true
+      description: >-
+        If true, the phone remains visible on the coffee table or in
+        Alain's hand for later weaponisation (e.g. the tulip-water
+        incident). Set false only for the final 'phone destroyed' state.
+
+  expands_to:
+    # The pattern expands into a tight multi-beat sequence inserted into the
+    # parent step. Beats produced:
+    expanded_beats:
+      - id: "{{ interrupted_at_beat_id }}_phone_vibrates"
+        order: insert_after_or_before(interrupted_at_beat_id)
+        duration_target_seconds: 3
+        director_instruction:
+          narrator_perception_only:
+            - "Alains Telefon vibriert in der Innentasche."
+          # Implicit: any forces_response chain on the interrupted beat is
+          # paused, not cancelled. It resumes after the call ends.
+        player_status: observer_no_initiative
+
+      - id: "{{ interrupted_at_beat_id }}_alain_excuses_himself"
+        order: next
+        duration_target_seconds: 5
+        beat_pattern_ref: paraphrase_required_with_facts
+        beat_pattern_params:
+          actor: alain
+          intent: minimal_apology_before_stepping_away
+          required_facts:
+            - "apology_token: 'Entschuldigt mich kurz' or equivalent"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_excuse_me_phone
+          paraphrase_policy: short_anchor_quote_allowed
+          minimum_visible: "drei bis sechs Wörter, professional-detached"
+          forbidden_drift:
+            - explain_who_is_calling
+            - apologize_for_the_call_topic
+        player_status: observer_window_open
+
+      - id: "{{ interrupted_at_beat_id }}_alain_call_audible"
+        order: next
+        duration_target_seconds: "{{ call_audible_duration_seconds }}"
+        director_instruction:
+          npc_speak:
+            actor: alain
+            intent: "discuss_{{ call_topic }}_with_{{ call_partner }}_in_earshot"
+            required_facts: "{{ alain_visible_facts }}"
+            quote_anchor: "knowledge/opening_quote_anchors.yaml#quote_phone_{{ call_topic }}"
+            paraphrase_policy: structural_paraphrase_required
+            minimum_visible: "mehrere kurze Repliken, fragments overheard"
+            forbidden_drift:
+              - read_full_telephone_quote_verbatim
+              - explain_to_the_room_what_walter_said
+              - close_call_without_dropping_a_load_bearing_fact
+          narrator_perception_only:
+            - "Veronique, Michel und Annette hören Bruchstücke."
+        player_status: observer_window_open
+        # Critical: while Alain is on the call, the OTHER actors must NOT
+        # carry on a substantive conversation. They listen. Optional micro-
+        # beat can add side-comments between hosts and Annette but the
+        # main dialog thread freezes.
+
+      - id: "{{ interrupted_at_beat_id }}_alain_hangs_up"
+        order: next
+        duration_target_seconds: 3
+        director_instruction:
+          narrator_perception_only:
+            - "Alain steckt das Telefon zurück."
+          # If leaves_phone_in_view: replace with 'Alain legt das Telefon
+          # auf den Couchtisch.'
+        player_status: observer_window_open
+
+      - id: "{{ interrupted_at_beat_id }}_alain_returns_to_room"
+        order: next
+        duration_target_seconds: 4
+        beat_pattern_ref: paraphrase_required_with_facts
+        beat_pattern_params:
+          actor: alain
+          intent: "{{ returns_to_room_with }}"
+          required_facts:
+            - "return_token: minimal pivot or apology"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_phone_return
+          paraphrase_policy: short_anchor_quote_allowed
+          minimum_visible: "ein bis zwei kurze Sätze, register matches returns_to_room_with"
+          forbidden_drift:
+            - launch_into_new_topic_from_the_call
+            - apologise_lengthily_for_taking_the_call
+        player_status: observer_window_open
+
+  validation_when_used:
+    - rule_id: phone_object_present_in_room
+      severity: error
+      description: >-
+        objects/.../mobile_phone.yaml must be in scope when the pattern fires.
+        If absent, the LDSS must add it to environment_state.actors_inventory
+        before the vibration beat.
+
+    - rule_id: interrupted_chain_resumes
+      severity: error
+      description: >-
+        Any forces_response chain that was active at interruption time
+        MUST resume after the call ends. The pattern records the
+        interruption in runtime_intelligence.script_chain_pauses for the
+        chain resolver.
+
+    - rule_id: alain_voice_during_call_differs_from_in_room
+      severity: warning
+      description: >-
+        Alain's call-register should be clipped, professional, transactional —
+        distinguishably different from his in-room register. Voice
+        consistency validator should accept this divergence as
+        register_shift_business_call.
+
+    - rule_id: total_call_within_step_budget
+      severity: error
+      description: >-
+        Sum of expanded beat durations must fit inside the parent step's
+        duration_max_seconds. If not, the call is split across two
+        consecutive steps (first half ends with phone in hand, second
+        step opens with hang_up beat).
+
+    - rule_id: at_least_one_audible_fact_token
+      severity: error
+      description: >-
+        alain_visible_facts must contain at least one token that creates
+        a moral/pragmatic asymmetry between Alain's offstage crisis and
+        the onstage parental dispute. This is the dramatic point of the
+        interruption: the audience hears that a pharma company knew about
+        ataxia for 2.5 years while parents are arguing about a stick.
+
+  example_usage_in_anticipated_step:
+    # Anticipated for canonical_path_v2/008_drift_back_to_living_room.yaml
+    mandatory_beats:
+      - id: alain_first_walter_call
+        order: 3
+        duration_target_seconds: 45
+        beat_pattern_ref: phone_interruption_recurrent
+        beat_pattern_params:
+          call_partner: walter
+          call_topic: antril_lancet_disclosure
+          interrupted_in_step_id: opening_v2_008_drift_back_to_living_room
+          interrupted_at_beat_id: penelope_asks_could_zachary_apologise
+          alain_visible_facts:
+            - "ataxia_mention"
+            - "half_billion_revenue"
+            - "two_and_a_half_years_known"
+            - "asm_in_two_weeks"
+          call_audible_duration_seconds: 30
+          returns_to_room_with: dismissive_what_were_we_saying
+          leaves_phone_in_view: true
+
+  anticipated_recurrences_across_path:
+    - canonical_step: opening_v2_011  # first Walter call: Lancet disclosure
+    - canonical_step: opening_v2_017  # second Walter call: A.S.M. + Dennis chained
+    - canonical_step: opening_v2_027  # CNN panel call
+    - canonical_step: opening_v2_033  # phone destroyed (consequence_irreversible_commit fires)
+
+  theme_arc_carried:
+    actor: alain
+    arc: detached_professional_to_cornered_pragmatist
+    progression:
+      - first_call: theme_entry_pedantic_competent
+      - second_call: theme_development_strategic_cynicism
+      - cnn_call: theme_peak_deny_deny_deny
+      - phone_destroyed: theme_collapse_into_powerlessness

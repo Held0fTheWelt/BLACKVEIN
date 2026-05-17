@@ -24,7 +24,10 @@ from ai_stack.goc_frozen_vocab import (
     expand_goc_actor_id_aliases,
 )
 from ai_stack.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
-from ai_stack.goc_yaml_authority import thin_edge_staging_line_from_guidance
+from ai_stack.goc_yaml_authority import (
+    select_goc_director_surface_hints_for_turn,
+    thin_edge_staging_line_from_guidance,
+)
 from ai_stack.goc_knowledge_runtime_gates import (
     detect_hard_forbidden_runtime,
     evaluate_opening_event_coverage,
@@ -970,6 +973,15 @@ def run_visible_render(
             add_director_hint("character_pressure_arc", phase_arc, "character_profile.phase_arc_hint")
         if ai_hint and (narr_len < 80 or pacing_mode == "multi_pressure"):
             add_director_hint("phase_pressure_cue", ai_hint, "scene_guidance.ai_guidance")
+        for authored in select_goc_director_surface_hints_for_turn(
+            scene_id=scene_id,
+            pacing_mode=pacing_mode,
+        ):
+            add_director_hint(
+                str(authored.get("hint_type") or "phase_context"),
+                str(authored.get("text") or ""),
+                str(authored.get("source") or "hints/"),
+            )
         if not gm_lines:
             gm_lines = ["The exchange shifts, and the room adjusts around it."]
 
