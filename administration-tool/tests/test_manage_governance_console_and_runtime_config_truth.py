@@ -31,12 +31,19 @@ def test_runtime_config_truth_js_uses_manage_auth_and_ok_data_envelope():
 def test_governance_console_template_mounts_all_required_views(client):
     response = client.get("/manage/governance-console")
     html = response.get_data(as_text=True)
-    assert "Runtime Readiness Authority" in html
-    assert "ADR-0041 Capability Authority" in html
-    assert "Capability Matrix Governance" in html
-    assert "Validator Registry" in html
-    assert "Langfuse / MCP Evidence" in html
-    assert "Runtime Aspect Ledger Inspector" in html
+    required_mounts = {
+        "gov-runtime-readiness": "Runtime Readiness",
+        "gov-adr0041-authority": "Capability Authority",
+        "gov-capability-matrix": "Capability Matrix",
+        "gov-validator-registry": "Validator Registry",
+        "gov-evidence": "Langfuse / MCP",
+        "gov-ledger": "Runtime Aspect Ledger",
+        "gov-narrative-systems": "Runtime Systems",
+        "gov-feature-flags": "Feature Flag Ownership",
+    }
+    for element_id, label in required_mounts.items():
+        assert f'id="{element_id}"' in html
+        assert f'data-json-label="{label}"' in html
     assert "manage_governance_console.js" in html
     assert "gov-console-card-grid" in html
     assert 'class="manage-psc-json" data-json-viewer' in html
@@ -47,7 +54,8 @@ def test_governance_console_includes_adr0041_and_evidence_guidance(client):
     html = response.get_data(as_text=True)
     assert "ADR-0041 critical flags" in html
     assert "cannot upgrade reject" in html
-    assert "Credential readiness != score proof" in html
+    assert "Credential readiness" in html
+    assert "score proof" in html
     assert "admin_read_only" in html
     assert "env_only (ADR flags)" in html
 

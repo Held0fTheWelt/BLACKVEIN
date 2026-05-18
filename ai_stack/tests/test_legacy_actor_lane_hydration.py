@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from ai_stack.legacy_actor_lane_hydration import (
+    apply_legacy_structured_hydration,
     hydrate_legacy_actor_lanes,
     should_hydrate_legacy_actor_lanes,
 )
@@ -50,6 +51,40 @@ def test_hydration_fills_spoken_lines_for_primary_and_secondary() -> None:
     assert hydrated["primary_responder_id"] == "michel_longstreet"
     assert len(hydrated["spoken_lines"]) >= 1
     assert len(hydrated["action_lines"]) >= 1
+
+
+def test_hydration_skips_narrator_only_local_consequence() -> None:
+    narrative = "The local action is realized by narration, without asking an NPC to perform it."
+    generation = {
+        "metadata": {
+            "structured_output": {
+                "schema_version": "runtime_actor_turn_v1",
+                "narration_summary": narrative,
+                "narrative_response": narrative,
+                "spoken_lines": [],
+                "action_lines": [],
+                "function_type": "local_action_consequence",
+            }
+        }
+    }
+
+    hydrated = apply_legacy_structured_hydration(
+        {
+            "module_id": "god_of_carnage",
+            "interpreted_input": {"npc_response_expected": False},
+            "player_action_frame": {"npc_response_expected": False},
+            "narrator_consequence_plan": {"requires_model_realization": True},
+            "selected_responder_set": [{"actor_id": "alain_reille"}],
+            "scene_energy_target": {"minimum_actor_response_count": 1},
+            "pacing_mode": "standard",
+        },
+        generation,
+    )
+
+    structured = hydrated["metadata"]["structured_output"]
+    assert structured["spoken_lines"] == []
+    assert structured["action_lines"] == []
+    assert "legacy_actor_lane_hydrated" not in hydrated["metadata"]
 
 
 def test_hydration_satisfies_scene_energy_and_npc_initiative_counts() -> None:

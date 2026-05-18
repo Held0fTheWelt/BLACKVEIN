@@ -712,6 +712,60 @@ def test_runtime_turn_graph_realizes_inferred_mundane_action_as_visible_narratio
     assert (result.get("player_action_frame") or {}).get("canonical_path_effect") == "hold_current_step"
 
 
+def test_runtime_turn_graph_commits_local_movement_while_holding_canonical_step(tmp_path: Path) -> None:
+    graph = _build_graph_with_semantic_translation(
+        tmp_path,
+        {
+            "normalized_english_text": "Move to the building hallway.",
+            "player_input_kind": "movement_action",
+            "action_kind": "movement",
+            "verb": "move_to",
+            "target_query_english": "building hallway",
+            "resolved_target_id": "building_hallway",
+            "resolved_target_type": "location",
+            "commit_policy": "commit_action",
+            "canonical_path_effect": "hold_current_step",
+            "confidence": "high",
+        },
+    )
+
+    result = graph.run(
+        session_id="session-action-local-movement",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Ich verlasse die Wohnung",
+        trace_id="trace-action-local-movement-1",
+        turn_number=1,
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+
+    frame = result.get("player_action_frame") or {}
+    transition = result.get("local_context_transition") or {}
+    environment = result.get("environment_state") or {}
+    actor_locations = environment.get("actor_locations") or {}
+    bundle = result.get("visible_output_bundle") or {}
+
+    assert frame.get("canonical_path_effect") == "hold_current_step"
+    assert frame.get("resolved_target_id") == "building_hallway"
+    assert transition.get("to_area") == "building_hallway"
+    assert transition.get("new_area_established") is True
+    assert environment.get("current_room_id") == "building_hallway"
+    assert actor_locations.get("annette_reille") == "building_hallway"
+    assert actor_locations.get("alain_reille") == "living_room"
+    assert bundle.get("spoken_lines") == []
+    assert bundle.get("action_lines") == []
+
+
 def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:
     graph = _build_graph_with_semantic_translation(
         tmp_path,
