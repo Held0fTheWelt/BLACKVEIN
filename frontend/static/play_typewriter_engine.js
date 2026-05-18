@@ -196,30 +196,37 @@ class TypewriterEngine {
     return null;
   }
 
-  _scrollCurrentLineIntoView(item) {
-    if (!item || !item.block_el) return;
-    const container = this._resolveScrollContainer(item.block_el);
+  _forceScrollToBottom(container) {
     if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }
 
-    const applyScroll = () => {
-      container.scrollTop = container.scrollHeight;
-    };
+  _scheduleScrollToBottom(container) {
+    if (!container) return;
+    this._pending_scroll_container = container;
 
+    // Tests (and any host without rAF) need a synchronous scroll.
     if (this.test_mode || typeof requestAnimationFrame !== 'function') {
-      applyScroll();
+      this._forceScrollToBottom(container);
       return;
     }
 
-    this._pending_scroll_container = container;
+    // Coalesce production scrolls to one per animation frame. Reading
+    // scrollHeight inside the tick already forces layout; doing it again
+    // synchronously here (or in a nested rAF) caused per-char layout
+    // thrashing and made the typewriter stutter.
     if (this._scroll_frame !== null) return;
     this._scroll_frame = requestAnimationFrame(() => {
       const target = this._pending_scroll_container;
       this._pending_scroll_container = null;
       this._scroll_frame = null;
-      if (target) {
-        target.scrollTop = target.scrollHeight;
-      }
+      this._forceScrollToBottom(target);
     });
+  }
+
+  _scrollCurrentLineIntoView(item) {
+    if (!item || !item.block_el) return;
+    this._scheduleScrollToBottom(this._resolveScrollContainer(item.block_el));
   }
 
   _resetBlockDom(el, profile) {
@@ -270,6 +277,9 @@ class TypewriterEngine {
 
     const el = this._resolveBlockElement(block.id);
     const cursorEl = this._resetBlockDom(el, profile);
+    if (el) {
+      this._scheduleScrollToBottom(this._resolveScrollContainer(el));
+    }
 
     const rand = cinematic ? _mulberry32(_seedFromString(block.id)) : null;
     const jitterAmp = cinematic ? Math.max(0, Number(profile.jitter || 0)) : 0;
@@ -352,14 +362,15 @@ class TypewriterEngine {
       }
       frag.appendChild(span);
     }
-    // Insert before cursor if one exists; else append.
+    // Insert before cursor if one exists; else append. The per-char pulse
+    // restart used to force a synchronous reflow (`void offsetWidth`) every
+    // batch — that was a major source of typewriter stutter once the body
+    // lived inside a scroll container. Pulse is now applied once via CSS.
     if (item.cursor_el && item.cursor_el.parentNode === item.block_el) {
       item.block_el.insertBefore(frag, item.cursor_el);
-      // Pulse cursor on reveal
-      item.cursor_el.classList.remove('play-cursor--pulse');
-      // Trigger reflow so animation restarts
-      void item.cursor_el.offsetWidth;
-      item.cursor_el.classList.add('play-cursor--pulse');
+      if (!item.cursor_el.classList.contains('play-cursor--pulse')) {
+        item.cursor_el.classList.add('play-cursor--pulse');
+      }
     } else {
       item.block_el.appendChild(frag);
     }

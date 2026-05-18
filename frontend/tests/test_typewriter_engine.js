@@ -328,10 +328,14 @@ describe('TypewriterEngine', () => {
         delivery: {},
       });
 
-      expect(scrollRoot.scrollTop).toBe(0);
+      expect(scrollRoot.scrollTop).toBe(640);
+      Object.defineProperty(scrollRoot, 'scrollHeight', {
+        configurable: true,
+        value: 900,
+      });
       engine.clock.advanceBy(250);
 
-      expect(scrollRoot.scrollTop).toBe(640);
+      expect(scrollRoot.scrollTop).toBe(900);
     });
 
     test('should complete block after full duration', () => {
