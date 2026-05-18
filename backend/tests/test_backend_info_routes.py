@@ -265,7 +265,7 @@ def test_api_explorer_page_has_search_shell(client):
     assert b"tag:Auth" in r.data
 
 
-def test_legacy_player_routes_still_redirect_or_410_not_html_shell(client, app):
+def test_legacy_web_routes_still_redirect_or_410_not_html_shell(client, app):
     """Legacy paths must not become canonical HTML hosts; they redirect or 410."""
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     for path in ("/login", "/dashboard", "/play", "/game-menu"):

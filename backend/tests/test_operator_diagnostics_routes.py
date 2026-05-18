@@ -2,16 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import pytest
 
 pytestmark = pytest.mark.observability
-
-
-@dataclass
-class _Session:
-    diagnostics: list[dict]
 
 
 def _allow_all_features(monkeypatch):
@@ -22,19 +15,24 @@ def _allow_all_features(monkeypatch):
 
 def test_operator_diagnostics_session_not_found_returns_404(client, moderator_headers, monkeypatch):
     _allow_all_features(monkeypatch)
-    monkeypatch.setattr("app.services.session_service.get_session", lambda _sid: None)
+    from app.services.game_service import GameServiceError
+
+    def _missing(_sid):
+        raise GameServiceError("missing", status_code=404)
+
+    monkeypatch.setattr("app.api.v1.operator_diagnostics_routes.get_story_diagnostics", _missing)
 
     response = client.get("/api/v1/operator/diagnostics/session/s-missing", headers=moderator_headers)
     assert response.status_code == 404
     payload = response.get_json()
     assert payload["ok"] is False
-    assert payload["error"]["code"] == "session_not_found"
+    assert payload["error"]["code"] == "world_engine_story_session_not_found"
 
 
 def test_operator_diagnostics_session_surface_shape(client, moderator_headers, monkeypatch):
     _allow_all_features(monkeypatch)
-    session = _Session(
-        diagnostics=[
+    payload = {
+        "diagnostics": [
             {
                 "turn_number": 1,
                 "turn_kind": "player",
@@ -89,8 +87,8 @@ def test_operator_diagnostics_session_surface_shape(client, moderator_headers, m
                 },
             }
         ]
-    )
-    monkeypatch.setattr("app.services.session_service.get_session", lambda _sid: session)
+    }
+    monkeypatch.setattr("app.api.v1.operator_diagnostics_routes.get_story_diagnostics", lambda _sid: payload)
 
     response = client.get("/api/v1/operator/diagnostics/session/s-1", headers=moderator_headers)
     assert response.status_code == 200
@@ -107,8 +105,8 @@ def test_operator_diagnostics_session_surface_shape(client, moderator_headers, m
 
 def test_operator_turn_history_endpoint_shape(client, moderator_headers, monkeypatch):
     _allow_all_features(monkeypatch)
-    session = _Session(diagnostics=[{"turn_number": 1, "turn_kind": "player", "actor_survival_telemetry": {"vitality_telemetry_v1": {"schema_version": "vitality_telemetry_v1"}}}])
-    monkeypatch.setattr("app.services.session_service.get_session", lambda _sid: session)
+    payload = {"diagnostics": [{"turn_number": 1, "turn_kind": "player", "actor_survival_telemetry": {"vitality_telemetry_v1": {"schema_version": "vitality_telemetry_v1"}}}]}
+    monkeypatch.setattr("app.api.v1.operator_diagnostics_routes.get_story_diagnostics", lambda _sid: payload)
 
     response = client.get("/api/v1/operator/diagnostics/session/s-1/turn-history", headers=moderator_headers)
     assert response.status_code == 200

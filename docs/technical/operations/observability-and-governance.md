@@ -19,7 +19,7 @@ This document is the canonical reference for **cross-stack observability**, **au
 
 ### Canonical end-to-end path (story turn via backend proxy)
 
-1. Client calls `POST /api/v1/sessions/<id>/turns` (trace id from header or generated).
+1. Client calls `POST /api/v1/game/player-sessions/<run_id>/turns` (trace id from header or generated).
 2. Backend forwards `X-WoS-Trace-Id` on `POST /api/story/sessions/.../turns` (and related story GETs).
 3. World-Engine middleware binds the same trace to the request.
 4. `StoryRuntimeManager.execute_turn` passes `trace_id` into `RuntimeTurnGraphExecutor.run`.
@@ -28,7 +28,7 @@ This document is the canonical reference for **cross-stack observability**, **au
 ### Partial / out-of-scope in M11
 
 - **Standalone MCP operator tools** may still mint their own trace ids when they do not receive a caller-supplied id; tightening that path is a follow-up (see gate review).
-- **In-process legacy backend turn execution** (non-proxy) uses contextvar trace id where Flask context exists; it is explicitly not the canonical authoritative runtime.
+- **In-process transitional backend simulation** uses contextvar trace id where Flask context exists; it is not mounted as a live session API.
 
 ## LLM-as-a-Judge vs deterministic gates
 
@@ -194,9 +194,8 @@ These scores are contract gates, not LLM-as-a-Judge ratings. Missing provider cr
 
 | Surface | Responsibility |
 |---------|------------------|
-| `GET /api/v1/sessions/<id>/capability-audit` | MCP operator: capability rows from World-Engine turn diagnostics; includes `trace_id`; surfaces `bridge_error` if World-Engine unreachable. |
-| `POST /api/v1/sessions/<id>/turns` | Returns `trace_id`, World-Engine turn payload, diagnostics; `502` with `failure_class: world_engine_unreachable` when bridge fails. |
-| `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` | Moderator/admin (game operations feature): aggregated backend + World-Engine evidence bundle. |
+| `POST /api/v1/game/player-sessions/<run_id>/turns` | Returns `trace_id`, World-Engine turn payload, diagnostics; `502` with `failure_class: world_engine_unreachable` when bridge fails. |
+| `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` | Moderator/admin (game operations feature): aggregated World-Engine story-session evidence bundle. |
 | `GET /api/v1/admin/ai-stack/improvement-packages` | Same audience: improvement recommendation packages listing. |
 | `GET /api/v1/admin/ai-stack/release-readiness` | Same audience: honest readiness summary (`ready`/`partial`) per area; story-runtime cross-layer remains `partial` in this aggregate (use session-evidence after real turns); Writers-Room LangGraph depth is explicitly `partial` (seed stub). |
 | `GET /api/v1/admin/system-diagnosis` | Moderator/admin with feature `manage.system_diagnosis`: aggregated operator diagnosis (backend `/api/v1/health`, DB, play-service config and internal `/api/health` + `/api/health/ready`, published experiences feed, `build_release_readiness_report`); 5 s TTL cache, `?refresh=1` forces refresh. |

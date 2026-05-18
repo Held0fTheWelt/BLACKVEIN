@@ -232,17 +232,15 @@ def test_service_preserves_authority_fallback_provenance_and_rejection(monkeypat
 
 
 def test_endpoint_returns_canonical_projection_shape(client, moderator_headers, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    assert create_resp.status_code == 201
-    backend_session_id = create_resp.get_json()["session_id"]
+    story_session_id = "we-inspector-turn"
 
     monkeypatch.setattr(
         "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
-        lambda **_kwargs: {**_bundle_with_turn(), "backend_session_id": backend_session_id},
+        lambda **_kwargs: {**_bundle_with_turn(), "session_id": story_session_id},
     )
 
     response = client.get(
-        f"/api/v1/admin/ai-stack/inspector/turn/{backend_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/turn/{story_session_id}",
         headers=moderator_headers,
     )
     assert response.status_code == 200
@@ -255,15 +253,13 @@ def test_endpoint_returns_canonical_projection_shape(client, moderator_headers, 
 
 
 def test_endpoint_raw_mode_returns_expanded_evidence(client, moderator_headers, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    assert create_resp.status_code == 201
-    backend_session_id = create_resp.get_json()["session_id"]
+    story_session_id = "we-inspector-raw"
     monkeypatch.setattr(
         "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
-        lambda **_kwargs: {**_bundle_with_turn(), "backend_session_id": backend_session_id},
+        lambda **_kwargs: {**_bundle_with_turn(), "session_id": story_session_id},
     )
     response = client.get(
-        f"/api/v1/admin/ai-stack/inspector/turn/{backend_session_id}?mode=raw",
+        f"/api/v1/admin/ai-stack/inspector/turn/{story_session_id}?mode=raw",
         headers=moderator_headers,
     )
     assert response.status_code == 200
@@ -390,51 +386,47 @@ def test_provenance_raw_projection_respects_mode(monkeypatch):
 
 
 def test_new_inspector_projection_endpoints_are_read_only(client, moderator_headers):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    assert create_resp.status_code == 201
-    backend_session_id = create_resp.get_json()["session_id"]
+    story_session_id = "we-inspector-readonly"
     for path in (
-        f"/api/v1/admin/ai-stack/inspector/timeline/{backend_session_id}",
-        f"/api/v1/admin/ai-stack/inspector/comparison/{backend_session_id}",
-        f"/api/v1/admin/ai-stack/inspector/coverage-health/{backend_session_id}",
-        f"/api/v1/admin/ai-stack/inspector/provenance-raw/{backend_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/timeline/{story_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/comparison/{story_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/coverage-health/{story_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/provenance-raw/{story_session_id}",
     ):
         response = client.post(path, headers=moderator_headers, json={"mutate": True})
         assert response.status_code == 405
 
 
 def test_new_inspector_projection_endpoints_return_payload(client, moderator_headers, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    assert create_resp.status_code == 201
-    backend_session_id = create_resp.get_json()["session_id"]
+    story_session_id = "we-inspector-projection"
     monkeypatch.setattr(
         "app.services.inspector_projection_service.build_session_evidence_bundle",
-        lambda **_kwargs: {**_bundle_with_two_turns(), "backend_session_id": backend_session_id},
+        lambda **_kwargs: {**_bundle_with_two_turns(), "session_id": story_session_id},
     )
 
     timeline = client.get(
-        f"/api/v1/admin/ai-stack/inspector/timeline/{backend_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/timeline/{story_session_id}",
         headers=moderator_headers,
     )
     assert timeline.status_code == 200
     assert timeline.get_json()["timeline_projection"]["status"] in {"supported", "unavailable"}
 
     comparison = client.get(
-        f"/api/v1/admin/ai-stack/inspector/comparison/{backend_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/comparison/{story_session_id}",
         headers=moderator_headers,
     )
     assert comparison.status_code == 200
     assert "comparison_projection" in comparison.get_json()
 
     coverage = client.get(
-        f"/api/v1/admin/ai-stack/inspector/coverage-health/{backend_session_id}",
+        f"/api/v1/admin/ai-stack/inspector/coverage-health/{story_session_id}",
         headers=moderator_headers,
     )
     assert coverage.status_code == 200
     assert "coverage_health_projection" in coverage.get_json()
 
     provenance = client.get(
-        f"/api/v1/admin/ai-stack/inspector/provenance-raw/{backend_session_id}?mode=raw",
+        f"/api/v1/admin/ai-stack/inspector/provenance-raw/{story_session_id}?mode=raw",
         headers=moderator_headers,
     )
     assert provenance.status_code == 200

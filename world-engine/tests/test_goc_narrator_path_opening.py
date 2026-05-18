@@ -28,6 +28,24 @@ class _OutputModuleAdapter(BaseModelAdapter):
         retrieval_context: str | None = None,
         model_name: str | None = None,
     ) -> ModelCallResult:
+        if "Souffleuse output-module input:\n" in prompt:
+            source = json.loads(prompt.split("Souffleuse output-module input:\n", 1)[1])
+            assert source["scene_blocks"][0]["target_actor_id"] == "veronique_vallon"
+            assert source["scene_blocks"][0]["source_facts"]["character_statement_pressure"]
+            payload = {
+                "scene_blocks": [
+                    {
+                        "id": block["id"],
+                        "text": "Souffleuse: Du merkst, dass dieses Wort nicht harmlos ist.",
+                    }
+                    for block in source["scene_blocks"]
+                ]
+            }
+            return ModelCallResult(
+                content=json.dumps(payload),
+                success=True,
+                metadata={"adapter": self.adapter_name},
+            )
         source = json.loads(prompt.split("Canonical output-module input:\n", 1)[1])
         payload = {
             "scene_blocks": [
@@ -171,11 +189,20 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     assert narrator_blocks[0]["text"] == "Ausgabemodul Block 1."
     assert narrator_blocks[0]["source"] == "narrator_path_output_module"
     assert len(souffleuse_blocks) == 1
-    assert souffleuse_blocks[0]["text"].startswith("Ausgabemodul Block ")
+    assert "Du merkst" in souffleuse_blocks[0]["text"]
+    assert souffleuse_blocks[0]["speaker_label"] == "Souffleuse"
     assert souffleuse_blocks[0]["player_display_text"] == souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["source_before_output_module"] == "canonical_path_souffleuse_cue"
-    assert "Arbeitszimmer" not in souffleuse_blocks[0]["text"]
+    assert souffleuse_blocks[0]["visible_output_language"] == "de"
+    assert souffleuse_blocks[0]["session_output_language"] == "de"
+    assert souffleuse_blocks[0]["requires_output_realization"] is False
+    assert souffleuse_blocks[0]["output_realization_source"] == "souffleuse_output_module"
     realization = opening["runtime_governance_surface"]["narrator_path"]["output_realization"]
     assert realization["status"] == "realized"
     assert realization["session_output_language"] == "de"
     assert realization["adapter"] == "test_output_module"
+    souffleuse_realization = opening["runtime_governance_surface"]["narrator_path"][
+        "souffleuse_output_realization"
+    ]
+    assert souffleuse_realization["status"] == "realized"
+    assert souffleuse_realization["session_output_language"] == "de"

@@ -241,7 +241,10 @@ from ai_stack.goc_narrator_path import (
     build_goc_narrator_path_opening,
 )
 from ai_stack.goc_souffleuse import (
+    SOUFFLEUSE_ADAPTER,
     SOUFFLEUSE_BLOCK_TYPE,
+    SOUFFLEUSE_INTERNAL_LANGUAGE,
+    SOUFFLEUSE_INVOCATION_MODE,
     SOUFFLEUSE_OPENING_ROLE_ORIENTATION,
     build_goc_opening_souffleuse_projection,
 )
@@ -9733,9 +9736,11 @@ class StoryRuntimeManager:
             "scene_blocks": [
                 {
                     "id": block.get("id"),
+                    "target_actor_id": block.get("target_actor_id"),
                     "canonical_step_id": block.get("canonical_step_id"),
                     "souffleuse_cue_id": block.get("souffleuse_cue_id"),
                     "voice_mode": block.get("voice_mode"),
+                    "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
                     "text": block.get("text"),
                 }
                 for block in source_blocks
@@ -9908,6 +9913,14 @@ class StoryRuntimeManager:
             if not text:
                 missing_ids.append(block_id or f"index:{len(realized)}")
                 continue
+            visible_text, _partial = sanitize_visible_block_text(
+                text,
+                block_type=SOUFFLEUSE_BLOCK_TYPE,
+                speaker_label=str(block.get("speaker_label") or "Souffleuse"),
+                actor_id=None,
+                expected_language=target_language,
+            )
+            text = visible_text.strip() or text
             nb = dict(block)
             nb["text"] = text
             nb["player_display_text"] = text
@@ -9974,26 +9987,18 @@ class StoryRuntimeManager:
             )
             if isinstance(block, dict) and str(block.get("text") or "").strip()
         ]
-        source_blocks = [*source_narrator_blocks, *source_souffleuse_blocks]
-        blocks, output_realization = self._realize_narrator_path_output(
-            source_blocks=source_blocks,
+        narrator_blocks, output_realization = self._realize_narrator_path_output(
+            source_blocks=source_narrator_blocks,
             narrator_path=narrator_path,
             session=session,
         )
+        souffleuse_blocks, souffleuse_output_realization = self._realize_souffleuse_output(
+            source_blocks=source_souffleuse_blocks,
+            session=session,
+        )
+        blocks = [*narrator_blocks, *souffleuse_blocks]
         if not blocks:
             raise RuntimeError("Narrator path produced no opening scene blocks.")
-        souffleuse_blocks = [
-            block
-            for block in blocks
-            if isinstance(block, dict)
-            and str(block.get("block_type") or "").strip().lower() == SOUFFLEUSE_BLOCK_TYPE
-        ]
-        narrator_blocks = [
-            block
-            for block in blocks
-            if isinstance(block, dict)
-            and str(block.get("block_type") or "").strip().lower() == "narrator"
-        ]
         gm_narration = [
             str(block.get("text") or "").strip()
             for block in narrator_blocks
@@ -10034,6 +10039,9 @@ class StoryRuntimeManager:
             if str(step_id).strip()
         ]
         output_realized = str(output_realization.get("status") or "").strip() == "realized"
+        souffleuse_output_realized = (
+            str(souffleuse_output_realization.get("status") or "").strip() == "realized"
+        )
         generation_provider = (
             str(output_realization.get("provider") or "").strip() if output_realized else "world_engine"
         ) or "world_engine"
@@ -10042,7 +10050,11 @@ class StoryRuntimeManager:
             if output_realized
             else "narrator_path_renderer"
         ) or "narrator_path_renderer"
-        output_module_nodes = ["output_module.realize"] if output_realized else []
+        output_module_nodes = []
+        if output_realized:
+            output_module_nodes.append("output_module.realize")
+        if souffleuse_output_realized:
+            output_module_nodes.append("souffleuse.output_realize")
         phase_costs = {
             "narrator_path": build_deterministic_phase_cost(
                 phase="narrator_path",
@@ -10061,6 +10073,23 @@ class StoryRuntimeManager:
                 scene_block_count=len(blocks),
                 adapter=output_realization.get("adapter"),
             )
+        if souffleuse_output_realized:
+            phase_costs["souffleuse_output_module"] = build_unavailable_phase_cost(
+                phase="souffleuse_output_module",
+                provider=str(souffleuse_output_realization.get("provider") or generation_provider),
+                model=str(
+                    souffleuse_output_realization.get("api_model")
+                    or souffleuse_output_realization.get("model_id")
+                    or generation_model
+                ),
+                reason="output_module_usage_unavailable",
+                scene_block_count=len(souffleuse_blocks),
+                adapter=souffleuse_output_realization.get("adapter"),
+            )
+        if isinstance(souffleuse_projection, dict):
+            diagnostics = souffleuse_projection.get("diagnostics")
+            if isinstance(diagnostics, dict):
+                diagnostics["output_realization"] = souffleuse_output_realization
         structured_output = {
             "schema_version": "runtime_actor_turn_v1",
             "narrative_response": joined,
@@ -10075,6 +10104,7 @@ class StoryRuntimeManager:
             "source_authoring_language": narrator_path.get("authoring_language"),
             "session_output_language": session.session_output_language,
             "output_realization": output_realization,
+            "souffleuse_output_realization": souffleuse_output_realization,
             "souffleuse_blocks": souffleuse_blocks,
             "souffleuse_projection": souffleuse_projection
             if isinstance(souffleuse_projection, dict)
@@ -10275,6 +10305,7 @@ class StoryRuntimeManager:
                 "authoring_language": narrator_path.get("authoring_language"),
                 "session_output_language": session.session_output_language,
                 "output_realization": output_realization,
+                "souffleuse_output_realization": souffleuse_output_realization,
             },
             "souffleuse_projection": souffleuse_projection
             if isinstance(souffleuse_projection, dict)
@@ -10322,6 +10353,7 @@ class StoryRuntimeManager:
                     "usage_source": output_realization.get("usage_source") or "canonical_content_renderer",
                     "generation_latency_ms": 0,
                     "output_realization": output_realization,
+                    "souffleuse_output_realization": souffleuse_output_realization,
                     "souffleuse_projection": souffleuse_projection
                     if isinstance(souffleuse_projection, dict)
                     else {},

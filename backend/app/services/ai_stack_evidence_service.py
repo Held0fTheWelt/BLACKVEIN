@@ -1,4 +1,4 @@
-"""Aggregate AI-stack evidence for governance (World-Engine diagnostics + backend session truth)."""
+"""Aggregate AI-stack evidence for governance from World-Engine story-session truth."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any
 from ai_stack import build_retrieval_trace
 from ai_stack.runtime_turn_contracts import QUALITY_CLASS_VALUES
 
-from app.runtime.session_store import get_session as get_runtime_session
 from app.services.improvement_service import list_recommendation_packages
+from app.services.game_service import GameServiceError, get_story_diagnostics, get_story_state
 from app.services.ai_stack_evidence_internals import (  # noqa: F401
     _improvement_evidence_strength_map,
     _retrieval_tier_strong_enough_for_governance,
@@ -354,10 +354,9 @@ def _writers_room_governance_signals(review: dict[str, Any]) -> dict[str, Any]:
 
 
 def assemble_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[str, Any]:
-    """Build governance session evidence bundle (same contract as historical ``session_bundle`` module)."""
+    """Build governance evidence for a World-Engine story session."""
     from app.services.ai_stack_evidence_session_bundle_sections import (
         apply_diagnostics_execution_truth_and_retrieval,
-        apply_world_engine_bridge,
         apply_writers_room_and_improvement_signals,
         session_bundle_base_scaffold,
         session_bundle_not_found,
@@ -365,22 +364,59 @@ def assemble_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[
 
     import sys
 
-    runtime_session = get_runtime_session(session_id)
-    if not runtime_session:
+    engine_id = session_id
+    try:
+        world_engine_state = get_story_state(engine_id, trace_id=trace_id)
+        world_engine_diagnostics = get_story_diagnostics(engine_id, trace_id=trace_id)
+    except GameServiceError as exc:
+        if exc.status_code == 404:
+            return session_bundle_not_found(trace_id=trace_id, session_id=session_id)
+        bundle = session_bundle_base_scaffold(
+            trace_id=trace_id,
+            session_id=session_id,
+            module_id=None,
+            current_scene_id=None,
+            turn_counter=None,
+            engine_id=engine_id,
+        )
+        bundle["bridge_errors"].append(
+            {
+                "failure_class": "world_engine_unreachable",
+                "message": str(exc),
+                "status_code": exc.status_code,
+            }
+        )
+        ev_mod = sys.modules[__name__]
+        apply_diagnostics_execution_truth_and_retrieval(bundle, ev_mod)
+        apply_writers_room_and_improvement_signals(bundle, ev_mod)
+        return bundle
+
+    if not isinstance(world_engine_state, dict):
         return session_bundle_not_found(trace_id=trace_id, session_id=session_id)
 
-    state = runtime_session.current_runtime_state
-    metadata = state.metadata if isinstance(state.metadata, dict) else {}
-    engine_id = metadata.get("world_engine_story_session_id")
+    diagnostics_dict = world_engine_diagnostics if isinstance(world_engine_diagnostics, dict) else {}
+    module_id = str(
+        world_engine_state.get("module_id") or diagnostics_dict.get("module_id") or ""
+    ).strip() or None
+    current_scene_id = str(
+        world_engine_state.get("current_scene_id") or diagnostics_dict.get("current_scene_id") or ""
+    ).strip() or None
+    try:
+        turn_counter = int(world_engine_state.get("turn_counter"))
+    except (TypeError, ValueError):
+        turn_counter = None
 
     bundle = session_bundle_base_scaffold(
         trace_id=trace_id,
         session_id=session_id,
-        state=state,
+        module_id=module_id,
+        current_scene_id=current_scene_id,
+        turn_counter=turn_counter,
         engine_id=engine_id,
     )
+    bundle["world_engine_state"] = world_engine_state
+    bundle["world_engine_diagnostics"] = diagnostics_dict
 
-    apply_world_engine_bridge(bundle, engine_id=engine_id, trace_id=trace_id)
     ev_mod = sys.modules[__name__]
     apply_diagnostics_execution_truth_and_retrieval(bundle, ev_mod)
     apply_writers_room_and_improvement_signals(bundle, ev_mod)
@@ -389,7 +425,7 @@ def assemble_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[
 
 
 def build_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[str, Any]:
-    """Return inspectable evidence for a backend runtime session (may include World-Engine story host data)."""
+    """Return inspectable evidence for a World-Engine story session id."""
     return assemble_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
 
 

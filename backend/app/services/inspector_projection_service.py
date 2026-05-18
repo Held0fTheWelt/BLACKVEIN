@@ -30,7 +30,7 @@ from app.services.inspector_projection_turn_view import extract_turn_view
 def build_inspector_timeline_projection(*, session_id: str, trace_id: str) -> dict[str, Any]:
     """Return per-turn timeline projection from existing diagnostics rows."""
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
-    if bundle.get("error") == "backend_session_not_found":
+    if bundle.get("error") == "world_engine_story_session_not_found":
         return bundle
     rows = _diagnostics_rows(bundle)
     if not rows:
@@ -65,7 +65,7 @@ def build_inspector_timeline_projection(*, session_id: str, trace_id: str) -> di
 def build_inspector_comparison_projection(*, session_id: str, trace_id: str) -> dict[str, Any]:
     """Return bounded turn-to-turn comparison projection for one session."""
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
-    if bundle.get("error") == "backend_session_not_found":
+    if bundle.get("error") == "world_engine_story_session_not_found":
         return bundle
     rows = _diagnostics_rows(bundle)
     if len(rows) < 2:
@@ -135,7 +135,7 @@ def build_inspector_provenance_raw_projection(
 ) -> dict[str, Any]:
     """Return provenance entries and optional raw evidence bundle."""
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
-    if bundle.get("error") == "backend_session_not_found":
+    if bundle.get("error") == "world_engine_story_session_not_found":
         return bundle
     rows = _diagnostics_rows(bundle)
     if not rows:

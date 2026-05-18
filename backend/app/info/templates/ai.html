@@ -6,7 +6,7 @@
 {% block body %}
 <section class="info-section">
   <h2>Kernfunktionalität</h2>
-  <p>Schwere AI-Orchestrierung (Adapter, Tool-Loops, Supervisor) lebt unter <code>app.runtime</code> und dient Tests, Operator-Tools und der <strong>Sessions-Brücke</strong> unter <code>/api/v1/sessions</code>. Separat gibt es <strong>Writers-Room</strong>- und <strong>Improvement</strong>-HTTP-APIs sowie <strong>AI-Stack-Governance</strong> für Inspector und Evidence — jeweils mit klarer Policy in der Anwendungsschicht.</p>
+  <p>Schwere AI-Orchestrierung (Adapter, Tool-Loops, Supervisor) lebt unter <code>app.runtime</code> und dient Tests, Operator-Tools und Governance-Evidence. Der aktive Spielerpfad läuft über <code>/api/v1/game/player-sessions</code> und den <strong>world-engine</strong>-Dienst; das Backend hält keine zweite autoritative Session-Runtime.</p>
 </section>
 <section class="info-section">
   <h2>AI-Flächen im Backend</h2>
@@ -20,8 +20,8 @@
       <p>Experimentelle Verbesserungen und Vergleiche. Geeignet für Redaktion und QA, aber immer mit menschlicher oder Policy-Grenze.</p>
     </article>
     <article class="info-example">
-      <strong>SessionsBridge</strong>
-      <p>In-Prozess-Brücke für Tests und Tooling. Sie ist bewusst nicht die autoritative Production-Engine.</p>
+      <strong>World-Engine-Evidence</strong>
+      <p>Inspector- und Evidence-Bundles lesen World-Engine-Story-Sessions, statt eine Backend-Session als Runtime-Quelle zu behandeln.</p>
     </article>
     <article class="info-example">
       <strong>AIStackGovernance</strong>
@@ -34,13 +34,13 @@
   <ul>
     <li><strong>Content- &amp; AI-Teams</strong> — Writers-Room-Reviews, Improvement-Experimente über die dokumentierten Endpunkte.</li>
     <li><strong>Plattform-Engineering</strong> — Governance- und Inspector-Routen für Diagnose und Release-Readiness.</li>
-    <li><strong>Tooling / MCP</strong> — Sessions-API als kontrollierte Brücke; nicht mit produktivem Engine-State verwechseln.</li>
+    <li><strong>Tooling / MCP</strong> — Governance- und Evidence-Routen gegen World-Engine-Story-Sessions; nicht als produktiven Engine-State mutieren.</li>
   </ul>
 </section>
 <section class="info-section">
   <h2>Möglich / nicht möglich</h2>
   <ul>
-    <li><strong>Möglich:</strong> HTTP-Zugriff auf <code>WritersRoom</code>, <code>Improvement</code>, <code>AIStackGovernance</code>, <code>SessionsBridge</code> wie in <a href="{{ url_for('info.openapi_spec') }}">OpenAPI</a>; narrative Feinheiten in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }}.</li>
+    <li><strong>Möglich:</strong> HTTP-Zugriff auf <code>WritersRoom</code>, <code>Improvement</code> und <code>AIStackGovernance</code> wie in <a href="{{ url_for('info.openapi_spec') }}">OpenAPI</a>; narrative Feinheiten in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }}.</li>
     <li><strong>Nicht möglich:</strong> Das Backend als <strong>einzige Quelle</strong> für committed Production-Narration im laufenden Spiel ersetzen — dafür ist der <strong>world-engine</strong> zuständig, sobald Tickets/WebSockets im Spiel sind.</li>
     <li><strong>Automation:</strong> Optionale n8n-Webhooks und Service-Tokens sind Betriebs-Integration, kein Ersatz für Engine-Regeln.</li>
   </ul>
@@ -69,13 +69,13 @@
   <ul>
     <li><a href="{{ url_for('info.observability_evidence') }}">Observability &amp; Evidence</a> — lokale Judge- und Langfuse-Regeln.</li>
     <li>{{ docs_deep_link("Dev — AI stack &amp; GoC seams", "/dev/architecture/ai-stack-rag-langgraph-and-goc-seams/") }}</li>
-    <li><a href="{{ url_for('info.api_explorer') }}#tag/WritersRoom">OpenAPI — WritersRoom</a> · <a href="{{ url_for('info.api_explorer') }}#tag/Improvement">Improvement</a> · <a href="{{ url_for('info.api_explorer') }}#tag/AIStackGovernance">AIStackGovernance</a> · <a href="{{ url_for('info.api_explorer') }}#tag/SessionsBridge">SessionsBridge</a></li>
+    <li><a href="{{ url_for('info.api_explorer') }}#tag/WritersRoom">OpenAPI — WritersRoom</a> · <a href="{{ url_for('info.api_explorer') }}#tag/Improvement">Improvement</a> · <a href="{{ url_for('info.api_explorer') }}#tag/AIStackGovernance">AIStackGovernance</a></li>
   </ul>
 </section>
 <section class="info-section">
   <h2>Grenzen (Merksatz)</h2>
   <p><strong>Backend</strong> — Geschäftsregeln, Persistenz, Ticket-Ausgabe, HTTP zum Play-Service.<br>
   <strong>World-engine</strong> — autoritative Ausführung und Production-Player-Semantik.<br>
-  <strong>In-Prozess-AI</strong> — geteilte Bibliotheken für Simulation, Tests und dokumentierte Brücken — explizit nicht als zweite Production-Engine missverstehen.</p>
+  <strong>In-Prozess-AI</strong> — geteilte Bibliotheken für Simulation, Tests und Governance — explizit nicht als zweite Production-Engine missverstehen.</p>
 </section>
 {% endblock %}

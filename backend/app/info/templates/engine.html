@@ -29,8 +29,8 @@
 <section class="info-section">
   <h2>Möglich / nicht möglich</h2>
   <ul>
-    <li><strong>Möglich:</strong> Über <code>/api/v1/game/*</code> u.&nbsp;a. Runs anlegen/listen, Tickets ausstellen, Charaktere verwalten — alles, was die OpenAPI-Tags <strong>GameBootstrap</strong> und <strong>GameAdmin</strong> abdecken (<a href="{{ url_for('info.api_explorer') }}#tag/GameBootstrap">Explorer</a>).</li>
-    <li><strong>Nicht möglich:</strong> In diesem Flask-Prozess denselben Stand wie der Engine-WebSocket zu halten; <code>POST /api/v1/sessions</code> ist eine <strong>nicht-autoritative</strong> Brücke (siehe <a href="{{ url_for('info.ai_integration') }}">AI</a> / SessionsBridge).</li>
+    <li><strong>Möglich:</strong> Über <code>/api/v1/game/*</code> u.&nbsp;a. Player-Sessions anlegen, Runs listen, Tickets ausstellen, Charaktere verwalten — alles, was die OpenAPI-Tags <strong>GameBootstrap</strong> und <strong>GameAdmin</strong> abdecken (<a href="{{ url_for('info.api_explorer') }}#tag/GameBootstrap">Explorer</a>).</li>
+    <li><strong>Nicht möglich:</strong> In diesem Flask-Prozess eine zweite Session-Runtime zu betreiben. Der aktive Spielpfad läuft über <code>/api/v1/game/player-sessions</code> und den <strong>world-engine</strong>-Dienst.</li>
     <li><strong>World-Engine-HTTP-API</strong> (FastAPI) ist separat dokumentiert: {{ docs_deep_link("API-Doku — World Engine", "/api/README/#world-engine-api") }}.</li>
   </ul>
 </section>

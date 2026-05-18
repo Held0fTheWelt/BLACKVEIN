@@ -20,11 +20,11 @@ This document is the **canonical technical reference** for the **Flask backend**
 
 ## Executive overview
 
-The backend is **Better Tomorrow’s primary HTTP API**: it owns user accounts, roles, feature-area governance, content and forum surfaces, admin dashboards, bridges to the **World Engine** for **live play**, and operator-facing diagnostics. It is **not** a second runtime: in-process session and AI paths are explicitly **non-authoritative** and exist for tests, tooling, and transitional compatibility (`docs/technical/architecture/backend-runtime-classification.md`).
+The backend is **Better Tomorrow’s primary HTTP API**: it owns user accounts, roles, feature-area governance, content and forum surfaces, admin dashboards, bridges to the **World Engine** for **live play**, and operator-facing diagnostics. It is **not** a second runtime: in-process runtime helpers are explicitly **non-authoritative** and exist for tests/tooling only (`docs/technical/architecture/backend-runtime-classification.md`).
 
 **Why this matters:** Confusing “API host” with “runtime host” breaks operational mental models (where transcripts live, which process enforces run identity, what restarts wipe). This document keeps those distinctions explicit.
 
-**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/session_routes.py`.
+**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`.
 
 ---
 
@@ -48,13 +48,13 @@ Monolithic here means **one deployable Flask process** with shared extensions (`
 
 | Zone | Primary artifacts | Responsibility |
 |------|-------------------|----------------|
-| **API shell** | `api_v1_bp` hooks in `backend/app/api/v1/__init__.py` | Trace IDs (`X-WoS-Trace-Id`), response headers, selective audit for `/sessions` paths |
+| **API shell** | `api_v1_bp` hooks in `backend/app/api/v1/__init__.py` | Trace IDs (`X-WoS-Trace-Id`), response headers, selective audit for player-session paths |
 | **Identity & sessions (user)** | `auth_routes.py`, `user_routes.py`, JWT callbacks in `extensions.py` | Register, login, JWT access/refresh, blacklist/revocation, `allowed_features` in `/auth/me` |
 | **Authorization plane** | `auth/permissions.py`, `auth/feature_registry.py`, `auth/admin_security.py` | Roles (`user`, `moderator`, `admin`, `qa`), feature IDs, area scoping, admin export hardening |
 | **Player / game HTTP** | `game_routes.py`, `game_content_service.py`, `game_profile_service.py` | Runs/templates via `game_service`, characters/saves; hybrid identity from **Flask session** or **optional JWT** |
 | **Content & community** | `wiki_*`, `forum_routes.py`, `news_routes.py`, `slogan_routes.py`, `site_routes.py` | Editorial and community surfaces |
 | **Admin & moderation** | `admin_routes.py`, `*_admin_routes.py`, `analytics_routes.py` | Metrics, logs, exports, assignments |
-| **Engine bridge** | `game_service.py`, `play_service_control_service.py`, `session_routes.py` | HTTP to play service; **non-authoritative** in-process session mirror |
+| **Engine bridge** | `game_service.py`, `play_service_control_service.py`, `game_routes.py` | HTTP to play service; player-session continuity through World-Engine story sessions |
 | **AI governance & improvement** | `ai_stack_governance_routes.py`, `improvement_routes.py`, `writers_room_routes.py` | Evidence APIs, experiments (JWT), RAG/capability stack usage in improvement loop |
 | **MCP operations** | `mcp_operations_routes.py`, `mcp_operations_service.py` | Telemetry ingest (service token); admin cockpit (JWT + feature) |
 | **Diagnostics** | `system_diagnosis_routes.py`, `info/routes.py` | Aggregated diagnosis; static operator pages under `/backend` |
@@ -128,7 +128,6 @@ URLs are grouped so that **who you are** (anonymous user, logged-in player, mode
 | `/api/v1/game/*` | Session and/or JWT (`game_routes._current_user`) | Play runs, templates, tickets, profiles |
 | `/api/v1/admin/*` | `require_jwt_admin` and/or `require_jwt_moderator_or_admin` + `@require_feature(...)` | Metrics, logs, exports, MCP cockpit, AI stack evidence, system diagnosis, play-service control |
 | `/api/v1/operator/mcp-telemetry/ingest` | `require_mcp_service_token` | MCP process telemetry append |
-| `/api/v1/sessions/*` | Mixed: **service token** for many reads; turn execution bridges engine | Operator/MCP/test bridge; **warnings** in JSON |
 | `/api/v1/improvement/*` | `@jwt_required()` | Authenticated improvement loop (not a public surface) |
 
 ### Why this matters
@@ -230,22 +229,22 @@ flowchart TB
 
 ### Plain language
 
-“Session” means **two different things**: a **logged-in user** (JWT or legacy cookie session for some game routes) and an **in-memory story session** used for diagnostics—**not** the live game server.
+“Session” means **two different things**: a **logged-in user** (JWT or legacy cookie session for some game routes) and a **canonical player session** (`/api/v1/game/player-sessions`) bound to a World-Engine story session.
 
 ### Technical precision
 
 1. **User session (API):** Stateless **JWT** in `Authorization: Bearer` for most `/api/v1` clients. `auth_routes` issues access/refresh tokens; logout blacklists access `jti` and revokes refresh rows.
 2. **Legacy Flask session:** `game_routes._current_user` reads `session["user_id"]` **or** optional JWT—**dual path** for compatibility (`backend/app/api/v1/game_routes.py`).
-3. **Story / runtime session (backend memory):** `POST /api/v1/sessions` creates in-process `SessionState` with explicit **warnings** that it is **not** authoritative live runtime (`session_routes.py` docstring and response `warnings`). When `world_engine_story_session_id` exists in metadata, GET diagnostics/state may **overlay** engine truth via `game_service` (`session_routes.py`).
+3. **Canonical player session:** `POST /api/v1/game/player-sessions` creates or resumes a run-bound player session and stores the World-Engine story-session id in save-slot continuity metadata (`game_routes.py`).
 4. **Play run session (authoritative):** Created via `game_service.create_run` / templates / tickets—**engine-side** identity (`game_service.py`, `canonical_runtime_contract.md`).
 
 ### Why this matters
 
-Operators and tests can use `/api/v1/sessions` **without** pretending the Flask process hosts production play. Warnings in JSON are part of the **contract**.
+Player gameplay must use `/api/v1/game/player-sessions`; the removed backend session bridge is no longer a supported session path.
 
 ### Connections
 
-MCP and tests use **service token** reads; moderators/admins use **JWT + features** for AI stack evidence that **aggregates** backend session + engine diagnostics (`ai_stack_governance_routes.py`).
+MCP telemetry uses **service token** ingest; moderators/admins use **JWT + features** for AI stack evidence against World-Engine story-session diagnostics (`ai_stack_governance_routes.py`).
 
 ### Not owned here
 
@@ -259,13 +258,13 @@ stateDiagram-v2
   UserJWT --> APIRequests: Bearer access token
   [*] --> FlaskSession: Legacy cookie path
   FlaskSession --> GameRoutes: session user_id
-  [*] --> InProcStory: POST /api/v1/sessions
-  InProcStory --> Volatile: In-memory SessionState
+  [*] --> PlayerSession: POST /api/v1/game/player-sessions
+  PlayerSession --> StorySession: World-Engine story session id
   [*] --> EngineRun: create_run via game_service
   EngineRun --> Authoritative: World Engine run store
 ```
 
-**Anchors:** `backend/app/api/v1/auth_routes.py`, `backend/app/api/v1/session_routes.py`, `backend/app/api/v1/game_routes.py`.
+**Anchors:** `backend/app/api/v1/auth_routes.py`, `backend/app/api/v1/game_routes.py`.
 
 ---
 
@@ -279,7 +278,7 @@ The backend **asks** the World Engine to run the game; it does **not** silently 
 
 - **HTTP client:** `backend/app/services/game_service.py` uses `httpx` against `PLAY_SERVICE_INTERNAL_URL` / public URL with shared-secret signing (details in file). Responses are validated for **nested-run V1** consistency (`canonical_runtime_contract.md`).
 - **Classification:** `docs/technical/architecture/backend-runtime-classification.md` states authoritative live play runs in World Engine; in-process `RuntimeManager` / W2 paths are **deprecated transitional**.
-- **Session routes:** Turn execution on `/sessions/.../turns` **proxies** to `execute_story_turn_in_engine` when engine session id is present (`session_routes.py`); audit via `log_world_engine_bridge` (`observability/audit_log.py`).
+- **Player-session routes:** Turn execution on `/game/player-sessions/<run_id>/turns` resolves the stored World-Engine story-session id and proxies to `execute_story_turn_in_engine` (`game_routes.py`); audit via `log_world_engine_bridge` (`observability/audit_log.py`).
 - **Play service control:** Admin routes persist **desired posture** and apply/test—**application-level**, not container orchestration (`play_service_control_routes.py`, `play_service_control_service.py`).
 
 ### Why this matters
@@ -421,13 +420,13 @@ flowchart LR
 
 ### Plain language
 
-MCP processes **push telemetry** and **read operator session JSON** using **secrets**, while humans use **admin pages** backed by the same database.
+MCP processes **push telemetry** using **secrets**, while humans use **admin pages** backed by the same database.
 
 ### Technical precision
 
 - **Ingest:** `POST /api/v1/operator/mcp-telemetry/ingest` — `require_mcp_service_token`, body size and record limits (`mcp_operations_routes.py`, `mcp_operations_service.py`).
 - **Admin cockpit:** `/api/v1/admin/mcp/*` — `require_jwt_moderator_or_admin` + `require_feature(FEATURE_MANAGE_MCP_OPERATIONS)`.
-- **Session reads:** Multiple `GET /api/v1/sessions/...` handlers use `require_mcp_service_token` (`session_routes.py`).
+- **Runtime evidence:** Story-session evidence and diagnostics are exposed through admin/operator governance routes and World-Engine story-session ids, not a backend session mirror.
 
 ### Why this matters
 
@@ -447,14 +446,13 @@ Model `mcp_ops_telemetry` (see `backend/app/models/mcp_ops_telemetry.py`) backs 
 flowchart LR
   MCPProc["MCP process"]
   MCPProc -->|Bearer MCP_SERVICE_TOKEN| ING["POST .../mcp-telemetry/ingest"]
-  MCPProc -->|Bearer token| SES["GET .../sessions/*"]
   ADM["Staff browser"]
   ADM -->|JWT + feature| COCK["GET/POST .../admin/mcp/*"]
   ING --> DB[(SQLAlchemy)]
   COCK --> DB
 ```
 
-**Anchors:** `backend/app/api/v1/mcp_operations_routes.py`, `backend/app/api/v1/session_routes.py`, `backend/app/models/mcp_ops_telemetry.py`.
+**Anchors:** `backend/app/api/v1/mcp_operations_routes.py`, `backend/app/api/v1/ai_stack_governance_routes.py`, `backend/app/models/mcp_ops_telemetry.py`.
 
 ---
 
@@ -542,12 +540,12 @@ Almost every subsystem **touches** the backend for **identity, policy, or persis
 | Subsystem | Interaction pattern | Key seams |
 |-----------|---------------------|-----------|
 | **world-engine** | Backend calls HTTP play API | `game_service.py`, `canonical_runtime_contract.md` |
-| **MCP** | Service token + admin JWT | `auth.py`, `mcp_operations_routes.py`, `session_routes.py` |
+| **MCP** | Service token + admin JWT | `auth.py`, `mcp_operations_routes.py`, `ai_stack_governance_routes.py` |
 | **AI layers** | Governance & improvement routes + `ai_stack` | `ai_stack_governance_routes.py`, `improvement_routes.py` |
 | **User flows** | Auth, game, wiki, forum | `auth_routes.py`, `game_routes.py`, `wiki_routes.py`, `forum_routes.py` |
 | **Admin flows** | `/api/v1/admin/*`, exports | `admin_routes.py`, `play_service_control_routes.py` |
 | **Moderation** | Mod role + features | `feature_registry.py`, mod-gated admin modules |
-| **QA / verification** | pytest + optional service token | `backend/tests/conftest.py`, session/MCP tests |
+| **QA / verification** | pytest + optional service token | `backend/tests/conftest.py`, game/MCP tests |
 
 **Diagram — Backend as coordination hub**
 
@@ -600,7 +598,6 @@ The Better Tomorrow backend is **one Flask monolith** that **organizes access**:
 | Features | `backend/app/auth/feature_registry.py` |
 | Service token | `backend/app/api/v1/auth.py` |
 | Engine client | `backend/app/services/game_service.py` |
-| Sessions bridge | `backend/app/api/v1/session_routes.py` |
 | MCP ops | `backend/app/api/v1/mcp_operations_routes.py` |
 | AI governance | `backend/app/api/v1/ai_stack_governance_routes.py` |
 | Improvement | `backend/app/api/v1/improvement_routes.py` |

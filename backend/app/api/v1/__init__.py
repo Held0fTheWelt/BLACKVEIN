@@ -83,16 +83,16 @@ def _track_api_activity(response):
     if langfuse_trace_id:
         response.headers["X-Langfuse-Trace-Id"] = langfuse_trace_id
 
-    # Write audit log for session endpoints
-    if "/sessions" in request.path:
+    # Write audit log for canonical player-session endpoints.
+    if "/game/player-sessions" in request.path:
         start_time = g.get("request_start_time", time.time())
         duration_ms = int((time.time() - start_time) * 1000)
 
         # Extract session_id from path
         session_id = None
         parts = request.path.split("/")
-        if len(parts) >= 4 and parts[2] == "sessions":
-            session_id = parts[3] if len(parts) > 3 and parts[3] not in ("export",) else None
+        if len(parts) >= 5 and parts[2] == "game" and parts[3] == "player-sessions":
+            session_id = parts[4] if len(parts) > 4 else None
 
         log_api_endpoint(
             trace_id=trace_id,
@@ -139,7 +139,6 @@ def _register_api_v1_blueprint_routes() -> None:
     from app.api.v1 import analytics_routes  # noqa: F401
     from app.api.v1 import game_routes  # noqa: F401
     from app.api.v1 import game_admin_routes  # noqa: F401
-    from app.api.v1 import session_routes  # noqa: F401
     from app.api.v1 import writers_room_routes  # noqa: F401
     from app.api.v1 import improvement_routes  # noqa: F401
     from app.api.v1 import ai_stack_governance_routes  # noqa: F401
@@ -153,7 +152,6 @@ def _register_api_v1_blueprint_routes() -> None:
     from app.api.v1 import governance_console_routes  # noqa: F401
     from app.api.v1 import ai_engineer_suite_routes  # noqa: F401
     from app.api.v1 import research_domain_governance_routes  # noqa: F401
-    from app.api.v1 import player_routes  # noqa: F401
     from app.api.v1 import operator_diagnostics_routes  # noqa: F401
     from app.api.v1 import play_qa_diagnostics_routes  # noqa: F401
     from app.api.v1 import admin_settings_routes  # noqa: F401

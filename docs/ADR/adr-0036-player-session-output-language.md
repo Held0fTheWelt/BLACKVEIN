@@ -23,6 +23,15 @@ Accepted
 - `frontend/tests/test_mvp1_play_launcher.py`: 3 tests assert de/en forwarding and default=de.
 - Langfuse `user_id` propagation: `backend/app/observability/langfuse_adapter.py` `start_trace()` accepts `user_id` and uses `propagate_attributes(user_id=...)` (SDK v4.x). `game_routes.py` passes `str(user.id)` on turn traces. `world-engine/app/observability/langfuse_adapter.py` `session_scope()` accepts and propagates `user_id`. `world-engine/app/api/http.py` `CreateStorySessionRequest` accepts `user_id`, forwarded to `session_scope()`. Wrong `adapter.client.update_user()` call removed.
 
+**Updated (as of 2026-05-18):**
+- GoC narrator-path openings and Souffleuse opening guidance use English source
+  blocks and output-module realization for non-English visible text.
+- `session_output_language` is now explicitly an output-realization contract,
+  not permission to store parallel German story prose in runtime code,
+  canonical path YAML, or prompt-store templates.
+- Tests assert output-realization provenance for German narrator-path and
+  Souffleuse blocks.
+
 **Not yet implemented:**
 - `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
 - See ADR-0036 Follow-ups section for full list.
@@ -72,6 +81,11 @@ This ADR contains no personal data. Implementers must follow repository privacy 
 - Introduce a session-scoped, normative field **`session_output_language`** (working name; implementation may use `output_language` in API JSON if aliased in OpenAPI).
 - **Allowed values (v1):** `de` and `en` (BCP 47 primary language tags; region subtags optional later).
 - **Semantics:** All **player-visible** model-generated prose for that session (narrator, NPC lines, stage directions where generated) SHALL be produced in this language unless a future **module-declared exception** is accepted in a separate ADR (not in v1).
+- **Ownership:** When canonical or deterministic source text is authored in
+  English, the story output module owns the conversion into
+  `session_output_language`. Runtime code and module content SHALL NOT satisfy
+  German output by storing German replacement prose beside English source
+  blocks.
 
 ### D2 — Launch-time selection (UX)
 
@@ -130,6 +144,12 @@ The chosen language MUST flow through the canonical play path so all generation 
 
 - **Character names, place names, and in-world documents** may remain French or mixed where the module is faithful to source material; the ADR governs **narrative language**, not renaming **Véronique** to **Veronika**.
 - If a beat requires **quoted** French (e.g. a letter read aloud), the module or director policy may emit it as **quoted** content; the surrounding frame stays in `session_output_language`.
+- Canonical story content, narrator-path source blocks, and Souffleuse source
+  blocks remain authored/grounded in their declared authoring language
+  (`en` for GoC v1). Per-language story prose fields are not the mechanism for
+  player-visible language support.
+- Locale-specific UI labels are allowed outside the story runtime contract; they
+  must not be used as story facts or narrative prose sources.
 
 ### D5 — Observability and QA
 
@@ -161,13 +181,17 @@ Both errors are returned in the standard game API error response format (see `ba
 ### Negative / risks
 
 - Models may still code-mix; mitigated by prompt discipline and optional lightweight post-checks later.
-- German-first copy in YAML prompts may need alignment so English sessions do not receive contradictory static German instructions.
+- Existing German-first YAML or prompt-store prose must be treated as drift in
+  story-runtime paths and moved behind the output-module boundary.
 
 ### Follow-ups
 
 - OpenAPI schema: add `session_output_language` field to `game_player_session` request/response.
 - Launcher UI + routes_play.py: implement per D2a with select widget semantics (frontend not yet implemented as of 2026-05-07).
-- ADR-0035 opening prompt alignment: opening beats must respect `session_output_language`; static German copy in YAML prompts must not contradict an English session.
+- ADR-0035 opening prompt alignment: opening beats must respect
+  `session_output_language`; static German story prose in YAML prompts must not
+  contradict an English session and must not bypass the output module for German
+  sessions.
 - Graph prompt injection: `ai_stack/langgraph_runtime_executor.py` — mirror language directive into all turn prompts, not only the opening prompt (currently only `_build_opening_prompt()` injects it).
 - Langfuse `update_user` verification: confirm `session_output_language` appears on User objects in Langfuse dashboard after live session create.
 

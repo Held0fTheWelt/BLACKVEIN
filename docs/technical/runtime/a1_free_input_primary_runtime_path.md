@@ -1,6 +1,6 @@
 # A1 Repair Note — Free Input as Primary Runtime Path
 
-Status: implemented for the playable frontend shell and backend session bridge.
+Status: implemented for the playable frontend shell and canonical player session path.
 
 ## Objective
 
@@ -9,13 +9,13 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 ## Runtime path after repair
 
 1. Player opens `/play/<run_id>`.
-2. Frontend shell resolves or creates a backend runtime session for that run:
-   - `POST /api/v1/sessions` with `module_id` derived from the selected run template.
+2. Frontend shell resolves or creates the canonical player session for that run:
+   - `POST /api/v1/game/player-sessions` with `run_id` or a runtime profile/template selection.
 3. Player submits text at `/play/<run_id>/execute`.
 4. Frontend forwards input to:
-   - `POST /api/v1/sessions/<backend_session_id>/turns`
+   - `POST /api/v1/game/player-sessions/<run_id>/turns`
    - payload: `{ "player_input": "<free text>" }`
-5. Backend executes `interpret_player_input(...)` and proxies turn execution to World-Engine story runtime.
+5. Backend resolves the stored World-Engine story session and proxies turn execution through `game_service`.
 6. World-Engine executes the turn through the runtime graph and returns interpreted turn output.
 
 ## Command compatibility
@@ -27,7 +27,7 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 ## UI truthfulness updates
 
 - Shell copy now states natural language as the primary input path.
-- The execute action runs a real runtime turn via the backend → world-engine bridge.
+- The execute action runs a real runtime turn via the backend -> world-engine bridge.
 - After each successful turn, the play shell stores a **compact projection** of the bridge JSON and renders:
   - **Narration** from `turn.visible_output_bundle.gm_narration` (truth-aligned staging returned by the runtime).
   - **Scene / commit summary** from `state.committed_state` when present (committed scene id, reason code, validation status, graph error count).
@@ -36,11 +36,11 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 
 ## Known limits (still in scope boundary)
 
-- Backend session binding currently uses the chosen run template id as the module identifier for backend session creation.
-- This keeps runtime execution real and authoritative, but cross-service run metadata normalization can still be improved in later milestones.
+- Player-session binding stores run id, module id, template/runtime profile, owner, and World-Engine story-session id in the backend save-slot continuity layer.
+- The removed in-process `/api/v1/sessions` bridge is no longer part of the player runtime path.
 
 ## Play shell UX (frontend)
 
-- **Play** tab: chronological transcript from successful turns (Flask session, capped) and the primary **Execute runtime turn** composer. XHR + `Accept: application/json` updates the transcript without a full page reload.
-- **Operator** tab: last truncated turn bridge payload, copy helpers, optional **Refresh** via `GET /api/v1/sessions/<id>/play-operator-bundle` (JWT; session must have been created with the same JWT so `play_shell_owner_user_id` is set).
+- **Play** tab: chronological transcript from `GET/POST /api/v1/game/player-sessions/<run_id>` responses and the primary **Execute runtime turn** composer. XHR + `Accept: application/json` updates the transcript without a full page reload.
+- **Operator** tab: last truncated turn bridge payload and copy helpers; diagnostics use World-Engine story-session ids through governance/operator endpoints, not a backend session bundle.
 - **Live room** WebSocket remains a separate world-engine runtime-manager path; see `docs/dev/play_shell_ux.md`.

@@ -15,7 +15,7 @@ from app.services.improvement_service import list_recommendation_packages
 def session_bundle_not_found(*, trace_id: str, session_id: str) -> dict[str, Any]:
     return {
         "trace_id": trace_id,
-        "error": "backend_session_not_found",
+        "error": "world_engine_story_session_not_found",
         "session_id": session_id,
     }
 
@@ -24,16 +24,20 @@ def session_bundle_base_scaffold(
     *,
     trace_id: str,
     session_id: str,
-    state: Any,
+    module_id: str | None,
+    current_scene_id: str | None,
+    turn_counter: int | None,
     engine_id: Any,
 ) -> dict[str, Any]:
     return {
         "trace_id": trace_id,
-        "canonical_flow": "governance_session_evidence_bundle",
-        "backend_session_id": session_id,
-        "module_id": state.module_id,
-        "current_scene_id": state.current_scene_id,
-        "turn_counter_backend": state.turn_counter,
+        "canonical_flow": "world_engine_story_session_evidence_bundle",
+        "session_id": session_id,
+        "backend_session_id": None,
+        "module_id": module_id,
+        "current_scene_id": current_scene_id,
+        "turn_counter_backend": None,
+        "turn_counter_world_engine": turn_counter,
         "world_engine_story_session_id": engine_id,
         "world_engine_state": None,
         "world_engine_diagnostics": None,

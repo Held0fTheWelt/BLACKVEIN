@@ -12,8 +12,19 @@ Accepted
 - Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
 - Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
 - The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
+- GoC Turn-0 narrator-path openings are mechanically projected from
+  `canonical_path.paths.opening`, canonical mandatory beats, source refs, and
+  content-derived block metadata. They must not contain code-level authored
+  German or English replacement prose.
+- If the session output language differs from the canonical authoring language
+  (`en`), the story output module realizes the already-grounded source blocks
+  into the requested player-visible language. The same rule applies to
+  Souffleuse blocks selected during the opening.
 - Still outside this ADR: a multi-request warmup choreography, a global relaxation of NPC visibility/passivity rules, and any free-form literary quality judge.
-- Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs block rendering; ADR-0039 governs tests for this contract.
+- Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs
+  block rendering; ADR-0036 governs player-visible output language; ADR-0039
+  governs tests for this contract; ADR-0056 governs the Souffleuse guidance
+  lane.
 
 ## Date
 
@@ -93,6 +104,26 @@ Deterministic / mock / fallback openings must **not** contradict phase-1 civilit
 
 [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) continues to govern **how** blocks render (lanes, typewriter). This ADR governs **what literary posture** the committed bundle should carry at session start.
 
+### D6 — Mechanical narrator path and output-language boundary
+
+The GoC narrator-path opening is a projection of canonical content, not a
+second prose database. Runtime code may select steps, read mandatory beats,
+preserve source refs, assign block metadata, and enforce the narrator-only
+contract. Runtime code SHALL NOT author replacement opening prose or localized
+Opening strings.
+
+The canonical opening source language is English. For `session_output_language =
+en`, the source blocks may be committed directly. For any supported non-English
+session output language, the source blocks must pass through the story output
+module before becoming player-visible. This is true even when the source block
+is deterministic or narrator-path generated; determinism decides source
+selection, not localization.
+
+Souffleuse opening cues follow the same boundary: cue timing and source facts
+come mechanically from canonical path and character documents; visible German is
+produced only by the output module, with character-specific source facts
+preserved.
+
 ## Non-goals (This ADR)
 
 - Replacing content-module YAML with runtime-authored story truth.
@@ -136,7 +167,11 @@ flowchart LR
 2. **NPC silence threshold:** Deferred as a broader LDSS/passivity-policy question. The implemented contract requires visible opening evidence and forbids forced player speech; it does not globally redefine ordinary-turn NPC visibility gates.
 3. **Provider-backed vs. deterministic openings:** Deferred to runtime mode/operator policy. The opening contract applies to both provider and deterministic paths by validating structured evidence and diagnostics.
 4. **Module variability:** Resolved for the bounded slice through module content and `ModuleRuntimePolicy`; new genres should add or amend module policy rather than hardcoding GoC-specific phase semantics in runtime code.
-5. **Localization:** Resolved for tests by ADR-0039 discipline: regression tests assert structured contract fields, policy-derived ids, handover phases, and failure codes, not exact German or English narrator prose.
+5. **Localization:** Resolved for tests by ADR-0039 discipline and ADR-0036:
+   regression tests assert structured contract fields, policy-derived ids,
+   handover phases, output-realization provenance, and failure codes, not exact
+   German or English narrator prose. German visible text in tests may be a stub
+   proving output-module invocation; it must not be production source prose.
 
 ## Verification
 
@@ -164,11 +199,20 @@ Current verification uses structured/content-derived assertions:
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary
 - `ai_stack/goc_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
 - `ai_stack/goc_opening_handover.py` — opening handover diagnostics and block-level normalization support
+- `ai_stack/goc_narrator_path.py` — canonical narrator-path projection from
+  mandatory beats; no localized prose database
+- `ai_stack/goc_souffleuse.py` — content-timed player guidance source blocks
+  with English internal resolution and output-module realization for non-English
+  sessions
 - `ai_stack/environment_state_contracts.py` — bounded Pi15 room/object state initialized from canonical module content
 - `world-engine/app/story_runtime_shell_readout.py` — player/operator projection of committed environment state
 - [ADR-0033](adr-0033-live-runtime-commit-semantics.md) — opening readiness / commit truth
 - [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) — player shell / narrator lane presentation
+- [ADR-0036](adr-0036-player-session-output-language.md) — player-visible
+  output language
 - [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — no hardcoded narrative oracles in gate tests
+- [ADR-0056](adr-0056-souffleuse-player-guidance-lane.md) — player guidance
+  lane and character-specific source facts
 
 ## Promotion Record
 

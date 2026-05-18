@@ -10,6 +10,7 @@ Required environment (in addition to ``RUN_LANGFUSE_LIVE=1``):
 - ``LANGFUSE_PUBLIC_KEY``, ``LANGFUSE_SECRET_KEY``
 - ``LANGFUSE_BASE_URL`` (optional; default ``https://cloud.langfuse.com``)
 - ``LANGFUSE_LIVE_BACKEND_URL`` (optional; default ``http://127.0.0.1:8000``)
+- ``LANGFUSE_LIVE_BACKEND_TOKEN`` (Bearer token for the canonical player session API)
 
 The stack must expose a working World-Engine-backed turn path and **backend-resolved**
 provider credentials (Operational Governance store / internal provider-credential
@@ -276,6 +277,9 @@ def test_langfuse_live_c640_trace_evidence_gate():
         or "https://cloud.langfuse.com"
     )
     backend_url = os.environ.get("LANGFUSE_LIVE_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+    backend_token = os.environ.get("LANGFUSE_LIVE_BACKEND_TOKEN", "").strip()
+    if not backend_token:
+        pytest.skip("RUN_LANGFUSE_LIVE requires LANGFUSE_LIVE_BACKEND_TOKEN for /api/v1/game/player-sessions.")
 
     langfuse_mod = pytest.importorskip("langfuse", reason="langfuse package required for live gate")
     Langfuse = langfuse_mod.Langfuse
@@ -293,13 +297,22 @@ def test_langfuse_live_c640_trace_evidence_gate():
         if health.status_code != 200:
             pytest.skip(f"Backend health not OK ({health.status_code}) at {backend_url}")
 
-        create = http.post(f"{backend_url}/api/v1/sessions", json={"module_id": "god_of_carnage"})
-        assert create.status_code == 201, create.text
-        session_id = create.json()["session_id"]
+        headers = {"Authorization": f"Bearer {backend_token}"}
+        create = http.post(
+            f"{backend_url}/api/v1/game/player-sessions",
+            headers=headers,
+            json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"},
+        )
+        assert create.status_code == 200, create.text
+        session_id = create.json()["run_id"]
 
         player_line = "I glance at the room and listen for a moment."
         body = {"player_input": player_line}
-        turn = http.post(f"{backend_url}/api/v1/sessions/{session_id}/turns", json=body)
+        turn = http.post(
+            f"{backend_url}/api/v1/game/player-sessions/{session_id}/turns",
+            headers=headers,
+            json=body,
+        )
 
     assert turn.status_code == 200, (
         f"Expected 200 from live turn; got {turn.status_code}: {turn.text}. "

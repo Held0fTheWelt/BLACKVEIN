@@ -388,14 +388,14 @@ class TestBuildInspectorTurnProjection:
         with patch(
             "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
-            mock_bundle.return_value = {"error": "backend_session_not_found"}
+            mock_bundle.return_value = {"error": "world_engine_story_session_not_found"}
 
             result = build_inspector_turn_projection(
                 session_id="nonexistent",
                 trace_id="trace-1"
             )
 
-            assert result["error"] == "backend_session_not_found"
+            assert result["error"] == "world_engine_story_session_not_found"
 
     def test_build_inspector_turn_projection_canonical_mode(self):
         """Test canonical mode (default)."""

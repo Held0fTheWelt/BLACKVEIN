@@ -22,7 +22,7 @@ from app.services.inspector_projection_shared import _build_root, _diagnostics_r
 def build_inspector_coverage_health_projection(*, session_id: str, trace_id: str) -> dict[str, Any]:
     """Return evidence-backed coverage/health aggregates."""
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
-    if bundle.get("error") == "backend_session_not_found":
+    if bundle.get("error") == "world_engine_story_session_not_found":
         return bundle
     rows = _diagnostics_rows(bundle)
     if not rows:

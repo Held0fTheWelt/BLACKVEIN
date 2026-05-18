@@ -124,7 +124,7 @@ def build_inspector_turn_projection(
 ) -> dict[str, Any]:
     """Return canonical single-turn projection and optional raw evidence envelope."""
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
-    if bundle.get("error") == "backend_session_not_found":
+    if bundle.get("error") == "world_engine_story_session_not_found":
         return bundle
 
     last_turn = _last_turn_from_bundle(bundle)

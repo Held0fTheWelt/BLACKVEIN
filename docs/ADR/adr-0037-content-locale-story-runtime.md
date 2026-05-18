@@ -32,6 +32,14 @@ the engine.
    such as empty input, punctuation-only input, slash commands, meta control,
    and quoted speech previews. They must not decide natural-language actions,
    target actors, scene functions, or social moves through word lists.
+6. Output-language support is owned by the story output module. Deterministic
+   source paths, narrator-path openings, and Souffleuse guidance may produce
+   English source blocks, but they must not satisfy German output by reading
+   localized content fields, per-language prompt prose, or code-level German
+   strings.
+7. Tests may use tiny language-specific stubs to prove that the output module
+   was invoked. They must not encode production story prose as the expected
+   answer.
 
 ## Consequences
 
@@ -43,6 +51,8 @@ the engine.
   per-module lookup tables.
 - Runtime tests must assert the semantic contract, content IDs, and structured
   diagnostics, not phrase fixtures.
+- Player-visible German can still be tested, but the provenance must identify
+  the output module rather than a content-locale lookup.
 
 ## Implementation Notes
 
@@ -55,6 +65,7 @@ The removed approach included these obsolete surfaces:
 - GoC semantic priority phrase rules
 - GoC legacy keyword scene candidates
 - GoC actor alias matching from raw player text
+- localized narrator-path or Souffleuse prose used as story-runtime source
 
 Remaining telemetry fields with historical names, such as
 `legacy_keyword_scene_candidates_used`, are compatibility diagnostics only and

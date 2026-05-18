@@ -17,9 +17,9 @@ GameOrchestrator.run()
     ↓
 LangGraph: initialize → reason → select → execute → interpret
     ↓
-MCP Interface (tools, session queries)
+MCP Interface (tools, story-session queries)
     ↓
-SessionService (world-engine authority)
+World-Engine story session via game_service
     ↓
 Response + AI Diagnostics
 ```
@@ -69,9 +69,9 @@ set_orchestrator(mcp_interface, catalog)
 enable_ai_for_player("player123")
 
 # Decorate route
-@api_v1_bp.route("/player/execute_action", methods=["POST"])
+@api_v1_bp.route("/game/player-sessions/<run_id>/turns", methods=["POST"])
 @with_ai_reasoning
-def execute_action():
+def game_player_session_turn(run_id):
     # ... route implementation
     return {"message": "success"}, 200
 
@@ -131,15 +131,15 @@ from ai_stack.with_ai_reasoning_decorator import with_ai_reasoning, enable_ai_fo
 # Enable AI before using
 enable_ai_for_player("player123")
 
-@api_v1_bp.route("/player/execute_action", methods=["POST"])
+@api_v1_bp.route("/game/player-sessions/<run_id>/turns", methods=["POST"])
 @with_ai_reasoning
-def execute_action():
+def game_player_session_turn(run_id):
     """Execute player action with AI reasoning."""
     data = request.get_json()
-    session_id = data.get("session_id")
+    session_id = run_id
     action = data.get("action")
     
-    # ... call session_service.execute_turn(session_id, player_id, action)
+    # ... call game_service.execute_story_turn_in_engine(session_id, action)
     
     return jsonify({
         "success": True,
@@ -317,7 +317,7 @@ pytest ai_stack/tests/test_ai_integration_with_session.py -v
 from ai_stack.tests.test_ai_integration_with_session import MockSessionService
 from ai_stack.langgraph_orchestrator import GameOrchestrator
 
-# Create mock session
+# Create a mock world-engine story-session gateway
 mock_session = MockSessionService()
 mock_session.create_mock_session(
     session_id="test",
@@ -408,4 +408,5 @@ config = AIConfig(reasoning_depth="shallow")  # Less thinking
 - LangGraph Documentation: https://python.langchain.com/docs/langgraph
 - Constitutional AI: https://arxiv.org/abs/2310.11111
 - World of Shadows Architecture: /docs/architecture.md
-- SessionService API: /backend/app/services/session_service.py
+- Canonical player session API: /backend/app/api/v1/game_routes.py
+- World-Engine bridge client: /backend/app/services/game_service.py

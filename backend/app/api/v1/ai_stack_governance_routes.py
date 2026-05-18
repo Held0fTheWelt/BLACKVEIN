@@ -36,7 +36,7 @@ def admin_ai_stack_session_evidence(session_id: str):
         actor=user,
         category="ai_stack",
         action="session_evidence_view",
-        status="success" if bundle.get("error") != "backend_session_not_found" else "error",
+        status="success" if bundle.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"AI stack evidence for session {session_id}",
         route=request.path,
         method=request.method,
@@ -44,7 +44,7 @@ def admin_ai_stack_session_evidence(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id},
     )
-    status = 404 if bundle.get("error") == "backend_session_not_found" else 200
+    status = 404 if bundle.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(bundle), status
 
 
@@ -64,7 +64,7 @@ def admin_ai_stack_inspector_turn_projection(session_id: str):
         actor=user,
         category="ai_stack",
         action="inspector_turn_projection_view",
-        status="success" if payload.get("error") != "backend_session_not_found" else "error",
+        status="success" if payload.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"Inspector turn projection for session {session_id}",
         route=request.path,
         method=request.method,
@@ -72,7 +72,7 @@ def admin_ai_stack_inspector_turn_projection(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id, "mode": mode},
     )
-    status = 404 if payload.get("error") == "backend_session_not_found" else 200
+    status = 404 if payload.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(payload), status
 
 
@@ -89,7 +89,7 @@ def admin_ai_stack_inspector_timeline_projection(session_id: str):
         actor=user,
         category="ai_stack",
         action="inspector_timeline_projection_view",
-        status="success" if payload.get("error") != "backend_session_not_found" else "error",
+        status="success" if payload.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"Inspector timeline projection for session {session_id}",
         route=request.path,
         method=request.method,
@@ -97,7 +97,7 @@ def admin_ai_stack_inspector_timeline_projection(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id},
     )
-    status = 404 if payload.get("error") == "backend_session_not_found" else 200
+    status = 404 if payload.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(payload), status
 
 
@@ -114,7 +114,7 @@ def admin_ai_stack_inspector_comparison_projection(session_id: str):
         actor=user,
         category="ai_stack",
         action="inspector_comparison_projection_view",
-        status="success" if payload.get("error") != "backend_session_not_found" else "error",
+        status="success" if payload.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"Inspector comparison projection for session {session_id}",
         route=request.path,
         method=request.method,
@@ -122,7 +122,7 @@ def admin_ai_stack_inspector_comparison_projection(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id},
     )
-    status = 404 if payload.get("error") == "backend_session_not_found" else 200
+    status = 404 if payload.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(payload), status
 
 
@@ -139,7 +139,7 @@ def admin_ai_stack_inspector_coverage_health_projection(session_id: str):
         actor=user,
         category="ai_stack",
         action="inspector_coverage_health_projection_view",
-        status="success" if payload.get("error") != "backend_session_not_found" else "error",
+        status="success" if payload.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"Inspector coverage/health projection for session {session_id}",
         route=request.path,
         method=request.method,
@@ -147,7 +147,7 @@ def admin_ai_stack_inspector_coverage_health_projection(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id},
     )
-    status = 404 if payload.get("error") == "backend_session_not_found" else 200
+    status = 404 if payload.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(payload), status
 
 
@@ -171,7 +171,7 @@ def admin_ai_stack_inspector_provenance_raw_projection(session_id: str):
         actor=user,
         category="ai_stack",
         action="inspector_provenance_raw_projection_view",
-        status="success" if payload.get("error") != "backend_session_not_found" else "error",
+        status="success" if payload.get("error") != "world_engine_story_session_not_found" else "error",
         message=f"Inspector provenance/raw projection for session {session_id}",
         route=request.path,
         method=request.method,
@@ -179,7 +179,7 @@ def admin_ai_stack_inspector_provenance_raw_projection(session_id: str):
         target_id=session_id,
         metadata={"trace_id": trace_id, "mode": mode},
     )
-    status = 404 if payload.get("error") == "backend_session_not_found" else 200
+    status = 404 if payload.get("error") == "world_engine_story_session_not_found" else 200
     return jsonify(payload), status
 
 

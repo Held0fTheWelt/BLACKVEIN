@@ -7,29 +7,22 @@ from pathlib import Path
 import pytest
 
 from app.observability.audit_log import log_world_engine_bridge, log_workflow_audit
-from app.runtime.session_store import clear_registry as clear_runtime_session_registry
 from app.services.ai_stack_closure_cockpit_parsing import G9B_ATTEMPT_RECORD_PATH, read_audit_json as closure_read_audit_json
-from app.services.game_service import GameServiceError
 
 pytestmark = pytest.mark.observability
 
 
-@pytest.fixture(autouse=True)
-def _isolate_runtime_session_store():
-    """Prevent cross-test runtime-session bleed in this module."""
-    clear_runtime_session_registry()
-    yield
-    clear_runtime_session_registry()
-
-
 def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    assert create_resp.status_code == 201
-    session_id = create_resp.get_json()["session_id"]
+    session_id = "we-x"
 
     monkeypatch.setattr(
         "app.services.game_service.get_story_state",
-        lambda *_a, **_k: {"session_id": "we-x", "turn_counter": 0},
+        lambda *_a, **_k: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "current_scene_id": "s1",
+            "turn_counter": 1,
+        },
     )
     monkeypatch.setattr(
         "app.services.game_service.get_story_diagnostics",
@@ -63,21 +56,17 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
         },
     )
 
-    from app.runtime.session_store import get_session as get_runtime_session
-
-    runtime_session = get_runtime_session(session_id)
-    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-x"
-
     response = client.get(
         f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
         headers=moderator_headers,
     )
     assert response.status_code == 200
     data = response.get_json()
-    assert data["backend_session_id"] == session_id
+    assert data["backend_session_id"] is None
+    assert data["session_id"] == session_id
     assert data["module_id"] == "god_of_carnage"
-    assert data["world_engine_story_session_id"] == "we-x"
-    assert data["world_engine_state"]["session_id"] == "we-x"
+    assert data["world_engine_story_session_id"] == session_id
+    assert data["world_engine_state"]["session_id"] == session_id
     assert data.get("last_turn_repro_metadata", {}).get("module_id") == "god_of_carnage"
     assert "trace_id" in data
     et = data.get("execution_truth") or {}
@@ -100,26 +89,7 @@ def test_admin_session_evidence_404_for_unknown_session(client, moderator_header
     )
     assert response.status_code == 404
     data = response.get_json()
-    assert data.get("error") == "backend_session_not_found"
-
-
-def test_execute_turn_surfaces_world_engine_failure(client, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    session_id = create_resp.get_json()["session_id"]
-
-    def _boom(**_kwargs):
-        raise GameServiceError("play down", status_code=503)
-
-    monkeypatch.setattr("app.api.v1.session_routes.create_story_session", _boom)
-
-    response = client.post(
-        f"/api/v1/sessions/{session_id}/turns",
-        json={"player_input": "look"},
-    )
-    assert response.status_code == 502
-    body = response.get_json()
-    assert body.get("failure_class") == "world_engine_unreachable"
-    assert "trace_id" in body
+    assert data.get("error") == "world_engine_story_session_not_found"
 
 
 def test_workflow_and_bridge_audit_emit_structured_dicts(monkeypatch):
@@ -167,12 +137,16 @@ def test_improvement_experiment_response_includes_trace(client, auth_headers):
 
 
 def test_session_evidence_includes_repaired_layer_signals(client, moderator_headers, monkeypatch):
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    session_id = create_resp.get_json()["session_id"]
+    session_id = "we-y"
 
     monkeypatch.setattr(
         "app.services.game_service.get_story_state",
-        lambda *_a, **_k: {"session_id": "we-y", "turn_counter": 1},
+        lambda *_a, **_k: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "current_scene_id": "s1",
+            "turn_counter": 1,
+        },
     )
     monkeypatch.setattr(
         "app.services.game_service.get_story_diagnostics",
@@ -258,11 +232,6 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         },
     )
 
-    from app.runtime.session_store import get_session as get_runtime_session
-
-    runtime_session = get_runtime_session(session_id)
-    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-y"
-
     response = client.get(
         f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
         headers=moderator_headers,
@@ -302,12 +271,16 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
 
 def test_session_evidence_surfaces_degraded_execution_health(client, moderator_headers, monkeypatch):
     """Degraded graph paths must appear in execution_truth and degraded_path_signals."""
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    session_id = create_resp.get_json()["session_id"]
+    session_id = "we-z"
 
     monkeypatch.setattr(
         "app.services.game_service.get_story_state",
-        lambda *_a, **_k: {"session_id": "we-z", "turn_counter": 1},
+        lambda *_a, **_k: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "current_scene_id": "s1",
+            "turn_counter": 1,
+        },
     )
     monkeypatch.setattr(
         "app.services.game_service.get_story_diagnostics",
@@ -328,10 +301,6 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
             ]
         },
     )
-    from app.runtime.session_store import get_session as get_runtime_session
-
-    runtime_session = get_runtime_session(session_id)
-    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-z"
 
     response = client.get(
         f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
@@ -348,20 +317,20 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
 
 def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client, moderator_headers, monkeypatch):
     """Empty diagnostics must not imply a healthy last-turn graph or retrieval tier."""
-    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
-    session_id = create_resp.get_json()["session_id"]
+    session_id = "we-empty"
     monkeypatch.setattr(
         "app.services.game_service.get_story_state",
-        lambda *_a, **_k: {"session_id": "we-empty", "turn_counter": 0},
+        lambda *_a, **_k: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "current_scene_id": "s0",
+            "turn_counter": 0,
+        },
     )
     monkeypatch.setattr(
         "app.services.game_service.get_story_diagnostics",
         lambda *_a, **_k: {"diagnostics": [], "committed_state": {"current_scene_id": "s0", "turn_counter": 0}},
     )
-    from app.runtime.session_store import get_session as get_runtime_session
-
-    runtime_session = get_runtime_session(session_id)
-    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-empty"
     monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
     monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
 

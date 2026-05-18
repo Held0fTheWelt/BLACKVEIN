@@ -136,7 +136,7 @@ class TestAuditLogger:
         log_api_endpoint(
             trace_id="trace-123",
             session_id="sess-abc",
-            endpoint="/api/v1/sessions/sess-abc",
+            endpoint="/api/v1/game/player-sessions/sess-abc",
             method="GET",
             status_code=200,
             duration_ms=45,
@@ -230,30 +230,17 @@ class TestFlaskMiddleware:
 
     def test_trace_id_header_preserved_in_response(self, client, monkeypatch):
         """If request has X-WoS-Trace-Id header, same value returned in response."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
         incoming_trace = "test-trace-header-123"
         response = client.get(
-            "/api/v1/sessions/sess-test",
-            headers={"X-WoS-Trace-Id": incoming_trace, "Authorization": "Bearer test-token"},
+            "/api/v1/health",
+            headers={"X-WoS-Trace-Id": incoming_trace},
         )
         # Response should have X-WoS-Trace-Id header
         assert response.headers.get("X-WoS-Trace-Id") == incoming_trace
 
     def test_trace_id_generated_if_missing(self, client, monkeypatch):
         """If request omits X-WoS-Trace-Id, UUID generated and returned."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-        # Create a session first
-        create_resp = client.post(
-            "/api/v1/sessions",
-            json={"module_id": "god_of_carnage"}
-        )
-        session_id = create_resp.get_json()["session_id"]
-
-        # Request without trace header
-        response = client.get(
-            f"/api/v1/sessions/{session_id}",
-            headers={"Authorization": "Bearer test-token"}
-        )
+        response = client.get("/api/v1/health")
 
         # Response should have X-WoS-Trace-Id header with UUID format
         trace_id = response.headers.get("X-WoS-Trace-Id")
@@ -262,100 +249,11 @@ class TestFlaskMiddleware:
         assert re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", trace_id)
 
     def test_api_endpoint_headers_propagate_trace_id(self, client, monkeypatch):
-        """A1.3 operator endpoint adds trace header to response."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-
-        # Create a session
-        create_resp = client.post(
-            "/api/v1/sessions",
-            json={"module_id": "god_of_carnage"}
-        )
-        session_id = create_resp.get_json()["session_id"]
-
-        # Get the session via operator endpoint
-        response = client.get(
-            f"/api/v1/sessions/{session_id}",
-            headers={"Authorization": "Bearer test-token"}
-        )
+        """A JSON API endpoint adds trace header to response."""
+        response = client.get("/api/v1/health")
 
         assert response.status_code == 200
         # Verify trace ID is in response header
         trace_id = response.headers.get("X-WoS-Trace-Id")
         assert trace_id is not None
         assert len(trace_id) > 0
-
-
-class TestExportEndpoint:
-    """Tests for GET /api/v1/sessions/<id>/export endpoint."""
-
-    def test_export_without_auth_returns_401(self, client, monkeypatch):
-        """GET /export without auth header returns 401."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-        response = client.get("/api/v1/sessions/sess-test/export")
-        assert response.status_code == 401
-
-    def test_export_nonexistent_session_returns_404(self, client, monkeypatch):
-        """GET /export for non-existent session returns 404."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-        response = client.get(
-            "/api/v1/sessions/nonexistent/export",
-            headers={"Authorization": "Bearer test-token"}
-        )
-        assert response.status_code == 404
-
-    def test_export_returns_bundle_structure(self, client, monkeypatch):
-        """GET /export returns complete diagnostics bundle."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-
-        # Create a session
-        create_resp = client.post(
-            "/api/v1/sessions",
-            json={"module_id": "god_of_carnage"}
-        )
-        session_id = create_resp.get_json()["session_id"]
-
-        # Get export
-        response = client.get(
-            f"/api/v1/sessions/{session_id}/export",
-            headers={"Authorization": "Bearer test-token"}
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-
-        # Verify bundle structure
-        assert "session_snapshot" in data
-        assert "diagnostics" in data
-        assert "logs" in data
-        assert "meta" in data
-
-        # Verify meta
-        assert "exported_at" in data["meta"]
-        assert "trace_id" in data["meta"]
-        assert "warnings" in data["meta"]
-        assert "in_memory_session_state_is_volatile" in data["meta"]["warnings"]
-
-    def test_export_includes_trace_id(self, client, monkeypatch):
-        """GET /export includes trace_id in meta."""
-        monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
-
-        # Create a session
-        create_resp = client.post(
-            "/api/v1/sessions",
-            json={"module_id": "god_of_carnage"}
-        )
-        session_id = create_resp.get_json()["session_id"]
-
-        # Get export with specific trace ID
-        test_trace = "test-export-trace-123"
-        response = client.get(
-            f"/api/v1/sessions/{session_id}/export",
-            headers={
-                "Authorization": "Bearer test-token",
-                "X-WoS-Trace-Id": test_trace
-            }
-        )
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data["meta"]["trace_id"] == test_trace

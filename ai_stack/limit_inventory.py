@@ -355,7 +355,7 @@ def summarize_route_limit_inventory(endpoints: Iterable[dict[str, Any]]) -> dict
         [endpoint for endpoint in rows if endpoint.get("tag") == "Auth"],
         key=sort_key,
     )
-    preferred_tags = {"Auth", "MCP", "System", "GameBootstrap", "SessionsBridge"}
+    preferred_tags = {"Auth", "MCP", "System", "GameBootstrap"}
     route_examples = sorted(
         [endpoint for endpoint in rows if endpoint.get("tag") in preferred_tags],
         key=sort_key,

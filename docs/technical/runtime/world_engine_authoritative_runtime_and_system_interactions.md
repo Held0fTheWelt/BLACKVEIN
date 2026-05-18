@@ -311,7 +311,7 @@ This is the **reference implementation** for “models propose; engine commits�
 
 ### How it connects to adjacent subsystems
 
-Backend stores `world_engine_story_session_id` inside Flask session metadata when proxying (`backend/app/api/v1/session_routes.py`).
+Backend stores the World-Engine story-session id in the canonical player-session save-slot metadata created by `backend/app/api/v1/game_routes.py`.
 
 ### What the World Engine explicitly does not own
 
@@ -331,12 +331,12 @@ The backend is still the **front door** for many clients, but for live story tur
 
 - **HTTP client:** `backend/app/services/game_service.py` uses `PLAY_SERVICE_INTERNAL_URL` for internal calls (see `_request` in same module): `POST /api/story/sessions`, `POST .../turns`, `GET .../state`, `GET .../diagnostics`.
 - **Auth:** Story routes on the play service require internal API key dependency (`_require_internal_api_key` in `world-engine/app/api/http.py`); backend supplies `X-Play-Service-Key` / `PLAY_SERVICE_INTERNAL_API_KEY` per `world-engine/README.md` and `docker-compose.yml`.
-- **Proxy pattern:** `backend/app/api/v1/session_routes.py` `execute_session_turn` loads `world_engine_story_session_id` from session metadata or creates one via `create_story_session` with `compile_module` output, then calls `execute_story_turn_in_engine`.
+- **Proxy pattern:** `backend/app/api/v1/game_routes.py` resolves `/api/v1/game/player-sessions/<run_id>`, loads or recreates the stored World-Engine story-session id, then calls `execute_story_turn_in_engine`.
 - **Classification:** Flask in-process `SessionState` and W2 turn paths are **deprecated / volatile** for live authority—see [`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md).
 
 ### Why this matters in World of Shadows
 
-Misconfiguring `PLAY_SERVICE_*` surfaces as `GameServiceError` / 502 to the player with `failure_class: world_engine_unreachable` (`session_routes.py`).
+Misconfiguring `PLAY_SERVICE_*` surfaces as `GameServiceError` / 502 to the player with `failure_class: world_engine_unreachable` on the game player-session route.
 
 ### How it connects to adjacent subsystems
 
@@ -346,7 +346,7 @@ Nested **runs** (template lobby path) also use `game_service` (`create_run`, `ge
 
 Backend **user accounts**, **JWT issuance**, and **MCP service token** policy (`require_mcp_service_token` in `backend/app/api/v1/auth.py` for operator reads).
 
-**Repository anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/session_routes.py`, `docker-compose.yml`.
+**Repository anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`, `docker-compose.yml`.
 
 ---
 
@@ -354,7 +354,7 @@ Backend **user accounts**, **JWT issuance**, and **MCP service token** policy (`
 
 **Title:** Request path from Flask to FastAPI story API.
 
-**What it shows:** Lazy binding of backend session to `world_engine_story_session_id`.
+**What it shows:** Binding of player run id to a World-Engine story-session id.
 
 **Why it matters:** Shows **handoff** and **sovereignty** (commits occur in `StoryRuntimeManager`, not in Flask).
 
@@ -365,13 +365,13 @@ sequenceDiagram
   participant GS as game_service_http_client
   participant WE as world_engine_FastAPI
   participant SM as StoryRuntimeManager
-  FE->>BE: POST_api_v1_sessions_id_turns
-  BE->>BE: interpret_player_input_preview
+  FE->>BE: POST_api_v1_game_player_sessions_run_id_turns
+  BE->>BE: resolve_player_session_save_slot
   alt no_engine_story_session_yet
     BE->>GS: create_story_session
     GS->>WE: POST_api_story_sessions
     WE->>SM: create_session
-    BE->>BE: store_world_engine_story_session_id_in_metadata
+    BE->>BE: store_world_engine_story_session_id_in_save_slot
   end
   BE->>GS: execute_story_turn
   GS->>WE: POST_api_story_sessions_id_turns
@@ -382,12 +382,12 @@ sequenceDiagram
   BE->>GS: get_story_state_and_diagnostics
   GS->>WE: GET_state_diagnostics
   WE-->>BE: committed_projection
-  BE-->>FE: JSON_with_warnings_proxying
+  BE-->>FE: game_player_session_turn_JSON
 ```
 
-**What to notice.** Warnings in the JSON response flag **proxying** and deprecated local execution (`session_routes.py`).
+**What to notice.** Flask does not execute a parallel turn; it resolves continuity and forwards to the story runtime.
 
-**Seams:** `backend/app/api/v1/session_routes.py`, `world-engine/app/api/http.py`.
+**Seams:** `backend/app/api/v1/game_routes.py`, `world-engine/app/api/http.py`.
 
 ---
 
@@ -399,7 +399,7 @@ Players type natural language (or explicit commands). That text becomes a **turn
 
 ### Technical precision
 
-Documented path: [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md) — `/play/<run_id>`, `POST /api/v1/sessions`, `POST .../turns`, backend proxies to world-engine, UI reads `turn.visible_output_bundle.gm_narration` and `state.committed_state`.
+Documented path: [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md) — `/play/<run_id>`, `POST /api/v1/game/player-sessions`, `POST /api/v1/game/player-sessions/<run_id>/turns`, backend proxies to world-engine, UI reads `turn.visible_output_bundle.gm_narration` and `state.committed_state`.
 
 **Second path (template / real-time):** Backend can issue **WebSocket tickets** (`game_service.issue_play_ticket`) verified by `world-engine/app/auth/tickets.py`; client opens `/ws?ticket=...` and `RuntimeManager.process_command` handles messages (`world-engine/app/api/ws.py`). This path is **not** the same as the story HTTP turn graph.
 
@@ -577,7 +577,7 @@ Stories start as **files** and **review workflows**; the runtime consumes a **co
 ### Technical precision
 
 - **Canonical modules:** `content/modules/<module_id>/` (YAML-first).
-- **Backend compilation:** `compile_module` used when creating the engine story session from Flask (`session_routes.py`); produces `runtime_projection` payload for `create_story_session`.
+- **Backend compilation:** `compile_module` is used by the canonical player-session path when creating the engine story session; it produces the `runtime_projection` payload for `create_story_session`.
 - **Published feed:** Play service can pull backend-published templates via `load_published_templates` (`world-engine/app/content/backend_loader.py`) when `BACKEND_API_URL` or `BACKEND_CONTENT_FEED_URL` is set (`world-engine/README.md`); falls back to built-ins (`world-engine/app/content/builtins.py`).
 - **Writers’ Room:** Backend APIs under `/api/v1/writers-room/...` ([`how-ai-fits-the-platform.md`](../../start-here/how-ai-fits-the-platform.md)); optional UI in `writers-room/`.
 
@@ -593,7 +593,7 @@ Admin tool uses backend only; engine receives **already published** or **compile
 
 **Work-in-progress draft** semantics inside Writers’ Room databases—unless exposed via feed the engine is configured to read.
 
-**Repository anchors:** `world-engine/app/content/backend_loader.py`, `backend/app/content/compiler/compiler.py` (via `app.content.compiler` in `session_routes.py`), `content/modules/`.
+**Repository anchors:** `world-engine/app/content/backend_loader.py`, `backend/app/content/compiler/compiler.py`, `backend/app/api/v1/game_routes.py`, `content/modules/`.
 
 ---
 
@@ -610,7 +610,7 @@ flowchart LR
   YAML --> WR --> PUB --> FEED --> WEload --> PROJ
 ```
 
-**Seams:** `backend_loader.py`, `session_routes.py` (`compile_module`).
+**Seams:** `backend_loader.py`, `game_routes.py` (`compile_module`).
 
 ---
 
@@ -624,7 +624,7 @@ When something goes wrong in a turn, engineers need **two levels**: rich interna
 
 - **HTTP:** `GET /api/story/sessions/{id}/state` and `/diagnostics` (`world-engine/app/api/http.py`); semantics in [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) (`committed_state`, `authoritative_history_tail`).
 - **Logging:** `log_story_turn_event`, `log_story_runtime_failure` (`world-engine/app/observability/audit_log.py`); trace middleware (`world-engine/app/middleware/trace_middleware.py`).
-- **Bridge logging:** `log_world_engine_bridge` in backend when proxying (`session_routes.py` imports).
+- **Bridge logging:** `log_world_engine_bridge` in backend service/control flows when proxying to World-Engine.
 
 ### Why this matters in World of Shadows
 
@@ -709,13 +709,13 @@ flowchart LR
 
 **Transitional (documented elsewhere, not invented here).**
 
-- Flask **in-process** `SessionState` and related W2 turn machinery remain for tests, MCP, and operator snapshots but are **explicitly not** authoritative live play ([`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md)).
-- Backend session proxy carries **warnings** in JSON to prevent mistaking Flask memory for engine truth (`session_routes.py`).
+- Flask **in-process** `SessionState` and related W2 turn machinery remain for tests/dev simulation but are **not** mounted as a live session API ([`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md)).
+- The backend session proxy has been removed; live player continuity is the game player-session save-slot plus the World-Engine story session id.
 - MCP **Phase B/C** language in [`01_M0_host_and_runtime.md`](../../mcp/01_M0_host_and_runtime.md) describes **possible** futures—treat as non-binding until implemented.
 
 **Growth pattern (inference).** Split follow-on pages as in the original authoring prompt: engine/backend contract, session lifecycle deep dive, MCP boundary hardening, observability retention—each linking back to **this** spine.
 
-**Repository anchors:** [`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md), [`01_M0_host_and_runtime.md`](../../mcp/01_M0_host_and_runtime.md), `backend/app/api/v1/session_routes.py`.
+**Repository anchors:** [`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md), [`01_M0_host_and_runtime.md`](../../mcp/01_M0_host_and_runtime.md), `backend/app/api/v1/game_routes.py`.
 
 ---
 

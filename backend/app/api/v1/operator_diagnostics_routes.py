@@ -15,6 +15,7 @@ from app.auth.feature_registry import FEATURE_MANAGE_SYSTEM_DIAGNOSIS
 from app.auth.permissions import require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, ok
+from app.services.game_service import GameServiceError, get_story_diagnostics
 from app.services.operator_turn_history_service import (
     build_turn_history_summary_for_session,
     operator_diagnostics_surface,
@@ -26,31 +27,20 @@ from app.services.operator_turn_history_service import (
 @jwt_required()
 @require_feature(FEATURE_MANAGE_SYSTEM_DIAGNOSIS)
 def operator_session_diagnostics(session_id: str):
-    """Operator diagnostics surface for a session: actor-survival telemetry,
+    """Operator diagnostics surface for a World-Engine story session: actor-survival telemetry,
     degradation patterns, and hints for troubleshooting where actor behavior
     survived or failed through the turn pipeline.
     """
     try:
-        from app.services import session_service as _session_service
-
-        getter = getattr(_session_service, "get_session_by_id", None)
-        if not callable(getter):
-            getter = getattr(_session_service, "get_session", None)
-        session = getter(session_id) if callable(getter) else None
-        if session is None:
-            return fail("session_not_found", f"Session {session_id} not found.", 404, {})
-
-        diagnostics = (
-            session.diagnostics
-            if hasattr(session, "diagnostics")
-            else session.get("diagnostics")
-            if isinstance(session, dict)
-            else []
-        )
+        payload = get_story_diagnostics(session_id)
+        diagnostics = payload.get("diagnostics") if isinstance(payload, dict) else []
         diagnostics_list = list(diagnostics) if isinstance(diagnostics, list) else []
 
         surface = operator_diagnostics_surface(diagnostics_list)
         return ok(surface)
+    except GameServiceError as exc:
+        status = 404 if exc.status_code == 404 else 502
+        return fail("world_engine_story_session_not_found", f"World-Engine story session {session_id} not found.", status, {})
     except Exception as exc:
         return fail("diagnostics_error", f"Failed to build diagnostics: {str(exc)[:200]}", 500, {})
 
@@ -60,32 +50,21 @@ def operator_session_diagnostics(session_id: str):
 @jwt_required()
 @require_feature(FEATURE_MANAGE_SYSTEM_DIAGNOSIS)
 def operator_turn_history(session_id: str):
-    """Turn-history dashboard: formatted turn-by-turn telemetry showing
+    """Turn-history dashboard for a World-Engine story session: formatted turn-by-turn telemetry showing
     responder, validation result, render summary, fallback truth, and
     agency level.
     """
     try:
-        from app.services import session_service as _session_service
-
         limit = min(int(request.args.get("limit", "100")), 500)
-        getter = getattr(_session_service, "get_session_by_id", None)
-        if not callable(getter):
-            getter = getattr(_session_service, "get_session", None)
-        session = getter(session_id) if callable(getter) else None
-        if session is None:
-            return fail("session_not_found", f"Session {session_id} not found.", 404, {})
-
-        diagnostics = (
-            session.diagnostics
-            if hasattr(session, "diagnostics")
-            else session.get("diagnostics")
-            if isinstance(session, dict)
-            else []
-        )
+        payload = get_story_diagnostics(session_id)
+        diagnostics = payload.get("diagnostics") if isinstance(payload, dict) else []
         diagnostics_list = list(diagnostics) if isinstance(diagnostics, list) else []
 
         summary = build_turn_history_summary_for_session(diagnostics_list, limit=limit)
         return ok(summary)
+    except GameServiceError as exc:
+        status = 404 if exc.status_code == 404 else 502
+        return fail("world_engine_story_session_not_found", f"World-Engine story session {session_id} not found.", status, {})
     except Exception as exc:
         return fail("turn_history_error", f"Failed to build turn history: {str(exc)[:200]}", 500, {})
 

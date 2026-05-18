@@ -22,7 +22,6 @@ The authoritative gameplay runtime is the World-Engine story runtime behind `/ap
 | `module_id` | Compiled runtime content module used by the story runtime. | Backend content compiler and World-Engine story runtime. |
 | `run_id` | Player launch and continuity handle. | World-Engine run lifecycle, bound by backend save-slot continuity. |
 | `ticket_id` | WebSocket live-room simulator join token. | Simulator/operator path only; not canonical story play. |
-| Backend session id | Transitional in-process compatibility session id. | `/api/v1/sessions`; not canonical player gameplay. |
 | Runtime session id | World-Engine story session id. | World-Engine story runtime. |
 
 Template-to-module mapping lives in backend game content via `canonical_compilation.module_id`, with the authored `god_of_carnage_solo -> god_of_carnage` fallback. Browser-local mappings are not authoritative.
@@ -49,7 +48,7 @@ The first turn is legal only when `runtime_session_ready == true`, `can_execute 
 
 The World-Engine web UI is an operator/development simulator for run, lobby, WebSocket, and room-state mechanics. It is not the canonical player story surface.
 
-The backend `/api/v1/sessions` surface remains classified as non-authoritative/transitional for live gameplay. The canonical frontend player path must not create or turn through that endpoint.
+The removed backend session bridge is not part of live gameplay. The canonical frontend player path creates, resumes, and turns only through `/api/v1/game/player-sessions`.
 
 ## Governance Boundary
 

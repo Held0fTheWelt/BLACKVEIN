@@ -70,6 +70,11 @@ The runtime must preserve the original player input for echo, attribution, and
 diagnostics, while separately carrying `normalized_english_text` for internal
 resolution evidence.
 
+This does not authorize localized content duplicates. If a source block is
+canonical or deterministic English, the output module realizes it into
+`session_output_language`; runtime code, canonical path YAML, and prompt-store
+source templates must not carry German replacement prose as a shortcut.
+
 ### D4 - Propagate both languages through the canonical session path
 
 The canonical player session path SHALL carry both language values:
@@ -194,6 +199,15 @@ Updated on 2026-05-18:
   `ai_stack/scene_director_goc_legacy_keyword_candidates.py`,
   `ai_stack/scene_director_goc_legacy_keyword_constants.py`, and
   `ai_stack/goc_actor_aliases.py`.
+
+Updated on 2026-05-18 for the output boundary:
+
+- GoC narrator-path and Souffleuse opening source blocks are English internally.
+- German player-visible text for those paths is produced by the story output
+  module, with output-realization diagnostics.
+- Souffleuse source guidance carries the current human actor and
+  character-specific source facts so Annette, Alain, and other playable roles do
+  not collapse into a generic translated hint.
 
 ## Acceptance Evidence
 

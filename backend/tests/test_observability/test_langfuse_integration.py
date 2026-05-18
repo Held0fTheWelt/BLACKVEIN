@@ -434,11 +434,6 @@ class TestLangfuseAdapterIntegration:
     def test_langfuse_connection(self, client, db_session, app):
         """Verify real Langfuse Cloud connection and trace creation (integration test)."""
         from app.observability.langfuse_adapter import LangfuseAdapter
-        try:
-            from app.models import User
-            from app.models.runtime_session import Session, RuntimeSession
-        except ImportError:
-            pytest.skip("Required models not available; skipping cloud connection test")
 
         # Setup: ensure Langfuse is properly configured from database
         config = db_session.query(ObservabilityConfig).filter_by(code="langfuse").first()
@@ -459,47 +454,18 @@ class TestLangfuseAdapterIntegration:
         assert adapter.is_ready, "Langfuse adapter should be ready for cloud connection test"
         assert adapter.client is not None, "Langfuse client should be initialized"
 
-        # Create a test session and runtime session
-        test_user = db_session.query(User).first()
-        if not test_user:
-            test_user = User(username="test_langfuse", email="test@example.com", role_id=1)
-            db_session.add(test_user)
-            db_session.flush()
-
-        player_session = Session(
-            user_id=test_user.id,
-            session_type="story",
-            data={},
-        )
-        db_session.add(player_session)
-        db_session.flush()
-
-        runtime_session = RuntimeSession(
-            session_id=player_session.id,
+        trace_id = adapter.create_trace_id("langfuse-cloud-connection-test")
+        trace = adapter.start_trace(
+            name="langfuse_cloud_connection_test",
+            session_id="we-langfuse-test",
+            run_id="run-langfuse-test",
             module_id="god_of_carnage",
-            turn_counter=0,
-            current_runtime_state={},
-            metadata={},
+            metadata={"canonical_player_flow": True, "route": "/api/v1/game/player-sessions/<run_id>/turns"},
+            trace_id=trace_id,
+            user_id="test_langfuse",
         )
-        db_session.add(runtime_session)
-        db_session.commit()
-
-        # Execute a turn (which will create Langfuse traces)
-        with app.test_client() as test_client:
-            response = test_client.post(
-                f"/api/v1/sessions/{player_session.id}/turns",
-                json={"player_input": "test input"},
-                headers={"Authorization": f"Bearer {client.get_token()}"},
-            )
-
-            # Verify the turn was executed
-            assert response.status_code in (200, 502), f"Expected success or service unavailable, got {response.status_code}"
-            data = response.get_json()
-            assert data, "Response should have JSON body"
-            assert "trace_id" in data, "Response should include trace_id"
-
-            trace_id = data["trace_id"]
-            assert trace_id, "trace_id should be non-empty"
+        assert trace is not None, "Trace span should be created"
+        adapter.end_trace(trace)
 
         # Flush traces to Langfuse Cloud (synchronous for test verification)
         adapter.flush()

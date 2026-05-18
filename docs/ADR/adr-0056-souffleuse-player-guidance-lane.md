@@ -4,6 +4,10 @@
 
 Accepted
 
+## Last Updated
+
+2026-05-18
+
 ## Context
 
 The runtime needs a player-facing help voice for moments where the narrator
@@ -16,6 +20,12 @@ player input is normalized to English before semantic resolution, content facts
 are grounded against English-authored module content, and visible output is
 realized in `session_output_language`.
 
+The same boundary applies to Souffleuse. The engine must not make German work by
+embedding German guidance strings, German location names, or per-language cue
+variants in code or content. German, English, and future player-visible
+languages are output-realization concerns, not separate content-authoring
+surfaces.
+
 ## Decision
 
 Introduce **Souffleuse** as a Director-selected player guidance lane.
@@ -26,8 +36,10 @@ The Souffleuse:
 - is player-visible as a hint/notice lane, not narrator prose;
 - is selected from authored `canonical_path.*.souffleuse_cues`;
 - uses `internal_resolution_language: en`;
-- produces visible text through prompt-store templates for the session output
-  language;
+- builds source guidance from English prompt-store templates and English
+  content facts;
+- realizes non-English player-visible text through the story output module, not
+  through localized prompt-store prose;
 - has `commit_impact: ui_guidance_only`;
 - may orient role, location, emotional pressure, and possible action surfaces;
 - must not commit a player action, force an exact line, reveal hidden NPC intent,
@@ -37,6 +49,57 @@ The Director must select Souffleuse only when the current content cue marks the
 timing and narration alone is not the right surface. Opening role orientation is
 therefore content-timed, not hardcoded as “turn 0”.
 
+### D1 - Source language and output realization
+
+Souffleuse source blocks SHALL carry:
+
+- `source_language: en`;
+- `internal_resolution_language: en`;
+- `session_output_language`;
+- `visible_output_language`, which remains `en` before output realization and is
+  set to the session language after realization;
+- `requires_output_realization`, true whenever `session_output_language != en`;
+- source refs and source facts sufficient to explain why this cue applies.
+
+The prompt store may keep compatibility keys such as
+`world_engine.souffleuse.opening_orientation.de`, but such keys are aliases only:
+their template text must remain English source material. They must not contain
+German player-facing prose. If `session_output_language` is `de`, the World
+Engine calls the Souffleuse output module and records
+`souffleuse_output_realization` in runtime diagnostics.
+
+### D2 - Character-specific guidance
+
+Souffleuse guidance is not generic help text. It is scoped to the current human
+actor.
+
+The source block SHALL include `target_actor_id` and character-derived
+`source_facts`, including at least the public identity, baseline attitude, and
+opening statement pressure where available. This means the same canonical cue
+may produce different source guidance for Annette and Alain:
+
+- Annette guidance may be grounded in guest civility, maternal defense, bodily
+  pressure, and the risk that softened wording judges her child.
+- Alain guidance may be grounded in procedural language, liability, phone/work
+  pressure, and exit management.
+
+The output module may translate and phrase this guidance for the player, but it
+must preserve the actor-specific pressure and must not collapse different
+playable characters into a single generic hint.
+
+### D3 - No hardcoded localized Souffleuse prose
+
+Runtime code and module content SHALL NOT add localized Souffleuse text as a
+shortcut. Forbidden examples include:
+
+- German `localized_*` guidance fields used as player-visible prose;
+- code-level German strings for opening orientation;
+- per-character German templates that bypass the output module;
+- German location-name lookup as the source of a Souffleuse sentence.
+
+Localized UI chrome such as a language selector label remains outside this ADR.
+This ADR governs story/runtime guidance text.
+
 ## Consequences
 
 `souffleuse` is a valid visible block type and a dramatic capability family
@@ -44,9 +107,16 @@ therefore content-timed, not hardcoded as “turn 0”.
 it as a player hint/director notice. The narrator path remains speech-free and
 NPC-agency-free; Souffleuse does not make an NPC plan applicable.
 
-Prompt-store wording may vary by output language, but the engine must not add
-hardcoded translation or verb maps for Souffleuse. Source facts and cue IDs stay
-English internally.
+Prompt-store wording is now source wording, not localized player-visible
+wording. The engine must not add hardcoded translation, verb maps, or
+per-language Souffleuse lookup tables. Source facts, cue IDs, and actor identity
+stay English internally; the output module owns the final session-language
+surface.
+
+Tests should assert structured source fields and output-realization provenance,
+not exact literary wording. It is valid to use a tiny German test stub to prove
+that the output module was invoked; it is not valid to store the production
+German sentence in the runtime path.
 
 ## Verification
 
@@ -54,3 +124,25 @@ English internally.
 - `world-engine/tests/test_goc_narrator_path_opening.py`
 - `ai_stack/tests/test_player_narrative_cards.py`
 - `frontend/tests/test_block_renderer.js`
+
+Current focused verification:
+
+- `pytest ai_stack/tests/test_goc_narrator_path.py ai_stack/tests/test_goc_souffleuse.py -q`
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest world-engine/tests/test_goc_narrator_path_opening.py -q`
+
+The AI-stack Souffleuse tests assert that German sessions still produce English
+source guidance before output realization, and that Annette and Alain receive
+different role-pressure source text. The World-Engine opening test asserts that
+German visible Souffleuse text comes from the output module and carries
+`souffleuse_output_realization` diagnostics.
+
+## Related ADRs
+
+- [ADR-0036](adr-0036-player-session-output-language.md) - player-visible output
+  language.
+- [ADR-0037](adr-0037-content-locale-story-runtime.md) - removal of content
+  locale runtime lookups.
+- [ADR-0054](adr-0054-session-input-language-english-internal-resolution.md) -
+  English internal resolution.
+- [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md) - semantic
+  input translation ingress.
