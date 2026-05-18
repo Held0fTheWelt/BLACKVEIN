@@ -20,18 +20,18 @@ canonical_path_step:
 
   location_ref:
     location_id: park_edge
-    source: locations/exterior/park_edge.yaml
+    source: locations/opening/park_edge.yaml
     use_fields: [description, entrances_exits, sensory_tags]
   support_refs:
     - location_id: basketball_court
-      source: locations/exterior/basketball_court.yaml
+      source: locations/opening/basketball_court.yaml
       use_fields: [description, sensory_tags]
     - location_id: playground
-      source: locations/exterior/playground.yaml
+      source: locations/opening/playground.yaml
       use_fields: [description, sensory_tags]
   object_refs:
     - object_id: bicycle_rack
-      source: objects/exterior/bicycle_rack.yaml
+      source: objects/opening/bicycle_rack.yaml
       use_fields: [description, sensory_tags]
 
   present:
@@ -55,8 +55,8 @@ canonical_path_step:
           - "A dozen boys are spread around the basketball court."
           - "Bicycles lean against the rack at the entrance."
         sensory_anchors:
-          - locations/exterior/park_edge.yaml#sensory_tags
-          - locations/exterior/basketball_court.yaml#sensory_tags
+          - locations/opening/park_edge.yaml#sensory_tags
+          - locations/opening/basketball_court.yaml#sensory_tags
       player_status: observer_no_initiative
 
     - id: ordinary_public_life_filler
@@ -68,8 +68,8 @@ canonical_path_step:
           - "Voices carry from the playground further in."
           - "Nobody at the rack. Nobody adult in view."
         sensory_anchors:
-          - locations/exterior/playground.yaml#sensory_tags
-          - objects/exterior/bicycle_rack.yaml#sensory_tags
+          - locations/opening/playground.yaml#sensory_tags
+          - objects/opening/bicycle_rack.yaml#sensory_tags
       player_status: observer_no_initiative
 
   themes_realized_here: []

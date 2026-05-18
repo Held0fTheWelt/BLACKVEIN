@@ -240,6 +240,11 @@ from ai_stack.goc_narrator_path import (
     NARRATOR_PATH_INVOCATION_MODE,
     build_goc_narrator_path_opening,
 )
+from ai_stack.goc_souffleuse import (
+    SOUFFLEUSE_BLOCK_TYPE,
+    SOUFFLEUSE_OPENING_ROLE_ORIENTATION,
+    build_goc_opening_souffleuse_projection,
+)
 from ai_stack.goc_knowledge_runtime_gates import (
     build_knowledge_path_summary,
     build_narrator_packet,
@@ -9647,6 +9652,288 @@ class StoryRuntimeManager:
             return True
         return False
 
+    def _narrator_path_output_adapter_candidate(
+        self,
+    ) -> tuple[str, str, BaseModelAdapter | None, str | None, float | None]:
+        try:
+            decision = self.routing.choose(task_type="narrative_formulation")
+        except Exception:
+            decision = None
+        candidate_model_ids: list[str] = []
+        if decision is not None:
+            for mid in (getattr(decision, "selected_model", None), getattr(decision, "fallback_model", None)):
+                text = str(mid or "").strip()
+                if text and text not in candidate_model_ids:
+                    candidate_model_ids.append(text)
+        for spec in self.registry.all().values():
+            if spec.model_name not in candidate_model_ids and spec.llm_or_slm == "llm":
+                candidate_model_ids.append(spec.model_name)
+        for model_id in candidate_model_ids:
+            spec = self.registry.get(model_id)
+            if spec is None:
+                continue
+            provider = str(spec.provider or "").strip()
+            adapter = self.adapters.get(provider)
+            if adapter is None:
+                continue
+            if provider == "mock" or str(getattr(adapter, "adapter_name", "") or "").strip() == "mock":
+                continue
+            api_model = str(getattr(spec, "provider_model_name", "") or "").strip() or spec.model_name
+            return model_id, provider, adapter, api_model, float(spec.timeout_seconds)
+        return "", "", None, None, None
+
+    @staticmethod
+    def _narrator_path_output_prompt(
+        *,
+        source_blocks: list[dict[str, Any]],
+        source_language: str,
+        target_language: str,
+    ) -> str:
+        payload = {
+            "source_language": source_language,
+            "session_output_language": target_language,
+            "scene_blocks": [
+                {
+                    "id": block.get("id"),
+                    "block_type": block.get("block_type"),
+                    "visible_lane": block.get("visible_lane"),
+                    "target_actor_id": block.get("target_actor_id"),
+                    "canonical_step_id": block.get("canonical_step_id"),
+                    "canonical_mandatory_beat_id": block.get("canonical_mandatory_beat_id"),
+                    "voice_mode": block.get("voice_mode"),
+                    "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
+                    "text": block.get("text"),
+                }
+                for block in source_blocks
+            ],
+        }
+        return (
+            "You are the World of Shadows story output module.\n"
+            "Input text is canonical authoring text. Produce player-visible narration in "
+            f"session_output_language={target_language}.\n"
+            "Preserve block count, block ids, order, facts, and narrative distance. "
+            "Narrator blocks remain narrator perception. "
+            "Do not add dialogue, accusations, explanations, or new facts. "
+            "Do not summarize multiple blocks into one block.\n"
+            "Return valid JSON only, with this shape: "
+            '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
+            f"Canonical output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
+        )
+
+    @staticmethod
+    def _souffleuse_output_prompt(
+        *,
+        source_blocks: list[dict[str, Any]],
+        source_language: str,
+        target_language: str,
+    ) -> str:
+        payload = {
+            "source_language": source_language,
+            "session_output_language": target_language,
+            "scene_blocks": [
+                {
+                    "id": block.get("id"),
+                    "canonical_step_id": block.get("canonical_step_id"),
+                    "souffleuse_cue_id": block.get("souffleuse_cue_id"),
+                    "voice_mode": block.get("voice_mode"),
+                    "text": block.get("text"),
+                }
+                for block in source_blocks
+            ],
+        }
+        return (
+            "You are the World of Shadows Souffleuse output module.\n"
+            "Input text is English internal Souffleuse guidance. Produce player-visible "
+            f"Souffleuse text in session_output_language={target_language}.\n"
+            "Preserve block count, block ids, second-person address, inner-voice function, "
+            "and cue boundaries. Do not add player actions, exact line commands, NPC speech, "
+            "hidden intent, or new facts.\n"
+            "Return valid JSON only, with this shape: "
+            '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
+            f"Souffleuse output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
+        )
+
+    @staticmethod
+    def _parse_narrator_path_output_json(raw: str) -> dict[str, Any]:
+        text = str(raw or "").strip()
+        if text.startswith("```"):
+            text = re.sub(r"^```(?:json)?\s*", "", text)
+            text = re.sub(r"\s*```$", "", text).strip()
+        try:
+            parsed = json.loads(text)
+            return parsed if isinstance(parsed, dict) else {}
+        except json.JSONDecodeError:
+            start = text.find("{")
+            end = text.rfind("}")
+            if start >= 0 and end > start:
+                try:
+                    parsed = json.loads(text[start : end + 1])
+                    return parsed if isinstance(parsed, dict) else {}
+                except json.JSONDecodeError:
+                    return {}
+        return {}
+
+    def _realize_narrator_path_output(
+        self,
+        *,
+        source_blocks: list[dict[str, Any]],
+        narrator_path: dict[str, Any],
+        session: StorySession,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        source_language = str(narrator_path.get("authoring_language") or "en").strip().lower()[:2] or "en"
+        target_language = str(session.session_output_language or source_language).strip().lower()[:2] or source_language
+        if target_language == source_language:
+            realized = []
+            for block in source_blocks:
+                nb = dict(block)
+                nb.setdefault("source_language", source_language)
+                nb.setdefault("session_output_language", target_language)
+                nb.setdefault("visible_output_language", target_language)
+                realized.append(nb)
+            return realized, {
+                "contract": "narrator_path_output_realization.v1",
+                "status": "not_required",
+                "source_language": source_language,
+                "session_output_language": target_language,
+                "adapter": NARRATOR_PATH_ADAPTER,
+                "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
+                "usage_source": "canonical_content_renderer",
+            }
+
+        model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
+        if adapter is None:
+            raise RuntimeError("narrator_path_output_module_unavailable")
+        prompt = self._narrator_path_output_prompt(
+            source_blocks=source_blocks,
+            source_language=source_language,
+            target_language=target_language,
+        )
+        result = adapter.generate(
+            prompt,
+            timeout_seconds=timeout_seconds or 20.0,
+            model_name=api_model,
+        )
+        if not result.success:
+            raise RuntimeError(str(result.metadata.get("error") or "narrator_path_output_module_failed"))
+        parsed = self._parse_narrator_path_output_json(result.content)
+        rows = parsed.get("scene_blocks") if isinstance(parsed.get("scene_blocks"), list) else []
+        by_id = {
+            str(row.get("id") or "").strip(): row
+            for row in rows
+            if isinstance(row, dict) and str(row.get("id") or "").strip()
+        }
+        realized: list[dict[str, Any]] = []
+        missing_ids: list[str] = []
+        for block in source_blocks:
+            block_id = str(block.get("id") or "").strip()
+            out_row = by_id.get(block_id)
+            text = str(out_row.get("text") or "").strip() if isinstance(out_row, dict) else ""
+            if not text:
+                missing_ids.append(block_id or f"index:{len(realized)}")
+                continue
+            nb = dict(block)
+            nb["source_before_output_module"] = nb.get("source")
+            nb["text"] = text
+            if "player_display_text" in nb:
+                nb["player_display_text"] = text
+            nb["source_language"] = source_language
+            nb["session_output_language"] = target_language
+            nb["visible_output_language"] = target_language
+            nb["source"] = "narrator_path_output_module"
+            realized.append(nb)
+        if missing_ids or len(realized) != len(source_blocks):
+            raise RuntimeError("narrator_path_output_module_incomplete_blocks")
+        return realized, {
+            "contract": "narrator_path_output_realization.v1",
+            "status": "realized",
+            "source_language": source_language,
+            "session_output_language": target_language,
+            "adapter": str((result.metadata or {}).get("adapter") or getattr(adapter, "adapter_name", "") or provider),
+            "adapter_invocation_mode": "narrator_path_output_module",
+            "provider": provider,
+            "model_id": model_id,
+            "api_model": api_model,
+            "usage_source": "output_module",
+            "block_count": len(realized),
+        }
+
+    def _realize_souffleuse_output(
+        self,
+        *,
+        source_blocks: list[dict[str, Any]],
+        session: StorySession,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        source_language = SOUFFLEUSE_INTERNAL_LANGUAGE
+        target_language = str(session.session_output_language or source_language).strip().lower()[:2] or source_language
+        if target_language == source_language or not source_blocks:
+            return [dict(block) for block in source_blocks], {
+                "contract": "souffleuse_output_realization.v1",
+                "status": "not_required",
+                "source_language": source_language,
+                "session_output_language": target_language,
+                "adapter": SOUFFLEUSE_ADAPTER,
+                "adapter_invocation_mode": SOUFFLEUSE_INVOCATION_MODE,
+                "usage_source": "prompt_store_internal_english",
+                "block_count": len(source_blocks),
+            }
+
+        model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
+        if adapter is None:
+            raise RuntimeError("souffleuse_output_module_unavailable")
+        prompt = self._souffleuse_output_prompt(
+            source_blocks=source_blocks,
+            source_language=source_language,
+            target_language=target_language,
+        )
+        result = adapter.generate(
+            prompt,
+            timeout_seconds=timeout_seconds or 20.0,
+            model_name=api_model,
+        )
+        if not result.success:
+            raise RuntimeError(str(result.metadata.get("error") or "souffleuse_output_module_failed"))
+        parsed = self._parse_narrator_path_output_json(result.content)
+        rows = parsed.get("scene_blocks") if isinstance(parsed.get("scene_blocks"), list) else []
+        by_id = {
+            str(row.get("id") or "").strip(): row
+            for row in rows
+            if isinstance(row, dict) and str(row.get("id") or "").strip()
+        }
+        realized: list[dict[str, Any]] = []
+        missing_ids: list[str] = []
+        for block in source_blocks:
+            block_id = str(block.get("id") or "").strip()
+            out_row = by_id.get(block_id)
+            text = str(out_row.get("text") or "").strip() if isinstance(out_row, dict) else ""
+            if not text:
+                missing_ids.append(block_id or f"index:{len(realized)}")
+                continue
+            nb = dict(block)
+            nb["text"] = text
+            nb["player_display_text"] = text
+            nb["source_language"] = source_language
+            nb["session_output_language"] = target_language
+            nb["visible_output_language"] = target_language
+            nb["requires_output_realization"] = False
+            nb["source_before_output_module"] = nb.get("source")
+            nb["output_realization_source"] = "souffleuse_output_module"
+            realized.append(nb)
+        if missing_ids or len(realized) != len(source_blocks):
+            raise RuntimeError("souffleuse_output_module_incomplete_blocks")
+        return realized, {
+            "contract": "souffleuse_output_realization.v1",
+            "status": "realized",
+            "source_language": source_language,
+            "session_output_language": target_language,
+            "adapter": str((result.metadata or {}).get("adapter") or getattr(adapter, "adapter_name", "") or provider),
+            "adapter_invocation_mode": "souffleuse_output_module",
+            "provider": provider,
+            "model_id": model_id,
+            "api_model": api_model,
+            "usage_source": "output_module",
+            "block_count": len(realized),
+        }
+
     def _build_narrator_path_opening_state(
         self,
         *,
@@ -9658,21 +9945,58 @@ class StoryRuntimeManager:
         The narrator path is the Director route for narration, movement
         handoffs, description, and phases where nobody speaks. For the GoC
         opening it avoids the full player-turn graph: no action resolution, no
-        NPC agency plan, no model route, no RAG query, and no LDSS fallback.
+        NPC agency plan, no RAG query, and no LDSS fallback. If the session
+        language differs from the canonical authoring language, the output
+        module realizes the canonical English blocks into player-visible text.
         """
         narrator_path = build_goc_narrator_path_opening(
             session_output_language=session.session_output_language
         )
-        blocks = [
+        source_narrator_blocks = [
             dict(block)
             for block in narrator_path.get("scene_blocks", [])
             if isinstance(block, dict) and str(block.get("text") or "").strip()
         ]
+        souffleuse_projection = build_goc_opening_souffleuse_projection(
+            session_output_language=session.session_output_language,
+            runtime_projection=session.runtime_projection
+            if isinstance(session.runtime_projection, dict)
+            else None,
+            narrator_path=narrator_path,
+            scene_blocks=source_narrator_blocks,
+        )
+        source_souffleuse_blocks = [
+            dict(block)
+            for block in (
+                souffleuse_projection.get("blocks")
+                if isinstance(souffleuse_projection, dict)
+                else []
+            )
+            if isinstance(block, dict) and str(block.get("text") or "").strip()
+        ]
+        source_blocks = [*source_narrator_blocks, *source_souffleuse_blocks]
+        blocks, output_realization = self._realize_narrator_path_output(
+            source_blocks=source_blocks,
+            narrator_path=narrator_path,
+            session=session,
+        )
         if not blocks:
             raise RuntimeError("Narrator path produced no opening scene blocks.")
+        souffleuse_blocks = [
+            block
+            for block in blocks
+            if isinstance(block, dict)
+            and str(block.get("block_type") or "").strip().lower() == SOUFFLEUSE_BLOCK_TYPE
+        ]
+        narrator_blocks = [
+            block
+            for block in blocks
+            if isinstance(block, dict)
+            and str(block.get("block_type") or "").strip().lower() == "narrator"
+        ]
         gm_narration = [
             str(block.get("text") or "").strip()
-            for block in blocks
+            for block in narrator_blocks
             if str(block.get("text") or "").strip()
         ]
         joined = "\n\n".join(gm_narration)
@@ -9688,16 +10012,55 @@ class StoryRuntimeManager:
         ]
         if not selected_capabilities:
             selected_capabilities = [NARRATOR_OPENING_EVENT_REALIZE]
+        if souffleuse_blocks and SOUFFLEUSE_OPENING_ROLE_ORIENTATION not in selected_capabilities:
+            selected_capabilities.append(SOUFFLEUSE_OPENING_ROLE_ORIENTATION)
+        director_plan = dict(director_plan)
+        director_plan["selected_capabilities"] = selected_capabilities
         source_refs = [
             str(ref).strip()
             for ref in (narrator_path.get("source_refs") or director_plan.get("content_source_refs") or [])
             if str(ref).strip()
         ]
+        for block in blocks:
+            if not isinstance(block, dict):
+                continue
+            for ref in block.get("source_refs") if isinstance(block.get("source_refs"), list) else []:
+                text_ref = str(ref).strip()
+                if text_ref and text_ref not in source_refs:
+                    source_refs.append(text_ref)
         canonical_step_ids = [
             str(step_id).strip()
             for step_id in (narrator_path.get("canonical_step_ids") or [])
             if str(step_id).strip()
         ]
+        output_realized = str(output_realization.get("status") or "").strip() == "realized"
+        generation_provider = (
+            str(output_realization.get("provider") or "").strip() if output_realized else "world_engine"
+        ) or "world_engine"
+        generation_model = (
+            str(output_realization.get("api_model") or output_realization.get("model_id") or "").strip()
+            if output_realized
+            else "narrator_path_renderer"
+        ) or "narrator_path_renderer"
+        output_module_nodes = ["output_module.realize"] if output_realized else []
+        phase_costs = {
+            "narrator_path": build_deterministic_phase_cost(
+                phase="narrator_path",
+                provider="world_engine",
+                model="narrator_path_renderer",
+                scene_block_count=len(blocks),
+                selected_capabilities=selected_capabilities,
+            )
+        }
+        if output_realized:
+            phase_costs["narrator_path_output_module"] = build_unavailable_phase_cost(
+                phase="narrator_path_output_module",
+                provider=generation_provider,
+                model=generation_model,
+                reason="output_module_usage_unavailable",
+                scene_block_count=len(blocks),
+                adapter=output_realization.get("adapter"),
+            )
         structured_output = {
             "schema_version": "runtime_actor_turn_v1",
             "narrative_response": joined,
@@ -9709,6 +10072,13 @@ class StoryRuntimeManager:
             "director_path_mode": "narrator_path",
             "canonical_step_ids": canonical_step_ids,
             "source_refs": source_refs,
+            "source_authoring_language": narrator_path.get("authoring_language"),
+            "session_output_language": session.session_output_language,
+            "output_realization": output_realization,
+            "souffleuse_blocks": souffleuse_blocks,
+            "souffleuse_projection": souffleuse_projection
+            if isinstance(souffleuse_projection, dict)
+            else {},
         }
         runtime_profile_id = _runtime_profile_id_from_projection(
             session.runtime_projection if isinstance(session.runtime_projection, dict) else None
@@ -9747,8 +10117,16 @@ class StoryRuntimeManager:
                     "missing_required_capabilities": [],
                     "npc_agency_plan_built": False,
                     "speech_projection_allowed": False,
+                    "souffleuse_block_count": len(souffleuse_blocks),
                 },
-                reasons=["director_selected_narrator_path"],
+                reasons=[
+                    "director_selected_narrator_path",
+                    *(
+                        ["director_selected_souffleuse_content_cue"]
+                        if souffleuse_blocks
+                        else []
+                    ),
+                ],
                 source="director_narrator_path",
             ),
         )
@@ -9765,7 +10143,8 @@ class StoryRuntimeManager:
                     "content_source_refs": source_refs,
                 },
                 actual={
-                    "narrator_block_count": len(blocks),
+                    "narrator_block_count": len(narrator_blocks),
+                    "souffleuse_block_count": len(souffleuse_blocks),
                     "actor_line_count": 0,
                     "actor_action_count": 0,
                     "human_actor_line_count": 0,
@@ -9837,7 +10216,8 @@ class StoryRuntimeManager:
                 },
                 actual={
                     "validation_status": "approved",
-                    "narrator_block_count": len(blocks),
+                    "narrator_block_count": len(narrator_blocks),
+                    "souffleuse_block_count": len(souffleuse_blocks),
                     "actor_line_count": 0,
                     "actor_action_count": 0,
                 },
@@ -9867,7 +10247,8 @@ class StoryRuntimeManager:
                 actual={
                     "visible_output_present": True,
                     "scene_block_count": len(blocks),
-                    "narrator_block_count": len(blocks),
+                    "narrator_block_count": len(narrator_blocks),
+                    "souffleuse_block_count": len(souffleuse_blocks),
                     "actor_line_count": 0,
                     "actor_action_count": 0,
                 },
@@ -9891,7 +10272,13 @@ class StoryRuntimeManager:
                 "path_id": narrator_path.get("path_id"),
                 "canonical_step_ids": canonical_step_ids,
                 "source_refs": source_refs,
+                "authoring_language": narrator_path.get("authoring_language"),
+                "session_output_language": session.session_output_language,
+                "output_realization": output_realization,
             },
+            "souffleuse_projection": souffleuse_projection
+            if isinstance(souffleuse_projection, dict)
+            else {},
             "opening_scene_sequence": {
                 "id": narrator_path.get("path_id"),
                 "mode": "narrator_path",
@@ -9902,6 +10289,7 @@ class StoryRuntimeManager:
                 "player_input_kind": "opening",
                 "action_kind": "narration",
                 "speech_projection_allowed": False,
+                "souffleuse_guidance_present": bool(souffleuse_blocks),
             },
             "interpreted_input": {
                 "kind": "opening",
@@ -9921,25 +10309,45 @@ class StoryRuntimeManager:
                 "structured_output": structured_output,
                 "fallback_used": False,
                 "metadata": {
-                    "adapter": NARRATOR_PATH_ADAPTER,
-                    "provider": "world_engine",
-                    "model": "narrator_path_renderer",
-                    "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
-                    "final_adapter": NARRATOR_PATH_ADAPTER,
-                    "final_adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
+                    "adapter": output_realization.get("adapter") or NARRATOR_PATH_ADAPTER,
+                    "provider": generation_provider,
+                    "model": generation_model,
+                    "adapter_invocation_mode": output_realization.get("adapter_invocation_mode")
+                    or NARRATOR_PATH_INVOCATION_MODE,
+                    "final_adapter": output_realization.get("adapter") or NARRATOR_PATH_ADAPTER,
+                    "final_adapter_invocation_mode": output_realization.get("adapter_invocation_mode")
+                    or NARRATOR_PATH_INVOCATION_MODE,
                     "structured_output": structured_output,
                     "usage_available": False,
-                    "usage_source": "deterministic_content_renderer",
+                    "usage_source": output_realization.get("usage_source") or "canonical_content_renderer",
                     "generation_latency_ms": 0,
+                    "output_realization": output_realization,
+                    "souffleuse_projection": souffleuse_projection
+                    if isinstance(souffleuse_projection, dict)
+                    else {},
                 },
             },
             "graph_diagnostics": {
-                "errors": [],
+                "errors": list(
+                    (
+                        souffleuse_projection.get("diagnostics", {}).get("errors")
+                        if isinstance(souffleuse_projection, dict)
+                        and isinstance(souffleuse_projection.get("diagnostics"), dict)
+                        else []
+                    )
+                    or []
+                ),
                 "execution_health": "healthy",
                 "graph_name": "director_narrator_path",
                 "nodes_executed": [
                     "director.narrator_path.select",
                     "narrator_path.realize",
+                    *output_module_nodes,
+                    *(
+                        ["souffleuse.select", "souffleuse.realize"]
+                        if souffleuse_blocks
+                        else []
+                    ),
                     "visible.project",
                     "commit.apply",
                 ],
@@ -9947,6 +10355,12 @@ class StoryRuntimeManager:
             "nodes_executed": [
                 "director.narrator_path.select",
                 "narrator_path.realize",
+                *output_module_nodes,
+                *(
+                    ["souffleuse.select", "souffleuse.realize"]
+                    if souffleuse_blocks
+                    else []
+                ),
                 "visible.project",
                 "commit.apply",
             ],
@@ -9960,6 +10374,7 @@ class StoryRuntimeManager:
             "visible_output_bundle": {
                 "gm_narration": gm_narration,
                 "scene_blocks": blocks,
+                "souffleuse_blocks": souffleuse_blocks,
                 "spoken_lines": [],
                 "action_lines": [],
             },
@@ -9978,15 +10393,7 @@ class StoryRuntimeManager:
             "quality_class": QUALITY_CLASS_HEALTHY,
             "degradation_signals": [],
             "degradation_summary": "none",
-            "phase_costs": {
-                "narrator_path": build_deterministic_phase_cost(
-                    phase="narrator_path",
-                    provider="world_engine",
-                    model="narrator_path_renderer",
-                    scene_block_count=len(blocks),
-                    selected_capabilities=selected_capabilities,
-                )
-            },
+            "phase_costs": phase_costs,
         }
 
     def _ldss_opening_fallback_state(
@@ -11652,35 +12059,6 @@ class StoryRuntimeManager:
                 logger.debug("Failed to restore Langfuse active span after session loop", exc_info=True)
 
     def create_session(
-        self,
-        *,
-        module_id: str,
-        runtime_projection: dict[str, Any],
-        session_input_language: str | None = None,
-        session_output_language: str = "de",
-        content_provenance: dict[str, Any] | None = None,
-        trace_id: str | None = None,
-        session_id: str | None = None,
-    ) -> StorySession:
-        if not trace_id:
-            trace_id = uuid4().hex
-        session = self._create_story_session_record(
-            module_id=module_id,
-            runtime_projection=runtime_projection,
-            session_input_language=session_input_language or session_output_language,
-            session_output_language=session_output_language,
-            content_provenance=content_provenance,
-            session_id=session_id,
-        )
-        self._emit_session_loop_observation(session=session, trace_id=trace_id)
-        self._log_session_loop_event(
-            event="runtime_engine_initialized",
-            session=session,
-            trace_id=trace_id,
-        )
-        return session
-
-    def create_session_proto(
         self,
         *,
         module_id: str,

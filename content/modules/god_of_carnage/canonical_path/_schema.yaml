@@ -48,6 +48,7 @@
       - character_refs
       - optional_micro_beats
       - player_intrusion_windows
+      - souffleuse_cues
       - carry_forward_state
 
     field_definitions:
@@ -134,6 +135,75 @@
               description: >-
                 Narrator directive used when player attempts a forbidden action.
                 Must keep the player in the room without explicit refusal text.
+
+      souffleuse_cues:
+        type: array
+        description: >-
+          Director-selectable, player-facing inner-voice guidance. A cue marks
+          an exact authored timing point where the Director may project
+          Souffleuse support if narration alone cannot orient the current
+          human player. The cue must not contain final visible prose; visible
+          wording is produced from prompt-store templates grounded in the
+          referenced content fields.
+        item:
+          fields:
+            id:
+              type: string
+              unique_within: step
+            trigger:
+              type: object
+              description: >-
+                Exact timing, e.g. after_mandatory_beat or semantic_focus.
+                Runtime must select by these authored markers, not by turn
+                number or hardcoded opening position.
+            required_once:
+              type: boolean
+              default: false
+            capability:
+              type: string
+              allowed_prefix: souffleuse.
+            voice_mode:
+              type: enum
+              values: [second_person_inner]
+            internal_resolution_language:
+              type: enum
+              values: [en]
+              default: en
+            guidance_kinds:
+              type: array
+              items:
+                values:
+                  - role_orientation
+                  - location_orientation
+                  - input_affordance
+                  - emotional_pressure
+                  - role_pressure
+                  - action_affordance
+            audience:
+              type: enum
+              values: [current_human_actor]
+            prompt_key:
+              type: object
+              description: "Language-keyed prompt-store ids; no visible prose here."
+            source_refs:
+              type: array
+              items: content_ref
+            commit_impact:
+              type: enum
+              values: [ui_guidance_only]
+            suppress_if:
+              type: array
+              items: semantic_condition
+            must_not:
+              type: array
+              items:
+                values:
+                  - commit_player_action
+                  - force_exact_line
+                  - reveal_hidden_npc_intent
+                  - duplicate_narrator_description
+                  - become_canonical_fact
+                  - author_visible_text_here
 
       themes_realized_here:
         type: array

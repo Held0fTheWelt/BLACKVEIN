@@ -35,6 +35,7 @@ VALID_BLOCK_TYPES: frozenset[str] = frozenset({
     "actor_line",
     "actor_action",
     "environment_interaction",
+    "souffleuse",
     "system_degraded_notice",
 })
 

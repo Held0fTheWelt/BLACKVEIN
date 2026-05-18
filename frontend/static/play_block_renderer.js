@@ -46,11 +46,20 @@ class BlockRenderer {
 
     const blockType = block.block_type || 'unknown';
     const cardStyle = String(block.card_style || '').trim().toLowerCase();
+    const visibleLane = String(block.visible_lane || '').trim().toLowerCase();
     div.className = `scene-block scene-block--${blockType}`;
+    if (visibleLane) {
+      div.setAttribute('data-visible-lane', visibleLane);
+    }
+    if (cardStyle) {
+      div.setAttribute('data-card-style', cardStyle);
+    }
     if (cardStyle === 'npc_story' || cardStyle === 'narrative_story') {
       div.classList.add('scene-block--player-shell-story');
     } else if (cardStyle === 'player_lane') {
       div.classList.add('scene-block--player-shell-player');
+    } else if (cardStyle === 'director_notice') {
+      div.classList.add('scene-block--player-shell-director-notice');
     }
     if (beat === 'role_anchor' && blockType === 'narrator') {
       div.classList.add('scene-block--narrator-role-anchor');

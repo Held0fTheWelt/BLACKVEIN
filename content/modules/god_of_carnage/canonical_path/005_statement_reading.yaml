@@ -17,14 +17,14 @@
   duration_max_seconds: 60
 
   location_ref:
-    location_id: longstreet_den
-    source: locations/appartment_vallon/den.yaml
+    location_id: study
+    source: locations/appartment_vallon/study.yaml
     use_fields:
       - plausible_actions
       - sensory_tags
   object_refs:
-    - object_id: laptop_on_desk
-      source: objects/appartment_vallon/den/laptop.yaml
+    - object_id: study_laptop
+      source: objects/appartment_vallon/study/laptop.yaml
       use_fields: [interaction_notes]
   character_refs:
     - characters/definitions/veronique.yaml

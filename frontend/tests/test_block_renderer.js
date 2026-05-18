@@ -253,6 +253,23 @@ describe('BlockRenderer', () => {
       expect(el.className).toContain('scene-block--narrator');
     });
 
+    test('should render souffleuse as player hint director notice', () => {
+      const el = renderer.render({
+        id: 'turn-0-souffleuse',
+        block_type: 'souffleuse',
+        speaker_label: 'Souffleuse',
+        visible_lane: 'player_hint',
+        card_style: 'director_notice',
+        text: 'Souffleuse: Stay close to yourself.',
+      });
+      expect(el.getAttribute('data-block-type')).toBe('souffleuse');
+      expect(el.getAttribute('data-visible-lane')).toBe('player_hint');
+      expect(el.getAttribute('data-card-style')).toBe('director_notice');
+      expect(el.className).toContain('scene-block--souffleuse');
+      expect(el.className).toContain('scene-block--player-shell-director-notice');
+      expect(el.textContent).toBe('Souffleuse: Stay close to yourself.');
+    });
+
     test('should render player_input_outcome as its own scene block', () => {
       const el = renderer.render({
         id: 'sid-turn-1-player-input-outcome',

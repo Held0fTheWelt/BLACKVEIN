@@ -1,0 +1,17 @@
+object:
+  id: stick
+  name: "Stick from the court edge"
+  category: exterior_memory_object
+  portable: false
+  placement_location_id: basketball_court
+  visible_from_location_ids:
+    - basketball_court
+    - park_edge
+  playable_access: opening_narration_only
+  description: >-
+    A plain stick lifted from the ground during the remembered incident, visible
+    only as the object that turns an argument into injury.
+  inventory_policy: fixed_memory_object
+  sensory_tags: [stick, lifted_from_ground, impact_object]
+  plausible_actions: [notice_object, recall_incident]
+  forbidden_actions: [use_as_live_object, invent_weapon_history]

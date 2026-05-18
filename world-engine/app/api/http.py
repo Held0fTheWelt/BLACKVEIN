@@ -692,7 +692,7 @@ def create_story_session(
             else nullcontext()
         )
         with session_scope:
-            session = manager.create_session_proto(
+            session = manager.create_session(
                 module_id=payload.module_id,
                 runtime_projection=payload.runtime_projection,
                 session_input_language=payload.session_input_language or payload.session_output_language,

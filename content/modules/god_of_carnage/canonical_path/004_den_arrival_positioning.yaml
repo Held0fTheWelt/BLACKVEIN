@@ -2,14 +2,14 @@
   sequence: 4
   id: opening_004_den_arrival_positioning
   path_id: goc_opening_canonical_path
-  name: "004 - Den arrival, four positions taken around the laptop"
+  name: "004 - Study arrival, four positions taken around the laptop"
   mode: narrator_perception_transition
 
   scene_anchor:
     scene: 2
     summary: >-
       Four adults have crossed through the living room and now stand around the
-      laptop in the den. Veronique is seated at the device, Michel stands
+      laptop in the study. Veronique is seated at the device, Michel stands
       beside her in a friendly way, Annette and Alain two steps back in
       office clothes. No one has spoken yet.
 
@@ -17,22 +17,22 @@
   duration_max_seconds: 55
 
   location_ref:
-    location_id: longstreet_den
-    source: locations/appartment_vallon/den.yaml
+    location_id: study
+    source: locations/appartment_vallon/study.yaml
     use_fields:
       - description
       - entrances_exits
       - sensory_tags
       - plausible_actions
   object_refs:
-    - object_id: laptop_on_desk
-      source: objects/appartment_vallon/den/laptop.yaml
+    - object_id: study_laptop
+      source: objects/appartment_vallon/study/laptop.yaml
       use_fields: [description, sensory_tags]
-    - object_id: den_window
-      source: objects/appartment_vallon/den/window.yaml
+    - object_id: study_desk
+      source: objects/appartment_vallon/study/study_desk.yaml
       use_fields: [description, sensory_tags]
-    - object_id: den_periodicals_stack
-      source: objects/appartment_vallon/den/periodicals.yaml
+    - object_id: study_bookshelves
+      source: objects/appartment_vallon/study/study_bookshelves.yaml
       use_fields: [description, sensory_tags]
   character_refs:
     - characters/definitions/veronique.yaml
@@ -97,13 +97,48 @@
         - silent_observation
       forbidden:
         - speak
-        - leave_the_den
+        - leave_the_study
         - touch_the_laptop_or_papers
       redirect_policy: >-
         If the player speaks or moves before the hosts' first word, the
         director writes a brief narrator_perception
         ("No one answers. Veronique waits a breath longer than necessary.")
         and returns to the next mandatory_beat.
+
+  souffleuse_cues:
+    - id: opening_first_player_orientation
+      trigger:
+        after_mandatory_beat: mood_register_serious_cordial_tolerant
+        timing: after_narrator_path_visible
+      required_once: true
+      capability: souffleuse.role_orientation
+      voice_mode: second_person_inner
+      internal_resolution_language: en
+      guidance_kinds:
+        - role_orientation
+        - location_orientation
+        - input_affordance
+        - emotional_pressure
+      audience: current_human_actor
+      prompt_key:
+        de: world_engine.souffleuse.opening_orientation.de
+        en: world_engine.souffleuse.opening_orientation.en
+      source_refs:
+        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.player_agency_policy
+        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.statement_pressure
+        - locations/appartment_vallon/study.yaml#location
+        - canonical_path/004_den_arrival_positioning.yaml#canonical_path_step.player_intrusion_windows
+        - canonical_path/index.yaml#canonical_path.paths.opening
+      commit_impact: ui_guidance_only
+      suppress_if:
+        - narrator_already_established_player_role_and_playable_options
+      must_not:
+        - commit_player_action
+        - force_exact_line
+        - reveal_hidden_npc_intent
+        - duplicate_narrator_description
+        - become_canonical_fact
+        - author_visible_text_here
 
   themes_realized_here:
     - actor: veronique
@@ -137,7 +172,7 @@
 
   state_changes_committed:
     - key: environment_state.current_location
-      to_value: longstreet_den
+      to_value: study
       commit_irreversible: false
     - key: environment_state.actors_positioning
       to_value:

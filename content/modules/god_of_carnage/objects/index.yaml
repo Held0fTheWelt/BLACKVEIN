@@ -20,6 +20,7 @@ objects:
 
   object_files:
     - objects/opening/bicycle_rack.yaml
+    - objects/opening/stick.yaml
     - objects/appartment_vallon/living_room/coffee_table.yaml
     - objects/appartment_vallon/living_room/dining_table.yaml
     - objects/appartment_vallon/living_room/entry_mirror.yaml
@@ -50,6 +51,7 @@ objects:
     - objects/appartment_vallon/bathroom/towel_rail.yaml
     - objects/appartment_vallon/bathroom/medicine_cabinet.yaml
     - objects/appartment_vallon/pantry/pantry_shelves.yaml
+    - objects/appartment_vallon/study/laptop.yaml
     - objects/appartment_vallon/study/study_desk.yaml
     - objects/appartment_vallon/study/study_bookshelves.yaml
     - objects/appartment_vallon/study/study_clutter.yaml

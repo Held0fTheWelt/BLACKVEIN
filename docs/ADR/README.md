@@ -70,6 +70,7 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0053](adr-0053-bounded-semantic-scene-planner.md) | Bounded Semantic Scene Planner | Accepted |
 | [ADR-0054](adr-0054-session-input-language-english-internal-resolution.md) | Session input language and English internal resolution | Accepted |
 | [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md) | Semantic Player Input Translation Ingress | Accepted |
+| [ADR-0056](adr-0056-souffleuse-player-guidance-lane.md) | Souffleuse player guidance lane | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
 

@@ -379,6 +379,16 @@ def build_player_facing_narrative_cards(
             si += 1
             continue
 
+        if bt == "souffleuse":
+            nb = dict(b)
+            nb["card_style"] = "director_notice"
+            nb["visible_lane"] = "player_hint"
+            nb["player_display_text"] = str(b.get("player_display_text") or b.get("text") or "")
+            nb["player_shell_semantic_span"] = (si, si)
+            out.append(nb)
+            si += 1
+            continue
+
         if bt == "actor_line":
             speech = str(b.get("text") or "")
             j = si + 1

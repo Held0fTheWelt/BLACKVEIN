@@ -31,6 +31,9 @@ NARRATOR_SCENE_CONTEXT_ESTABLISH = "narrator.scene_context.establish"
 NARRATOR_OPENING_EVENT_REALIZE = "narrator.opening_event.realize"
 NARRATOR_ACTION_CONSEQUENCE_DESCRIBE = "narrator.action_consequence.describe"
 
+SOUFFLEUSE_ROLE_ORIENTATION = "souffleuse.role_orientation"
+SOUFFLEUSE_ROLE_PRESSURE = "souffleuse.role_pressure"
+
 NPC_SOCIAL_REACTION_OPTIONAL = "npc.social_reaction.optional"
 NPC_DIRECT_ANSWER_ALLOWED = "npc.direct_answer.allowed"
 NPC_OFFSCREEN_BACKGROUND_ALLOWED = "npc.offscreen_background.allowed"
@@ -182,6 +185,8 @@ def default_capability_policy() -> dict[str, Any]:
             NARRATOR_SCENE_CONTEXT_ESTABLISH,
             NARRATOR_OPENING_EVENT_REALIZE,
             NARRATOR_ACTION_CONSEQUENCE_DESCRIBE,
+            SOUFFLEUSE_ROLE_ORIENTATION,
+            SOUFFLEUSE_ROLE_PRESSURE,
             NPC_SOCIAL_REACTION_OPTIONAL,
             NPC_DIRECT_ANSWER_ALLOWED,
             NPC_OFFSCREEN_BACKGROUND_ALLOWED,

@@ -20,6 +20,8 @@ from ai_stack.dramatic_capability_contracts import (
     NARRATOR_OPENING_EVENT_REALIZE,
     NARRATOR_PERCEPTION_RESULT_DESCRIBE,
     NARRATOR_SCENE_CONTEXT_ESTABLISH,
+    SOUFFLEUSE_ROLE_ORIENTATION,
+    SOUFFLEUSE_ROLE_PRESSURE,
     default_capability_policy,
 )
 
@@ -78,6 +80,18 @@ DRAMATIC_CAPABILITY_DISPATCH_PATHS: dict[str, tuple[str, ...]] = {
         "director_tick",
         "actor_directive.visible_gesture",
         "visible_output.npc_action",
+        CAPABILITY_TERMINAL_NODE,
+    ),
+    SOUFFLEUSE_ROLE_ORIENTATION: (
+        "director_tick",
+        "canonical_path.souffleuse_cue",
+        "visible_output.player_hint",
+        CAPABILITY_TERMINAL_NODE,
+    ),
+    SOUFFLEUSE_ROLE_PRESSURE: (
+        "director_tick",
+        "semantic_pressure.souffleuse_cue",
+        "visible_output.player_hint",
         CAPABILITY_TERMINAL_NODE,
     ),
 }

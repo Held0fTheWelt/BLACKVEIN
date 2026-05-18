@@ -21,15 +21,15 @@ canonical_path_step:
 
   location_ref:
     location_id: basketball_court
-    source: locations/exterior/basketball_court.yaml
+    source: locations/opening/basketball_court.yaml
     use_fields: [entrances_exits, sensory_tags]
   object_refs:
     - object_id: bicycle_rack
-      source: objects/exterior/bicycle_rack.yaml
+      source: objects/opening/bicycle_rack.yaml
       use_fields: [description, sensory_tags]
   support_refs:
     - location_id: park_edge
-      source: locations/exterior/park_edge.yaml
+      source: locations/opening/park_edge.yaml
       use_fields: [entrances_exits]
 
   present:
@@ -67,7 +67,7 @@ canonical_path_step:
           - "At the rack, he kicks a bicycle. It falls sideways."
           - "He does not stop walking."
         sensory_anchors:
-          - objects/exterior/bicycle_rack.yaml#sensory_tags
+          - objects/opening/bicycle_rack.yaml#sensory_tags
       player_status: observer_no_initiative
 
     - id: boys_call_after_him_attacker_disappears
@@ -79,7 +79,7 @@ canonical_path_step:
           - "The boys call after him again. The words still don't carry."
           - "He turns a corner at the park edge and is gone from view."
         sensory_anchors:
-          - locations/exterior/park_edge.yaml#entrances_exits
+          - locations/opening/park_edge.yaml#entrances_exits
       player_status: observer_no_initiative
 
   themes_realized_here: []

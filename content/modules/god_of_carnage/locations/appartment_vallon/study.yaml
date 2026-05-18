@@ -18,6 +18,7 @@ location:
         kind: private_work_room_door
   inventory_policy: authored_or_optional_work_inventory
   inventory_object_ids:
+    - study_laptop
     - study_desk
     - study_bookshelves
     - study_clutter

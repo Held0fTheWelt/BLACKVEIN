@@ -93,6 +93,16 @@ def test_narrator_preserved_with_narrative_story_style() -> None:
     assert diag["narrator_card_preserved"] == 1
 
 
+def test_souffleuse_preserved_as_player_hint_director_notice() -> None:
+    blocks = [{"id": "s1", "block_type": "souffleuse", "text": "Souffleuse: Stay close."}]
+    out, _diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 1
+    assert out[0]["block_type"] == "souffleuse"
+    assert out[0]["card_style"] == "director_notice"
+    assert out[0]["visible_lane"] == "player_hint"
+    assert out[0]["player_display_text"] == "Souffleuse: Stay close."
+
+
 def test_player_input_stays_player_lane() -> None:
     blocks = [
         {"id": "p1", "block_type": "player_input", "speaker_label": "You", "text": "Hello?"},

@@ -1,0 +1,19 @@
+object:
+  id: study_laptop
+  name: "Study laptop"
+  category: document_work_surface
+  portable: false
+  placement_location_id: study
+  playable_access: statement_gate
+  description: >-
+    A laptop on the study desk, already open to the written statement about
+    the incident at Parc Montsouris.
+  interaction_notes:
+    look_at: "Shows the statement as a shared document without handing control to the player."
+    type: "Only the current statement-authority beat may alter the text."
+  sensory_tags: [screen_light, typed_statement, desk_surface]
+  plausible_actions: [look_at, point_to_screen, read_statement_surface]
+  forbidden_actions: [rewrite_statement_without_scene_gate, invent_hidden_file]
+  symbolic_roles:
+    - procedure_surface
+    - civilized_control

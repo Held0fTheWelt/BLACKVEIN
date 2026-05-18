@@ -100,6 +100,7 @@ files:
   - objects/appartment_vallon/bathroom/towel_rail.yaml
   - objects/appartment_vallon/bathroom/medicine_cabinet.yaml
   - objects/appartment_vallon/pantry/pantry_shelves.yaml
+  - objects/appartment_vallon/study/laptop.yaml
   - objects/appartment_vallon/study/study_desk.yaml
   - objects/appartment_vallon/study/study_bookshelves.yaml
   - objects/appartment_vallon/study/study_clutter.yaml

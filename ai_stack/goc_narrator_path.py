@@ -11,39 +11,51 @@ from typing import Any
 
 from ai_stack.goc_yaml_authority import (
     load_goc_canonical_path_yaml,
-    load_goc_locations_yaml,
 )
+from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 NARRATOR_PATH_CONTRACT = "goc_narrator_path.opening.v1"
 NARRATOR_PATH_ADAPTER = "goc_narrator_path_direct"
 NARRATOR_PATH_INVOCATION_MODE = "narrator_path_direct"
 
 
-def _indexed_places() -> dict[str, dict[str, Any]]:
-    data = load_goc_locations_yaml()
-    rows = data.get("places") if isinstance(data, dict) else []
-    return {
+def _opening_steps() -> list[dict[str, Any]]:
+    data = load_goc_canonical_path_yaml()
+    steps = data.get("steps") if isinstance(data, dict) else []
+    path = data.get("paths") if isinstance(data.get("paths"), dict) else {}
+    opening = path.get("opening") if isinstance(path.get("opening"), dict) else {}
+    first_step_id = str(opening.get("first_step_id") or "").strip()
+    first_playable_step_id = str(opening.get("first_playable_step_id") or "").strip()
+    step_order = [
+        str(step_id).strip()
+        for step_id in (data.get("step_order") if isinstance(data.get("step_order"), list) else [])
+        if str(step_id).strip()
+    ]
+    by_id = {
         str(row.get("id") or "").strip(): row
-        for row in (rows if isinstance(rows, list) else [])
+        for row in (steps if isinstance(steps, list) else [])
         if isinstance(row, dict) and str(row.get("id") or "").strip()
     }
 
+    if first_step_id and first_playable_step_id and step_order:
+        try:
+            start = step_order.index(first_step_id)
+            end = step_order.index(first_playable_step_id)
+        except ValueError:
+            start = end = -1
+        if 0 <= start <= end:
+            selected = [by_id[step_id] for step_id in step_order[start : end + 1] if step_id in by_id]
+            if selected:
+                return selected
 
-def _opening_steps(limit: int = 4) -> list[dict[str, Any]]:
-    data = load_goc_canonical_path_yaml()
-    steps = data.get("steps") if isinstance(data, dict) else []
     selected: list[dict[str, Any]] = []
     for row in steps if isinstance(steps, list) else []:
-        if not isinstance(row, dict):
-            continue
         mode = str(row.get("mode") or "").strip()
         if not mode.startswith("narrator_"):
             if selected:
-                break
+                return selected
             continue
         selected.append(row)
-        if len(selected) >= limit:
-            break
     return selected
 
 
@@ -66,7 +78,7 @@ def _delivery() -> dict[str, Any]:
     }
 
 
-def _content_refs(step: dict[str, Any]) -> list[str]:
+def _content_refs(step: dict[str, Any], beat: dict[str, Any] | None = None) -> list[str]:
     refs: list[str] = [_source_ref_for_step(step)]
     loc = step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {}
     if loc.get("source"):
@@ -83,6 +95,11 @@ def _content_refs(step: dict[str, Any]) -> list[str]:
     topo = step.get("topology_ref") if isinstance(step.get("topology_ref"), dict) else {}
     if topo.get("source"):
         refs.append(str(topo["source"]))
+    if isinstance(beat, dict):
+        params = beat.get("beat_pattern_params") if isinstance(beat.get("beat_pattern_params"), dict) else {}
+        for ref in params.get("sensory_anchors") if isinstance(params.get("sensory_anchors"), list) else []:
+            if str(ref).strip():
+                refs.append(str(ref).strip())
     seen: set[str] = set()
     return [ref for ref in refs if not (ref in seen or seen.add(ref))]
 
@@ -93,6 +110,7 @@ def _block(
     text: str,
     beat: str,
     step: dict[str, Any],
+    mandatory_beat: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "id": f"opening-narrator-path-{index}",
@@ -106,128 +124,63 @@ def _block(
         "narration_beat": beat,
         "canonical_step_id": str(step.get("id") or "").strip(),
         "canonical_step_sequence": int(step.get("sequence") or index),
-        "source_refs": _content_refs(step),
+        "canonical_mandatory_beat_id": str(mandatory_beat.get("id") or "").strip(),
+        "source_refs": _content_refs(step, mandatory_beat),
     }
 
 
-def _render_de(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[tuple[str, str, int]]:
-    park = places.get("park_edge", {})
-    park_name = str(park.get("name") or "Parc Montsouris").replace(" edge", "")
-    court_name = "Basketballplatz"
-    study_name = "Arbeitszimmer"
-    return [
-        (
-            f"Am Rand des {park_name}, nahe dem {court_name}, stehen etwa ein Dutzend "
-            "Jungen unter grauem Himmel. Kahle Bäume, Wege, Verkehr am Boulevard "
-            "Jourdan und normales Parkleben bleiben im Hintergrund sichtbar."
-            ,
-            "public_edge_establish",
-            0,
-        ),
-        (
-            "Zwei Jungen spielen weiter, während die anderen am Rand aufgeregt "
-            "reden. Aus der Bewegung wird Streit: Einer greift nach einem Stock, "
-            "der andere ruft ihm etwas hinterher, und die Worte gehen im Lärm des "
-            "Platzes unter."
-            ,
-            "argument_to_stick",
-            1,
-        ),
-        (
-            "Der Junge mit dem Stock hält an, dreht sich um und schlägt zu. Der "
-            "andere krümmt sich; die Umstehenden helfen ihm wieder hoch und rufen "
-            "dem Angreifer nach, ohne dass aus der Entfernung ein verlässlicher "
-            "Satz entsteht."
-            ,
-            "blow_and_immediate_consequence",
-            1,
-        ),
-        (
-            "Im Weggehen tritt der Junge noch ein Fahrrad um. Dann verschwindet er "
-            "aus dem Bild, und der kleine Schaden neben dem Platz bleibt bei der "
-            "Verletzung zurück."
-            ,
-            "bicycle_disappearance",
-            2,
-        ),
-        (
-            f"Der Schnitt landet im {study_name} der Wohnung: ein schmaler Arbeitsraum, "
-            "ein Laptop auf dem Tisch, Winterlicht am Fenster. Veronique sitzt am Gerät, "
-            "Michel steht neben ihr; Annette und Alain bleiben zwei Schritte zurück. "
-            "Noch spricht niemand."
-            ,
-            "study_arrival_positioning",
-            3,
-        ),
-    ][:5]
+def _string_list(value: Any) -> list[str]:
+    return [str(item).strip() for item in value if str(item).strip()] if isinstance(value, list) else []
 
 
-def _render_en(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[tuple[str, str, int]]:
-    park = places.get("park_edge", {})
-    court = places.get("basketball_court", {})
-    park_name = str(park.get("name") or "Parc Montsouris").replace(" edge", "")
-    court_name = str(court.get("name") or "basketball court")
-    study_name = "study"
-    return [
-        (
-            f"At the edge of {park_name}, near the {court_name}, about a dozen boys "
-            "stand under a grey sky. Bare trees, paths, traffic on Boulevard "
-            "Jourdan, and ordinary park life remain visible in the background."
-            ,
-            "public_edge_establish",
-            0,
-        ),
-        (
-            "Two boys keep playing while the others talk excitedly at the edge. The "
-            "movement turns into an argument: one boy takes up a stick, the other "
-            "calls after him, and the words are lost in the noise of the court."
-            ,
-            "argument_to_stick",
-            1,
-        ),
-        (
-            "The boy with the stick stops, turns, and strikes. The other boy bends "
-            "over; the boys around him help him back up and shout after the attacker "
-            "without forming a reliable sentence from this distance."
-            ,
-            "blow_and_immediate_consequence",
-            1,
-        ),
-        (
-            "As he leaves, the boy kicks over a bicycle. Then he disappears from "
-            "view, leaving the small public damage beside the injury."
-            ,
-            "bicycle_disappearance",
-            2,
-        ),
-        (
-            f"The cut lands in the apartment {study_name}: a narrow work room, a "
-            "laptop on the table, winter light at the window. Veronique sits at the "
-            "machine, Michel stands beside her; Annette and Alain remain two steps "
-            "back. No one has spoken yet."
-            ,
-            "study_arrival_positioning",
-            3,
-        ),
-    ][:5]
+def _perception_lines(beat: dict[str, Any]) -> list[str]:
+    params = beat.get("beat_pattern_params") if isinstance(beat.get("beat_pattern_params"), dict) else {}
+    lines = _string_list(params.get("perception_lines"))
+    if lines:
+        return lines
+    instruction = beat.get("director_instruction") if isinstance(beat.get("director_instruction"), dict) else {}
+    return _string_list(instruction.get("narrator_perception_only"))
+
+
+def _mandatory_beats(step: dict[str, Any]) -> list[dict[str, Any]]:
+    beats = [beat for beat in step.get("mandatory_beats") or [] if isinstance(beat, dict)]
+    return sorted(beats, key=lambda beat: int(beat.get("order") or 0))
+
+
+def _render_from_canonical_steps(
+    steps: list[dict[str, Any]],
+) -> list[tuple[str, str, int, dict[str, Any]]]:
+    rendered: list[tuple[str, str, int, dict[str, Any]]] = []
+    for step_index, step in enumerate(steps):
+        for beat in _mandatory_beats(step):
+            lines = _perception_lines(beat)
+            if not lines:
+                continue
+            text = sanitize_gm_narration_beat_line(" ".join(lines))
+            if text:
+                rendered.append((text, str(beat.get("id") or "").strip(), step_index, beat))
+    return rendered
 
 
 def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> dict[str, Any]:
     """Return a narrator-only visible opening grounded in canonical path refs."""
-    steps = _opening_steps(limit=4)
+    canonical_path = load_goc_canonical_path_yaml()
+    steps = _opening_steps()
     if not steps:
         raise RuntimeError("God of Carnage canonical narrator path has no opening steps.")
-    places = _indexed_places()
-    lang = str(session_output_language or "de").strip().lower()[:2] or "de"
-    render_items = _render_en(steps, places) if lang == "en" else _render_de(steps, places)
+    authoring_language = str(canonical_path.get("authoring_language") or "en").strip().lower()[:2] or "en"
+    render_items = _render_from_canonical_steps(steps)
+    if not render_items:
+        raise RuntimeError("God of Carnage canonical narrator path has no renderable mandatory beats.")
     blocks = [
         _block(
             index=i + 1,
             text=text,
             beat=beat,
             step=steps[min(max(step_index, 0), len(steps) - 1)],
+            mandatory_beat=mandatory_beat,
         )
-        for i, (text, beat, step_index) in enumerate(render_items)
+        for i, (text, beat, step_index, mandatory_beat) in enumerate(render_items)
     ]
     step_ids = [str(step.get("id") or "").strip() for step in steps if str(step.get("id") or "").strip()]
     source_refs: list[str] = []
@@ -240,6 +193,12 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
         "adapter": NARRATOR_PATH_ADAPTER,
         "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
         "path_id": "goc_opening_canonical_path",
+        "authoring_language": authoring_language,
+        "session_output_language": str(session_output_language or "").strip().lower()[:2] or None,
+        "requires_output_realization": (
+            bool(str(session_output_language or "").strip())
+            and (str(session_output_language or "").strip().lower()[:2] != authoring_language)
+        ),
         "canonical_step_ids": step_ids,
         "source_refs": source_refs,
         "scene_blocks": blocks,

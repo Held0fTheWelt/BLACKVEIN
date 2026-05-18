@@ -18,13 +18,13 @@
   duration_max_seconds: 55
 
   location_ref:
-    location_id: longstreet_den
-    source: locations/appartment_vallon/den.yaml
+    location_id: study
+    source: locations/appartment_vallon/study.yaml
     use_fields:
       - plausible_actions
   object_refs:
-    - object_id: laptop_on_desk
-      source: objects/appartment_vallon/den/laptop.yaml
+    - object_id: study_laptop
+      source: objects/appartment_vallon/study/laptop.yaml
       use_fields: [interaction_notes]
   character_refs:
     - characters/definitions/veronique.yaml
@@ -172,7 +172,7 @@
         - point_to_screen_or_object
       forbidden:
         - propose_a_different_word_as_player
-        - leave_the_den
+        - leave_the_study
         - take_over_alain_authority
       redirect_policy: >-
         If the player suggests a word instead of observing, the director
@@ -203,6 +203,38 @@
         First real player window with room to maneuver. The player may comment
         on the compromise, point at the statement, or try a new direction. The
         LDSS uses the response as a routing signal for step 007.
+
+  souffleuse_cues:
+    - id: armed_word_role_pressure
+      trigger:
+        after_mandatory_beat: alain_single_word_challenge
+        semantic_focus: statement_word_armed
+      required_once: false
+      capability: souffleuse.role_pressure
+      voice_mode: second_person_inner
+      internal_resolution_language: en
+      guidance_kinds:
+        - emotional_pressure
+        - role_pressure
+        - action_affordance
+      audience: current_human_actor
+      prompt_key:
+        de: world_engine.souffleuse.role_pressure.de
+        en: world_engine.souffleuse.role_pressure.en
+      source_refs:
+        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.statement_pressure
+        - canonical_path/006_armed_vs_carrying.yaml#canonical_path_step.mandatory_beats.alain_single_word_challenge
+        - knowledge/opening_quote_anchors.yaml#quote_armed
+      commit_impact: ui_guidance_only
+      suppress_if:
+        - narrator_or_player_action_already_surface_role_pressure
+      must_not:
+        - commit_player_action
+        - force_exact_line
+        - reveal_hidden_npc_intent
+        - duplicate_narrator_description
+        - become_canonical_fact
+        - author_visible_text_here
 
   themes_realized_here:
 

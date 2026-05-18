@@ -22,18 +22,18 @@ canonical_path_step:
 
   location_ref:
     location_id: basketball_court
-    source: locations/exterior/basketball_court.yaml
+    source: locations/opening/basketball_court.yaml
     use_fields: [description, entrances_exits, sensory_tags]
   support_refs:
     - location_id: playground
-      source: locations/exterior/playground.yaml
+      source: locations/opening/playground.yaml
       use_fields: [sensory_tags]
   object_refs:
     - object_id: stick
-      source: objects/exterior/stick.yaml
+      source: objects/opening/stick.yaml
       use_fields: [description, sensory_tags]
     - object_id: bicycle_rack
-      source: objects/exterior/bicycle_rack.yaml
+      source: objects/opening/bicycle_rack.yaml
       use_fields: [sensory_tags]
 
   present:
@@ -72,7 +72,7 @@ canonical_path_step:
           - "One boy walks a few paces, picks up a stick from the ground."
           - "The other calls after him. The call is not legible."
         sensory_anchors:
-          - objects/exterior/stick.yaml#sensory_tags
+          - objects/opening/stick.yaml#sensory_tags
       player_status: observer_no_initiative
 
     - id: stick_strikes_face
