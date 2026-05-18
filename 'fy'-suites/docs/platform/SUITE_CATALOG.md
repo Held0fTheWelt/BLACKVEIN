@@ -52,7 +52,7 @@ Owns bounded closure-pack assembly, review-first completion packaging, and expli
 - category: `core`
 - quality_ok: `true`
 - release_ready: `true`
-- latest_run_id: `contractify-e05656765166`
+- latest_run_id: `contractify-ad03722237f1`
 
 Discovers, audits, explains, and consolidates contracts and projections.
 

@@ -2494,8 +2494,8 @@
     "unit_count": 16,
     "relation_count": 15,
     "artifact_count": 5,
-    "graph_dir": ".fydata/evolution_graph/runs/despaghettify-87d97e1c66ad",
-    "export_dir": "despaghettify/generated/fy-suites-7ca077ff/despaghettify-87d97e1c66ad/evolution_graph",
-    "run_manifest_path": "despaghettify/generated/fy-suites-7ca077ff/despaghettify-87d97e1c66ad/evolution_graph/run_manifest.json"
+    "graph_dir": ".fydata/evolution_graph/runs/despaghettify-722989bbcc30",
+    "export_dir": "despaghettify/generated/fy-suites-7ca077ff/despaghettify-722989bbcc30/evolution_graph",
+    "run_manifest_path": "despaghettify/generated/fy-suites-7ca077ff/despaghettify-722989bbcc30/evolution_graph/run_manifest.json"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "fy.suite-catalog.v1",
-  "generated_at": "2026-05-18T13:28:26.079899+00:00",
+  "generated_at": "2026-05-18T13:29:43.137123+00:00",
   "suite_count": 15,
   "core_count": 13,
   "optional_count": 2,
@@ -81,7 +81,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "contractify-e05656765166"
+      "latest_run_id": "contractify-ad03722237f1"
     },
     {
       "suite": "despaghettify",

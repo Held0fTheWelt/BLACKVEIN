@@ -6,7 +6,7 @@
 - suite: `contractify`
 - command: `audit`
 - ok: `true`
-- latest_run_id: `contractify-ad03722237f1`
+- latest_run_id: `contractify-3d631714581d`
 - latest_run_mode: `audit`
 - latest_run_status: `ok`
 

@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any, Generator
@@ -35,6 +36,35 @@ from app.story_runtime.manager import StorySessionContractError
 from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+def _flush_langfuse_background(adapter: Any, *, context: str) -> None:
+    """Optionally flush Langfuse without making HTTP responses depend on it.
+
+    Request handlers must not force Langfuse/OTLP export. The SDK keeps its own
+    queue, and forced flushes can block on network timeouts after a successful
+    runtime result was already built. Operators can opt into request-time flushes
+    for local evidence runs with ``WOS_LANGFUSE_REQUEST_FLUSH=1``.
+    """
+    if not adapter or not getattr(adapter, "is_enabled", lambda: False)():
+        return
+    if (os.getenv("WOS_LANGFUSE_REQUEST_FLUSH") or "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+
+    def _run() -> None:
+        try:
+            adapter.flush()
+        except Exception:
+            logger.warning("Langfuse background flush failed during %s", context, exc_info=True)
+
+    try:
+        threading.Thread(
+            target=_run,
+            name=f"langfuse-flush-{context}",
+            daemon=True,
+        ).start()
+    except Exception:
+        logger.warning("Could not schedule Langfuse background flush during %s", context, exc_info=True)
 
 
 class IdentityPayload(BaseModel):
@@ -753,10 +783,16 @@ def create_story_session(
         raise
     finally:
         if root_span:
-            root_span.end()
+            try:
+                root_span.end()
+            except Exception:
+                logger.warning("Langfuse root span end failed during session create", exc_info=True)
         if adapter and adapter.is_enabled():
-            adapter.flush()
-            adapter.set_active_span(previous_active_span)
+            _flush_langfuse_background(adapter, context="session-create")
+            try:
+                adapter.set_active_span(previous_active_span)
+            except Exception:
+                logger.warning("Langfuse active span restore failed during session create", exc_info=True)
 
 
 @router.post("/story/sessions/{session_id}/turns", dependencies=[Depends(_require_internal_api_key)])
@@ -966,13 +1002,18 @@ def execute_story_turn(
         # End root span and flush Langfuse
         if root_span:
             logger.info(f"[HTTP] Ending root span")
-            root_span.end()
-            logger.info(f"[HTTP] Root span ended")
+            try:
+                root_span.end()
+                logger.info(f"[HTTP] Root span ended")
+            except Exception:
+                logger.warning("[HTTP] Langfuse root span end failed during story turn", exc_info=True)
         if adapter and adapter.is_enabled():
-            logger.info(f"[HTTP] Flushing Langfuse adapter")
-            adapter.flush()
-            adapter.set_active_span(previous_active_span)
-            logger.info(f"[HTTP] Langfuse flush complete")
+            logger.info(f"[HTTP] Scheduling Langfuse adapter flush")
+            _flush_langfuse_background(adapter, context="story-turn")
+            try:
+                adapter.set_active_span(previous_active_span)
+            except Exception:
+                logger.warning("[HTTP] Langfuse active span restore failed during story turn", exc_info=True)
         else:
             logger.info(f"[HTTP] Adapter not enabled or not initialized, skipping flush")
 

@@ -10,6 +10,10 @@ class _ExplodingTurnGraph:
         raise AssertionError("GoC Turn-0 narrator_path must not call the full turn graph")
 
 
+def _explode_opening_prompt(_session: Any) -> str:
+    raise AssertionError("GoC Turn-0 narrator_path must not render the model opening prompt")
+
+
 def _governed_config() -> dict[str, Any]:
     return {
         "config_version": "cfg_test_narrator_path",
@@ -60,6 +64,7 @@ def _projection() -> dict[str, Any]:
 def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
     manager.turn_graph = _ExplodingTurnGraph()  # type: ignore[assignment]
+    manager._build_opening_prompt = _explode_opening_prompt  # type: ignore[method-assign]
 
     session = manager.create_session_proto(
         module_id="god_of_carnage",
@@ -79,7 +84,7 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     assert len(blocks) >= 5
     assert {block["block_type"] for block in blocks} == {"narrator"}
     assert "Parc Montsouris" in blocks[0]["text"]
-    assert "Wohnzimmer" in blocks[-1]["text"]
+    assert "Arbeitszimmer" in blocks[-1]["text"]
 
     route = opening["model_route"]
     generation = route["generation"]

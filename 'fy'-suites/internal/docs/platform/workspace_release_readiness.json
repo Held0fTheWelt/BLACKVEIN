@@ -1,8 +1,8 @@
 {
   "schema_version": "fy.workspace-release-readiness.v1",
-  "generated_at": "2026-05-18T12:23:44.115691+00:00",
+  "generated_at": "2026-05-18T13:34:18.232726+00:00",
   "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
-  "ok": true,
+  "ok": false,
   "workspace_check": {
     "ok": true,
     "missing": [],
@@ -10,25 +10,68 @@
   },
   "core_ready_suites": [
     "contractify",
-    "documentify"
+    "despaghettify",
+    "diagnosta",
+    "docify",
+    "documentify",
+    "metrify",
+    "mvpify",
+    "observifyfy",
+    "securify",
+    "templatify",
+    "testify",
+    "usabilify"
   ],
-  "core_blocked_suites": [],
-  "optional_ready_suites": [],
+  "core_blocked_suites": [
+    "coda"
+  ],
+  "optional_ready_suites": [
+    "dockerify",
+    "postmanify"
+  ],
   "optional_blocked_suites": [],
   "suites": [
+    {
+      "suite": "coda",
+      "ready": false,
+      "has_run": false,
+      "latest_run": null,
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [
+        "missing_optional:docs",
+        "missing_optional:tests"
+      ],
+      "blocking_reasons": [
+        "missing:state",
+        "no_successful_run_recorded"
+      ],
+      "suite_check": {
+        "ok": false,
+        "suite": "coda",
+        "missing": [
+          "state"
+        ],
+        "warnings": [
+          "missing_optional:docs",
+          "missing_optional:tests"
+        ]
+      }
+    },
     {
       "suite": "contractify",
       "ready": true,
       "has_run": true,
       "latest_run": {
-        "run_id": "contractify-578421936e19",
+        "run_id": "contractify-c2470d746432",
         "suite": "contractify",
         "mode": "audit",
-        "started_at": "2026-05-18T12:23:42.624613+00:00",
-        "ended_at": "2026-05-18T12:23:43.886341+00:00",
+        "started_at": "2026-05-18T13:34:13.726729+00:00",
+        "ended_at": "2026-05-18T13:34:17.240339+00:00",
         "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
-        "target_repo_root": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_workspace_status_site_and0/target_repo",
-        "target_repo_id": "target-repo-3c23ee4d",
+        "target_repo_root": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_platform_shell_analyze_co0/target_repo",
+        "target_repo_id": "target-repo-148eac6c",
         "status": "ok",
         "strategy_profile": "D",
         "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
@@ -84,9 +127,10 @@
       "status_page_json": "contractify/reports/status/most_recent_next_steps.json",
       "status_page_md": "contractify/reports/status/MOST_RECENT_NEXT_STEPS.md",
       "next_steps": [
-        "Review the 1 finding(s) and decide which one should be fixed first."
+        "Read the latest contractify output and choose the narrowest next move based on the current evidence."
       ],
       "warnings": [
+        "target_repo_changed_between_runs",
         "missing_optional:docs"
       ],
       "blocking_reasons": [],
@@ -100,18 +144,349 @@
       }
     },
     {
+      "suite": "despaghettify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "despaghettify-722989bbcc30",
+        "suite": "despaghettify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:32:35.250591+00:00",
+        "ended_at": "2026-05-18T13:33:04.369210+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "despaghettify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "despaghettify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Read the latest despaghettify output and choose the narrowest next move based on the current evidence."
+      ],
+      "warnings": [
+        "missing_optional:docs"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "despaghettify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs"
+        ]
+      }
+    },
+    {
+      "suite": "diagnosta",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "diagnosta-a16db438b53a",
+        "suite": "diagnosta",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:22:49.858271+00:00",
+        "ended_at": "2026-05-18T13:22:50.512902+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [
+        "missing_optional:docs",
+        "missing_optional:tests"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "diagnosta",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs",
+          "missing_optional:tests"
+        ]
+      }
+    },
+    {
+      "suite": "docify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "docify-5ff205bff250",
+        "suite": "docify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:32:09.825932+00:00",
+        "ended_at": "2026-05-18T13:32:10.734060+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_graph_recipes_wrap_adapte0/target_repo",
+        "target_repo_id": "target-repo-177e6d57",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "docify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "docify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Open tools/tests/test_python_docstring_synthesize.py#chunk-1 first.",
+        "Use the top two hits to validate the next code or governance action."
+      ],
+      "warnings": [
+        "missing_optional:docs"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "docify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs"
+        ]
+      }
+    },
+    {
+      "suite": "dockerify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "dockerify-13a5c99ab9ce",
+        "suite": "dockerify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:13:16.608574+00:00",
+        "ended_at": "2026-05-18T13:13:16.791057+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [
+        "missing_optional:docs"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "dockerify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs"
+        ]
+      }
+    },
+    {
       "suite": "documentify",
       "ready": true,
       "has_run": true,
       "latest_run": {
-        "run_id": "documentify-93ac06c52fca",
+        "run_id": "documentify-7fc258544374",
         "suite": "documentify",
         "mode": "audit",
-        "started_at": "2026-05-18T12:23:40.631959+00:00",
-        "ended_at": "2026-05-18T12:23:41.949997+00:00",
+        "started_at": "2026-05-18T13:23:19.750540+00:00",
+        "ended_at": "2026-05-18T13:23:24.429342+00:00",
         "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
-        "target_repo_root": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_suite_release_readiness_a0/target_repo",
-        "target_repo_id": "target-repo-237e7f3c",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
         "status": "ok",
         "strategy_profile": "D",
         "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
@@ -179,6 +554,644 @@
         "missing": [],
         "warnings": [
           "missing_optional:docs"
+        ]
+      }
+    },
+    {
+      "suite": "metrify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "metrify-c8fb95fd55d3",
+        "suite": "metrify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:14:18.337577+00:00",
+        "ended_at": "2026-05-18T13:14:18.562135+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "metrify",
+        "missing": [],
+        "warnings": []
+      }
+    },
+    {
+      "suite": "mvpify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "mvpify-1b990e1ed455",
+        "suite": "mvpify",
+        "mode": "import",
+        "started_at": "2026-05-18T13:22:48.225409+00:00",
+        "ended_at": "2026-05-18T13:22:50.582834+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "mvpify",
+        "missing": [],
+        "warnings": []
+      }
+    },
+    {
+      "suite": "observifyfy",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "observifyfy-0f7996516de6",
+        "suite": "observifyfy",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:13:45.243019+00:00",
+        "ended_at": "2026-05-18T13:14:18.138170+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "observifyfy",
+        "missing": [],
+        "warnings": []
+      }
+    },
+    {
+      "suite": "postmanify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "postmanify-8b19e58f06b7",
+        "suite": "postmanify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:16:54.120469+00:00",
+        "ended_at": "2026-05-18T13:16:54.326329+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_templates_usability_and_a0/api_target",
+        "target_repo_id": "api-target-34b38602",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": null,
+      "status_page_md": null,
+      "next_steps": [],
+      "warnings": [
+        "missing_optional:docs"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "postmanify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs"
+        ]
+      }
+    },
+    {
+      "suite": "securify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "securify-9311350210be",
+        "suite": "securify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:24:59.723974+00:00",
+        "ended_at": "2026-05-18T13:27:15.778151+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "securify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "securify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Keep security surfaces stable and rerun securify after meaningful repository changes."
+      ],
+      "warnings": [],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "securify",
+        "missing": [],
+        "warnings": []
+      }
+    },
+    {
+      "suite": "templatify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "templatify-d0e8dc9c54e2",
+        "suite": "templatify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:15:19.962887+00:00",
+        "ended_at": "2026-05-18T13:15:20.385925+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "templatify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "templatify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+      ],
+      "warnings": [],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "templatify",
+        "missing": [],
+        "warnings": []
+      }
+    },
+    {
+      "suite": "testify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "testify-399409292cb9",
+        "suite": "testify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:22:11.003856+00:00",
+        "ended_at": "2026-05-18T13:22:11.468460+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "testify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "testify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Read the latest testify output and choose the narrowest next move based on the current evidence."
+      ],
+      "warnings": [
+        "missing_optional:docs"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "testify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs"
+        ]
+      }
+    },
+    {
+      "suite": "usabilify",
+      "ready": true,
+      "has_run": true,
+      "latest_run": {
+        "run_id": "usabilify-1435848b1055",
+        "suite": "usabilify",
+        "mode": "audit",
+        "started_at": "2026-05-18T13:15:49.252719+00:00",
+        "ended_at": "2026-05-18T13:16:53.819863+00:00",
+        "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+        "target_repo_id": "fy-suites-7ca077ff",
+        "status": "ok",
+        "strategy_profile": "D",
+        "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"allow_candidate_e_features\": false, \"source_path\": \"FY_STRATEGY_SETTINGS.md\", \"profile_execution_lane\": \"balanced_review_first\", \"profile_behavior_depth\": \"standard\", \"candidate_e_active\": false, \"candidate_e_opt_in_state\": \"inactive\", \"candidate_e_requires_explicit_opt_in\": true, \"orchestration_depth\": \"standard\", \"planning_horizon\": 1, \"blocker_grouping_depth\": \"standard\", \"guarantee_gap_grouping\": \"standard\", \"handoff_depth\": \"standard\", \"closure_packet_depth\": \"standard\", \"review_packet_depth\": \"standard\", \"bounded_auto_preparation\": \"disabled\", \"compare_profile_effects\": \"optional\", \"profile_comparison_hint\": \"Candidate D is the stable balanced baseline for readiness and closure work.\", \"expected_distinction_from_d\": []}}",
+        "run_metadata": {
+          "active_strategy_profile": {
+            "schema_version": "fy.active-strategy-profile.v1",
+            "active_profile": "D",
+            "profile_label": "balanced_dual_suite_target",
+            "default_profile": "D",
+            "supported_profiles": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "recommended_progression_order": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E"
+            ],
+            "progression_graph": "A->B->C->D->E",
+            "progression_mode": "progressive",
+            "allow_profile_switching": true,
+            "require_review_by_default": true,
+            "emit_profile_to_run_journal": true,
+            "emit_profile_to_compare_runs": true,
+            "emit_profile_to_observifyfy": true,
+            "emit_profile_to_status_pages": true,
+            "allow_candidate_e_features": false,
+            "source_path": "FY_STRATEGY_SETTINGS.md",
+            "profile_execution_lane": "balanced_review_first",
+            "profile_behavior_depth": "standard",
+            "candidate_e_active": false,
+            "candidate_e_opt_in_state": "inactive",
+            "candidate_e_requires_explicit_opt_in": true,
+            "orchestration_depth": "standard",
+            "planning_horizon": 1,
+            "blocker_grouping_depth": "standard",
+            "guarantee_gap_grouping": "standard",
+            "handoff_depth": "standard",
+            "closure_packet_depth": "standard",
+            "review_packet_depth": "standard",
+            "bounded_auto_preparation": "disabled",
+            "compare_profile_effects": "optional",
+            "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+            "expected_distinction_from_d": []
+          }
+        }
+      },
+      "status_page_json": "usabilify/reports/status/most_recent_next_steps.json",
+      "status_page_md": "usabilify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+      "next_steps": [
+        "Review the highest-traffic templates and static assets for navigation, state clarity, and error recovery."
+      ],
+      "warnings": [
+        "missing_optional:docs",
+        "missing_optional:tests"
+      ],
+      "blocking_reasons": [],
+      "suite_check": {
+        "ok": true,
+        "suite": "usabilify",
+        "missing": [],
+        "warnings": [
+          "missing_optional:docs",
+          "missing_optional:tests"
         ]
       }
     }

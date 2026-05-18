@@ -29,7 +29,7 @@ def _indexed_places() -> dict[str, dict[str, Any]]:
     }
 
 
-def _opening_steps(limit: int = 5) -> list[dict[str, Any]]:
+def _opening_steps(limit: int = 4) -> list[dict[str, Any]]:
     data = load_goc_canonical_path_yaml()
     steps = data.get("steps") if isinstance(data, dict) else []
     selected: list[dict[str, Any]] = []
@@ -38,6 +38,8 @@ def _opening_steps(limit: int = 5) -> list[dict[str, Any]]:
             continue
         mode = str(row.get("mode") or "").strip()
         if not mode.startswith("narrator_"):
+            if selected:
+                break
             continue
         selected.append(row)
         if len(selected) >= limit:
@@ -108,100 +110,124 @@ def _block(
     }
 
 
-def _render_de(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[str]:
+def _render_de(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[tuple[str, str, int]]:
     park = places.get("park_edge", {})
     park_name = str(park.get("name") or "Parc Montsouris").replace(" edge", "")
     court_name = "Basketballplatz"
-    hallway_name = "dunklen Hausflur"
-    living_name = "Wohnzimmer"
+    study_name = "Arbeitszimmer"
     return [
         (
             f"Am Rand des {park_name}, nahe dem {court_name}, stehen etwa ein Dutzend "
             "Jungen unter grauem Himmel. Kahle Bäume, Wege, Verkehr am Boulevard "
             "Jourdan und normales Parkleben bleiben im Hintergrund sichtbar."
+            ,
+            "public_edge_establish",
+            0,
         ),
         (
             "Zwei Jungen spielen weiter, während die anderen am Rand aufgeregt "
             "reden. Aus der Bewegung wird Streit: Einer greift nach einem Stock, "
             "der andere ruft ihm etwas hinterher, und die Worte gehen im Lärm des "
             "Platzes unter."
+            ,
+            "argument_to_stick",
+            1,
         ),
         (
             "Der Junge mit dem Stock hält an, dreht sich um und schlägt zu. Der "
             "andere krümmt sich; die Umstehenden helfen ihm wieder hoch und rufen "
             "dem Angreifer nach, ohne dass aus der Entfernung ein verlässlicher "
             "Satz entsteht."
+            ,
+            "blow_and_immediate_consequence",
+            1,
         ),
         (
             "Im Weggehen tritt der Junge noch ein Fahrrad um. Dann verschwindet er "
             "aus dem Bild, und der kleine Schaden neben dem Platz bleibt bei der "
             "Verletzung zurück."
+            ,
+            "bicycle_disappearance",
+            2,
         ),
         (
-            f"Der nächste Druck liegt im {hallway_name}: andere Wohnungstüren, "
-            "schwaches Handynetz, ein Fahrstuhl, der nicht kommt, und Alain, der auf "
-            f"einen dringenden Anruf wartet. Von hier führt die Wohnungstür in das "
-            f"{living_name}, wo die Höflichkeit den Vorfall aufnehmen soll."
+            f"Der Schnitt landet im {study_name} der Wohnung: ein schmaler Arbeitsraum, "
+            "ein Laptop auf dem Tisch, Winterlicht am Fenster. Veronique sitzt am Gerät, "
+            "Michel steht neben ihr; Annette und Alain bleiben zwei Schritte zurück. "
+            "Noch spricht niemand."
+            ,
+            "study_arrival_positioning",
+            3,
         ),
-    ][: max(1, min(len(steps), 5))]
+    ][:5]
 
 
-def _render_en(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[str]:
+def _render_en(steps: list[dict[str, Any]], places: dict[str, dict[str, Any]]) -> list[tuple[str, str, int]]:
     park = places.get("park_edge", {})
     court = places.get("basketball_court", {})
-    hallway = places.get("building_hallway", {})
-    living = places.get("living_room", {})
     park_name = str(park.get("name") or "Parc Montsouris").replace(" edge", "")
     court_name = str(court.get("name") or "basketball court")
-    hallway_name = str(hallway.get("name") or "dark hallway")
-    living_name = str(living.get("name") or "living room")
+    study_name = "study"
     return [
         (
             f"At the edge of {park_name}, near the {court_name}, about a dozen boys "
             "stand under a grey sky. Bare trees, paths, traffic on Boulevard "
             "Jourdan, and ordinary park life remain visible in the background."
+            ,
+            "public_edge_establish",
+            0,
         ),
         (
             "Two boys keep playing while the others talk excitedly at the edge. The "
             "movement turns into an argument: one boy takes up a stick, the other "
             "calls after him, and the words are lost in the noise of the court."
+            ,
+            "argument_to_stick",
+            1,
         ),
         (
             "The boy with the stick stops, turns, and strikes. The other boy bends "
             "over; the boys around him help him back up and shout after the attacker "
             "without forming a reliable sentence from this distance."
+            ,
+            "blow_and_immediate_consequence",
+            1,
         ),
         (
             "As he leaves, the boy kicks over a bicycle. Then he disappears from "
             "view, leaving the small public damage beside the injury."
+            ,
+            "bicycle_disappearance",
+            2,
         ),
         (
-            f"The next pressure waits in the {hallway_name}: other apartment doors, "
-            "weak phone reception, an elevator that does not arrive, and Alain "
-            f"waiting for an urgent call. From here the apartment door leads into "
-            f"the {living_name}, where politeness is expected to contain the incident."
+            f"The cut lands in the apartment {study_name}: a narrow work room, a "
+            "laptop on the table, winter light at the window. Veronique sits at the "
+            "machine, Michel stands beside her; Annette and Alain remain two steps "
+            "back. No one has spoken yet."
+            ,
+            "study_arrival_positioning",
+            3,
         ),
-    ][: max(1, min(len(steps), 5))]
+    ][:5]
 
 
 def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> dict[str, Any]:
     """Return a narrator-only visible opening grounded in canonical path refs."""
-    steps = _opening_steps(limit=5)
+    steps = _opening_steps(limit=4)
     if not steps:
         raise RuntimeError("God of Carnage canonical narrator path has no opening steps.")
     places = _indexed_places()
     lang = str(session_output_language or "de").strip().lower()[:2] or "de"
-    texts = _render_en(steps, places) if lang == "en" else _render_de(steps, places)
-    beats = [
-        "public_edge_establish",
-        "argument_to_stick",
-        "blow_and_immediate_consequence",
-        "bicycle_disappearance",
-        "threshold_to_living_room",
-    ]
+    render_items = _render_en(steps, places) if lang == "en" else _render_de(steps, places)
     blocks = [
-        _block(index=i + 1, text=text, beat=beats[i], step=steps[i])
-        for i, text in enumerate(texts)
+        _block(
+            index=i + 1,
+            text=text,
+            beat=beat,
+            step=steps[min(max(step_index, 0), len(steps) - 1)],
+        )
+        for i, (text, beat, step_index) in enumerate(render_items)
     ]
     step_ids = [str(step.get("id") or "").strip() for step in steps if str(step.get("id") or "").strip()]
     source_refs: list[str] = []

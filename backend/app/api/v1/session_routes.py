@@ -9,11 +9,13 @@ an equivalent live runtime (see ``docs/technical/architecture/backend-runtime-cl
 - POST …/turns — proxies execution to World-Engine story runtime host
 """
 
-from flask import request, jsonify, g
+from flask import current_app, request, jsonify, g
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 import os
+import threading
 from typing import Any
 
 from app.api.v1 import api_v1_bp
@@ -40,6 +42,25 @@ from app.services.game_service import (
 from app.observability.trace import get_langfuse_trace_id, get_trace_id
 from app.observability.audit_log import log_world_engine_bridge
 from app.observability.langfuse_adapter import LangfuseAdapter
+
+logger = logging.getLogger(__name__)
+
+
+def _flush_langfuse_background(adapter: Any, *, context: str) -> None:
+    """Optionally flush Langfuse outside runtime response flow."""
+    if (os.getenv("WOS_LANGFUSE_REQUEST_FLUSH") or "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+
+    def _run() -> None:
+        try:
+            adapter.flush()
+        except Exception:
+            logger.warning("Langfuse background flush failed during %s", context, exc_info=True)
+
+    try:
+        threading.Thread(target=_run, name=f"langfuse-flush-{context}", daemon=True).start()
+    except Exception:
+        logger.warning("Could not schedule Langfuse background flush during %s", context, exc_info=True)
 from app.runtime.input_interpreter import interpret_player_input
 from app.config.route_constants import route_session_config, route_status_codes
 from story_runtime_core.language_adapter import prepare_player_input_semantic_resolution
@@ -662,8 +683,11 @@ def execute_session_turn(session_id):
     finally:
         # End root span and flush
         if root_span:
-            adapter.end_trace(root_span)
-        adapter.flush()
+            try:
+                adapter.end_trace(root_span)
+            except Exception:
+                current_app.logger.warning("Langfuse root span end failed during session turn", exc_info=True)
+        _flush_langfuse_background(adapter, context="session-turn")
 
     log_world_engine_bridge(
         trace_id,

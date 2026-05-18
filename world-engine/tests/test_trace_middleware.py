@@ -33,6 +33,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_INPUT,
     ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NARRATIVE_ASPECT,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
@@ -423,6 +424,104 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert score_calls["voice_semantic_classification_present"]["value"] == 1.0
     assert score_calls["voice_cross_actor_confusion_absent"]["value"] == 1.0
     assert score_calls["voice_consistency_contract_pass"]["value"] == 1.0
+
+
+def test_langfuse_narrator_path_keeps_opening_trace_narrator_only(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    adapter.create_child_span.side_effect = lambda **kwargs: MagicMock()
+
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="story-session-narrator-path",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input="",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NARRATOR_AUTHORITY,
+        make_aspect_record(applicable=True, status="passed", actual={"actual_owner": "narrator"}),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NARRATIVE_ASPECT,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            selected={"selected_aspects": ["public_violence_to_private_civility"]},
+            actual={"visible_when_required": True},
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_VALIDATION,
+        make_aspect_record(applicable=True, status="passed", actual={"validation_status": "approved"}),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_COMMIT,
+        make_aspect_record(applicable=True, status="passed", actual={"commit_applied": True}),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_VISIBLE_PROJECTION,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            actual={
+                "visible_block_origin_present": True,
+                "required_visible_origin_preserved": True,
+                "scene_block_count": 5,
+            },
+        ),
+    )
+    path_summary = {
+        "session_id": "story-session-narrator-path",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "director_path_mode": "narrator_path",
+        "narrator_path_selected": True,
+        "selected_capabilities": ["narrator.opening_event.realize"],
+        "validation_called": True,
+        "validation_status": "approved",
+        "commit_called": True,
+        "commit_applied": True,
+        "quality_class": "healthy",
+        "turn_aspect_ledger_present": True,
+        "turn_aspect_ledger": ledger,
+        "branching_forecast": {
+            "schema_version": "branching_forecast.v1",
+            "status": "not_applicable",
+            "forecast_only": True,
+            "option_count": 0,
+        },
+    }
+
+    _emit_langfuse_path_spans(path_summary)
+    _emit_langfuse_runtime_aspect_observability(path_summary)
+
+    child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.phase.narrator_path" in child_names
+    assert "story.capability.select" not in child_names
+    assert "story.beat.select" not in child_names
+    assert "story.authority.npc" not in child_names
+    assert "story.npc_agency.plan" not in child_names
+    assert "story.branch.forecast" not in child_names
+
+    score_names = {call.kwargs["name"] for call in adapter.add_score.call_args_list}
+    assert "narrator_authority_contract_pass" in score_names
+    assert "visible_projection_contract_pass" in score_names
+    assert "beat_selected" not in score_names
+    assert "capability_selection_present" not in score_names
+    assert "npc_agency_plan_present" not in score_names
+    assert "branching_forecast_present" not in score_names
 
 
 def _goc_projection():

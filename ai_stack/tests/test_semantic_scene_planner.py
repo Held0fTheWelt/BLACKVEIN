@@ -152,7 +152,7 @@ def test_scene_planner_uses_non_pressure_target_for_player_action() -> None:
 
 
 def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> None:
-    step_id = "opening_009_wording_dispute_armed_carrying"
+    step_id = "opening_006_armed_vs_carrying"
     enrichment = build_semantic_scene_plan_enrichment(
         selected_scene_function="redirect_blame",
         selected_responder_set=[{"actor_id": "alain_reille", "role": "primary_responder"}],
@@ -179,8 +179,8 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
                 }
             ]
         },
-        locations={"places": [{"id": "living_room", "inventory_object_ids": ["coffee_table"]}]},
-        objects={"object_documents": {"coffee_table": {"id": "coffee_table"}}},
+        locations={"places": [{"id": "longstreet_den", "inventory_object_ids": ["laptop_on_desk"]}]},
+        objects={"object_documents": {"laptop_on_desk": {"id": "laptop_on_desk"}}},
         content_access_policy={"blocked_entities": [], "gated_entities": []},
         character_documents={
             "veronique": {"actor_id": "veronique_vallon"},
@@ -215,9 +215,9 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
     )
 
     assert enrichment["content_frame"]["canonical_path_step_id"] == step_id
-    assert enrichment["content_frame"]["object_focus_ids"] == ["coffee_table"]
+    assert enrichment["content_frame"]["object_focus_ids"] == ["laptop_on_desk"]
     assert enrichment["speech_policy"]["speech_required"] is True
-    assert enrichment["speech_policy"]["speech_function"] == "wording_dispute"
+    assert enrichment["speech_policy"]["speech_function"] == "object_to_word_armed_with_a_single_word_question"
     assert enrichment["quote_moment_policy"]["mode"] == "moment_locked"
     assert enrichment["quote_moment_policy"]["exact_quote_allowed"] is True
     assert enrichment["quote_moment_policy"]["max_words_per_runtime_quote"] == 5
@@ -239,7 +239,7 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
     assert manager_plan["decision_basis"]["canonical_path_step_id"] == step_id
     assert manager_plan["decision_basis"]["speech_required"] is True
     assert "npc.social_reaction.optional" in manager_plan["required_capabilities"]
-    assert "npc.direct_answer.allowed" in manager_plan["selected_capabilities"]
+    assert "narrator.opening_event.realize" in manager_plan["selected_capabilities"]
     audit = manager_plan["capability_dispatch_audit"]
     assert audit["status"] == "passed"
     assert audit["loop_guard"]["recursive_dispatch_allowed"] is False

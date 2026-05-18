@@ -4,15 +4,15 @@
 ## Current Status
 
 - suite: `docify`
-- command: `audit`
+- command: `prepare-context-pack`
 - ok: `true`
-- latest_run_id: `docify-b4ee6cadeddd`
+- latest_run_id: `docify-5ff205bff250`
 - latest_run_mode: `audit`
 - latest_run_status: `ok`
 
 ## Plain Summary
 
-No summary is available yet.
+Found 8 indexed evidence hits for query "docstring" across suites ['docify']. Strongest source: tools/tests/test_python_docstring_synthesize.py#chunk-1. Use the top-ranked items first and treat lower-confidence hits as hints.
 
 ## Decision Guidance
 
@@ -20,15 +20,23 @@ No summary is available yet.
 
 ## Most-Recent-Next-Steps
 
-- Review the 5 finding(s) and decide which one should be fixed first.
+- Open tools/tests/test_python_docstring_synthesize.py#chunk-1 first.
+- Use the top two hits to validate the next code or governance action.
 
 ## Key Signals
 
-- finding_count: `5`
+- hit_count: `8`
 
 ## Cross-Suite Signals
 
-- none
+- `securify`: Securify did not find tracked secret-like files or embedded secret patterns, and basic security guidance is present.
+  - next: Keep security surfaces stable and rerun securify after meaningful repository changes.
+- `documentify`: Documentify generated the current documentation tracks and status pages.
+  - next: Read the latest documentify output and choose the narrowest next move based on the current evidence.
+- `despaghettify`: No summary is available yet.
+  - next: Read the latest despaghettify output and choose the narrowest next move based on the current evidence.
+- `contractify`: No summary is available yet.
+  - next: Review the 1 finding(s) and decide which one should be fixed first.
 
 ## Governance
 
@@ -40,5 +48,5 @@ No summary is available yet.
 
 ## Uncertainty
 
-- none
+- top_hits_close_together
 

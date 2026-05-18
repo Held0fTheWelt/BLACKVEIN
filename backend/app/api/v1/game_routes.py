@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
+import threading
 from typing import Any
 
 from flask import current_app, g, jsonify, request, session
@@ -79,6 +81,25 @@ from app.observability.langfuse_adapter import LangfuseAdapter
 from app.observability.trace import get_langfuse_trace_id
 from app.config.route_constants import route_status_codes, route_pagination_config
 from story_runtime_core.langfuse_tracing_environment import is_local_langfuse_evidence_context
+
+logger = logging.getLogger(__name__)
+
+
+def _flush_langfuse_background(adapter: Any, *, context: str) -> None:
+    """Optionally flush Langfuse outside player-facing response flow."""
+    if (os.getenv("WOS_LANGFUSE_REQUEST_FLUSH") or "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return
+
+    def _run() -> None:
+        try:
+            adapter.flush()
+        except Exception:
+            logger.warning("Langfuse background flush failed during %s", context, exc_info=True)
+
+    try:
+        threading.Thread(target=_run, name=f"langfuse-flush-{context}", daemon=True).start()
+    except Exception:
+        logger.warning("Could not schedule Langfuse background flush during %s", context, exc_info=True)
 
 
 class GameIdentityContext(dict):
@@ -1260,8 +1281,11 @@ def game_player_session_turn(run_id: str):
         finally:
             # End root span and flush
             if root_span:
-                adapter.end_trace(root_span)
-            adapter.flush()
+                try:
+                    adapter.end_trace(root_span)
+                except Exception:
+                    current_app.logger.warning("Langfuse root span end failed during game turn", exc_info=True)
+            _flush_langfuse_background(adapter, context="game-turn")
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
 

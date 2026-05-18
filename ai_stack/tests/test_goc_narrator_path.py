@@ -23,7 +23,7 @@ def test_goc_narrator_path_opening_is_speech_free_and_canonical() -> None:
     assert all(not block.get("actor_id") for block in blocks)
     assert all("source_refs" in block and block["source_refs"] for block in blocks)
     assert "Parc Montsouris" in blocks[0]["text"]
-    assert "Hausflur" in blocks[-1]["text"]
+    assert "Arbeitszimmer" in blocks[-1]["text"]
 
 
 def test_goc_narrator_path_director_plan_skips_actor_lanes() -> None:

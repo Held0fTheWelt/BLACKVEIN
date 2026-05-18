@@ -4313,6 +4313,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
             }
             if name == "story.phase.intent_interpretation":
                 continue
+            if name == "story.branch.forecast":
+                continue
             if name in skip_when_not_called and not bool(output.get("called")):
                 continue
         level = _langfuse_level_for_output(output)
@@ -4843,17 +4845,17 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     for name, aspect, output in span_specs:
         record = _rec(aspect)
         if narrator_path_selected:
-            narrator_path_aspects = {
-                ASPECT_INPUT,
-                ASPECT_BEAT,
-                ASPECT_CAPABILITY_SELECTION,
-                ASPECT_NARRATOR_AUTHORITY,
-                ASPECT_NARRATIVE_ASPECT,
-                ASPECT_VALIDATION,
-                ASPECT_COMMIT,
-                ASPECT_VISIBLE_PROJECTION,
+            narrator_path_span_names = {
+                "story.aspect.input",
+                "story.authority.narrator",
+                "story.narrative_aspect.select",
+                "story.narrative_aspect.validate",
+                "story.validation.contract",
+                "story.commit.apply",
+                "story.visible.project",
+                "story.turn.aspect_summary",
             }
-            if aspect not in narrator_path_aspects:
+            if name not in narrator_path_span_names:
                 continue
         level = _span_level(record)
         status_message = _span_status(aspect, record)
@@ -5846,6 +5848,30 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value((not recoverable_turn) or visible_output_for_recovery),
         ),
     ]
+    if narrator_path_selected:
+        narrator_path_score_names = {
+            "turn_aspect_ledger_present",
+            "narrator_authority_contract_present",
+            "narrator_required_when_expected",
+            "narrator_owns_consequence",
+            "narrator_consequence_present",
+            "narrator_authority_contract_pass",
+            "visible_block_origin_present",
+            "required_visible_origin_preserved",
+            "visible_projection_contract_pass",
+            "narrative_aspect_policy_present",
+            "narrative_aspect_selected",
+            "narrative_aspect_visible_when_required",
+            "narrative_aspect_contract_pass",
+            "theme_tracking_policy_present",
+            "theme_tracking_selected",
+            "theme_semantic_classification_present",
+            "theme_weak_alignment_absent",
+            "theme_tracking_contract_pass",
+            "recoverable_turn_http_200",
+            "recoverable_turn_visible_output_present",
+        }
+        scores = [row for row in scores if row[0] in narrator_path_score_names]
     for score_name, aspect_name, score_value in scores:
         try:
             adapter.add_score(
@@ -5867,7 +5893,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         if isinstance(path_summary.get("branching_forecast"), dict)
         else {}
     )
-    if branching_forecast:
+    if branching_forecast and not narrator_path_selected:
         branch_status = str(branching_forecast.get("status") or "").strip()
         branch_option_count = int(branching_forecast.get("option_count") or 0)
         branch_meta = {
@@ -6658,6 +6684,36 @@ def _emit_langfuse_evidence_observations(
         "session_output_language": path_summary.get("session_output_language"),
         **_transition_diag_for_scores,
     }
+    if narrator_path_selected and _turn_number == 0:
+        narrator_path_gate_scores = {
+            "non_mock_generation_pass",
+            "visible_output_present",
+            "actor_lane_safety_pass",
+            "fallback_absent",
+            "usage_present",
+            "rag_context_attached",
+            "opening_shape_contract_pass",
+            "opening_contract_pass",
+            "opening_role_anchor_pass",
+            "hard_forbidden_absent",
+            "opening_summary_only_absent",
+            "opening_event_coverage_pass",
+            "opening_player_speech_absent",
+            "opening_npc_exposition_absent",
+            "npc_exposition_absent",
+            "player_agency_violation_absent",
+            "meta_runtime_language_absent",
+            "stage_direction_labels_absent",
+            "source_reproduction_absent",
+            "live_runtime_contract_pass",
+            "live_runtime_visible_surface_pass",
+            "live_opening_contract_pass",
+        }
+        deterministic_scores = {
+            key: value
+            for key, value in deterministic_scores.items()
+            if key in narrator_path_gate_scores
+        }
     for name, value in deterministic_scores.items():
         try:
             adapter.add_score(
@@ -9540,6 +9596,10 @@ class StoryRuntimeManager:
             anchor=anchor,
             role_label=role_label,
             first_playable_clause=first_playable_clause,
+            # Backward-compatible prompt-store alias. The live DB may still
+            # carry the pre-rename variable, while local seed prompts use
+            # first_playable_clause.
+            handover_clause=first_playable_clause,
             opening_scene_sequence_id=opening_scene_sequence_id or "opening_scene_sequence",
             opening_event_ids=opening_event_ids,
             opening_must_establish=opening_must_establish,
@@ -11339,7 +11399,7 @@ class StoryRuntimeManager:
 
     def _execute_opening_locked(self, session_id: str, trace_id: str | None) -> dict[str, Any]:
         session = self.get_session(session_id)
-        prompt = self._build_opening_prompt(session)
+        prompt = "Director selected narrator_path for speech-free canonical opening."
         prior_scene_id = session.current_scene_id
         history_tail = session.history[-(NARRATIVE_COMMIT_HISTORY_TAIL - 1) :]
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
@@ -11355,6 +11415,7 @@ class StoryRuntimeManager:
                 trace_id=trace_id,
             )
         else:
+            prompt = self._build_opening_prompt(session)
             actor_lane_ctx = self._extract_actor_lane_context(session)
             prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
             prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
