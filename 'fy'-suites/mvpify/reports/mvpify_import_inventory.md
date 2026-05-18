@@ -1,9 +1,9 @@
 # MVPify import inventory
 
-- source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip`
+- source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip`
 - source_mode: `zip`
 - artifact_count: 10
-- mirrored_docs_root: `docs/MVPs/imports/rich-362cff1c`
+- mirrored_docs_root: `docs/MVPs/imports/rich-706f9928`
 - preserved_file_count: 10
 - preserved_classes: ai_context, bootstrap, docs, examples, ir, root_docs, schemas, tasks, tool_specs
 

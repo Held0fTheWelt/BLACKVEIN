@@ -2,9 +2,9 @@
 
 You are implementing a prepared MVP import into the live repository.
 
-- Imported source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip`
+- Imported source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip`
 - Current highest-value suite after import: `documentify`
-- Mirrored docs root: `docs/MVPs/imports/rich-362cff1c`
+- Mirrored docs root: `docs/MVPs/imports/rich-706f9928`
 
 ## Operating discipline
 
@@ -24,7 +24,7 @@ Normalize the prepared MVP bundle into a governed internal import inventory.
 Why now: Prepared MVP information exists but must become explicit and restartable before implementation work starts.
 
 Inputs:
-- /mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-d4ngsk_f
+- /mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-ypm6rh28
 
 Expected outputs:
 - mvpify/reports/mvpify_import_inventory.json

@@ -1,11 +1,11 @@
 {
   "ok": true,
-  "import_id": "rich-362cff1c",
-  "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+  "import_id": "rich-706f9928",
+  "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip",
   "source_mode": "zip",
   "artifact_count": 10,
   "inventory": {
-    "root": "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-d4ngsk_f",
+    "root": "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-ypm6rh28",
     "artifact_count": 10,
     "artifacts": [
       {
@@ -105,9 +105,9 @@
       "12_PHASED_IMPLEMENTATION_PROGRAM.md"
     ]
   },
-  "normalized_root": "mvpify/imports/rich-362cff1c/normalized",
-  "normalized_source_tree": "mvpify/imports/rich-362cff1c/normalized/source_tree",
-  "mirrored_docs_root": "docs/MVPs/imports/rich-362cff1c",
+  "normalized_root": "mvpify/imports/rich-706f9928/normalized",
+  "normalized_source_tree": "mvpify/imports/rich-706f9928/normalized/source_tree",
+  "mirrored_docs_root": "docs/MVPs/imports/rich-706f9928",
   "mirrored_file_count": 6,
   "copied_doc_like_count": 5,
   "preserved_file_count": 10,

@@ -2,6 +2,21 @@
 
 AI-readable cross-suite operational context for fy-suite self-management.
 
+## Diagnosta
+- active_profile: D
+- readiness_status: not_ready
+- blocker_count: 1
+- warning_count: 2
+
+## Coda
+- active_profile: D
+- closure_status: closed_for_current_target_reviewed_scope
+- obligation_count: 0
+- required_test_count: 0
+- required_doc_count: 0
+- warning_count: 0
+- residue_count: 0
+
 ## Next steps
 - contractify: Add or repair a workflow for contractify.
 - documentify: Add or repair a workflow for documentify.
@@ -10,7 +25,7 @@ AI-readable cross-suite operational context for fy-suite self-management.
 - dockerify: Add or repair a workflow for dockerify.
 - testify: Add or repair a workflow for testify.
 - templatify: Add or repair a workflow for templatify.
+- usabilify: Add or repair a workflow for usabilify.
 - securify: Add or repair a workflow for securify.
 - diagnosta: Add or repair a workflow for diagnosta.
-- coda: Add or repair a workflow for coda.
 

@@ -2,9 +2,9 @@
 
 You are auditing an imported prepared MVP bundle before implementation work proceeds.
 
-- Imported source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip`
+- Imported source: `/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip`
 - Artifact count: 10
-- Mirrored docs root: `docs/MVPs/imports/rich-362cff1c`
+- Mirrored docs root: `docs/MVPs/imports/rich-706f9928`
 - Suites detected in source: none
 
 ## Required audit questions

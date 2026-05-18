@@ -43,6 +43,12 @@
       "recommended_action": "Add or repair a workflow for templatify."
     },
     {
+      "suite": "usabilify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for usabilify."
+    },
+    {
       "suite": "securify",
       "priority": 90,
       "reason": "suite has no dedicated CI workflow",
@@ -65,12 +71,6 @@
       "priority": 90,
       "reason": "suite has no dedicated CI workflow",
       "recommended_action": "Add or repair a workflow for observifyfy."
-    },
-    {
-      "suite": "mvpify",
-      "priority": 90,
-      "reason": "suite has no dedicated CI workflow",
-      "recommended_action": "Add or repair a workflow for mvpify."
     }
   ],
   "highest_value_next_step": {
@@ -123,6 +123,12 @@
       "recommended_action": "Add or repair a workflow for templatify."
     },
     {
+      "suite": "usabilify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for usabilify."
+    },
+    {
       "suite": "securify",
       "priority": 90,
       "reason": "suite has no dedicated CI workflow",
@@ -163,6 +169,12 @@
       "priority": 88,
       "reason": "imported MVP docs should remain mirrored under docs/MVPs/imports and tracked through observifyfy",
       "recommended_action": "Keep mvpify imports normalized and mirrored so temporary implementation folders can be removed safely."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 88,
+      "reason": "diagnosta readiness status is not_ready",
+      "recommended_action": "Plan the next bounded wave against despaghettify to address blocker blocker:despaghettify:local-hotspots."
     },
     {
       "suite": "contractify",

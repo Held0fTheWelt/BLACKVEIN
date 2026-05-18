@@ -1,19 +1,20 @@
 {
   "ledger_path": "/mnt/d/WorldOfShadows/'fy'-suites/metrify/state/ledger.jsonl",
-  "event_count": 6,
+  "event_count": 14,
   "run_count": 1,
   "last_run": {
     "run_id": "route-only",
     "suite": "metrify",
-    "event_count": 6,
-    "latest_timestamp_utc": "2026-05-18T11:54:21.191679+00:00",
+    "event_count": 14,
+    "latest_timestamp_utc": "2026-05-18T12:24:54.347240+00:00",
     "cost_usd": 0.0,
     "input_tokens": 0,
     "cached_input_tokens": 0,
     "output_tokens": 0,
     "models": [
       "local-general-llm",
-      "local-slim-retrieval-helper"
+      "local-slim-retrieval-helper",
+      "local-slim-summarizer"
     ],
     "utility_score_avg": null,
     "resolved_findings": 0,
@@ -29,13 +30,19 @@
     {
       "key": "local-general-llm",
       "cost_usd": 0.0,
-      "event_count": 3,
+      "event_count": 8,
       "output_tokens": 0
     },
     {
       "key": "local-slim-retrieval-helper",
       "cost_usd": 0.0,
-      "event_count": 3,
+      "event_count": 5,
+      "output_tokens": 0
+    },
+    {
+      "key": "local-slim-summarizer",
+      "cost_usd": 0.0,
+      "event_count": 1,
       "output_tokens": 0
     }
   ],
@@ -43,7 +50,7 @@
     {
       "key": "metrify",
       "cost_usd": 0.0,
-      "event_count": 6,
+      "event_count": 14,
       "output_tokens": 0
     }
   ],
@@ -51,7 +58,7 @@
     {
       "key": "untagged",
       "cost_usd": 0.0,
-      "event_count": 6,
+      "event_count": 14,
       "output_tokens": 0
     }
   ],
@@ -59,15 +66,16 @@
     {
       "run_id": "route-only",
       "suite": "metrify",
-      "event_count": 6,
-      "latest_timestamp_utc": "2026-05-18T11:54:21.191679+00:00",
+      "event_count": 14,
+      "latest_timestamp_utc": "2026-05-18T12:24:54.347240+00:00",
       "cost_usd": 0.0,
       "input_tokens": 0,
       "cached_input_tokens": 0,
       "output_tokens": 0,
       "models": [
         "local-general-llm",
-        "local-slim-retrieval-helper"
+        "local-slim-retrieval-helper",
+        "local-slim-summarizer"
       ],
       "utility_score_avg": null,
       "resolved_findings": 0,
@@ -82,8 +90,8 @@
     "unit_count": 2,
     "relation_count": 1,
     "artifact_count": 4,
-    "graph_dir": ".fydata/evolution_graph/runs/metrify-1c9c381ec0ab",
-    "export_dir": "metrify/generated/fy-suites-7ca077ff/metrify-1c9c381ec0ab/evolution_graph",
-    "run_manifest_path": "metrify/generated/fy-suites-7ca077ff/metrify-1c9c381ec0ab/evolution_graph/run_manifest.json"
+    "graph_dir": ".fydata/evolution_graph/runs/metrify-c8fb95fd55d3",
+    "export_dir": "metrify/generated/fy-suites-7ca077ff/metrify-c8fb95fd55d3/evolution_graph",
+    "run_manifest_path": "metrify/generated/fy-suites-7ca077ff/metrify-c8fb95fd55d3/evolution_graph/run_manifest.json"
   }
 }

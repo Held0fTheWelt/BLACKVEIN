@@ -1,13 +1,13 @@
 {
   "purpose": "Help an agent import a prepared MVP into the live repository with honest orchestration across the fy suite family.",
-  "import_source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+  "import_source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip",
   "import_summary": {
     "artifact_count": 10,
     "docs_files": 1,
     "test_files": 0,
     "detected_suites": [],
-    "mirrored_docs_root": "docs/MVPs/imports/rich-362cff1c",
-    "normalized_root": "mvpify/imports/rich-362cff1c/normalized"
+    "mirrored_docs_root": "docs/MVPs/imports/rich-706f9928",
+    "normalized_root": "mvpify/imports/rich-706f9928/normalized"
   },
   "highest_value_next_step": {
     "phase": "documentation",
@@ -108,6 +108,12 @@
           "recommended_action": "Add or repair a workflow for templatify."
         },
         {
+          "suite": "usabilify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for usabilify."
+        },
+        {
           "suite": "securify",
           "priority": 90,
           "reason": "suite has no dedicated CI workflow",
@@ -130,12 +136,6 @@
           "priority": 90,
           "reason": "suite has no dedicated CI workflow",
           "recommended_action": "Add or repair a workflow for observifyfy."
-        },
-        {
-          "suite": "mvpify",
-          "priority": 90,
-          "reason": "suite has no dedicated CI workflow",
-          "recommended_action": "Add or repair a workflow for mvpify."
         }
       ],
       "highest_value_next_step": {
@@ -188,6 +188,12 @@
           "recommended_action": "Add or repair a workflow for templatify."
         },
         {
+          "suite": "usabilify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for usabilify."
+        },
+        {
           "suite": "securify",
           "priority": 90,
           "reason": "suite has no dedicated CI workflow",
@@ -228,6 +234,12 @@
           "priority": 88,
           "reason": "imported MVP docs should remain mirrored under docs/MVPs/imports and tracked through observifyfy",
           "recommended_action": "Keep mvpify imports normalized and mirrored so temporary implementation folders can be removed safely."
+        },
+        {
+          "suite": "despaghettify",
+          "priority": 88,
+          "reason": "diagnosta readiness status is not_ready",
+          "recommended_action": "Plan the next bounded wave against despaghettify to address blocker blocker:despaghettify:local-hotspots."
         },
         {
           "suite": "contractify",

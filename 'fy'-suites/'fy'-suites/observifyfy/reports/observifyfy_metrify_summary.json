@@ -8,13 +8,19 @@
     {
       "key": "local-general-llm",
       "cost_usd": 0.0,
-      "event_count": 3,
+      "event_count": 8,
       "output_tokens": 0
     },
     {
       "key": "local-slim-retrieval-helper",
       "cost_usd": 0.0,
-      "event_count": 3,
+      "event_count": 5,
+      "output_tokens": 0
+    },
+    {
+      "key": "local-slim-summarizer",
+      "cost_usd": 0.0,
+      "event_count": 1,
       "output_tokens": 0
     }
   ],
@@ -22,7 +28,7 @@
     {
       "key": "metrify",
       "cost_usd": 0.0,
-      "event_count": 6,
+      "event_count": 14,
       "output_tokens": 0
     }
   ],

@@ -1,7 +1,7 @@
 {
   "memory_kind": "fy_suite_operations",
   "suite_count": 16,
-  "existing_suite_count": 13,
+  "existing_suite_count": 14,
   "internal_roots": {
     "fy_internal_root": ".",
     "contractify_internal_adr_root": "docs/ADR",

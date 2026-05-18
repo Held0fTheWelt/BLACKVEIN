@@ -9,6 +9,19 @@ AI-readable cross-suite operational context for fy-suite self-management.
 - documentify_internal_docs_root: `docs`
 - observifyfy_root: `observifyfy`
 
+## Diagnosta
+
+- active_profile: `D`
+- readiness_status: `not_ready`
+- blocker_count: `1`
+
+## Coda
+
+- active_profile: `D`
+- closure_status: `closed_for_current_target_reviewed_scope`
+- obligation_count: `0`
+- residue_count: `0`
+
 ## Search hints
 
 - suite health

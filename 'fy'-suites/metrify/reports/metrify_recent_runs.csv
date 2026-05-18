@@ -1,2 +1,2 @@
 run_id,suite,cost_usd,event_count,latest_timestamp_utc,models
-route-only,metrify,0.0,6,2026-05-18T11:54:21.191679+00:00,"local-general-llm,local-slim-retrieval-helper"
+route-only,metrify,0.0,14,2026-05-18T12:24:54.347240+00:00,"local-general-llm,local-slim-retrieval-helper,local-slim-summarizer"

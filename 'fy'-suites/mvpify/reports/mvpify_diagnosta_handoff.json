@@ -1,8 +1,8 @@
 {
   "schema_version": "fy.mvpify-diagnosta-handoff.v1",
-  "import_id": "rich-362cff1c",
-  "mvpify_run_id": "mvpify-e978863f3d0f",
-  "diagnosta_run_id": "diagnosta-d832c0609ae6",
+  "import_id": "rich-706f9928",
+  "mvpify_run_id": "mvpify-1b990e1ed455",
+  "diagnosta_run_id": "diagnosta-a16db438b53a",
   "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
   "active_strategy_profile": {
     "schema_version": "fy.active-strategy-profile.v1",
@@ -76,7 +76,7 @@
   },
   "import_context": {
     "artifact_count": 10,
-    "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+    "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-377/test_documentify_surfaces_rich0/rich.zip",
     "suite_signals": [
       {
         "name": "contractify",

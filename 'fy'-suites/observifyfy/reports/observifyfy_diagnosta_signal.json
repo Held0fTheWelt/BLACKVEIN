@@ -1,5 +1,5 @@
 {
-  "present": false,
+  "present": true,
   "active_strategy_profile": {
     "schema_version": "fy.active-strategy-profile.v1",
     "active_profile": "D",
@@ -46,11 +46,239 @@
     "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
     "expected_distinction_from_d": []
   },
-  "readiness_case": null,
-  "blocker_graph": null,
-  "blocker_priority_report": null,
-  "cannot_honestly_claim": null,
-  "deep_synthesis": null,
-  "handoff_packet": null,
-  "suggested_next_wave": null
+  "readiness_case": {
+    "schema_version": "fy.readiness-case.v1",
+    "readiness_case_id": "readiness-case:'fy'-suites",
+    "target_id": "workspace:'fy'-suites",
+    "target_kind": "workspace",
+    "active_profile": "D",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "planning_horizon": 1,
+    "readiness_status": "not_ready",
+    "summary": "Diagnosta readiness case for 'fy'-suites under Candidate D with primary evidence coverage 3/3, blocker count 1, and planning horizon 1.",
+    "blocker_ids": [
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "warning_ids": [
+      "warning:testify:proof-items",
+      "warning:readiness:optional-evidence-missing"
+    ],
+    "residue_ids": [],
+    "warnings": [
+      {
+        "warning_id": "warning:testify:proof-items",
+        "severity": "medium",
+        "summary": "Testify still reports 1 warning-shaped proof item(s).",
+        "visibility_class": "visible_non_blocking",
+        "closure_significance": "non_preventive"
+      },
+      {
+        "warning_id": "warning:readiness:optional-evidence-missing",
+        "severity": "medium",
+        "summary": "Optional supporting evidence is still missing: securify.",
+        "visibility_class": "visible_non_blocking",
+        "closure_significance": "non_preventive"
+      }
+    ],
+    "obligation_ids": [],
+    "sufficiency_verdict_id": "sufficiency:'fy'-suites",
+    "cannot_honestly_claim_id": "cannot-claim:'fy'-suites",
+    "handoff_packet_id": "diagnosta-handoff:'fy'-suites",
+    "deep_synthesis_id": "deep-synthesis:'fy'-suites",
+    "evidence_sources": [
+      "contractify/reports/latest_coda_obligation_manifest.json",
+      "testify/reports/latest_coda_test_obligation_manifest.json",
+      "despaghettify/reports/latest_coda_insertion_surface_report.json"
+    ]
+  },
+  "blocker_graph": {
+    "schema_version": "fy.blocker-graph.v1",
+    "blocker_graph_id": "blocker-graph:'fy'-suites",
+    "target_id": "workspace:'fy'-suites",
+    "nodes": [
+      {
+        "blocker_id": "blocker:despaghettify:local-hotspots",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s).",
+        "source_paths": [
+          "despaghettify/reports/latest_coda_insertion_surface_report.json"
+        ]
+      }
+    ],
+    "edges": [],
+    "summary": "Diagnosta synthesized 1 blocker(s) from bounded supporting-suite evidence."
+  },
+  "blocker_priority_report": {
+    "schema_version": "fy.blocker-priority-report.v1",
+    "report_id": "blocker-priority:'fy'-suites",
+    "target_id": "workspace:'fy'-suites",
+    "blocker_count": 1,
+    "priorities": [
+      {
+        "blocker_id": "blocker:despaghettify:local-hotspots",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s).",
+        "source_paths": [
+          "despaghettify/reports/latest_coda_insertion_surface_report.json"
+        ]
+      }
+    ],
+    "summary": "Prioritized 1 blocker(s) for the next bounded wave."
+  },
+  "cannot_honestly_claim": {
+    "schema_version": "fy.cannot-honestly-claim.v1",
+    "cannot_honestly_claim_id": "cannot-claim:'fy'-suites",
+    "target_id": "workspace:'fy'-suites",
+    "blocked_claims": [
+      "full_readiness",
+      "full_closure"
+    ],
+    "reasons": [
+      "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+    ],
+    "summary": "Diagnosta blocks strong readiness/closure claims until blocker-class evidence is resolved."
+  },
+  "deep_synthesis": {
+    "schema_version": "fy.diagnosta-deep-synthesis.v1",
+    "synthesis_id": "deep-synthesis:'fy'-suites",
+    "target_id": "workspace:'fy'-suites",
+    "active_profile": "D",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_clusters": [
+      {
+        "cluster_id": "cluster:blocker:despaghettify:local-hotspots",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "cluster_kind": "standard_blocker",
+        "item_count": 1,
+        "blocker_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "obligation_ids": [],
+        "dependency_targets": [],
+        "review_focus": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+      }
+    ],
+    "guarantee_gap_clusters": [
+      {
+        "gap_cluster_id": "gap:standard:blockers",
+        "gap_family": "blocker_resolution",
+        "suite": "diagnosta",
+        "severity": "medium",
+        "item_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "cluster_summary": "Standard blocker gap view with 1 blocker(s)."
+      }
+    ],
+    "next_wave_plan": [
+      {
+        "wave_id": "D-wave-1",
+        "order": 1,
+        "intent": "single_bounded_next_step",
+        "focus_cluster_id": "gap:standard:blockers",
+        "focus_item_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "recommended_action": "Plan the next bounded review-first step against the highest visible current item.",
+        "closure_intent": "bounded_next_step",
+        "requires_human_review": true
+      }
+    ],
+    "review_problem_frame": {
+      "frame_id": "review-frame:candidate-d",
+      "frame_type": "standard_review_problem_frame",
+      "summary": "Candidate D frames 1 blocker(s) and 2 warning(s) for the next bounded review-first step.",
+      "decision_axes": [
+        "bounded_next_step",
+        "residue_honesty"
+      ]
+    },
+    "summary": "Diagnosta D synthesis carries 1 blocker cluster(s), 1 guarantee-gap cluster(s), and planning horizon 1."
+  },
+  "handoff_packet": {
+    "schema_version": "fy.diagnosta-handoff.v1",
+    "handoff_id": "diagnosta-handoff:'fy'-suites",
+    "depth": "standard",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_clusters": [
+      {
+        "cluster_id": "cluster:blocker:despaghettify:local-hotspots",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "cluster_kind": "standard_blocker",
+        "item_count": 1,
+        "blocker_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "obligation_ids": [],
+        "dependency_targets": [],
+        "review_focus": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+      }
+    ],
+    "guarantee_gap_clusters": [
+      {
+        "gap_cluster_id": "gap:standard:blockers",
+        "gap_family": "blocker_resolution",
+        "suite": "diagnosta",
+        "severity": "medium",
+        "item_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "cluster_summary": "Standard blocker gap view with 1 blocker(s)."
+      }
+    ],
+    "grouped_obligations": [],
+    "sequencing_hints": [],
+    "next_wave_plan": [
+      {
+        "wave_id": "D-wave-1",
+        "order": 1,
+        "intent": "single_bounded_next_step",
+        "focus_cluster_id": "gap:standard:blockers",
+        "focus_item_ids": [
+          "blocker:despaghettify:local-hotspots"
+        ],
+        "recommended_action": "Plan the next bounded review-first step against the highest visible current item.",
+        "closure_intent": "bounded_next_step",
+        "requires_human_review": true
+      }
+    ],
+    "review_problem_frame": {
+      "frame_id": "review-frame:candidate-d",
+      "frame_type": "standard_review_problem_frame",
+      "summary": "Candidate D frames 1 blocker(s) and 2 warning(s) for the next bounded review-first step.",
+      "decision_axes": [
+        "bounded_next_step",
+        "residue_honesty"
+      ]
+    },
+    "escalation_recommendations": [],
+    "review_packet_intent": "standard_review_packet_preparation",
+    "closure_rationale": "Candidate D keeps the handoff shallow and bounded.",
+    "summary": "Candidate D handoff carries 1 cluster and 1 next step."
+  },
+  "guarantee_gap_report_path": "diagnosta/reports/latest_guarantee_gap_report.md",
+  "profile_depth_signal": {
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_cluster_count": 1,
+    "guarantee_gap_cluster_count": 1,
+    "next_wave_count": 1,
+    "handoff_depth": "standard"
+  },
+  "suggested_next_wave": {
+    "suite": "despaghettify",
+    "priority": "medium",
+    "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s).",
+    "recommended_action": "Plan the next bounded wave against despaghettify to address blocker blocker:despaghettify:local-hotspots."
+  }
 }

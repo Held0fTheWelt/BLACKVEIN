@@ -12,59 +12,59 @@
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 24,
-      "journal_count": 12
+      "run_count": 68,
+      "journal_count": 34
     },
     {
       "suite": "documentify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 4,
-      "journal_count": 2
+      "run_count": 22,
+      "journal_count": 11
     },
     {
       "suite": "docify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 4,
-      "journal_count": 2
+      "run_count": 14,
+      "journal_count": 7
     },
     {
       "suite": "despaghettify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 4,
-      "journal_count": 2
+      "run_count": 14,
+      "journal_count": 7
     },
     {
       "suite": "dockerify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 4,
-      "journal_count": 2
+      "run_count": 10,
+      "journal_count": 5
     },
     {
       "suite": "testify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 6,
-      "journal_count": 3
+      "run_count": 20,
+      "journal_count": 10
     },
     {
       "suite": "templatify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 2,
-      "journal_count": 1
+      "run_count": 12,
+      "journal_count": 6
     },
     {
-      "suite": "securify",
+      "suite": "usabilify",
       "warnings": [
         "missing_workflow"
       ],
@@ -72,20 +72,25 @@
       "journal_count": 3
     },
     {
-      "suite": "diagnosta",
+      "suite": "securify",
       "warnings": [
-        "missing_state",
-        "missing_reports",
         "missing_workflow"
       ],
-      "run_count": 0,
-      "journal_count": 0
+      "run_count": 12,
+      "journal_count": 6
+    },
+    {
+      "suite": "diagnosta",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 4,
+      "journal_count": 2
     },
     {
       "suite": "coda",
       "warnings": [
         "missing_state",
-        "missing_reports",
         "missing_workflow"
       ],
       "run_count": 0,
@@ -96,26 +101,24 @@
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 2,
-      "journal_count": 2
+      "run_count": 6,
+      "journal_count": 4
     },
     {
       "suite": "mvpify",
       "warnings": [
-        "missing_state",
-        "missing_reports",
         "missing_workflow"
       ],
-      "run_count": 0,
-      "journal_count": 0
+      "run_count": 4,
+      "journal_count": 2
     },
     {
       "suite": "metrify",
       "warnings": [
         "missing_workflow"
       ],
-      "run_count": 2,
-      "journal_count": 1
+      "run_count": 6,
+      "journal_count": 3
     }
   ],
   "next_steps": [
@@ -162,6 +165,12 @@
       "recommended_action": "Add or repair a workflow for templatify."
     },
     {
+      "suite": "usabilify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for usabilify."
+    },
+    {
       "suite": "securify",
       "priority": 90,
       "reason": "suite has no dedicated CI workflow",
@@ -184,12 +193,6 @@
       "priority": 90,
       "reason": "suite has no dedicated CI workflow",
       "recommended_action": "Add or repair a workflow for observifyfy."
-    },
-    {
-      "suite": "mvpify",
-      "priority": 90,
-      "reason": "suite has no dedicated CI workflow",
-      "recommended_action": "Add or repair a workflow for mvpify."
     }
   ],
   "search_hints": [
@@ -214,5 +217,36 @@
       "do_not_overwrite_project_truth",
       "do_not_flatten_contractify_or_testify_findings"
     ]
+  },
+  "diagnosta": {
+    "active_profile": "D",
+    "readiness_status": "not_ready",
+    "blocker_count": 1,
+    "warning_count": 2,
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "blocker_cluster_count": 1,
+    "guarantee_gap_cluster_count": 1,
+    "next_wave_count": 1,
+    "handoff_depth": "standard",
+    "suggested_next_wave": {
+      "suite": "despaghettify",
+      "priority": "medium",
+      "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s).",
+      "recommended_action": "Plan the next bounded wave against despaghettify to address blocker blocker:despaghettify:local-hotspots."
+    }
+  },
+  "coda": {
+    "active_profile": "D",
+    "closure_status": "closed_for_current_target_reviewed_scope",
+    "obligation_count": 0,
+    "required_test_count": 0,
+    "required_doc_count": 0,
+    "warning_count": 0,
+    "residue_count": 0,
+    "grouped_obligation_count": 0,
+    "wave_packet_count": 1,
+    "auto_preparation_count": 0,
+    "packet_depth": "standard"
   }
 }

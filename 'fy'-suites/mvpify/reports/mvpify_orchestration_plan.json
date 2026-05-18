@@ -9,7 +9,7 @@
       "objective": "Normalize the prepared MVP bundle into a governed internal import inventory.",
       "why_now": "Prepared MVP information exists but must become explicit and restartable before implementation work starts.",
       "inputs": [
-        "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-d4ngsk_f"
+        "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-ypm6rh28"
       ],
       "outputs": [
         "mvpify/reports/mvpify_import_inventory.json",

@@ -84,3 +84,4 @@ Task_Implementation.md
 __init__.cpython-310.pyc
 /tests/reports/*.xml
 .mcp.json
+/tmp

@@ -1,6 +1,6 @@
 {
   "schema_version": "fy.suite-catalog.v1",
-  "generated_at": "2026-05-18T12:17:13.305754+00:00",
+  "generated_at": "2026-05-18T13:28:26.079899+00:00",
   "suite_count": 15,
   "core_count": 13,
   "optional_count": 2,
@@ -37,7 +37,6 @@
       ],
       "quality_ok": false,
       "quality_missing": [
-        "reports",
         "state"
       ],
       "quality_warnings": [
@@ -82,7 +81,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "contractify-32f5feaf021a"
+      "latest_run_id": "contractify-e05656765166"
     },
     {
       "suite": "despaghettify",
@@ -92,7 +91,7 @@
       "has_tools": true,
       "has_docs": true,
       "has_templates": true,
-      "has_status": false,
+      "has_status": true,
       "lifecycle_commands": [
         "init",
         "inspect",
@@ -117,7 +116,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "despaghettify-20601af0fea1"
+      "latest_run_id": "despaghettify-87d97e1c66ad"
     },
     {
       "suite": "diagnosta",
@@ -155,7 +154,7 @@
         "missing_optional:tests"
       ],
       "release_ready": true,
-      "latest_run_id": "diagnosta-d832c0609ae6"
+      "latest_run_id": "diagnosta-a16db438b53a"
     },
     {
       "suite": "docify",
@@ -190,7 +189,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "docify-cbf987ff2e7c"
+      "latest_run_id": "docify-ab9febbac118"
     },
     {
       "suite": "dockerify",
@@ -225,7 +224,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "dockerify-66cbd606997f"
+      "latest_run_id": "dockerify-13a5c99ab9ce"
     },
     {
       "suite": "documentify",
@@ -260,7 +259,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "documentify-1040a185147a"
+      "latest_run_id": "documentify-7fc258544374"
     },
     {
       "suite": "metrify",
@@ -298,7 +297,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "metrify-1c9c381ec0ab"
+      "latest_run_id": "metrify-c8fb95fd55d3"
     },
     {
       "suite": "mvpify",
@@ -334,7 +333,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "mvpify-e978863f3d0f"
+      "latest_run_id": "mvpify-1b990e1ed455"
     },
     {
       "suite": "observifyfy",
@@ -370,7 +369,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "observifyfy-60985cec4675"
+      "latest_run_id": "observifyfy-0f7996516de6"
     },
     {
       "suite": "postmanify",
@@ -399,16 +398,13 @@
       "native_commands": [
         "sync"
       ],
-      "quality_ok": false,
-      "quality_missing": [
-        "reports",
-        "state"
-      ],
+      "quality_ok": true,
+      "quality_missing": [],
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "postmanify-8b19e58f06b7"
     },
     {
       "suite": "securify",
@@ -443,7 +439,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "securify-a8962e84e7ea"
+      "latest_run_id": "securify-9311350210be"
     },
     {
       "suite": "templatify",
@@ -479,7 +475,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "templatify-69681f5d025f"
+      "latest_run_id": "templatify-d0e8dc9c54e2"
     },
     {
       "suite": "testify",
@@ -489,7 +485,7 @@
       "has_tools": true,
       "has_docs": true,
       "has_templates": true,
-      "has_status": false,
+      "has_status": true,
       "lifecycle_commands": [
         "init",
         "inspect",
@@ -512,17 +508,17 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "testify-348f8243d40f"
+      "latest_run_id": "testify-399409292cb9"
     },
     {
       "suite": "usabilify",
       "category": "core",
       "summary": "Surfaces human-usable status, UX guidance, and understandable next-step outputs.",
-      "has_adapter": false,
-      "has_tools": false,
-      "has_docs": false,
-      "has_templates": false,
-      "has_status": false,
+      "has_adapter": true,
+      "has_tools": true,
+      "has_docs": true,
+      "has_templates": true,
+      "has_status": true,
       "lifecycle_commands": [
         "init",
         "inspect",
@@ -543,23 +539,14 @@
         "evaluate",
         "full"
       ],
-      "quality_ok": false,
-      "quality_missing": [
-        "README.md",
-        "adapter/service.py",
-        "adapter/cli.py",
-        "tools",
-        "reports",
-        "state",
-        "templates"
-      ],
+      "quality_ok": true,
+      "quality_missing": [],
       "quality_warnings": [
         "missing_optional:docs",
-        "missing_optional:tests",
-        "missing_optional:__init__.py"
+        "missing_optional:tests"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "usabilify-1435848b1055"
     }
   ]
 }

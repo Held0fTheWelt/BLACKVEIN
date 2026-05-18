@@ -1,7 +1,7 @@
 {
   "created_internal_layout": {},
   "suite_count": 16,
-  "existing_suite_count": 13,
+  "existing_suite_count": 14,
   "suites": [
     {
       "name": "contractify",
@@ -12,8 +12,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 24,
-      "journal_count": 12,
+      "run_count": 68,
+      "journal_count": 34,
       "workflow_count": 0,
       "status_files": [
         "reports/status/MOST_RECENT_NEXT_STEPS.md",
@@ -32,8 +32,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 4,
-      "journal_count": 2,
+      "run_count": 22,
+      "journal_count": 11,
       "workflow_count": 0,
       "status_files": [
         "reports/status/MOST_RECENT_NEXT_STEPS.md",
@@ -52,8 +52,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 4,
-      "journal_count": 2,
+      "run_count": 14,
+      "journal_count": 7,
       "workflow_count": 0,
       "status_files": [
         "reports/status/MOST_RECENT_NEXT_STEPS.md",
@@ -72,10 +72,13 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 4,
-      "journal_count": 2,
+      "run_count": 14,
+      "journal_count": 7,
       "workflow_count": 0,
-      "status_files": [],
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
       "warnings": [
         "missing_workflow"
       ]
@@ -89,8 +92,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 4,
-      "journal_count": 2,
+      "run_count": 10,
+      "journal_count": 5,
       "workflow_count": 0,
       "status_files": [],
       "warnings": [
@@ -106,10 +109,13 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 6,
-      "journal_count": 3,
+      "run_count": 20,
+      "journal_count": 10,
       "workflow_count": 0,
-      "status_files": [],
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
       "warnings": [
         "missing_workflow"
       ]
@@ -123,8 +129,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 2,
-      "journal_count": 1,
+      "run_count": 12,
+      "journal_count": 6,
       "workflow_count": 0,
       "status_files": [
         "reports/status/MOST_RECENT_NEXT_STEPS.md",
@@ -137,17 +143,22 @@
     {
       "name": "usabilify",
       "hub_path": "usabilify",
-      "exists": false,
-      "has_readme": false,
-      "has_reports": false,
-      "has_state": false,
-      "has_tools": false,
-      "has_adapter": false,
-      "run_count": 0,
-      "journal_count": 0,
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 6,
+      "journal_count": 3,
       "workflow_count": 0,
-      "status_files": [],
-      "warnings": []
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
     },
     {
       "name": "securify",
@@ -158,8 +169,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 6,
-      "journal_count": 3,
+      "run_count": 12,
+      "journal_count": 6,
       "workflow_count": 0,
       "status_files": [
         "reports/status/MOST_RECENT_NEXT_STEPS.md",
@@ -174,17 +185,15 @@
       "hub_path": "diagnosta",
       "exists": true,
       "has_readme": true,
-      "has_reports": false,
-      "has_state": false,
+      "has_reports": true,
+      "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 0,
-      "journal_count": 0,
+      "run_count": 4,
+      "journal_count": 2,
       "workflow_count": 0,
       "status_files": [],
       "warnings": [
-        "missing_state",
-        "missing_reports",
         "missing_workflow"
       ]
     },
@@ -193,7 +202,7 @@
       "hub_path": "coda",
       "exists": true,
       "has_readme": true,
-      "has_reports": false,
+      "has_reports": true,
       "has_state": false,
       "has_tools": true,
       "has_adapter": true,
@@ -203,7 +212,6 @@
       "status_files": [],
       "warnings": [
         "missing_state",
-        "missing_reports",
         "missing_workflow"
       ]
     },
@@ -246,8 +254,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 2,
-      "journal_count": 2,
+      "run_count": 6,
+      "journal_count": 4,
       "workflow_count": 0,
       "status_files": [],
       "warnings": [
@@ -259,17 +267,15 @@
       "hub_path": "mvpify",
       "exists": true,
       "has_readme": true,
-      "has_reports": false,
-      "has_state": false,
+      "has_reports": true,
+      "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 0,
-      "journal_count": 0,
+      "run_count": 4,
+      "journal_count": 2,
       "workflow_count": 0,
       "status_files": [],
       "warnings": [
-        "missing_state",
-        "missing_reports",
         "missing_workflow"
       ]
     },
@@ -282,8 +288,8 @@
       "has_state": true,
       "has_tools": true,
       "has_adapter": true,
-      "run_count": 2,
-      "journal_count": 1,
+      "run_count": 6,
+      "journal_count": 3,
       "workflow_count": 0,
       "status_files": [],
       "warnings": [
@@ -298,7 +304,7 @@
     "observifyfy_root": "observifyfy"
   },
   "docs_summary": {
-    "docs_file_count": 3171,
+    "docs_file_count": 3187,
     "adr_file_count": 4
   }
 }

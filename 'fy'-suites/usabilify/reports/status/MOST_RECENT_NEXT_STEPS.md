@@ -5,14 +5,14 @@
 
 - suite: `usabilify`
 - command: `audit`
-- ok: `false`
-- latest_run_id: `none`
-- latest_run_mode: `none`
-- latest_run_status: `none`
+- ok: `true`
+- latest_run_id: `usabilify-c4100566e897`
+- latest_run_mode: `audit`
+- latest_run_status: `ok`
 
 ## Plain Summary
 
-No summary is available yet.
+Usabilify found 10 user-facing surfaces.
 
 ## Decision Guidance
 
@@ -20,7 +20,7 @@ No summary is available yet.
 
 ## Most-Recent-Next-Steps
 
-- Read the error details and rerun the command after the blocking issue is fixed.
+- Review the highest-traffic templates and static assets for navigation, state clarity, and error recovery.
 
 ## Key Signals
 
