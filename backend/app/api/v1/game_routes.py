@@ -523,10 +523,13 @@ def _player_session_bundle(
         else None
     )
     narrator_streaming = None
-    if isinstance(latest_turn, dict) and isinstance(latest_turn.get("narrator_streaming"), dict):
+    latest_turn_kind = str(latest_turn.get("turn_kind") or "") if isinstance(latest_turn, dict) else ""
+    if (
+        isinstance(latest_turn, dict)
+        and latest_turn_kind.strip().lower() != "opening"
+        and isinstance(latest_turn.get("narrator_streaming"), dict)
+    ):
         narrator_streaming = latest_turn.get("narrator_streaming")
-    elif isinstance(opening_turn, dict) and isinstance(opening_turn.get("narrator_streaming"), dict):
-        narrator_streaming = opening_turn.get("narrator_streaming")
     cumulative_blocks = _cumulative_scene_blocks_from_story_window(story_window)
     used_cumulative = bool(cumulative_blocks)
     if cumulative_blocks:

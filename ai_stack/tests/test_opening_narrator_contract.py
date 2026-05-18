@@ -38,6 +38,50 @@ def _ldss_input(human: str, turn: int = 0, session_output_language: str = "en") 
     )
 
 
+def _canonical_ldss_input(
+    human: str,
+    *,
+    turn: int = 0,
+    session_output_language: str = "de",
+) -> LDSSInput:
+    roster = {
+        "annette_reille": "annette",
+        "alain_reille": "alain",
+        "veronique_vallon": "veronique",
+        "michel_longstreet": "michel",
+    }
+    human_slug = roster[human]
+    npc_ids = [actor_id for actor_id in roster if actor_id != human]
+    return LDSSInput(
+        story_session_state={
+            "contract": "story_session_state.v1",
+            "story_session_id": f"test-open-{human}",
+            "turn_number": turn,
+            "current_scene_id": "phase_1",
+            "content_module_id": "god_of_carnage",
+            "runtime_profile_id": "god_of_carnage_solo",
+            "runtime_module_id": "solo_story_runtime",
+            "selected_player_role": human_slug,
+            "human_actor_id": human,
+            "npc_actor_ids": npc_ids,
+            "visitor_present": False,
+        },
+        actor_lane_context={
+            "contract": "actor_lane_context.v1",
+            "content_module_id": "god_of_carnage",
+            "runtime_profile_id": "god_of_carnage_solo",
+            "selected_player_role": human_slug,
+            "human_actor_id": human,
+            "actor_lanes": {human: "human", **{n: "npc" for n in npc_ids}},
+            "ai_allowed_actor_ids": sorted(npc_ids),
+            "ai_forbidden_actor_ids": [human],
+        },
+        player_input="",
+        admitted_objects=[],
+        session_output_language=session_output_language,
+    )
+
+
 @pytest.mark.parametrize("human_role", ["annette", "alain"])
 def test_opening_starts_with_three_narrator_blocks(human_role: str) -> None:
     """Turn 0 must emit narrator_intro, role_anchor, scene_setup before any actor_line/action."""
@@ -126,3 +170,20 @@ def test_ldss_opening_fallback_english_session_still_works() -> None:
     blocks = out.visible_scene_output.blocks
     role_anchor_text = blocks[1].text
     assert "You are Annette" in role_anchor_text
+
+
+def test_ldss_opening_fallback_uses_parc_montsouris_not_schoolyard() -> None:
+    out = build_deterministic_ldss_output(_canonical_ldss_input("annette_reille"))
+    intro = out.visible_scene_output.blocks[0].text
+    assert "Parc Montsouris" in intro
+    assert "Schulhof" not in intro
+    assert "schoolyard" not in intro.lower()
+
+
+def test_ldss_opening_fallback_normalizes_canonical_actor_ids() -> None:
+    out = build_deterministic_ldss_output(_canonical_ldss_input("annette_reille"))
+    blocks = out.visible_scene_output.blocks
+    assert "Du bist Annette" in blocks[1].text
+    assert "Du nimmst deinen Platz" not in blocks[1].text
+    assert all("considers the situation" not in block.text for block in blocks)
+    assert all("Alain_reille" not in block.text for block in blocks)

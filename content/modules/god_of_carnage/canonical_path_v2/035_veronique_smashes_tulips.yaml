@@ -1,0 +1,162 @@
+canonical_path_step:
+  sequence: 35
+  id: opening_v2_035_veronique_smashes_tulips
+  path_id: goc_opening_canonical_path_v2
+  name: "035 - Veronique smashes the tulips with her handbag (IRREVERSIBLE)"
+  mode: scripted_mandatory_dialog
+
+  scene_anchor:
+    scene: 8
+    summary: >-
+      Veronique grabs her handbag and smashes it across the tulip
+      bouquet. Petals fly. Annette laughs through tears. Veronique screams.
+      The smashing is the second irreversible destruction beat — the
+      hospitality object itself, by the host. Annette collapses fully.
+
+  duration_target_seconds: 55
+  duration_max_seconds: 80
+
+  theme_coverage_phase_refs:
+    - actor: veronique
+      phase_id: smashing_collapse
+      realization_step: true
+      climax: true
+      irreversible_commit_required_at_step: "035"
+    - actor: annette
+      phase_id: phone_in_tulips_destruction
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  object_refs:
+    - object_id: tulips_bouquet
+      source: objects/appartment_vallon/living_room/tulips.yaml
+      use_fields: [destruction_states]
+    - object_id: veronique_handbag
+      source: objects/appartment_vallon/living_room/veronique_handbag.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - veronique_about_to_smash_tulips
+      - alain_voice_now_cornered_pragmatist_realized
+
+  mandatory_beats:
+
+    - id: veronique_picks_up_handbag
+      order: 1
+      duration_target_seconds: 3
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Veronique picks up her handbag."
+          - "She walks past the coffee table toward the tulip vase."
+      player_status: spectator_blocked
+
+    - id: veronique_smashes_tulips
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "She brings the handbag down across the tulips."
+          - "Stems break. Petals spray across the table and floor."
+      player_status: spectator_blocked
+
+    - id: annette_laughs_through_tears
+      order: 3
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: laugh_through_tears_ha_ha_ha
+        required_facts:
+          - "tulip_destroy_token: here, this is what I think of your stupid tulips"
+          - "laugh_marker_token: ha, ha, ha"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_stupid_tulips
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one line + visible laugh + breakdown"
+        tone_hint: drunk_broken_destructive
+      player_status: spectator_blocked
+
+    - id: annette_collapses_into_tears
+      order: 4
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Annette starts crying. Hard."
+          - "She does not stop."
+      player_status: spectator_blocked
+
+    - id: annette_worst_day_of_my_life
+      order: 5
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: declare_worst_day_of_my_life_too
+        required_facts: ["worst_day_token: this is the worst day of my life too"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_worst_day
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence, broken-quiet"
+      player_status: spectator_blocked
+
+    - id: veronique_silence_visible_perception
+      order: 6
+      duration_target_seconds: 6
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Veronique stands with the handbag at her side."
+          - "She does not speak."
+          - "She does not look at the broken tulips."
+      player_status: spectator_blocked
+
+  themes_realized_here:
+    - actor: veronique
+      theme: whacks_her_own_tulips_in_self_negation
+      mechanism: "the destruction itself — irreversible self-negation"
+      evidence_required: [veronique_smashes_tulips_beat, tulips_destroyed_state_committed]
+      blocks_progression_if_missing: true
+    - actor: veronique
+      theme: I_am_horrified_register
+      mechanism: "the act is the realization — no more words"
+      evidence_required: [veronique_silence_after_smashing_beat]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: this_is_the_worst_day_of_my_life_too_collapse
+      mechanism: "explicit declaration"
+      evidence_required: [annette_speaks_worst_day_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: environment_state.tulips_bouquet_state
+      from_value: water_displaced_by_phone_petals_disturbed
+      to_value: destroyed_petals_scattered_stems_broken
+      commit_irreversible: true
+    - key: environment_state.living_room_floor_state
+      to_value: covered_in_petals_water_glass_fragments
+      commit_irreversible: false
+    - key: runtime_intelligence.veronique_voice_signature_transition_request
+      to_value:
+        from: moral_idealist_loud_and_unguarded
+        to: moral_idealist_screaming_in_collapse
+        ready_at_step: "035"
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 45
+
+  next_point:
+    step_id: opening_v2_036_long_stupor_silence
+    handoff: "Long stupor. The dead phone vibrates one last time on the coffee table."
+    carry_forward:
+      - tulips_destroyed_irreversible
+      - veronique_voice_transition_to_screaming_collapse_logged
+      - annette_worst_day_declared

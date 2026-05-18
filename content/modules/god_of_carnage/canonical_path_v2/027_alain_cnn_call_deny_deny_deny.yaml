@@ -1,0 +1,124 @@
+canonical_path_step:
+  sequence: 27
+  id: opening_v2_027_alain_cnn_call_deny_deny_deny
+  path_id: goc_opening_canonical_path_v2
+  name: "027 - Alain CNN call: 'no victims on the panel', 'deny deny deny'"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 7
+    summary: >-
+      Walter calls about CNN inviting him for a panel discussion. Alain
+      gives strategic directives: 'no victims on the panel', 'deny deny
+      deny', 'we'll sue the Journal'. He hangs up. The cynicism is now
+      visible to everyone. Michel quietly absorbs the register. Annette
+      no longer hides her contempt.
+
+  duration_target_seconds: 80
+  duration_max_seconds: 110
+
+  theme_coverage_phase_refs:
+    - actor: alain
+      phase_id: cnn_panel_strategic_call
+      realization_step: true
+      climax: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  object_refs:
+    - object_id: alain_mobile_phone
+      source: objects/appartment_vallon/living_room/mobile_phone_alain.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+    offstage_voice: walter
+
+  preconditions:
+    inherited_from_previous_step:
+      - third_call_imminent
+      - alliance_about_to_flip
+
+  mandatory_beats:
+
+    - id: cnn_walter_call_full_pattern
+      order: 1
+      duration_target_seconds: 70
+      beat_pattern_ref: phone_interruption_recurrent
+      beat_pattern_params:
+        call_partner: walter
+        call_topic: cnn_panel_decision
+        interrupted_in_step_id: opening_v2_027_alain_cnn_call_deny_deny_deny
+        interrupted_at_beat_id: annette_just_named_zachary_never_violent
+        alain_visible_facts:
+          - "cnn_panel_token: CNN wants him on a panel discussion"
+          - "no_victims_token: as long as no victims on the panel"
+          - "deny_deny_deny_token: deny, deny, deny"
+          - "sue_journal_token: we'll sue the Journal if we have to"
+          - "press_release_draft_token: we'll email you the draft"
+        call_audible_duration_seconds: 50
+        returns_to_room_with: dismissive_what_were_we_saying
+        leaves_phone_in_view: true
+      player_status: observer_window_open
+
+  optional_micro_beats:
+    - id: hosts_and_annette_visible_reactions
+      trigger: during(call_audible_segment)
+      condition: deny_deny_deny_token_lands
+      director_instruction:
+        narrator_perception_only:
+          - "Veronique pulls her glass toward her without drinking."
+          - "Annette stops mid-breath, listens without disguise."
+          - "Michel looks at his hands."
+        player_status: observer_window_open
+
+    - id: annette_visible_contempt_signal
+      trigger: after(cnn_walter_call_full_pattern)
+      condition: alain_returns_with_dismissive
+      director_instruction:
+        narrator_perception_only:
+          - "Annette does not look at her husband when he sits back down."
+        player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: alain
+      theme: no_victims_on_the_panel
+      mechanism: "explicit strategic directive overheard"
+      evidence_required: [alain_speaks_no_victims_token]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: deny_deny_deny_repeated
+      mechanism: "third repetition crystallizes the register"
+      evidence_required: [alain_speaks_deny_deny_deny_token]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: well_sue_the_journal
+      mechanism: "litigation threat against the Lancet/Journal disclosure"
+      evidence_required: [alain_speaks_sue_journal_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.third_call_overheard_facts
+      to_value:
+        - cnn_panel_invitation
+        - no_victims_directive
+        - deny_strategy
+        - sue_journal_threat
+        - press_release_draft_to_be_sent
+      commit_irreversible: true
+    - key: runtime_intelligence.alain_cynicism_fully_visible_to_room
+      to_value: true
+      commit_irreversible: true
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 70
+
+  next_point:
+    step_id: opening_v2_028_alliance_shifts_women_vs_men
+    handoff: "Alliance configuration flips: the women align against the men. Michel begins his cynic phase openly."
+    carry_forward:
+      - third_call_overheard_facts_irreversible
+      - alain_cynicism_fully_visible
+      - annette_contempt_signal_logged

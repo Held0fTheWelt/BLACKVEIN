@@ -476,7 +476,8 @@ def test_play_execute_html_missing_readiness_flags_fails_closed(client, monkeypa
     )
 
     assert response.status_code == 200
-    assert b"Typewriter-Test: Die Session-Shell lebt." in response.data
+    assert b"Typewriter-Test: Die UI-Shell lebt." not in response.data
+    assert b"runtime_shell_without_player_visible_story_output" in response.data
     assert b'id="execute-turn-btn" disabled' in response.data
 
 
@@ -719,7 +720,8 @@ def test_play_shell_backend_error_flashes_and_renders_empty_shell(client, monkey
     response = client.get("/play/sid")
     assert response.status_code == 200
     assert b"resume failed" in response.data
-    assert b"Typewriter-Test: Die Session-Shell lebt." in response.data
+    assert b"Typewriter-Test: Die UI-Shell lebt." in response.data
+    assert b"Keine Runtime-Session und kein Story-Output verfuegbar." in response.data
     assert b"No authored opening was returned" not in response.data
 
 

@@ -104,4 +104,48 @@ describe('PlayRuntimeBootstrap', () => {
     expect(bootstrap().shouldUseDosBoot({ play_shell_bootstrap_mode: 'off' })).toBe(false);
     expect(bootstrap().shouldUseDosBoot({})).toBe(true);
   });
+
+  test('does not treat the UI liveness probe as an open narrative channel', () => {
+    const block = bootstrap().buildDosBootBlock({
+      module_id: 'god_of_carnage',
+      runtime_session_ready: false,
+      can_execute: false,
+      visible_scene_output: {
+        blocks: [
+          {
+            id: 'typewriter-ui-liveness-probe',
+            block_type: 'narrator',
+            text: 'Typewriter-Test: Die UI-Shell lebt.',
+          },
+        ],
+      },
+    });
+
+    expect(block.text).toMatch(/OPENING READINESS·+WAITING/);
+    expect(block.text).toMatch(/NARRATIVE CHANNEL·+WAITING/);
+  });
+
+  test('uses session-loop runtime world counts for boot readiness lines', () => {
+    const block = bootstrap().buildDosBootBlock({
+      module_id: 'god_of_carnage',
+      runtime_session_ready: true,
+      can_execute: true,
+      session_loop: {
+        status: 'runtime_engine_initialized',
+        runtime_world: {
+          status: 'initialized',
+          room_count: 5,
+          prop_count: 11,
+          actor_count: 4,
+        },
+      },
+      visible_scene_output: {
+        blocks: [{ id: 'story-1', block_type: 'narrator', text: 'Story.' }],
+      },
+    });
+
+    expect(block.text).toContain('LOCATION MODEL····················READY');
+    expect(block.text).toContain('OBJECT MODEL······················READY');
+    expect(block.text).toContain('NPC PRESENCE······················PRESENT');
+  });
 });

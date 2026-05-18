@@ -662,7 +662,7 @@ def create_story_session(
             else nullcontext()
         )
         with session_scope:
-            session = manager.create_session(
+            session = manager.create_session_proto(
                 module_id=payload.module_id,
                 runtime_projection=payload.runtime_projection,
                 session_input_language=payload.session_input_language or payload.session_output_language,
@@ -719,7 +719,7 @@ def create_story_session(
                         "environment": lf_tracing_env,
                         **trace_classification,
                         "session_loop_status": "runtime_engine_initialized",
-                        "opening_turn_committed": False,
+                        "opening_turn_committed": isinstance(opening_turn, dict),
                         "runtime_world": runtime_world_summary,
                     },
                     level="DEFAULT",
@@ -737,7 +737,6 @@ def create_story_session(
             "warnings": [
                 "world_engine_authoritative_story_runtime",
                 "session_loop_runtime_engine_initialized",
-                "opening_turn_not_committed",
             ],
         }
     except LiveStoryGovernanceError as exc:

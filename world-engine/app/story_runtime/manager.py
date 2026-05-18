@@ -10488,7 +10488,10 @@ class StoryRuntimeManager:
             if blocked_projection_event is not None:
                 return blocked_projection_event
 
-            # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan)
+            # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan).
+            # Opening turns already own the first visible narrative through the canonical opening
+            # contract; streaming ambience here would prepend generic narrator cards before that
+            # authored handoff.
             runtime_state = {
                 "session_id": session.session_id,
                 "current_scene_id": session.current_scene_id,
@@ -10550,17 +10553,20 @@ class StoryRuntimeManager:
                 logger.error(f"[MANAGER] Exception creating Narrator phase span: {e}", exc_info=True)
 
             try:
-                streaming_started = _orchestrate_narrative_agent(
-                    manager=self,
-                    session_id=session.session_id,
-                    ldss_output=scene_turn_envelope,
-                    runtime_state=runtime_state,
-                    dramatic_signature=dramatic_context,
-                    narrative_threads=narrative_threads_list,
-                    turn_number=commit_turn_number,
-                    trace_id=trace_id,
-                    narrator_packet=narrator_packet,
-                )
+                if str(turn_kind or "").strip().lower() == "opening":
+                    streaming_started = False
+                else:
+                    streaming_started = _orchestrate_narrative_agent(
+                        manager=self,
+                        session_id=session.session_id,
+                        ldss_output=scene_turn_envelope,
+                        runtime_state=runtime_state,
+                        dramatic_signature=dramatic_context,
+                        narrative_threads=narrative_threads_list,
+                        turn_number=commit_turn_number,
+                        trace_id=trace_id,
+                        narrator_packet=narrator_packet,
+                    )
 
                 if streaming_started:
                     narrator_phase_cost = build_deterministic_phase_cost(

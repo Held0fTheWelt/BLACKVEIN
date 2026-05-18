@@ -485,6 +485,22 @@ _GOC_DISPLAY_NAMES: dict[str, str] = {
     "michel": "Michel",
 }
 
+
+def _goc_actor_key(actor_id: str | None) -> str:
+    """Normalize canonical actor ids like ``alain_reille`` to fallback roster keys."""
+    raw = str(actor_id or "").strip().lower()
+    if not raw:
+        return ""
+    return raw.split("_", 1)[0]
+
+
+def _goc_display_name(actor_id: str | None) -> str:
+    key = _goc_actor_key(actor_id)
+    if key in _GOC_DISPLAY_NAMES:
+        return _GOC_DISPLAY_NAMES[key]
+    raw = str(actor_id or "").strip()
+    return raw.capitalize() if raw else ""
+
 _GOC_NPC_LINES_BY_LANG: dict[str, dict[str, list[str]]] = {
     "en": {
         # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P2: phase-1 opening
@@ -534,19 +550,26 @@ _GOC_NPC_ACTIONS_BY_LANG: dict[str, dict[str, str]] = {
     },
 }
 
+_GOC_NPC_LINE_FALLBACK_BY_LANG: dict[str, str] = {
+    "en": "{label} holds back for a moment.",
+    "de": "{label} hält sich einen Moment zurück.",
+}
+
 
 def _goc_npc_line_for(lang: str, actor_id: str, turn: int) -> tuple[str, str]:
     by_actor = _GOC_NPC_LINES_BY_LANG.get(lang) or _GOC_NPC_LINES_BY_LANG["en"]
-    lines = by_actor.get(actor_id) or []
+    actor_key = _goc_actor_key(actor_id)
+    lines = by_actor.get(actor_key) or []
+    label = _goc_display_name(actor_id)
     if not lines:
-        label = _GOC_DISPLAY_NAMES.get(actor_id, actor_id.capitalize())
-        return label, f"{label} considers the situation."
-    return _GOC_DISPLAY_NAMES.get(actor_id, actor_id.capitalize()), lines[turn % len(lines)]
+        template = _GOC_NPC_LINE_FALLBACK_BY_LANG.get(lang) or _GOC_NPC_LINE_FALLBACK_BY_LANG["en"]
+        return label, template.format(label=label)
+    return label, lines[turn % len(lines)]
 
 
 def _goc_npc_action_for(lang: str, actor_id: str) -> str:
     by_actor = _GOC_NPC_ACTIONS_BY_LANG.get(lang) or _GOC_NPC_ACTIONS_BY_LANG["en"]
-    return by_actor.get(actor_id, "")
+    return by_actor.get(_goc_actor_key(actor_id), "")
 
 
 # Legacy aliases kept for back-compat with any external callers that imported the
@@ -558,11 +581,13 @@ _GOC_NPC_ACTIONS = _GOC_NPC_ACTIONS_BY_LANG["en"]
 _OPENING_NARRATOR_INTRO_BY_LANG: dict[str, str] = {
     "en": (
         "Two couples meet in a Paris apartment on behalf of their children. "
-        "The incident happened in the schoolyard; what happens here will be settled in a salon."
+        "The incident began at the edge of Parc Montsouris, near the basketball court; "
+        "what happens here will be handled in a salon."
     ),
     "de": (
         "Zwei Paare treffen sich in einer Pariser Wohnung wegen ihrer Kinder. "
-        "Der Vorfall geschah auf dem Schulhof; was hier geschieht, soll im Salon entschieden werden."
+        "Der Vorfall begann am Rand des Parc Montsouris, nahe dem Basketballplatz; "
+        "was hier geschieht, soll im Salon geklärt werden."
     ),
 }
 _OPENING_ROLE_ANCHORS_BY_LANG: dict[str, dict[str, str]] = {
@@ -598,8 +623,8 @@ _OPENING_SCENE_SETUP_BY_LANG: dict[str, str] = {
     ),
 }
 _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG: dict[str, str] = {
-    "en": "You take your place in the room.",
-    "de": "Du nimmst deinen Platz im Raum ein.",
+    "en": "You are present in the room; the meeting has begun before anyone can make it comfortable.",
+    "de": "Deine Figur ist im Raum; das Treffen hat begonnen, bevor es jemand bequem machen kann.",
 }
 
 
@@ -609,8 +634,9 @@ def _opening_narrator_intro_for(lang: str) -> str:
 
 def _opening_role_anchor_for(lang: str, role: str) -> str:
     by_role = _OPENING_ROLE_ANCHORS_BY_LANG.get(lang) or _OPENING_ROLE_ANCHORS_BY_LANG["en"]
-    if role in by_role:
-        return by_role[role]
+    role_key = _goc_actor_key(role)
+    if role_key in by_role:
+        return by_role[role_key]
     return _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG.get(lang) or _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG["en"]
 
 
@@ -717,7 +743,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
 
             # Secondary NPC actor_action — output-language-aware
     if secondary:
-        label2 = _GOC_DISPLAY_NAMES.get(secondary, secondary.capitalize())
+        label2 = _goc_display_name(secondary)
         action_text = _goc_npc_action_for(lang, secondary)
         if action_text:
             blocks.append(SceneBlock(

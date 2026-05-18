@@ -61,6 +61,21 @@
     ));
   }
 
+  function isPlayerVisibleNarrativeBlock(block) {
+    const item = asObject(block);
+    if (!item) return false;
+    const kind = String(item.block_type || '').trim().toLowerCase();
+    if (!kind || kind === BOOT_BLOCK_TYPE || kind === 'system_meta') return false;
+    if (kind.startsWith('diagnostic') || kind.startsWith('debug')) return false;
+    if (item.id === 'typewriter-ui-liveness-probe') return false;
+    const text = String(item.player_display_text != null ? item.player_display_text : item.text || '').trim();
+    return text.length > 0;
+  }
+
+  function visibleNarrativeBlocks(payload) {
+    return visibleBlocks(payload).filter(isPlayerVisibleNarrativeBlock);
+  }
+
   function numberValue(value) {
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
@@ -108,9 +123,12 @@
   function buildContext(payload) {
     const root = asObject(payload) || {};
     const shellState = firstObject(root, [['shell_state_view'], ['data', 'shell_state_view']]);
+    const sessionLoop = firstObject(root, [['session_loop'], ['data', 'session_loop']]);
     const runtimeWorld = firstObject(root, [
       ['shell_state_view', 'runtime_world'],
       ['data', 'shell_state_view', 'runtime_world'],
+      ['session_loop', 'runtime_world'],
+      ['data', 'session_loop', 'runtime_world'],
       ['authoritative_state', 'runtime_world'],
       ['data', 'authoritative_state', 'runtime_world'],
     ]);
@@ -131,7 +149,7 @@
       ['turn', 'scene_plan_record', 'capability_manager_plan'],
       ['turn', 'scene_plan', 'capability_manager_plan'],
     ]);
-    const blocks = visibleBlocks(root);
+    const blocks = visibleNarrativeBlocks(root);
     const storyEntries = Array.isArray(root.story_entries) ? root.story_entries : [];
     return {
       moduleId: firstValue(root, [['module_id'], ['data', 'module_id'], ['shell_state_view', 'module_id']]),
@@ -140,7 +158,7 @@
       runtimeSessionReady: firstValue(root, [['runtime_session_ready'], ['data', 'runtime_session_ready']]),
       canExecute: firstValue(root, [['can_execute'], ['data', 'can_execute']]),
       openingStatus: firstValue(root, [['opening_generation_status'], ['data', 'opening_generation_status']]),
-      sessionLoop: firstObject(root, [['session_loop'], ['data', 'session_loop']]),
+      sessionLoop,
       shellState,
       runtimeWorld,
       scenePlan,
@@ -171,7 +189,11 @@
     const capabilityPlanReady = Object.keys(ctx.capabilityPlan).length > 0;
     const directorFrameReady = Object.keys(ctx.scenePlan).length > 0 || Object.keys(ctx.shellState).length > 0;
     const openingStatus = String(ctx.openingStatus || '').toLowerCase();
-    const openingReady = openingStatus === 'committed' || openingStatus === 'ready' || ctx.blockCount > 0;
+    const narrativeReady = ctx.blockCount > 0 || ctx.storyEntryCount > 0;
+    const openingReady = openingStatus === 'committed'
+      || openingStatus === 'ready'
+      || openingStatus === 'ready_with_opening'
+      || narrativeReady;
 
     return [
       'WORLD OF SHADOWS RUNTIME BIOS',
@@ -193,13 +215,13 @@
       bootLine('Capability manager', capabilityPlanReady ? 'ONLINE' : 'STANDBY'),
       bootLine('Capability dispatcher', ctx.selectedCapabilityCount > 0 ? 'ARMED' : 'STANDBY'),
       bootLine('Validation manager', statusFromBool(ctx.canExecute, 'READY', 'HOLD', 'STANDBY')),
-      bootLine('Commit seam', ctx.blockCount > 0 ? 'READY' : 'STANDBY'),
+      bootLine('Commit seam', narrativeReady ? 'READY' : 'STANDBY'),
       '',
       'DIRECTOR HANDOFF',
       bootLine('Director context frame', directorFrameReady ? 'BUILT' : 'PENDING'),
       bootLine('Opening readiness', openingReady ? 'READY' : 'WAITING'),
       bootLine('Capability plan', ctx.selectedCapabilityCount > 0 ? 'SELECTED' : 'PENDING'),
-      bootLine('Narrative channel', ctx.blockCount > 0 ? 'OPEN' : 'WAITING'),
+      bootLine('Narrative channel', narrativeReady ? 'OPEN' : 'WAITING'),
       '',
       'C:\\WOS> RUN',
     ];

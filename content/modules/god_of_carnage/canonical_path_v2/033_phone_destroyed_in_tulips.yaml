@@ -1,0 +1,197 @@
+canonical_path_step:
+  sequence: 33
+  id: opening_v2_033_phone_destroyed_in_tulips
+  path_id: goc_opening_canonical_path_v2
+  name: "033 - Annette destroys Alain's phone in tulip water (IRREVERSIBLE)"
+  mode: scripted_mandatory_dialog
+
+  scene_anchor:
+    scene: 8
+    summary: >-
+      Alain's phone vibrates again. He reaches for it. Annette grabs it
+      faster, plunges it into the tulip vase. Phone destroyed. The room
+      freezes. Alain stares. Annette laughs once, then breaks down. The
+      alliance enters phase E — all against all.
+
+  duration_target_seconds: 60
+  duration_max_seconds: 85
+
+  theme_coverage_phase_refs:
+    - actor: annette
+      phase_id: phone_in_tulips_destruction
+      realization_step: true
+      climax: true
+      irreversible_commit_required_at_step: "033"
+    - actor: alain
+      phase_id: dismantled_through_phone_loss
+      realization_step: true
+      climax: true
+      irreversible_commit_required_at_step: "033"
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  object_refs:
+    - object_id: alain_mobile_phone
+      source: objects/appartment_vallon/living_room/mobile_phone_alain.yaml
+      use_fields: [destruction_states]
+    - object_id: tulips_bouquet
+      source: objects/appartment_vallon/living_room/tulips.yaml
+      use_fields: [contents_water]
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - civility_dead_irreversible
+      - phone_pieces_on_coffee_table_about_to_be_destroyed
+
+  mandatory_beats:
+
+    - id: phone_vibrates_alain_reaches
+      order: 1
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain's phone vibrates on the coffee table."
+          - "He reaches for it."
+      player_status: spectator_blocked
+
+    - id: annette_grabs_phone_first
+      order: 2
+      duration_target_seconds: 3
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Annette is faster. She has the phone in her hand."
+      player_status: spectator_blocked
+
+    - id: annette_plunges_phone_in_tulip_water
+      order: 3
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Annette plunges Alain's phone into the tulip vase."
+          - "Water sloshes; the screen goes dark."
+      player_status: spectator_blocked
+
+    - id: room_freezes_post_destruction
+      order: 4
+      duration_target_seconds: 6
+      beat_pattern_ref: silence_perception_pause
+      beat_pattern_params:
+        trigger_after_beat: annette_plunges_phone_in_tulip_water
+        silence_duration_seconds: 6
+        perception_lines:
+          - "Nobody moves."
+          - "Alain stares at the vase."
+      player_status: spectator_blocked
+
+    - id: annette_short_laugh_then_breakdown
+      order: 5
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: laugh_once_then_collapse_into_tears
+        required_facts:
+          - "laugh_token: ha"
+          - "this_is_my_worst_day_token: this is the worst day of my life too"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_worst_day
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one short laugh + one short collapse"
+        tone_hint: drunk_broken_destructive
+      player_status: spectator_blocked
+
+    - id: alain_voice_collapse
+      order: 6
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: speak_quietly_dismantled
+        required_facts: ["dismantled_token: what have you done"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_what_have_you_done
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "three or four words, register collapsed"
+        forbidden_drift: [scream, shout, lawyer_register]
+        tone_hint: cornered_pragmatist_phone_destroyed
+      player_status: spectator_blocked
+
+    - id: alain_tries_to_retrieve_phone
+      order: 7
+      duration_target_seconds: 6
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain reaches into the vase, pulls out the phone, water dripping."
+          - "He shakes it; nothing."
+      player_status: spectator_blocked
+
+    - id: michel_quiet_long_observation
+      order: 8
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: observe_drily_well_well
+        required_facts: ["well_well_token: well"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_what_have_you_done
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one or two words, cynic-quiet"
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: annette
+      theme: drops_phone_in_tulip_water_or_smashes_into_flowers
+      mechanism: "the destruction itself — irreversible physical event"
+      evidence_required: [phone_destroyed_state_committed, water_visible_on_phone]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: phone_destroyed_in_tulip_water
+      mechanism: "Alain's lifeline removed by his wife"
+      evidence_required: [alain_phone_state_destroyed]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: frozen_silent_after_phone_destruction
+      mechanism: "voice signature collapses — register down to broken-quiet"
+      evidence_required: [alain_speaks_dismantled_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: environment_state.alain_phone_state
+      from_value: pieces_being_collected_visible_on_coffee_table
+      to_value: destroyed_water_logged
+      commit_irreversible: true
+    - key: environment_state.tulips_bouquet_state
+      to_value: water_displaced_by_phone_petals_disturbed
+      commit_irreversible: false
+    - key: runtime_intelligence.alliance_configuration_active
+      to_value: phase_E_everyone_vs_everyone
+      commit_irreversible: false
+    - key: runtime_intelligence.alliance_configuration_history
+      append:
+        - { from: phase_D_spouses_vs_spouses, to: phase_E_everyone_vs_everyone, at_step: "033" }
+      commit_irreversible: true
+    - key: runtime_intelligence.alain_voice_signature_transition_request
+      to_value:
+        from: defensive_lawyer_cracking
+        to: cornered_pragmatist_phone_destroyed
+        ready_at_step: "033"
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 50
+
+  next_point:
+    step_id: opening_v2_034_phone_aftermath
+    handoff: "Alain holds the dead phone. Annette has collapsed into tears. Hosts begin to feel the consequences."
+    carry_forward:
+      - phone_destroyed_irreversible
+      - alliance_phase_E_everyone_vs_everyone_active
+      - alain_voice_transition_to_cornered_logged

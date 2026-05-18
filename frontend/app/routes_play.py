@@ -403,11 +403,18 @@ def _visible_scene_output_for_typewriter(
             "source": "frontend_story_entries_typewriter_projection",
         }
 
+    if _has_runtime_shell_evidence(payload):
+        return {
+            "blocks": [],
+            "typewriter_slice_start_index": 0,
+            "source": "runtime_shell_without_player_visible_story_output",
+        }
+
     liveness_text = "\n".join(
         [
-            "Typewriter-Test: Die Session-Shell lebt.",
-            "Der neue Runtime-Pfad ist verbunden.",
-            "Noch keine Erzaehlung generiert; dies ist nur ein UI-Lebenszeichen.",
+            "Typewriter-Test: Die UI-Shell lebt.",
+            "Keine Runtime-Session und kein Story-Output verfuegbar.",
+            "Letzter Fallback der Oberflaeche; es wurde keine Erzaehlung uebernommen.",
         ]
     )
     return {
@@ -423,8 +430,39 @@ def _visible_scene_output_for_typewriter(
             }
         ],
         "typewriter_slice_start_index": 0,
-        "source": "typewriter_ui_liveness_probe",
+        "source": "typewriter_ui_liveness_probe_last_fallback",
     }
+
+
+def _has_runtime_shell_evidence(payload: dict[str, Any]) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if any(
+        str(payload.get(key) or "").strip()
+        for key in (
+            "runtime_session_id",
+            "world_engine_story_session_id",
+            "backend_session_id",
+            "opening_generation_status",
+            "module_id",
+        )
+    ):
+        return True
+    for key in (
+        "runtime_session_ready",
+        "can_execute",
+        "session_loop",
+        "shell_state_view",
+        "authoritative_state",
+        "turn",
+        "story_window",
+    ):
+        value = payload.get(key)
+        if isinstance(value, dict) and value:
+            return True
+        if isinstance(value, bool):
+            return True
+    return False
 
 
 def _load_template_mapping() -> dict[str, str]:

@@ -1,0 +1,262 @@
+canonical_path_step:
+  sequence: 26
+  id: opening_v2_026_annette_returns_name_calling_abuse
+  path_id: goc_opening_canonical_path_v2
+  name: "026 - Annette returns, name-calling = abuse, snitch redux"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 7
+    summary: >-
+      Annette returns from the bathroom. Veronique meets her in the doorway.
+      Apologies exchanged. Annette announces that in the bathroom she
+      thought it over: 'Name-calling is a kind of abuse.' Pushback follows.
+      Snitch and source-of-problem reappear with Annette pressing 'Zachary
+      has never been a violent child, he must have had his reasons.' The
+      alliance configuration begins to flip toward women-vs-men.
+
+  duration_target_seconds: 75
+  duration_max_seconds: 100
+
+  theme_coverage_phase_refs:
+    - actor: annette
+      phase_id: alliance_with_veronique_against_men
+      realization_step: true
+    - actor: michel
+      phase_id: cynical_pragmatist_unmasked
+      realization_step: false
+      seed: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - pet_names_disclosed
+      - civility_micro_restoration_fragile
+
+  mandatory_beats:
+
+    - id: annette_in_doorway_perception
+      order: 1
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Annette appears in the doorway."
+          - "She has cleaned herself up; her face is still pale."
+      player_status: observer_window_open
+
+    - id: veronique_greets_annette
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: greet_annette_with_concerned_warmth
+        required_facts: ["worried_token: I was getting worried"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_annette_returns
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four or five words, briefly warm"
+      forces_response_chain:
+        target_actor: annette
+        target_intent: confirm_recovery_briefly
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: annette_i_think_so
+      order: 3
+      duration_target_seconds: 2
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: annette
+        echoed_phrase_token: "I think so"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_annette_returns
+        word_count_target: 3
+        tone: polite_neutral
+      player_status: observer_window_open
+
+    - id: alain_stay_away_from_coffee_table
+      order: 4
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: dry_quip_about_coffee_table
+        required_facts: ["dry_quip_token: if you're not sure, stay away from the coffee table"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_annette_returns
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "seven or eight words, dry-mean"
+        tone_hint: defensive_lawyer_cracking
+      player_status: observer_window_open
+
+    - id: annette_left_towel_in_bathtub
+      order: 5
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: report_left_towel_in_bathtub
+        required_facts: ["towel_token: I left the towel in the bathtub"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_annette_returns
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "six or seven words, ashamed-soft"
+      player_status: observer_window_open
+
+    - id: annette_in_bathroom_i_was_thinking
+      order: 6
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: announce_she_was_thinking_in_bathroom
+        required_facts: ["thinking_token: in the bathroom I was thinking"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_name_calling_abuse
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five or six words, deliberate"
+      player_status: observer_window_open
+
+    - id: annette_name_calling_is_abuse
+      order: 7
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: state_name_calling_is_a_kind_of_abuse
+        required_facts: ["abuse_token: name-calling is a kind of abuse"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_name_calling_abuse
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "six or seven words, principled-soft"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: agree_sure
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: michel_sure_thinning
+      order: 8
+      duration_target_seconds: 2
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: michel
+        echoed_phrase_token: "sure"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_name_calling_abuse
+        word_count_target: 1
+        tone: polite_neutral
+      player_status: observer_window_open
+
+    - id: veronique_depends
+      order: 9
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: counter_softly_depends
+        required_facts: ["depends_token: depends"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_name_calling_abuse
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one word"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: hedge_well_it_depends
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: michel_well_it_depends
+      order: 10
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: hedge_well_it_depends
+        required_facts: ["it_depends_token: well, it depends"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_name_calling_abuse
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words"
+      player_status: observer_window_open
+
+    - id: annette_zachary_never_violent
+      order: 11
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: state_zachary_has_never_been_violent
+        required_facts:
+          - "never_violent_token: Zachary has never been a violent child"
+          - "must_have_reasons_token: he must have had his reasons"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_zachary_never_violent
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, principled-defensive"
+        tone_hint: angry_clarity_finding_her_voice
+      forces_response_chain:
+        target_actor: alain
+        target_intent: reactivate_snitch_label_phone_vibrates
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: alain_like_getting_called_a_snitch
+      order: 12
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: defend_son_like_getting_called_a_snitch
+        required_facts: ["called_a_snitch_token: like getting called a snitch"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_snitch_remark
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five or six words, lawyer-defensive"
+      player_status: observer_window_open
+
+    - id: alain_phone_vibrates_perception
+      order: 13
+      duration_target_seconds: 3
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain's phone vibrates."
+          - "He glances at it, makes apologetic gestures to Annette, steps away."
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: annette
+      theme: name_calling_is_a_kind_of_abuse
+      mechanism: "Annette has thought in the bathroom and announces a position"
+      evidence_required: [annette_speaks_abuse_token]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: zachary_must_have_had_his_reasons
+      mechanism: "explicit defense reverses earlier neutrality"
+      evidence_required: [annette_speaks_never_violent_token, annette_speaks_must_have_reasons_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.alliance_configuration_active
+      to_value: phase_B_couples_strained_but_intact_about_to_flip
+      commit_irreversible: false
+    - key: runtime_intelligence.annette_voice_signature_transition_request
+      to_value:
+        from: undone_post_vomit_apologetic
+        to: angry_clarity_finding_her_voice
+        ready_at_step: "026"
+      commit_irreversible: false
+    - key: runtime_intelligence.alain_third_phone_call_imminent
+      to_value: true
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 60
+
+  next_point:
+    step_id: opening_v2_027_alain_cnn_call_deny_deny_deny
+    handoff: "Third Walter call. CNN panel decision: 'no victims on the panel', 'deny deny deny'."
+    carry_forward:
+      - annette_voice_transition_to_angry_clarity_logged
+      - third_call_imminent
+      - alliance_about_to_flip
