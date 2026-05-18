@@ -3,46 +3,116 @@ canonical_path_step:
   id: opening_002_argument_stick_blow
   path_id: goc_opening_canonical_path
   name: "002 - Argument, stick, blow"
-  mode: narrator_only_opening
+  mode: narrator_only_prologue
+
+  scene_anchor:
+    scene: 1
+    summary: >-
+      Two boys on the basketball court argue. One picks up a stick. The
+      other calls after him; the words are inaudible. The boy with the
+      stick stops, turns, and strikes the other across the face. The
+      struck boy bends over. Surrounding boys help him up and shout after
+      the attacker. No adult voice enters yet.
+    continues_scene_from_step: opening_001_parc_montsouris_edge
+
+  duration_target_seconds: 30
+  duration_max_seconds: 45
+
+  theme_coverage_phase_refs: []
 
   location_ref:
     location_id: basketball_court
-    source: locations/opening/basketball_court.yaml
-    use_fields:
-      - description
-      - entrances_exits
-      - sensory_tags
+    source: locations/exterior/basketball_court.yaml
+    use_fields: [description, entrances_exits, sensory_tags]
   support_refs:
     - location_id: playground
-      source: locations/opening/playground.yaml
+      source: locations/exterior/playground.yaml
       use_fields: [sensory_tags]
   object_refs:
+    - object_id: stick
+      source: objects/exterior/stick.yaml
+      use_fields: [description, sensory_tags]
     - object_id: bicycle_rack
-      source: objects/opening/bicycle_rack.yaml
+      source: objects/exterior/bicycle_rack.yaml
       use_fields: [sensory_tags]
 
-  path_point:
-    action_beats:
-      - two_boys_keep_playing_while_group_talks_at_edge
-      - boys_discuss_then_argue
-      - one_boy_takes_a_stick
-      - other_boy_calls_after_him_words_inaudible
-      - boy_with_stick_stops_turns_and_strikes
-      - injured_boy_bends_over
-      - surrounding_boys_help_him_up
-      - surrounding_boys_shout_after_attacker
-    narrator_tasks:
-      - use_support_refs_for_nearby_public_objects
-      - show_physical_consequence_without_courtroom_commentary
-    must_not:
-      - make_attacker_speak_audible_line
-      - explain_motive_as_certainty
-      - add_adult_intervention
-      - duplicate_location_description
+  present:
+    named_characters: []
+    on_screen_groups:
+      - id: boys_group
+        anchor_location_id: basketball_court
+      - id: attacker_boy_solo
+        count: 1
+      - id: struck_boy_solo
+        count: 1
+
+  preconditions:
+    inherited_from_previous_step:
+      - boys_group_at_court
+      - ordinary_public_setting
+
+  mandatory_beats:
+
+    - id: two_boys_apart_from_group
+      order: 1
+      duration_target_seconds: 6
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Two boys stand a few steps apart from the rest of the group."
+          - "Their voices are raised but the words don't carry."
+      player_status: observer_no_initiative
+
+    - id: one_boy_takes_stick
+      order: 2
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "One boy walks a few paces, picks up a stick from the ground."
+          - "The other calls after him. The call is not legible."
+        sensory_anchors:
+          - objects/exterior/stick.yaml#sensory_tags
+      player_status: observer_no_initiative
+
+    - id: stick_strikes_face
+      order: 3
+      duration_target_seconds: 6
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "The boy with the stick stops. He turns."
+          - "He strikes the other boy across the face."
+      player_status: observer_no_initiative
+
+    - id: struck_boy_bends_others_react
+      order: 4
+      duration_target_seconds: 7
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "The struck boy bends over, hands going to his mouth."
+          - "Other boys close in around him, helping him up."
+          - "Several shout after the attacker. The words do not carry."
+      player_status: observer_no_initiative
+
+  themes_realized_here: []
+
+  state_changes_committed:
+    - key: environment_state.struck_boy_visible_injury
+      to_value: bent_over_holding_mouth
+      commit_irreversible: false
+    - key: runtime_intelligence.attacker_identified_by_others
+      to_value: visible_to_witnessing_group_only
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    minimum_seconds_elapsed: 22
 
   next_point:
     step_id: opening_003_bicycle_disappearance
-    transition: "Follow the attacker only long enough to register the bicycle and disappearance."
+    handoff: "Follow the attacker long enough to register the bicycle being kicked over and his exit."
     carry_forward:
       - injured_boy_helped_up
       - boys_shouting_after_attacker

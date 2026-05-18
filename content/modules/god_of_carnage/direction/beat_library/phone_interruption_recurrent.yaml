@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: phone_interruption_recurrent
   version: v1
   category: recurrent
@@ -99,7 +99,7 @@ beat_pattern:
             - "apology_token: 'Entschuldigt mich kurz' or equivalent"
           quote_anchor: knowledge/opening_quote_anchors.yaml#quote_excuse_me_phone
           paraphrase_policy: short_anchor_quote_allowed
-          minimum_visible: "drei bis sechs Wörter, professional-detached"
+          minimum_visible: "drei bis sechs WÃ¶rter, professional-detached"
           forbidden_drift:
             - explain_who_is_calling
             - apologize_for_the_call_topic
@@ -121,7 +121,7 @@ beat_pattern:
               - explain_to_the_room_what_walter_said
               - close_call_without_dropping_a_load_bearing_fact
           narrator_perception_only:
-            - "Veronique, Michel und Annette hören Bruchstücke."
+            - "Veronique, Michel und Annette hÃ¶ren BruchstÃ¼cke."
         player_status: observer_window_open
         # Critical: while Alain is on the call, the OTHER actors must NOT
         # carry on a substantive conversation. They listen. Optional micro-
@@ -133,7 +133,7 @@ beat_pattern:
         duration_target_seconds: 3
         director_instruction:
           narrator_perception_only:
-            - "Alain steckt das Telefon zurück."
+            - "Alain steckt das Telefon zurÃ¼ck."
           # If leaves_phone_in_view: replace with 'Alain legt das Telefon
           # auf den Couchtisch.'
         player_status: observer_window_open
@@ -149,7 +149,7 @@ beat_pattern:
             - "return_token: minimal pivot or apology"
           quote_anchor: knowledge/opening_quote_anchors.yaml#quote_phone_return
           paraphrase_policy: short_anchor_quote_allowed
-          minimum_visible: "ein bis zwei kurze Sätze, register matches returns_to_room_with"
+          minimum_visible: "ein bis zwei kurze SÃ¤tze, register matches returns_to_room_with"
           forbidden_drift:
             - launch_into_new_topic_from_the_call
             - apologise_lengthily_for_taking_the_call
@@ -174,7 +174,7 @@ beat_pattern:
     - rule_id: alain_voice_during_call_differs_from_in_room
       severity: warning
       description: >-
-        Alain's call-register should be clipped, professional, transactional —
+        Alain's call-register should be clipped, professional, transactional â€”
         distinguishably different from his in-room register. Voice
         consistency validator should accept this divergence as
         register_shift_business_call.
@@ -197,7 +197,7 @@ beat_pattern:
         ataxia for 2.5 years while parents are arguing about a stick.
 
   example_usage_in_anticipated_step:
-    # Anticipated for canonical_path_v2/008_drift_back_to_living_room.yaml
+    # Anticipated for canonical_path/008_drift_back_to_living_room.yaml
     mandatory_beats:
       - id: alain_first_walter_call
         order: 3
@@ -206,7 +206,7 @@ beat_pattern:
         beat_pattern_params:
           call_partner: walter
           call_topic: antril_lancet_disclosure
-          interrupted_in_step_id: opening_v2_008_drift_back_to_living_room
+          interrupted_in_step_id: opening_008_drift_back_to_living_room
           interrupted_at_beat_id: penelope_asks_could_zachary_apologise
           alain_visible_facts:
             - "ataxia_mention"
@@ -218,10 +218,10 @@ beat_pattern:
           leaves_phone_in_view: true
 
   anticipated_recurrences_across_path:
-    - canonical_step: opening_v2_011  # first Walter call: Lancet disclosure
-    - canonical_step: opening_v2_017  # second Walter call: A.S.M. + Dennis chained
-    - canonical_step: opening_v2_027  # CNN panel call
-    - canonical_step: opening_v2_033  # phone destroyed (consequence_irreversible_commit fires)
+    - canonical_step: opening_011  # first Walter call: Lancet disclosure
+    - canonical_step: opening_017  # second Walter call: A.S.M. + Dennis chained
+    - canonical_step: opening_027  # CNN panel call
+    - canonical_step: opening_033  # phone destroyed (consequence_irreversible_commit fires)
 
   theme_arc_carried:
     actor: alain

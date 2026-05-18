@@ -3,44 +3,105 @@ canonical_path_step:
   id: opening_003_bicycle_disappearance
   path_id: goc_opening_canonical_path
   name: "003 - Bicycle kicked over, attacker gone"
-  mode: narrator_only_opening
+  mode: narrator_only_prologue
+
+  scene_anchor:
+    scene: 1
+    summary: >-
+      The boy with the stick leaves the visible group. On his way out he
+      kicks over a bicycle at the rack. The boys call after him; the
+      words still don't carry. He disappears from view. The incident
+      now requires adults.
+    continues_scene_from_step: opening_002_argument_stick_blow
+
+  duration_target_seconds: 20
+  duration_max_seconds: 30
+
+  theme_coverage_phase_refs: []
 
   location_ref:
     location_id: basketball_court
-    source: locations/opening/basketball_court.yaml
-    use_fields:
-      - entrances_exits
-      - sensory_tags
-  object_focus_ref:
-    object_id: bicycle_rack
-    source: objects/opening/bicycle_rack.yaml
-    use_fields:
-      - description
-      - sensory_tags
+    source: locations/exterior/basketball_court.yaml
+    use_fields: [entrances_exits, sensory_tags]
+  object_refs:
+    - object_id: bicycle_rack
+      source: objects/exterior/bicycle_rack.yaml
+      use_fields: [description, sensory_tags]
   support_refs:
     - location_id: park_edge
-      source: locations/opening/park_edge.yaml
+      source: locations/exterior/park_edge.yaml
       use_fields: [entrances_exits]
 
-  path_point:
-    action_beats:
-      - boy_with_stick_leaves_visible_group
-      - boy_with_stick_kicks_over_bicycle
-      - boys_call_after_him_without_reliable_words
-      - boy_with_stick_disappears_from_view
-    narrator_tasks:
-      - keep_aftermath_brief
-      - let_small_public_damage_echo_the_injury
-    must_not:
-      - follow_attacker_into_new_scene
-      - invent_chase
-      - introduce_adult_witnesses
-      - duplicate_location_description
-      - treat_object_as_location
+  present:
+    named_characters: []
+    on_screen_groups:
+      - id: boys_group
+        anchor_location_id: basketball_court
+      - id: attacker_boy_solo
+        count: 1
+
+  preconditions:
+    inherited_from_previous_step:
+      - injured_boy_helped_up
+      - boys_shouting_after_attacker
+      - stick_as_visible_action_object
+
+  mandatory_beats:
+
+    - id: attacker_leaves_visible_group
+      order: 1
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "The boy with the stick is already walking away."
+          - "His back is to the group."
+      player_status: observer_no_initiative
+
+    - id: bicycle_kicked_over
+      order: 2
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "At the rack, he kicks a bicycle. It falls sideways."
+          - "He does not stop walking."
+        sensory_anchors:
+          - objects/exterior/bicycle_rack.yaml#sensory_tags
+      player_status: observer_no_initiative
+
+    - id: boys_call_after_him_attacker_disappears
+      order: 3
+      duration_target_seconds: 6
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "The boys call after him again. The words still don't carry."
+          - "He turns a corner at the park edge and is gone from view."
+        sensory_anchors:
+          - locations/exterior/park_edge.yaml#entrances_exits
+      player_status: observer_no_initiative
+
+  themes_realized_here: []
+
+  state_changes_committed:
+    - key: environment_state.bicycle_rack_state
+      to_value: one_bicycle_knocked_over
+      commit_irreversible: false
+    - key: runtime_intelligence.attacker_visibility_state
+      to_value: gone_from_park_edge_view
+      commit_irreversible: true
+    - key: runtime_intelligence.incident_requires_adult_meeting
+      to_value: true
+      commit_irreversible: true
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    minimum_seconds_elapsed: 14
 
   next_point:
-    step_id: opening_004_dark_building_hallway
-    transition: "Move from child-world violence to the adult threshold where the meeting begins."
+    step_id: opening_004_den_arrival_positioning
+    handoff: "Move from child-world violence to the adult threshold where the meeting begins."
     carry_forward:
       - injury_requires_adult_meeting
       - process_must_remain_civilized_on_surface

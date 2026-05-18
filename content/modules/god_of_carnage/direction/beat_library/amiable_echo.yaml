@@ -1,11 +1,11 @@
-beat_pattern:
+﻿beat_pattern:
   id: amiable_echo
   version: v1
   category: npc_speak
   purpose: >-
     An actor repeats the phrase just chosen by another actor without adding
     information, in a register that confirms agreement and seals a small
-    consensus. Signature beat for Michel throughout the opening — his
+    consensus. Signature beat for Michel throughout the opening â€” his
     voice profile is built around amiable mirroring rather than original
     proposition. Reusable wherever a character must validate without
     contributing.
@@ -48,7 +48,7 @@ beat_pattern:
           - "echoed_phrase_token: {{ echoed_phrase_token }}"
         quote_anchor: "{{ quote_anchor }}"
         paraphrase_policy: structural_paraphrase_required
-        minimum_visible: "drei bis sieben Wörter, {{ tone }}"
+        minimum_visible: "drei bis sieben WÃ¶rter, {{ tone }}"
         forbidden_drift:
           - take_authorship_credit_for_the_phrase
           - add_a_joke
@@ -61,7 +61,7 @@ beat_pattern:
   validation_when_used:
     - rule_id: word_count_in_range
       severity: error
-      description: "Line must contain 3-7 words (inclusive), within ±1 of word_count_target."
+      description: "Line must contain 3-7 words (inclusive), within Â±1 of word_count_target."
 
     - rule_id: contains_echoed_phrase
       severity: error
@@ -100,7 +100,7 @@ beat_pattern:
         player_status: observer_window_open
 
   used_in_pilots:
-    - canonical_path_v2/006_armed_vs_carrying.yaml#michel_amiable_echo
+    - canonical_path/006_armed_vs_carrying.yaml#michel_amiable_echo
 
   character_signature_owner: michel
   signature_observation: >-

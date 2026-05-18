@@ -1,19 +1,110 @@
 {% extends "ui/base.html" %}
 {% block title %}Runtime Dashboard{% endblock %}
 {% block content %}
-<header class="ui-page-head">
-  <p class="ui-eyebrow">World-Engine</p>
-  <h1>Runtime Dashboard</h1>
-  <p class="ui-subtle">Blocker-first summary of live runtime posture (backend-proxied diagnostics).</p>
+<header class="ui-page-head ui-dash-head">
+  <div>
+    <p class="ui-eyebrow">World-Engine</p>
+    <h1>Runtime Dashboard</h1>
+    <p class="ui-subtle">Blocker-first control-plane snapshot (backend-proxied). Raw JSON lives under Technical audit.</p>
+    <div id="ui-dash-pills" class="ui-pillrow" aria-live="polite"></div>
+  </div>
+  <div class="ui-dash-actions">
+    <button type="button" class="ui-btn ui-btn-primary" id="ui-dash-refresh">Refresh</button>
+  </div>
 </header>
 <div id="ui-page-banner" class="ui-banner" hidden></div>
-<section class="ui-grid">
-  <article class="ui-card"><h2>Health</h2><pre id="ui-dash-health" class="ui-code">Loading...</pre></article>
-  <article class="ui-card"><h2>Sessions</h2><pre id="ui-dash-sessions" class="ui-code">Loading...</pre></article>
-  <article class="ui-card"><h2>Runs</h2><pre id="ui-dash-runs" class="ui-code">Loading...</pre></article>
-  <article class="ui-card" data-ui-cap="ai_governance"><h2>Readiness</h2><pre id="ui-dash-readiness" class="ui-code">Loading...</pre></article>
+
+<section class="ui-card ui-dash-summary-card">
+  <p class="ui-card-meta">Operator summary</p>
+  <h2 id="ui-dash-headline" class="ui-dash-headline">Loading snapshot…</h2>
+  <ul id="ui-dash-sub-lines" class="ui-dash-lines"></ul>
+  <p id="ui-dash-deep-dive" class="ui-subtle ui-dash-deep-dive"></p>
+</section>
+
+<section class="ui-grid ui-grid--2">
+  <article class="ui-card">
+    <p class="ui-card-meta">Blockers</p>
+    <h2>Fix first</h2>
+    <ul id="ui-dash-blockers" class="ui-dx-issue-list"></ul>
+  </article>
+  <article class="ui-card">
+    <p class="ui-card-meta">Warnings</p>
+    <h2>Degraded signals</h2>
+    <ul id="ui-dash-warnings" class="ui-dx-issue-list"></ul>
+  </article>
+</section>
+
+<section class="ui-card">
+  <p class="ui-card-meta">Posture</p>
+  <h2>At a glance</h2>
+  <div class="ui-grid ui-grid--3 ui-dash-glance-grid">
+    <div class="ui-dash-glance">
+      <h3>Desired</h3>
+      <ul id="ui-dash-desired-glance" class="ui-dash-lines"></ul>
+    </div>
+    <div class="ui-dash-glance">
+      <h3>Observed</h3>
+      <ul id="ui-dash-observed-glance" class="ui-dash-lines"></ul>
+    </div>
+    <div class="ui-dash-glance">
+      <h3>Connectivity</h3>
+      <ul id="ui-dash-connectivity-glance" class="ui-dash-lines"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="ui-grid ui-grid--2">
+  <article class="ui-card">
+    <p class="ui-card-meta">Active runtime</p>
+    <h2>Runs</h2>
+    <div id="ui-dash-runs-table">Loading…</div>
+    <p class="ui-subtle ui-dash-foot">Open <a href="/runs-sessions">Runs / Sessions</a> for drill-down.</p>
+  </article>
+  <article class="ui-card">
+    <p class="ui-card-meta">Active runtime</p>
+    <h2>Sessions</h2>
+    <div id="ui-dash-sessions-table">Loading…</div>
+    <p class="ui-subtle ui-dash-foot">Use <a href="/live-runtime">Live Runtime</a> for session state and diagnostics.</p>
+  </article>
+</section>
+
+<section class="ui-card" data-ui-cap="ai_governance" id="ui-dash-readiness-section">
+  <p class="ui-card-meta">Authority</p>
+  <h2>Runtime readiness</h2>
+  <div id="ui-dash-readiness-pills" class="ui-pillrow"></div>
+  <div id="ui-dash-readiness-summary"></div>
+  <ul id="ui-dash-readiness-warnings" class="ui-dx-issue-list ui-dash-readiness-warnings"></ul>
+  <p class="ui-subtle ui-dash-foot">Full authority on <a href="/validation-authority">Validation / ADR-0041</a>.</p>
+</section>
+
+<section class="ui-card ui-dash-audit-card">
+  <p class="ui-card-meta">Support</p>
+  <h2>Technical audit</h2>
+  <p class="ui-subtle">Raw payloads for tickets — use Copy / Wrap on each block.</p>
+  <details class="ui-dash-audit-details" open>
+    <summary>Control center snapshot</summary>
+    <pre id="ui-dash-audit-snapshot" class="ui-code" data-json-viewer data-json-label="Control center snapshot">Loading…</pre>
+  </details>
+  <details class="ui-dash-audit-details">
+    <summary>Desired / observed / connectivity</summary>
+    <p class="ui-dash-audit-label">Desired posture</p>
+    <pre id="ui-dash-audit-desired" class="ui-code" data-json-viewer data-json-label="Desired posture"></pre>
+    <p class="ui-dash-audit-label">Observed posture</p>
+    <pre id="ui-dash-audit-observed" class="ui-code" data-json-viewer data-json-label="Observed posture"></pre>
+    <p class="ui-dash-audit-label">Connectivity</p>
+    <pre id="ui-dash-audit-connectivity" class="ui-code" data-json-viewer data-json-label="Connectivity"></pre>
+  </details>
+  <details class="ui-dash-audit-details">
+    <summary>Active runtime JSON</summary>
+    <pre id="ui-dash-audit-runtime" class="ui-code" data-json-viewer data-json-label="Active runtime"></pre>
+  </details>
+  <details class="ui-dash-audit-details" data-ui-cap="ai_governance">
+    <summary>Runtime readiness authority</summary>
+    <pre id="ui-dash-audit-readiness" class="ui-code" data-json-viewer data-json-label="Runtime readiness authority"></pre>
+  </details>
 </section>
 {% endblock %}
 {% block extra_scripts %}
+<script src="/static/ui_diagnostic_view.js" defer></script>
 <script src="/static/ui_dashboard.js" defer></script>
 {% endblock %}

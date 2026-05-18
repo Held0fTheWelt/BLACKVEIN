@@ -1498,6 +1498,9 @@ class StorySession:
     runtime_world: dict[str, Any] = field(default_factory=dict)
     # Immutable-ish snapshot of published content identity at session birth (audit F-M3).
     content_provenance: dict[str, Any] = field(default_factory=dict)
+    # Canonical path pointer (Phase 5). For modules with a canonical_path, holds the
+    # id of the currently active step (e.g. "opening_004_den_arrival_positioning").
+    canonical_step_id: str | None = None
 
 
 def _parse_iso_datetime(value: str) -> datetime:
@@ -1531,6 +1534,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "environment_state": session.environment_state,
         "runtime_world": session.runtime_world,
         "content_provenance": session.content_provenance,
+        "canonical_step_id": session.canonical_step_id,
     }
 
 
@@ -1573,6 +1577,7 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         environment_state=dict(data.get("environment_state") or {}),
         runtime_world=dict(data.get("runtime_world") or {}),
         content_provenance=provenance,
+        canonical_step_id=(str(data["canonical_step_id"]) if data.get("canonical_step_id") else None),
     )
 
 
@@ -8529,6 +8534,33 @@ def _build_committed_turn_authority(
     return record
 
 
+def _resolve_canonical_path_for_session(session: "StorySession") -> Any | None:
+    """Resolve the canonical_path bundle for the session's content module.
+
+    Returns None when the module has no canonical_path/ directory or yaml is
+    unavailable. The resolver caches by module_root so repeated calls are cheap.
+    """
+    try:
+        from ai_stack.canonical_path_resolver import (
+            load_canonical_path,
+            CanonicalPathResolveError,
+        )
+    except ImportError:
+        return None
+    try:
+        module_root = _goc_content_modules_root() / session.module_id
+    except Exception:
+        return None
+    if not module_root.is_dir():
+        return None
+    try:
+        return load_canonical_path(module_root, content_module_id=session.module_id)
+    except CanonicalPathResolveError:
+        return None
+    except Exception:
+        return None
+
+
 def _build_ldss_scene_envelope(
     *,
     session: "StorySession",
@@ -8552,6 +8584,10 @@ def _build_ldss_scene_envelope(
     )
     selected_player_role = str(proj.get("selected_player_role") or "").strip()
 
+    canonical_path = _resolve_canonical_path_for_session(session)
+    if canonical_path is not None and not session.canonical_step_id:
+        session.canonical_step_id = canonical_path.first_step_id()
+
     ldss_input = build_ldss_input_from_session(
         session_id=session.session_id,
         module_id=session.module_id,
@@ -8566,9 +8602,26 @@ def _build_ldss_scene_envelope(
         # STAGING-OPENING-LANGUAGE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
         # language so the deterministic fallback renders language-correct opening text.
         session_output_language=getattr(session, "session_output_language", "de") or "de",
+        canonical_step_id=session.canonical_step_id,
+        canonical_path=canonical_path,
     )
 
     ldss_output = run_ldss(ldss_input)
+
+    # Advance the canonical step pointer when the canonical-step path produced
+    # visible output. The full unlock-gate logic (theme realization, forces
+    # response chain completion) is a Phase 6 deliverable; here we advance on
+    # successful turn completion only.
+    if (
+        canonical_path is not None
+        and session.canonical_step_id
+        and ldss_output.status == "approved"
+        and ldss_output.visible_actor_response_present
+    ):
+        nxt = canonical_path.next_step_id_after(session.canonical_step_id)
+        if nxt:
+            session.canonical_step_id = nxt
+
     envelope = build_scene_turn_envelope_v2(
         ldss_input=ldss_input,
         ldss_output=ldss_output,

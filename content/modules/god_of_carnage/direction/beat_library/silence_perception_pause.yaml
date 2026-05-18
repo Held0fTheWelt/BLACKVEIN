@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: silence_perception_pause
   version: v1
   category: narrator
@@ -65,7 +65,7 @@ beat_pattern:
       severity: error
       description: >-
         Lines must not attribute thinking, knowing, planning to anyone. Only
-        bodily stillness ('niemand atmet hörbar'), light shifts, room state.
+        bodily stillness ('niemand atmet hÃ¶rbar'), light shifts, room state.
 
     - rule_id: silence_does_not_replace_dialog
       severity: error
@@ -85,8 +85,8 @@ beat_pattern:
           silence_duration_seconds: 5
           perception_lines:
             - "Veronique hebt den Blick vom Bildschirm."
-            - "Niemand atmet hörbar."
+            - "Niemand atmet hÃ¶rbar."
           closes_window_when: next_mandatory_beat_due
 
   used_in_pilots:
-    - canonical_path_v2/005_statement_reading.yaml#silence_after_reading
+    - canonical_path/005_statement_reading.yaml#silence_after_reading

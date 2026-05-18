@@ -1,0 +1,152 @@
+﻿canonical_path_step:
+  sequence: 11
+  id: opening_011_alain_first_walter_call
+  path_id: goc_opening_canonical_path
+  name: "011 - Alain's first Walter call: Lancet/Antril/Ataxia disclosure"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 3
+    continues_scene_from_step: opening_010_snitch_sense_of_honor
+    summary: >-
+      Alain's phone vibrates midway through the moral discussion. He apologizes
+      briefly, steps back a little, and takes the call with Walter, a contact
+      from his law practice. Fragments of the conversation are audible: a pharma
+      scandal around the drug 'Antril', published in the Lancet, with the side-
+      effect token 'ataxia'. Half-billion revenue at risk. A.S.M. (shareholders'
+      meeting) in two weeks. Alain hangs up, apologizes briefly, and turns back
+      dismissively to the room.
+
+  duration_target_seconds: 90
+  duration_max_seconds: 120
+
+  theme_coverage_phase_refs:
+    - actor: alain
+      phase_id: pharma_crisis_first_call
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [entrances_exits, plausible_actions]
+  object_refs:
+    - object_id: alain_mobile_phone
+      source: objects/appartment_vallon/living_room/mobile_phone_alain.yaml
+    - object_id: alain_overcoat_with_newspaper
+      source: objects/appartment_vallon/foyer/alain_overcoat.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+    offstage_voice: walter  # heard only by alain
+
+  preconditions:
+    inherited_from_previous_step:
+      - snitch_thread_opened
+      - first_michel_veronique_micro_divergence_logged
+
+  mandatory_beats:
+
+    - id: first_walter_call_full_pattern
+      order: 1
+      duration_target_seconds: 75
+      beat_pattern_ref: phone_interruption_recurrent
+      beat_pattern_params:
+        call_partner: walter
+        call_topic: antril_lancet_disclosure
+        interrupted_in_step_id: opening_011_alain_first_walter_call
+        interrupted_at_beat_id: snitch_thread_just_explained
+        alain_visible_facts:
+          - "antril_mention: the drug Antril"
+          - "lancet_journal_mention: published in the Lancet"
+          - "ataxia_mention: side effect ataxia"
+          - "two_and_a_half_years_known: known for two and a half years"
+          - "half_billion_revenue: revenue in the half-billion range"
+          - "asm_in_two_weeks: A.S.M. in two weeks"
+        call_audible_duration_seconds: 50
+        returns_to_room_with: apology_then_return
+        leaves_phone_in_view: true
+      player_status: observer_window_open
+
+  optional_micro_beats:
+    - id: hosts_and_annette_glance_at_each_other
+      trigger: during(call_audible_segment)
+      condition: any_visible_fact_lands
+      director_instruction:
+        narrator_perception_only:
+          - "Veronique, Michel, and Annette exchange silent glances."
+        player_status: observer_window_open
+
+  player_intrusion_windows:
+    - beat_pattern_ref: player_intrusion_redirect_strict
+      beat_pattern_params:
+        between_beat_a: first_walter_call_full_pattern
+        between_beat_b: null
+        allowed: [silent_observation, small_gesture, speak_minimally]
+        forbidden: [interrupt_call, leave_the_room, touch_alains_phone]
+        redirect_kind: queued_input_no_visible_reaction
+
+  themes_realized_here:
+    - actor: alain
+      theme: antril_lancet_ataxia_disclosure
+      mechanism: "pharma crisis leaks into the room in fragmentary audible shards"
+      evidence_required:
+        - alain_speaks_antril_mention
+        - alain_speaks_lancet_journal_mention
+        - alain_speaks_ataxia_mention
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: half_billion_revenue_stake
+      mechanism: "commercial dimension made visible in passing"
+      evidence_required: [alain_speaks_half_billion_token]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: two_and_a_half_years_known
+      mechanism: "ethical dimension made visible â€” how long it has been known"
+      evidence_required: [alain_speaks_two_and_a_half_years_token]
+      blocks_progression_if_missing: true
+    - actor: alain
+      theme: asm_in_two_weeks_pressure
+      mechanism: "deadline pressure made visible â€” shareholders' meeting"
+      evidence_required: [alain_speaks_asm_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.alain_pharma_crisis_active
+      to_value:
+        product: antril
+        disclosure_outlet: lancet
+        known_for_years: 2.5
+        revenue_at_risk: half_billion
+        asm_in_weeks: 2
+      commit_irreversible: false
+    - key: runtime_intelligence.first_call_overheard_facts
+      to_value:
+        - antril
+        - lancet
+        - ataxia
+        - half_billion
+        - two_and_a_half_years
+        - asm_in_two_weeks
+      commit_irreversible: true
+    - key: environment_state.alain_phone_state
+      to_value: visible_on_coffee_table_or_in_hand
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 75
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_012_jobs_and_hamster
+    handoff: >-
+      After hanging up, the social script demands a return to small talk.
+      Michel asks 'So you're like a...?', Alain answers 'An attorney',
+      Annette asks about Michel's job. That leads into Veronique's writing
+      work and finally Michel's hamster confession.
+    carry_forward:
+      - alain_pharma_crisis_active
+      - first_call_overheard_facts_irreversible
+      - phone_visible_in_room

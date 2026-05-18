@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: scripted_monologue_segmented
   version: v1
   category: npc_speak
@@ -123,7 +123,7 @@ beat_pattern:
                 - "aggressor_id: ferdinand"
                 - "aggressor_carried_word: armed"
               quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
-              minimum_visible: "zwei Sätze mit Datum und Aggressor"
+              minimum_visible: "zwei SÃ¤tze mit Datum und Aggressor"
               duration_target_seconds: 14
               filler_perception_after:
                 - "Michel nickt einmal kurz, ohne den Blick zu heben."
@@ -131,11 +131,11 @@ beat_pattern:
               intent: read_aloud_second_half_injury_clinical
               required_facts:
                 - "injury_token_1: Schwellung_und_Bluterguss_Oberlippe"
-                - "injury_token_2: zwei_abgebrochene_Schneidezähne"
+                - "injury_token_2: zwei_abgebrochene_SchneidezÃ¤hne"
                 - "injury_token_3: Nervenverletzung_rechter_Schneidezahn"
               quote_anchor: knowledge/opening_quote_anchors.yaml#quote_injury_detail
-              minimum_visible: "klinische Aufzählung der drei Verletzungselemente"
+              minimum_visible: "klinische AufzÃ¤hlung der drei Verletzungselemente"
               duration_target_seconds: 12
 
   used_in_pilots:
-    - canonical_path_v2/005_statement_reading.yaml
+    - canonical_path/005_statement_reading.yaml

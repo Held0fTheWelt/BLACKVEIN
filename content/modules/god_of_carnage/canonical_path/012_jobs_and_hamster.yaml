@@ -1,0 +1,339 @@
+﻿canonical_path_step:
+  sequence: 12
+  id: opening_012_jobs_and_hamster
+  path_id: goc_opening_canonical_path
+  name: "012 - Jobs introduction and Michel's hamster admission"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 3
+    continues_scene_from_step: opening_011_alain_first_walter_call
+    summary: >-
+      Small-talk return after the call. Michel and Alain clarify each other's
+      professions. Annette establishes that Veronique is a writer working on a
+      book about Darfur. Annette names herself an investment broker. Veronique
+      asks about children. Annette asks: 'You got rid of the hamster?' Michel
+      admits he could no longer stand the animal at night and put it out on the
+      street. Annette's first maternal-defense reaction.
+
+  duration_target_seconds: 95
+  duration_max_seconds: 130
+
+  theme_coverage_phase_refs:
+    - actor: michel
+      phase_id: hospitable_husband_with_first_cracks
+      realization_step: true
+      climax: true
+    - actor: annette
+      phase_id: maternal_defense_first_signal
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+    use_fields: [plausible_actions, sensory_tags]
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  mandatory_beats:
+
+    - id: michel_so_youre_a
+      order: 1
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: tentatively_ask_alain_profession
+        required_facts: ["profession_question_token: so you are..."]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_so_youre_a
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words, friendly and tentative"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: state_attorney_minimum
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: alain_attorney
+      order: 2
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: state_profession_two_words
+        required_facts: ["profession_token: an attorney"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_attorney
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one or two words"
+      player_status: observer_window_open
+
+    - id: annette_and_yourself
+      order: 3
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: reciprocate_profession_question_to_michel
+        required_facts: ["reciprocity_question_token: and you"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_attorney
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words, polite and directed"
+      player_status: observer_window_open
+
+    - id: michel_houseware_supply_and_veronique_writer
+      order: 4
+      duration_target_seconds: 12
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: state_houseware_supply_and_introduce_veronique_writer
+        required_facts:
+          - "houseware_token: houseware supply"
+          - "veronique_writer_token: Veronique is a writer"
+          - "bookstore_part_time_token: works part-time in a bookstore"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_houseware_writer
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two short sentences, professional brief"
+      player_status: observer_window_open
+
+    - id: annette_a_writer
+      order: 5
+      duration_target_seconds: 2
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: annette
+        echoed_phrase_token: "a writer?"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_houseware_writer
+        word_count_target: 2
+        tone: polite_neutral
+      player_status: observer_window_open
+
+    - id: veronique_describes_books
+      order: 6
+      duration_target_seconds: 14
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: name_two_books_sabean_civilization_and_darfur
+        required_facts:
+          - "first_book_token: a volume on Sabaean civilization"
+          - "darfur_book_token: a book on the Darfur tragedy"
+          - "ethiopia_eritrea_token: after the conflict between Ethiopia and Eritrea"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_darfur_book
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two or three sentences, lightly proud matter-of-factness"
+        forbidden_drift: [lecture_on_darfur_geopolitics, name_drop_extended]
+      player_status: observer_window_open
+
+    - id: annette_specialize_in_africa
+      order: 7
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: characterize_veronique_as_africa_specialist
+        required_facts: ["africa_specialist_token: you specialize in Africa"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_darfur_book
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one short sentence, neutral and polite"
+      player_status: observer_window_open
+
+    - id: veronique_im_interested_in_that_part_of_the_world
+      order: 8
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: minimize_specialization_to_personal_interest
+        required_facts: ["interest_token: I am interested in the region"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_darfur_book
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one terse sentence, quiet deflection"
+      player_status: observer_window_open
+
+    - id: annette_other_children
+      order: 9
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: ask_about_other_children
+        required_facts: ["other_kids_question_token: any other children"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "a short question"
+      forces_response_chain:
+        target_actor: veronique
+        target_intent: mention_daughter_and_hamster_anger
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: veronique_daughter_angry_about_hamster
+      order: 10
+      duration_target_seconds: 8
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: mention_courtney_angry_father_got_rid_of_hamster
+        required_facts:
+          - "daughter_token: a daughter, nine years old"
+          - "anger_token: very angry at her father"
+          - "hamster_disposal_token: he got rid of the hamster last night"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one or two sentences, slightly apologetic"
+      forces_response_chain:
+        target_actor: annette
+        target_intent: shocked_question_about_hamster
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: annette_you_got_rid_of_the_hamster
+      order: 11
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: ask_with_quiet_shock_about_hamster
+        required_facts: ["incredulous_token: you got rid of the hamster"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three to five words, quiet outrage"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: full_hamster_admission_with_rationale
+        max_delay_seconds: 3
+      player_status: observer_window_open
+
+    - id: michel_hamster_admission_full
+      order: 12
+      duration_target_seconds: 22
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: explain_hamster_disposal_with_pragmatic_philosophy
+        required_facts:
+          - "noisy_at_night_token: made a terrible noise at night"
+          - "bruno_couldnt_stand_it_token: Bruno could not stand it anymore"
+          - "long_wanted_rid_token: I had wanted to get rid of the thing for a long time"
+          - "street_disposal_token: I put it out on the street"
+          - "not_a_pet_not_wild_token: not a pet, not a wild animal"
+          - "where_do_they_belong_token: where do they actually belong"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_philosophy
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "five or six short sentences, defensive pragmatism with a small philosophy flare"
+        forbidden_drift: [openly_cynical_tone, justify_with_arrogance]
+        tone_hint: defensive_pragmatist_warming_to_cynicism
+      player_status: observer_window_open
+
+    - id: annette_just_left_him_outside
+      order: 13
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: confirm_with_emphasis_left_outside
+        required_facts: ["just_left_outside_token: just left him outside"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_philosophy
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words, incredulous and precise"
+      player_status: observer_window_open
+
+    - id: veronique_he_lied_to_courtney
+      order: 14
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: add_he_tried_to_tell_courtney_hamster_ran_away
+        required_facts:
+          - "lie_to_daughter_token: he tried to convince Courtney the hamster ran away"
+          - "she_didnt_buy_it_token: which of course she did not believe"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_philosophy
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "one sentence, half amused, half reproachful"
+      player_status: observer_window_open
+
+    - id: alain_and_this_morning_gone
+      order: 15
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: confirm_hamster_gone_this_morning_minimal
+        required_facts: ["confirmation_question_token: and this morning the hamster was gone"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_philosophy
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five to seven words, neutral confirming"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: confirm_gone_with_one_word
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: michel_gone
+      order: 16
+      duration_target_seconds: 2
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: michel
+        echoed_phrase_token: "gone"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_hamster_philosophy
+        word_count_target: 1
+        tone: dry_agreement
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: michel
+      theme: hamster_left_on_sidewalk_admission
+      mechanism: "explicit confession with justification cascade"
+      evidence_required:
+        - michel_speaks_street_disposal_token
+        - michel_speaks_not_a_pet_not_wild_token
+        - michel_speaks_where_do_they_belong_token
+      blocks_progression_if_missing: true
+    - actor: michel
+      theme: theyre_not_pets_theyre_not_wild_philosophy
+      mechanism: "first visible move away from amiable echo toward his own pragmatic voice"
+      evidence_required: [michel_speaks_not_a_pet_not_wild_token]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: why_didnt_you_bring_the_hamster_home
+      mechanism: "preparation â€” returns in step 018 as an explicit question"
+      evidence_required: [annette_speaks_incredulous_token]
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: runtime_intelligence.hamster_admission_logged
+      to_value:
+        admitted_by: michel
+        rationale: noise_at_night_and_general_dislike
+        method: left_on_sidewalk
+        lie_to_daughter: true
+      commit_irreversible: true
+    - key: runtime_intelligence.first_michel_cynic_signal
+      to_value: { token: not_a_pet_not_wild_philosophy }
+      commit_irreversible: false
+    - key: runtime_intelligence.veronique_book_topics_disclosed
+      to_value: [sabean_civilization, darfur_tragedy]
+      commit_irreversible: true
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 85
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_013_apology_pressure_eleven
+    handoff: >-
+      After the hamster confession, Veronique brings the apology pressure
+      plainly: 'Could Ferdinand apologize to Bruno?' Alain deflects, Annette
+      demands a real apology. Michel pushes the eleven-is-not-an-adult defense.
+    carry_forward:
+      - hamster_admission_irreversible
+      - first_michel_cynic_signal_logged
+      - veronique_darfur_book_publicly_named
+      - annette_maternal_defense_seeded

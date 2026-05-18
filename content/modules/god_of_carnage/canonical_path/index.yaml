@@ -1,88 +1,73 @@
 canonical_path:
-  id: goc_canonical_path_v1
+  id: goc_canonical_path
   authority: module_authorial_path
   authoring_language: en
   primary_direction_surface: true
-  replaces_for_direction:
-    - scene_graph_as_primary_director_surface
+  schema_ref: _schema.yaml
+  theme_coverage_map_ref: theme_coverage_map.yaml
+  beat_library_ref: ../direction/beat_library/
+
   note: >-
-    The canonical path is the numbered story spine. It directs sequence,
-    emphasis, and narrator-path transitions only; location facts are pulled by
-    reference from locations/.
+    The canonical path is the numbered story spine for the God of Carnage
+    opening. It directs sequence, beats, NPC speech, and narrator perception.
+    Location, object, and character facts are pulled by reference from
+    locations/, objects/, characters/.
 
   reference_policy:
     location_facts_live_under: locations/
     object_facts_live_under: objects/
     character_facts_live_under: characters/
     quote_anchors_live_under: knowledge/opening_quote_anchors.yaml
+    beat_patterns_live_under: ../direction/beat_library/
     steps_must_reference_location_files: true
     steps_must_not_duplicate_location_descriptions: true
-    allowed_step_truth:
-      - action_beats
-      - present_actor_or_group_ids
-      - narrator_tasks
-      - constraints
-      - next_point
-      - carry_forward_markers
-      - theme_threads
-      - quote_anchor_refs
-      - play_model
-      - player_windows
-    forbidden_step_truth:
-      - environment_summary
-      - room_topology_rewrite
-      - inventory_rewrite
-      - long_verbatim_source_quotes
-
-  compatibility:
-    scene_graph: retained_as_runtime_index_until_replaced
-    opening_scene_sequence: retained_as_runtime_contract
+    steps_must_declare_scene_anchor: true
 
   paths:
     opening:
       id: goc_opening_canonical_path
-      title: "Opening playable canon: incident, threshold, statement, civility under pressure"
+      title: "Opening canonical path: prologue through act-one terminal/handoff"
       first_step_id: opening_001_parc_montsouris_edge
-      first_playable_step_id: opening_013_first_playable_courtesy_gap
-      minimum_play_duration_minutes: 20
-      target_play_duration_minutes: 30
-      runtime_shape: >-
-        Steps 001-005 can be rendered through the narrator_path as a concise
-        scenic prologue and speech-free threshold transition. Steps 006-016
-        sustain phase_1 play through ritual civility, wording, medical
-        consequence, quote cues, object pressure, and player response.
-      step_files:
-        - canonical_path/001_parc_montsouris_edge.yaml
-        - canonical_path/002_argument_stick_blow.yaml
-        - canonical_path/003_bicycle_disappearance.yaml
-        - canonical_path/004_dark_building_hallway.yaml
-        - canonical_path/005_living_room_threshold.yaml
-        - canonical_path/006_apartment_entry_greetings.yaml
-        - canonical_path/007_living_room_arrangement.yaml
-        - canonical_path/008_statement_on_table.yaml
-        - canonical_path/009_wording_dispute_armed_carrying.yaml
-        - canonical_path/010_injury_detail_dental_consequence.yaml
-        - canonical_path/011_courtesy_community_pressure.yaml
-        - canonical_path/012_tulips_and_hospitality.yaml
-        - canonical_path/013_first_playable_courtesy_gap.yaml
-        - canonical_path/014_player_response_ripple.yaml
-        - canonical_path/015_phone_exit_pressure.yaml
-        - canonical_path/016_opening_sustained_play_pressure_field.yaml
+      first_playable_step_id: opening_004_den_arrival_positioning
+      minimum_play_duration_minutes: 25
+      target_play_duration_minutes: 40
 
   step_order:
     - opening_001_parc_montsouris_edge
     - opening_002_argument_stick_blow
     - opening_003_bicycle_disappearance
-    - opening_004_dark_building_hallway
-    - opening_005_living_room_threshold
-    - opening_006_apartment_entry_greetings
-    - opening_007_living_room_arrangement
-    - opening_008_statement_on_table
-    - opening_009_wording_dispute_armed_carrying
-    - opening_010_injury_detail_dental_consequence
-    - opening_011_courtesy_community_pressure
-    - opening_012_tulips_and_hospitality
-    - opening_013_first_playable_courtesy_gap
-    - opening_014_player_response_ripple
-    - opening_015_phone_exit_pressure
-    - opening_016_sustained_play_pressure_field
+    - opening_004_den_arrival_positioning
+    - opening_005_statement_reading
+    - opening_006_armed_vs_carrying
+    - opening_007_drift_to_foyer_safer_park
+    - opening_008_living_room_tulips_florist
+    - opening_009_root_canal_observation_period
+    - opening_010_snitch_sense_of_honor
+    - opening_011_alain_first_walter_call
+    - opening_012_jobs_and_hamster
+    - opening_013_apology_pressure_eleven
+    - opening_014_kitchen_cobbler_hunt
+    - opening_015_back_to_living_room_cobbler
+    - opening_016_cobbler_eating_recipe_tooth_jab
+    - opening_017_alain_second_walter_call
+    - opening_018_hamster_inquiry_annette_pushback
+    - opening_019_apology_stalemate_new_teeth
+    - opening_020_drink_offering_rum_proposed
+    - opening_021_rum_poured_caring_parent_crap
+    - opening_022_drink_fueled_accusations_peak
+    - opening_023_annette_vomits_kokoschka
+    - opening_024_bathroom_blow_dryer_rescue
+    - opening_025_doodle_darjeeling_pet_names
+    - opening_026_annette_returns_name_calling_abuse
+    - opening_027_alain_cnn_call_deny_deny_deny
+    - opening_028_alliance_shifts_women_vs_men
+    - opening_029_whiskey_offered_annette_drinks
+    - opening_030_veronique_darfur_rant
+    - opening_031_spouses_vs_spouses
+    - opening_032_annette_blind_drunk_pivot
+    - opening_033_phone_destroyed_in_tulips
+    - opening_034_phone_aftermath
+    - opening_035_veronique_smashes_tulips
+    - opening_036_long_stupor_silence
+    - opening_037_park_hamster_ironic_reveal
+    - opening_038_handoff_or_terminal

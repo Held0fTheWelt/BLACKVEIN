@@ -184,6 +184,10 @@ class LDSSInput:
     # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: explicit session
     # output language so deterministic LDSS fallback projects language-correct visible text.
     session_output_language: str = "de"
+    # Canonical path consumption (Phase 5): when set, the LDSS renders deterministic
+    # scene blocks from the canonical step instead of returning a degraded notice.
+    canonical_step_id: str | None = None
+    canonical_path: Any | None = None  # ai_stack.canonical_path_resolver.CanonicalPath
 
     @property
     def human_actor_id(self) -> str:
@@ -579,6 +583,66 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
 
 
 # ---------------------------------------------------------------------------
+# Canonical-step LDSS output (Phase 5)
+# ---------------------------------------------------------------------------
+
+def build_canonical_step_ldss_output(ldss_input: LDSSInput) -> LDSSOutput | None:
+    """Render the active canonical step into a deterministic LDSSOutput.
+
+    Returns None when the input does not carry a resolvable canonical step;
+    callers fall back to the degraded notice path.
+    """
+    canonical_path = ldss_input.canonical_path
+    step_id = (ldss_input.canonical_step_id or "").strip()
+    if not canonical_path or not step_id:
+        return None
+
+    # Lazy import keeps live_dramatic_scene_simulator importable without yaml.
+    from ai_stack.canonical_step_renderer import render_canonical_step
+
+    rendered = render_canonical_step(
+        canonical_path,
+        step_id,
+        turn_number=ldss_input.turn_number,
+        human_actor_id=ldss_input.human_actor_id,
+    )
+    if rendered is None:
+        return None
+
+    blocks = rendered.visible_scene_output.blocks
+    input_str = f"{step_id}:{ldss_input.player_input}:{ldss_input.human_actor_id}:{ldss_input.turn_number}"
+    input_hash = f"sha256:canon-{hashlib.sha256(input_str.encode()).hexdigest()[:16]}"
+    output_seed = "|".join(b.text for b in blocks)
+    output_hash = f"sha256:canon-{hashlib.sha256(output_seed.encode()).hexdigest()[:16]}"
+
+    visible_present = any(b.block_type in VISIBLE_NPC_BLOCK_TYPES and b.actor_id for b in blocks)
+    phase_cost = build_deterministic_phase_cost(
+        phase="ldss",
+        provider="world_engine",
+        model="ldss_canonical_path",
+        status="approved",
+        scene_block_count=len(blocks),
+        visible_actor_response_present=visible_present,
+    )
+
+    return LDSSOutput(
+        visible_scene_output=rendered.visible_scene_output,
+        npc_agency_plan=rendered.npc_agency_plan,
+        status="approved",
+        decision_count=len(rendered.forces_response_records) or len(blocks),
+        npc_agency_plan_count=1 if rendered.npc_agency_plan else 0,
+        visible_actor_response_present=visible_present,
+        scene_block_count=len(blocks),
+        ldss_invoked=True,
+        entrypoint="story.turn.execute",
+        input_hash=input_hash,
+        output_hash=output_hash,
+        phase_cost=phase_cost,
+        legacy_blob_used=False,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -622,6 +686,49 @@ def run_ldss(ldss_input: LDSSInput) -> LDSSOutput:
             )
 
     try:
+        canonical_output = build_canonical_step_ldss_output(ldss_input)
+        if canonical_output is not None:
+            ldss_output = canonical_output
+
+            # Canonical-step output is authored truth; only the actor-lane
+            # guard applies (no AI controlling the human). dramatic_mass and
+            # passivity assumptions are written for the live-generation
+            # fallback path and do not apply to authored narrator-only beats.
+            lane_result = validate_actor_lane_blocks(
+                ldss_output.visible_scene_output.blocks,
+                human_actor_id=ldss_input.human_actor_id,
+                ai_forbidden_actor_ids=ldss_input.ai_forbidden_actor_ids,
+            )
+            if not lane_result.approved:
+                if ldss_span:
+                    ldss_span.update(
+                        output={"status": "rejected", "error": lane_result.error_code},
+                        metadata={"validation_failed": True, "error_code": lane_result.error_code},
+                    )
+                return _build_rejected_ldss_output(
+                    ldss_input=ldss_input,
+                    error_code=lane_result.error_code or "actor_lane_validation_failed",
+                    message=lane_result.message or "Actor lane validation rejected canonical output.",
+                )
+
+            if ldss_span:
+                ldss_span.update(
+                    output={
+                        "block_count": len(ldss_output.visible_scene_output.blocks),
+                        "decision_count": ldss_output.decision_count,
+                        "status": "approved",
+                        "source": "canonical_path",
+                    },
+                    metadata={
+                        "block_count": len(ldss_output.visible_scene_output.blocks),
+                        "decision_count": ldss_output.decision_count,
+                        "canonical_step_id": ldss_input.canonical_step_id,
+                        **ldss_output.phase_cost,
+                        "phase_cost": dict(ldss_output.phase_cost),
+                    },
+                )
+            return ldss_output
+
         ldss_output = build_deterministic_ldss_output(ldss_input)
 
         if _only_degraded_notice(ldss_output.visible_scene_output.blocks):
@@ -850,6 +957,8 @@ def build_ldss_input_from_session(
     content_module_id: str = "god_of_carnage",
     admitted_objects: list[dict[str, Any]] | None = None,
     session_output_language: str = "de",
+    canonical_step_id: str | None = None,
+    canonical_path: Any | None = None,
 ) -> LDSSInput:
     """Build LDSSInput from story session state fields."""
     story_session_state = {
@@ -864,6 +973,7 @@ def build_ldss_input_from_session(
         "human_actor_id": human_actor_id,
         "npc_actor_ids": npc_actor_ids,
         "visitor_present": False,
+        "canonical_step_id": canonical_step_id,
     }
     actor_lane_context = {
         "contract": "actor_lane_context.v1",
@@ -884,4 +994,6 @@ def build_ldss_input_from_session(
         player_input=player_input,
         admitted_objects=admitted_objects or [],
         session_output_language=session_output_language,
+        canonical_step_id=canonical_step_id,
+        canonical_path=canonical_path,
     )

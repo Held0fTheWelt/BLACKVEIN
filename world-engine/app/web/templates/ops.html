@@ -6,6 +6,7 @@
   <title>World Engine — Ops</title>
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/ui.css">
   <style>
     .ops-page { max-width: 56rem; margin: 0 auto; padding: 1.5rem; }
     .ops-page pre { overflow: auto; font-size: 0.85rem; }
@@ -25,14 +26,15 @@
 
     <section aria-labelledby="ops-health-heading">
       <h2 id="ops-health-heading">Health payloads</h2>
-      <pre id="ops-health-json" class="code-block" aria-label="Health JSON"></pre>
-      <pre id="ops-ready-json" class="code-block" aria-label="Ready JSON"></pre>
+      <pre id="ops-health-json" class="code-block" data-json-viewer aria-label="Health JSON"></pre>
+      <pre id="ops-ready-json" class="code-block" data-json-viewer aria-label="Ready JSON"></pre>
     </section>
 
     <div class="ops-actions">
       <button type="button" class="btn" id="ops-refresh">Refresh</button>
     </div>
   </main>
+  <script src="/static/ui_json_viewer.js" defer></script>
   <script>
     (function() {
       var banner = document.getElementById("ops-banner");
@@ -61,7 +63,7 @@
         });
       }
       document.getElementById("ops-refresh").addEventListener("click", load);
-      load();
+      document.addEventListener("DOMContentLoaded", load);
     })();
   </script>
 </body>

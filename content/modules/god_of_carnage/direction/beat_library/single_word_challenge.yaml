@@ -1,9 +1,9 @@
-beat_pattern:
+﻿beat_pattern:
   id: single_word_challenge
   version: v1
   category: npc_speak
   purpose: >-
-    A minimal challenge utterance — at most three words, often a single word
+    A minimal challenge utterance â€” at most three words, often a single word
     framed as a question. Used to introduce pedantic resistance without
     apparent confrontation. Signature beat for Alain's first appearance in
     the statement reading, and for similar low-volume challenges later in
@@ -43,7 +43,7 @@ beat_pattern:
           - "challenge_target_word: {{ challenge_target_word }}"
         quote_anchor: "{{ quote_anchor }}"
         paraphrase_policy: short_anchor_quote_allowed
-        minimum_visible: "ein einzelnes Wort als Frage, höchstens drei Wörter"
+        minimum_visible: "ein einzelnes Wort als Frage, hÃ¶chstens drei WÃ¶rter"
         forbidden_drift:
           - explain_why_the_word_is_wrong
           - propose_alternative_word_in_same_beat
@@ -103,9 +103,9 @@ beat_pattern:
           max_delay_seconds: 6
 
   used_in_pilots:
-    - canonical_path_v2/006_armed_vs_carrying.yaml#alain_single_word_challenge
+    - canonical_path/006_armed_vs_carrying.yaml#alain_single_word_challenge
 
   anticipated_recurrences:
-    # Other single-word challenges this pattern absorbs across canonical_path_v2:
-    - canonical_step: opening_v2_018  # snitch challenge ("Snitch?" implied)
-    - canonical_step: opening_v2_026  # name-calling challenge in alliance-shift phase
+    # Other single-word challenges this pattern absorbs across canonical_path:
+    - canonical_step: opening_018  # snitch challenge ("Snitch?" implied)
+    - canonical_step: opening_026  # name-calling challenge in alliance-shift phase

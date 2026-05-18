@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: type_into_device_with_speech_confirm
   version: v1
   category: narrator
@@ -91,4 +91,4 @@ beat_pattern:
         commit_irreversible: true
 
   used_in_pilots:
-    - canonical_path_v2/006_armed_vs_carrying.yaml#veronique_types_correction
+    - canonical_path/006_armed_vs_carrying.yaml#veronique_types_correction

@@ -1,0 +1,200 @@
+﻿canonical_path_step:
+  sequence: 5
+  id: opening_005_statement_reading
+  path_id: goc_opening_canonical_path
+  name: "005 - Veronique reads the written statement aloud"
+  mode: scripted_mandatory_dialog
+
+  scene_anchor:
+    scene: 2
+    continues_scene_from_step: opening_004_den_arrival_positioning
+    summary: >-
+      Veronique reads the written account of the incident aloud from the
+      screen: date, place, Ferdinand 'armed' with a stick, struck Bruno in the
+      face, injuries including nerve damage. The other three listen in silence.
+
+  duration_target_seconds: 40
+  duration_max_seconds: 60
+
+  location_ref:
+    location_id: longstreet_den
+    source: locations/appartment_vallon/den.yaml
+    use_fields:
+      - plausible_actions
+      - sensory_tags
+  object_refs:
+    - object_id: laptop_on_desk
+      source: objects/appartment_vallon/den/laptop.yaml
+      use_fields: [interaction_notes]
+  character_refs:
+    - characters/definitions/veronique.yaml
+    - characters/definitions/alain.yaml
+    - characters/definitions/annette.yaml
+    - characters/definitions/michel.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+    speaker_in_focus: veronique
+    silent_witnesses: [michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - meeting_authority_implicit_veronique
+      - statement_text_unread_yet
+
+  mandatory_beats:
+
+    - id: veronique_glance_back_before_reading
+      order: 1
+      duration_target_seconds: 6
+      director_instruction:
+        npc_speak:
+          actor: veronique
+          intent: name_the_format_briefly_before_reading
+          required_facts:
+            - clarification_token: "your_statement_will_be_separate_this_is_ours"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_separate_statement
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "a brief half-sentence with a glance back at the Cowans"
+          forbidden_drift:
+            - lecture_about_meeting_format
+            - apologize_for_the_statement
+            - invite_co_authorship
+        narrator_perception_only:
+          - "Veronique turns her head briefly toward Annette and Alain."
+        player_status: spectator_blocked
+
+    - id: veronique_reads_date_and_aggression
+      order: 2
+      duration_target_seconds: 14
+      director_instruction:
+        npc_speak:
+          actor: veronique
+          intent: read_aloud_first_half_of_written_statement
+          required_facts:
+            - date_token: "January 11, 2:30 p.m."
+            - location_token: "Parc Montsouris"
+            - aggressor_id: ferdinand
+            - aggressor_age: 11
+            - aggressor_carried_word: armed
+            - struck_action: "struck him in the face"
+            - victim_id: bruno
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "two sentences containing date, place, actor, victim, and the word 'armed'"
+          forbidden_drift:
+            - skip_word_armed   # MUST appear to set up beat 006
+            - add_moral_commentary_inside_reading
+            - soften_struck_in_face_to_passive
+            - read_in_journalistic_neutral_voice
+        narrator_perception_only:
+          - "Veronique reads from the screen in a firm voice."
+        player_status: spectator_blocked
+
+    - id: veronique_reads_injury_detail
+      order: 3
+      duration_target_seconds: 12
+      director_instruction:
+        npc_speak:
+          actor: veronique
+          intent: read_aloud_second_half_injury_clinical
+          required_facts:
+            - injury_token_1: "swelling_and_bruise_upper_lip"
+            - injury_token_2: "two_broken_incisors"
+            - injury_token_3: "nerve_injury_right_incisor"
+          quote_anchor: knowledge/opening_quote_anchors.yaml#quote_injury_detail
+          paraphrase_policy: structural_paraphrase_required
+          minimum_visible: "clinical listing of the three injury elements in one sentence"
+          forbidden_drift:
+            - melodramatize_injury
+            - skip_nerve_damage  # required for beat 010 dental_consequence
+            - read_as_if_reciting_a_poem
+        narrator_perception_only:
+          - "Michel nods once briefly without looking up."
+        player_status: spectator_blocked
+
+    - id: silence_after_reading
+      order: 4
+      duration_target_seconds: 5
+      director_instruction:
+        narrator_perception_only:
+          - "Veronique lifts her gaze from the screen."
+          - "No one breathes audibly."
+        player_status: observer_window_open
+      # First micro-window where player could observe; speaking would still
+      # collide with the forces_response chain about to fire in step 006.
+
+  player_intrusion_windows: []
+  # No intrusion windows during the reading itself. The reading is a
+  # script-mandatory NPC monologue. If the player attempts to speak,
+  # the LDSS queues the input and waits until silence_after_reading.
+
+  themes_realized_here:
+    - actor: veronique
+      theme: civility_via_procedure
+      mechanism: "written form as shield against direct accusation"
+      evidence_required:
+        - veronique_reads_without_emotional_inflection
+        - veronique_holds_authorship_of_the_text
+      blocks_progression_if_missing: true
+
+    - actor: veronique
+      theme: word_armed_planted_as_pressure_seed
+      mechanism: "the word 'armed' is deliberately left standing"
+      evidence_required:
+        - spoken_line_contains_word_armed
+      blocks_progression_if_missing: true
+
+    - actor: michel
+      theme: amiable_silent_co_signer
+      mechanism: "nods once at the injury detail"
+      evidence_required:
+        - michel_visible_micro_agreement
+      blocks_progression_if_missing: false
+
+    - actor: alain
+      theme: attentive_but_unmarked
+      mechanism: "no contribution of his own, but eyes on the screen"
+      evidence_required:
+        - alain_no_speech_in_this_step
+        - alain_eyes_on_screen
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: environment_state.statement_text_state
+      from_value: unread_on_screen
+      to_value: read_aloud_with_word_armed
+      commit_irreversible: false
+    - key: runtime_intelligence.speaking_floor_held_by
+      to_value: veronique
+      commit_irreversible: false
+    - key: runtime_intelligence.first_pressure_seed
+      to_value:
+        seed: word_armed_unchallenged_for_now
+        owner_of_seed: alain
+      commit_irreversible: false
+    - key: runtime_intelligence.injury_facts_visible_to_all
+      to_value:
+        - swelling_upper_lip
+        - two_broken_incisors
+        - nerve_damage_right_incisor
+      commit_irreversible: true
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 30
+    escape_via_player_initiative:
+      allowed: false
+
+  next_point:
+    step_id: opening_006_armed_vs_carrying
+    handoff: >-
+      The statement is on the table; the word 'armed' hangs in the air. Alain's
+      pedantic word objection must follow immediately (max_delay 8s in the
+      forces_response of the next step).
+    carry_forward:
+      - statement_word_armed_visible
+      - speaking_floor_held_by_veronique
+      - alain_first_pressure_seed_loaded
+      - injury_facts_committed_irreversible

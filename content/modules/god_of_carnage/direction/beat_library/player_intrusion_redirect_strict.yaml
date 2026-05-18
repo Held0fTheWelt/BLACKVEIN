@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: player_intrusion_redirect_strict
   version: v1
   category: structural
@@ -60,11 +60,11 @@ beat_pattern:
       default: narrator_perception_redirect
       description: >-
         How the LDSS handles a player attempt at a forbidden action.
-        narrator_perception_redirect → emit a short narrator line that
+        narrator_perception_redirect â†’ emit a short narrator line that
         absorbs the action without acknowledging it, then resume canon.
-        queued_input_no_visible_reaction → store the input for evaluation
+        queued_input_no_visible_reaction â†’ store the input for evaluation
         at the next observer_window_open beat.
-        mark_player_initiative_log_only → log to runtime_intelligence but
+        mark_player_initiative_log_only â†’ log to runtime_intelligence but
         emit no narrator response.
 
     - name: redirect_narrator_line_template
@@ -74,7 +74,7 @@ beat_pattern:
         Optional template line the LDSS uses for narrator_perception_redirect.
         Must pass narrator_perception_block's lexical filter. If omitted,
         the LDSS generates a default ('Niemand reagiert. [Source actor]
-        wartet einen Atemzug länger.').
+        wartet einen Atemzug lÃ¤nger.').
 
     - name: log_to_runtime_intelligence
       type: boolean
@@ -147,5 +147,5 @@ beat_pattern:
             Niemand antwortet auf den Player. Veronique wartet auf Alain.
 
   used_in_pilots:
-    - canonical_path_v2/004_den_arrival_positioning.yaml (between positions and mood)
-    - canonical_path_v2/006_armed_vs_carrying.yaml (two strict windows + one open trailing window)
+    - canonical_path/004_den_arrival_positioning.yaml (between positions and mood)
+    - canonical_path/006_armed_vs_carrying.yaml (two strict windows + one open trailing window)

@@ -1,0 +1,184 @@
+﻿canonical_path_step:
+  sequence: 29
+  id: opening_029_whiskey_offered_annette_drinks
+  path_id: goc_opening_canonical_path
+  name: "029 - Whiskey offered, Annette accepts and drinks heavily"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 7
+    summary: >-
+      Michel offers single-malt whiskey, partly to provoke. Annette accepts
+      and drinks fast. The drinking changes the temperature in a different
+      register â€” no longer 'meeting with friends', closer to a wake.
+      Annette's voice begins to transition to drunk_unleashed.
+
+  duration_target_seconds: 60
+  duration_max_seconds: 80
+
+  theme_coverage_phase_refs:
+    - actor: annette
+      phase_id: drunken_rage
+      realization_step: true
+    - actor: michel
+      phase_id: cynical_pragmatist_unmasked
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  object_refs:
+    - object_id: whiskey_bottle_single_malt
+      source: objects/appartment_vallon/living_room/whiskey_bottle.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - alliance_phase_C_women_vs_men_active
+      - annette_demands_more_drink
+
+  mandatory_beats:
+
+    - id: michel_offers_whiskey
+      order: 1
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: offer_single_malt_whiskey
+        required_facts:
+          - "single_malt_token: a single malt"
+          - "name_token: a peated Islay"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_whiskey_offer
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, cynical-host"
+      player_status: observer_window_open
+
+    - id: alain_objects_to_more_drink_for_annette
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: object_to_more_drink_for_annette
+        required_facts: ["enough_token: she has had enough"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_drunk_enough
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four or five words"
+      forces_response_chain:
+        target_actor: annette
+        target_intent: i_want_more
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: annette_i_want_more
+      order: 3
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: declare_i_want_more
+        required_facts: ["i_want_more_token: I want more"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_drunk_enough
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three or four words, defiant"
+        tone_hint: angry_clarity_finding_her_voice
+      player_status: observer_window_open
+
+    - id: michel_pours_for_annette
+      order: 4
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel pours whiskey for Annette without checking with Alain."
+          - "Annette drinks half the glass in one go."
+      player_status: observer_window_open
+
+    - id: annette_first_drunk_speech
+      order: 5
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: annette
+        intent: speak_with_first_unguarded_drunken_warmth
+        required_facts:
+          - "warm_register_token: this is good"
+          - "unguarded_admission_token: I don't usually drink"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_whiskey_offer
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, register shifting toward unguarded"
+        tone_hint: drunk_unleashed_destructive
+      player_status: observer_window_open
+
+    - id: veronique_im_not_drinking
+      order: 6
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: refuse_whiskey
+        required_facts: ["refuse_token: I am not having any"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_whiskey_offer
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four or five words, principled-firm"
+      player_status: observer_window_open
+
+    - id: alain_im_not_either
+      order: 7
+      duration_target_seconds: 2
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: alain
+        echoed_phrase_token: "neither am I"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_whiskey_offer
+        word_count_target: 3
+        tone: dry_agreement
+      player_status: observer_window_open
+
+    - id: michel_drinks_alone_with_annette
+      order: 8
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel pours for himself, raises his glass toward Annette."
+          - "Annette returns the gesture."
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: annette
+      theme: I_want_to_be_blind_drunk_declaration
+      mechanism: "seed beat â€” first explicit 'I want more' declaration"
+      evidence_required: [annette_speaks_i_want_more_token]
+      blocks_progression_if_missing: false
+    - actor: michel
+      theme: hamster_was_terrified_admission_returns
+      mechanism: "the cynic and the drinker bond â€” Michel breaks his amiable echo permanently"
+      evidence_required: [michel_pours_alongside_annette]
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: environment_state.beverage_state
+      to_value: whiskey_open_michel_and_annette_drinking
+      commit_irreversible: false
+    - key: runtime_intelligence.annette_voice_signature_transition_request
+      to_value:
+        from: angry_clarity_finding_her_voice
+        to: drunk_unleashed_destructive
+        ready_at_step: "029"
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    minimum_seconds_elapsed: 50
+
+  next_point:
+    step_id: opening_030_veronique_darfur_rant
+    handoff: "Veronique's principles, no longer mediated, escape into the Darfur rant."
+    carry_forward:
+      - whiskey_in_play
+      - annette_voice_transition_to_drunk_unleashed_logged
+      - veronique_principles_no_longer_mediated

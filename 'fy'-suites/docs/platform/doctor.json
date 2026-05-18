@@ -1,10 +1,10 @@
 {
   "schema_version": "fy.doctor.v1",
-  "generated_at": "2026-05-18T12:18:17.265392+00:00",
+  "generated_at": "2026-05-18T12:19:21.843016+00:00",
   "ok": false,
   "workspace_release": {
     "schema_version": "fy.workspace-release-readiness.v1",
-    "generated_at": "2026-05-18T12:17:20.068088+00:00",
+    "generated_at": "2026-05-18T12:18:20.456259+00:00",
     "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
     "ok": false,
     "workspace_check": {
@@ -1062,12 +1062,12 @@
   },
   "workspace_production": {
     "schema_version": "fy.production-readiness.v2",
-    "generated_at": "2026-05-18T12:18:15.954219+00:00",
+    "generated_at": "2026-05-18T12:19:20.822160+00:00",
     "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
     "ok": false,
     "release_readiness": {
       "schema_version": "fy.workspace-release-readiness.v1",
-      "generated_at": "2026-05-18T12:17:20.918111+00:00",
+      "generated_at": "2026-05-18T12:18:21.205288+00:00",
       "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
       "ok": false,
       "workspace_check": {
@@ -2745,7 +2745,7 @@
   },
   "catalog": {
     "schema_version": "fy.suite-catalog.v1",
-    "generated_at": "2026-05-18T12:18:17.265361+00:00",
+    "generated_at": "2026-05-18T12:19:21.842963+00:00",
     "suite_count": 15,
     "core_count": 13,
     "optional_count": 2,

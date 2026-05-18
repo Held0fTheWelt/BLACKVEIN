@@ -1,6 +1,3 @@
-"""Router for fy_platform.ai.model_router.
-
-"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,60 +13,28 @@ from fy_platform.providers.governor import ProviderGovernor
 
 
 class ModelRouter:
-    """Coordinate model router behavior.
-    """
     def __init__(self, root: Path | None = None) -> None:
-        """Initialize ModelRouter.
-
-        Args:
-            root: Root directory used to resolve repository-local paths.
-        """
         self.root = workspace_root(root) if root is not None else None
         self.cache = ProviderCache(self.root) if self.root is not None else None
         self.ir_catalog = IRCatalog(self.root) if self.root is not None else None
-        self.ledger_path = (self.root / 'metrify' / 'state' / 'ledger.jsonl') if self.root is not None else None
+        self.ledger_path = (self.root / "metrify" / "state" / "ledger.jsonl") if self.root is not None else None
         self.governor = ProviderGovernor(
             cache_lookup=(self.cache.has if self.cache is not None else (lambda key: False)),
             budget_checker=self._budget_checker,
         )
 
     def _budget_checker(self, request: ProviderCallRequest) -> bool:
-        """Budget checker.
-
-        Args:
-            request: Primary request used by this step.
-
-        Returns:
-            bool:
-                Boolean outcome for the requested
-                condition check.
-        """
-        return not (request.budget_class == 'expensive' and request.expected_utility < 0.5)
+        return not (request.budget_class == "expensive" and request.expected_utility < 0.5)
 
     def route(
         self,
         task_type: str,
         *,
-        ambiguity: str = 'low',
-        evidence_strength: str = 'moderate',
-        audience: str = 'developer',
-        reproducibility: str = 'stable',
+        ambiguity: str = "low",
+        evidence_strength: str = "moderate",
+        audience: str = "developer",
+        reproducibility: str = "stable",
     ) -> ModelRouteDecision:
-        """Route the requested operation.
-
-        Args:
-            task_type: Primary task type used by this step.
-            ambiguity: Primary ambiguity used by this step.
-            evidence_strength: Primary evidence strength used by this
-                step.
-            audience: Free-text input that shapes this operation.
-            reproducibility: Primary reproducibility used by this step.
-
-        Returns:
-            ModelRouteDecision:
-                Value produced by this callable as
-                ``ModelRouteDecision``.
-        """
         policy, reasons = apply_policy_adjustments(
             build_policy(task_type),
             task_type=task_type,
@@ -78,28 +43,28 @@ class ModelRouter:
             audience=audience,
             reproducibility=reproducibility,
         )
-        expected_utility = expected_utility_for(task_type, policy['tier'])
+        expected_utility = expected_utility_for(task_type, policy["tier"])
         request = ProviderCallRequest(
             task_type=task_type,
             suite_or_mode=task_type,
-            run_id='route-only',
-            lane_execution_id='route-only',
-            provider='policy-only',
-            model=policy['model'],
-            prompt_hash=sha256_text(f'{task_type}:{audience}:{ambiguity}'),
+            run_id="route-only",
+            lane_execution_id="route-only",
+            provider="policy-only",
+            model=policy["model"],
+            prompt_hash=sha256_text(f"{task_type}:{audience}:{ambiguity}"),
             context_hash=sha256_text(f'{evidence_strength}:{reproducibility}:{policy["tier"]}'),
             estimated_tokens=0,
             expected_utility=expected_utility,
-            budget_class=policy['budget'],
-            allow_provider=policy['tier'] == 'llm',
-            metadata={'evidence_strength': evidence_strength, 'reproducibility': reproducibility},
+            budget_class=policy["budget"],
+            allow_provider=policy["tier"] == "llm",
+            metadata={"evidence_strength": evidence_strength, "reproducibility": reproducibility},
         )
         governor = self.governor.decide(request)
         record_governed_route(
             self,
             task_type=task_type,
-            model=policy['model'],
-            budget_class=policy['budget'],
+            model=policy["model"],
+            budget_class=policy["budget"],
             expected_utility=expected_utility,
             prompt_hash=request.prompt_hash,
             context_hash=request.context_hash,
@@ -107,14 +72,14 @@ class ModelRouter:
         )
         return ModelRouteDecision(
             task_type=task_type,
-            selected_tier=policy['tier'],
-            selected_model=policy['model'],
-            reason=';'.join(reasons),
-            budget_class=policy['budget'],
+            selected_tier=policy["tier"],
+            selected_model=policy["model"],
+            reason=";".join(reasons),
+            budget_class=policy["budget"],
             fallback_chain=fallback_chain_for(policy),
-            reproducibility_mode=policy['repro'],
-            safety_mode=policy['safety'],
-            estimated_cost_class=policy['budget'],
+            reproducibility_mode=policy["repro"],
+            safety_mode=policy["safety"],
+            estimated_cost_class=policy["budget"],
             governor_allowed=governor.allowed,
             governor_reason=governor.reason,
             governor_policy_lane=governor.policy_lane,

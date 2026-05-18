@@ -1,0 +1,815 @@
+﻿theme_coverage_map:
+  id: goc_theme_coverage_map_v1
+  version: v1.0.0-phase3
+  status: draft
+  produced_by_phase: 3
+  consumed_by_schema: canonical_path/_schema.yaml
+  consumed_by_engine: ai_stack/live_dramatic_scene_simulator.py  # planned Phase 5
+  consumed_by_gate: tests/gates/test_theme_arc_realization.py     # planned Phase 6
+
+  purpose: >-
+    For each of the four named actors and for the cross-cutting alliance and
+    object arcs, declares the complete theme progression across the
+    anticipated 38-step canonical_path. Every theme has an entry step,
+    one or more realization steps, a climax step, and a blocking deadline:
+    if the theme is not observably realized by that deadline, the step does
+    not unlock and the gate test fails. This is the script-fidelity
+    enforcement layer that prevents the LDSS from substituting plausible
+    LLM continuations for the actual play's load-bearing beats.
+
+  scope:
+    source_release:
+      kind: shooting_script
+      release: polanski_2011_carnage
+      note: "The canonical_path is self-contained; the external script source is not bundled."
+    total_canonical_steps_anticipated: 38
+    canonical_path_pilots_built: [004, 005, 006]
+    canonical_path_to_build: [007, 008, 009, 010, 011, 012, 013, 014, 015,
+                                   016, 017, 018, 019, 020, 021, 022, 023,
+                                   024, 025, 026, 027, 028, 029, 030, 031,
+                                   032, 033, 034, 035, 036, 037, 038]
+    name_mapping_ref: script_anchor/polanski_to_reza_name_map.yaml
+
+  # ------------------------------------------------------------------
+  # Step-to-Script line-range index (anchors for every anticipated step)
+  # ------------------------------------------------------------------
+  step_scene_index:
+    "001": { scene: 1, summary: "Park edge, group of boys at the court" }
+    "002": { scene: 1, summary: "Argument, stick, blow" }
+    "003": { scene: 1, summary: "Bicycle kicked over, attacker gone" }
+    "004": { scene: 2, summary: "Den arrival, four positions taken" }
+    "005": { scene: 2, summary: "Veronique reads statement aloud" }
+    "006": { scene: 2, summary: "Armed vs carrying word challenge" }
+    "007": { scene: 2, summary: "Drift to foyer, 'safer park' irony, 'sense of community'" }
+    "008": { scene: 3, summary: "Living room, tulips compliment, florist talk, tooth question begins" }
+    "009": { scene: 3, summary: "Root canal explanation, observation period, dental detail" }
+    "010": { scene: 3, summary: "Snitch discussion: 'sense of honor', why the victim gave up the name" }
+    "011": { scene: 3, summary: "Alain's first Walter call: Lancet/Antril/ataxia disclosure" }
+    "012": { scene: 3, summary: "Jobs introduction + hamster reveal (Michel left hamster on the street)" }
+    "013": { scene: 3, summary: "Apology pressure: 'Could Ferdinand apologize?', 'He's eleven'" }
+    "014": { scene: 4, summary: "Kitchen interlude: cobbler hunt, hosts privately" }
+    "015": { scene: 5, summary: "Back to living room: positions reset, cobbler arrival, hamster echo" }
+    "016": { scene: 5, summary: "Cobbler eating, recipe (apple/pear/gingerbread), tooth jab" }
+    "017": { scene: 5, summary: "Alain's second Walter call: A.S.M., revenue, Dennis call chained" }
+    "018": { scene: 5, summary: "Hamster moral inquiry, Annette's first sharp pushback" }
+    "019": { scene: 5, summary: "Apology stalemate, 'He'll get new teeth!', sarcasm escalation" }
+    "020": { scene: 5, summary: "Drink offering: rum proposed, civility begins to crack" }
+    "021": { scene: 5, summary: "Rum poured, escalation, 'caring parent crap'" }
+    "022": { scene: 6, summary: "Drink-fueled accusations, host vs guest pressure peaks" }
+    "023": { scene: 6, summary: "Annette gags, vomits on Kokoschka catalog (IRREVERSIBLE)" }
+    "024": { scene: 7, summary: "Aftermath: bathroom, hair dryer, art books rescue attempt" }
+    "025": { scene: 7, summary: "Doodle pet-name, darjeeling reveal, false civility resumes" }
+    "026": { scene: 7, summary: "Annette returns from bathroom, name-calling = abuse, snitch redux" }
+    "027": { scene: 7, summary: "Alain CNN call, 'No victims on the panel', 'Deny deny deny'" }
+    "028": { scene: 7, summary: "Alliance shifts: women vs men, Michel becomes cynic" }
+    "029": { scene: 7, summary: "Whiskey offered, Annette accepts and drinks heavily" }
+    "030": { scene: 8, summary: "Veronique Darfur rant, moral idealism unmasked" }
+    "031": { scene: 8, summary: "Alliance shifts again: spouses vs spouses, each attacks own partner" }
+    "032": { scene: 8, summary: "Annette drunk-pivot, 'I want to be blind drunk!'" }
+    "033": { scene: 8, summary: "Annette destroys Alain's phone in tulip water (IRREVERSIBLE)" }
+    "034": { scene: 8, summary: "Phone destruction aftermath, Alain frozen, recovery attempts" }
+    "035": { scene: 8, summary: "Veronique smashes the tulips with handbag (IRREVERSIBLE), Annette collapses" }
+    "036": { scene: 8, summary: "Long stupor silence, Alain's phone vibrates and turns on coffee table" }
+    "037": { scene: 21, summary: "Park reveal: hamster alive nibbling acorn, kids playing happily" }
+    "038": { scene: terminal, summary: "Phase_1 handoff or terminal close (depending on runtime mode)" }
+
+  # ==================================================================
+  # ACTOR THEME ARCS
+  # ==================================================================
+
+  actor_theme_arcs:
+
+    # ----------------------------------------------------------------
+    # VERONIQUE â€” host wife, moral idealist arc
+    # ----------------------------------------------------------------
+    veronique:
+      script_name: penelope_longstreet
+      voice_signature_initial: civil_arbiter_with_authorship
+      voice_signature_terminal: moral_idealist_screaming_in_collapse
+      pressure_profile_ref: actor_pressure_profiles.yaml#veronique
+
+      arc_phases:
+
+        - phase_id: meeting_chair_civility
+          entry_step: "004"
+          realization_steps: ["004", "005", "006", "007"]
+          climax_step: "006"
+          themes:
+            - meeting_chair_by_seating_position
+            - civility_via_procedure
+            - compromise_without_yielding_authority
+            - irony_of_the_safer_park
+          blocking_deadline_step: "007"
+          voice_signature_during_phase: civil_arbiter_with_authorship
+
+        - phase_id: hospitality_under_strain
+          entry_step: "008"
+          realization_steps: ["008", "009", "012", "014", "015", "016"]
+          climax_step: "016"
+          themes:
+            - hostess_florist_pride
+            - dental_detail_dignified_explanation
+            - cobbler_pride_inherited_from_mother
+            - apple_pear_thicker_recipe_signature
+          blocking_deadline_step: "016"
+          voice_signature_during_phase: pridefully_hosting_with_book_intellect
+
+        - phase_id: parental_principle_pressure
+          entry_step: "013"
+          realization_steps: ["013", "018", "019"]
+          climax_step: "019"
+          themes:
+            - sense_of_honor_requires_social_context
+            - eleven_is_not_a_baby
+            - source_of_problem_is_zachary_not_society
+          blocking_deadline_step: "019"
+          voice_signature_during_phase: principled_polite_growing_brittle
+
+        - phase_id: kokoschka_catastrophe
+          entry_step: "022"
+          realization_steps: ["023", "024"]
+          climax_step: "023"
+          themes:
+            - art_devotion_revealed_only_when_destroyed
+            - kokoschka_catalog_irreplaceable
+            - public_grief_for_book_overshadows_concern_for_guest
+          blocking_deadline_step: "024"
+          voice_signature_during_phase: openly_brittle_about_books
+          irreversible_commit_required_at_step: "023"
+
+        - phase_id: moral_idealism_breaks_open
+          entry_step: "030"
+          realization_steps: ["030", "031", "033"]
+          climax_step: "030"
+          themes:
+            - darfur_book_publication_pride
+            - sudan_devotion_overrides_room
+            - blame_is_not_shared
+            - victim_and_criminal_are_not_the_same
+          blocking_deadline_step: "030"
+          voice_signature_during_phase: moral_idealist_loud_and_unguarded
+
+        - phase_id: smashing_collapse
+          entry_step: "035"
+          realization_steps: ["035", "036"]
+          climax_step: "035"
+          themes:
+            - whacks_her_own_tulips_in_self_negation
+            - I_am_horrified_register
+            - sheer_horror_what_is_happening_in_that_part_of_the_world
+          blocking_deadline_step: "035"
+          voice_signature_during_phase: moral_idealist_screaming_in_collapse
+          irreversible_commit_required_at_step: "035"
+
+      voice_signature_transitions:
+        - from: civil_arbiter_with_authorship
+          to: pridefully_hosting_with_book_intellect
+          allowed_at_step: "008"
+        - from: pridefully_hosting_with_book_intellect
+          to: principled_polite_growing_brittle
+          allowed_at_step: "013"
+        - from: principled_polite_growing_brittle
+          to: openly_brittle_about_books
+          allowed_at_step: "022"
+        - from: openly_brittle_about_books
+          to: moral_idealist_loud_and_unguarded
+          allowed_at_step: "029"
+        - from: moral_idealist_loud_and_unguarded
+          to: moral_idealist_screaming_in_collapse
+          allowed_at_step: "034"
+
+    # ----------------------------------------------------------------
+    # MICHEL â€” host husband, pragmatist-to-cynic arc
+    # ----------------------------------------------------------------
+    michel:
+      script_name: michael_longstreet
+      voice_signature_initial: amiable_mirror_reinforcer
+      voice_signature_terminal: cynical_pragmatist_unmasked
+      pressure_profile_ref: actor_pressure_profiles.yaml#michel
+
+      arc_phases:
+
+        - phase_id: amiable_silent_co_signer
+          entry_step: "004"
+          realization_steps: ["004", "005", "006", "007"]
+          climax_step: "006"
+          themes:
+            - amiable_supporter_posture
+            - amiable_silent_co_signer
+            - amiable_mirror_reinforcer
+          blocking_deadline_step: "006"
+          voice_signature_during_phase: amiable_mirror_reinforcer
+          pattern_signature: amiable_echo  # see beat_library/
+
+        - phase_id: hospitable_husband_with_first_cracks
+          entry_step: "008"
+          realization_steps: ["008", "012", "014", "015", "016"]
+          climax_step: "012"
+          themes:
+            - houseware_supply_job_register
+            - hamster_left_on_sidewalk_admission
+            - they_re_not_pets_they_re_not_wild_philosophy
+          blocking_deadline_step: "012"
+          voice_signature_during_phase: amiable_with_first_cynic_edges
+
+        - phase_id: defending_pragmatic_realism
+          entry_step: "018"
+          realization_steps: ["018", "019", "020"]
+          climax_step: "018"
+          themes:
+            - we_coaxed_it_out_of_him_about_snitching
+            - hes_eleven_not_an_adult_either
+            - cobbler_pride_as_distraction_tactic
+          blocking_deadline_step: "020"
+          voice_signature_during_phase: defensive_pragmatic_warmth_thinning
+
+        - phase_id: cynical_pragmatist_unmasked
+          entry_step: "028"
+          realization_steps: ["028", "030", "031", "032"]
+          climax_step: "030"
+          themes:
+            - we_re_all_decent_people_betrayed
+            - they_dont_give_a_shit_revelation
+            - yes_darjeeling_youre_so_wonderful_sarcasm
+            - sudan_sambos_outburst
+            - I_feel_like_being_openly_despicable
+          blocking_deadline_step: "030"
+          voice_signature_during_phase: cynical_pragmatist_unmasked
+
+        - phase_id: hamster_metaphor_owns_him
+          entry_step: "032"
+          realization_steps: ["032", "036"]
+          climax_step: "032"
+          themes:
+            - hamster_was_terrified_admission_returns
+            - I_dont_touch_them_self_revelation
+          blocking_deadline_step: "036"
+          voice_signature_during_phase: cynical_pragmatist_unmasked
+
+      voice_signature_transitions:
+        - from: amiable_mirror_reinforcer
+          to: amiable_with_first_cynic_edges
+          allowed_at_step: "012"
+        - from: amiable_with_first_cynic_edges
+          to: defensive_pragmatic_warmth_thinning
+          allowed_at_step: "018"
+        - from: defensive_pragmatic_warmth_thinning
+          to: cynical_pragmatist_unmasked
+          allowed_at_step: "028"
+
+    # ----------------------------------------------------------------
+    # ANNETTE â€” guest wife, polite-to-shattered arc
+    # ----------------------------------------------------------------
+    annette:
+      script_name: nancy_cowan
+      voice_signature_initial: tight_polite_investment_broker
+      voice_signature_terminal: drunk_broken_destructive
+      pressure_profile_ref: actor_pressure_profiles.yaml#annette
+
+      arc_phases:
+
+        - phase_id: more_committed_to_staying_than_husband
+          entry_step: "004"
+          realization_steps: ["004", "005", "006"]
+          climax_step: "004"
+          themes:
+            - coat_set_down_offscreen_signal
+            - silent_during_first_word_dispute
+          blocking_deadline_step: "006"
+          voice_signature_during_phase: tight_polite_investment_broker
+
+        - phase_id: polite_admiration_register
+          entry_step: "008"
+          realization_steps: ["008", "009"]
+          climax_step: "008"
+          themes:
+            - tulips_are_gorgeous_compliment
+            - oh_right_oh_right_acknowledgement_pattern
+            - asking_about_tooth_appropriately
+          blocking_deadline_step: "009"
+          voice_signature_during_phase: tight_polite_investment_broker
+
+        - phase_id: maternal_defense_first_signal
+          entry_step: "012"
+          realization_steps: ["012", "013", "018"]
+          climax_step: "018"
+          themes:
+            - why_didnt_you_bring_the_hamster_home
+            - he_has_to_actually_say_he_s_sorry
+            - zachary_has_never_been_violent_apology_seed
+          blocking_deadline_step: "018"
+          voice_signature_during_phase: investment_broker_growing_protective
+
+        - phase_id: physical_collapse_kokoschka
+          entry_step: "023"
+          realization_steps: ["023", "024", "025"]
+          climax_step: "023"
+          themes:
+            - gags_loses_composure
+            - vomits_on_kokoschka_catalog
+            - bathroom_recovery_left_towel_in_bathtub
+          blocking_deadline_step: "024"
+          voice_signature_during_phase: undone_post_vomit_apologetic
+          irreversible_commit_required_at_step: "023"
+
+        - phase_id: alliance_with_veronique_against_men
+          entry_step: "026"
+          realization_steps: ["026", "028", "029"]
+          climax_step: "028"
+          themes:
+            - name_calling_is_a_kind_of_abuse
+            - zachary_must_have_had_his_reasons
+            - alan_do_something_register
+          blocking_deadline_step: "029"
+          voice_signature_during_phase: angry_clarity_finding_her_voice
+
+        - phase_id: drunken_rage
+          entry_step: "029"
+          realization_steps: ["029", "031", "032"]
+          climax_step: "032"
+          themes:
+            - I_want_to_be_blind_drunk_declaration
+            - glad_our_son_kicked_the_shit_out_of_yours_register
+            - I_wipe_my_ass_with_your_human_rights
+            - coward_to_alain
+          blocking_deadline_step: "032"
+          voice_signature_during_phase: drunk_unleashed_destructive
+
+        - phase_id: phone_in_tulips_destruction
+          entry_step: "033"
+          realization_steps: ["033", "034"]
+          climax_step: "033"
+          themes:
+            - drops_phone_in_tulip_water_or_smashes_into_flowers
+            - this_is_the_worst_day_of_my_life_too_collapse
+          blocking_deadline_step: "034"
+          voice_signature_during_phase: drunk_broken_destructive
+          irreversible_commit_required_at_step: "033"
+
+      voice_signature_transitions:
+        - from: tight_polite_investment_broker
+          to: investment_broker_growing_protective
+          allowed_at_step: "012"
+        - from: investment_broker_growing_protective
+          to: undone_post_vomit_apologetic
+          allowed_at_step: "023"
+        - from: undone_post_vomit_apologetic
+          to: angry_clarity_finding_her_voice
+          allowed_at_step: "026"
+        - from: angry_clarity_finding_her_voice
+          to: drunk_unleashed_destructive
+          allowed_at_step: "029"
+        - from: drunk_unleashed_destructive
+          to: drunk_broken_destructive
+          allowed_at_step: "033"
+
+    # ----------------------------------------------------------------
+    # ALAIN â€” guest husband, detached-to-cornered arc
+    # ----------------------------------------------------------------
+    alain:
+      script_name: alan_cowan
+      voice_signature_initial: detached_professional_minimal_speech
+      voice_signature_terminal: cornered_pragmatist_phone_destroyed
+      pressure_profile_ref: actor_pressure_profiles.yaml#alain
+
+      arc_phases:
+
+        - phase_id: ready_to_leave_minimal_speech
+          entry_step: "004"
+          realization_steps: ["004", "005", "006"]
+          climax_step: "006"
+          themes:
+            - ready_to_leave_signal_coat_on_arm
+            - attentive_but_unmarked
+            - detached_pedantry_first_signal
+          blocking_deadline_step: "006"
+          voice_signature_during_phase: detached_professional_minimal_speech
+          pattern_signature: single_word_challenge  # see beat_library/
+
+        - phase_id: pharma_crisis_first_call
+          entry_step: "011"
+          realization_steps: ["011"]
+          climax_step: "011"
+          themes:
+            - antril_lancet_ataxia_disclosure
+            - half_billion_revenue_stake
+            - two_and_a_half_years_known
+            - asm_in_two_weeks_pressure
+          blocking_deadline_step: "011"
+          voice_signature_during_phase: clipped_professional_call_register
+          pattern_signature: phone_interruption_recurrent
+
+        - phase_id: pedantic_corrections_inside_room
+          entry_step: "013"
+          realization_steps: ["013", "014", "015"]
+          climax_step: "013"
+          themes:
+            - it_would_be_good_if_they_talked_minimal
+            - he_didnt_realize_how_serious_it_was
+            - he_s_eleven_years_old_dismissal
+          blocking_deadline_step: "015"
+          voice_signature_during_phase: detached_professional_minimal_speech
+
+        - phase_id: pharma_crisis_second_call
+          entry_step: "017"
+          realization_steps: ["017"]
+          climax_step: "017"
+          themes:
+            - deny_deny_deny_directive
+            - no_letters_to_the_editor
+            - dennis_chained_call
+          blocking_deadline_step: "017"
+          voice_signature_during_phase: clipped_professional_call_register
+
+        - phase_id: strategic_cynicism_revealed
+          entry_step: "019"
+          realization_steps: ["019", "020", "021"]
+          climax_step: "021"
+          themes:
+            - hell_get_new_teeth_better_ones
+            - this_caring_parent_crap_register
+            - quartermaster_on_a_slave_ship_jibe
+          blocking_deadline_step: "021"
+          voice_signature_during_phase: defensive_lawyer_cracking
+
+        - phase_id: cnn_panel_strategic_call
+          entry_step: "027"
+          realization_steps: ["027"]
+          climax_step: "027"
+          themes:
+            - no_victims_on_the_panel
+            - well_sue_the_journal
+            - deny_deny_deny_repeated
+          blocking_deadline_step: "027"
+          voice_signature_during_phase: clipped_professional_call_register
+          pattern_signature: phone_interruption_recurrent
+
+        - phase_id: dismantled_through_phone_loss
+          entry_step: "031"
+          realization_steps: ["031", "033", "034"]
+          climax_step: "033"
+          themes:
+            - same_kind_of_involved_problem_solver_woman
+            - phone_destroyed_in_tulip_water
+            - frozen_silent_after_phone_destruction
+          blocking_deadline_step: "034"
+          voice_signature_during_phase: cornered_pragmatist_phone_destroyed
+          irreversible_commit_required_at_step: "033"
+
+      voice_signature_transitions:
+        - from: detached_professional_minimal_speech
+          to: clipped_professional_call_register
+          allowed_at_step: "011"
+          note: "register shift only during phone interruption beats; reverts in-room"
+        - from: detached_professional_minimal_speech
+          to: defensive_lawyer_cracking
+          allowed_at_step: "019"
+        - from: defensive_lawyer_cracking
+          to: cornered_pragmatist_phone_destroyed
+          allowed_at_step: "033"
+
+  # ==================================================================
+  # CROSS-CUTTING ARCS
+  # ==================================================================
+
+  cross_cutting_arcs:
+
+    # ----------------------------------------------------------------
+    # Alliance configuration shifts â€” the play's structural backbone
+    # ----------------------------------------------------------------
+    alliance_configurations:
+
+      - phase_id: phase_A_couples_united_hosts_vs_guests
+        steps: ["004", "005", "006", "007", "008", "009"]
+        configuration:
+          hosts_united: [veronique, michel]
+          guests_united: [annette, alain]
+          axis: hosts_vs_guests
+        committed_by_end_of_step: "009"
+
+      - phase_id: phase_B_couples_strained_but_intact
+        steps: ["010", "011", "012", "013", "014", "015", "016", "017"]
+        configuration:
+          couples_remain: true
+          internal_distance_growing: true
+          axis: hosts_vs_guests_with_pharma_crisis_subplot
+        committed_by_end_of_step: "017"
+
+      - phase_id: phase_C_alliance_shifts_to_women_vs_men
+        steps: ["024", "025", "026", "027", "028"]
+        configuration:
+          women_alliance: [veronique, annette]
+          men_alliance: [michel, alain]
+          trigger_event: nancy_vomits_michel_jokes
+          axis: women_vs_men
+        committed_by_end_of_step: "028"
+
+      - phase_id: phase_D_each_spouse_against_their_own
+        steps: ["029", "030", "031", "032"]
+        configuration:
+          inside_household_axis: true
+          veronique_attacks_michel: true
+          annette_attacks_alain: true
+          axis: spouses_vs_spouses
+        committed_by_end_of_step: "032"
+
+      - phase_id: phase_E_everyone_vs_everyone
+        steps: ["033", "034", "035", "036"]
+        configuration:
+          no_stable_alliance: true
+          mass_destruction_phase: true
+          axis: all_against_all
+        committed_by_end_of_step: "036"
+
+      - phase_id: phase_F_ironic_reset
+        steps: ["037"]
+        configuration:
+          axis: kids_reconciled_adults_destroyed
+          dramatic_irony: maximum
+        committed_by_end_of_step: "037"
+
+    # ----------------------------------------------------------------
+    # Object-theme beats â€” load-bearing objects that get destroyed
+    # ----------------------------------------------------------------
+    object_theme_beats:
+
+      - object_id: kokoschka_catalog
+        object_ref: objects/appartment_vallon/living_room/art_book_kokoschka.yaml
+        thematic_role: veroniques_intellectual_devotion_personified
+        beats:
+          - step: "008"
+            beat_type: introduction_implicit_via_coffee_table_art_books
+          - step: "022"
+            beat_type: highlight_before_destruction
+          - step: "023"
+            beat_type: destruction_by_vomit
+            pattern_ref: direction/beat_library/consequence_irreversible_commit.yaml
+            irreversible: true
+          - step: "024"
+            beat_type: rescue_attempt_with_blow_dryer
+          - step: "025"
+            beat_type: residual_damage_acknowledged
+
+      - object_id: tulips_bouquet
+        object_ref: objects/appartment_vallon/living_room/tulips.yaml
+        thematic_role: hospitality_surface_to_be_destroyed
+        beats:
+          - step: "008"
+            beat_type: nancy_compliments_tulips_florist_talk
+          - step: "012"
+            beat_type: background_presence
+          - step: "033"
+            beat_type: annette_destroys_phone_in_tulip_water
+            irreversible: true
+          - step: "035"
+            beat_type: veronique_smashes_tulips_with_handbag
+            pattern_ref: direction/beat_library/consequence_irreversible_commit.yaml
+            irreversible: true
+
+      - object_id: alain_mobile_phone
+        object_ref: objects/appartment_vallon/living_room/mobile_phone_alain.yaml
+        thematic_role: alains_lifeline_to_the_outside_world
+        beats:
+          - step: "011"
+            beat_type: first_walter_call
+            pattern_ref: direction/beat_library/phone_interruption_recurrent.yaml
+          - step: "017"
+            beat_type: second_walter_call
+            pattern_ref: direction/beat_library/phone_interruption_recurrent.yaml
+          - step: "027"
+            beat_type: cnn_panel_call
+            pattern_ref: direction/beat_library/phone_interruption_recurrent.yaml
+          - step: "033"
+            beat_type: destruction_in_tulip_water
+            pattern_ref: direction/beat_library/consequence_irreversible_commit.yaml
+            irreversible: true
+          - step: "036"
+            beat_type: dead_phone_vibrates_one_last_time_on_coffee_table
+
+      - object_id: ethan_hamster
+        object_ref: objects/exterior/ethan_hamster.yaml
+        thematic_role: cruelty_parable_and_ironic_survivor
+        beats:
+          - step: "012"
+            beat_type: michel_admits_hamster_left_on_street
+          - step: "018"
+            beat_type: nancy_returns_to_hamster_morality
+          - step: "032"
+            beat_type: hamster_was_terrified_admission_returns
+          - step: "037"
+            beat_type: ironic_park_reveal_hamster_alive
+            pattern_ref: direction/beat_library/consequence_irreversible_commit.yaml
+            irreversible: true
+
+      - object_id: penelope_cobbler
+        object_ref: objects/appartment_vallon/kitchen/cobbler.yaml
+        thematic_role: hospitality_pride_consumed_during_civility_collapse
+        beats:
+          - step: "014"
+            beat_type: cobbler_hunt_in_fridge
+          - step: "015"
+            beat_type: cobbler_brought_to_living_room
+          - step: "016"
+            beat_type: cobbler_eaten_during_pedantic_jabs
+          - step: "022"
+            beat_type: cobbler_dropped_when_tension_breaks
+
+  # ==================================================================
+  # GATE ASSERTIONS  (consumed by tests/gates/test_theme_arc_realization.py)
+  # ==================================================================
+
+  gate_assertions:
+
+    test_theme_arc_realization:
+      description: >-
+        For every actor's arc phase, every theme listed in `themes` must be
+        observably realized in at least one beat of one realization_step,
+        and at least one theme must fire in the climax_step. If any
+        blocking_deadline_step is reached without the corresponding phase
+        themes realized, the gate fails with degradation_signal
+        `theme_arc_starvation`.
+
+      per_actor_rules:
+        veronique:
+          - all_blocking_themes_realized_within_deadline_steps
+          - voice_signature_consistent_within_phase
+          - voice_signature_transitions_only_at_declared_steps
+          - irreversible_commit_at_022_for_kokoschka
+          - irreversible_commit_at_035_for_tulips_smashing
+        michel:
+          - all_blocking_themes_realized_within_deadline_steps
+          - voice_signature_consistent_within_phase
+          - hamster_revelation_lands_by_step_012
+          - cynical_unmasking_lands_by_step_030
+        annette:
+          - all_blocking_themes_realized_within_deadline_steps
+          - voice_signature_transitions_only_at_declared_steps
+          - kokoschka_destruction_at_023_irreversible
+          - phone_destruction_at_033_irreversible
+          - drunken_rage_lands_by_step_032
+        alain:
+          - all_blocking_themes_realized_within_deadline_steps
+          - three_phone_calls_fire_at_011_017_027
+          - phone_destruction_at_033_irreversible
+          - voice_signature_call_register_only_during_phone_beats
+
+      failure_codes:
+        - theme_arc_starvation
+        - voice_signature_drift_inside_phase
+        - voice_signature_transition_outside_allowed_step
+        - blocking_deadline_passed_without_realization
+        - irreversible_commit_skipped
+
+    test_alliance_configuration_realization:
+      description: >-
+        Each alliance phase must be observably committed to runtime
+        state by the end of its declared step range. Premature shifts
+        (e.g. women-vs-men alliance forming before step 024) are
+        rejected with degradation_signal `alliance_premature_shift`.
+
+      rules:
+        - phase_A_committed_by_step_009
+        - phase_B_active_until_step_017
+        - phase_C_starts_at_step_024_not_earlier
+        - phase_D_starts_at_step_029_not_earlier
+        - phase_E_starts_at_step_033_not_earlier
+        - phase_F_committed_at_step_037
+
+      runtime_state_keys_checked:
+        - runtime_intelligence.alliance_configuration_active
+        - runtime_intelligence.alliance_configuration_history
+        - environment_state.actors_positioning_clusters
+
+      failure_codes:
+        - alliance_premature_shift
+        - alliance_skipped_phase
+        - alliance_never_committed_in_runtime_state
+
+    test_object_theme_irreversibility:
+      description: >-
+        Each load-bearing object that gets destroyed in the script must
+        have an irreversible state commit at exactly its destruction step.
+        Missing commits are rejected with `irreversible_object_skipped`.
+
+      rules:
+        - kokoschka_destroyed_at_023_committed_irreversibly
+        - tulips_destroyed_at_035_committed_irreversibly
+        - phone_destroyed_at_033_committed_irreversibly
+        - hamster_alive_at_037_committed_irreversibly
+
+      runtime_state_keys_checked:
+        - environment_state.kokoschka_catalog_state
+        - environment_state.tulips_bouquet_state
+        - environment_state.alain_phone_state
+        - environment_state.hamster_state
+
+      failure_codes:
+        - irreversible_object_skipped
+        - object_destroyed_at_wrong_step
+        - object_destroyed_reversibly_when_should_be_irreversible
+
+    test_pattern_signature_per_actor:
+      description: >-
+        Each actor has at least one pattern_signature (beat_library
+        reference) that defines their canonical voice mechanism. The gate
+        verifies that the signature pattern fires at least once in the
+        actor's entry phase and remains usable until the documented voice
+        transition step.
+
+      rules:
+        - veronique_uses_paraphrase_required_with_facts_throughout
+        - michel_uses_amiable_echo_until_step_028
+        - annette_voice_pattern_to_be_defined_in_phase_4_steps
+        - alain_uses_single_word_challenge_in_entry
+        - alain_uses_phone_interruption_recurrent_at_011_017_027
+
+      failure_codes:
+        - signature_pattern_never_fires_in_entry_phase
+        - signature_pattern_persists_past_transition_step
+
+  # ==================================================================
+  # FAILURE MODES (taxonomy for runtime degradation_signals)
+  # ==================================================================
+
+  failure_modes:
+
+    theme_arc_starvation:
+      severity: error
+      description: >-
+        An actor's blocking theme for a phase is not observably realized
+        by the phase's blocking_deadline_step.
+      recovery_policy: >-
+        LDSS regenerates the most recent step output with explicit
+        theme-bias toward the starved theme. Up to 2 regenerate attempts
+        before marking the step degraded.
+      example: >-
+        Step 011 ends without alain_visible_facts including ataxia_mention.
+        Theme `antril_lancet_ataxia_disclosure` starved. Regenerate the
+        phone-call beats with the missing fact tokens forced.
+
+    voice_signature_drift_inside_phase:
+      severity: error
+      description: >-
+        An actor's spoken line in step N uses a voice register that does
+        not match the phase's voice_signature_during_phase.
+      recovery_policy: >-
+        Reject the line, regenerate with the correct register. The
+        runtime_voice_consistency_v2 validator carries the enforcement.
+
+    voice_signature_transition_outside_allowed_step:
+      severity: error
+      description: >-
+        An actor's voice register changes at a step not listed in
+        voice_signature_transitions. E.g. Michel becomes cynical at
+        step 015 instead of step 028.
+      recovery_policy: >-
+        Reject the transition. Force the prior register. Log the
+        attempted-premature-transition to runtime_intelligence for RCA.
+
+    alliance_premature_shift:
+      severity: error
+      description: >-
+        Runtime state shows an alliance configuration active before its
+        declared phase start step.
+      recovery_policy: >-
+        Reject the alliance state mutation. Force the configuration to
+        the prior phase's value. Mark step degraded.
+
+    irreversible_object_skipped:
+      severity: error
+      description: >-
+        An object destruction step completes without committing the
+        expected irreversible state change.
+      recovery_policy: >-
+        Force the commit retroactively if the visible output supports it;
+        otherwise mark the step degraded and require operator review
+        before next-step unlock.
+
+  # ==================================================================
+  # PHASE TRACKING
+  # ==================================================================
+
+  phase_3_deliverable:
+    files:
+      - canonical_path/theme_coverage_map.yaml
+    coverage:
+      actors_arced: 4
+      phases_per_actor:
+        veronique: 6
+        michel: 5
+        annette: 7
+        alain: 7
+      total_arc_phases: 25
+      cross_cutting_alliance_phases: 6
+      object_arcs: 5
+      gate_assertions: 4
+      failure_modes_taxonomy: 5
+      script_steps_anchored: 38
+
+    not_yet_built:
+      - canonical_path/007 through 038 full step files  (Phase 4)
+      - LDSS-engine consumption of theme_coverage_map      (Phase 5)
+      - tests/gates/test_theme_arc_realization.py          (Phase 6)
+      - tests/gates/test_alliance_configuration_realization.py (Phase 6)
+      - tests/gates/test_object_theme_irreversibility.py   (Phase 6)
+      - tests/gates/test_pattern_signature_per_actor.py    (Phase 6)

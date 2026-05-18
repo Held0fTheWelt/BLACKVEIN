@@ -1,0 +1,248 @@
+﻿canonical_path_step:
+  sequence: 24
+  id: opening_024_bathroom_blow_dryer_rescue
+  path_id: goc_opening_canonical_path
+  name: "024 - Bathroom, hair dryer, art books rescue attempt"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 7
+    summary: >-
+      Annette is taken to the bathroom by Alain. In the living room,
+      Veronique and Michel attempt to rescue the art books with paper
+      towels and a hair dryer Alain has fetched. The rescue is partly
+      successful but the Kokoschka is permanently damaged. Brief moment
+      of host-pair intimacy returns ('darjeeling').
+
+  duration_target_seconds: 80
+  duration_max_seconds: 110
+
+  theme_coverage_phase_refs:
+    - actor: veronique
+      phase_id: kokoschka_catastrophe
+      realization_step: true
+    - actor: annette
+      phase_id: physical_collapse_kokoschka
+      realization_step: true
+    - actor: alain
+      phase_id: strategic_cynicism_revealed
+      realization_step: false
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  support_refs:
+    - location_id: bathroom
+      source: locations/appartment_vallon/bathroom.yaml
+      use_fields: [description, sensory_tags]
+  object_refs:
+    - object_id: kokoschka_catalog
+      source: objects/appartment_vallon/living_room/art_book_kokoschka.yaml
+    - object_id: hair_dryer
+      source: objects/appartment_vallon/bathroom/hair_dryer.yaml
+    - object_id: paper_towels
+      source: objects/appartment_vallon/kitchen/paper_towels.yaml
+
+  present:
+    named_characters: [veronique, michel, alain]
+    offstage_in_bathroom: [annette]
+
+  preconditions:
+    inherited_from_previous_step:
+      - kokoschka_destroyed_irreversible
+      - coffee_table_covered_in_vomit_irreversible
+
+  mandatory_beats:
+
+    - id: alain_leads_annette_to_bathroom
+      order: 1
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain takes Annette by the elbow and leads her toward the bathroom."
+          - "The door closes."
+      player_status: observer_no_initiative
+
+    - id: michel_returns_with_towels
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel comes back with paper towels."
+          - "Veronique is already trying to lift damaged pages apart."
+      player_status: observer_window_open
+
+    - id: alain_returns_with_blow_dryer
+      order: 3
+      duration_target_seconds: 4
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain emerges from the bathroom carrying a blow dryer."
+      player_status: observer_window_open
+
+    - id: alain_you_wanted_this
+      order: 4
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: offer_blow_dryer_with_minimal_words
+        required_facts: ["dryer_handover_token: you wanted the blow dryer"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_blow_dryer
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five or six words, neutral"
+      player_status: observer_window_open
+
+    - id: veronique_thanks
+      order: 5
+      duration_target_seconds: 1
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: veronique
+        echoed_phrase_token: "thank you"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_blow_dryer
+        word_count_target: 2
+        tone: polite_neutral
+      player_status: observer_window_open
+
+    - id: michel_dries_pages
+      order: 6
+      duration_target_seconds: 12
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel plugs in the dryer."
+          - "He moves the books over to the cord."
+          - "Veronique smooths the wet pages of the Kokoschka catalog."
+      player_status: observer_window_open
+
+    - id: michel_smooth_it_out_taut
+      order: 7
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: instruct_smooth_pages_taut
+        required_facts:
+          - "smooth_token: smooth it out"
+          - "taut_token: pull it taut"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_smooth_taut
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "two short imperatives"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: warn_it_will_tear
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: alain_warn_it_will_tear
+      order: 8
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: warn_paper_will_tear
+        required_facts: ["tear_token: it's going to tear"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_smooth_taut
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four or five words, technical"
+      forces_response_chain:
+        target_actor: veronique
+        target_intent: stop_michel_get_so_attached
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: veronique_michel_thats_enough_attached
+      order: 9
+      duration_target_seconds: 7
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: tell_michel_thats_enough_so_attached_to_these_things
+        required_facts:
+          - "stop_token: Michel, that's enough, it's dry"
+          - "attached_token: you get so attached to these things"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_smooth_taut
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, leveling"
+      player_status: observer_window_open
+
+    - id: book_pile_perception
+      order: 10
+      duration_target_seconds: 5
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Michel closes the Kokoschka and stacks heavy books on top."
+          - "He moves on to drying the others â€” Foujita, Dolgan."
+      player_status: observer_window_open
+
+    - id: veronique_im_ashamed_of_myself
+      order: 11
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: confess_ashamed_of_self_for_rubbing_in_catalog_loss
+        required_facts:
+          - "ashamed_token: I am ashamed of myself"
+          - "rubbed_it_in_token: I rubbed it in about the catalog"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_ashamed
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, briefly soft"
+      forces_response_chain:
+        target_actor: alain
+        target_intent: dismiss_with_no
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: alain_no
+      order: 12
+      duration_target_seconds: 1
+      beat_pattern_ref: amiable_echo
+      beat_pattern_params:
+        actor: alain
+        echoed_phrase_token: "no"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_ashamed
+        word_count_target: 1
+        tone: dry_agreement
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: veronique
+      theme: art_books_as_devotion
+      mechanism: "the actual rescue attempt â€” physical care for the book reveals depth of attachment"
+      evidence_required: [veronique_speaks_attached_token, veronique_speaks_ashamed_token]
+      blocks_progression_if_missing: true
+    - actor: annette
+      theme: bathroom_recovery_left_towel_in_bathtub
+      mechanism: "offstage but anchored â€” Annette's voice will name this on return"
+      evidence_required: [annette_offstage_state_committed]
+      blocks_progression_if_missing: false
+
+  state_changes_committed:
+    - key: environment_state.kokoschka_catalog_state
+      to_value: partially_rescued_pages_warped
+      commit_irreversible: true
+    - key: environment_state.annette_physical_state
+      to_value: offscreen_in_bathroom_recovering
+      commit_irreversible: false
+    - key: runtime_intelligence.host_pair_micro_softness_restored
+      to_value: { context: book_rescue, duration_seconds: ~30 }
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 65
+
+  next_point:
+    step_id: opening_025_doodle_darjeeling_pet_names
+    handoff: "With Annette offstage, the hosts and Alain stumble into pet-name territory. Doodle is revealed; darjeeling follows."
+    carry_forward:
+      - kokoschka_partially_rescued
+      - host_pair_softness_restored
+      - annette_offstage_recovering

@@ -77,9 +77,13 @@
       var query = search.toString();
       return query ? path + "?" + query : path;
     },
-    renderJson: function (targetId, payload) {
+    renderJson: function (targetId, payload, opts) {
       var node = document.getElementById(targetId);
       if (!node) return;
+      if (typeof WorldEngineUI.jsonViewer === "function") {
+        WorldEngineUI.jsonViewer(node, payload, opts);
+        return;
+      }
       node.textContent = JSON.stringify(payload, null, 2);
     },
     setBanner: function (targetId, message, isError) {

@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: consequence_irreversible_commit
   version: v1
   category: structural
@@ -80,7 +80,7 @@ beat_pattern:
       severity: error
       description: >-
         state_key must match a registered key in environment_state or
-        runtime_intelligence (see _schema_v2.yaml state registry). Unknown
+        runtime_intelligence (see _schema.yaml state registry). Unknown
         keys are rejected to prevent state-namespace drift.
 
     - rule_id: irreversible_requires_paired_npc_speak_or_perception
@@ -119,13 +119,13 @@ beat_pattern:
           surface_in_committed_truth: true
 
   used_in_pilots:
-    - canonical_path_v2/005_statement_reading.yaml#injury_facts_visible_to_all
-    - canonical_path_v2/005_statement_reading.yaml#first_pressure_seed (rollback_policy != never)
-    - canonical_path_v2/006_armed_vs_carrying.yaml#statement_text_state (rollback_policy: never)
-    - canonical_path_v2/006_armed_vs_carrying.yaml#first_compromise_log (rollback_policy: never)
+    - canonical_path/005_statement_reading.yaml#injury_facts_visible_to_all
+    - canonical_path/005_statement_reading.yaml#first_pressure_seed (rollback_policy != never)
+    - canonical_path/006_armed_vs_carrying.yaml#statement_text_state (rollback_policy: never)
+    - canonical_path/006_armed_vs_carrying.yaml#first_compromise_log (rollback_policy: never)
 
   anticipated_recurrences_across_path:
-    - canonical_step: opening_v2_023  # Annette vomits on Kokoschka catalog (catalog destroyed)
-    - canonical_step: opening_v2_033  # Annette soaks Alain's phone in tulip water (phone destroyed)
-    - canonical_step: opening_v2_035  # Veronique smashes the tulips (flowers destroyed)
-    - canonical_step: opening_v2_037  # hamster alive in park (ironic counter-commit)
+    - canonical_step: opening_023  # Annette vomits on Kokoschka catalog (catalog destroyed)
+    - canonical_step: opening_033  # Annette soaks Alain's phone in tulip water (phone destroyed)
+    - canonical_step: opening_035  # Veronique smashes the tulips (flowers destroyed)
+    - canonical_step: opening_037  # hamster alive in park (ironic counter-commit)

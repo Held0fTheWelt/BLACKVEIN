@@ -1,0 +1,113 @@
+﻿canonical_path_step:
+  sequence: 36
+  id: opening_036_long_stupor_silence
+  path_id: goc_opening_canonical_path
+  name: "036 - Long stupor silence, dead phone vibrates one last time"
+  mode: narrator_perception_transition
+
+  scene_anchor:
+    scene: 8
+    summary: >-
+      A long, suspended silence. Nobody speaks. The phone vibrates once on
+      the coffee table, dead but trying. Each character is alone with what
+      has happened. The act of the play ends here.
+
+  duration_target_seconds: 45
+  duration_max_seconds: 65
+
+  theme_coverage_phase_refs:
+    - actor: veronique
+      phase_id: smashing_collapse
+      realization_step: true
+    - actor: michel
+      phase_id: hamster_metaphor_owns_him
+      realization_step: true
+      climax: true
+    - actor: annette
+      phase_id: phone_in_tulips_destruction
+      realization_step: true
+    - actor: alain
+      phase_id: dismantled_through_phone_loss
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+  object_refs:
+    - object_id: alain_mobile_phone
+      source: objects/appartment_vallon/living_room/mobile_phone_alain.yaml
+    - object_id: tulips_bouquet
+      source: objects/appartment_vallon/living_room/tulips.yaml
+    - object_id: coffee_table_art_books
+      source: objects/appartment_vallon/living_room/coffee_table.yaml
+
+  present:
+    named_characters: [veronique, michel, annette, alain]
+
+  preconditions:
+    inherited_from_previous_step:
+      - tulips_destroyed_irreversible
+      - phone_destroyed_irreversible
+      - kokoschka_destroyed_irreversible
+
+  mandatory_beats:
+
+    - id: long_stupor_silence_perception
+      order: 1
+      duration_target_seconds: 15
+      beat_pattern_ref: silence_perception_pause
+      beat_pattern_params:
+        trigger_after_beat: previous_step_close
+        silence_duration_seconds: 15
+        perception_lines:
+          - "Silence."
+          - "A long moment of stupor."
+        closes_window_when: duration_elapsed
+      player_status: observer_window_open
+
+    - id: dead_phone_vibrates
+      order: 2
+      duration_target_seconds: 8
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Alain's phone, on the coffee table, begins to vibrate and turn."
+          - "The screen does not light up."
+          - "It stops."
+      player_status: observer_window_open
+
+    - id: characters_positions_perception
+      order: 3
+      duration_target_seconds: 10
+      beat_pattern_ref: narrator_perception_block
+      beat_pattern_params:
+        perception_lines:
+          - "Veronique stands by the smashed tulips."
+          - "Annette is in the armchair, head in hands."
+          - "Alain has not moved from where he sat down."
+          - "Michel stands in the middle of the room. He looks toward the kitchen, then doesn't move."
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: michel
+      theme: I_dont_touch_them_self_revelation
+      mechanism: "Michel's stillness â€” the hamster metaphor lands as his self-portrait"
+      evidence_required: [michel_does_not_move_perception]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.act_one_closure_state
+      to_value: stupor_after_destruction
+      commit_irreversible: true
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 40
+
+  next_point:
+    step_id: opening_037_park_hamster_ironic_reveal
+    handoff: "Cut to the park. Ironic reveal: hamster alive, kids playing happily together."
+    carry_forward:
+      - act_one_closure_irreversible
+      - all_four_actors_in_post_destruction_pose

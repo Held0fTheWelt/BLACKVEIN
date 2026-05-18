@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: paraphrase_required_with_facts
   version: v1
   category: npc_speak
@@ -7,7 +7,7 @@ beat_pattern:
     that must structurally paraphrase the source script: every required_fact
     must surface as a recognisable token in the line, but the wording may
     differ. A quote_anchor scopes the dramatic register without forcing
-    verbatim text. This is the most-used pattern in canonical_path_v2.
+    verbatim text. This is the most-used pattern in canonical_path.
 
   parameters:
     - name: actor
@@ -51,7 +51,7 @@ beat_pattern:
       type: string
       required: true
       description: >-
-        Floor of what the line must visibly contain. E.g. 'zwei Sätze mit
+        Floor of what the line must visibly contain. E.g. 'zwei SÃ¤tze mit
         Datum und Ort', 'ein einzelnes Wort als Frage'.
 
     - name: forbidden_drift
@@ -87,7 +87,7 @@ beat_pattern:
       severity: error
       description: >-
         LDSS post-generation check: each required_fact must be detected in
-        the produced line via semantic-token matching. Missing fact →
+        the produced line via semantic-token matching. Missing fact â†’
         regenerate or fall back.
 
     - rule_id: quote_anchor_resolves
@@ -97,11 +97,11 @@ beat_pattern:
     - rule_id: paraphrase_policy_respected
       severity: error
       description: >-
-        structural_paraphrase_required → line MUST NOT match the anchor
+        structural_paraphrase_required â†’ line MUST NOT match the anchor
         verbatim across more than 5 consecutive tokens.
-        short_anchor_quote_allowed → up to 1 short anchor phrase ≤7 words
+        short_anchor_quote_allowed â†’ up to 1 short anchor phrase â‰¤7 words
         may appear verbatim.
-        verbatim_forbidden → 0 verbatim phrases allowed.
+        verbatim_forbidden â†’ 0 verbatim phrases allowed.
 
     - rule_id: actor_voice_consistency
       severity: warning
@@ -135,7 +135,7 @@ beat_pattern:
             - "victim_id: bruno"
           quote_anchor: knowledge/opening_quote_anchors.yaml#quote_armed
           paraphrase_policy: structural_paraphrase_required
-          minimum_visible: "zwei Sätze, die Datum, Ort, Akteur, Opfer und das Wort 'bewaffnet' enthalten"
+          minimum_visible: "zwei SÃ¤tze, die Datum, Ort, Akteur, Opfer und das Wort 'bewaffnet' enthalten"
           forbidden_drift:
             - skip_word_armed
             - add_moral_commentary_inside_reading
@@ -143,7 +143,7 @@ beat_pattern:
         player_status: spectator_blocked
 
   used_in_pilots:
-    - canonical_path_v2/005_statement_reading.yaml#veronique_glance_back_before_reading
-    - canonical_path_v2/005_statement_reading.yaml#veronique_reads_date_and_aggression
-    - canonical_path_v2/005_statement_reading.yaml#veronique_reads_injury_detail
-    - canonical_path_v2/006_armed_vs_carrying.yaml#veronique_offers_compromise_with_michel_consult
+    - canonical_path/005_statement_reading.yaml#veronique_glance_back_before_reading
+    - canonical_path/005_statement_reading.yaml#veronique_reads_date_and_aggression
+    - canonical_path/005_statement_reading.yaml#veronique_reads_injury_detail
+    - canonical_path/006_armed_vs_carrying.yaml#veronique_offers_compromise_with_michel_consult

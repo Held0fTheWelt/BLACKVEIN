@@ -1,0 +1,190 @@
+﻿canonical_path_step:
+  sequence: 25
+  id: opening_025_doodle_darjeeling_pet_names
+  path_id: goc_opening_canonical_path
+  name: "025 - Doodle and darjeeling pet-name reveal, false civility resumes"
+  mode: scripted_with_player_window
+
+  scene_anchor:
+    scene: 7
+    summary: >-
+      Alain mentions he calls Annette 'Doodle'. The hosts laugh, awkwardly.
+      Michel admits he calls Veronique 'darjeeling'. A brief shared
+      embarrassment defuses the room. The civility surface is restored
+      superficially but the dynamic underneath has shifted.
+
+  duration_target_seconds: 50
+  duration_max_seconds: 70
+
+  theme_coverage_phase_refs:
+    - actor: alain
+      phase_id: strategic_cynicism_revealed
+      realization_step: true
+    - actor: veronique
+      phase_id: kokoschka_catastrophe
+      realization_step: true
+
+  location_ref:
+    location_id: living_room
+    source: locations/appartment_vallon/living_room.yaml
+
+  present:
+    named_characters: [veronique, michel, alain]
+    offstage_in_bathroom: [annette]
+
+  mandatory_beats:
+
+    - id: veronique_doodle_laugh
+      order: 1
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: repeat_doodle_with_laugh
+        required_facts: ["doodle_token: Doodle"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_doodle
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "one word + visible laugh"
+      player_status: observer_window_open
+
+    - id: alain_admits_doodle
+      order: 2
+      duration_target_seconds: 4
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: admit_he_calls_her_doodle
+        required_facts: ["yes_doodle_token: yes, I call her Doodle"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_doodle
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "five or six words, dry"
+      player_status: observer_window_open
+
+    - id: veronique_im_sorry_easy_to_make_fun
+      order: 3
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: apologize_easy_to_make_fun_of_pet_names
+        required_facts:
+          - "didnt_mean_token: we didn't mean anything"
+          - "easy_to_make_fun_token: easy to make fun of other people's pet names"
+          - "ours_worse_token: ours is probably worse"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_doodle
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "three short clauses, briefly warm"
+      forces_response_chain:
+        target_actor: michel
+        target_intent: confess_darjeeling
+        max_delay_seconds: 2
+      player_status: observer_window_open
+
+    - id: michel_darjeeling_reveal
+      order: 4
+      duration_target_seconds: 8
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: confess_he_calls_veronique_darjeeling
+        required_facts:
+          - "darjeeling_token: we call each other darjeeling"
+          - "honeymoon_token: it's from our honeymoon in India"
+          - "darling_token: he called me darjeeling instead of darling"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_darjeeling
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "three short clauses, vulnerably warm"
+        tone_hint: amiable_with_first_cynic_edges
+      player_status: observer_window_open
+
+    - id: alain_doodle_oodle_song
+      order: 5
+      duration_target_seconds: 5
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: alain
+        intent: name_doodle_oodle_song_from_guys_and_dolls
+        required_facts:
+          - "guys_and_dolls_token: a song from Guys and Dolls"
+          - "doodle_oodle_token: doodle oodle oodle oo"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_doodle
+        paraphrase_policy: structural_paraphrase_required
+        minimum_visible: "two clauses, dry-explaining"
+      player_status: observer_window_open
+
+    - id: michel_sings_a_bushel_and_a_peck
+      order: 6
+      duration_target_seconds: 6
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: sing_a_bushel_and_a_peck
+        required_facts:
+          - "bushel_peck_token: I love you a bushel and a peck"
+          - "singing_marker_token: hums the melody"
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_doodle
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "snippet of lyrics, amiable-warm"
+        tone_hint: amiable_mirror_reinforcer
+      player_status: observer_window_open
+
+    - id: veronique_should_i_check_on_her
+      order: 7
+      duration_target_seconds: 3
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: veronique
+        intent: offer_to_check_on_annette
+        required_facts: ["check_on_her_token: should I check on her"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_check_on_her
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "four or five words"
+      player_status: observer_window_open
+
+    - id: michel_go_ahead_darjeeling
+      order: 8
+      duration_target_seconds: 2
+      beat_pattern_ref: paraphrase_required_with_facts
+      beat_pattern_params:
+        actor: michel
+        intent: send_her_with_darjeeling_address
+        required_facts: ["go_ahead_token: go ahead, darjeeling"]
+        quote_anchor: knowledge/opening_quote_anchors.yaml#quote_darjeeling
+        paraphrase_policy: short_anchor_quote_allowed
+        minimum_visible: "three words"
+      player_status: observer_window_open
+
+  themes_realized_here:
+    - actor: veronique
+      theme: kokoschka_catalog_irreplaceable
+      mechanism: "the rescue/embarrassment beat allows Veronique to acknowledge her own brittleness"
+      evidence_required: [veronique_speaks_easy_to_make_fun_token]
+      blocks_progression_if_missing: false
+    - actor: alain
+      theme: doodle_pet_name_intimacy_revealed
+      mechanism: "alain reveals intimate marital register, just before alliance flip begins"
+      evidence_required: [alain_speaks_yes_doodle_token, alain_speaks_doodle_oodle_token]
+      blocks_progression_if_missing: true
+
+  state_changes_committed:
+    - key: runtime_intelligence.pet_names_disclosed
+      to_value:
+        cowans: { alain_to_annette: doodle }
+        longstreets: { michel_to_veronique: darjeeling }
+      commit_irreversible: true
+    - key: runtime_intelligence.civility_micro_restoration
+      to_value: { trigger: pet_names_shared, fragile: true }
+      commit_irreversible: false
+
+  next_step_unlock_when:
+    all_mandatory_beats_realized: true
+    all_blocking_themes_realized: true
+    minimum_seconds_elapsed: 40
+
+  next_point:
+    step_id: opening_026_annette_returns_name_calling_abuse
+    handoff: "Annette returns from the bathroom. The first alliance-shift signals appear."
+    carry_forward:
+      - pet_names_disclosed
+      - civility_micro_restoration_fragile
+      - veronique_about_to_leave_for_bathroom

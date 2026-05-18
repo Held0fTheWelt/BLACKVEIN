@@ -1,4 +1,3 @@
-<!-- templify:template_id=reports:packaging_preparation_bundle template_hash=e210e8b1f8a99a9459b13a6a38d8ac2c43bc8d237003560379c8c0ed15258d9c -->
 # fy Packaging Preparation Bundle
 
 ## Target layout

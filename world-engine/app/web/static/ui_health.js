@@ -2,6 +2,10 @@
   "use strict";
 
   function writeJson(targetId, payload) {
+    if (window.WorldEngineUI && typeof WorldEngineUI.renderJson === "function") {
+      WorldEngineUI.renderJson(targetId, payload);
+      return;
+    }
     var node = document.getElementById(targetId);
     if (node) node.textContent = JSON.stringify(payload, null, 2);
   }

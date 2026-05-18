@@ -10,19 +10,19 @@ This page uses simple language. It tells you where each suite stands right now a
 
 - ok: `true`
 - latest_command: `audit`
-- latest_run_id: `contractify-fcf1714a5e94`
+- latest_run_id: `contractify-35fbe6a56be7`
 
 No summary is available yet.
 
 ### Most-Recent-Next-Steps
 
-- Review the 4 finding(s) and decide which one should be fixed first.
+- Review the 1 finding(s) and decide which one should be fixed first.
 
 ## documentify
 
 - ok: `true`
 - latest_command: `audit`
-- latest_run_id: `documentify-56a341f2d1e1`
+- latest_run_id: `documentify-93ac06c52fca`
 
 Documentify generated the current documentation tracks and status pages.
 

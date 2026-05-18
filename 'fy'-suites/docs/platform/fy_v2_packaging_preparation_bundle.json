@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "workspace_root": "/mnt/data/wave3/'fy'-suites",
+  "workspace_root": "/mnt/d/WorldOfShadows/'fy'-suites",
   "target_layout": [
     "fy_platform/core/* for workspace, hashing, IO, and backup primitives.",
     "fy_platform/runtime/* for mode dispatch, lane runtime, compatibility routing, and transition stabilization.",

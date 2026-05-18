@@ -1,4 +1,4 @@
-beat_pattern:
+﻿beat_pattern:
   id: narrator_perception_block
   version: v1
   category: narrator
@@ -49,9 +49,9 @@ beat_pattern:
       severity: error
       description: >-
         Each perception line must not contain forbidden vocabulary from
-        narrator_global_rules.must_not in _schema_v2.yaml. Keyword filter:
-        no 'fühlt', 'denkt', 'weiß', 'plant', 'wird gleich', 'symbolisiert',
-        'bedeutet', 'steht für', moral evaluators, future tense.
+        narrator_global_rules.must_not in _schema.yaml. Keyword filter:
+        no 'fÃ¼hlt', 'denkt', 'weiÃŸ', 'plant', 'wird gleich', 'symbolisiert',
+        'bedeutet', 'steht fÃ¼r', moral evaluators, future tense.
 
     - rule_id: sensory_anchors_resolve
       severity: warning
@@ -67,7 +67,7 @@ beat_pattern:
       severity: error
       description: >-
         Lines that attribute knowledge or feeling to a character ('Veronique
-        weiß, dass...', 'Michel fühlt...') are rejected. Body posture is OK
+        weiÃŸ, dass...', 'Michel fÃ¼hlt...') are rejected. Body posture is OK
         ('Veronique hebt den Blick', 'Michel nickt einmal') because it is
         externally visible.
 
@@ -79,7 +79,7 @@ beat_pattern:
         beat_pattern_ref: narrator_perception_block
         beat_pattern_params:
           perception_lines:
-            - "Schmaler Raum, als Heimbüro genutzt. Winterlicht durch das einzige Fenster."
+            - "Schmaler Raum, als HeimbÃ¼ro genutzt. Winterlicht durch das einzige Fenster."
             - "Auf einem Wandtisch Stapel von Magazinen und Drucksachen."
           sensory_anchors:
             - locations/appartment_vallon/den.yaml#sensory_tags
@@ -87,8 +87,8 @@ beat_pattern:
         player_status: spectator_blocked
 
   used_in_pilots:
-    - canonical_path_v2/004_den_arrival_positioning.yaml#room_perception_winter_light
-    - canonical_path_v2/004_den_arrival_positioning.yaml#positions_around_laptop
-    - canonical_path_v2/004_den_arrival_positioning.yaml#mood_register_serious_cordial_tolerant
-    - canonical_path_v2/005_statement_reading.yaml#filler_perception_inside_reading_beats
-    - canonical_path_v2/006_armed_vs_carrying.yaml#beat_annette_settles_one_step_closer
+    - canonical_path/004_den_arrival_positioning.yaml#room_perception_winter_light
+    - canonical_path/004_den_arrival_positioning.yaml#positions_around_laptop
+    - canonical_path/004_den_arrival_positioning.yaml#mood_register_serious_cordial_tolerant
+    - canonical_path/005_statement_reading.yaml#filler_perception_inside_reading_beats
+    - canonical_path/006_armed_vs_carrying.yaml#beat_annette_settles_one_step_closer

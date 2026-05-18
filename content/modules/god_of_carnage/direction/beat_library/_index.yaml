@@ -1,13 +1,13 @@
-beat_library_index:
+﻿beat_library_index:
   id: goc_beat_library_v1
   version: v1.0.0-phase2
   status: draft
   produced_by_phase: 2
-  consumed_by_schema: canonical_path_v2/_schema_v2.yaml
+  consumed_by_schema: canonical_path/_schema.yaml
   consumed_by_engine: ai_stack/live_dramatic_scene_simulator.py  # planned Phase 5
 
   purpose: >-
-    Reusable beat patterns extracted from canonical_path_v2 pilots and the
+    Reusable beat patterns extracted from canonical_path pilots and the
     god_of_carnage shooting script. Each pattern defines a parametrised
     director_instruction shape that step files reference via
     `beat_pattern_ref: <id>` instead of inlining the full instruction.
@@ -68,66 +68,66 @@ beat_library_index:
   pattern_inventory:
     - id: narrator_perception_block
       file: narrator_perception_block.yaml
-      first_observed_in: canonical_path_v2/004_den_arrival_positioning.yaml
+      first_observed_in: canonical_path/004_den_arrival_positioning.yaml
       criticality: high
 
     - id: silence_perception_pause
       file: silence_perception_pause.yaml
-      first_observed_in: canonical_path_v2/005_statement_reading.yaml#beat_silence_after_reading
+      first_observed_in: canonical_path/005_statement_reading.yaml#beat_silence_after_reading
       criticality: high
 
     - id: type_into_device_with_speech_confirm
       file: type_into_device_with_speech_confirm.yaml
-      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_veronique_types_correction
+      first_observed_in: canonical_path/006_armed_vs_carrying.yaml#beat_veronique_types_correction
       criticality: medium
 
     - id: paraphrase_required_with_facts
       file: paraphrase_required_with_facts.yaml
-      first_observed_in: canonical_path_v2/005_statement_reading.yaml
+      first_observed_in: canonical_path/005_statement_reading.yaml
       criticality: critical
       most_used: true
 
     - id: scripted_monologue_segmented
       file: scripted_monologue_segmented.yaml
-      first_observed_in: canonical_path_v2/005_statement_reading.yaml
+      first_observed_in: canonical_path/005_statement_reading.yaml
       criticality: high
 
     - id: single_word_challenge
       file: single_word_challenge.yaml
-      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_alain_single_word_challenge
+      first_observed_in: canonical_path/006_armed_vs_carrying.yaml#beat_alain_single_word_challenge
       criticality: high
       script_signature: "single-word probe, no apology, no smile"
 
     - id: amiable_echo
       file: amiable_echo.yaml
-      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml#beat_michel_amiable_echo
+      first_observed_in: canonical_path/006_armed_vs_carrying.yaml#beat_michel_amiable_echo
       criticality: high
       character_signature: michel
 
     - id: forces_response_chain
       file: forces_response_chain.yaml
-      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml
+      first_observed_in: canonical_path/006_armed_vs_carrying.yaml
       criticality: critical
-      script_signature: "NPC-A speaks → NPC-B must respond within N seconds"
+      script_signature: "NPC-A speaks â†’ NPC-B must respond within N seconds"
 
     - id: player_intrusion_redirect_strict
       file: player_intrusion_redirect_strict.yaml
-      first_observed_in: canonical_path_v2/006_armed_vs_carrying.yaml
+      first_observed_in: canonical_path/006_armed_vs_carrying.yaml
       criticality: critical
 
     - id: consequence_irreversible_commit
       file: consequence_irreversible_commit.yaml
-      first_observed_in: canonical_path_v2/005_statement_reading.yaml#injury_facts_visible_to_all
+      first_observed_in: canonical_path/005_statement_reading.yaml#injury_facts_visible_to_all
       criticality: high
 
     - id: phone_interruption_recurrent
       file: phone_interruption_recurrent.yaml
       forward_looking: true
       anticipated_steps:
-        - opening_v2_008  # first Walter call (goc.txt Z. 205-251)
-        - opening_v2_014  # second Walter call (goc.txt Z. 517-583)
-        - opening_v2_022  # CNN panel call
-        - opening_v2_028  # late call
+        - opening_008  # first Walter call (goc.txt Z. 205-251)
+        - opening_014  # second Walter call (goc.txt Z. 517-583)
+        - opening_022  # CNN panel call
+        - opening_028  # late call
       criticality: critical
       character_signature: alain
 
