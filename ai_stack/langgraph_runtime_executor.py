@@ -6380,11 +6380,6 @@ class RuntimeTurnGraphExecutor:
             return "full_pipeline"
         frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
         aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
-        # Ontology fallback verb for unmatched ``action`` inputs — not a spatial
-        # affordance verb; keep dramatic director + model path (see GoC breadth tests).
-        verb_early = str(frame.get("verb") or "").strip().lower()
-        if verb_early == "interact":
-            return "full_pipeline"
         pik = str(frame.get("player_input_kind") or "").strip().lower()
         if is_speech_like_player_input_kind(pik) or pik == "meta":
             return "full_pipeline"
@@ -6393,44 +6388,29 @@ class RuntimeTurnGraphExecutor:
         short_path_policy = _runtime_governance_section(state, "action_resolution_short_path")
         if not bool(short_path_policy.get("enabled")):
             return "full_pipeline"
-        blocked_kinds = {
-            str(item).strip().lower()
-            for item in (short_path_policy.get("blocked_player_input_kinds") or [])
-            if str(item).strip()
-        }
-        if pik in blocked_kinds:
-            return "full_pipeline"
-        allowed_kinds = {
-            str(item).strip().lower()
-            for item in (short_path_policy.get("allowed_player_input_kinds") or [])
-            if str(item).strip()
-        }
-        if allowed_kinds and pik not in allowed_kinds:
-            return "full_pipeline"
         pol = str(aff.get("action_commit_policy") or "").strip().lower()
         st = str(aff.get("affordance_status") or "").strip().lower()
-        verb = str(frame.get("verb") or "").strip().lower()
         source = str(
             aff.get("target_resolution_source")
             or frame.get("target_resolution_source")
             or ""
         ).strip()
+        validation_surface = str(frame.get("validation_surface") or "").strip()
         access_status = str(aff.get("access_status") or frame.get("access_status") or "").strip()
+        if source == "semantic_ai_resolution_required" or validation_surface == "semantic_ai_resolution_required":
+            return "full_pipeline"
         if source == "ai_semantic_resolution.plausible_inference" or access_status == "inferred_plausible":
+            return "full_pipeline"
+        if pol == "commit_speech" or bool(frame.get("npc_response_expected")):
             return "full_pipeline"
         if pol == "needs_clarification" or st in {"unknown_target", "ambiguous"}:
             return "authoritative_action_resolution"
-        if st in {"blocked", "unsafe"}:
+        if st in {"blocked", "prevented", "unsafe"}:
             return "authoritative_action_resolution"
         ncp = state.get("narrator_consequence_plan") if isinstance(state.get("narrator_consequence_plan"), dict) else {}
         if bool(ncp.get("requires_model_realization")):
             return "full_pipeline"
-        allowed_verbs = {
-            str(item).strip().lower()
-            for item in (short_path_policy.get("allowed_verbs") or [])
-            if str(item).strip()
-        }
-        if st in {"allowed", "allowed_offscreen", "partial"} and verb in allowed_verbs:
+        if pol == "commit_action" and st in {"allowed", "allowed_offscreen", "partial"}:
             return "authoritative_action_resolution"
         return "full_pipeline"
 

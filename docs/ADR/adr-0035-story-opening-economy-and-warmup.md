@@ -16,6 +16,12 @@ Accepted
   `canonical_path.paths.opening`, canonical mandatory beats, source refs, and
   content-derived block metadata. They must not contain code-level authored
   German or English replacement prose.
+- Actor-lane-only opening output without a usable `narration_summary` is a
+  generation error, not an invitation for runtime prose synthesis. The runtime
+  may emit the explicit diagnostic text
+  `opening_actor_lane_narration_missing` / "No substitute story text" so later
+  gates see truthful degradation, but tests must not expect invented opening
+  paragraphs from that path.
 - If the session output language differs from the canonical authoring language
   (`en`), the story output module realizes the already-grounded source blocks
   into the requested player-visible language. The same rule applies to
@@ -99,6 +105,13 @@ For drawing-room and similar modules, the **first session narrative** should be 
 ### D4 — Deterministic and degraded openings
 
 Deterministic / mock / fallback openings must **not** contradict phase-1 civility when simulating God-of-Carnage-style modules unless diagnostics explicitly label an intentional stress scenario. Degraded output remains truthful under ADR-0033 but should not become the **canonical literary template** for production tone.
+
+When an opening candidate has valid actor lanes but no usable narrative
+summary, the correct deterministic behavior is an explicit missing-narration
+diagnostic (`opening_actor_lane_narration_missing`) rather than generated
+atmosphere, role-anchor, or multi-paragraph substitute story prose. This keeps
+the actor-lane structure available for validation while preserving the
+no-runtime-authored-opening boundary.
 
 ### D5 — Relationship to shell contract
 

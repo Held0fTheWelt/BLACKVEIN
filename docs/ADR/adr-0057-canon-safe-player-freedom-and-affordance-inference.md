@@ -43,4 +43,9 @@ object-specific or verb-specific maps for this decision.
 - Plausible inferred details are narrator-realized and local to runtime state.
 - Object interactions that require semantic realization use the model path
   instead of a deterministic empty/template short path.
+- Free actions without a resolved AI semantic payload are represented as
+  `semantic_resolution_required` with `needs_clarification` action policy.
+  They must not be guessed into a generic `interact` verb by engine maps, and
+  they must still keep the full Director/model runtime path rather than falling
+  into deterministic short-path handling.
 - The canonical path can wait while the player explores, instead of wandering.

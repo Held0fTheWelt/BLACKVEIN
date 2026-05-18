@@ -188,30 +188,8 @@ runtime_intelligence:
     plausible_affordance_inference: ai_semantic_canon_safe_gap_filling
   action_resolution_short_path:
     enabled: true
-    blocked_player_input_kinds:
-      - speech
-      - question
-      - meta
-      - mixed
-    allowed_player_input_kinds:
-      - action
-      - movement_action
-      - perception
-      - perception_action
-      - object_interaction
-      - physical_action
-      - environment_interaction
-      - wait_or_observe
-    allowed_verbs:
-      - activate
-      - deactivate
-      - listen_to
-      - look_at
-      - move_to
-      - open
-      - place
-      - stand_up
-      - take
+    routing_basis: semantic_action_frame_evidence
+    no_verb_or_input_kind_whitelists: true
   visible_projection:
     enabled: true
     require_origin_metadata: true

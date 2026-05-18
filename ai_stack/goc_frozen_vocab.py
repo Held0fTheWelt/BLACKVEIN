@@ -7,7 +7,9 @@ docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md §1 and §7.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import FrozenSet, Literal, TypeVar
+import unicodedata
 
 # --- Scene function (VERTICAL_SLICE_CONTRACT_GOC.md §5) ---
 SceneFunction = Literal[
@@ -128,10 +130,47 @@ GATE_FAMILIES: FrozenSet[str] = frozenset(
 # Canonical module id for the vertical slice (VERTICAL_SLICE_CONTRACT_GOC.md §2.1).
 GOC_MODULE_ID = "god_of_carnage"
 
+
+def _fold_actor_ref(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", str(value or "").strip().lower())
+    return "".join(ch for ch in folded if not unicodedata.combining(ch))
+
+
+@lru_cache(maxsize=1)
+def _goc_actor_alias_index() -> dict[str, tuple[str, FrozenSet[str]]]:
+    """Content-derived actor aliases keyed by folded runtime reference."""
+    try:
+        from ai_stack.goc_yaml_authority import goc_actor_identity_index
+
+        identity_index = goc_actor_identity_index()
+    except Exception:
+        return {}
+
+    alias_index: dict[str, tuple[str, FrozenSet[str]]] = {}
+    for actor_id, row in identity_index.items():
+        canonical_actor_id = str(actor_id or "").strip()
+        if not canonical_actor_id or not isinstance(row, dict):
+            continue
+        aliases: set[str] = {canonical_actor_id}
+        for key in ("actor_id", "character_key", "name", "first_name"):
+            raw = str(row.get(key) or "").strip()
+            if raw:
+                aliases.update({raw, raw.lower(), _fold_actor_ref(raw)})
+        group = frozenset(alias for alias in aliases if alias)
+        for alias in group:
+            folded = _fold_actor_ref(alias)
+            if folded:
+                alias_index[folded] = (canonical_actor_id, group)
+    return alias_index
+
+
 def canonicalize_goc_actor_id(actor_id: str) -> str:
     aid = str(actor_id or "").strip()
     if not aid:
         return ""
+    alias_entry = _goc_actor_alias_index().get(_fold_actor_ref(aid))
+    if alias_entry:
+        return alias_entry[0]
     return aid
 
 
@@ -139,6 +178,9 @@ def expand_goc_actor_id_aliases(actor_id: str) -> FrozenSet[str]:
     aid = str(actor_id or "").strip()
     if not aid:
         return frozenset()
+    alias_entry = _goc_actor_alias_index().get(_fold_actor_ref(aid))
+    if alias_entry:
+        return frozenset({aid, *alias_entry[1]})
     return frozenset({aid})
 
 # Director fields that the proposal model must not overwrite (CANONICAL_TURN_CONTRACT_GOC.md §3.6).

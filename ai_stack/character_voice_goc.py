@@ -137,8 +137,16 @@ def build_character_voice_profiles_for_goc(
         core_worldview = str(vblock.get("core_worldview") or "").strip()
         speech_patterns = _str_dict(vblock.get("speech_patterns"))
         escalation_arc = _str_dict(vblock.get("escalation_arc"))
+        escalation_arc_source = "escalation_arc"
+        if not escalation_arc:
+            escalation_arc = _str_dict(vblock.get("phase_arc"))
+            escalation_arc_source = "phase_arc"
         current_phase_hint = str(escalation_arc.get(arc_key, "") or "").strip()
         signature_moments = _str_list(vblock.get("signature_moments"))
+        signature_moments_source = "signature_moments"
+        if not signature_moments:
+            signature_moments = _str_list(vblock.get("dialogue_tendencies"))
+            signature_moments_source = "dialogue_tendencies"
         vulnerability = str(vblock.get("vulnerability") or "").strip()
         semantic_profile = _semantic_profile(
             formal_role=formal_role,
@@ -160,13 +168,16 @@ def build_character_voice_profiles_for_goc(
         if speech_patterns:
             provenance["speech_patterns"] = FieldProvenance(source="authored")
         if signature_moments:
-            provenance["signature_moments"] = FieldProvenance(source="authored")
+            provenance["signature_moments"] = FieldProvenance(
+                source="authored",
+                derivation_key=signature_moments_source,
+            )
         if vulnerability:
             provenance["vulnerability"] = FieldProvenance(source="authored")
         if current_phase_hint:
             provenance["current_phase_voice_hint"] = FieldProvenance(
                 source="authored_derived",
-                derivation_key=f"escalation_arc.{arc_key}",
+                derivation_key=f"{escalation_arc_source}.{arc_key}",
             )
         if consistency_rules or pitfalls:
             provenance["voice_consistency_policy"] = FieldProvenance(source="authored")

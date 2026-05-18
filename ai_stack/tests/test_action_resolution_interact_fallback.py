@@ -1,4 +1,4 @@
-"""Regression: ontology ``interact`` fallback must not take the deterministic short path."""
+"""Regression: unresolved free action must not take the deterministic short path."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from ai_stack.tests.test_goc_mvp_breadth_playability_regression import (
 )
 
 
-def test_interact_fallback_uses_full_dramatic_pipeline_not_short_path(tmp_path: Path) -> None:
-    """Unknown ontology verb resolves to ``interact`` — must keep director + model path."""
+def test_semantic_resolution_required_uses_full_dramatic_pipeline_not_short_path(tmp_path: Path) -> None:
+    """Unresolved free action requires AI semantics and still keeps director + model path."""
     narrative = (
         "Michel raises his voice, attacks your accusation, and threatens another fight "
         "if you continue under rising pressure in the room."
@@ -35,7 +35,10 @@ def test_interact_fallback_uses_full_dramatic_pipeline_not_short_path(tmp_path: 
         host_experience_template=HOST_OK,
     )
     frame = result.get("player_action_frame") or {}
-    assert frame.get("verb") == "interact"
+    assert frame.get("verb") == "semantic_resolution_required"
+    assert frame.get("action_kind") == "semantic_resolution_required"
+    assert frame.get("target_resolution_source") == "semantic_ai_resolution_required"
+    assert frame.get("action_commit_policy") == "needs_clarification"
 
     nodes = (result.get("graph_diagnostics") or {}).get("nodes_executed") or result.get("nodes_executed") or []
     assert "authoritative_action_resolution" not in nodes

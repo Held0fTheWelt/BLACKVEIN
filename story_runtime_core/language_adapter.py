@@ -281,8 +281,8 @@ def build_semantic_resolution_contract(
         "expected_ai_output": {
             "normalized_english_text": "English translation/normalization of raw_player_text for internal grounding",
             "player_input_kind": "speech|question|action|perception|mixed|object_interaction|social_nonverbal_action|physical_action|wait_or_observe|ambiguous|unclear",
-            "action_kind": "English semantic label chosen by the model, grounded in normalized_english_text and catalog",
-            "verb": "English semantic label chosen by the model, not restricted by engine maps",
+            "action_kind": "English semantic class inferred from meaning and grounded target role, not from a hardcoded phrase map",
+            "verb": "English semantic verb inferred from meaning; do not copy surface-language wording when a more general internal meaning is clear",
             "target_query": "English target text span or null",
             "resolved_target_id": "location/object/character id or null",
             "resolved_target_type": "location|object|actor|null",
@@ -297,6 +297,19 @@ def build_semantic_resolution_contract(
             "inferred_affordance_summary": "short English description of the mundane inferred affordance, never final visible prose",
             "confidence": "high|medium|low",
             "reasoning_summary": "short grounding explanation citing content ids/fields",
+        },
+        "semantic_ontology_guidance": {
+            "use_internal_english_only": True,
+            "location_relocation": {
+                "principle": "When the utterance means the player changes their own position toward a grounded location, express the internal meaning as spatial relocation rather than as a language-specific verb.",
+            },
+            "object_use": {
+                "principle": "When the utterance means the player changes or uses a grounded object, express the internal meaning as object interaction.",
+            },
+            "sensory_attention": {
+                "principle": "When the utterance means attention or sensing without changing the target, express the internal meaning as perception.",
+            },
+            "do_not_emit_surface_language_as_internal_verb": True,
         },
     }
 

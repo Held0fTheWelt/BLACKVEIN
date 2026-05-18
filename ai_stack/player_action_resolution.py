@@ -30,6 +30,7 @@ from story_runtime_core.language_adapter import build_interaction_surface, resol
 from story_runtime_core.player_input_intent_contract import (
     is_mixed_player_input_kind,
     is_non_story_control_player_input_kind,
+    is_perception_like_player_input_kind,
     is_speech_like_player_input_kind,
 )
 
@@ -317,6 +318,27 @@ def _canonical_path_effect_from_policy(
     control = policy.get("canonical_path_control")
     control = control if isinstance(control, dict) else {}
     return str(control.get("default_for_free_player_action") or "").strip() or None
+
+
+def _normalize_grounded_target_role(
+    *,
+    player_input_kind: str,
+    action_kind: str,
+    verb: str,
+    resolved_target_type: str | None,
+    action_commit_policy: str,
+) -> tuple[str, str]:
+    """Derive broad internal action role from grounded content, not surface verbs."""
+    target_type = str(resolved_target_type or "").strip().lower()
+    policy = str(action_commit_policy or "").strip().lower()
+    if (
+        target_type == "location"
+        and policy == "commit_action"
+        and not is_perception_like_player_input_kind(player_input_kind)
+        and not is_speech_like_player_input_kind(player_input_kind)
+    ):
+        return "movement", "move_to"
+    return action_kind, verb
 
 
 def _row_by_id(
@@ -646,6 +668,13 @@ def resolve_player_action(
     canonical_path_effect = _canonical_path_effect_from_policy(
         semantic,
         affordance_model,
+        action_commit_policy=policy,
+    )
+    action_kind, verb = _normalize_grounded_target_role(
+        player_input_kind=pik,
+        action_kind=action_kind,
+        verb=verb,
+        resolved_target_type=ttyp,
         action_commit_policy=policy,
     )
     rt = _resolved_target(

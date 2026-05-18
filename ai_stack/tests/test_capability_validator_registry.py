@@ -406,6 +406,19 @@ def _player_dispatch_context() -> dict:
             "projection_captures": {"room": "ins Bad"},
             "actor_id": "annette_reille",
         },
+        "player_action_frame": {
+            "actor_id": "annette_reille",
+            "verb": "move",
+            "action_kind": "movement",
+            "target_id": "bathroom",
+            "validation_surface": "authoritative_action_resolution",
+        },
+        "affordance_resolution": {
+            "status": "allowed",
+            "action_commit_policy": "commit",
+            "target_id": "bathroom",
+            "resolution_source": "fixture_authoritative_action_resolution",
+        },
         "runtime_projection": _runtime_projection(),
         "content_modules_root": _content_root(),
         "scene_energy_target": se_target,
@@ -467,17 +480,19 @@ def test_player_intent_adapter_returns_local_only_result() -> None:
 
 def test_action_resolution_adapter_returns_local_only_result() -> None:
     result = evaluate_action_resolution_contract(
-        raw_player_input="Gehe ins Bad",
-        interpreted_input={
-            "player_input_kind": "action",
-            "narrator_response_expected": True,
-            "npc_response_expected": False,
-            "projection_captures": {"room": "ins Bad"},
+        player_action_frame={
             "actor_id": "annette_reille",
+            "verb": "move",
+            "action_kind": "movement",
+            "target_id": "bathroom",
+            "validation_surface": "authoritative_action_resolution",
         },
-        module_id="god_of_carnage",
-        runtime_projection=_runtime_projection(),
-        content_modules_root=_content_root(),
+        affordance_resolution={
+            "status": "allowed",
+            "action_commit_policy": "commit",
+            "target_id": "bathroom",
+            "resolution_source": "fixture_authoritative_action_resolution",
+        },
     )
 
     assert result["available"] is True

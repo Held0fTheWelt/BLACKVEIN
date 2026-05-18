@@ -26,6 +26,8 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 
 7. **`actor_lane_validation_too_late`** error code is raised if validation is called after a candidate is already marked as committed.
 
+8. **GoC actor identity aliases** are resolved before actor-lane comparison. A selected role slug, display name, first name, and canonical runtime actor id all refer to the same lane when they resolve to the same content character record. For example, `annette` and `annette_reille` must both forbid AI output on Annette's human slot; this check must fire before dramatic-effect validation.
+
 ## Affected Services/Files
 
 - `world-engine/app/runtime/models.py` — `ActorLaneContext`, `ActorLaneValidationResult`
@@ -38,6 +40,7 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 - AI cannot generate any output for the selected human actor's slot in any scene turn
 - Human actor can only speak or act via player input, never via AI generation
 - NPC actors retain full dramatic freedom to speak, act, address, challenge, and interact with both the human actor and each other
+- Actor-lane enforcement is resilient to role-slug/runtime-id drift between bootstrap, scene director output, and model structured output
 - `run_commit_seam()` receives a rejected `validation_outcome` when human actor enforcement fires, ensuring `commit_applied=False`
 - `run_visible_render()` emits `render_downgrade` when enforcement fires
 
@@ -70,6 +73,7 @@ flowchart LR
 - `test_visitor_cannot_be_responder` — PASS
 - `test_actor_lane_validation_runs_before_response_packaging` — PASS
 - `test_actor_lane_validation_too_late_error` — PASS
+- `test_human_actor_boundary_expands_goc_actor_aliases` — PASS
 
 ## Related Audit Finding IDs
 

@@ -346,21 +346,24 @@ class TypewriterEngine {
     }
     const frag = document.createDocumentFragment();
     for (let k = from; k < to; k++) {
-      const span = document.createElement('span');
-      span.className = 'char';
-      span.setAttribute('data-i', String(k));
       const ch = item.text[k];
-      // Whitespace must be visible to layout but should still animate.
       if (ch === '\n') {
-        span.classList.add('char--break');
+        const span = document.createElement('span');
+        span.className = 'char char--break';
+        span.setAttribute('data-i', String(k));
         span.appendChild(document.createElement('br'));
-      } else if (ch === ' ') {
-        span.classList.add('char--space');
-        span.textContent = ' ';
+        frag.appendChild(span);
+      } else if (ch === ' ' || ch === '\t') {
+        // Text nodes (not spans) keep normal line wrapping — span + white-space:pre
+        // on spaces caused a visible leading space at wrapped line starts.
+        frag.appendChild(document.createTextNode(ch));
       } else {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.setAttribute('data-i', String(k));
         span.textContent = ch;
+        frag.appendChild(span);
       }
-      frag.appendChild(span);
     }
     // Insert before cursor if one exists; else append. The per-char pulse
     // restart used to force a synchronous reflow (`void offsetWidth`) every

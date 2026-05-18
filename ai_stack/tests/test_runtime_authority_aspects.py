@@ -512,9 +512,7 @@ def test_action_resolution_short_path_is_enabled_by_module_policy_not_module_id(
             "runtime_governance_policy": {
                 "action_resolution_short_path": {
                     "enabled": True,
-                    "allowed_player_input_kinds": ["movement_action"],
-                    "allowed_verbs": ["move_to"],
-                    "blocked_player_input_kinds": ["speech"],
+                    "routing_basis": "semantic_action_frame_evidence",
                 }
             }
         },
@@ -552,9 +550,7 @@ def test_inferred_plausible_action_uses_model_realization_not_short_path() -> No
             "runtime_governance_policy": {
                 "action_resolution_short_path": {
                     "enabled": True,
-                    "allowed_player_input_kinds": ["action"],
-                    "allowed_verbs": ["open"],
-                    "blocked_player_input_kinds": ["speech"],
+                    "routing_basis": "semantic_action_frame_evidence",
                 }
             }
         },
@@ -582,9 +578,7 @@ def test_needs_clarification_remains_authoritative_even_when_narrator_plan_is_em
             "runtime_governance_policy": {
                 "action_resolution_short_path": {
                     "enabled": True,
-                    "allowed_player_input_kinds": ["movement_action"],
-                    "allowed_verbs": ["move_to"],
-                    "blocked_player_input_kinds": ["speech"],
+                    "routing_basis": "semantic_action_frame_evidence",
                 }
             }
         },

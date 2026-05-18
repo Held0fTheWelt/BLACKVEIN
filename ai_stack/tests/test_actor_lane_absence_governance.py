@@ -7,6 +7,7 @@ from ai_stack.langgraph_runtime_executor import (
 )
 from ai_stack.runtime_quality_semantics import canonical_degradation_signals
 from ai_stack.runtime_turn_contracts import DEGRADATION_SIGNAL_NO_ACTOR_LANE_OUTPUT
+from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
 from ai_stack.goc_turn_seams import run_validation_seam, run_visible_render
 
 
@@ -35,6 +36,7 @@ def test_actor_lane_valid_output_is_healthy():
 
 def test_human_actor_boundary_expands_goc_actor_aliases():
     """Short player ids like annette must forbid canonical ids like annette_reille."""
+    assert "annette_reille" in expand_goc_actor_id_aliases("annette")
     generation = {
         "success": True,
         "metadata": {
@@ -484,7 +486,7 @@ def _actor_lane_summary_from_structured(structured: dict) -> dict:
     }
 
 
-def test_opening_narration_synth_from_approved_actor_lanes_unblocks_empty_fluency_reject():
+def test_opening_actor_lane_generation_error_unblocks_empty_fluency_reject():
     graph = object.__new__(RuntimeTurnGraphExecutor)
     state = _opening_state_for_role("annette")
     state["generation"] = _lane_only_generation()
@@ -493,11 +495,20 @@ def test_opening_narration_synth_from_approved_actor_lanes_unblocks_empty_fluenc
     structured = result["generation"]["metadata"]["structured_output"]
     summary = structured.get("narration_summary")
     assert isinstance(summary, str) and summary.strip()
+    assert "opening_actor_lane_narration_missing" in summary
+    assert "No substitute story text" in summary
     assert result["generation"]["metadata"]["narration_summary_synthesized"] is True
-    assert result["generation"]["metadata"]["narration_summary_source"] == "actor_lane_fallback"
+    assert (
+        result["generation"]["metadata"]["narration_summary_source"]
+        == "actor_lane_generation_error"
+    )
+    assert (
+        result["generation"]["metadata"]["narration_summary_error_code"]
+        == "opening_actor_lane_narration_missing"
+    )
     assert (
         result["generation"]["metadata"]["synthetic_narration_reason"]
-        == "missing_narration_summary_with_approved_actor_lanes"
+        == "opening_actor_lane_narration_missing"
     )
     assert any(
         str(effect.get("description") or "").strip() for effect in result["proposed_state_effects"]
@@ -577,24 +588,28 @@ def test_opening_narration_synth_never_masks_human_actor_lane_violation():
     assert outcome["reason"] in {"ai_controlled_human_actor", "human_actor_selected_as_responder"}
 
 
-def test_opening_narration_synth_annette_fixture_has_three_narrator_paragraphs():
+def test_opening_actor_lane_missing_narration_annette_uses_explicit_notice():
     graph = object.__new__(RuntimeTurnGraphExecutor)
     state = _opening_state_for_role("annette")
     state["generation"] = _lane_only_generation()
     result = graph._proposal_normalize(state)
     summary = result["generation"]["metadata"]["structured_output"]["narration_summary"]
-    assert summary.count("\n\n") >= 2
-    assert "Annette" in summary
+    assert "opening_actor_lane_narration_missing" in summary
+    assert "No substitute story text" in summary
+    assert "Fallback:" in summary
+    assert "You are Annette" not in summary
 
 
-def test_opening_narration_synth_alain_fixture_has_three_narrator_paragraphs():
+def test_opening_actor_lane_missing_narration_alain_uses_explicit_notice():
     graph = object.__new__(RuntimeTurnGraphExecutor)
     state = _opening_state_for_role("alain")
     state["generation"] = _lane_only_generation()
     result = graph._proposal_normalize(state)
     summary = result["generation"]["metadata"]["structured_output"]["narration_summary"]
-    assert summary.count("\n\n") >= 2
-    assert "Alain" in summary
+    assert "opening_actor_lane_narration_missing" in summary
+    assert "No substitute story text" in summary
+    assert "Fallback:" in summary
+    assert "You are Alain" not in summary
 
 
 def test_opening_narration_synth_fires_for_configured_model_fallback():

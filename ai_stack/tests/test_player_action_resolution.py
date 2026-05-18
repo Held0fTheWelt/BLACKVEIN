@@ -108,6 +108,35 @@ def test_ai_semantic_movement_resolves_content_location() -> None:
     assert frame["validation_surface"] == "ai_semantic_resolution"
 
 
+def test_grounded_location_action_normalizes_to_spatial_role_without_verb_map() -> None:
+    out = resolve_player_action(
+        raw_text="Gehe in die Küche",
+        interpreted_input=_semantic_interpreted(
+            verb="go_to",
+            action_kind="go_to",
+            target_query="the kitchen",
+            target_id="kitchen",
+            target_type="location",
+            extra_semantic={
+                "player_input_kind": "physical_action",
+                "normalized_english_text": "Go to the kitchen",
+                "target_query_english": "the kitchen",
+            },
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+
+    frame = out["player_action_frame"]
+    assert frame["player_input_kind"] == "physical_action"
+    assert frame["resolved_target_id"] == "kitchen"
+    assert frame["resolved_target_type"] == "location"
+    assert frame["action_kind"] == "movement"
+    assert frame["verb"] == "move_to"
+    assert frame["target_resolution_source"] == "ai_semantic_resolution.content_id"
+
+
 def test_ai_semantic_resolution_preserves_internal_english_normalization() -> None:
     interpreted = _semantic_interpreted(
         verb="move_to",
