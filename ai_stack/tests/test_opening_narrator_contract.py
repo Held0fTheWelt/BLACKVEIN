@@ -1,9 +1,13 @@
-"""OPEN-00-01: Opening block ordering contract — narrator_intro + role_anchor + scene_setup before actor_line/action."""
+"""LDSS degraded fallback contract: no deterministic substitute story prose."""
 from __future__ import annotations
 
 import pytest
 
-from ai_stack.live_dramatic_scene_simulator import LDSSInput, build_deterministic_ldss_output
+from ai_stack.live_dramatic_scene_simulator import (
+    LDSSInput,
+    build_deterministic_ldss_output,
+    build_scene_turn_envelope_v2,
+)
 
 
 def _ldss_input(human: str, turn: int = 0, session_output_language: str = "en") -> LDSSInput:
@@ -82,30 +86,48 @@ def _canonical_ldss_input(
     )
 
 
+FORBIDDEN_CANNED_TEXT = (
+    "Two couples meet in a Paris apartment",
+    "Zwei Paare treffen sich",
+    "The incident began at the edge",
+    "Der Vorfall begann",
+    "You are Annette",
+    "Du bist Annette",
+    "You are Alain",
+    "Du bist Alain",
+    "The salon:",
+    "Der Salon:",
+    "Beneath the surface",
+    "You notice the silence",
+    "holds back for a moment",
+    "hält sich einen Moment zurück",
+)
+
+
+def _combined_text(out) -> str:
+    return "\n".join(block.text for block in out.visible_scene_output.blocks)
+
+
 @pytest.mark.parametrize("human_role", ["annette", "alain"])
-def test_opening_starts_with_three_narrator_blocks(human_role: str) -> None:
-    """Turn 0 must emit narrator_intro, role_anchor, scene_setup before any actor_line/action."""
+def test_opening_uses_explicit_degraded_fallback_only(human_role: str) -> None:
+    """Turn 0 must not synthesize narrator_intro, role_anchor, room, or NPC prose."""
     out = build_deterministic_ldss_output(_ldss_input(human_role, turn=0))
     blocks = out.visible_scene_output.blocks
-    assert len(blocks) >= 4, f"Opening needs ≥ 4 blocks (3 narrator + actor), got {len(blocks)}"
-    assert blocks[0].block_type == "narrator", "Block 0 (narrator_intro) must be narrator"
-    assert blocks[1].block_type == "narrator", "Block 1 (role_anchor) must be narrator"
-    assert blocks[2].block_type == "narrator", "Block 2 (scene_setup) must be narrator"
-    first_actor = next((b for b in blocks if b.block_type in ("actor_line", "actor_action")), None)
-    assert first_actor is not None, "Opening must have at least one NPC actor block"
-    actor_idx = blocks.index(first_actor)
-    assert actor_idx >= 3, f"actor_line/action must not appear before block index 3, got index {actor_idx}"
-
-
-@pytest.mark.parametrize("human_role", ["annette", "alain"])
-def test_opening_role_anchor_is_role_specific(human_role: str) -> None:
-    """Block 1 (role_anchor) must reference the player's character by name."""
-    out = build_deterministic_ldss_output(_ldss_input(human_role, turn=0))
-    role_anchor_text = out.visible_scene_output.blocks[1].text
-    assert human_role.capitalize() in role_anchor_text, (
-        f"role_anchor for {human_role!r} must mention {human_role.capitalize()!r}, "
-        f"got: {role_anchor_text!r}"
-    )
+    assert len(blocks) == 1
+    assert blocks[0].block_type == "system_degraded_notice"
+    assert blocks[0].speaker_label == "System"
+    assert blocks[0].actor_id is None
+    assert out.status == "degraded_error"
+    assert out.error_code == "ldss_no_live_visible_generation"
+    assert "LDSS error" in blocks[0].text
+    assert "ldss_no_live_visible_generation" in blocks[0].text
+    assert out.visible_actor_response_present is False
+    assert out.npc_agency_plan is None
+    assert out.decision_count == 0
+    assert "Fallback:" in blocks[0].text
+    combined = _combined_text(out)
+    for phrase in FORBIDDEN_CANNED_TEXT:
+        assert phrase not in combined
 
 
 @pytest.mark.parametrize("human_role", ["annette", "alain"])
@@ -120,15 +142,17 @@ def test_opening_no_human_actor_in_blocks(human_role: str) -> None:
 
 
 def test_regular_turn_keeps_single_narrator_structure() -> None:
-    """Turn > 0 must retain the original 1-narrator + actor_line structure (not 3 narrators)."""
+    """Turn > 0 must not use the old narrator + actor_line deterministic mock."""
     out = build_deterministic_ldss_output(_ldss_input("annette", turn=1))
     blocks = out.visible_scene_output.blocks
-    narrator_blocks = [b for b in blocks if b.block_type == "narrator"]
-    assert len(narrator_blocks) == 1, (
-        f"Regular turn must have exactly 1 narrator block, got {len(narrator_blocks)}"
-    )
-    assert blocks[0].block_type == "narrator", "First block of regular turn must be narrator"
-    assert any(b.block_type == "actor_line" for b in blocks), "Regular turn must include an actor_line"
+    assert len(blocks) == 1
+    assert blocks[0].block_type == "system_degraded_notice"
+    assert out.error_code == "ldss_no_live_visible_generation"
+    assert "ldss_no_live_visible_generation" in blocks[0].text
+    assert out.visible_actor_response_present is False
+    combined = _combined_text(out)
+    for phrase in FORBIDDEN_CANNED_TEXT:
+        assert phrase not in combined
 
 
 # ---------------------------------------------------------------------------
@@ -137,53 +161,66 @@ def test_regular_turn_keeps_single_narrator_structure() -> None:
 
 
 def test_ldss_opening_fallback_respects_german_session_output_language() -> None:
-    """P1: when session_output_language='de', the deterministic LDSS opening must produce
-    German narrator text — not the English fallback that the staging audit observed."""
+    """The explicit fallback follows session_output_language without story prose."""
     out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="de"))
-    blocks = out.visible_scene_output.blocks
-    narrator_texts = [b.text for b in blocks if b.block_type == "narrator"]
-    assert narrator_texts, "Opening must emit narrator blocks"
-    combined = " ".join(narrator_texts)
-    # German session output language must use German orthography / common German articles.
-    assert any(ch in combined for ch in "äöüÄÖÜß"), (
-        f"German session must include German-specific characters; got: {combined!r}"
-    )
-    # And must NOT use the English summary-only template that was committed in staging.
-    assert "Two couples meet in a Paris apartment" not in combined
-    assert "You are Annette Reille" not in combined
+    combined = _combined_text(out)
+    assert "LDSS-Fehler ldss_no_live_visible_generation" in combined
+    assert "Die Live-Szenengenerierung" in combined
+    assert "Ersatz-Erzählung" in combined
+    for phrase in FORBIDDEN_CANNED_TEXT:
+        assert phrase not in combined
 
 
-def test_ldss_opening_fallback_does_not_emit_english_role_anchor_for_german_session() -> None:
-    """P1: the role anchor block (block index 1) must be German for a German session and
-    must include the player role name without the English 'You are <Name>' phrase."""
+def test_ldss_opening_fallback_does_not_emit_role_anchor_for_german_session() -> None:
+    """The fallback must not pretend to place the player role."""
     out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="de"))
-    blocks = out.visible_scene_output.blocks
-    assert len(blocks) >= 3, f"Need ≥ 3 narrator blocks; got {len(blocks)}"
-    role_anchor_text = blocks[1].text
-    assert "Du bist Annette" in role_anchor_text or "Annette Reille" in role_anchor_text
-    assert "You are Annette" not in role_anchor_text
+    combined = _combined_text(out)
+    assert "Du bist Annette" not in combined
+    assert "You are Annette" not in combined
+    assert "Annette Reille" not in combined
 
 
 def test_ldss_opening_fallback_english_session_still_works() -> None:
-    """P1: regression guard — English sessions must still receive the English opening text."""
+    """English sessions receive an explicit English fallback, not an opening template."""
     out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="en"))
-    blocks = out.visible_scene_output.blocks
-    role_anchor_text = blocks[1].text
-    assert "You are Annette" in role_anchor_text
+    combined = _combined_text(out)
+    assert "LDSS error ldss_no_live_visible_generation" in combined
+    assert "Live scene generation" in combined
+    assert "No substitute story text" in combined
+    assert "You are Annette" not in combined
 
 
-def test_ldss_opening_fallback_uses_parc_montsouris_not_schoolyard() -> None:
+def test_ldss_opening_fallback_does_not_emit_park_or_schoolyard_prose() -> None:
     out = build_deterministic_ldss_output(_canonical_ldss_input("annette_reille"))
-    intro = out.visible_scene_output.blocks[0].text
-    assert "Parc Montsouris" in intro
-    assert "Schulhof" not in intro
-    assert "schoolyard" not in intro.lower()
+    combined = _combined_text(out)
+    assert "Parc Montsouris" not in combined
+    assert "Schulhof" not in combined
+    assert "schoolyard" not in combined.lower()
 
 
 def test_ldss_opening_fallback_normalizes_canonical_actor_ids() -> None:
     out = build_deterministic_ldss_output(_canonical_ldss_input("annette_reille"))
-    blocks = out.visible_scene_output.blocks
-    assert "Du bist Annette" in blocks[1].text
-    assert "Du nimmst deinen Platz" not in blocks[1].text
-    assert all("considers the situation" not in block.text for block in blocks)
-    assert all("Alain_reille" not in block.text for block in blocks)
+    combined = _combined_text(out)
+    assert "annette_reille" not in combined
+    assert "alain_reille" not in combined
+    assert "Du bist Annette" not in combined
+    assert "considers the situation" not in combined
+
+
+def test_ldss_error_is_structured_in_output_and_envelope_diagnostics() -> None:
+    ldss_input = _ldss_input("annette", turn=0, session_output_language="de")
+    out = build_deterministic_ldss_output(ldss_input)
+    out_dict = out.to_dict()
+    assert out_dict["status"] == "degraded_error"
+    assert out_dict["error_code"] == "ldss_no_live_visible_generation"
+
+    envelope = build_scene_turn_envelope_v2(
+        ldss_input=ldss_input,
+        ldss_output=out,
+        story_session_id="test-ldss-error",
+        turn_number=0,
+    )
+    diag = envelope.to_dict()["diagnostics"]["live_dramatic_scene_simulator"]
+    assert diag["status"] == "degraded_error"
+    assert diag["error_present"] is True
+    assert diag["error_code"] == "ldss_no_live_visible_generation"

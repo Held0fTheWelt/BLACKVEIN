@@ -3,7 +3,7 @@ canonical_path_step:
   id: opening_v2_036_long_stupor_silence
   path_id: goc_opening_canonical_path_v2
   name: "036 - Long stupor silence, dead phone vibrates one last time"
-  mode: narrator_perception_handover
+  mode: narrator_perception_transition
 
   scene_anchor:
     scene: 8

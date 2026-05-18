@@ -79,7 +79,7 @@ character_document:
       - opening_012_tulips_and_hospitality
     vulnerable_after:
       - opening_014_player_response_ripple
-      - opening_016_opening_sustained_play_handoff
+      - opening_016_sustained_play_pressure_field
   forbidden_authoring_moves:
     - do_not_make_her_resolve_the_incident_in_opening
     - do_not_make_her_explain_the_room_as_narrator

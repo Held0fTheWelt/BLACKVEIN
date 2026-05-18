@@ -144,7 +144,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
         "coverage_note": "Local shape check mirrors the seam loop logic.",
     },
     "opening_event_coverage": {
-        "label": "Opening-event coverage / handover (opening turn_input_class)",
+        "label": "Opening-event coverage / first playable (opening turn_input_class)",
         "seam_anchor": "goc_turn_seams.run_validation_seam:evaluate_opening_event_coverage",
         "related_adr0041_validators": (
             OPENING_EVENT_COVERAGE_CONTRACT,

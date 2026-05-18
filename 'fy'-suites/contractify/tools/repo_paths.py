@@ -46,7 +46,7 @@ def repo_root(*, start: Path | None = None) -> Path:
             callable.
     """
     return resolve_project_root(
-        start=start,
+        start=start or Path.cwd(),
         env_var="CONTRACTIFY_REPO_ROOT",
         marker_text=None,
     )
@@ -64,4 +64,4 @@ def contractify_hub_dir(repo: Path | None = None) -> Path:
             callable.
     """
     r = repo or repo_root()
-    return r / FY_SUITES_DIRNAME / "contractify"
+    return _current_or_legacy_suite_dir(r, "contractify")

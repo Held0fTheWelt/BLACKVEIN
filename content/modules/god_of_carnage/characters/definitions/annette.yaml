@@ -82,7 +82,7 @@ character_document:
       - opening_014_player_response_ripple
     vulnerable_after:
       - opening_015_phone_exit_pressure
-      - opening_016_opening_sustained_play_handoff
+      - opening_016_sustained_play_pressure_field
   forbidden_authoring_moves:
     - do_not_force_player_speech
     - do_not_assign_private_emotion_without_player_signal

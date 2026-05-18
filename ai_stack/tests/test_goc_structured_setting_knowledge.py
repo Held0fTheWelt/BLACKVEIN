@@ -201,7 +201,7 @@ def test_p2_1_english_only_knowledge_files_contain_no_german_authoring_strings()
         knowledge_dir.parent / "canonical_path" / "002_argument_stick_blow.yaml",
         knowledge_dir.parent / "canonical_path" / "003_bicycle_disappearance.yaml",
         knowledge_dir.parent / "canonical_path" / "004_dark_building_hallway.yaml",
-        knowledge_dir.parent / "canonical_path" / "005_living_room_handover.yaml",
+        knowledge_dir.parent / "canonical_path" / "005_living_room_threshold.yaml",
         knowledge_dir.parent / "canonical_path" / "006_apartment_entry_greetings.yaml",
         knowledge_dir.parent / "canonical_path" / "007_living_room_arrangement.yaml",
         knowledge_dir.parent / "canonical_path" / "008_statement_on_table.yaml",
@@ -221,9 +221,9 @@ def test_p2_1_english_only_knowledge_files_contain_no_german_authoring_strings()
     assert not failures, f"German authoring strings found in English-only knowledge: {failures}"
 
 
-def test_p2_2_direction_and_knowledge_opening_handovers_are_consistent() -> None:
+def test_p2_2_direction_and_knowledge_opening_transitions_are_consistent() -> None:
     """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P2.2: direction/opening_sequence.yaml and
-    knowledge/opening_scene_sequence.yaml must agree on the phase-1 handover so the
+    knowledge/opening_scene_sequence.yaml must agree on the phase-1 first playable state so the
     runtime is not torn between two contracts."""
     from pathlib import Path
 
@@ -232,13 +232,13 @@ def test_p2_2_direction_and_knowledge_opening_handovers_are_consistent() -> None
     knowledge_data = _read_yaml(module_dir / "knowledge" / "opening_scene_sequence.yaml")
 
     knowledge_opening = knowledge_data.get("opening_scene_sequence") or {}
-    knowledge_handover = None
+    knowledge_first_playable = None
     for event in (knowledge_opening.get("narrative_events") or []):
-        if isinstance(event, dict) and event.get("handover_to_scene_phase"):
-            knowledge_handover = event["handover_to_scene_phase"]
+        if isinstance(event, dict) and event.get("first_playable_scene_phase"):
+            knowledge_first_playable = event["first_playable_scene_phase"]
             break
-    assert knowledge_handover == "phase_1", (
-        f"knowledge/opening_scene_sequence handover expected phase_1, got {knowledge_handover}"
+    assert knowledge_first_playable == "phase_1", (
+        f"knowledge/opening_scene_sequence first playable phase expected phase_1, got {knowledge_first_playable}"
     )
 
     # Direction file may declare handover via either ``handover_to_phase`` or by referencing

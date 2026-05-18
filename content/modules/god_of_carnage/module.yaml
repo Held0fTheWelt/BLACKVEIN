@@ -56,7 +56,7 @@ files:
   - canonical_path/002_argument_stick_blow.yaml
   - canonical_path/003_bicycle_disappearance.yaml
   - canonical_path/004_dark_building_hallway.yaml
-  - canonical_path/005_living_room_handover.yaml
+  - canonical_path/005_living_room_threshold.yaml
   - canonical_path/006_apartment_entry_greetings.yaml
   - canonical_path/007_living_room_arrangement.yaml
   - canonical_path/008_statement_on_table.yaml
@@ -67,7 +67,7 @@ files:
   - canonical_path/013_first_playable_courtesy_gap.yaml
   - canonical_path/014_player_response_ripple.yaml
   - canonical_path/015_phone_exit_pressure.yaml
-  - canonical_path/016_opening_sustained_play_handoff.yaml
+  - canonical_path/016_opening_sustained_play_pressure_field.yaml
   - objects/index.yaml                         # Object index; apartment objects are grouped by location subfolders
   - objects/opening/bicycle_rack.yaml
   - objects/appartment_vallon/living_room/coffee_table.yaml
@@ -110,7 +110,7 @@ files:
   - scene_graph.yaml             # Runtime/compatibility scene-node index; canonical_path is the directed spine
   - direction/system_prompt.md           # LLM system prompt guidance
   - direction/opening.md                 # Human-editable opening authoring document
-  - direction/opening_sequence.yaml      # Session opening: two-part handover + narrator bar (ADR-0035)
+  - direction/opening_sequence.yaml      # Session opening narrator path + playable-state setup (ADR-0035)
   - locations/index.yaml                      # Location index and assignment policy
   - locations/appartment_vallon/apartment_layout.yaml           # Rooms, adjacency, visibility, privacy, offscreen rules (English)
   - locations/opening/park_edge.yaml

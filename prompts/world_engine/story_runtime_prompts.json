@@ -21,7 +21,7 @@
         "cast",
         "anchor",
         "role_label",
-        "handover_clause",
+        "first_playable_clause",
         "opening_scene_sequence_id",
         "opening_event_ids",
         "opening_must_establish",
@@ -41,7 +41,7 @@
         "Narrator owns opening scenic establishment, role placement, and local context before NPC speech.",
         "Place {role_label} in the scene without forcing speech, decisions, or private conclusions.",
         "Use separate narrator-visible blocks for distinct opening functions when the policy expects visible evidence.",
-        "{handover_clause}",
+        "{first_playable_clause}",
         "Opening knowledge contract {opening_scene_sequence_id} requires events {opening_event_ids} and must_establish {opening_must_establish}.",
         "Return \"narration_summary\" as a list of at least {visible_min} and ideally {visible_preferred} strings (max {visible_max}) so opening evidence can be projected into visible blocks.",
         "Use the first three strings as: premise/incident, apartment room-and-ritual, selected role anchor.",
@@ -68,7 +68,7 @@
         "Player input: {player_input}",
         "Interpreted kind: {interpreted_kind}",
         "{retrieval_instruction}",
-        "Return a short in-world continuation."
+        "Return an explicit fallback notice. Do not invent in-world narration on this fallback path."
       ]
     }
   ]

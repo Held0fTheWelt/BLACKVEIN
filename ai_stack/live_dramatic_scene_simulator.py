@@ -11,8 +11,9 @@ Validation order (enforced before commit / before response packaging):
   4. passivity         — require visible NPC actor_line/action/env unless terminal
   5. affordance        — validate object admission tiers
 
-Deterministic mock output is produced when no real AI adapter is present.
-Fallback output is produced when proposal generation fails.
+When no real AI adapter has produced player-visible content, this module must
+surface an explicit degraded fallback notice. It must not synthesize substitute
+story prose.
 """
 
 from __future__ import annotations
@@ -233,11 +234,17 @@ class LDSSOutput:
     output_hash: str = ""
     phase_cost: dict[str, Any] = field(default_factory=dict)
     legacy_blob_used: bool = False
+    status: str = "approved"
+    error_code: str = ""
+    error_message: str = ""
     contract: str = "ldss_output.v1"
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "contract": self.contract,
+            "status": self.status,
+            "error_code": self.error_code,
+            "error_message": self.error_message,
             "decision_count": self.decision_count,
             "npc_agency_plan_count": self.npc_agency_plan_count,
             "visible_actor_response_present": self.visible_actor_response_present,
@@ -475,330 +482,83 @@ def validate_responder_candidates(
 
 
 # ---------------------------------------------------------------------------
-# Deterministic mock / fallback
+# Explicit degraded fallback
 # ---------------------------------------------------------------------------
 
-_GOC_DISPLAY_NAMES: dict[str, str] = {
-    "annette": "Annette",
-    "alain": "Alain",
-    "veronique": "Véronique",
-    "michel": "Michel",
-}
+LDSS_NO_LIVE_VISIBLE_GENERATION = "ldss_no_live_visible_generation"
+LDSS_VALIDATION_REJECTED = "ldss_validation_rejected"
 
-
-def _goc_actor_key(actor_id: str | None) -> str:
-    """Normalize canonical actor ids like ``alain_reille`` to fallback roster keys."""
-    raw = str(actor_id or "").strip().lower()
-    if not raw:
-        return ""
-    return raw.split("_", 1)[0]
-
-
-def _goc_display_name(actor_id: str | None) -> str:
-    key = _goc_actor_key(actor_id)
-    if key in _GOC_DISPLAY_NAMES:
-        return _GOC_DISPLAY_NAMES[key]
-    raw = str(actor_id or "").strip()
-    return raw.capitalize() if raw else ""
-
-_GOC_NPC_LINES_BY_LANG: dict[str, dict[str, list[str]]] = {
-    "en": {
-        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P2: phase-1 opening
-        # NPC lines must be ritual greeting / hospitality fiction — no prosecutorial
-        # framing, no mid-conflict accusation. Existing English lines were rewritten.
-        "veronique": [
-            "Perhaps we should sit before we begin.",
-            "Thank you for coming. We thought it best to talk in person.",
-        ],
-        "alain": [
-            "Let us hear what happened, calmly.",
-            "We appreciate the invitation; it is the right setting for this.",
-        ],
-        "michel": [
-            "Coffee? It is still warm.",
-            "It is good of you both to come on a Saturday.",
-        ],
-    },
-    "de": {
-        "veronique": [
-            "Vielleicht setzen wir uns, bevor wir beginnen.",
-            "Danke, dass ihr gekommen seid. Wir hielten es für besser, persönlich zu reden.",
-        ],
-        "alain": [
-            "Lasst uns hören, was passiert ist — ruhig.",
-            "Wir schätzen die Einladung; das ist der richtige Rahmen dafür.",
-        ],
-        "michel": [
-            "Kaffee? Er ist noch warm.",
-            "Schön, dass ihr beide an einem Samstag gekommen seid.",
-        ],
-    },
-}
-
-_GOC_NPC_ACTIONS_BY_LANG: dict[str, dict[str, str]] = {
-    "en": {
-        "alain": "glances at his phone but does not pick it up yet.",
-        "michel": "shifts the coffee table book aside.",
-        "veronique": "gestures to the empty chairs around the low table.",
-        "annette": "",
-    },
-    "de": {
-        "alain": "wirft einen Blick auf sein Handy, nimmt es aber noch nicht in die Hand.",
-        "michel": "schiebt den Kunstband auf dem Couchtisch beiseite.",
-        "veronique": "weist mit einer kleinen Handbewegung auf die freien Stühle.",
-        "annette": "",
-    },
-}
-
-_GOC_NPC_LINE_FALLBACK_BY_LANG: dict[str, str] = {
-    "en": "{label} holds back for a moment.",
-    "de": "{label} hält sich einen Moment zurück.",
-}
-
-
-def _goc_npc_line_for(lang: str, actor_id: str, turn: int) -> tuple[str, str]:
-    by_actor = _GOC_NPC_LINES_BY_LANG.get(lang) or _GOC_NPC_LINES_BY_LANG["en"]
-    actor_key = _goc_actor_key(actor_id)
-    lines = by_actor.get(actor_key) or []
-    label = _goc_display_name(actor_id)
-    if not lines:
-        template = _GOC_NPC_LINE_FALLBACK_BY_LANG.get(lang) or _GOC_NPC_LINE_FALLBACK_BY_LANG["en"]
-        return label, template.format(label=label)
-    return label, lines[turn % len(lines)]
-
-
-def _goc_npc_action_for(lang: str, actor_id: str) -> str:
-    by_actor = _GOC_NPC_ACTIONS_BY_LANG.get(lang) or _GOC_NPC_ACTIONS_BY_LANG["en"]
-    return by_actor.get(_goc_actor_key(actor_id), "")
-
-
-# Legacy aliases kept for back-compat with any external callers that imported the
-# original dicts; they expose the English variants used historically by tests.
-_GOC_NPC_LINES = _GOC_NPC_LINES_BY_LANG["en"]
-_GOC_NPC_ACTIONS = _GOC_NPC_ACTIONS_BY_LANG["en"]
-
-# Opening narrator contract (OPEN-00-01): narrator_intro → role_anchor → scene_setup → actor_line
-_OPENING_NARRATOR_INTRO_BY_LANG: dict[str, str] = {
+_LDSS_DEGRADED_TEXT_BY_LANG: dict[str, str] = {
     "en": (
-        "Two couples meet in a Paris apartment on behalf of their children. "
-        "The incident began at the edge of Parc Montsouris, near the basketball court; "
-        "what happens here will be handled in a salon."
+        "Fallback: LDSS error {error_code}. Live scene generation did not produce canonical visible output. "
+        "No substitute story text was committed."
     ),
     "de": (
-        "Zwei Paare treffen sich in einer Pariser Wohnung wegen ihrer Kinder. "
-        "Der Vorfall begann am Rand des Parc Montsouris, nahe dem Basketballplatz; "
-        "was hier geschieht, soll im Salon geklärt werden."
+        "Fallback: LDSS-Fehler {error_code}. Die Live-Szenengenerierung hat keinen kanonischen sichtbaren Output erzeugt. "
+        "Es wurde keine Ersatz-Erzählung übernommen."
     ),
 }
-_OPENING_ROLE_ANCHORS_BY_LANG: dict[str, dict[str, str]] = {
-    "en": {
-        "annette": (
-            "You are Annette Reille. The apartment is yours, and with it the expectation "
-            "that this will be handled with civility — the meeting was your idea."
-        ),
-        "alain": (
-            "You are Alain Reille. You would rather be elsewhere. "
-            "You came because your wife insisted, and you are already calculating the fastest polite exit."
-        ),
-    },
-    "de": {
-        "annette": (
-            "Du bist Annette Reille. Die Wohnung gehört dir, und mit ihr die Erwartung, "
-            "dass dieser Abend zivilisiert verläuft — das Treffen war deine Idee."
-        ),
-        "alain": (
-            "Du bist Alain Reille. Du wärst lieber woanders. "
-            "Du bist gekommen, weil deine Frau darauf bestanden hat, und kalkulierst schon den schnellsten höflichen Ausweg."
-        ),
-    },
-}
-_OPENING_SCENE_SETUP_BY_LANG: dict[str, str] = {
-    "en": (
-        "The salon: four chairs arranged around a low table. Art books and tulips signal considered taste. "
-        "A tray holds espresso cups no one has touched yet. Nobody has sat down."
-    ),
-    "de": (
-        "Der Salon: vier Stühle um einen niedrigen Tisch. Kunstbände und Tulpen signalisieren überlegten Geschmack. "
-        "Auf einem Tablett stehen Espressotassen, die niemand bisher berührt hat. Niemand hat sich gesetzt."
-    ),
-}
-_OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG: dict[str, str] = {
-    "en": "You are present in the room; the meeting has begun before anyone can make it comfortable.",
-    "de": "Deine Figur ist im Raum; das Treffen hat begonnen, bevor es jemand bequem machen kann.",
+
+_LDSS_REJECTED_TEXT_BY_LANG: dict[str, str] = {
+    "en": "Fallback: LDSS error {error_code}. Scene generation failed validation. No substitute narration was committed.",
+    "de": "Fallback: LDSS-Fehler {error_code}. Die Szenengenerierung ist an der Validierung gescheitert. Es wurde keine Ersatz-Erzählung übernommen.",
 }
 
 
-def _opening_narrator_intro_for(lang: str) -> str:
-    return _OPENING_NARRATOR_INTRO_BY_LANG.get(lang) or _OPENING_NARRATOR_INTRO_BY_LANG["en"]
+def _ldss_lang(ldss_input: LDSSInput) -> str:
+    return (str(ldss_input.session_output_language or "de").strip().lower()[:2]) or "de"
 
 
-def _opening_role_anchor_for(lang: str, role: str) -> str:
-    by_role = _OPENING_ROLE_ANCHORS_BY_LANG.get(lang) or _OPENING_ROLE_ANCHORS_BY_LANG["en"]
-    role_key = _goc_actor_key(role)
-    if role_key in by_role:
-        return by_role[role_key]
-    return _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG.get(lang) or _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG["en"]
+def _ldss_degraded_text_for(lang: str, error_code: str) -> str:
+    template = _LDSS_DEGRADED_TEXT_BY_LANG.get(lang) or _LDSS_DEGRADED_TEXT_BY_LANG["en"]
+    return template.format(error_code=error_code)
 
 
-def _opening_scene_setup_for(lang: str) -> str:
-    return _OPENING_SCENE_SETUP_BY_LANG.get(lang) or _OPENING_SCENE_SETUP_BY_LANG["en"]
+def _ldss_rejected_text_for(lang: str, error_code: str) -> str:
+    template = _LDSS_REJECTED_TEXT_BY_LANG.get(lang) or _LDSS_REJECTED_TEXT_BY_LANG["en"]
+    return template.format(error_code=error_code)
 
 
-def _select_primary_responder(npc_ids: list[str], human_actor_id: str) -> str:
-    """Pick the first available NPC as primary responder."""
-    for npc in ("veronique", "alain", "michel"):
-        if npc in npc_ids and npc != human_actor_id:
-            return npc
-    for npc_id in npc_ids:
-        if npc_id != human_actor_id:
-            return npc_id
-    return ""
+def _only_degraded_notice(blocks: list[SceneBlock]) -> bool:
+    return bool(blocks) and all(b.block_type == "system_degraded_notice" for b in blocks)
 
 
 def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
-    """Produce a valid, deterministic LDSS output without calling any AI provider.
+    """Return an explicit degraded notice when LDSS has no live generated content.
 
-    Turn 0 (opening): narrator_intro → role_anchor → scene_setup → actor_line → [actor_action]
-    Turn > 0: narrator → actor_line → [actor_action]
-    No human actor control in any block.
-
-    STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: visible text follows
-    ``ldss_input.session_output_language`` so German sessions do not commit English fallback.
+    This function used to synthesize GoC-specific narrator, role-anchor, room,
+    NPC speech, and NPC action prose. That made a fallback path look like canon.
+    The fallback is now deliberately non-fictional and language-aware.
     """
-    npc_ids = ldss_input.ai_allowed_actor_ids
-    human_id = ldss_input.human_actor_id
     turn = ldss_input.turn_number
-    lang = (str(ldss_input.session_output_language or "de").strip().lower()[:2]) or "de"
-
-    primary = _select_primary_responder(npc_ids, human_id)
-    effective_primary = primary if primary else (npc_ids[0] if npc_ids else "")
-    secondary_ids = [n for n in npc_ids if n != effective_primary and n != human_id]
-    secondary = secondary_ids[0] if secondary_ids else ""
-
-    blocks: list[SceneBlock] = []
-    block_idx = 1
-
-    if turn == 0:
-        # narrator_intro: shared premise / why we are here
-        blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-{block_idx}",
-            block_type="narrator",
-            speaker_label=None,
+    lang = _ldss_lang(ldss_input)
+    error_code = LDSS_NO_LIVE_VISIBLE_GENERATION
+    error_message = "LDSS deterministic fallback had no live canonical visible generation to commit."
+    blocks = [
+        SceneBlock(
+            id=f"turn-{turn}-degraded",
+            block_type="system_degraded_notice",
+            speaker_label="System",
             actor_id=None,
             target_actor_id=None,
-            text=_opening_narrator_intro_for(lang),
-        ))
-        block_idx += 1
-
-        # role_anchor: player's character placement (role-specific)
-        role_anchor_text = _opening_role_anchor_for(lang, human_id)
-        blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-{block_idx}",
-            block_type="narrator",
-            speaker_label=None,
-            actor_id=None,
-            target_actor_id=None,
-            text=role_anchor_text,
-        ))
-        block_idx += 1
-
-        # scene_setup: room / spatial grounding
-        blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-{block_idx}",
-            block_type="narrator",
-            speaker_label=None,
-            actor_id=None,
-            target_actor_id=None,
-            text=_opening_scene_setup_for(lang),
-        ))
-        block_idx += 1
-    else:
-        # Regular turn: single inner-perception narrator block
-        blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-{block_idx}",
-            block_type="narrator",
-            speaker_label="You notice",
-            actor_id=None,
-            target_actor_id=None,
-            text=(
-                "You notice the silence before anyone speaks; "
-                "it feels less like hesitation than calculation."
-            ),
-        ))
-        block_idx += 1
-
-        # Primary NPC actor_line — output-language-aware (P1) + phase-1-polite (P2)
-    if effective_primary:
-        label, line_text = _goc_npc_line_for(lang, effective_primary, turn)
-        target = human_id if human_id else (secondary or None)
-        blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-{block_idx}",
-            block_type="actor_line",
-            speaker_label=label,
-            actor_id=effective_primary,
-            target_actor_id=target,
-            text=line_text,
-        ))
-        block_idx += 1
-
-            # Secondary NPC actor_action — output-language-aware
-    if secondary:
-        label2 = _goc_display_name(secondary)
-        action_text = _goc_npc_action_for(lang, secondary)
-        if action_text:
-            blocks.append(SceneBlock(
-                id=f"turn-{turn}-block-{block_idx}",
-                block_type="actor_action",
-                speaker_label=label2,
-                actor_id=secondary,
-                target_actor_id=None,
-                text=f"{label2} {action_text}",
-            ))
-            block_idx += 1
-
-    # NPC agency plan
-    initiatives: list[NPCInitiative] = []
-    if primary:
-        initiatives.append(NPCInitiative(
-            actor_id=primary,
-            intent="respond_to_player_input",
-            allowed_block_types=["actor_line"],
-            target_actor_id=human_id or None,
-            passivity_risk="low",
-        ))
-    if secondary:
-        initiatives.append(NPCInitiative(
-            actor_id=secondary,
-            intent="secondary_reactive_action",
-            allowed_block_types=["actor_action"],
-            target_actor_id=None,
-            passivity_risk="low",
-        ))
-
-    agency_plan = NPCAgencyPlan(
-        turn_number=turn,
-        primary_responder_id=primary,
-        secondary_responder_ids=[secondary] if secondary else [],
-        npc_initiatives=initiatives,
-    )
+            text=_ldss_degraded_text_for(lang, error_code),
+        )
+    ]
 
     visible_output = VisibleSceneOutput(blocks=blocks)
-    visible_actor_present = any(
-        b.block_type in VISIBLE_NPC_BLOCK_TYPES and b.actor_id
-        for b in blocks
-    )
-
     input_str = f"{ldss_input.player_input}:{ldss_input.human_actor_id}:{turn}"
     input_hash = f"sha256:mock-{hashlib.sha256(input_str.encode()).hexdigest()[:16]}"
-    output_str = "".join(b.text for b in blocks)
-    output_hash = f"sha256:mock-{hashlib.sha256(output_str.encode()).hexdigest()[:16]}"
+    output_hash = f"sha256:mock-{hashlib.sha256(blocks[0].text.encode()).hexdigest()[:16]}"
 
     return LDSSOutput(
         visible_scene_output=visible_output,
-        npc_agency_plan=agency_plan,
-        decision_count=len(initiatives) + 1,
-        npc_agency_plan_count=1,
-        visible_actor_response_present=visible_actor_present,
+        npc_agency_plan=None,
+        status="degraded_error",
+        error_code=error_code,
+        error_message=error_message,
+        decision_count=0,
+        npc_agency_plan_count=0,
+        visible_actor_response_present=False,
         scene_block_count=len(blocks),
         ldss_invoked=True,
         entrypoint="story.turn.execute",
@@ -808,9 +568,11 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
             phase="ldss",
             provider="world_engine",
             model="ldss_deterministic",
-            decision_count=len(initiatives) + 1,
+            status="degraded_no_visible_generation",
+            error_code=error_code,
+            error_message=error_message,
             scene_block_count=len(blocks),
-            visible_actor_response_present=visible_actor_present,
+            visible_actor_response_present=False,
         ),
         legacy_blob_used=False,
     )
@@ -861,6 +623,22 @@ def run_ldss(ldss_input: LDSSInput) -> LDSSOutput:
 
     try:
         ldss_output = build_deterministic_ldss_output(ldss_input)
+
+        if _only_degraded_notice(ldss_output.visible_scene_output.blocks):
+            if ldss_span:
+                ldss_span.update(
+                    output={
+                        "status": "degraded_error",
+                        "error_code": ldss_output.error_code,
+                    },
+                    metadata={
+                        "validation_failed": False,
+                        "error_code": ldss_output.error_code,
+                        "error_message": ldss_output.error_message,
+                        "phase_cost": dict(ldss_output.phase_cost),
+                    },
+                )
+            return ldss_output
 
         # Validate actor lanes (must run before commit)
         lane_result = validate_actor_lane_blocks(
@@ -958,14 +736,20 @@ def _build_rejected_ldss_output(
     message: str,
 ) -> LDSSOutput:
     """Return a structured rejection output — does not commit illegal state."""
+    lang = _ldss_lang(ldss_input)
+    visible_error_code = error_code or LDSS_VALIDATION_REJECTED
+    error_message = message or "LDSS proposal failed validation."
     degraded_block = SceneBlock(
         id=f"turn-{ldss_input.turn_number}-degraded",
         block_type="system_degraded_notice",
         speaker_label="System",
-        text=f"Scene generation rejected: {error_code}",
+        text=_ldss_rejected_text_for(lang, visible_error_code),
     )
     return LDSSOutput(
         visible_scene_output=VisibleSceneOutput(blocks=[degraded_block]),
+        status="rejected_error",
+        error_code=visible_error_code,
+        error_message=error_message,
         decision_count=0,
         npc_agency_plan_count=0,
         visible_actor_response_present=False,
@@ -976,7 +760,8 @@ def _build_rejected_ldss_output(
             provider="world_engine",
             model="ldss_deterministic",
             status="rejected",
-            error_code=error_code,
+            error_code=visible_error_code,
+            error_message=error_message,
         ),
         legacy_blob_used=False,
     )
@@ -997,12 +782,18 @@ def build_scene_turn_envelope_v2(
     """Build the final SceneTurnEnvelope.v2 from validated LDSS output."""
     ldss_dict = ldss_output.to_dict()
     agency_plan = ldss_output.npc_agency_plan
+    ldss_status = ldss_output.status or (
+        "degraded_error" if ldss_output.error_code else "evidenced_live_path"
+    )
 
     diagnostics: dict[str, Any] = {
         "live_dramatic_scene_simulator": {
-            "status": "evidenced_live_path",
+            "status": ldss_status,
             "invoked": ldss_output.ldss_invoked,
             "entrypoint": ldss_output.entrypoint,
+            "error_present": bool(ldss_output.error_code),
+            "error_code": ldss_output.error_code or None,
+            "error_message": ldss_output.error_message or None,
             "decision_count": ldss_output.decision_count,
             "output_contract": "visible_scene_output.blocks.v1",
             "scene_block_count": ldss_output.scene_block_count,

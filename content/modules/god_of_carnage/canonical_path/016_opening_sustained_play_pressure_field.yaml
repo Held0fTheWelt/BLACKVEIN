@@ -1,9 +1,9 @@
 canonical_path_step:
   sequence: 16
-  id: opening_016_opening_sustained_play_handoff
+  id: opening_016_sustained_play_pressure_field
   path_id: goc_opening_canonical_path
-  name: "016 - Sustained opening handoff"
-  mode: phase_1_play_handoff
+  name: "016 - Sustained opening pressure field"
+  mode: phase_1_play_continuation
 
   location_ref:
     location_id: living_room

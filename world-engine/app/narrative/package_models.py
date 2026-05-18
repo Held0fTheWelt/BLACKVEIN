@@ -24,12 +24,12 @@ class NarrativePackageManifest(BaseModel):
 
 
 class SceneFallbackBundle(BaseModel):
-    """Fallback utterances guaranteeing live continuity."""
+    """Explicit fallback notices for blocked live turns."""
 
     safe_reactions: dict[str, str] = Field(default_factory=dict)
     stall_phrases: list[str] = Field(default_factory=list)
     redirect_phrases: list[str] = Field(default_factory=list)
-    generic_safe_line: str = "The tension in the room shifts, but no one commits yet."
+    generic_safe_line: str = "Fallback: turn generation was blocked; no substitute narration was committed."
 
 
 class NarrativePackage(BaseModel):

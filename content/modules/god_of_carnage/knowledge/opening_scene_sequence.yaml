@@ -119,7 +119,7 @@ opening_scene_sequence:
       narrative_function: establish_play_space
       location_id: living_room
       canonical_path_refs:
-        - canonical_path/005_living_room_handover.yaml#opening_005_living_room_handover
+        - canonical_path/005_living_room_threshold.yaml#opening_005_living_room_threshold
         - canonical_path/006_apartment_entry_greetings.yaml#opening_006_apartment_entry_greetings
         - canonical_path/007_living_room_arrangement.yaml#opening_007_living_room_arrangement
       location_refs:
@@ -166,8 +166,8 @@ opening_scene_sequence:
             - reduce Alain to an NPC responder
 
     - id: event_06_first_playable_moment
-      title: "First playable moment"
-      narrative_function: handover_to_play
+      title: "First playable state"
+      narrative_function: ready_to_play
       canonical_path_refs:
         - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
       establishes:
@@ -180,7 +180,7 @@ opening_scene_sequence:
         - where_the_player_character_is
         - immediate_social_pressure
         - possible_action_kinds
-      handover_to_scene_phase: phase_1
+      first_playable_scene_phase: phase_1
 
   playable_opening_extension:
     id: goc_opening_playable_extension_v1
@@ -204,7 +204,7 @@ opening_scene_sequence:
       - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
       - canonical_path/014_player_response_ripple.yaml#opening_014_player_response_ripple
       - canonical_path/015_phone_exit_pressure.yaml#opening_015_phone_exit_pressure
-      - canonical_path/016_opening_sustained_play_handoff.yaml#opening_016_opening_sustained_play_handoff
+      - canonical_path/016_opening_sustained_play_pressure_field.yaml#opening_016_sustained_play_pressure_field
     quote_anchor_refs:
       - knowledge/opening_quote_anchors.yaml#quote_armed
       - knowledge/opening_quote_anchors.yaml#quote_carrying

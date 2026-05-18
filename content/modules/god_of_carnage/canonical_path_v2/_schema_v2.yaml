@@ -91,7 +91,7 @@ canonical_path_schema:
         type: string
         allowed_values:
           - narrator_only_prologue        # 001-003-equivalents: no characters speak
-          - narrator_perception_handover  # transition with NPCs present but silent
+          - narrator_perception_transition  # transition with NPCs present but silent
           - scripted_mandatory_dialog     # NPC speech is required and ordered
           - scripted_with_player_window   # NPC speech required + bounded player turns
           - player_driven_with_npc_reactions  # player leads, NPCs react per pattern

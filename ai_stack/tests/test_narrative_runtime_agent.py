@@ -362,21 +362,19 @@ class TestNarratorGeneration:
         assert "narrator_text" in block
         assert len(block["narrator_text"]) > 0
 
-    def test_narrator_text_uses_observational_language(self, narrator_agent, sample_agent_input):
-        """Narrator uses observational language (notice, perceive, observe, witness)."""
+    def test_narrator_text_uses_explicit_fallback_not_generic_atmosphere(self, narrator_agent, sample_agent_input):
+        """Generated narrator fallback must not synthesize generic atmosphere prose."""
         motivation_analysis = narrator_agent._analyze_motivation_pressure(sample_agent_input)
         block = narrator_agent._generate_narrator_block(
             sample_agent_input,
             motivation_analysis,
             block_sequence=0,
         )
-        text_lower = block["narrator_text"].lower()
-        # Should contain observational or atmospheric language
-        has_observational = any(word in text_lower for word in [
-            "notice", "perceive", "observe", "witness", "sense",
-            "atmosphere", "weight", "tension", "pause", "shift"
-        ])
-        assert has_observational or "perception" in text_lower or "moment" in text_lower
+        text = block["narrator_text"]
+        assert text.startswith("Fallback:")
+        assert "No substitute story text" in text
+        assert "Beneath the surface" not in text
+        assert "A quiet weight" not in text
 
     def test_atmospheric_tone_escalates_with_pressure(self, narrator_agent, sample_agent_input):
         """Atmospheric tone varies based on motivation pressure."""

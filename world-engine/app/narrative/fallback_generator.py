@@ -11,12 +11,8 @@ def build_safe_fallback_output(
     fallback_bundle: SceneFallbackBundle | None,
     reason: str,
 ) -> RuntimeTurnStructuredOutputV2:
-    """Generate deterministic safe fallback output for blocked turns."""
-    line = (
-        fallback_bundle.generic_safe_line
-        if fallback_bundle is not None
-        else "The tension in the room shifts, but no one commits yet."
-    )
+    """Generate explicit fallback output for blocked turns."""
+    line = "Fallback: turn generation was blocked; no substitute narration was committed."
     return RuntimeTurnStructuredOutputV2(
         narrative_response=line,
         intent_summary="safe_fallback",

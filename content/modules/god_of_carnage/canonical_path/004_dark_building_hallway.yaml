@@ -3,7 +3,7 @@ canonical_path_step:
   id: opening_004_dark_building_hallway
   path_id: goc_opening_canonical_path
   name: "004 - Building hallway, prevented exits"
-  mode: narrator_only_handover
+  mode: narrator_path_transition
 
   location_ref:
     location_id: building_hallway
@@ -44,7 +44,7 @@ canonical_path_step:
       - duplicate_location_description
 
   next_point:
-    step_id: opening_005_living_room_handover
+    step_id: opening_005_living_room_threshold
     handoff: "Pass through the apartment door and convert arrival into social pressure."
     carry_forward:
       - urgent_call_pressure

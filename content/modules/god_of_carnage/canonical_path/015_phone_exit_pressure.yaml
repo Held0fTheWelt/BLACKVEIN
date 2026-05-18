@@ -67,7 +67,7 @@ canonical_path_step:
       - invent_phone_content_beyond_authored_pressure
 
   next_point:
-    step_id: opening_016_opening_sustained_play_handoff
+    step_id: opening_016_sustained_play_pressure_field
     handoff: "Hand the opening into sustained phase_1 play with several unresolved handles."
     carry_forward:
       - phone_pressure_available

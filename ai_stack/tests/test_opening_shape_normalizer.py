@@ -78,8 +78,8 @@ def test_single_string_split_paragraphs():
     assert meta and meta["opening_narration_source"] == "single_string_split_paragraphs"
 
 
-def test_annette_deterministic_anchor_contains_name():
-    beats, _meta = normalize_opening_narration_beats(
+def test_single_model_paragraph_does_not_create_deterministic_anchor():
+    beats, meta = normalize_opening_narration_beats(
         "Only one paragraph about the salon.",
         selected_player_role="annette",
         human_actor_id="annette",
@@ -88,12 +88,11 @@ def test_annette_deterministic_anchor_contains_name():
         output_language="en",
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
-    assert beats and len(beats) == 3
-    assert "Annette" in beats[2]
+    assert beats is None and meta is None
 
 
-def test_alain_deterministic_anchor_contains_name():
-    beats, _meta = normalize_opening_narration_beats(
+def test_single_model_paragraph_for_alain_does_not_create_deterministic_anchor():
+    beats, meta = normalize_opening_narration_beats(
         "Opening prose without triple newline.",
         selected_player_role="alain",
         human_actor_id="alain",
@@ -102,12 +101,11 @@ def test_alain_deterministic_anchor_contains_name():
         output_language="en",
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
-    assert beats and len(beats) == 3
-    assert "Alain" in beats[2]
+    assert beats is None and meta is None
 
 
-def test_german_anchor_when_language_de():
-    beats, _meta = normalize_opening_narration_beats(
+def test_german_single_paragraph_does_not_create_deterministic_anchor():
+    beats, meta = normalize_opening_narration_beats(
         "Ein Absatz.",
         selected_player_role="annette",
         human_actor_id="annette",
@@ -116,7 +114,7 @@ def test_german_anchor_when_language_de():
         output_language="de",
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
-    assert beats and "Du bist" in beats[2]
+    assert beats is None and meta is None
 
 
 def test_empty_without_actor_lanes_returns_none():

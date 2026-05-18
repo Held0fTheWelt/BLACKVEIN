@@ -7,8 +7,8 @@ canonical_path:
     - scene_graph_as_primary_director_surface
   note: >-
     The canonical path is the numbered story spine. It directs sequence,
-    emphasis, and handoff only; location facts are pulled by reference from
-    locations/.
+    emphasis, and narrator-path transitions only; location facts are pulled by
+    reference from locations/.
 
   reference_policy:
     location_facts_live_under: locations/
@@ -47,15 +47,16 @@ canonical_path:
       minimum_play_duration_minutes: 20
       target_play_duration_minutes: 30
       runtime_shape: >-
-        Steps 001-005 can be rendered as a concise scenic prologue and handover.
-        Steps 006-016 sustain phase_1 play through ritual civility, wording,
-        medical consequence, quote cues, object pressure, and player response.
+        Steps 001-005 can be rendered through the narrator_path as a concise
+        scenic prologue and speech-free threshold transition. Steps 006-016
+        sustain phase_1 play through ritual civility, wording, medical
+        consequence, quote cues, object pressure, and player response.
       step_files:
         - canonical_path/001_parc_montsouris_edge.yaml
         - canonical_path/002_argument_stick_blow.yaml
         - canonical_path/003_bicycle_disappearance.yaml
         - canonical_path/004_dark_building_hallway.yaml
-        - canonical_path/005_living_room_handover.yaml
+        - canonical_path/005_living_room_threshold.yaml
         - canonical_path/006_apartment_entry_greetings.yaml
         - canonical_path/007_living_room_arrangement.yaml
         - canonical_path/008_statement_on_table.yaml
@@ -66,14 +67,14 @@ canonical_path:
         - canonical_path/013_first_playable_courtesy_gap.yaml
         - canonical_path/014_player_response_ripple.yaml
         - canonical_path/015_phone_exit_pressure.yaml
-        - canonical_path/016_opening_sustained_play_handoff.yaml
+        - canonical_path/016_opening_sustained_play_pressure_field.yaml
 
   step_order:
     - opening_001_parc_montsouris_edge
     - opening_002_argument_stick_blow
     - opening_003_bicycle_disappearance
     - opening_004_dark_building_hallway
-    - opening_005_living_room_handover
+    - opening_005_living_room_threshold
     - opening_006_apartment_entry_greetings
     - opening_007_living_room_arrangement
     - opening_008_statement_on_table
@@ -84,4 +85,4 @@ canonical_path:
     - opening_013_first_playable_courtesy_gap
     - opening_014_player_response_ripple
     - opening_015_phone_exit_pressure
-    - opening_016_opening_sustained_play_handoff
+    - opening_016_sustained_play_pressure_field

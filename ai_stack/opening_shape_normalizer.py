@@ -2,6 +2,10 @@
 
 Returns ``(beats, meta)`` where ``beats`` is ``None`` when this normalizer does not apply.
 ``None`` must not be interpreted as an empty narration list.
+
+The normalizer may reorder and validate model-provided beats, but it must not
+invent missing opening prose. If the model did not provide enough usable opening
+material, callers should surface an explicit fallback instead.
 """
 
 from __future__ import annotations
@@ -10,10 +14,8 @@ import json
 import re
 from typing import Any
 
-from ai_stack.goc_opening_handover import (
-    deterministic_part2_room,
-    deterministic_role_anchor_beat,
-    enforce_opening_handover_on_beats,
+from ai_stack.goc_opening_transition import (
+    enforce_opening_transition_on_beats,
 )
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
@@ -108,7 +110,7 @@ def normalize_opening_narration_beats(
 
     if len(coerced) >= 3:
         beats = [sanitize_gm_narration_beat_line(b) for b in coerced]
-        beats, hand_meta = enforce_opening_handover_on_beats(
+        beats, transition_meta = enforce_opening_transition_on_beats(
             beats,
             output_language=output_language,
             human_actor_id=human_actor_id,
@@ -120,7 +122,7 @@ def normalize_opening_narration_beats(
             "opening_narration_beat_count": len(beats),
             "opening_narration_extra_beats_preserved": max(0, len(beats) - 3),
             "narration_summary_input_kind": "list" if input_was_list else "string",
-            **hand_meta,
+            **transition_meta,
         }
         return beats, meta
 
@@ -131,7 +133,7 @@ def normalize_opening_narration_beats(
         paras = _split_paragraphs(first)
         if len(paras) >= 3:
             beats = [sanitize_gm_narration_beat_line(b) for b in paras[:3]]
-            beats, hand_meta = enforce_opening_handover_on_beats(
+            beats, transition_meta = enforce_opening_transition_on_beats(
                 beats,
                 output_language=output_language,
                 human_actor_id=human_actor_id,
@@ -142,38 +144,12 @@ def normalize_opening_narration_beats(
                 "opening_narration_source": "single_string_split_paragraphs",
                 "opening_narration_beat_count": len(beats),
                 "narration_summary_input_kind": "single_string",
-                **hand_meta,
+                **transition_meta,
             }
             return beats, meta
         if not first.strip():
             return None, None
-        if not _actor_lane_substance(existing_actor_lines):
-            return None, None
-        beats = [
-            sanitize_gm_narration_beat_line(first.strip()),
-            sanitize_gm_narration_beat_line(deterministic_part2_room(output_language=output_language)),
-            sanitize_gm_narration_beat_line(
-                deterministic_role_anchor_beat(
-                    output_language=output_language,
-                    human_actor_id=human_actor_id,
-                    selected_player_role=selected_player_role,
-                )
-            ),
-        ]
-        beats, hand_meta = enforce_opening_handover_on_beats(
-            beats,
-            output_language=output_language,
-            human_actor_id=human_actor_id,
-            selected_player_role=selected_player_role,
-        )
-        meta = {
-            "opening_narration_normalized": True,
-            "opening_narration_source": "single_string_plus_deterministic_anchors",
-            "opening_narration_beat_count": len(beats),
-            "narration_summary_input_kind": "single_string",
-            **hand_meta,
-        }
-        return beats, meta
+        return None, None
 
     if len(coerced) == 2:
         merged = "\n\n".join(c.strip() for c in coerced if c.strip())
@@ -182,7 +158,7 @@ def normalize_opening_narration_beats(
         paras = _split_paragraphs(merged)
         if len(paras) >= 3:
             beats = [sanitize_gm_narration_beat_line(b) for b in paras[:3]]
-            beats, hand_meta = enforce_opening_handover_on_beats(
+            beats, transition_meta = enforce_opening_transition_on_beats(
                 beats,
                 output_language=output_language,
                 human_actor_id=human_actor_id,
@@ -193,36 +169,9 @@ def normalize_opening_narration_beats(
                 "opening_narration_source": "two_entries_split_paragraphs",
                 "opening_narration_beat_count": len(beats),
                 "narration_summary_input_kind": "list",
-                **hand_meta,
+                **transition_meta,
             }
             return beats, meta
-        if not _actor_lane_substance(existing_actor_lines):
-            return None, None
-        a, b = coerced[0].strip(), coerced[1].strip()
-        beats = [
-            sanitize_gm_narration_beat_line(a),
-            sanitize_gm_narration_beat_line(b),
-            sanitize_gm_narration_beat_line(
-                deterministic_role_anchor_beat(
-                    output_language=output_language,
-                    human_actor_id=human_actor_id,
-                    selected_player_role=selected_player_role,
-                )
-            ),
-        ]
-        beats, hand_meta = enforce_opening_handover_on_beats(
-            beats,
-            output_language=output_language,
-            human_actor_id=human_actor_id,
-            selected_player_role=selected_player_role,
-        )
-        meta = {
-            "opening_narration_normalized": True,
-            "opening_narration_source": "two_strings_plus_role_anchor",
-            "opening_narration_beat_count": 3,
-            "narration_summary_input_kind": "list",
-            **hand_meta,
-        }
-        return beats, meta
+        return None, None
 
     return None, None

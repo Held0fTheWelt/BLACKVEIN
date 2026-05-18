@@ -3470,82 +3470,12 @@ def _build_actor_lane_opening_narration(
     state: "RuntimeTurnState",
     structured_output: dict[str, Any],
 ) -> str:
-    """Synthesize opening narration from approved actor lanes when narration is missing."""
-    actor_lane_ctx = (
-        state.get("actor_lane_context")
-        if isinstance(state.get("actor_lane_context"), dict)
-        else {}
+    """Report missing opening narration; do not synthesize substitute story prose."""
+    return (
+        "Fallback: opening narration missing after actor-lane generation "
+        "(error_code=opening_actor_lane_narration_missing). "
+        "No substitute story text was committed."
     )
-    human_actor = str(
-        actor_lane_ctx.get("selected_player_role")
-        or actor_lane_ctx.get("human_actor_id")
-        or "the player"
-    ).strip()
-    role_label = human_actor.replace("_", " ").strip().title() if human_actor else "The player"
-
-    first_spoken = ""
-    spoken = structured_output.get("spoken_lines")
-    if isinstance(spoken, list):
-        for row in spoken:
-            if not isinstance(row, dict):
-                continue
-            text = str(row.get("text") or row.get("line") or "").strip()
-            speaker = str(row.get("speaker_id") or "").strip().replace("_", " ").title()
-            if text:
-                first_spoken = f"{speaker} breaks the silence: {text}" if speaker else text
-                break
-
-    first_action = ""
-    action = structured_output.get("action_lines")
-    if isinstance(action, list):
-        for row in action:
-            if not isinstance(row, dict):
-                continue
-            text = str(row.get("text") or row.get("line") or "").strip()
-            actor = str(row.get("actor_id") or "").strip().replace("_", " ").title()
-            if text:
-                first_action = f"{actor} {text}" if actor else text
-                break
-
-    policy = state.get("module_runtime_policy") if isinstance(state.get("module_runtime_policy"), dict) else {}
-    opening_policy = policy.get("opening_policy") if isinstance(policy.get("opening_policy"), dict) else {}
-    opening_contract = (
-        opening_policy.get("opening_contract")
-        if isinstance(opening_policy.get("opening_contract"), dict)
-        else {}
-    )
-    must_establish = [
-        str(item).replace("_", " ").strip()
-        for item in (opening_contract.get("must_establish") or [])
-        if str(item).strip()
-    ][:4]
-    events = opening_policy.get("narrative_events") if isinstance(opening_policy.get("narrative_events"), list) else []
-    event_labels = [
-        str(event.get("title") or event.get("narrative_function") or event.get("id") or "").strip()
-        for event in events
-        if isinstance(event, dict)
-    ][:3]
-    intro_parts = event_labels or must_establish
-    narrator_intro = (
-        "The opening establishes " + ", ".join(intro_parts) + "."
-        if intro_parts
-        else "The opening establishes the module's starting situation."
-    )
-    role_anchor = f"You are {role_label}. The scene leaves your next action open."
-    location_model = policy.get("location_model") if isinstance(policy.get("location_model"), dict) else {}
-    anchor_area = str(location_model.get("narrative_anchor_area_id") or "").strip()
-    location_details = location_model.get("locations") if isinstance(location_model.get("locations"), dict) else {}
-    anchor_detail = (
-        location_details.get(anchor_area)
-        if anchor_area and isinstance(location_details.get(anchor_area), dict)
-        else {}
-    )
-    location_label = str(anchor_detail.get("name") or anchor_detail.get("id") or anchor_area or "the starting location").strip()
-    scene_setup = f"The visible scene settles into {location_label} with the playable situation in view."
-    if first_spoken or first_action:
-        lane_projection = " ".join([x for x in (first_spoken, first_action) if x]).strip()
-        scene_setup = f"{scene_setup} {lane_projection}".strip()
-    return f"{narrator_intro}\n\n{role_anchor}\n\n{scene_setup}"
 
 
 def _runtime_governance_policy_from_state(state: "RuntimeTurnState") -> dict[str, Any]:
@@ -4774,7 +4704,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "id": knowledge_contract.get("opening_scene_sequence_id"),
                 "must_establish": knowledge_contract.get("opening_must_establish") or [],
                 "event_tasks": knowledge_contract.get("opening_event_tasks") or [],
-                "handover_to_scene_phase": knowledge_contract.get("opening_handover_to_scene_phase"),
+                "first_playable_scene_phase": knowledge_contract.get("opening_first_playable_scene_phase"),
                 "role_variant": knowledge_contract.get("selected_role_variant") or {},
             }
             packet["opening_render_policy"] = knowledge_contract.get("opening_render_policy") or {}
@@ -7237,7 +7167,7 @@ class RuntimeTurnGraphExecutor:
             update["scene_assessment"] = {
                 **(update.get("scene_assessment") if isinstance(update.get("scene_assessment"), dict) else merged_sa),
                 "opening_scene_sequence_id": opening_meta.get("opening_scene_sequence_id"),
-                "opening_handover_to_scene_phase": opening_meta.get("opening_handover_to_scene_phase"),
+                "opening_first_playable_scene_phase": opening_meta.get("opening_first_playable_scene_phase"),
                 "hard_forbidden_constraints_active": bool(opening_meta.get("hard_forbidden_rule_ids")),
             }
         update["scene_plan_record"] = scene_plan_dict
@@ -9519,9 +9449,10 @@ class RuntimeTurnGraphExecutor:
                     meta = dict(meta)
                     meta["structured_output"] = cleaned
                     meta["narration_summary_synthesized"] = True
-                    meta["narration_summary_source"] = "actor_lane_fallback"
+                    meta["narration_summary_source"] = "actor_lane_generation_error"
+                    meta["narration_summary_error_code"] = "opening_actor_lane_narration_missing"
                     meta["synthetic_narration_reason"] = (
-                        "missing_narration_summary_with_approved_actor_lanes"
+                        "opening_actor_lane_narration_missing"
                     )
                     generation["metadata"] = meta
                     proposed = structured_output_to_proposed_effects(cleaned)

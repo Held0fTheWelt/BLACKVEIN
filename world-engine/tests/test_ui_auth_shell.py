@@ -49,6 +49,42 @@ def test_successful_login_grants_access_and_renders_shell(client, auth_backend_s
     assert "Legacy Simulator" in dashboard.text
 
 
+def test_login_backend_calls_do_not_run_on_event_loop(client, monkeypatch):
+    calls: list[str] = []
+
+    def _login(username: str, password: str):
+        return (
+            True,
+            {
+                "access_token": "token-ok",
+                "refresh_token": "refresh-ok",
+                "user": {"username": username, "role": "admin"},
+            },
+            200,
+        )
+
+    def _me(token: str):
+        return True, {"username": "operator", "role": "admin"}, 200
+
+    async def _threadpool_probe(func, *args, **kwargs):
+        calls.append(func.__name__)
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(main_module, "_backend_login", _login)
+    monkeypatch.setattr(main_module, "_backend_fetch_user", _me)
+    monkeypatch.setattr(main_module, "run_in_threadpool", _threadpool_probe)
+
+    response = client.post(
+        "/login",
+        content=_login_form_data("operator", "pw"),
+        headers={"content-type": "application/x-www-form-urlencoded"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert calls == ["_login", "_me"]
+
+
 def test_failed_login_does_not_grant_access(client, monkeypatch):
     monkeypatch.setattr(main_module, "_backend_login", lambda *_args, **_kwargs: (False, {"error": "invalid"}, 401))
     monkeypatch.setattr(main_module, "_backend_fetch_user", lambda *_args, **_kwargs: (False, {"error": "invalid"}, 401))

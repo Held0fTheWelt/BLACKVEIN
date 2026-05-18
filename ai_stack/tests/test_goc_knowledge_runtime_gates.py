@@ -46,7 +46,7 @@ def _validate_opening(structured: dict, *, scene_phase: str = "phase_1") -> dict
         opening_scene_sequence=opening,
         hard_forbidden_rules=hard,
         turn_input_class="opening",
-        scene_plan_record={"opening_handover_to_scene_phase": scene_phase},
+        scene_plan_record={"opening_first_playable_scene_phase": scene_phase},
         current_scene_id="scene_1_opening",
     )
 
@@ -164,26 +164,26 @@ def test_npc_exposition_of_room_is_rejected() -> None:
     assert outcome["hard_forbidden_detection"]["reject_on_detected"] == ["npc_world_explanation"]
 
 
-def test_opening_events_and_phase_one_handover_pass_for_full_fixture() -> None:
+def test_opening_events_and_phase_one_first_playable_pass_for_full_fixture() -> None:
     outcome = _validate_opening(_full_opening_structured())
 
     assert outcome["status"] == "approved"
     assert outcome["opening_event_coverage_pass"] is True
     coverage = outcome["opening_event_coverage"]
     assert coverage["missing_event_ids"] == []
-    assert coverage["handover_to_scene_phase_expected"] == "phase_1"
-    assert coverage["handover_to_scene_phase_actual"] == "phase_1"
+    assert coverage["first_playable_scene_phase_expected"] == "phase_1"
+    assert coverage["first_playable_scene_phase_actual"] == "phase_1"
     assert outcome["hard_forbidden_absent"] is True
     assert outcome["opening_summary_only_absent"] is True
 
 
-def test_opening_handover_mismatch_blocks_commit() -> None:
+def test_opening_transition_mismatch_blocks_commit() -> None:
     outcome = _validate_opening(_full_opening_structured(), scene_phase="phase_2")
 
     assert outcome["status"] == "rejected"
-    assert outcome["reason"] == "opening_handover_to_scene_phase_mismatch"
-    assert outcome["opening_event_coverage"]["handover_to_scene_phase_expected"] == "phase_1"
-    assert outcome["opening_event_coverage"]["handover_to_scene_phase_actual"] == "phase_2"
+    assert outcome["reason"] == "opening_first_playable_scene_phase_mismatch"
+    assert outcome["opening_event_coverage"]["first_playable_scene_phase_expected"] == "phase_1"
+    assert outcome["opening_event_coverage"]["first_playable_scene_phase_actual"] == "phase_2"
 
 
 def test_turn0_ldss_fallback_rejects_mid_conflict_npc_line() -> None:
@@ -338,7 +338,7 @@ def test_path_summary_exposes_runtime_gate_diagnostics() -> None:
             "opening_scene_sequence": opening,
             "hard_forbidden_rules": hard,
             "turn_input_class": "opening",
-            "scene_plan_record": {"opening_handover_to_scene_phase": "phase_1"},
+            "scene_plan_record": {"opening_first_playable_scene_phase": "phase_1"},
             "current_scene_id": "scene_1_opening",
             "generation": _generation(structured),
         },

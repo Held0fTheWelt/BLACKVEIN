@@ -82,7 +82,7 @@ character_document:
       - opening_015_phone_exit_pressure
     vulnerable_after:
       - opening_014_player_response_ripple
-      - opening_016_opening_sustained_play_handoff
+      - opening_016_sustained_play_pressure_field
   forbidden_authoring_moves:
     - do_not_make_him_host_the_apartment
     - do_not_make_him_speak_for_annette_player

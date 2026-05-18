@@ -302,8 +302,8 @@ def adapter_opening_event_coverage_contract(entry: ValidatorPlanEntry, ctx: dict
     )
     if not opening_coverage.get("opening_event_coverage_pass", True):
         reason = "opening_event_coverage_failed"
-        if not opening_coverage.get("handover_to_scene_phase_pass", True):
-            reason = "opening_handover_to_scene_phase_mismatch"
+        if not opening_coverage.get("first_playable_scene_phase_pass", True):
+            reason = "opening_first_playable_scene_phase_mismatch"
         return _normalize(
             vid,
             {

@@ -1,0 +1,112 @@
+manifestVersion: 1
+platformVersion: '1.0'
+compat: autark-outbound
+generatedBy:
+  tool: fy-platform bootstrap
+  generated_at: '2026-05-18T00:00:00+00:00'
+project:
+  id: worldofshadows
+  name: WorldOfShadows
+  repository_type: python-project
+roots:
+  source:
+    - backend
+    - world-engine
+    - ai_stack
+    - story_runtime_core
+    - frontend
+    - writers-room
+  docs:
+    - docs
+  tests:
+    - tests
+  templates:
+    - frontend/templates
+    - administration-tool/templates
+docsStrategy:
+  tracks:
+    - easy
+    - technical
+    - role-admin
+    - role-developer
+    - role-operator
+    - role-writer
+    - ai-read
+    - status
+  status_pages: true
+  outbound_only: true
+suites:
+  contractify:
+    roots:
+      - docs
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+    openapi: docs/api/openapi.yaml
+  testify:
+    roots:
+      - tests
+    ci_workflows:
+      - .github/workflows
+  documentify:
+    roots:
+      - docs
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+    tracks:
+      - easy
+      - technical
+      - role-admin
+      - role-developer
+      - role-operator
+      - role-writer
+      - ai-read
+      - status
+  docify:
+    roots:
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+  despaghettify:
+    scan_roots:
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+    spike_policy: local-and-global
+  templatify:
+    template_roots:
+      - frontend/templates
+      - administration-tool/templates
+  usabilify:
+    ui_roots:
+      - frontend/templates
+      - administration-tool/templates
+  observifyfy:
+    internal_roots:
+      - docs
+      - docs/ADR
+    role: internal-fy-observability
+  metrify:
+    ledger_root: metrify/state
+    role: ai-usage-observer
+  dockerify:
+    enabled: true
+    compose_roots:
+      - docker-compose.yml
+      - compose.yml
+  postmanify:
+    enabled: true
+    openapi: docs/api/openapi.yaml

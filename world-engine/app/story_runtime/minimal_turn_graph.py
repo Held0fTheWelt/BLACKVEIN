@@ -14,6 +14,10 @@ MINIMAL_PRIMARY_ADAPTER_INVOCATION_MODE = "raw_adapter_primary_minimal_runtime"
 MINIMAL_PRIMARY_GRAPH_PATH_SUMMARY = "primary_invoke_raw_adapter_minimal_runtime"
 RAW_FALLBACK_ADAPTER_INVOCATION_MODE = "raw_adapter_graph_managed_fallback"
 RAW_FALLBACK_GRAPH_PATH_SUMMARY = "used_fallback_model_node_raw_adapter"
+MINIMAL_RUNTIME_FALLBACK_NOTICE = (
+    "Fallback: minimal runtime could not produce canonical visible output; "
+    "no substitute narration was committed."
+)
 
 
 class MinimalRuntimeTurnGraphExecutor:
@@ -144,7 +148,7 @@ class MinimalRuntimeTurnGraphExecutor:
         generation_metadata["retrieval_context_attached"] = bool(context_text)
 
         visible_output_bundle = {
-            "gm_narration": [structured_output.get("narrative_response") or model_result.content or "The room holds."],
+            "gm_narration": [structured_output.get("narrative_response") or MINIMAL_RUNTIME_FALLBACK_NOTICE],
             "spoken_lines": [],
         }
 
@@ -287,7 +291,7 @@ class MinimalRuntimeTurnGraphExecutor:
         structured = metadata.get("structured_output")
         if isinstance(structured, dict):
             return dict(structured)
-        text = (result.content or "").strip() or "The room holds for a beat."
+        text = MINIMAL_RUNTIME_FALLBACK_NOTICE
         return {
             "narrative_response": text,
             "proposed_scene_id": None,

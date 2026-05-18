@@ -590,8 +590,8 @@ def run_validation_seam(
         )
         if not opening_coverage.get("opening_event_coverage_pass", True):
             reason = "opening_event_coverage_failed"
-            if not opening_coverage.get("handover_to_scene_phase_pass", True):
-                reason = "opening_handover_to_scene_phase_mismatch"
+            if not opening_coverage.get("first_playable_scene_phase_pass", True):
+                reason = "opening_first_playable_scene_phase_mismatch"
             return {
                 "status": "rejected",
                 "reason": reason,
@@ -944,7 +944,7 @@ def run_visible_render(
         is_opening_turn = str(rc.get("turn_input_class") or "").strip().lower() == "opening"
         # Do not stage NPC "reacts immediately" when a bound human actor just supplied live
         # player input; that line was mis-read as NPC reaction (HUMAN-INPUT-ATTRIBUTION-01).
-        # Turn-0 opening must not use this staging line (OPENING-DRAMATURGY-HANDOVER-01).
+        # Turn-0 opening must not use this staging line; the narrator path owns setup.
         # Graph tests without actor_lane_context keep the legacy staging line on non-opening turns.
         if (
             responder_name

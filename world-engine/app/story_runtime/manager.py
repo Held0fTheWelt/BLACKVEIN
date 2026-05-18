@@ -201,6 +201,7 @@ from ai_stack.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_WEAK_SIGNAL_ACCEPTED,
     QUALITY_CLASS_DEGRADED,
     QUALITY_CLASS_FAILED,
+    QUALITY_CLASS_HEALTHY,
     QUALITY_CLASS_VALUES,
 )
 from ai_stack.story_runtime_playability import is_hard_boundary_failure
@@ -229,10 +230,15 @@ from ai_stack.goc_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
 )
-from ai_stack.goc_opening_handover import (
-    compute_opening_handover_from_scene_blocks,
+from ai_stack.goc_opening_transition import (
+    compute_opening_transition_from_scene_blocks,
     polish_first_opening_actor_block,
     role_display_name as _role_display_name,
+)
+from ai_stack.goc_narrator_path import (
+    NARRATOR_PATH_ADAPTER,
+    NARRATOR_PATH_INVOCATION_MODE,
+    build_goc_narrator_path_opening,
 )
 from ai_stack.goc_knowledge_runtime_gates import (
     build_knowledge_path_summary,
@@ -621,11 +627,11 @@ def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
     lang = str(getattr(session, "session_output_language", "de") or "de").strip().lower()[:2] or "de"
     if lang == "en":
         if reason == "graph_execution_exception":
-            return "The moment catches before it can settle. Try a simpler move from here."
-        return "The scene pushes back. Try a cleaner move from this same moment."
+            return "Fallback: the turn could not be generated because the runtime raised an exception. Try a simpler move from here."
+        return "Fallback: the turn could not be accepted by the runtime. Try a clearer move from this same state."
     if reason == "graph_execution_exception":
-        return "Der Moment verhakt sich, bevor er sich sauber fassen laesst. Versuche von hier aus einen einfacheren Zug."
-    return "Die Szene gibt gerade Widerstand. Versuche aus demselben Moment heraus einen klareren Zug."
+        return "Fallback: Der Zug konnte nicht erzeugt werden, weil die Runtime eine Exception ausgelöst hat. Versuche von hier aus einen einfacheren Zug."
+    return "Fallback: Der Zug wurde von der Runtime nicht akzeptiert. Versuche aus demselben Zustand heraus einen klareren Zug."
 
 
 def _recoverable_playability_metadata(
@@ -1951,6 +1957,8 @@ def _finalize_visible_bundle_opening_gm_narration(
     if commit_turn_number != 0 or session.module_id != GOD_OF_CARNAGE_MODULE_ID:
         return packaged_bundle
     if not isinstance(packaged_bundle, dict):
+        return packaged_bundle
+    if str(graph_state.get("director_path_mode") or "").strip() == "narrator_path":
         return packaged_bundle
     gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
     meta = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
@@ -3314,6 +3322,15 @@ def _build_langfuse_path_summary(
             or _capability_selection_projection.get("selected_capabilities")
             or []
         ),
+        "director_path_mode": graph_state.get("director_path_mode"),
+        "narrator_path_selected": str(graph_state.get("director_path_mode") or "").strip()
+        == "narrator_path",
+        "director_narrator_path_plan": graph_state.get("director_narrator_path_plan")
+        if isinstance(graph_state.get("director_narrator_path_plan"), dict)
+        else None,
+        "narrator_path": graph_state.get("narrator_path")
+        if isinstance(graph_state.get("narrator_path"), dict)
+        else None,
         "validator_dispatch_mode": (
             _validator_dispatch_report.get("dispatch_mode")
             or _validator_dispatch_report.get("mode")
@@ -3674,9 +3691,9 @@ def _build_langfuse_path_summary(
         ):
             if key in vis_contract:
                 summary[key] = vis_contract[key]
-    oh_diag = graph_state.get("_opening_handover_diagnostics")
-    if isinstance(oh_diag, dict):
-        for key, val in oh_diag.items():
+    transition_diag = graph_state.get("_opening_transition_diagnostics")
+    if isinstance(transition_diag, dict):
+        for key, val in transition_diag.items():
             summary[key] = val
     if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
         actor_lane_context = StoryRuntimeManager._extract_actor_lane_context(session)
@@ -3961,6 +3978,9 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "subtext_function": path_summary.get("subtext_function"),
         "canonical_turn_id": path_summary.get("canonical_turn_id"),
     }
+    narrator_path_selected = bool(path_summary.get("narrator_path_selected")) or (
+        str(path_summary.get("director_path_mode") or "").strip() == "narrator_path"
+    )
 
     span_specs = [
         (
@@ -4209,11 +4229,11 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
                 "opening_missing_event_ids": path_summary.get("opening_missing_event_ids"),
                 "opening_missing_must_establish": path_summary.get("opening_missing_must_establish"),
-                "opening_handover_to_scene_phase_expected": path_summary.get(
-                    "opening_handover_to_scene_phase_expected"
+                "opening_first_playable_scene_phase_expected": path_summary.get(
+                    "opening_first_playable_scene_phase_expected"
                 ),
-                "opening_handover_to_scene_phase_actual": path_summary.get(
-                    "opening_handover_to_scene_phase_actual"
+                "opening_first_playable_scene_phase_actual": path_summary.get(
+                    "opening_first_playable_scene_phase_actual"
                 ),
                 "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
                 "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
@@ -4245,7 +4265,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         (
             "story.branch.forecast",
             {
-                "called": bool(path_summary.get("branching_forecast")),
+                "called": bool(path_summary.get("branching_forecast"))
+                and path_summary.get("branching_forecast_status") != "not_applicable",
                 "status": path_summary.get("branching_forecast_status"),
                 "forecast_present": path_summary.get("branching_forecast_present"),
                 "option_count": path_summary.get("branch_option_count"),
@@ -4258,8 +4279,37 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
             },
         ),
     ]
+    if narrator_path_selected:
+        span_specs.insert(
+            1,
+            (
+                "story.phase.narrator_path",
+                {
+                    "called": True,
+                    "director_path_mode": path_summary.get("director_path_mode"),
+                    "selected_capabilities": path_summary.get("selected_capabilities"),
+                    "speech_allowed": False,
+                    "npc_agency_required": False,
+                    "narrator_path": path_summary.get("narrator_path"),
+                    "director_plan": path_summary.get("director_narrator_path_plan"),
+                },
+            ),
+        )
 
     for name, output in span_specs:
+        if narrator_path_selected:
+            skip_when_not_called = {
+                "story.phase.model_route",
+                "story.phase.model_invoke",
+                "story.phase.primary_parse",
+                "story.phase.model_fallback",
+                "story.phase.retrieval",
+                "story.branch.forecast",
+            }
+            if name == "story.phase.intent_interpretation":
+                continue
+            if name in skip_when_not_called and not bool(output.get("called")):
+                continue
         level = _langfuse_level_for_output(output)
         status_message = _langfuse_status_for_output(name, output)
         try:
@@ -4407,6 +4457,9 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         "canonical_turn_id": path_summary.get("canonical_turn_id"),
         "environment": path_summary.get("environment"),
     }
+    narrator_path_selected = bool(path_summary.get("narrator_path_selected")) or (
+        str(path_summary.get("director_path_mode") or "").strip() == "narrator_path"
+    )
     beat = _rec(ASPECT_BEAT)
     beat_selected = _selected(ASPECT_BEAT)
     beat_actual = _actual(ASPECT_BEAT)
@@ -4784,6 +4837,19 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     ]
     for name, aspect, output in span_specs:
         record = _rec(aspect)
+        if narrator_path_selected:
+            narrator_path_aspects = {
+                ASPECT_INPUT,
+                ASPECT_BEAT,
+                ASPECT_CAPABILITY_SELECTION,
+                ASPECT_NARRATOR_AUTHORITY,
+                ASPECT_NARRATIVE_ASPECT,
+                ASPECT_VALIDATION,
+                ASPECT_COMMIT,
+                ASPECT_VISIBLE_PROJECTION,
+            }
+            if aspect not in narrator_path_aspects:
+                continue
         level = _span_level(record)
         status_message = _span_status(aspect, record)
         try:
@@ -5961,7 +6027,7 @@ def _emit_langfuse_evidence_observations(
     gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     adapter_name = str(gen_meta.get("adapter") or "").strip()
     primary_adapter_name = str(path_summary.get("primary_attempt_adapter") or "").strip()
-    deterministic_adapters = {"mock", "ldss_fallback", "ldss_deterministic"}
+    deterministic_adapters = {"mock", "ldss_fallback", "ldss_deterministic", NARRATOR_PATH_ADAPTER}
     primary_attempt_api_success = path_summary.get("primary_attempt_api_success") is True
     record_primary_attempt_generation = (
         primary_attempt_api_success
@@ -6160,6 +6226,12 @@ def _emit_langfuse_evidence_observations(
         "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 or _authoritative_action_surface else 0.0,
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
+    narrator_path_selected = bool(path_summary.get("narrator_path_selected")) or (
+        str(path_summary.get("director_path_mode") or "").strip() == "narrator_path"
+    )
+    if narrator_path_selected:
+        deterministic_scores["usage_present"] = 1.0
+        deterministic_scores["rag_context_attached"] = 1.0
     intent_kind = str(path_summary.get("player_input_kind") or "").strip().lower()
     semantic_move_kind = str(path_summary.get("semantic_move_kind") or "").strip()
     semantic_alignment_pass = True
@@ -6241,6 +6313,24 @@ def _emit_langfuse_evidence_observations(
         _opening_shape_subgates, _opening_shape_failure_reasons = (
             _compute_opening_shape_subgates(_opening_blocks)
         )
+        if narrator_path_selected:
+            narrator_only_shape_pass = (
+                len(_opening_blocks) >= 4
+                and all(
+                    str(block.get("block_type") or block.get("type") or "").strip().lower()
+                    == "narrator"
+                    for block in _opening_blocks
+                    if isinstance(block, dict)
+                )
+            )
+            _opening_shape_subgates["narrator_path_narrator_only_valid"] = narrator_only_shape_pass
+            if narrator_only_shape_pass:
+                opening_shape_pass = 1.0
+                _opening_shape_failure_reasons = [
+                    reason
+                    for reason in _opening_shape_failure_reasons
+                    if reason not in {"no_actor_block_present", "first_actor_missing"}
+                ]
         _scene_block_summary = _compact_scene_block_summary(_opening_blocks)
 
         def _bt_ev(b: dict) -> str:
@@ -6316,17 +6406,24 @@ def _emit_langfuse_evidence_observations(
     for _score_name, _detection_key in _absent_score_map.items():
         deterministic_scores[_score_name] = 0.0 if _detection_key in _detected_keys else 1.0
     if _turn_number == 0:
-        _handover_diag_for_scores = compute_opening_handover_from_scene_blocks(
-            _opening_blocks,
-            human_actor_id=str(path_summary.get("human_actor_id") or "").strip() or None,
-            selected_player_role=str(path_summary.get("selected_player_role") or "").strip() or None,
-        )
-        deterministic_scores["opening_handover_contract_pass"] = (
-            1.0 if _handover_diag_for_scores.get("opening_handover_contract_pass") else 0.0
-        )
+        if narrator_path_selected:
+            _transition_diag_for_scores = {
+                "narrator_path_transition_contract_pass": True,
+                "narrator_path_transition_mode": "speech_free_scene_setup",
+            }
+        else:
+            _transition_diag_for_scores = compute_opening_transition_from_scene_blocks(
+                _opening_blocks,
+                human_actor_id=str(path_summary.get("human_actor_id") or "").strip() or None,
+                selected_player_role=str(path_summary.get("selected_player_role") or "").strip() or None,
+            )
+            deterministic_scores["opening_transition_contract_pass"] = (
+                1.0 if _transition_diag_for_scores.get("opening_transition_contract_pass") else 0.0
+            )
     else:
-        _handover_diag_for_scores = {}
-        deterministic_scores["opening_handover_contract_pass"] = 1.0
+        _transition_diag_for_scores = {}
+        if not narrator_path_selected:
+            deterministic_scores["opening_transition_contract_pass"] = 1.0
     _p0_player_turn_langfuse_scores = frozenset(
         {
             "player_action_frame_present",
@@ -6412,7 +6509,15 @@ def _emit_langfuse_evidence_observations(
             "execution_tier_live": execution_tier == "live",
             "canonical_player_flow": canonical_player_flow,
             "opening_shape_pass": deterministic_scores["opening_shape_contract_pass"] == 1.0,
-            "opening_handover_pass": deterministic_scores.get("opening_handover_contract_pass", 1.0) == 1.0,
+            (
+                "narrator_path_transition_pass"
+                if narrator_path_selected
+                else "opening_transition_pass"
+            ): (
+                bool(_transition_diag_for_scores.get("narrator_path_transition_contract_pass"))
+                if narrator_path_selected
+                else deterministic_scores.get("opening_transition_contract_pass", 1.0) == 1.0
+            ),
             "live_runtime_pass": deterministic_scores["live_runtime_contract_pass"] == 1.0,
             "not_ldss_fallback": final_adapter not in {"ldss_fallback"},
             "fallback_absent": deterministic_scores["fallback_absent"] == 1.0,
@@ -6486,11 +6591,11 @@ def _emit_langfuse_evidence_observations(
         "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
         "opening_missing_event_ids": path_summary.get("opening_missing_event_ids"),
         "opening_missing_must_establish": path_summary.get("opening_missing_must_establish"),
-        "opening_handover_to_scene_phase_expected": path_summary.get(
-            "opening_handover_to_scene_phase_expected"
+        "opening_first_playable_scene_phase_expected": path_summary.get(
+            "opening_first_playable_scene_phase_expected"
         ),
-        "opening_handover_to_scene_phase_actual": path_summary.get(
-            "opening_handover_to_scene_phase_actual"
+        "opening_first_playable_scene_phase_actual": path_summary.get(
+            "opening_first_playable_scene_phase_actual"
         ),
         "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
         "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
@@ -6546,7 +6651,7 @@ def _emit_langfuse_evidence_observations(
         "near_duplicate_visible_block_removed": path_summary.get("near_duplicate_visible_block_removed"),
         "player_role_display_name": path_summary.get("player_role_display_name"),
         "session_output_language": path_summary.get("session_output_language"),
-        **_handover_diag_for_scores,
+        **_transition_diag_for_scores,
     }
     for name, value in deterministic_scores.items():
         try:
@@ -6839,7 +6944,7 @@ def _live_scene_blocks_from_visible_bundle(
 ) -> list[dict[str, Any]]:
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
-        graph_state.pop("_opening_handover_diagnostics", None)
+        graph_state.pop("_opening_transition_diagnostics", None)
     bundle = visible_output_bundle if isinstance(visible_output_bundle, dict) else {}
     proj = runtime_projection if isinstance(runtime_projection, dict) else None
     human_id = str((proj or {}).get("human_actor_id") or "").strip()
@@ -6971,13 +7076,19 @@ def _live_scene_blocks_from_visible_bundle(
         )
         if graph_state is not None:
             graph_state["_visible_narrative_contract"] = vis_diag
-        if turn_number == 0 and graph_state is not None:
+        narrator_path_selected = (
+            graph_state is not None
+            and str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
+        )
+        if turn_number == 0 and graph_state is not None and not narrator_path_selected:
             blocks, _polished = polish_first_opening_actor_block(blocks, output_language=_exp_lang)
-            graph_state["_opening_handover_diagnostics"] = compute_opening_handover_from_scene_blocks(
+            graph_state["_opening_transition_diagnostics"] = compute_opening_transition_from_scene_blocks(
                 blocks,
                 human_actor_id=human_id or None,
                 selected_player_role=role or None,
             )
+        elif turn_number == 0 and graph_state is not None and narrator_path_selected:
+            graph_state.pop("_opening_transition_diagnostics", None)
         return blocks
 
     def delivery() -> dict[str, Any]:
@@ -7206,13 +7317,19 @@ def _live_scene_blocks_from_visible_bundle(
         if turn_number == 0 and isinstance(ev_post, dict):
             ev_post["actor_block_count_after_projection"] = _actor_block_projection_count(blocks)
 
-    if turn_number == 0 and graph_state is not None:
+    narrator_path_selected = (
+        graph_state is not None
+        and str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
+    )
+    if turn_number == 0 and graph_state is not None and not narrator_path_selected:
         blocks, _polished = polish_first_opening_actor_block(blocks, output_language=_exp_lang)
-        graph_state["_opening_handover_diagnostics"] = compute_opening_handover_from_scene_blocks(
+        graph_state["_opening_transition_diagnostics"] = compute_opening_transition_from_scene_blocks(
             blocks,
             human_actor_id=human_id or None,
             selected_player_role=role or None,
         )
+    elif turn_number == 0 and graph_state is not None and narrator_path_selected:
+        graph_state.pop("_opening_transition_diagnostics", None)
 
     return blocks
 
@@ -7249,9 +7366,14 @@ def _build_live_scene_turn_envelope(
         for block in scene_blocks
         if isinstance(block, dict)
     ) or bool(primary_responder_id)
+    narrator_path_no_npc = (
+        str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
+        and not visible_actor_response_present
+        and not primary_responder_id
+    )
 
     initiatives = []
-    if primary_responder_id:
+    if primary_responder_id and not narrator_path_no_npc:
         initiatives.append(
             {
                 "actor_id": primary_responder_id,
@@ -7262,13 +7384,35 @@ def _build_live_scene_turn_envelope(
             }
         )
     for actor_id in secondary_responder_ids:
-        initiatives.append(
+        if not narrator_path_no_npc:
+            initiatives.append(
+                {
+                    "actor_id": actor_id,
+                    "intent": "live_runtime_secondary_response",
+                    "allowed_block_types": ["actor_line", "actor_action"],
+                    "target_actor_id": human_actor_id or None,
+                    "passivity_risk": "low",
+                }
+            )
+    npc_agency_plan = None if narrator_path_no_npc else {
+        "contract": "npc_agency_plan.v1",
+        "turn_number": turn_number,
+        "primary_responder_id": primary_responder_id,
+        "secondary_responder_ids": secondary_responder_ids,
+        "npc_initiatives": initiatives,
+    }
+    npc_agency_diag = {
+        "primary_responder_id": primary_responder_id,
+        "secondary_responder_ids": secondary_responder_ids,
+        "visible_actor_response_present": visible_actor_response_present,
+        "npc_agency_plan_count": len(initiatives),
+    }
+    if narrator_path_no_npc:
+        npc_agency_diag.update(
             {
-                "actor_id": actor_id,
-                "intent": "live_runtime_secondary_response",
-                "allowed_block_types": ["actor_line", "actor_action"],
-                "target_actor_id": human_actor_id or None,
-                "passivity_risk": "low",
+                "status": "not_applicable",
+                "reason": "narrator_path_speech_free_phase",
+                "npc_agency_plan_built": False,
             }
         )
 
@@ -7285,13 +7429,7 @@ def _build_live_scene_turn_envelope(
         "selected_player_role": selected_player_role,
         "human_actor_id": human_actor_id,
         "npc_actor_ids": sorted(npc_actor_ids),
-        "npc_agency_plan": {
-            "contract": "npc_agency_plan.v1",
-            "turn_number": turn_number,
-            "primary_responder_id": primary_responder_id,
-            "secondary_responder_ids": secondary_responder_ids,
-            "npc_initiatives": initiatives,
-        },
+        "npc_agency_plan": npc_agency_plan,
         "visible_scene_output": {
             "contract": "visible_scene_output.blocks.v1",
             "blocks": [dict(block) for block in scene_blocks],
@@ -7311,12 +7449,7 @@ def _build_live_scene_turn_envelope(
                 "input_hash": "",
                 "output_hash": "",
             },
-            "npc_agency": {
-                "primary_responder_id": primary_responder_id,
-                "secondary_responder_ids": secondary_responder_ids,
-                "visible_actor_response_present": visible_actor_response_present,
-                "npc_agency_plan_count": len(initiatives),
-            },
+            "npc_agency": npc_agency_diag,
             "actor_lane_enforcement": {
                 "human_actor_id": human_actor_id,
                 "ai_allowed_actor_ids": sorted(ai_allowed_actor_ids),
@@ -9242,7 +9375,7 @@ class StoryRuntimeManager:
         opening_max_visible_blocks = 0
         hard_forbidden_reject_on: list[str] = []
         hard_forbidden_recover_on: list[str] = []
-        handover = ""
+        first_playable_phase = ""
         anchor = "configured opening location and social premise"
         try:
             policy = load_module_runtime_policy(
@@ -9306,8 +9439,10 @@ class StoryRuntimeManager:
                     if isinstance(row, dict) and str(row.get("id") or "").strip()
                 ]
                 for row in narrative_events:
-                    if isinstance(row, dict) and row.get("handover_to_scene_phase"):
-                        handover = str(row.get("handover_to_scene_phase") or handover).strip() or handover
+                    if isinstance(row, dict) and row.get("first_playable_scene_phase"):
+                        first_playable_phase = str(
+                            row.get("first_playable_scene_phase") or first_playable_phase
+                        ).strip() or first_playable_phase
                         break
             hard_forbidden_policy = (
                 policy_dict.get("hard_forbidden_policy")
@@ -9329,10 +9464,10 @@ class StoryRuntimeManager:
             pass
         human_actor_id = str(projection.get("human_actor_id") or "").strip()
         role_label = human_actor_id if human_actor_id else "the player character"
-        handover_clause = (
-            f"After the required opening evidence, hand over to scene phase {handover}. "
-            if handover
-            else "After the required opening evidence, hand over to the configured starting scene. "
+        first_playable_clause = (
+            f"After the required opening evidence, establish first playable scene phase {first_playable_phase}. "
+            if first_playable_phase
+            else "After the required opening evidence, establish the configured first playable state. "
         )
         visible_min = max(opening_min_visible_blocks, min(len(opening_event_ids), 6) if opening_event_ids else 0, 6)
         visible_preferred = max(opening_preferred_visible_blocks, visible_min)
@@ -9351,7 +9486,7 @@ class StoryRuntimeManager:
             cast=cast,
             anchor=anchor,
             role_label=role_label,
-            handover_clause=handover_clause,
+            first_playable_clause=first_playable_clause,
             opening_scene_sequence_id=opening_scene_sequence_id or "opening_scene_sequence",
             opening_event_ids=opening_event_ids,
             opening_must_establish=opening_must_establish,
@@ -9398,6 +9533,348 @@ class StoryRuntimeManager:
         if isinstance(gm, list) and any(str(x).strip() for x in gm):
             return True
         return False
+
+    def _build_narrator_path_opening_state(
+        self,
+        *,
+        session: StorySession,
+        trace_id: str | None,
+    ) -> dict[str, Any]:
+        """Build Turn 0 through the general narrator path.
+
+        The narrator path is the Director route for narration, movement
+        handoffs, description, and phases where nobody speaks. For the GoC
+        opening it avoids the full player-turn graph: no action resolution, no
+        NPC agency plan, no model route, no RAG query, and no LDSS fallback.
+        """
+        narrator_path = build_goc_narrator_path_opening(
+            session_output_language=session.session_output_language
+        )
+        blocks = [
+            dict(block)
+            for block in narrator_path.get("scene_blocks", [])
+            if isinstance(block, dict) and str(block.get("text") or "").strip()
+        ]
+        if not blocks:
+            raise RuntimeError("Narrator path produced no opening scene blocks.")
+        gm_narration = [
+            str(block.get("text") or "").strip()
+            for block in blocks
+            if str(block.get("text") or "").strip()
+        ]
+        joined = "\n\n".join(gm_narration)
+        director_plan = (
+            narrator_path.get("director_plan")
+            if isinstance(narrator_path.get("director_plan"), dict)
+            else {}
+        )
+        selected_capabilities = [
+            str(cap).strip()
+            for cap in (director_plan.get("selected_capabilities") or [NARRATOR_OPENING_EVENT_REALIZE])
+            if str(cap).strip()
+        ]
+        if not selected_capabilities:
+            selected_capabilities = [NARRATOR_OPENING_EVENT_REALIZE]
+        source_refs = [
+            str(ref).strip()
+            for ref in (narrator_path.get("source_refs") or director_plan.get("content_source_refs") or [])
+            if str(ref).strip()
+        ]
+        canonical_step_ids = [
+            str(step_id).strip()
+            for step_id in (narrator_path.get("canonical_step_ids") or [])
+            if str(step_id).strip()
+        ]
+        structured_output = {
+            "schema_version": "runtime_actor_turn_v1",
+            "narrative_response": joined,
+            "narration_summary": gm_narration,
+            "spoken_lines": [],
+            "action_lines": [],
+            "proposed_scene_id": session.current_scene_id,
+            "intent_summary": "Director selected narrator_path for speech-free canonical opening.",
+            "director_path_mode": "narrator_path",
+            "canonical_step_ids": canonical_step_ids,
+            "source_refs": source_refs,
+        }
+        runtime_profile_id = _runtime_profile_id_from_projection(
+            session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+        )
+        ledger = initialize_runtime_aspect_ledger(
+            session_id=session.session_id,
+            module_id=session.module_id,
+            turn_number=0,
+            turn_kind="opening",
+            raw_player_input=None,
+            input_kind="opening",
+            trace_id=trace_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_CAPABILITY_SELECTION,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={
+                    "director_path_mode": "narrator_path",
+                    "speech_allowed": False,
+                    "npc_agency_required": False,
+                    "player_action_resolution_required": False,
+                },
+                selected={
+                    "selected_capabilities": selected_capabilities,
+                    "suppressed_capability_groups": director_plan.get("skipped_capability_groups")
+                    if isinstance(director_plan.get("skipped_capability_groups"), list)
+                    else [],
+                },
+                actual={
+                    "realized_capabilities": selected_capabilities,
+                    "forbidden_capability_realized": False,
+                    "missing_required_capabilities": [],
+                    "npc_agency_plan_built": False,
+                    "speech_projection_allowed": False,
+                },
+                reasons=["director_selected_narrator_path"],
+                source="director_narrator_path",
+            ),
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_NARRATOR_AUTHORITY,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={
+                    "authority_owner": "narrator",
+                    "origin_capability": NARRATOR_OPENING_EVENT_REALIZE,
+                    "speech_allowed": False,
+                    "content_source_refs": source_refs,
+                },
+                actual={
+                    "narrator_block_count": len(blocks),
+                    "actor_line_count": 0,
+                    "actor_action_count": 0,
+                    "human_actor_line_count": 0,
+                    "source_refs": source_refs,
+                },
+                reasons=["narrator_path_realized_visible_blocks"],
+                source="director_narrator_path",
+                selected_capability=NARRATOR_OPENING_EVENT_REALIZE,
+                realized_capability=NARRATOR_OPENING_EVENT_REALIZE,
+            ),
+        )
+        for aspect_name in (ASPECT_NPC_AUTHORITY, ASPECT_NPC_AGENCY, ASPECT_VOICE_CONSISTENCY):
+            ledger = set_aspect_record(
+                ledger,
+                aspect_name,
+                make_aspect_record(
+                    applicable=False,
+                    status="not_applicable",
+                    expected={"speech_allowed": False, "npc_response_expected": False},
+                    actual={"selected_responder_count": 0, "npc_agency_plan_built": False},
+                    reasons=["narrator_path_speech_free_phase"],
+                    source="director_narrator_path",
+                ),
+            )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_NARRATIVE_ASPECT,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"path_id": narrator_path.get("path_id"), "canonical_step_ids": canonical_step_ids},
+                selected={"selected_aspects": ["public_violence_to_civilized_threshold"]},
+                actual={"source_refs": source_refs, "visible_block_count": len(blocks)},
+                reasons=["canonical_path_steps_001_005_realized"],
+                source="director_narrator_path",
+            ),
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_BEAT,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"canonical_step_ids": canonical_step_ids},
+                selected={
+                    "selected_beat_id": canonical_step_ids[0] if canonical_step_ids else "opening_narrator_path",
+                    "transition_allowed": True,
+                },
+                actual={
+                    "committed": True,
+                    "advanced": True,
+                    "committed_beat_id": canonical_step_ids[-1] if canonical_step_ids else "opening_narrator_path",
+                },
+                reasons=["canonical_narrator_sequence_realized"],
+                source="director_narrator_path",
+                selected_beat=canonical_step_ids[0] if canonical_step_ids else "opening_narrator_path",
+            ),
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_VALIDATION,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={
+                    "narrator_path_contract": "narrator_only",
+                    "actor_lines_forbidden": True,
+                    "visible_output_required": True,
+                },
+                actual={
+                    "validation_status": "approved",
+                    "narrator_block_count": len(blocks),
+                    "actor_line_count": 0,
+                    "actor_action_count": 0,
+                },
+                reasons=["narrator_path_opening_contract_passed"],
+                source="director_narrator_path",
+            ),
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_COMMIT,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"commit_allowed": True, "turn_kind": "opening"},
+                actual={"commit_applied": True, "committed_scene_id": session.current_scene_id},
+                reasons=["narrator_path_opening_committed"],
+                source="director_narrator_path",
+            ),
+        )
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_VISIBLE_PROJECTION,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"visible_scene_blocks_required": True},
+                actual={
+                    "visible_output_present": True,
+                    "scene_block_count": len(blocks),
+                    "narrator_block_count": len(blocks),
+                    "actor_line_count": 0,
+                    "actor_action_count": 0,
+                },
+                reasons=["narrator_path_projected_to_scene_blocks"],
+                source="director_narrator_path",
+            ),
+        )
+        return {
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "current_scene_id": session.current_scene_id,
+            "turn_number": 0,
+            "turn_input_class": "opening",
+            "turn_initiator_type": "engine",
+            "trace_id": trace_id,
+            "director_path_mode": "narrator_path",
+            "director_narrator_path_plan": director_plan,
+            "narrator_path": {
+                "contract": narrator_path.get("contract"),
+                "path_mode": narrator_path.get("path_mode"),
+                "path_id": narrator_path.get("path_id"),
+                "canonical_step_ids": canonical_step_ids,
+                "source_refs": source_refs,
+            },
+            "opening_scene_sequence": {
+                "id": narrator_path.get("path_id"),
+                "mode": "narrator_path",
+                "canonical_step_ids": canonical_step_ids,
+                "source_refs": source_refs,
+            },
+            "player_action_frame": {
+                "player_input_kind": "opening",
+                "action_kind": "narration",
+                "speech_projection_allowed": False,
+            },
+            "interpreted_input": {
+                "kind": "opening",
+                "player_input_kind": "opening",
+                "confidence": 1.0,
+                "player_action_committed": False,
+                "player_speech_committed": False,
+                "narrator_response_expected": True,
+                "npc_response_expected": False,
+                "director_path_mode": "narrator_path",
+            },
+            "generation": {
+                "attempted": True,
+                "success": True,
+                "content": joined,
+                "model_raw_text": joined,
+                "structured_output": structured_output,
+                "fallback_used": False,
+                "metadata": {
+                    "adapter": NARRATOR_PATH_ADAPTER,
+                    "provider": "world_engine",
+                    "model": "narrator_path_renderer",
+                    "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
+                    "final_adapter": NARRATOR_PATH_ADAPTER,
+                    "final_adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
+                    "structured_output": structured_output,
+                    "usage_available": False,
+                    "usage_source": "deterministic_content_renderer",
+                    "generation_latency_ms": 0,
+                },
+            },
+            "graph_diagnostics": {
+                "errors": [],
+                "execution_health": "healthy",
+                "graph_name": "director_narrator_path",
+                "nodes_executed": [
+                    "director.narrator_path.select",
+                    "narrator_path.realize",
+                    "visible.project",
+                    "commit.apply",
+                ],
+            },
+            "nodes_executed": [
+                "director.narrator_path.select",
+                "narrator_path.realize",
+                "visible.project",
+                "commit.apply",
+            ],
+            "retrieval": {},
+            "routing": {},
+            "validation_outcome": {
+                "status": "approved",
+                "reason": "narrator_path_opening_contract_passed",
+                "validator_lane": "narrator_path_contract_v1",
+            },
+            "visible_output_bundle": {
+                "gm_narration": gm_narration,
+                "scene_blocks": blocks,
+                "spoken_lines": [],
+                "action_lines": [],
+            },
+            "selected_responder_set": [],
+            "committed_result": {
+                "commit_applied": True,
+                "committed_effects": [
+                    {
+                        "effect_type": "narrator_path_opening",
+                        "description": "Canonical narrator path opening projected without NPC agency.",
+                    }
+                ],
+                "reason": "narrator_path_opening_committed",
+            },
+            "turn_aspect_ledger": ledger,
+            "quality_class": QUALITY_CLASS_HEALTHY,
+            "degradation_signals": [],
+            "degradation_summary": "none",
+            "phase_costs": {
+                "narrator_path": build_deterministic_phase_cost(
+                    phase="narrator_path",
+                    provider="world_engine",
+                    model="narrator_path_renderer",
+                    scene_block_count=len(blocks),
+                    selected_capabilities=selected_capabilities,
+                )
+            },
+        }
 
     def _ldss_opening_fallback_state(
         self,
@@ -9849,6 +10326,10 @@ class StoryRuntimeManager:
         gov["route_reason_code"] = routing.get("route_reason_code")
         gov["adapter"] = gen_meta.get("adapter")
         gov["api_model"] = gen_meta.get("model")
+        if graph_state.get("director_path_mode"):
+            gov["director_path_mode"] = graph_state.get("director_path_mode")
+            gov["director_narrator_path_plan"] = graph_state.get("director_narrator_path_plan")
+            gov["narrator_path"] = graph_state.get("narrator_path")
         self_correction = graph_state.get("self_correction") if isinstance(graph_state.get("self_correction"), dict) else {}
         gov["self_correction_attempt_count"] = self_correction.get("attempt_count")
         val = validation_outcome
@@ -10064,22 +10545,38 @@ class StoryRuntimeManager:
         runtime_profile_id = _runtime_profile_id_from_projection(
             session.runtime_projection if isinstance(session.runtime_projection, dict) else None
         )
-        branching_forecast = build_branching_forecast(
-            story_session_id=session.session_id,
-            module_id=session.module_id,
-            runtime_profile_id=runtime_profile_id,
-            canonical_turn_id=canonical_turn_id,
-            turn_number=commit_turn_number,
-            turn_kind=turn_kind or "player",
-            narrative_commit=narrative_commit_payload,
-            narrative_threads=session.narrative_threads.model_dump(mode="json")
-            if hasattr(session.narrative_threads, "model_dump")
-            else session.narrative_threads,
-            thread_metrics=turn_thread_metrics,
-            selected_responder_set=selected_responder_set,
-            actor_turn_summary=actor_turn_summary,
-            graph_state=graph_state,
+        narrator_path_opening = (
+            str(turn_kind or "").strip().lower() == "opening"
+            and str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
         )
+        if narrator_path_opening:
+            branching_forecast = {
+                "schema_version": "branching_forecast.v1",
+                "status": "not_applicable",
+                "forecast_only": True,
+                "authoritative": False,
+                "inactive_branches_authoritative": False,
+                "mutates_canonical_state": False,
+                "option_count": 0,
+                "reason": "narrator_path_opening_no_player_branch",
+            }
+        else:
+            branching_forecast = build_branching_forecast(
+                story_session_id=session.session_id,
+                module_id=session.module_id,
+                runtime_profile_id=runtime_profile_id,
+                canonical_turn_id=canonical_turn_id,
+                turn_number=commit_turn_number,
+                turn_kind=turn_kind or "player",
+                narrative_commit=narrative_commit_payload,
+                narrative_threads=session.narrative_threads.model_dump(mode="json")
+                if hasattr(session.narrative_threads, "model_dump")
+                else session.narrative_threads,
+                thread_metrics=turn_thread_metrics,
+                selected_responder_set=selected_responder_set,
+                actor_turn_summary=actor_turn_summary,
+                graph_state=graph_state,
+            )
         if isinstance(turn_aspect_ledger, dict):
             turn_aspect_ledger = dict(turn_aspect_ledger)
             turn_aspect_ledger["branching_forecast"] = branching_forecast
@@ -10117,6 +10614,9 @@ class StoryRuntimeManager:
             if isinstance(session.environment_state, dict)
             else {},
             "selected_scene_function": graph_state.get("selected_scene_function"),
+            "director_path_mode": graph_state.get("director_path_mode"),
+            "director_narrator_path_plan": graph_state.get("director_narrator_path_plan"),
+            "narrator_path": graph_state.get("narrator_path"),
             "scene_energy_target": graph_state.get("scene_energy_target"),
             "scene_energy_transition": graph_state.get("scene_energy_transition"),
             "scene_energy_validation": graph_state.get("scene_energy_validation"),
@@ -10504,17 +11004,27 @@ class StoryRuntimeManager:
                 if isinstance(graph_state.get("dramatic_context_summary"), dict)
                 else {}
             )
-            narrator_packet = build_narrator_packet(
-                opening_scene_sequence=graph_state.get("opening_scene_sequence")
-                if isinstance(graph_state.get("opening_scene_sequence"), dict)
-                else None,
-                hard_forbidden_rules=graph_state.get("hard_forbidden_rules")
-                if isinstance(graph_state.get("hard_forbidden_rules"), dict)
-                else None,
-                actor_lane_context=self._extract_actor_lane_context(session),
-                session_output_language=session.session_output_language,
-                story_runtime_experience=experience_policy.effective,
-            )
+            if narrator_path_opening:
+                narrator_packet = {
+                    "contract": "narrator_packet.v1",
+                    "mode": "narrator_path_already_projected",
+                    "streaming_required": False,
+                    "opening_scene_sequence": graph_state.get("opening_scene_sequence")
+                    if isinstance(graph_state.get("opening_scene_sequence"), dict)
+                    else None,
+                }
+            else:
+                narrator_packet = build_narrator_packet(
+                    opening_scene_sequence=graph_state.get("opening_scene_sequence")
+                    if isinstance(graph_state.get("opening_scene_sequence"), dict)
+                    else None,
+                    hard_forbidden_rules=graph_state.get("hard_forbidden_rules")
+                    if isinstance(graph_state.get("hard_forbidden_rules"), dict)
+                    else None,
+                    actor_lane_context=self._extract_actor_lane_context(session),
+                    session_output_language=session.session_output_language,
+                    story_runtime_experience=experience_policy.effective,
+                )
             runtime_state["narrator_packet"] = narrator_packet
             narrative_threads_list = [t.model_dump() if hasattr(t, 'model_dump') else t
                                      for t in (session.narrative_threads.active if hasattr(session.narrative_threads, 'active') else [])]
@@ -10526,7 +11036,7 @@ class StoryRuntimeManager:
             try:
                 from app.observability.langfuse_adapter import LangfuseAdapter
                 adapter = LangfuseAdapter.get_instance()
-                if adapter and adapter.is_enabled():
+                if not narrator_path_opening and adapter and adapter.is_enabled():
                     logger.info(f"[MANAGER] Creating Narrator phase span for session {session.session_id}, turn {commit_turn_number}")
                     narrator_span = adapter.create_child_span(
                         name="story.phase.narrator",
@@ -10786,60 +11296,66 @@ class StoryRuntimeManager:
             else None
         )
         prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
-        actor_lane_ctx = self._extract_actor_lane_context(session)
-        prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
-        prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
-        prior_temporal_control_state = _prior_temporal_control_state_from_session(session)
-        prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
-        prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
-        prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
-        prior_narrative_momentum_state = _prior_narrative_momentum_state_from_session(session)
-        prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
-        prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
+        if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
+            graph_state = self._build_narrator_path_opening_state(
+                session=session,
+                trace_id=trace_id,
+            )
+        else:
+            actor_lane_ctx = self._extract_actor_lane_context(session)
+            prior_callback_web_state = self._prior_callback_web_state_for_graph(session)
+            prior_consequence_cascade_state = self._prior_consequence_cascade_state_for_graph(session)
+            prior_temporal_control_state = _prior_temporal_control_state_from_session(session)
+            prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
+            prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
+            prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
+            prior_narrative_momentum_state = _prior_narrative_momentum_state_from_session(session)
+            prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
+            prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
 
-        try:
-            graph_state = self.turn_graph.run(
-                session_id=session.session_id,
-                module_id=session.module_id,
-                current_scene_id=session.current_scene_id,
-                player_input=prompt,
-                trace_id=trace_id,
-                host_versions={"world_engine_app_version": APP_VERSION},
-                active_narrative_threads=graph_threads or None,
-                thread_pressure_summary=graph_summary,
-                host_experience_template=host_experience_template,
-                prior_continuity_impacts=prior_ci if prior_ci else None,
-                prior_callback_web_state=prior_callback_web_state,
-                prior_consequence_cascade_state=prior_consequence_cascade_state,
-                prior_temporal_control_state=prior_temporal_control_state,
-                prior_expectation_variation_state=prior_expectation_variation_state,
-                prior_narrative_momentum_state=prior_narrative_momentum_state,
-                prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
-                prior_pacing_rhythm_state=prior_pacing_rhythm_state,
-                prior_social_pressure_state=prior_social_pressure_state,
-                prior_relationship_state_record=prior_relationship_state_record,
-                turn_number=0,
-                turn_initiator_type="engine",
-                turn_input_class="opening",
-                live_player_truth_surface=True,
-                actor_lane_context=actor_lane_ctx,
-                session_input_language=session.session_input_language,
-                session_output_language=session.session_output_language,
-                story_runtime_experience=self._story_runtime_experience_policy().effective,
-                validation_execution_mode=self._validation_execution_mode(),
-                environment_state=session.environment_state
-                if isinstance(session.environment_state, dict)
-                else None,
-            )
-        except Exception as exc:
-            log_story_runtime_failure(
-                trace_id=trace_id,
-                story_session_id=session_id,
-                operation="execute_opening",
-                message=str(exc),
-                failure_class="graph_execution_exception",
-            )
-            raise
+            try:
+                graph_state = self.turn_graph.run(
+                    session_id=session.session_id,
+                    module_id=session.module_id,
+                    current_scene_id=session.current_scene_id,
+                    player_input=prompt,
+                    trace_id=trace_id,
+                    host_versions={"world_engine_app_version": APP_VERSION},
+                    active_narrative_threads=graph_threads or None,
+                    thread_pressure_summary=graph_summary,
+                    host_experience_template=host_experience_template,
+                    prior_continuity_impacts=prior_ci if prior_ci else None,
+                    prior_callback_web_state=prior_callback_web_state,
+                    prior_consequence_cascade_state=prior_consequence_cascade_state,
+                    prior_temporal_control_state=prior_temporal_control_state,
+                    prior_expectation_variation_state=prior_expectation_variation_state,
+                    prior_narrative_momentum_state=prior_narrative_momentum_state,
+                    prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
+                    prior_pacing_rhythm_state=prior_pacing_rhythm_state,
+                    prior_social_pressure_state=prior_social_pressure_state,
+                    prior_relationship_state_record=prior_relationship_state_record,
+                    turn_number=0,
+                    turn_initiator_type="engine",
+                    turn_input_class="opening",
+                    live_player_truth_surface=True,
+                    actor_lane_context=actor_lane_ctx,
+                    session_input_language=session.session_input_language,
+                    session_output_language=session.session_output_language,
+                    story_runtime_experience=self._story_runtime_experience_policy().effective,
+                    validation_execution_mode=self._validation_execution_mode(),
+                    environment_state=session.environment_state
+                    if isinstance(session.environment_state, dict)
+                    else None,
+                )
+            except Exception as exc:
+                log_story_runtime_failure(
+                    trace_id=trace_id,
+                    story_session_id=session_id,
+                    operation="execute_opening",
+                    message=str(exc),
+                    failure_class="graph_execution_exception",
+                )
+                raise
         opening_fallback_reason = ""
         if not self._opening_commit_acceptable(graph_state):
             validation = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}

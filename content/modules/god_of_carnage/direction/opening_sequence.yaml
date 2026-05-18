@@ -1,4 +1,4 @@
-# Session opening handover -- God of Carnage (runtime-facing summary)
+# Session opening narrator path -- God of Carnage (runtime-facing summary)
 # Human-editable opening brief lives in direction/opening.md.
 # Product contract: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
 #
@@ -59,7 +59,7 @@ parts:
     title: "Into the apartment -- ritual civility"
     canonical_path_refs:
       - canonical_path/004_dark_building_hallway.yaml#opening_004_dark_building_hallway
-      - canonical_path/005_living_room_handover.yaml#opening_005_living_room_handover
+      - canonical_path/005_living_room_threshold.yaml#opening_005_living_room_threshold
       - canonical_path/006_apartment_entry_greetings.yaml#opening_006_apartment_entry_greetings
       - canonical_path/007_living_room_arrangement.yaml#opening_007_living_room_arrangement
     location_refs:
@@ -79,9 +79,8 @@ parts:
       exits, visible objects, and host/guest pressure.
     suggested_block_emphasis:
       - "narrator -- spatial completion from refs"
-      - "actor_action -- seating, pouring, avoiding eye contact"
-      - "actor_line -- polite formula or oblique small talk only"
       - "environment_context -- cite location ids rather than restating topology"
+      - "silent_presence -- seating, pouring, avoiding eye contact without dialogue"
     narrator_bar:
       must: >-
         Support the player's mental staging with concrete cues sourced from
@@ -89,6 +88,10 @@ parts:
       must_not: >-
         Name every relationship axis, summarize the evening's arc, or collapse
         dialogue and gesture into one narrator paragraph.
+    npc_speech:
+      must_not: >-
+        Enter during the narrator_path rendering. Actor lanes open only after
+        the first playable moment is established.
 
   part_3_statement_and_wording:
     id: opening_part_3
@@ -128,7 +131,7 @@ parts:
       - canonical_path/013_first_playable_courtesy_gap.yaml#opening_013_first_playable_courtesy_gap
       - canonical_path/014_player_response_ripple.yaml#opening_014_player_response_ripple
       - canonical_path/015_phone_exit_pressure.yaml#opening_015_phone_exit_pressure
-      - canonical_path/016_opening_sustained_play_handoff.yaml#opening_016_opening_sustained_play_handoff
+      - canonical_path/016_opening_sustained_play_pressure_field.yaml#opening_016_sustained_play_pressure_field
     location_refs:
       - locations/appartment_vallon/living_room.yaml
       - locations/building/building_hallway.yaml
@@ -158,4 +161,4 @@ premise_fact_seeds:
   - "location_ref: locations/opening/park_edge.yaml"
   - "location_ref: locations/opening/basketball_court.yaml"
 
-handover_to_scene_phase: phase_1
+first_playable_scene_phase: phase_1

@@ -1,6 +1,7 @@
 """Resolve monorepo root and Docify hub directory paths."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fy_platform.core.project_resolver import resolve_project_root
@@ -45,7 +46,12 @@ def repo_root(*, start: Path | None = None) -> Path:
             Filesystem path produced or resolved by this
             callable.
     """
-    return resolve_project_root(start=start, marker_text=None)
+    forced = os.environ.get("DOCIFY_REPO_ROOT", "").strip()
+    if forced:
+        forced_path = Path(forced).expanduser().resolve()
+        if forced_path.is_dir():
+            return forced_path
+    return resolve_project_root(start=start or Path.cwd(), marker_text=None)
 
 
 

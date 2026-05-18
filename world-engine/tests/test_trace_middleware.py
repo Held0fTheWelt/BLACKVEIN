@@ -1850,7 +1850,7 @@ def test_knowledge_runtime_absent_scores_emit_numeric_on_clean_turn(monkeypatch)
     blocks = [
         {"block_type": "narrator", "text": "Opening beat one with role anchor for Annette."},
         {"block_type": "narrator", "text": "Opening beat two."},
-        {"block_type": "narrator", "text": "Opening beat three with handover to phase_1."},
+        {"block_type": "narrator", "text": "Opening beat three establishing phase_1 play."},
         {"block_type": "actor_line", "actor_id": "michel_longstreet", "text": "Vielleicht beginnen wir ruhig."},
     ]
     _emit_langfuse_evidence_observations(

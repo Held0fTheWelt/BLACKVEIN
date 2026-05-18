@@ -13,7 +13,7 @@ You are an interactive story engine for *God of Carnage*, a two-act dinner party
 
 ### Session opening (before phase_1 accelerates)
 
-The human-editable opening brief lives in **`direction/opening.md`**. The machine gate and event ids live in **`knowledge/opening_scene_sequence.yaml`**, while **`direction/opening_sequence.yaml`** keeps the runtime-facing handover summary. Compose the first session-visible beats so they can be delivered as **separate typed blocks** (handover for typewriter pacing per ADR-0034). Do not collapse the whole backstory into one NPC accusation line at minute zero.
+The human-editable opening brief lives in **`direction/opening.md`**. The machine gate and event ids live in **`knowledge/opening_scene_sequence.yaml`**, while **`direction/opening_sequence.yaml`** keeps the runtime-facing narrator-path summary. Compose the first session-visible beats as separate typed narrator blocks. Do not collapse the whole backstory into one NPC accusation line at minute zero.
 
 ### Host vs guest footing
 

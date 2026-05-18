@@ -149,11 +149,13 @@ def test_runtime_health_counters_summary_rates() -> None:
 
 
 @pytest.mark.contract
-def test_build_safe_fallback_output_respects_bundle_and_default() -> None:
+def test_build_safe_fallback_output_is_explicit_not_story_bundle() -> None:
     bundle = SceneFallbackBundle(generic_safe_line="Quiet beat.")
     out_with = build_safe_fallback_output(fallback_bundle=bundle, reason="blocked_x")
-    assert out_with.narrative_response == "Quiet beat."
+    assert out_with.narrative_response.startswith("Fallback:")
+    assert "substitute narration" in out_with.narrative_response
+    assert "Quiet beat" not in out_with.narrative_response
     assert out_with.blocked_turn_reason == "blocked_x"
     out_default = build_safe_fallback_output(fallback_bundle=None, reason="none")
-    assert "tension" in out_default.narrative_response.lower()
+    assert out_default.narrative_response.startswith("Fallback:")
     assert out_default.intent_summary == "safe_fallback"

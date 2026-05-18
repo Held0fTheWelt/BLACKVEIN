@@ -313,7 +313,7 @@ def load_goc_scene_guidance_yaml() -> dict[str, Any]:
 
 
 def load_goc_opening_sequence_yaml() -> dict[str, Any]:
-    """Load direction/opening_sequence.yaml (session opening handover, ADR-0035)."""
+    """Load direction/opening_sequence.yaml (session opening narrator path, ADR-0035)."""
     path = goc_module_yaml_dir() / "direction" / "opening_sequence.yaml"
     return _safe_load_yaml_mapping(path)
 

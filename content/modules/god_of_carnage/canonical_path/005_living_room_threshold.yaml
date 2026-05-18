@@ -1,9 +1,9 @@
 canonical_path_step:
   sequence: 5
-  id: opening_005_living_room_handover
+  id: opening_005_living_room_threshold
   path_id: goc_opening_canonical_path
-  name: "005 - Living room civility handover"
-  mode: narrator_actor_handover
+  name: "005 - Living room civility threshold"
+  mode: narrator_path_transition
 
   location_ref:
     location_id: living_room
@@ -50,7 +50,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_006_apartment_entry_greetings
-    handoff: "Let the threshold become ritual greeting before the written statement takes over."
+    transition: "Let the threshold become ritual greeting before the written statement takes over."
     carry_forward:
       - all_four_adults_present
       - civil_surface_under_pressure

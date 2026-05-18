@@ -1,10 +1,10 @@
-"""God of Carnage turn-0 opening dramaturgy handover (OPENING-DRAMATURGY-HANDOVER-01).
+"""God of Carnage turn-0 opening dramaturgy transition.
 
 Canonical content: ``content/modules/god_of_carnage/direction/opening_sequence.yaml``.
-Runtime enforces the first three narrator slots (premise -> room/ritual -> role
-anchor) plus polite first-NPC surface; the model may style wording, but missing
-slots are filled deterministically without weakening ``opening_shape_contract_pass``.
-Additional authored opening beats after those first three are preserved.
+Runtime can validate narrator slots (premise -> room/ritual -> role anchor),
+but it must not fill missing slots with deterministic substitute prose. Missing
+or weak slots remain visible as diagnostics/validation failures so the caller
+can use an explicit fallback.
 """
 
 from __future__ import annotations
@@ -16,15 +16,12 @@ from typing import Any
 from ai_stack.goc_yaml_authority import (
     goc_actor_display_name,
     goc_actor_identity,
-    goc_actor_identity_index,
-    goc_character_key_for_actor_id,
     load_goc_opening_sequence_yaml,
 )
-from ai_stack.prompt_store import get_prompt_definition, render_prompt
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 
-OPENING_HANDOVER_VERSION = "1.0.0"
+OPENING_TRANSITION_VERSION = "1.0.0"
 
 
 @lru_cache(maxsize=1)
@@ -49,48 +46,16 @@ def _lang_key(output_language: str | None) -> str:
     return lang if lang in {"de", "en"} else "en"
 
 
-def _prompt_exists(prompt_key: str) -> bool:
-    try:
-        get_prompt_definition(prompt_key)
-    except KeyError:
-        return False
-    return True
-
-
-def _prompt_key_for_actor(
-    *,
-    prompt_prefix: str,
-    actor_ref: str | None,
-    output_language: str | None,
-    fallback: str,
-) -> str:
-    lang = _lang_key(output_language)
-    character_key = goc_character_key_for_actor_id(actor_ref)
-    if character_key and _prompt_exists(f"{prompt_prefix}.{character_key}.{lang}"):
-        return character_key
-    return fallback
-
-
-def _default_polite_ritual_actor_key(*, output_language: str | None) -> str:
-    lang = _lang_key(output_language)
-    rows = [
-        row for row in goc_actor_identity_index().values()
-        if _prompt_exists(f"goc.opening.polite_ritual.{row.get('character_key')}.{lang}")
-    ]
-    rows.sort(
-        key=lambda row: (
-            0 if str(row.get("playable_status") or "").lower() == "npc" else 1,
-            0 if "host" in str(row.get("role") or "").lower() else 1,
-            0 if any(
-                marker in str(row.get("role") or "").lower()
-                for marker in ("moral", "ideal", "cultivated")
-            ) else 1,
-            str(row.get("character_key") or ""),
+def _opening_fallback_notice(*, output_language: str | None) -> str:
+    if _lang_key(output_language) == "de":
+        return (
+            "Fallback: Das Opening konnte nicht aus kanonischem Content und Live-Generierung "
+            "hergestellt werden. Es wurde keine Ersatz-Erzählung übernommen."
         )
+    return (
+        "Fallback: the opening could not be produced from canonical content and live generation. "
+        "No substitute story text was committed."
     )
-    if rows:
-        return str(rows[0].get("character_key") or "default").strip() or "default"
-    return "default"
 
 
 def role_display_name(*, human_actor_id: str | None, selected_player_role: str | None) -> str:
@@ -107,17 +72,13 @@ def role_display_name(*, human_actor_id: str | None, selected_player_role: str |
 
 
 def deterministic_part1_premise(*, output_language: str | None) -> str:
-    """Background / shared premise: park court, two boys, stick, injury, civilised procedure."""
-    return sanitize_gm_narration_beat_line(
-        render_prompt(f"goc.opening.premise.{_lang_key(output_language)}")
-    )
+    """Compatibility API: explicit fallback only, never substitute opening prose."""
+    return _opening_fallback_notice(output_language=output_language)
 
 
 def deterministic_part2_room(*, output_language: str | None) -> str:
-    """Paris salon / ritual civility: hosts, guests, coats, papers, art books, tulips, coffee, dessert."""
-    return sanitize_gm_narration_beat_line(
-        render_prompt(f"goc.opening.room.{_lang_key(output_language)}")
-    )
+    """Compatibility API: explicit fallback only, never substitute room prose."""
+    return _opening_fallback_notice(output_language=output_language)
 
 
 def deterministic_role_anchor_beat(
@@ -126,31 +87,13 @@ def deterministic_role_anchor_beat(
     human_actor_id: str | None,
     selected_player_role: str | None,
 ) -> str:
-    """Narrator-only identity anchor: guest + spouse + not spectator; never prescribes speech or action."""
-    display = role_display_name(human_actor_id=human_actor_id, selected_player_role=selected_player_role)
-    role_ref = human_actor_id or selected_player_role
-    role_key = _prompt_key_for_actor(
-        prompt_prefix="goc.opening.role_anchor",
-        actor_ref=role_ref,
-        output_language=output_language,
-        fallback="default",
-    )
-    return sanitize_gm_narration_beat_line(
-        render_prompt(f"goc.opening.role_anchor.{role_key}.{_lang_key(output_language)}", display=display)
-    )
+    """Compatibility API: explicit fallback only, never substitute role-anchor prose."""
+    return _opening_fallback_notice(output_language=output_language)
 
 
 def polite_ritual_first_actor_line(*, output_language: str | None, actor_id: str | None) -> str:
-    lang = _lang_key(output_language)
-    actor_key = _prompt_key_for_actor(
-        prompt_prefix="goc.opening.polite_ritual",
-        actor_ref=actor_id,
-        output_language=output_language,
-        fallback=_default_polite_ritual_actor_key(output_language=output_language),
-    )
-    if not _prompt_exists(f"goc.opening.polite_ritual.{actor_key}.{lang}"):
-        actor_key = "default"
-    return render_prompt(f"goc.opening.polite_ritual.{actor_key}.{lang}")
+    """Compatibility API: explicit fallback only, never substitute NPC dialogue."""
+    return _opening_fallback_notice(output_language=output_language)
 
 
 _RE_GENERIC_CONFLICT = re.compile(
@@ -364,40 +307,29 @@ def swap_beats_toward_canonical_order(beats: list[str]) -> list[str]:
     return b
 
 
-def enforce_opening_handover_on_beats(
+def enforce_opening_transition_on_beats(
     beats: list[str],
     *,
     output_language: str | None,
     human_actor_id: str | None,
     selected_player_role: str | None,
 ) -> tuple[list[str], dict[str, Any]]:
-    """Ensure the first three narrator beats satisfy dramaturgy slots; preserve later beats."""
+    """Validate/reorder the first three narrator beats; never fill missing prose."""
     if len(beats) < 3:
-        return beats, {"opening_handover_applied": False}
+        return beats, {"opening_transition_applied": False}
     sanitized = [sanitize_gm_narration_beat_line(x) for x in beats if str(x or "").strip()]
     out = swap_beats_toward_canonical_order(sanitized[:3])
-    filled: list[str] = []
     reasons: list[str] = []
     p1 = out[0]
     if not opening_part_1_premise_present(p1):
-        p1 = deterministic_part1_premise(output_language=output_language)
-        filled.append("part_1_template")
         reasons.append("part_1_premise_weak")
     p2 = out[1]
     if not opening_part_2_room_present(p2):
-        p2 = deterministic_part2_room(output_language=output_language)
-        filled.append("part_2_template")
         reasons.append("part_2_room_weak")
     p3 = out[2]
     if not selected_role_anchor_present(
         p3, human_actor_id=human_actor_id, selected_player_role=selected_player_role
     ):
-        p3 = deterministic_role_anchor_beat(
-            output_language=output_language,
-            human_actor_id=human_actor_id,
-            selected_player_role=selected_player_role,
-        )
-        filled.append("role_anchor_template")
         reasons.append("role_anchor_weak")
     final = [
         sanitize_gm_narration_beat_line(p1),
@@ -405,15 +337,17 @@ def enforce_opening_handover_on_beats(
         sanitize_gm_narration_beat_line(p3),
     ] + sanitized[3:]
     meta = {
-        "opening_handover_applied": True,
-        "opening_handover_version": OPENING_HANDOVER_VERSION,
-        "opening_handover_slots_filled": filled,
-        "opening_handover_swap_reasons": reasons,
+        "opening_transition_applied": True,
+        "opening_transition_version": OPENING_TRANSITION_VERSION,
+        "opening_transition_slots_filled": [],
+        "opening_transition_swap_reasons": reasons,
+        "opening_transition_backfill_enabled": False,
+        "opening_transition_contract_candidate": not reasons,
     }
     return final, meta
 
 
-def diagnose_opening_handover(
+def diagnose_opening_transition(
     narrator_beats: list[str],
     first_actor_text: str | None,
     *,
@@ -477,8 +411,8 @@ def diagnose_opening_handover(
         "generic_conflict_resolution_detected": gen,
         "prosecutorial_first_actor": proc,
         "reacts_immediately_in_opening": reacts,
-        "opening_handover_contract_pass": contract,
-        "opening_handover_failure_reasons": failure_reasons,
+        "opening_transition_contract_pass": contract,
+        "opening_transition_failure_reasons": failure_reasons,
     }
 
 
@@ -487,37 +421,11 @@ def polish_first_opening_actor_block(
     *,
     output_language: str | None,
 ) -> tuple[list[dict[str, Any]], bool]:
-    """Replace prosecutorial or generic-meeting first NPC line with polite ritual (turn 0)."""
-    if len(blocks) < 4:
-        return blocks, False
-
-    def _bt(bb: dict[str, Any]) -> str:
-        return str(bb.get("block_type") or bb.get("type") or "").strip().lower()
-
-    idx = next((i for i, bb in enumerate(blocks) if _bt(bb) in {"actor_line", "actor_action"}), None)
-    if idx is None or idx < 3:
-        return blocks, False
-    bb = blocks[idx]
-    text = str(bb.get("text") or "").strip()
-    aid = str(bb.get("actor_id") or "").strip() or None
-    if not text:
-        return blocks, False
-    if (
-        prosecutorial_opening_detected(text)
-        or generic_conflict_resolution_detected(text)
-        or "reacts immediately" in text.lower()
-    ):
-        out = list(blocks)
-        nb = dict(bb)
-        nb["text"] = polite_ritual_first_actor_line(output_language=output_language, actor_id=aid)
-        _src = str(nb.get("source") or "live_runtime_graph").strip()
-        nb["source"] = f"{_src}_opening_handover_polish"
-        out[idx] = nb
-        return out, True
+    """Compatibility API: no deterministic NPC-line replacement is allowed."""
     return blocks, False
 
 
-def compute_opening_handover_from_scene_blocks(
+def compute_opening_transition_from_scene_blocks(
     blocks: list[dict[str, Any]],
     *,
     human_actor_id: str | None,
@@ -540,7 +448,7 @@ def compute_opening_handover_from_scene_blocks(
             break
     while len(narr) < 3:
         narr.append("")
-    return diagnose_opening_handover(
+    return diagnose_opening_transition(
         narr,
         first_actor,
         human_actor_id=human_actor_id,

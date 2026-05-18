@@ -32,9 +32,9 @@ def _event_rows(opening_scene_sequence: dict[str, Any] | None) -> list[dict[str,
     return [dict(row) for row in _as_list(opening.get("narrative_events")) if isinstance(row, dict)]
 
 
-def _opening_handover_phase(opening_scene_sequence: dict[str, Any] | None) -> str | None:
+def _first_playable_phase(opening_scene_sequence: dict[str, Any] | None) -> str | None:
     for event in _event_rows(opening_scene_sequence):
-        phase = str(event.get("handover_to_scene_phase") or "").strip()
+        phase = str(event.get("first_playable_scene_phase") or "").strip()
         if phase:
             return phase
     return None
@@ -107,8 +107,8 @@ def build_runtime_knowledge_contract(
             "must_show": _unique_strs(event.get("must_show")),
             "must_not": _unique_strs(event.get("must_not")),
         }
-        if event.get("handover_to_scene_phase"):
-            row["handover_to_scene_phase"] = event.get("handover_to_scene_phase")
+        if event.get("first_playable_scene_phase"):
+            row["first_playable_scene_phase"] = event.get("first_playable_scene_phase")
         if isinstance(event.get("role_variants"), dict):
             row["role_variants"] = event["role_variants"]
         events.append(row)
@@ -125,7 +125,7 @@ def build_runtime_knowledge_contract(
         "opening_must_not": _unique_strs(opening_contract.get("must_not")),
         "opening_event_tasks": events,
         "opening_event_ids": [str(event.get("id") or "").strip() for event in events if event.get("id")],
-        "opening_handover_to_scene_phase": _opening_handover_phase(opening),
+        "opening_first_playable_scene_phase": _first_playable_phase(opening),
         "opening_render_policy": {
             "summary_allowed": bool(narration_mode.get("summary_allowed")),
             "min_visible_blocks": narration_mode.get("min_visible_blocks"),
@@ -167,7 +167,7 @@ def build_opening_scene_plan_metadata(
         "opening_scene_sequence_id": contract.get("opening_scene_sequence_id"),
         "opening_event_ids": list(contract.get("opening_event_ids") or []),
         "opening_must_establish": list(contract.get("opening_must_establish") or []),
-        "opening_handover_to_scene_phase": contract.get("opening_handover_to_scene_phase"),
+        "opening_first_playable_scene_phase": contract.get("opening_first_playable_scene_phase"),
         "opening_render_policy": dict(contract.get("opening_render_policy") or {}),
         "hard_forbidden_detection_policy": dict(contract.get("hard_forbidden_detection_policy") or {}),
         "hard_forbidden_rule_ids": list(contract.get("hard_forbidden_rule_ids") or []),
@@ -213,7 +213,7 @@ def knowledge_contract_prompt_lines(contract: dict[str, Any] | None, *, opening_
         lines.append(f"- id: {pkt.get('opening_scene_sequence_id')}")
         lines.append(f"- must_establish: {pkt.get('opening_must_establish') or []}")
         lines.append(f"- event_order: {pkt.get('opening_event_ids') or []}")
-        lines.append(f"- handover_to_scene_phase: {pkt.get('opening_handover_to_scene_phase')}")
+        lines.append(f"- first_playable_scene_phase: {pkt.get('opening_first_playable_scene_phase')}")
         lines.append(f"- render_policy: {pkt.get('opening_render_policy') or {}}")
         lines.append("- runtime_evidence: structured_output.opening_event_ids must list covered event ids")
         role_variant = pkt.get("selected_role_variant")
@@ -966,7 +966,7 @@ def evaluate_opening_event_coverage(
     current_scene_id: str | None = None,
     visible_blocks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate opening event and handover coverage from structured semantic evidence."""
+    """Evaluate opening event and first-playable-state coverage from semantic evidence."""
     opening = _as_dict(opening_scene_sequence)
     if not opening:
         return {
@@ -989,18 +989,20 @@ def evaluate_opening_event_coverage(
     must_coverage = {item: item in covered_must for item in must_establish}
     missing_must = [key for key in must_establish if not must_coverage.get(key, False)]
     scene_plan = _as_dict(scene_plan_record)
-    expected_handover = _opening_handover_phase(opening)
-    actual_handover = str(
-        scene_plan.get("opening_handover_to_scene_phase")
-        or scene_plan.get("handover_to_scene_phase")
+    expected_first_playable = _first_playable_phase(opening)
+    actual_first_playable = str(
+        scene_plan.get("opening_first_playable_scene_phase")
+        or scene_plan.get("first_playable_scene_phase")
         or scene_plan.get("phase_id")
         or ""
     ).strip()
-    if not actual_handover and current_scene_id:
-        actual_handover = "phase_1" if "opening" in str(current_scene_id).lower() else ""
-    handover_pass = not expected_handover or actual_handover == expected_handover
+    if not actual_first_playable and current_scene_id:
+        actual_first_playable = "phase_1" if "opening" in str(current_scene_id).lower() else ""
+    first_playable_pass = (
+        not expected_first_playable or actual_first_playable == expected_first_playable
+    )
     missing_events = [event_id for event_id in expected_events if event_id not in covered_events]
-    pass_value = not missing_must and handover_pass and not missing_events
+    pass_value = not missing_must and first_playable_pass and not missing_events
     return {
         "contract": KNOWLEDGE_RUNTIME_GATES_CONTRACT,
         "applicable": True,
@@ -1011,9 +1013,9 @@ def evaluate_opening_event_coverage(
         "must_establish": must_establish,
         "must_establish_coverage": must_coverage,
         "missing_must_establish": missing_must,
-        "handover_to_scene_phase_expected": expected_handover,
-        "handover_to_scene_phase_actual": actual_handover or None,
-        "handover_to_scene_phase_pass": handover_pass,
+        "first_playable_scene_phase_expected": expected_first_playable,
+        "first_playable_scene_phase_actual": actual_first_playable or None,
+        "first_playable_scene_phase_pass": first_playable_pass,
         "opening_event_coverage_pass": pass_value,
     }
 
@@ -1068,8 +1070,8 @@ def build_knowledge_path_summary(
         "opening_event_ids_covered": coverage.get("covered_event_ids") or [],
         "opening_missing_event_ids": coverage.get("missing_event_ids") or [],
         "opening_missing_must_establish": coverage.get("missing_must_establish") or [],
-        "opening_handover_to_scene_phase_expected": coverage.get("handover_to_scene_phase_expected"),
-        "opening_handover_to_scene_phase_actual": coverage.get("handover_to_scene_phase_actual"),
+        "opening_first_playable_scene_phase_expected": coverage.get("first_playable_scene_phase_expected"),
+        "opening_first_playable_scene_phase_actual": coverage.get("first_playable_scene_phase_actual"),
         "opening_event_coverage_pass": bool(coverage.get("opening_event_coverage_pass", True)),
         "hard_forbidden_detection": detection,
         "prior_validation_hard_forbidden_detection": prior_detection if isinstance(prior_detection, dict) else None,

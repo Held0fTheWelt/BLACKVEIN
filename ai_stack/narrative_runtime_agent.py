@@ -455,45 +455,11 @@ class NarrativeRuntimeAgent:
         atmospheric_tone: str,
         block_sequence: int,
     ) -> str:
-        """
-        Synthesize narrator text using observational language (Phase 2).
-
-        Valid patterns (from ADR-MVP3-013):
-        - "You notice the pause..."
-        - "The tension in the room..."
-        - Perception-based: "A weight settles..."
-        - Observable behavior: "Alain's expression hardens..."
-        """
-        remaining_initiatives = pressure_analysis.get("remaining_initiatives", 0)
-        primary_tension = dramatic_context.get("primary_tension", "unresolved")
-
-        # Build observational sentences based on tone and context
-        sentences = []
-
-        # Atmospheric opening (observational, not forced)
-        if atmospheric_tone == "escalating_tension":
-            sentences.append("The atmosphere grows denser with each passing moment.")
-        elif atmospheric_tone == "mounting_pressure":
-            sentences.append("A quiet weight settles over the space between you.")
-        elif atmospheric_tone == "simmering_conflict":
-            sentences.append("Beneath the surface, something shifts and tightens.")
-        else:
-            sentences.append("There is a pause—a measured quality to the air.")
-
-        # Narrative thread connection (if available)
-        if narrative_threads and isinstance(narrative_threads, list) and len(narrative_threads) > 0:
-            first_thread = narrative_threads[0]
-            if isinstance(first_thread, dict):
-                thread_name = first_thread.get("thread_id", "the unfolding dynamic")
-                sentences.append(f"You perceive the depth of {thread_name} threading through the moment.")
-
-        # Tension source (observational, not secret intent revelation)
-        if remaining_initiatives > 0:
-            sentences.append(
-                f"There is movement in the undertone—others are gathering energy for what comes next."
-            )
-
-        return " ".join(sentences)
+        """Return an explicit fallback instead of synthesizing substitute story prose."""
+        return (
+            "Fallback: narrator generation did not produce live visible output. "
+            "No substitute story text was committed."
+        )
 
     def _select_visible_threads(
         self,

@@ -37,7 +37,7 @@ def repo_root(*, start: Path | None = None) -> Path:
         # path.
         if forced.is_dir():
             return forced
-    p = (start or Path(__file__)).resolve()
+    p = (start or Path.cwd()).resolve()
     return resolve_project_root(start=p, marker_text=None)
 
 

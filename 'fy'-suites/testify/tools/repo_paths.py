@@ -55,7 +55,7 @@ def repo_root(*, start: Path | None = None) -> Path:
         forced = Path(env).expanduser().resolve()
         if forced.is_dir():
             return forced
-    return resolve_project_root(start=start, marker_text=None)
+    return resolve_project_root(start=start or Path.cwd(), marker_text=None)
 
 
 def testify_hub_dir(repo: Path | None = None) -> Path:

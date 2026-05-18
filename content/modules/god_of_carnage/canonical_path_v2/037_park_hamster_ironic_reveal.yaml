@@ -3,7 +3,7 @@ canonical_path_step:
   id: opening_v2_037_park_hamster_ironic_reveal
   path_id: goc_opening_canonical_path_v2
   name: "037 - Park reveal: hamster alive, kids playing happily"
-  mode: narrator_perception_handover
+  mode: narrator_perception_transition
 
   scene_anchor:
     scene: 21

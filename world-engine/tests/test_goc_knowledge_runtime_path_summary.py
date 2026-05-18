@@ -87,7 +87,7 @@ def test_path_summary_exposes_opening_and_forbidden_gate_scores() -> None:
         "opening_scene_sequence": opening,
         "hard_forbidden_rules": hard,
         "turn_input_class": "opening",
-        "scene_plan_record": {"opening_handover_to_scene_phase": "phase_1"},
+        "scene_plan_record": {"opening_first_playable_scene_phase": "phase_1"},
         "current_scene_id": "scene_1_opening",
         "nodes_executed": ["retrieve_context", "validate_seam", "render_visible"],
         "validation_outcome": event["validation_outcome"],

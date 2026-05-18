@@ -75,7 +75,7 @@ character_document:
       - opening_014_player_response_ripple
     vulnerable_after:
       - opening_011_courtesy_community_pressure
-      - opening_016_opening_sustained_play_handoff
+      - opening_016_sustained_play_pressure_field
   forbidden_authoring_moves:
     - do_not_turn_him_into_primary_accuser_at_opening
     - do_not_use_him_as_neutral_exposition_machine

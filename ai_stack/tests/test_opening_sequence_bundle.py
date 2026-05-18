@@ -22,4 +22,4 @@ def test_yaml_slice_bundle_includes_opening_sequence() -> None:
     bundle = load_goc_yaml_slice_bundle()
     osq = bundle.get("opening_sequence")
     assert isinstance(osq, dict)
-    assert osq.get("handover_to_scene_phase") == "phase_1"
+    assert osq.get("first_playable_scene_phase") == "phase_1"

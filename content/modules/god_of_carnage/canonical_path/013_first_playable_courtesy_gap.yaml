@@ -3,7 +3,7 @@ canonical_path_step:
   id: opening_013_first_playable_courtesy_gap
   path_id: goc_opening_canonical_path
   name: "013 - First playable courtesy gap"
-  mode: first_playable_handover
+  mode: first_playable_window
 
   location_ref:
     location_id: living_room

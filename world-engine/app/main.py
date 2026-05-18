@@ -28,6 +28,7 @@ from fastapi.requests import Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 import httpx
 
@@ -271,7 +272,7 @@ def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = Non
                 status_code=400,
             )
 
-        ok, payload, status = _backend_login(username, password)
+        ok, payload, status = await run_in_threadpool(_backend_login, username, password)
         if not ok:
             # Return a generic/safe message; never expose internals.
             if status == 401:
@@ -289,7 +290,7 @@ def register_world_engine_ui_routes(app: FastAPI, *, web_root: Path | None = Non
 
         request.session[SESSION_KEY_ACCESS_TOKEN] = access_token
         request.session[SESSION_KEY_REFRESH_TOKEN] = refresh_token
-        me_ok, me_payload, _me_status = _backend_fetch_user(access_token)
+        me_ok, me_payload, _me_status = await run_in_threadpool(_backend_fetch_user, access_token)
         request.session[SESSION_KEY_CURRENT_USER] = me_payload if me_ok else (payload.get("user") or {})
         return RedirectResponse(url=next_path, status_code=303)
 

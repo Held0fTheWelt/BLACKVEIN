@@ -84,7 +84,7 @@ scene_graph:
       canonical_path_step_id: opening_004_dark_building_hallway
       required_event_ids:
         - event_03_arrival_threshold
-      summary: "Runtime node for threshold handover; place and prevented-exit detail is sourced from location_id."
+      summary: "Runtime node for threshold transition; place and prevented-exit detail is sourced from location_id."
 
     - id: living_room_arrival
       phase_id: phase_1
@@ -126,7 +126,7 @@ scene_graph:
       sequence: 12
       title: "First playable courtesy gap"
       location_id: living_room
-      scene_function: handover_to_play
+      scene_function: ready_to_play
       visibility: playable
       canonical_path_step_id: opening_013_first_playable_courtesy_gap
       required_event_ids:
@@ -177,7 +177,7 @@ scene_graph:
       visibility: playable
       canonical_path_step_ids:
         - opening_015_phone_exit_pressure
-        - opening_016_opening_sustained_play_handoff
+        - opening_016_sustained_play_pressure_field
       summary: "Runtime node for opening-phase exit pressure; prevented exits are sourced from building locations and objects."
 
     - id: parenting_principles

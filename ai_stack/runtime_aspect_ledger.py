@@ -354,13 +354,6 @@ def normalize_runtime_aspect_ledger(ledger: dict[str, Any] | None) -> dict[str, 
     src["turn_aspect_ledger"] = ordered_aspects
     rip = build_runtime_intelligence_projection(src)
     src["runtime_intelligence_projection"] = rip
-    if isinstance(rip, dict):
-        from ai_stack.adr0041_langfuse_evidence import try_emit_adr0041_langfuse_runtime_intelligence_evidence
-
-        rip["langfuse_adr0041_evidence"] = try_emit_adr0041_langfuse_runtime_intelligence_evidence(
-            projection=rip,
-            story_session_id=str(src.get("story_session_id") or src.get("session_id") or ""),
-        )
     return _json_safe(src)
 
 

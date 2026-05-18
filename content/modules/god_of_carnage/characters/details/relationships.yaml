@@ -126,7 +126,7 @@ relationship_axes:
       stability_impact: -45      # Contempt incompatible with civility
       canonical_pressure_refs:
         - canonical_path/013_first_playable_courtesy_gap.yaml
-        - canonical_path/016_opening_sustained_play_handoff.yaml
+        - canonical_path/016_opening_sustained_play_pressure_field.yaml
 
 relationships:
   veronique_michel:

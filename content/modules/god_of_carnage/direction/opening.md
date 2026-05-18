@@ -79,7 +79,7 @@ any exact phrase mandatory.
 ## Playable Opening Field
 
 Use canonical path steps `opening_012_tulips_and_hospitality` through
-`opening_016_opening_sustained_play_handoff`.
+`opening_016_sustained_play_pressure_field`.
 
 The opening should remain active for at least twenty minutes by keeping several
 threads alive at once:

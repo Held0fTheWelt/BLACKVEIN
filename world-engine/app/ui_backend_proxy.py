@@ -51,8 +51,8 @@ async def backend_proxy_response(
             headers["Content-Type"] = content_type
 
     try:
-        with httpx.Client(timeout=30.0) as client:
-            upstream = client.request(http_method, url, headers=headers, content=body)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            upstream = await client.request(http_method, url, headers=headers, content=body)
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=503, detail="Backend API unavailable.") from exc
 
