@@ -382,7 +382,6 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     "ai_stack/visible_narrative_contract.py": "Visible sanitizer still has GoC actor fallback tokens.",
     "backend/app/api/v1/game_routes.py": "Play handoff compatibility still knows the GoC solo profile.",
     "backend/app/api/v1/narrative_governance_routes.py": "Narrative governance defaults still use GoC.",
-    "backend/app/api/v1/session_routes.py": "Legacy session bootstrap examples still use GoC.",
     "backend/app/content/builtins.py": "Built-in content registry exposes the GoC profile.",
     "backend/app/content/module_loader.py": "Template-to-module compatibility maps GoC solo.",
     "backend/app/content/module_service.py": "Content service doc examples still use GoC.",

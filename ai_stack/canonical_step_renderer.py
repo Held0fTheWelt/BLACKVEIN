@@ -248,26 +248,35 @@ def _object_id_from_state_key(state_key: Any) -> str | None:
 
 
 def _render_phone_interruption(base_id: str, phone: dict[str, Any]) -> list[SceneBlock]:
+    caller_actor = str(phone.get("caller_actor") or "").strip()
+    speaker_label = caller_actor or "caller"
+    visible_facts = phone.get("caller_visible_facts") or []
+    vibrate_text = (
+        f"{caller_actor.title()}'s phone vibrates in the inside pocket."
+        if caller_actor
+        else "A phone vibrates in the inside pocket."
+    )
+    call_text = (
+        f"{speaker_label}: [phone call with {phone.get('call_partner')!r} re "
+        f"{phone.get('call_topic')!r}] "
+        + " | ".join(str(f) for f in visible_facts)
+    )
     return [
         SceneBlock(
             id=f"{base_id}-phone-vibrate",
             block_type="narrator",
-            text="Alain's phone vibrates in his inside pocket.",
+            text=vibrate_text,
             speaker_label="",
             actor_id=None,
             target_actor_id=None,
             delivery=SceneBlockDelivery(),
         ),
         SceneBlock(
-            id=f"{base_id}-phone-alain-call",
+            id=f"{base_id}-phone-call",
             block_type="actor_line",
-            text=(
-                f"alain: [phone call with {phone.get('call_partner')!r} re "
-                f"{phone.get('call_topic')!r}] "
-                + " | ".join(str(f) for f in (phone.get("alain_visible_facts") or []))
-            ),
-            speaker_label="alain",
-            actor_id="alain",
+            text=call_text,
+            speaker_label=speaker_label,
+            actor_id=caller_actor or None,
             target_actor_id=None,
             delivery=SceneBlockDelivery(),
         ),

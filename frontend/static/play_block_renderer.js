@@ -47,12 +47,22 @@ class BlockRenderer {
     const blockType = block.block_type || 'unknown';
     const cardStyle = String(block.card_style || '').trim().toLowerCase();
     const visibleLane = String(block.visible_lane || '').trim().toLowerCase();
+    const visualEmphasisRaw =
+      block.visual_emphasis && typeof block.visual_emphasis === 'object'
+        ? block.visual_emphasis.kind
+        : block.visual_emphasis;
+    const visualEmphasis = String(visualEmphasisRaw || '').trim().toLowerCase();
     div.className = `scene-block scene-block--${blockType}`;
     if (visibleLane) {
       div.setAttribute('data-visible-lane', visibleLane);
     }
     if (cardStyle) {
       div.setAttribute('data-card-style', cardStyle);
+    }
+    if (visualEmphasis) {
+      const emphasisClass = visualEmphasis.replace(/[^a-z0-9_-]+/g, '-').replace(/_/g, '-');
+      div.setAttribute('data-visual-emphasis', visualEmphasis);
+      div.classList.add(`scene-block--visual-emphasis-${emphasisClass}`);
     }
     if (cardStyle === 'npc_story' || cardStyle === 'narrative_story') {
       div.classList.add('scene-block--player-shell-story');

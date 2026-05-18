@@ -240,7 +240,7 @@ describe('BlockRenderer', () => {
       expect(el.className).toContain('scene-block--narrator-role-anchor');
     });
 
-    test('role anchor with narrative_story keeps player-shell-story for CSS amber override', () => {
+    test('role anchor with narrative_story keeps player-shell-story without dramatic emphasis', () => {
       const el = renderer.render({
         id: 'turn-0-role-anchor',
         block_type: 'narrator',
@@ -251,6 +251,17 @@ describe('BlockRenderer', () => {
       expect(el.className).toContain('scene-block--player-shell-story');
       expect(el.className).toContain('scene-block--narrator-role-anchor');
       expect(el.className).toContain('scene-block--narrator');
+    });
+
+    test('should render generic visual emphasis from block metadata', () => {
+      const el = renderer.render({
+        id: 'turn-0-dramatic-emphasis',
+        block_type: 'narrator',
+        visual_emphasis: { kind: 'dramatic_moment', intensity: 'medium' },
+        text: 'The action crosses a line.',
+      });
+      expect(el.getAttribute('data-visual-emphasis')).toBe('dramatic_moment');
+      expect(el.className).toContain('scene-block--visual-emphasis-dramatic-moment');
     });
 
     test('should render souffleuse as player hint director notice', () => {

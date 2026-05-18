@@ -16,6 +16,11 @@ from ai_stack.rag_retrieval_lexical import (
     _apply_sparse_vector_weights,
     _build_semantic_terms,
 )
+from ai_stack.rag_compiler_seed_ingestion import (
+    fingerprint_compiler_seed_chunks,
+    load_compiler_seed_chunks,
+    module_tree_source_prefix,
+)
 from ai_stack.rag_types import ContentClass
 from ai_stack.rag_corpus import CorpusChunk, InMemoryRetrievalCorpus
 
@@ -78,35 +83,57 @@ def _infer_module_id(repo_root: Path, file: Path) -> str | None:
     return None
 
 
-def _detect_content_class(path: Path) -> ContentClass | None:
-    """``_detect_content_class`` — see implementation for behaviour and contracts.
-    
-    Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-    
-    Args:
-        path: ``path`` (Path); meaning follows the type and call sites.
-    
-    Returns:
-        ContentClass | None:
-            Returns a value of type ``ContentClass | None``; see the function body for structure, error paths, and sentinels.
-    """
-    normalized = str(path).replace("\\", "/").lower()
-    if "/content/" in normalized:
+def _repo_relative_posix_parts(path: Path, repo_root: Path | None) -> tuple[str, ...]:
+    """Lowercase path segments relative to ``repo_root`` when possible."""
+    candidate = path
+    if repo_root is not None:
+        try:
+            candidate = path.resolve().relative_to(repo_root.resolve())
+        except ValueError:
+            pass
+    return tuple(candidate.as_posix().lower().split("/"))
+
+
+def _detect_content_class(path: Path, repo_root: Path | None = None) -> ContentClass | None:
+    """Classify a repo-owned source file for retrieval domain routing."""
+    parts = _repo_relative_posix_parts(path, repo_root)
+    if not parts:
+        return None
+    if parts[0] == "content":
         return ContentClass.AUTHORED_MODULE
-    if "/var/runs/" in normalized:
-        return ContentClass.TRANSCRIPT
-    if "/docs/technical/" in normalized or "/docs/architecture/" in normalized:
+    if "var" in parts and "runs" in parts:
+        var_index = parts.index("var")
+        if var_index + 1 < len(parts) and parts[var_index + 1] == "runs":
+            return ContentClass.TRANSCRIPT
+    if len(parts) >= 2 and parts[0] == "docs" and parts[1] == "technical":
         return ContentClass.POLICY_GUIDELINE
-    if "/docs/reports/" in normalized:
+    if len(parts) >= 2 and parts[0] == "docs" and parts[1] == "architecture":
+        return ContentClass.POLICY_GUIDELINE
+    if len(parts) >= 2 and parts[0] == "docs" and parts[1] == "reports":
         filename = path.name.lower()
         if "eval" in filename or "acceptance" in filename:
             return ContentClass.EVALUATION_ARTIFACT
         return ContentClass.REVIEW_NOTE
+    normalized = "/".join(parts)
     if "projection" in normalized:
         return ContentClass.RUNTIME_PROJECTION
-    if "character" in normalized:
-        return ContentClass.CHARACTER_PROFILE
     return None
+
+
+def _module_tree_covered_by_compiler_seed(rel_path: str, compiled_module_ids: set[str]) -> bool:
+    for module_id in compiled_module_ids:
+        prefix = module_tree_source_prefix(module_id)
+        if rel_path.startswith(prefix):
+            return True
+    return False
+
+
+def _merge_corpus_fingerprint(file_fingerprint: str, seed_chunks: list[CorpusChunk]) -> str:
+    seed_fingerprint = fingerprint_compiler_seed_chunks(seed_chunks)
+    digest = hashlib.sha256()
+    digest.update(file_fingerprint.encode("utf-8"))
+    digest.update(seed_fingerprint.encode("utf-8"))
+    return digest.hexdigest()
 
 
 class RagIngestionPipeline:
@@ -177,7 +204,9 @@ class RagIngestionPipeline:
                 Returns a value of type ``str``; see the function body for structure, error paths, and sentinels.
         """
         selected = self._select_sources(repo_root)
-        return self._fingerprint_for_selected(repo_root, selected)
+        file_fingerprint = self._fingerprint_for_selected(repo_root, selected)
+        seed_chunks, _compiled_module_ids = load_compiler_seed_chunks(repo_root)
+        return _merge_corpus_fingerprint(file_fingerprint, seed_chunks)
 
     @staticmethod
     def _fingerprint_for_selected(repo_root: Path, selected: list[Path]) -> str:
@@ -202,27 +231,16 @@ class RagIngestionPipeline:
         return digest.hexdigest()
 
     @staticmethod
-    def _canonical_priority(path: Path, content_class: ContentClass) -> int:
-        """``_canonical_priority`` — see implementation for behaviour and contracts.
-        
-        Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-        
-        Args:
-            path: ``path`` (Path); meaning follows the type and call sites.
-            content_class: ``content_class`` (ContentClass); meaning follows the type and call sites.
-        
-        Returns:
-            int:
-                Returns a value of type ``int``; see the function body for structure, error paths, and sentinels.
-        """
-        normalized = path.as_posix().lower()
+    def _canonical_priority(path: Path, content_class: ContentClass, repo_root: Path | None = None) -> int:
+        """Rank authored sources for retrieval reranking (higher = stronger canon signal)."""
+        parts = _repo_relative_posix_parts(path, repo_root)
         if content_class == ContentClass.AUTHORED_MODULE:
-            if "/content/published/" in normalized:
+            if len(parts) >= 2 and parts[0] == "content" and parts[1] == "published":
                 return 4
-            if "/content/modules/" in normalized:
+            if len(parts) >= 2 and parts[0] == "content" and parts[1] == "modules":
                 return 3
             return 2
-        if "/content/published/" in normalized or "canonical" in normalized:
+        if (len(parts) >= 2 and parts[0] == "content" and parts[1] == "published") or "canonical" in parts:
             return 2
         if content_class == ContentClass.POLICY_GUIDELINE:
             return 1
@@ -242,10 +260,14 @@ class RagIngestionPipeline:
                 Returns a value of type ``InMemoryRetrievalCorpus``; see the function body for structure, error paths, and sentinels.
         """
         selected = self._select_sources(repo_root)
+        seed_chunks, compiled_module_ids = load_compiler_seed_chunks(repo_root)
         chunks: list[CorpusChunk] = []
         for file in selected:
-            content_class = _detect_content_class(file)
+            content_class = _detect_content_class(file, repo_root)
             if content_class is None:
+                continue
+            rel_path = file.relative_to(repo_root).as_posix()
+            if _module_tree_covered_by_compiler_seed(rel_path, compiled_module_ids):
                 continue
             text = file.read_text(encoding="utf-8", errors="ignore").strip()
             if not text:
@@ -253,11 +275,10 @@ class RagIngestionPipeline:
             source_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
             source_version = f"sha256:{source_hash[:16]}"
             module_id = _infer_module_id(repo_root, file)
-            canonical_priority = self._canonical_priority(file, content_class)
+            canonical_priority = self._canonical_priority(file, content_class, repo_root)
             for index, chunk_text in enumerate(self._chunk_text(text)):
                 if not chunk_text.strip():
                     continue
-                rel_path = file.relative_to(repo_root).as_posix()
                 chunks.append(
                     CorpusChunk(
                         chunk_id=f"{rel_path}@{source_version}::chunk_{index}",
@@ -272,12 +293,14 @@ class RagIngestionPipeline:
                         semantic_terms=_build_semantic_terms(chunk_text),
                     )
                 )
+        chunks.extend(seed_chunks)
         _apply_sparse_vector_weights(chunks)
-        corpus_fingerprint = source_fingerprint or self._fingerprint_for_selected(repo_root, selected)
+        file_fingerprint = self._fingerprint_for_selected(repo_root, selected)
+        corpus_fingerprint = source_fingerprint or _merge_corpus_fingerprint(file_fingerprint, seed_chunks)
         return InMemoryRetrievalCorpus(
             chunks=chunks,
             built_at=datetime.now(timezone.utc).isoformat(),
-            source_count=len(selected),
+            source_count=len(selected) + len(compiled_module_ids),
             index_version=INDEX_VERSION,
             corpus_fingerprint=corpus_fingerprint,
             storage_path="",

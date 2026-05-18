@@ -23,6 +23,7 @@ from ai_stack.rag import (
     RetrievalStatus,
     build_runtime_retriever,
 )
+from ai_stack.rag_ingestion import _detect_content_class
 from ai_stack.tests.embedding_markers import requires_embeddings
 from ai_stack.tests.retrieval_eval_scenarios import (
     RETRIEVAL_EVAL_SCENARIOS,
@@ -196,6 +197,43 @@ def test_runtime_retriever_persists_and_reuses_index(tmp_path: Path) -> None:
     assert Path(corpus_a.storage_path).exists()
     assert corpus_b.storage_path == corpus_a.storage_path
     assert corpus_b.corpus_fingerprint == corpus_a.corpus_fingerprint
+
+
+def test_detect_content_class_accepts_relative_content_module_paths() -> None:
+    path = Path("content/modules/god_of_carnage/canonical_path/004_den_arrival_positioning.yaml")
+    assert _detect_content_class(path) == ContentClass.AUTHORED_MODULE
+
+
+def test_build_corpus_indexes_relative_module_yaml_as_authored_module(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "content" / "modules" / "solo_mod" / "canonical_path" / "step_one.yaml",
+        "canonical_path_step:\n  id: step_one\n  title: Park edge dispute\n  summary: Families argue at the park edge.\n",
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    paths = {chunk.source_path for chunk in corpus.chunks if chunk.module_id == "solo_mod"}
+    assert "content/modules/solo_mod/canonical_path/step_one.yaml" in paths
+    assert all(chunk.content_class == ContentClass.AUTHORED_MODULE for chunk in corpus.chunks if chunk.module_id == "solo_mod")
+
+
+def test_build_corpus_merges_compiler_seeds_for_god_of_carnage_when_module_present() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    goc_manifest = repo_root / "content" / "modules" / "god_of_carnage" / "module.yaml"
+    if not goc_manifest.is_file():
+        pytest.skip("god_of_carnage module not present in checkout")
+
+    corpus = RagIngestionPipeline().build_corpus(repo_root)
+    step_chunks = [
+        chunk
+        for chunk in corpus.chunks
+        if chunk.chunk_id.startswith("compiled:god_of_carnage:canonical_step:")
+    ]
+    assert len(step_chunks) >= 38
+    assert all(chunk.content_class == ContentClass.RUNTIME_PROJECTION for chunk in step_chunks)
+    assert not any(
+        chunk.source_path.startswith("content/modules/god_of_carnage/canonical_path/")
+        and chunk.content_class == ContentClass.AUTHORED_MODULE
+        for chunk in corpus.chunks
+    )
 
 
 def test_ingestion_metadata_changes_when_source_content_changes(tmp_path: Path) -> None:

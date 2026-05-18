@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.goc_yaml_authority import (
+    load_goc_canonical_module_yaml,
     load_goc_canonical_path_yaml,
     load_goc_locations_yaml,
     load_goc_objects_yaml,
@@ -138,6 +139,17 @@ def _compact_object(doc: dict[str, Any] | None, *, use_fields: list[str] | None 
     return {key: value for key, value in out.items() if value not in ("", [], {}, None)}
 
 
+def _module_context() -> dict[str, Any]:
+    module = load_goc_canonical_module_yaml()
+    content = module.get("content") if isinstance(module.get("content"), dict) else {}
+    return {
+        "module_id": str(module.get("module_id") or "").strip(),
+        "title": str(module.get("title") or "").strip(),
+        "setting": str(content.get("setting") or "").strip(),
+        "narrative_scope": str(content.get("narrative_scope") or "").strip(),
+    }
+
+
 def _content_refs(step: dict[str, Any], beat: dict[str, Any] | None = None) -> list[str]:
     refs: list[str] = [_source_ref_for_step(step)]
     loc = step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {}
@@ -180,6 +192,7 @@ def _beat_source_facts(step: dict[str, Any], beat: dict[str, Any]) -> dict[str, 
     perception_cues = _perception_lines(beat)
     return {
         "semantic_input_language": "en",
+        "module_context": _module_context(),
         "step": {
             "id": str(step.get("id") or "").strip(),
             "sequence": int(step.get("sequence") or 0),
@@ -236,6 +249,65 @@ def _beat_source_facts(step: dict[str, Any], beat: dict[str, Any]) -> dict[str, 
     }
 
 
+def _location_ref_id(step: dict[str, Any] | None) -> str:
+    row = step if isinstance(step, dict) else {}
+    loc_ref = row.get("location_ref") if isinstance(row.get("location_ref"), dict) else {}
+    return str(loc_ref.get("location_id") or "").strip()
+
+
+def _scene_anchor_scene(step: dict[str, Any] | None) -> str:
+    row = step if isinstance(step, dict) else {}
+    anchor = row.get("scene_anchor") if isinstance(row.get("scene_anchor"), dict) else {}
+    return str(anchor.get("scene") or "").strip()
+
+
+def _transition_facts(
+    *,
+    previous_step: dict[str, Any] | None,
+    current_step: dict[str, Any],
+) -> dict[str, Any]:
+    prev_loc_id = _location_ref_id(previous_step)
+    curr_loc_id = _location_ref_id(current_step)
+    prev_scene = _scene_anchor_scene(previous_step)
+    curr_scene = _scene_anchor_scene(current_step)
+    if not previous_step:
+        return {"kind": "opening_start", "location_changed": False, "scene_changed": False}
+    if prev_loc_id == curr_loc_id and prev_scene == curr_scene:
+        return {"kind": "continuous", "location_changed": False, "scene_changed": False}
+    locations = _locations_by_id()
+    previous_next = (
+        previous_step.get("next_point")
+        if isinstance(previous_step, dict) and isinstance(previous_step.get("next_point"), dict)
+        else {}
+    )
+    return {
+        "kind": "location_or_scene_shift",
+        "location_changed": prev_loc_id != curr_loc_id,
+        "scene_changed": bool(prev_scene and curr_scene and prev_scene != curr_scene),
+        "previous_location": _compact_location(locations.get(prev_loc_id)),
+        "current_location": _compact_location(locations.get(curr_loc_id)),
+        "previous_scene": prev_scene,
+        "current_scene": curr_scene,
+        "handoff": str(previous_next.get("handoff") or "").strip(),
+        "module_context": _module_context(),
+    }
+
+
+def _visual_emphasis(beat: dict[str, Any]) -> dict[str, Any] | None:
+    raw = beat.get("visual_emphasis") or beat.get("dramatic_marker")
+    if not isinstance(raw, dict):
+        return None
+    kind = str(raw.get("kind") or raw.get("marker_kind") or "").strip()
+    if not kind:
+        return None
+    out = {
+        "kind": kind,
+        "intensity": str(raw.get("intensity") or "medium").strip() or "medium",
+        "reason": str(raw.get("reason") or "").strip(),
+    }
+    return {key: value for key, value in out.items() if value}
+
+
 def _block(
     *,
     index: int,
@@ -243,8 +315,14 @@ def _block(
     beat: str,
     step: dict[str, Any],
     mandatory_beat: dict[str, Any],
+    previous_step: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    source_facts = _beat_source_facts(step, mandatory_beat)
+    source_facts["transition_from_previous"] = _transition_facts(
+        previous_step=previous_step,
+        current_step=step,
+    )
+    block = {
         "id": f"opening-narrator-path-{index}",
         "block_type": "narrator",
         "speaker_label": "Narrator",
@@ -258,8 +336,12 @@ def _block(
         "canonical_step_sequence": int(step.get("sequence") or index),
         "canonical_mandatory_beat_id": str(mandatory_beat.get("id") or "").strip(),
         "source_refs": _content_refs(step, mandatory_beat),
-        "source_facts": _beat_source_facts(step, mandatory_beat),
+        "source_facts": source_facts,
     }
+    emphasis = _visual_emphasis(mandatory_beat)
+    if emphasis:
+        block["visual_emphasis"] = emphasis
+    return block
 
 
 def _string_list(value: Any) -> list[str]:
@@ -312,6 +394,7 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
             beat=beat,
             step=steps[min(max(step_index, 0), len(steps) - 1)],
             mandatory_beat=mandatory_beat,
+            previous_step=steps[step_index - 1] if step_index > 0 else None,
         )
         for i, (text, beat, step_index, mandatory_beat) in enumerate(render_items)
     ]

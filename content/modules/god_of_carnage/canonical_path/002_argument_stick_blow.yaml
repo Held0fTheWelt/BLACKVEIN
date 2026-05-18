@@ -79,6 +79,10 @@ canonical_path_step:
       order: 3
       duration_target_seconds: 6
       beat_pattern_ref: narrator_perception_block
+      visual_emphasis:
+        kind: dramatic_moment
+        intensity: medium
+        reason: child_world_violence_crosses_from_argument_to_injury
       beat_pattern_params:
         perception_lines:
           - "The boy with the stick stops. He turns."

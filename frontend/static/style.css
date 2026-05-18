@@ -5,7 +5,9 @@
     --void: #07070a;
     --obsidian: #0b0d12;
     --violet: #7f63d9;
-    --role-anchor-amber: #d4a017;
+    --souffleuse-amber: #d4a017;
+    --role-anchor-amber: var(--souffleuse-amber);
+    --dramatic-marker-red: #e35a72;
     --violet-bright: #a07dcc;
     --violet-glow: rgba(148, 121, 239, 0.35);
     --violet-glow-strong: rgba(148, 121, 239, 0.6);
@@ -1946,8 +1948,8 @@ button.secondary:hover {
 }
 
 .scene-block--narrator.scene-block--narrator-role-anchor {
-    border-left-color: var(--role-anchor-amber);
-    background: rgba(212, 160, 23, 0.1);
+    border-left-color: var(--violet);
+    background: rgba(122, 92, 158, 0.05);
 }
 
 .scene-block--actor_line {
@@ -1962,7 +1964,7 @@ button.secondary:hover {
 
 .scene-block--souffleuse,
 .scene-block.scene-block--player-shell-director-notice {
-    border-left-color: var(--role-anchor-amber);
+    border-left-color: var(--souffleuse-amber);
     background: rgba(212, 160, 23, 0.12);
     color: var(--text);
 }
@@ -1973,10 +1975,15 @@ button.secondary:hover {
     background: rgba(122, 92, 158, 0.08);
 }
 
-/* Role anchor: amber must override player-shell-story (same specificity order would lose). */
+/* Dramatic emphasis must override player-shell-story (same specificity order would lose). */
 .scene-block.scene-block--narrator.scene-block--narrator-role-anchor.scene-block--player-shell-story {
-    border-left-color: var(--role-anchor-amber);
-    background: rgba(212, 160, 23, 0.1);
+    border-left-color: var(--violet);
+    background: rgba(122, 92, 158, 0.08);
+}
+
+.scene-block--visual-emphasis-dramatic-moment {
+    border-left-color: var(--dramatic-marker-red);
+    background: rgba(227, 90, 114, 0.1);
 }
 
 .scene-block--player_input {
@@ -2119,7 +2126,7 @@ button.secondary:hover {
    Variants come from play_typewriter_engine.js TYPEWRITER_BEAT_PROFILES. */
 .play-cursor[data-cursor-variant="default"]   { --cursor-glyph: "▎"; --cursor-color: var(--violet-bright); --cursor-glow: rgba(160, 125, 204, 0.6); }
 .play-cursor[data-cursor-variant="boot"]      { --cursor-glyph: "█"; --cursor-color: #8cff9e; --cursor-glow: rgba(67, 209, 122, 0.72); width: 0.7ch; }
-.play-cursor[data-cursor-variant="anchor"]    { --cursor-glyph: "▎"; --cursor-color: var(--role-anchor-amber); --cursor-glow: rgba(212, 160, 23, 0.65); width: 0.7ch; }
+.play-cursor[data-cursor-variant="anchor"]    { --cursor-glyph: "▎"; --cursor-color: var(--violet-bright); --cursor-glow: rgba(160, 125, 204, 0.55); width: 0.7ch; }
 .play-cursor[data-cursor-variant="tension"]   { --cursor-glyph: "▕"; --cursor-color: #f06b86; --cursor-glow: rgba(240, 107, 134, 0.55); }
 .play-cursor[data-cursor-variant="dialogue"]  { --cursor-glyph: "‖"; --cursor-color: #b48dff; --cursor-glow: rgba(180, 141, 255, 0.55); }
 .play-cursor[data-cursor-variant="action"]    { --cursor-glyph: "▌"; --cursor-color: #ff8b3a; --cursor-glow: rgba(255, 139, 58, 0.6); width: 0.6ch; }
@@ -2131,9 +2138,7 @@ button.secondary:hover {
 .scene-block.beat--boot      { box-shadow: inset 0 0 0 1px rgba(67, 209, 122, 0.38),
                                             inset 0 0 32px rgba(67, 209, 122, 0.10),
                                             0 0 24px rgba(67, 209, 122, 0.10); }
-.scene-block.beat--anchor    { box-shadow: inset 0 0 0 1px rgba(212, 160, 23, 0.45),
-                                            inset 0 0 32px rgba(212, 160, 23, 0.10),
-                                            0 0 28px rgba(212, 160, 23, 0.12); }
+.scene-block.beat--anchor    { box-shadow: inset 0 0 0 1px rgba(122, 92, 158, 0.22); }
 .scene-block.beat--tension   { box-shadow: inset 0 0 0 1px rgba(240, 107, 134, 0.38),
                                             inset 0 0 24px rgba(240, 107, 134, 0.08),
                                             0 0 22px rgba(240, 107, 134, 0.10); }
@@ -2178,7 +2183,7 @@ button.secondary:hover {
     border-radius: inherit;
     background: linear-gradient(90deg,
         transparent 0%,
-        rgba(212, 160, 23, 0.35) 50%,
+        rgba(160, 125, 204, 0.24) 50%,
         transparent 100%);
     transform: translateX(-100%);
     animation: anchor-sweep 800ms cubic-bezier(0.2, 0.6, 0.2, 1) 60ms forwards;

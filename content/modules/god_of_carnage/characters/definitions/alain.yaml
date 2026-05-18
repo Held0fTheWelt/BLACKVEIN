@@ -42,9 +42,24 @@ character_document:
     statement_pressure: >-
       He hears wording as liability and procedure. The "armed" / "carrying" exchange
       lets him appear reasonable while reducing moral exposure.
+    situational_stance: >-
+      This visit has to stay contained before it turns into a moral tribunal.
+      Courtesy is useful, distance is useful, and staying beside Annette still
+      matters, even while part of you is already looking for the cleanest way out
+      of the room.
+    later_development_attitude_refs:
+      use_policy: infer_baseline_stance_only_no_future_event_disclosure
+      refs:
+        - canonical_path/006_armed_vs_carrying.yaml#armed_word_role_pressure
+        - canonical_path/011_alain_first_walter_call.yaml
+        - canonical_path/019_apology_stalemate_new_teeth.yaml
+        - canonical_path/031_spouses_vs_spouses.yaml
     souffleuse_guidance:
       opening_orientation: >-
-        Keep it procedural. One loaded word is enough.
+        This visit has to stay contained before it turns into a moral tribunal.
+        Courtesy is useful, distance is useful, and staying beside Annette still
+        matters, even while part of you is already looking for the cleanest way out
+        of the room.
     prevented_exit_pressure: >-
       The dark building hallway and non-arriving elevator are pressure references,
       not free exits. His lack of signal and expected call create pressure without

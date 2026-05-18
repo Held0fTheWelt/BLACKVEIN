@@ -42,9 +42,24 @@ character_document:
       The wording exchange is not abstract to her: every softened word may protect
       Ferdinand from being defined as a criminal, and every harsher word may trap
       her family in the hosts' moral theatre.
+    situational_stance: >-
+      Inside another family's careful politeness, Ferdinand is already present in
+      every silence. Composure matters, but it should not become surrender: this
+      meeting must still leave room for your son to be a child, and for you not
+      to be reduced to the mother of an accusation.
+    later_development_attitude_refs:
+      use_policy: infer_baseline_stance_only_no_future_event_disclosure
+      refs:
+        - canonical_path/006_armed_vs_carrying.yaml#armed_word_role_pressure
+        - canonical_path/010_snitch_sense_of_honor.yaml
+        - canonical_path/013_apology_pressure_eleven.yaml
+        - canonical_path/019_apology_stalemate_new_teeth.yaml
     souffleuse_guidance:
       opening_orientation: >-
-        Do not let them turn Ferdinand into a case.
+        Inside another family's careful politeness, Ferdinand is already present in
+        every silence. Composure matters, but it should not become surrender: this
+        meeting must still leave room for your son to be a child, and for you not
+        to be reduced to the mother of an accusation.
     injury_pressure: >-
       Dental detail gives her a fact that can be held quietly, not a required speech.
       If the player stays silent, other adults may misread the silence but must not

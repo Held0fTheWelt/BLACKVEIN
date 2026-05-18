@@ -11,9 +11,9 @@ Accepted
 ## Context
 
 The runtime needs a player-facing help voice for moments where the narrator
-should not explain private role pressure or playable affordances directly. This
-is especially important after narrator-only passages, location changes, and
-phases where the selected human character has not yet acted or spoken.
+should not explain a playable character's inward stance directly. This is
+especially important after narrator-only passages, location changes, and phases
+where the selected human character has not yet acted or spoken.
 
 The existing language contract keeps internal grounding in English:
 player input is normalized to English before semantic resolution, content facts
@@ -32,7 +32,7 @@ Introduce **Souffleuse** as a Director-selected player guidance lane.
 
 The Souffleuse:
 
-- speaks as a concise inward role voice in the current playable character's
+- speaks as a concise inward voice in the current playable character's
   register;
 - is player-visible as a hint/notice lane, not narrator prose;
 - is selected from authored `canonical_path.*.souffleuse_cues`;
@@ -42,14 +42,14 @@ The Souffleuse:
 - realizes non-English player-visible text through the story output module, not
   through localized prompt-store prose;
 - has `commit_impact: ui_guidance_only`;
-- may orient immediate playable pressure without explaining the role from the
-  outside;
+- may orient the character's immediate stance toward the situation without
+  explaining the character from the outside;
 - must not commit a player action, force an exact line, reveal hidden NPC intent,
   duplicate narrator description, or become canonical fact.
 
 The Director must select Souffleuse only when the current content cue marks the
-timing and narration alone is not the right surface. Opening role orientation is
-therefore content-timed, not hardcoded as “turn 0”.
+timing and narration alone is not the right surface. Opening situation
+orientation is therefore content-timed, not hardcoded as “turn 0”.
 
 ### D1 - Source language and output realization
 
@@ -76,17 +76,19 @@ Souffleuse guidance is not generic help text. It is scoped to the current human
 actor.
 
 The source block SHALL include `target_actor_id` and character-derived
-`source_facts`, including at least the public identity, baseline attitude, and
-opening statement pressure where available. This means the same canonical cue
+`source_facts`, including at least the public identity, baseline attitude,
+situational stance, and later-development attitude references where available.
+Later references may be used only to infer baseline stance; they must not reveal
+or anticipate future beats. This means the same canonical cue
 may produce different source guidance for Annette and Alain:
 
-- Annette guidance may be grounded in guest civility, maternal defense, bodily
-  pressure, and the risk that loaded wording turns Ferdinand into a case.
-- Alain guidance may be grounded in procedural language, liability, phone/work
-  pressure, and exit management.
+- Annette guidance may be grounded in guest civility, maternal defense,
+  restraint, and the fear that her son is already being judged.
+- Alain guidance may be grounded in containment, procedural distance,
+  divided attention, and exit management.
 
 The output module may translate and phrase this guidance for the player, but it
-must preserve the actor-specific pressure and must not collapse different
+must preserve the actor-specific stance and must not collapse different
 playable characters into a single generic hint.
 
 ### D3 - Natural inward surface

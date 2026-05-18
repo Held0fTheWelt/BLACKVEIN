@@ -86,10 +86,10 @@
         "player_side_label",
         "location_name",
         "incident_location_name",
-        "role_pressure"
+        "situational_stance"
       ],
       "template_lines": [
-        "{role_pressure}"
+        "{situational_stance}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -114,10 +114,53 @@
         "player_side_label",
         "location_name",
         "incident_location_name",
-        "role_pressure"
+        "situational_stance"
       ],
       "template_lines": [
-        "{role_pressure}"
+        "{situational_stance}"
+      ],
+      "metadata": {
+        "internal_resolution_language": "en",
+        "visible_output_language": "en",
+        "no_hardcoded_engine_content": true,
+        "commit_impact": "ui_guidance_only"
+      }
+    },
+    {
+      "prompt_key": "world_engine.souffleuse.character_stance.de",
+      "name": "Souffleuse Character Stance DE",
+      "category": "World Engine / Player Guidance",
+      "prompt_type": "runtime_projection_template",
+      "domain": "world_engine",
+      "tags": ["story-runtime", "souffleuse", "character-stance"],
+      "description": "Second-person inner-voice nudge for a content-marked character stance cue.",
+      "source_path": "ai_stack/goc_souffleuse.py",
+      "source_symbol": "build_goc_opening_souffleuse_projection",
+      "variables": ["situational_stance"],
+      "template_lines": [
+        "{situational_stance}"
+      ],
+      "metadata": {
+        "internal_resolution_language": "en",
+        "visible_output_language": "en",
+        "requires_output_realization": true,
+        "no_hardcoded_engine_content": true,
+        "commit_impact": "ui_guidance_only"
+      }
+    },
+    {
+      "prompt_key": "world_engine.souffleuse.character_stance.en",
+      "name": "Souffleuse Character Stance EN",
+      "category": "World Engine / Player Guidance",
+      "prompt_type": "runtime_projection_template",
+      "domain": "world_engine",
+      "tags": ["story-runtime", "souffleuse", "character-stance"],
+      "description": "Second-person inner-voice nudge for a content-marked character stance cue.",
+      "source_path": "ai_stack/goc_souffleuse.py",
+      "source_symbol": "build_goc_opening_souffleuse_projection",
+      "variables": ["situational_stance"],
+      "template_lines": [
+        "{situational_stance}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -128,17 +171,17 @@
     },
     {
       "prompt_key": "world_engine.souffleuse.role_pressure.de",
-      "name": "Souffleuse Role Pressure DE",
+      "name": "Souffleuse Role Pressure DE Compatibility Alias",
       "category": "World Engine / Player Guidance",
       "prompt_type": "runtime_projection_template",
       "domain": "world_engine",
-      "tags": ["story-runtime", "souffleuse", "role-pressure"],
-      "description": "Second-person inner-voice nudge for a content-marked role-pressure cue.",
+      "tags": ["story-runtime", "souffleuse", "compatibility"],
+      "description": "Compatibility alias for older content-marked Souffleuse cues; source text remains English and visible wording is handled by output realization.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["role_pressure"],
+      "variables": ["situational_stance"],
       "template_lines": [
-        "{role_pressure}"
+        "{situational_stance}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -150,17 +193,17 @@
     },
     {
       "prompt_key": "world_engine.souffleuse.role_pressure.en",
-      "name": "Souffleuse Role Pressure EN",
+      "name": "Souffleuse Role Pressure EN Compatibility Alias",
       "category": "World Engine / Player Guidance",
       "prompt_type": "runtime_projection_template",
       "domain": "world_engine",
-      "tags": ["story-runtime", "souffleuse", "role-pressure"],
-      "description": "Second-person inner-voice nudge for a content-marked role-pressure cue.",
+      "tags": ["story-runtime", "souffleuse", "compatibility"],
+      "description": "Compatibility alias for older content-marked Souffleuse cues; source text remains English.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["role_pressure"],
+      "variables": ["situational_stance"],
       "template_lines": [
-        "{role_pressure}"
+        "{situational_stance}"
       ],
       "metadata": {
         "internal_resolution_language": "en",

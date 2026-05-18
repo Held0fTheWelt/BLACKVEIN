@@ -26,7 +26,7 @@ SOUFFLEUSE_CONTRACT = "goc_souffleuse_projection.v1"
 SOUFFLEUSE_ADAPTER = "goc_souffleuse_prompt_store"
 SOUFFLEUSE_INVOCATION_MODE = "content_cue_prompt_store_render"
 SOUFFLEUSE_INTERNAL_LANGUAGE = "en"
-SOUFFLEUSE_OPENING_ROLE_ORIENTATION = "souffleuse.role_orientation"
+SOUFFLEUSE_OPENING_ROLE_ORIENTATION = "souffleuse.situational_stance"
 SOUFFLEUSE_ROLE_PRESSURE = "souffleuse.role_pressure"
 
 
@@ -210,19 +210,49 @@ def _projection_variables(
         if isinstance(opening_canon.get("souffleuse_guidance"), dict)
         else {}
     )
+    situational_stance = (
+        _clean(souffleuse_guidance.get("opening_orientation"))
+        or _clean(souffleuse_guidance.get("situational_stance"))
+        or _clean(opening_canon.get("situational_stance"))
+        or _clean(souffleuse_guidance.get("role_pressure"))
+        or _clean(opening_canon.get("statement_pressure"))
+        or _clean(character_doc.get("baseline_attitude"))
+        or _clean(character_doc.get("public_identity"))
+    )
     return {
         "player_name": _clean(character_doc.get("name")) or "Player",
         "player_side_label": _side_label(character_doc, lang=lang),
         "location_name": _display_location_name(current_location, lang=lang),
         "incident_location_name": _display_location_name(incident_location, lang=lang),
-        "role_pressure": (
-            _clean(souffleuse_guidance.get("opening_orientation"))
-            or _clean(souffleuse_guidance.get("role_pressure"))
-            or _clean(opening_canon.get("statement_pressure"))
-            or _clean(character_doc.get("baseline_attitude"))
-            or _clean(character_doc.get("public_identity"))
-        ),
+        "situational_stance": situational_stance,
+        "role_pressure": situational_stance,
     }
+
+
+def _location_fact(location: dict[str, Any] | None) -> dict[str, str]:
+    loc = location if isinstance(location, dict) else {}
+    return {
+        key: value
+        for key, value in {
+            "id": _clean(loc.get("id")),
+            "name": _display_location_name(loc, lang=SOUFFLEUSE_INTERNAL_LANGUAGE),
+            "description": _clean(loc.get("description")),
+        }.items()
+        if value
+    }
+
+
+def _location_for_step(step: dict[str, Any]) -> dict[str, Any]:
+    ref = step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {}
+    return _indexed_locations().get(_clean(ref.get("location_id"))) or {}
+
+
+def _opening_incident_location() -> dict[str, Any]:
+    canonical = load_goc_canonical_path_yaml()
+    paths = canonical.get("paths") if isinstance(canonical.get("paths"), dict) else {}
+    opening = paths.get("opening") if isinstance(paths.get("opening"), dict) else {}
+    first_step = _indexed_steps().get(_clean(opening.get("first_step_id"))) or {}
+    return _location_for_step(first_step)
 
 
 def _block_delivery() -> dict[str, Any]:
@@ -294,6 +324,11 @@ def build_goc_opening_souffleuse_projection(
             continue
         cue_id = _clean(cue.get("id")) or "souffleuse_cue"
         capability = _clean(cue.get("capability")) or SOUFFLEUSE_OPENING_ROLE_ORIENTATION
+        guidance_kinds = [
+            _clean(item)
+            for item in (cue.get("guidance_kinds") if isinstance(cue.get("guidance_kinds"), list) else [])
+            if _clean(item)
+        ]
         character_opening_canon = (
             character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
         )
@@ -302,6 +337,13 @@ def build_goc_opening_souffleuse_projection(
             if isinstance(character_opening_canon.get("souffleuse_guidance"), dict)
             else {}
         )
+        later_development_attitude_refs = (
+            character_opening_canon.get("later_development_attitude_refs")
+            if isinstance(character_opening_canon.get("later_development_attitude_refs"), dict)
+            else {}
+        )
+        current_location = _location_for_step(step)
+        incident_location = _opening_incident_location()
         block = {
             "id": f"opening-souffleuse-{cue_id}",
             "block_type": SOUFFLEUSE_BLOCK_TYPE,
@@ -320,6 +362,7 @@ def build_goc_opening_souffleuse_projection(
             "souffleuse_cue_id": cue_id,
             "contract": SOUFFLEUSE_CONTRACT,
             "voice_mode": _clean(cue.get("voice_mode")) or "second_person_inner",
+            "guidance_kinds": guidance_kinds,
             "commit_impact": _clean(cue.get("commit_impact")) or "ui_guidance_only",
             "internal_resolution_language": SOUFFLEUSE_INTERNAL_LANGUAGE,
             "source_language": SOUFFLEUSE_INTERNAL_LANGUAGE,
@@ -336,12 +379,25 @@ def build_goc_opening_souffleuse_projection(
             "evidence_role": "supporting",
             "source_refs": _source_refs_for_cue(cue, character_key=character_key, step=step),
             "source_facts": {
+                "character_name": _clean(character_doc.get("name")),
+                "character_role": _clean(character_doc.get("role")),
+                "character_household_side": _clean(character_doc.get("household_side")),
                 "character_public_identity": _clean(character_doc.get("public_identity")),
                 "character_baseline_attitude": _clean(character_doc.get("baseline_attitude")),
+                "character_player_agency_policy": _clean(character_opening_canon.get("player_agency_policy")),
+                "character_situational_stance": _clean(character_opening_canon.get("situational_stance")),
                 "character_souffleuse_guidance": _clean(
                     character_souffleuse_guidance.get("opening_orientation")
                 ),
                 "character_statement_pressure": _clean(character_opening_canon.get("statement_pressure")),
+                "later_development_attitude_refs": later_development_attitude_refs,
+                "future_knowledge_policy": _clean(
+                    cue.get("future_knowledge_policy")
+                    or later_development_attitude_refs.get("use_policy")
+                ),
+                "current_location": _location_fact(current_location),
+                "incident_location": _location_fact(incident_location),
+                "guidance_kinds": guidance_kinds,
             },
         }
         out_blocks.append(block)

@@ -12,6 +12,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+SYMBOLIC_OBJECT_RESONANCE_ASPECT_NAME = "symbolic_object_resonance"
 SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION = "symbolic_object_resonance.v1"
 SYMBOLIC_OBJECT_RESONANCE_POLICY_VERSION = "symbolic_object_resonance_policy.v1"
 

@@ -296,6 +296,26 @@
         type: integer
         range: [4, 45]
 
+      visual_emphasis:
+        type: object
+        optional: true
+        description: >-
+          Generic player-visible emphasis marker. The engine must not infer
+          story-specific placement; content marks the beat and UI maps the
+          generic kind to presentation.
+        fields:
+          kind:
+            type: enum
+            values:
+              - dramatic_moment
+          intensity:
+            type: enum
+            values: [low, medium, high]
+            default: medium
+          reason:
+            type: string
+            optional: true
+
       director_instruction:
         type: object
         anyOf:

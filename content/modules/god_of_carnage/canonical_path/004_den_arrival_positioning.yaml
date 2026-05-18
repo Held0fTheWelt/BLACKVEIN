@@ -111,21 +111,22 @@
         after_mandatory_beat: mood_register_serious_cordial_tolerant
         timing: after_narrator_path_visible
       required_once: true
-      capability: souffleuse.role_orientation
+      capability: souffleuse.situational_stance
       voice_mode: second_person_inner
       internal_resolution_language: en
       guidance_kinds:
-        - role_orientation
-        - location_orientation
-        - input_affordance
-        - emotional_pressure
+        - situation_orientation
+        - character_stance
+        - pre_action_inward_footing
+      future_knowledge_policy: infer_baseline_stance_only_no_future_event_disclosure
       audience: current_human_actor
       prompt_key:
         de: world_engine.souffleuse.opening_orientation.de
         en: world_engine.souffleuse.opening_orientation.en
       source_refs:
         - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.player_agency_policy
-        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.statement_pressure
+        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.situational_stance
+        - characters/definitions/{current_human_actor}.yaml#character_document.opening_canon.later_development_attitude_refs
         - locations/appartment_vallon/study.yaml#location
         - canonical_path/004_den_arrival_positioning.yaml#canonical_path_step.player_intrusion_windows
         - canonical_path/index.yaml#canonical_path.paths.opening

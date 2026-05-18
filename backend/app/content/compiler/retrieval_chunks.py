@@ -5,6 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ai_stack.symbolic_object_resonance_contracts import (
+    SYMBOLIC_OBJECT_RESONANCE_ASPECT_NAME,
+)
 from app.content.module_models import ContentModule
 from story_runtime_core.director_surface_hints import load_module_director_surface_hints
 
@@ -194,7 +197,7 @@ def chunks_from_object_documents(module: ContentModule) -> list[RetrievalChunk]:
                 content_kind="object",
                 source_path=source_path,
                 entity_id=entity_id,
-                use_for=("object_authority", "symbolic_object_resonance", "narrator_packet"),
+                use_for=("object_authority", SYMBOLIC_OBJECT_RESONANCE_ASPECT_NAME, "narrator_packet"),
                 runtime_language_adapter_available=True,
                 placement_location_id=obj.get("placement_location_id"),
             ),

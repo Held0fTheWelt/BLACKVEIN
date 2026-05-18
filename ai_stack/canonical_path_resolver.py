@@ -525,13 +525,22 @@ def _expand_structural_pattern(pattern: BeatPattern, params: dict[str, Any]) -> 
 
 def _expand_recurrent_pattern(pattern: BeatPattern, params: dict[str, Any]) -> dict[str, Any]:
     if pattern.id == "phone_interruption_recurrent":
+        theme_arc = pattern.raw.get("theme_arc_carried") or {}
+        caller_actor = str(theme_arc.get("actor") or "").strip()
+        caller_facts_key = f"{caller_actor}_visible_facts" if caller_actor else None
+        visible_facts: list[Any] = []
+        if caller_facts_key and caller_facts_key in params:
+            visible_facts = list(params.get(caller_facts_key) or [])
+        elif "caller_visible_facts" in params:
+            visible_facts = list(params.get("caller_visible_facts") or [])
         return {
             "phone_interruption": {
+                "caller_actor": caller_actor,
                 "call_partner": params.get("call_partner"),
                 "call_topic": params.get("call_topic"),
                 "interrupted_in_step_id": params.get("interrupted_in_step_id"),
                 "interrupted_at_beat_id": params.get("interrupted_at_beat_id"),
-                "alain_visible_facts": list(params.get("alain_visible_facts") or []),
+                "caller_visible_facts": visible_facts,
                 "call_audible_duration_seconds": int(params.get("call_audible_duration_seconds") or 30),
                 "returns_to_room_with": params.get("returns_to_room_with") or "apology_then_return",
                 "leaves_phone_in_view": bool(params.get("leaves_phone_in_view", True)),

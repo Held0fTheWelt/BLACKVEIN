@@ -32,6 +32,8 @@ class _OutputModuleAdapter(BaseModelAdapter):
             source = json.loads(prompt.split("Souffleuse output-module input:\n", 1)[1])
             assert source["scene_blocks"][0]["target_actor_id"] == "veronique_vallon"
             assert source["scene_blocks"][0]["source_facts"]["character_statement_pressure"]
+            assert source["scene_blocks"][0]["source_facts"]["character_situational_stance"]
+            assert source["scene_blocks"][0]["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
             assert source["scene_blocks"][0]["source_facts"]["character_souffleuse_guidance"]
             assert "Souffleuse:" not in source["scene_blocks"][0]["text"]
             assert not source["scene_blocks"][0]["text"].startswith("You are ")
@@ -39,7 +41,7 @@ class _OutputModuleAdapter(BaseModelAdapter):
                 "scene_blocks": [
                     {
                         "id": block["id"],
-                        "text": "Nicht kleiner machen.",
+                        "text": "Du merkst, wie viel von diesem Treffen schon festgelegt scheint, bevor jemand gesprochen hat.",
                     }
                     for block in source["scene_blocks"]
                 ]
@@ -55,6 +57,11 @@ class _OutputModuleAdapter(BaseModelAdapter):
         assert "text" not in source["scene_blocks"][0]
         assert source["scene_blocks"][0]["source_facts"]["semantic_input_language"] == "en"
         assert source["scene_blocks"][0]["source_facts"]["mandatory_beat"]["coverage_cues"]
+        assert any(
+            (block["source_facts"].get("transition_from_previous") or {}).get("location_changed")
+            for block in source["scene_blocks"]
+        )
+        assert any(block.get("visual_emphasis", {}).get("kind") == "dramatic_moment" for block in source["scene_blocks"])
         payload = {
             "scene_blocks": [
                 {"id": block["id"], "text": f"Synthetisierte Erzählung {index}."}
@@ -161,7 +168,7 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     assert any("home office" in block["text"] for block in narrator_blocks)
     assert souffleuse_blocks[0]["visible_lane"] == "player_hint"
     assert souffleuse_blocks[0]["internal_resolution_language"] == "en"
-    assert "souffleuse.role_orientation" in opening["director_narrator_path_plan"]["selected_capabilities"]
+    assert "souffleuse.situational_stance" in opening["director_narrator_path_plan"]["selected_capabilities"]
 
     route = opening["model_route"]
     generation = route["generation"]
@@ -197,9 +204,9 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     assert narrator_blocks[0]["text"] == "Synthetisierte Erzählung 1."
     assert narrator_blocks[0]["source"] == "narrator_path_synthesis_module"
     assert len(souffleuse_blocks) == 1
-    assert souffleuse_blocks[0]["text"] == "Nicht kleiner machen."
+    assert "Du bist" in souffleuse_blocks[0]["text"]
+    assert "geklärt werden muss" in souffleuse_blocks[0]["text"]
     assert "Souffleuse:" not in souffleuse_blocks[0]["text"]
-    assert "Du bist" not in souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["speaker_label"] == "Souffleuse"
     assert souffleuse_blocks[0]["player_display_text"] == souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["source_before_output_module"] == "canonical_path_souffleuse_cue"

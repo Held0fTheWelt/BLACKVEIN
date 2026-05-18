@@ -9709,6 +9709,9 @@ class StoryRuntimeManager:
                     "canonical_step_id": block.get("canonical_step_id"),
                     "canonical_step_sequence": block.get("canonical_step_sequence"),
                     "canonical_mandatory_beat_id": block.get("canonical_mandatory_beat_id"),
+                    "visual_emphasis": block.get("visual_emphasis")
+                    if isinstance(block.get("visual_emphasis"), dict)
+                    else {},
                     "source_refs": block.get("source_refs") if isinstance(block.get("source_refs"), list) else [],
                     "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
                 }
@@ -9723,6 +9726,9 @@ class StoryRuntimeManager:
             f"session_output_language={target_language}.\n"
             "Preserve block count, block ids, order, canonical beat coverage, and narrative distance. "
             "Each output block is narrator perception, one to three natural sentences. "
+            "If source_facts.transition_from_previous.location_changed or scene_changed is true, the block must "
+            "narratively orient the shift before describing local detail. Use the current location, prior handoff, "
+            "and module setting from source_facts; do not jump directly from one place into room inventory. "
             "Do not copy the coverage_cues as finished prose; treat them as facts to synthesize. "
             "Avoid list cadence, template phrasing, recap language, and visible seams between source fields. "
             "Do not add dialogue, accusations, explanations, role labels, or new facts. "
@@ -9750,6 +9756,9 @@ class StoryRuntimeManager:
                     "canonical_step_id": block.get("canonical_step_id"),
                     "souffleuse_cue_id": block.get("souffleuse_cue_id"),
                     "voice_mode": block.get("voice_mode"),
+                    "guidance_kinds": block.get("guidance_kinds")
+                    if isinstance(block.get("guidance_kinds"), list)
+                    else [],
                     "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
                     "text": block.get("text"),
                 }
@@ -9760,15 +9769,20 @@ class StoryRuntimeManager:
             "You are the World of Shadows Souffleuse output module.\n"
             "Input text is English internal player guidance. Produce a short, natural "
             f"player-visible hint in session_output_language={target_language}.\n"
-            "Preserve block count, block ids, actor-specific pressure, and cue boundaries. "
+            "Preserve block count, block ids, actor-specific stance, and cue boundaries. "
             "Do not name the guidance lane, do not prefix the text with 'Souffleuse:', "
-            "and do not write 'inner voice'. Do not start by telling the player who they are. "
-            "Write in the playable character's own inward register: the way that character might "
-            "briefly speak to themselves under pressure. Do not expand the cue into a role summary, "
-            "location recap, control explanation, or outside-observer diagnosis. Avoid phrases like "
-            "'for this role', 'you are', or 'this means'. Avoid grand, motivational, or abstract "
-            "phrasing. Do not add player actions, exact line commands, NPC speech, hidden intent, "
-            "or new facts. Prefer one short sentence; use two only if the source block truly needs it.\n"
+            "and do not write 'inner voice'. Use familiar second person when the target language "
+            "distinguishes formality. Write in the playable character's own inward register: the way "
+            "that character might briefly speak to themselves while taking in the situation. If "
+            "guidance_kinds includes situation_orientation or character_stance, the cue may establish "
+            "how the character stands toward what has happened, why this meeting matters to them, and "
+            "what they are already carrying inwardly, using only source_facts. Later-development refs "
+            "may inform baseline stance only; do not reveal, quote, or anticipate future beats. Do not "
+            "use outside labels such as role, tension, pressure, player, or controls in the visible text. "
+            "Do not begin by telling the player who they are. Do not add player actions, exact line "
+            "commands, NPC speech, hidden intent, or new facts. "
+            "Prefer two or three short sentences for orientation cues and one short sentence for quiet "
+            "stance-only cues.\n"
             "Return valid JSON only, with this shape: "
             '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
             f"Souffleuse output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"

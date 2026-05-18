@@ -39,9 +39,20 @@ def test_goc_souffleuse_uses_content_cue_and_prompt_store_for_opening_orientatio
     assert "Souffleuse:" not in block["text"]
     assert "Stay close to yourself" not in block["text"]
     assert "Arbeitszimmer" not in block["text"]
-    assert block["text"] == "Do not let them turn Ferdinand into a case."
+    assert "careful politeness" in block["text"]
+    assert "Ferdinand" in block["text"]
+    assert "armed" not in block["text"].lower()
+    assert "case" not in block["text"].lower()
     assert "source_facts" in block and block["source_facts"]["character_public_identity"]
     assert block["source_facts"]["character_souffleuse_guidance"]
+    assert block["source_facts"]["character_situational_stance"]
+    assert block["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
+    assert block["source_facts"]["character_name"] == "Annette Reille"
+    assert block["source_facts"]["character_role"]
+    assert block["source_facts"]["current_location"]["id"]
+    assert block["source_facts"]["incident_location"]["id"]
+    assert "character_stance" in block["guidance_kinds"]
+    assert "input_affordance" not in block["guidance_kinds"]
     assert all("scene" not in str(ref).lower() for ref in block["source_refs"])
 
 
@@ -70,7 +81,10 @@ def test_goc_souffleuse_opening_orientation_is_character_specific() -> None:
     assert annette["target_actor_id"] == "annette_reille"
     assert alain["target_actor_id"] == "alain_reille"
     assert annette["text"] != alain["text"]
-    assert annette["text"] == "Do not let them turn Ferdinand into a case."
-    assert alain["text"] == "Keep it procedural. One loaded word is enough."
+    assert "Ferdinand" in annette["text"]
+    assert "moral tribunal" in alain["text"]
+    assert "loaded word" not in alain["text"].lower()
+    assert "armed" not in alain["text"].lower()
     assert annette["source_facts"]["character_statement_pressure"] != alain["source_facts"]["character_statement_pressure"]
     assert annette["source_facts"]["character_souffleuse_guidance"] != alain["source_facts"]["character_souffleuse_guidance"]
+    assert annette["source_facts"]["character_situational_stance"] != alain["source_facts"]["character_situational_stance"]
