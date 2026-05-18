@@ -556,7 +556,7 @@ def _content_frame(
         "present_actor_refs": present_refs,
         "present_actor_ids": present_actor_ids,
         "next_step_id": _as_dict(step.get("next_point")).get("step_id"),
-        "next_handoff": _as_dict(step.get("next_point")).get("handoff"),
+        "next_transition": _as_dict(step.get("next_point")).get("transition"),
         "carry_forward_markers": _unique_clean(_as_list(_as_dict(step.get("next_point")).get("carry_forward"))),
         "access_decisions": _access_decisions_for_targets(
             content_access_policy=content_access_policy,

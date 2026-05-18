@@ -1,0 +1,180 @@
+{
+  "recommended_next_steps": [
+    {
+      "suite": "contractify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for contractify."
+    },
+    {
+      "suite": "documentify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for documentify."
+    },
+    {
+      "suite": "docify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for docify."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for despaghettify."
+    },
+    {
+      "suite": "dockerify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for dockerify."
+    },
+    {
+      "suite": "testify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for testify."
+    },
+    {
+      "suite": "templatify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for templatify."
+    },
+    {
+      "suite": "securify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for securify."
+    },
+    {
+      "suite": "diagnosta",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for diagnosta."
+    },
+    {
+      "suite": "coda",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for coda."
+    },
+    {
+      "suite": "observifyfy",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for observifyfy."
+    },
+    {
+      "suite": "mvpify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for mvpify."
+    }
+  ],
+  "highest_value_next_step": {
+    "suite": "contractify",
+    "priority": 90,
+    "reason": "suite has no dedicated CI workflow",
+    "recommended_action": "Add or repair a workflow for contractify."
+  },
+  "needs_human_decision": [
+    {
+      "suite": "contractify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for contractify."
+    },
+    {
+      "suite": "documentify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for documentify."
+    },
+    {
+      "suite": "docify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for docify."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for despaghettify."
+    },
+    {
+      "suite": "dockerify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for dockerify."
+    },
+    {
+      "suite": "testify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for testify."
+    },
+    {
+      "suite": "templatify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for templatify."
+    },
+    {
+      "suite": "securify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for securify."
+    },
+    {
+      "suite": "diagnosta",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for diagnosta."
+    },
+    {
+      "suite": "coda",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for coda."
+    },
+    {
+      "suite": "observifyfy",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for observifyfy."
+    },
+    {
+      "suite": "mvpify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for mvpify."
+    },
+    {
+      "suite": "metrify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for metrify."
+    },
+    {
+      "suite": "mvpify",
+      "priority": 88,
+      "reason": "imported MVP docs should remain mirrored under docs/MVPs/imports and tracked through observifyfy",
+      "recommended_action": "Keep mvpify imports normalized and mirrored so temporary implementation folders can be removed safely."
+    },
+    {
+      "suite": "contractify",
+      "priority": 85,
+      "reason": "internal ADR root should be actively governed under docs/ADR",
+      "recommended_action": "Keep contractify's internal ADR management discoverable through observifyfy and align references to docs/ADR."
+    },
+    {
+      "suite": "documentify",
+      "priority": 85,
+      "reason": "internal docs root should be actively governed under docs",
+      "recommended_action": "Keep documentify's internal docs management discoverable through observifyfy and align references to docs."
+    }
+  ]
+}

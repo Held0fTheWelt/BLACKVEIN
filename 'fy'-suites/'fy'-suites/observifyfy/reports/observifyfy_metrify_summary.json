@@ -1,0 +1,32 @@
+{
+  "suite": "metrify",
+  "metric_kind": "ai_cost_observability",
+  "total_cost_usd": 0.0,
+  "today_cost_usd": 0.0,
+  "last_10_runs_cost_usd": 0.0,
+  "top_models": [
+    {
+      "key": "local-general-llm",
+      "cost_usd": 0.0,
+      "event_count": 3,
+      "output_tokens": 0
+    },
+    {
+      "key": "local-slim-retrieval-helper",
+      "cost_usd": 0.0,
+      "event_count": 3,
+      "output_tokens": 0
+    }
+  ],
+  "top_suites": [
+    {
+      "key": "metrify",
+      "cost_usd": 0.0,
+      "event_count": 6,
+      "output_tokens": 0
+    }
+  ],
+  "optimization_suggestions": [
+    "No strong optimization red flags detected from the current ledger sample."
+  ]
+}

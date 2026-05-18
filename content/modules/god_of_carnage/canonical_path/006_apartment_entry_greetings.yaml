@@ -55,7 +55,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_007_living_room_arrangement
-    handoff: "Move from entry obligation into the arranged social room."
+    transition: "Move from entry obligation into the arranged social room."
     carry_forward:
       - guests_inside_apartment
       - hosts_control_threshold

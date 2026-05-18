@@ -45,7 +45,7 @@ canonical_path_step:
         - a_real_position_contradicts_another_position
         - a_player_action_commits_to_soften_or_challenge_the_statement
         - an_npc_short_line_reveals_parenting_principle_without_open_attack
-      then_handoff_to_scene_graph_node: parenting_principles
+      then_transition_to_scene_graph_node: parenting_principles
     narrator_tasks:
       - keep_opening_playable_long_enough_for_player_choice_to_matter
       - avoid_repeating_the_exterior_incident
@@ -57,7 +57,7 @@ canonical_path_step:
 
   next_point:
     step_id: null
-    handoff: "Continue phase_1 play through scene_graph until substantive disagreement justifies phase_2."
+    transition: "Continue phase_1 play through scene_graph until substantive disagreement justifies phase_2."
     carry_forward:
       - phase_1_opening_pressure_field
       - multiple_playable_handles_available

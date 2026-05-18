@@ -1,0 +1,22 @@
+{
+  "schema_version": "fy.warning-ledger.v1",
+  "warning_ledger_id": "warning:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "items": [
+    {
+      "warning_id": "warning:testify:proof-items",
+      "severity": "medium",
+      "summary": "Testify still reports 1 warning-shaped proof item(s).",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:readiness:optional-evidence-missing",
+      "severity": "medium",
+      "summary": "Optional supporting evidence is still missing: securify.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    }
+  ],
+  "summary": "Warnings remain explicit with 2 item(s)."
+}

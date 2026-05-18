@@ -1,6 +1,6 @@
 {
   "schema_version": "fy.command-reference.v1",
-  "generated_at": "2026-04-20T02:57:31.942305+00:00",
+  "generated_at": "2026-05-18T12:17:14.302711+00:00",
   "command_envelope_current": "fy.command-envelope.v4",
   "command_envelope_compatibility": {
     "current": "fy.command-envelope.v4",

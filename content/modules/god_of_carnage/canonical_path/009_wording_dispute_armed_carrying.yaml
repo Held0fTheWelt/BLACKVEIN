@@ -79,7 +79,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_010_injury_detail_dental_consequence
-    handoff: "After wording, make the injury concrete enough to resist abstraction."
+    transition: "After wording, make the injury concrete enough to resist abstraction."
     carry_forward:
       - statement_wording_contested
       - compromise_language_possible

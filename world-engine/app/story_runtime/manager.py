@@ -10991,7 +10991,7 @@ class StoryRuntimeManager:
             # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan).
             # Opening turns already own the first visible narrative through the canonical opening
             # contract; streaming ambience here would prepend generic narrator cards before that
-            # authored handoff.
+            # authored transition.
             runtime_state = {
                 "session_id": session.session_id,
                 "current_scene_id": session.current_scene_id,

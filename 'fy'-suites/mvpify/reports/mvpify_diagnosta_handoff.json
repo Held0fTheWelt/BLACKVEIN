@@ -1,0 +1,160 @@
+{
+  "schema_version": "fy.mvpify-diagnosta-handoff.v1",
+  "import_id": "rich-362cff1c",
+  "mvpify_run_id": "mvpify-e978863f3d0f",
+  "diagnosta_run_id": "diagnosta-d832c0609ae6",
+  "target_repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+  "active_strategy_profile": {
+    "schema_version": "fy.active-strategy-profile.v1",
+    "active_profile": "D",
+    "profile_label": "balanced_dual_suite_target",
+    "default_profile": "D",
+    "supported_profiles": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "recommended_progression_order": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "progression_graph": "A->B->C->D->E",
+    "progression_mode": "progressive",
+    "allow_profile_switching": true,
+    "require_review_by_default": true,
+    "emit_profile_to_run_journal": true,
+    "emit_profile_to_compare_runs": true,
+    "emit_profile_to_observifyfy": true,
+    "emit_profile_to_status_pages": true,
+    "allow_candidate_e_features": false,
+    "source_path": "FY_STRATEGY_SETTINGS.md",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "candidate_e_active": false,
+    "candidate_e_opt_in_state": "inactive",
+    "candidate_e_requires_explicit_opt_in": true,
+    "orchestration_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_grouping_depth": "standard",
+    "guarantee_gap_grouping": "standard",
+    "handoff_depth": "standard",
+    "closure_packet_depth": "standard",
+    "review_packet_depth": "standard",
+    "bounded_auto_preparation": "disabled",
+    "compare_profile_effects": "optional",
+    "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+    "expected_distinction_from_d": []
+  },
+  "readiness_status": "not_ready",
+  "implementation_outcome": "not_ready",
+  "blocker_count": 1,
+  "blocked_claim_count": 2,
+  "residue_count": 0,
+  "highest_value_next_step": {
+    "phase": "documentation",
+    "suite": "documentify",
+    "objective": "Refresh easy, technical, role-based, and AI-facing docs after the MVP import is applied.",
+    "why_now": "Imported MVP plans lose value if the resulting repository state is not explained and searchable.",
+    "inputs": [
+      "implementation task draft",
+      "current docs",
+      "technical docs",
+      "contract/docs findings"
+    ],
+    "outputs": [
+      "documentify generation update",
+      "AI context pack refresh"
+    ],
+    "depends_on": [
+      "verification:testify"
+    ]
+  },
+  "import_context": {
+    "artifact_count": 10,
+    "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+    "suite_signals": [
+      {
+        "name": "contractify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      },
+      {
+        "name": "despaghettify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      },
+      {
+        "name": "docify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "documentify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "dockerify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "testify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "templatify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "usabilify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "securify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "observifyfy",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "mvpify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      }
+    ]
+  },
+  "summary": "MVPify handed the imported target to Diagnosta and received not_ready / not_ready.",
+  "next_steps": [
+    "Review the Diagnosta readiness_case before scheduling implementation work.",
+    "Use the blocker_priority_report to pick the next bounded implementation wave.",
+    "Keep residue explicit when the import is not fully implementation-ready."
+  ],
+  "diagnosta_paths": {
+    "readiness_case": "diagnosta/reports/latest_readiness_case.json",
+    "blocker_graph": "diagnosta/reports/latest_blocker_graph.json",
+    "guarantee_gap_report": ""
+  }
+}

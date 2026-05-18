@@ -45,7 +45,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_005_living_room_threshold
-    handoff: "Pass through the apartment door and convert arrival into social pressure."
+    transition: "Pass through the apartment door and convert arrival into social pressure."
     carry_forward:
       - urgent_call_pressure
       - prevented_exit_pressure

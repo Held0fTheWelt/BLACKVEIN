@@ -42,7 +42,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_002_argument_stick_blow
-    handoff: "Move from establishing image to the boys' immediate play and quarrel."
+    transition: "Move from establishing image to the boys' immediate play and quarrel."
     carry_forward:
       - boys_group_at_court
       - ordinary_public_setting

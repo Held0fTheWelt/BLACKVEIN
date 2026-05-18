@@ -1,0 +1,63 @@
+{
+  "ok": true,
+  "repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+  "source": null,
+  "steps": [
+    {
+      "phase": "import",
+      "suite": "mvpify",
+      "objective": "Normalize the prepared MVP bundle into a governed internal import inventory.",
+      "why_now": "Prepared MVP information exists but must become explicit and restartable before implementation work starts.",
+      "inputs": [
+        "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-d4ngsk_f"
+      ],
+      "outputs": [
+        "mvpify/reports/mvpify_import_inventory.json",
+        "mvpify/reports/mvpify_import_inventory.md"
+      ],
+      "depends_on": []
+    },
+    {
+      "phase": "documentation",
+      "suite": "documentify",
+      "objective": "Refresh easy, technical, role-based, and AI-facing docs after the MVP import is applied.",
+      "why_now": "Imported MVP plans lose value if the resulting repository state is not explained and searchable.",
+      "inputs": [
+        "implementation task draft",
+        "current docs",
+        "technical docs",
+        "contract/docs findings"
+      ],
+      "outputs": [
+        "documentify generation update",
+        "AI context pack refresh"
+      ],
+      "depends_on": [
+        "verification:testify"
+      ]
+    }
+  ],
+  "highest_value_next_step": {
+    "phase": "documentation",
+    "suite": "documentify",
+    "objective": "Refresh easy, technical, role-based, and AI-facing docs after the MVP import is applied.",
+    "why_now": "Imported MVP plans lose value if the resulting repository state is not explained and searchable.",
+    "inputs": [
+      "implementation task draft",
+      "current docs",
+      "technical docs",
+      "contract/docs findings"
+    ],
+    "outputs": [
+      "documentify generation update",
+      "AI context pack refresh"
+    ],
+    "depends_on": [
+      "verification:testify"
+    ]
+  },
+  "phase_index": {
+    "import:mvpify": 1,
+    "documentation:documentify": 2
+  }
+}

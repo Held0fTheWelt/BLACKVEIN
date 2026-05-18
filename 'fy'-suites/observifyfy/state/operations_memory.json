@@ -1,0 +1,49 @@
+{
+  "memory_kind": "fy_suite_operations",
+  "suite_count": 16,
+  "existing_suite_count": 13,
+  "internal_roots": {
+    "fy_internal_root": ".",
+    "contractify_internal_adr_root": "docs/ADR",
+    "documentify_internal_docs_root": "docs",
+    "observifyfy_root": "observifyfy"
+  },
+  "highest_value_next_step": {
+    "suite": "contractify",
+    "priority": 90,
+    "reason": "suite has no dedicated CI workflow",
+    "recommended_action": "Add or repair a workflow for contractify."
+  },
+  "recommended_next_steps": [
+    {
+      "suite": "contractify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for contractify."
+    },
+    {
+      "suite": "documentify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for documentify."
+    },
+    {
+      "suite": "docify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for docify."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for despaghettify."
+    },
+    {
+      "suite": "dockerify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for dockerify."
+    }
+  ]
+}

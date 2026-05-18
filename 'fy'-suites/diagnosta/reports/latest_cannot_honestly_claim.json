@@ -1,0 +1,13 @@
+{
+  "schema_version": "fy.cannot-honestly-claim.v1",
+  "cannot_honestly_claim_id": "cannot-claim:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "blocked_claims": [
+    "full_readiness",
+    "full_closure"
+  ],
+  "reasons": [
+    "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+  ],
+  "summary": "Diagnosta blocks strong readiness/closure claims until blocker-class evidence is resolved."
+}

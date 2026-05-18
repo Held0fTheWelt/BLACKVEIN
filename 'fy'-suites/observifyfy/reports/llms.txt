@@ -1,0 +1,16 @@
+# Observifyfy LLM Context
+
+AI-readable cross-suite operational context for fy-suite self-management.
+
+## Next steps
+- contractify: Add or repair a workflow for contractify.
+- documentify: Add or repair a workflow for documentify.
+- docify: Add or repair a workflow for docify.
+- despaghettify: Add or repair a workflow for despaghettify.
+- dockerify: Add or repair a workflow for dockerify.
+- testify: Add or repair a workflow for testify.
+- templatify: Add or repair a workflow for templatify.
+- securify: Add or repair a workflow for securify.
+- diagnosta: Add or repair a workflow for diagnosta.
+- coda: Add or repair a workflow for coda.
+

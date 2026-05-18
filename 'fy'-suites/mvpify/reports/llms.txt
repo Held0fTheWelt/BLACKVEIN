@@ -1,0 +1,27 @@
+# MVPify AI context
+
+Help an agent import a prepared MVP into the live repository with honest orchestration across the fy suite family.
+
+## Managed roots
+
+- mvpify_reports: mvpify/reports
+- mvpify_state: mvpify/state
+- mvpify_imports: mvpify/imports
+- mvp_docs_imports: docs/MVPs/imports
+- fy_internal_docs: docs
+- fy_internal_adrs: docs/ADR
+
+## Search hints
+
+- Find prepared MVP docs, contracts, tests, and implementation hints first.
+- Prefer the smallest coherent insertion slice over broad speculative implementation.
+- Use suite outputs as evidence, not as silent authority over project truth.
+- After import, refresh tests, runtime validation, docs, and observability state.
+- Mirror imported MVP docs so temporary implementation folders can later be removed.
+
+## Implemented AI mechanics
+
+- retrieval: semantic_index, context_packs, cross_suite_signals
+- decisioning: model_router, decision_policy
+- graph_support: generic inspect/audit/context/triage recipes via fy-suite
+- tracking: run_journal, observifyfy link if present

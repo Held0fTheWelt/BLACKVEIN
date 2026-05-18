@@ -7,7 +7,6 @@ This page lists the stable shared lifecycle commands and the suite-specific nati
 - supported_write_versions: `fy.command-envelope.v4`
 
 - active_strategy_profile: `D`
-- canonical_candidate_e_closure_report: `docs/platform/READINESS_CLOSURE_CANDIDATE_E_CLOSURE_REPORT.md`
 
 ## Platform-native commands
 

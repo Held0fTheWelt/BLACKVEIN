@@ -1,6 +1,6 @@
 # Cross-character interaction patterns for God of Carnage.
 # Relationship facts live in relationships.yaml; this file only adds playable
-# pressure tendencies and canonical-path handoff notes.
+# pressure tendencies and canonical-path transition notes.
 
 interaction_patterns:
   authoring_language: en

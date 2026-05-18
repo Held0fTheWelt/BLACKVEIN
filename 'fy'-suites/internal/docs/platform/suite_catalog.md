@@ -9,9 +9,9 @@ This is the product-facing catalog of all suites currently present in the autark
 ## coda
 
 - category: `core`
-- quality_ok: `true`
-- release_ready: `true`
-- latest_run_id: `coda-9d3a3fcdc9ff`
+- quality_ok: `false`
+- release_ready: `false`
+- latest_run_id: `none`
 
 Owns bounded closure-pack assembly, review-first completion packaging, and explicit residue reporting.
 
@@ -38,6 +38,11 @@ Owns bounded closure-pack assembly, review-first completion packaging, and expli
 - `residue-report`
 - `bundle`
 
+### Missing required surfaces
+
+- `reports`
+- `state`
+
 ### Warnings
 
 - `missing_optional:docs`
@@ -47,8 +52,8 @@ Owns bounded closure-pack assembly, review-first completion packaging, and expli
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `contractify-32f5feaf021a`
 
 Discovers, audits, explains, and consolidates contracts and projections.
 
@@ -83,7 +88,7 @@ Discovers, audits, explains, and consolidates contracts and projections.
 - category: `core`
 - quality_ok: `true`
 - release_ready: `true`
-- latest_run_id: `despaghettify-105bba0fb9e8`
+- latest_run_id: `despaghettify-20601af0fea1`
 
 Detects structural complexity and opens work for local spikes and broader cleanup.
 
@@ -116,7 +121,7 @@ Detects structural complexity and opens work for local spikes and broader cleanu
 - category: `core`
 - quality_ok: `true`
 - release_ready: `true`
-- latest_run_id: `diagnosta-a2d07a0ac407`
+- latest_run_id: `diagnosta-d832c0609ae6`
 
 Owns bounded readiness diagnosis, blocker prioritization, and claim-honesty outputs across suites.
 
@@ -151,8 +156,8 @@ Owns bounded readiness diagnosis, blocker prioritization, and claim-honesty outp
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `docify-cbf987ff2e7c`
 
 Improves code documentation, docstrings, and dense inline explanations for Python code.
 
@@ -184,8 +189,8 @@ Improves code documentation, docstrings, and dense inline explanations for Pytho
 
 - category: `optional`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `dockerify-66cbd606997f`
 
 Provides repo-serving Docker and compose governance when the target repository needs it.
 
@@ -217,8 +222,8 @@ Provides repo-serving Docker and compose governance when the target repository n
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `documentify-1040a185147a`
 
 Builds and grows documentation tracks, including status and AI-readable exports.
 
@@ -250,8 +255,8 @@ Builds and grows documentation tracks, including status and AI-readable exports.
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `metrify-1c9c381ec0ab`
 
 Measures AI usage, cost, model routing, and output volume across fy suites and summarizes the spending/utility picture.
 
@@ -284,8 +289,8 @@ Measures AI usage, cost, model routing, and output volume across fy suites and s
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `mvpify-e978863f3d0f`
 
 Imports prepared MVP bundles, mirrors their docs into the governed workspace, and orchestrates next-step implementation across suites.
 
@@ -317,7 +322,7 @@ Imports prepared MVP bundles, mirrors their docs into the governed workspace, an
 - category: `core`
 - quality_ok: `true`
 - release_ready: `true`
-- latest_run_id: `observifyfy-8fbc874c8978`
+- latest_run_id: `observifyfy-60985cec4675`
 
 Tracks internal fy-suite operations, internal docs roots, and non-contaminating cross-suite observability.
 
@@ -347,7 +352,7 @@ Tracks internal fy-suite operations, internal docs roots, and non-contaminating 
 ## postmanify
 
 - category: `optional`
-- quality_ok: `true`
+- quality_ok: `false`
 - release_ready: `false`
 - latest_run_id: `none`
 
@@ -373,6 +378,11 @@ Refreshes Postman surfaces from API evidence for repositories that use them.
 
 - `sync`
 
+### Missing required surfaces
+
+- `reports`
+- `state`
+
 ### Warnings
 
 - `missing_optional:docs`
@@ -381,8 +391,8 @@ Refreshes Postman surfaces from API evidence for repositories that use them.
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `securify-a8962e84e7ea`
 
 Provides the security lane for scans, secret-risk review, and security-oriented guidance.
 
@@ -412,8 +422,8 @@ Provides the security lane for scans, secret-risk review, and security-oriented 
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `templatify-69681f5d025f`
 
 Owns and validates reusable templates for reports, docs, context packs, and suite outputs.
 
@@ -444,8 +454,8 @@ Owns and validates reusable templates for reports, docs, context packs, and suit
 
 - category: `core`
 - quality_ok: `true`
-- release_ready: `false`
-- latest_run_id: `none`
+- release_ready: `true`
+- latest_run_id: `testify-348f8243d40f`
 
 Audits test governance and verifies ADR-to-test reflection, not just passing behavior.
 

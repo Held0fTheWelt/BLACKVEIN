@@ -54,7 +54,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_014_player_response_ripple
-    handoff: "Whatever the player does, convert it into social ripple rather than plot shortcut."
+    transition: "Whatever the player does, convert it into social ripple rather than plot shortcut."
     carry_forward:
       - first_playable_moment
       - player_action_interprets_civility

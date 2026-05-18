@@ -54,7 +54,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_008_statement_on_table
-    handoff: "Let the room's safe objects give way to the written account."
+    transition: "Let the room's safe objects give way to the written account."
     carry_forward:
       - four_adults_arranged
       - statement_surface_visible

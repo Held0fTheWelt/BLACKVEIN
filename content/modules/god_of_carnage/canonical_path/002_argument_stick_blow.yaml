@@ -42,7 +42,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_003_bicycle_disappearance
-    handoff: "Follow the attacker only long enough to register the bicycle and disappearance."
+    transition: "Follow the attacker only long enough to register the bicycle and disappearance."
     carry_forward:
       - injured_boy_helped_up
       - boys_shouting_after_attacker

@@ -1,0 +1,60 @@
+{
+  "schema_version": "fy.diagnosta-deep-synthesis.v1",
+  "synthesis_id": "deep-synthesis:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "active_profile": "D",
+  "profile_execution_lane": "balanced_review_first",
+  "profile_behavior_depth": "standard",
+  "planning_horizon": 1,
+  "blocker_clusters": [
+    {
+      "cluster_id": "cluster:blocker:despaghettify:local-hotspots",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "cluster_kind": "standard_blocker",
+      "item_count": 1,
+      "blocker_ids": [
+        "blocker:despaghettify:local-hotspots"
+      ],
+      "obligation_ids": [],
+      "dependency_targets": [],
+      "review_focus": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+    }
+  ],
+  "guarantee_gap_clusters": [
+    {
+      "gap_cluster_id": "gap:standard:blockers",
+      "gap_family": "blocker_resolution",
+      "suite": "diagnosta",
+      "severity": "medium",
+      "item_ids": [
+        "blocker:despaghettify:local-hotspots"
+      ],
+      "cluster_summary": "Standard blocker gap view with 1 blocker(s)."
+    }
+  ],
+  "next_wave_plan": [
+    {
+      "wave_id": "D-wave-1",
+      "order": 1,
+      "intent": "single_bounded_next_step",
+      "focus_cluster_id": "gap:standard:blockers",
+      "focus_item_ids": [
+        "blocker:despaghettify:local-hotspots"
+      ],
+      "recommended_action": "Plan the next bounded review-first step against the highest visible current item.",
+      "closure_intent": "bounded_next_step",
+      "requires_human_review": true
+    }
+  ],
+  "review_problem_frame": {
+    "frame_id": "review-frame:candidate-d",
+    "frame_type": "standard_review_problem_frame",
+    "summary": "Candidate D frames 1 blocker(s) and 2 warning(s) for the next bounded review-first step.",
+    "decision_axes": [
+      "bounded_next_step",
+      "residue_honesty"
+    ]
+  },
+  "summary": "Diagnosta D synthesis carries 1 blocker cluster(s), 1 guarantee-gap cluster(s), and planning horizon 1."
+}

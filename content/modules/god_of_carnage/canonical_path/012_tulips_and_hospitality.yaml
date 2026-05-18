@@ -66,7 +66,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_013_first_playable_courtesy_gap
-    handoff: "Stop on a real courtesy gap where the player can steer the next beat."
+    transition: "Stop on a real courtesy gap where the player can steer the next beat."
     carry_forward:
       - hospitality_delay_used
       - object_handles_available

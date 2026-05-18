@@ -1,0 +1,156 @@
+{
+  "ok": true,
+  "import_id": "rich-362cff1c",
+  "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+  "source_mode": "zip",
+  "artifact_count": 10,
+  "inventory": {
+    "root": "/mnt/c/Users/YvesT/AppData/Local/Temp/mvpify-import-d4ngsk_f",
+    "artifact_count": 10,
+    "artifacts": [
+      {
+        "path": "README.md",
+        "kind": "project_readme",
+        "note": "key surface"
+      }
+    ],
+    "counters": {
+      "markdown_files": 4,
+      "project_readme": 1,
+      "json_files": 4,
+      "python_files": 1,
+      "docs_files": 1
+    },
+    "suite_signals": [
+      {
+        "name": "contractify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      },
+      {
+        "name": "despaghettify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      },
+      {
+        "name": "docify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "documentify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "dockerify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "testify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "templatify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "usabilify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "securify",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "observifyfy",
+        "present": false,
+        "evidence": [],
+        "relevance": "supporting"
+      },
+      {
+        "name": "mvpify",
+        "present": false,
+        "evidence": [],
+        "relevance": "primary"
+      }
+    ],
+    "mvp_candidate_roots": [
+      "09_TOOL_SPECS",
+      "ai",
+      "bootstrap",
+      "docs",
+      "examples",
+      "ir",
+      "schemas"
+    ],
+    "doc_files": [
+      "docs/ADR/ADR-0001.md"
+    ],
+    "implementation_files": [
+      "12_PHASED_IMPLEMENTATION_PROGRAM.md"
+    ]
+  },
+  "normalized_root": "mvpify/imports/rich-362cff1c/normalized",
+  "normalized_source_tree": "mvpify/imports/rich-362cff1c/normalized/source_tree",
+  "mirrored_docs_root": "docs/MVPs/imports/rich-362cff1c",
+  "mirrored_file_count": 6,
+  "copied_doc_like_count": 5,
+  "preserved_file_count": 10,
+  "preserved_class_counts": {
+    "ai_context": 1,
+    "bootstrap": 1,
+    "docs": 1,
+    "examples": 1,
+    "ir": 1,
+    "root_docs": 2,
+    "schemas": 1,
+    "tasks": 1,
+    "tool_specs": 1
+  },
+  "preserved_examples": {
+    "ai_context": [
+      "ai/context_pack.json"
+    ],
+    "bootstrap": [
+      "bootstrap/starter.py"
+    ],
+    "docs": [
+      "docs/ADR/ADR-0001.md"
+    ],
+    "examples": [
+      "examples/workflow_graph_example.json"
+    ],
+    "ir": [
+      "ir/graph.json"
+    ],
+    "root_docs": [
+      "MANIFEST.txt",
+      "README.md"
+    ],
+    "schemas": [
+      "schemas/artifact.schema.json"
+    ],
+    "tasks": [
+      "12_PHASED_IMPLEMENTATION_PROGRAM.md"
+    ],
+    "tool_specs": [
+      "09_TOOL_SPECS/09A_PLATFORM_SPEC.md"
+    ]
+  },
+  "references_recorded": 10
+}

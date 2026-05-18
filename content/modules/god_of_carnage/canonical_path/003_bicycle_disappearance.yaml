@@ -40,7 +40,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_004_dark_building_hallway
-    handoff: "Move from child-world violence to the adult threshold where the meeting begins."
+    transition: "Move from child-world violence to the adult threshold where the meeting begins."
     carry_forward:
       - injury_requires_adult_meeting
       - process_must_remain_civilized_on_surface

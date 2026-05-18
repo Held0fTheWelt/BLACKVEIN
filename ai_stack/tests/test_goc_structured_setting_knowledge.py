@@ -241,8 +241,7 @@ def test_p2_2_direction_and_knowledge_opening_transitions_are_consistent() -> No
         f"knowledge/opening_scene_sequence first playable phase expected phase_1, got {knowledge_first_playable}"
     )
 
-    # Direction file may declare handover via either ``handover_to_phase`` or by referencing
-    # phase_1 in its parts; both paths are valid as long as nothing points elsewhere.
+    # Direction file must keep the same first playable phase; nothing should point elsewhere.
     direction_text = (module_dir / "direction" / "opening_sequence.yaml").read_text(encoding="utf-8")
     assert "phase_1" in direction_text, "direction/opening_sequence.yaml should reference phase_1"
     # The direction file must reference the canonical knowledge contract so the relationship is explicit.

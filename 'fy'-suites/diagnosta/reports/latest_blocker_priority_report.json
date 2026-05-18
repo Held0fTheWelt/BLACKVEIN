@@ -1,0 +1,18 @@
+{
+  "schema_version": "fy.blocker-priority-report.v1",
+  "report_id": "blocker-priority:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "blocker_count": 1,
+  "priorities": [
+    {
+      "blocker_id": "blocker:despaghettify:local-hotspots",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s).",
+      "source_paths": [
+        "despaghettify/reports/latest_coda_insertion_surface_report.json"
+      ]
+    }
+  ],
+  "summary": "Prioritized 1 blocker(s) for the next bounded wave."
+}

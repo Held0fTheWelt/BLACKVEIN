@@ -7,7 +7,7 @@ This page uses simple language. It should help you understand the latest result 
 - suite: `securify`
 - command: `audit`
 - ok: `true`
-- latest_run_id: `securify-2c7b0d18f24a`
+- latest_run_id: `securify-a8962e84e7ea`
 - latest_run_mode: `audit`
 - latest_run_status: `ok`
 
@@ -32,3 +32,4 @@ Securify found security follow-up work: no discoverable security documentation, 
 - `contractify`: contractify is initialized and bound for outward work. Internal state stays in the fy workspace.
   - next: Read the latest contractify output and choose the narrowest next move based on the current evidence.
 - `testify`: No summary available.
+- `observifyfy`: No summary available.

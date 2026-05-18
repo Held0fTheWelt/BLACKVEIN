@@ -1,0 +1,25 @@
+{
+  "kind": "mvpify_operations_memory",
+  "source": "/mnt/c/Users/YvesT/AppData/Local/Temp/pytest-of-heldofthewelt/pytest-372/test_documentify_surfaces_rich0/rich.zip",
+  "artifact_count": 10,
+  "highest_value_next_step": {
+    "phase": "documentation",
+    "suite": "documentify",
+    "objective": "Refresh easy, technical, role-based, and AI-facing docs after the MVP import is applied.",
+    "why_now": "Imported MVP plans lose value if the resulting repository state is not explained and searchable.",
+    "inputs": [
+      "implementation task draft",
+      "current docs",
+      "technical docs",
+      "contract/docs findings"
+    ],
+    "outputs": [
+      "documentify generation update",
+      "AI context pack refresh"
+    ],
+    "depends_on": [
+      "verification:testify"
+    ]
+  },
+  "step_count": 2
+}

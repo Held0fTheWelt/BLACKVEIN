@@ -65,7 +65,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_009_wording_dispute_armed_carrying
-    handoff: "Turn one factual word into the first playable pressure test."
+    transition: "Turn one factual word into the first playable pressure test."
     carry_forward:
       - statement_in_play
       - wording_has_consequence

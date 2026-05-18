@@ -72,7 +72,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_012_tulips_and_hospitality
-    handoff: "Use safe hospitality objects to delay conflict one last time."
+    transition: "Use safe hospitality objects to delay conflict one last time."
     carry_forward:
       - civility_frame_active
       - community_language_suspect

@@ -2,7 +2,7 @@
 
 This module is intentionally a renderer, not a second content database. It
 loads the numbered canonical path and referenced location/object authority, then
-projects the first narrator-only handoff into visible blocks.
+projects the first narrator-only transition into visible blocks.
 """
 
 from __future__ import annotations

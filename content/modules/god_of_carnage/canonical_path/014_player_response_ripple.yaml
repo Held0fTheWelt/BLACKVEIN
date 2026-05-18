@@ -45,7 +45,7 @@ canonical_path_step:
 
   next_point:
     step_id: opening_015_phone_exit_pressure
-    handoff: "Introduce outside obligation only after the player has had room to act."
+    transition: "Introduce outside obligation only after the player has had room to act."
     carry_forward:
       - first_player_signal_registered
       - npc_responses_remain_civil

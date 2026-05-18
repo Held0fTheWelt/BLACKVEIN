@@ -1,6 +1,6 @@
 {
   "schema_version": "fy.suite-catalog.v1",
-  "generated_at": "2026-04-20T02:57:31.902838+00:00",
+  "generated_at": "2026-05-18T12:17:13.305754+00:00",
   "suite_count": 15,
   "core_count": 13,
   "optional_count": 2,
@@ -35,14 +35,17 @@
         "residue-report",
         "bundle"
       ],
-      "quality_ok": true,
-      "quality_missing": [],
+      "quality_ok": false,
+      "quality_missing": [
+        "reports",
+        "state"
+      ],
       "quality_warnings": [
         "missing_optional:docs",
         "missing_optional:tests"
       ],
-      "release_ready": true,
-      "latest_run_id": "coda-9d3a3fcdc9ff"
+      "release_ready": false,
+      "latest_run_id": null
     },
     {
       "suite": "contractify",
@@ -78,8 +81,8 @@
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "contractify-32f5feaf021a"
     },
     {
       "suite": "despaghettify",
@@ -89,7 +92,7 @@
       "has_tools": true,
       "has_docs": true,
       "has_templates": true,
-      "has_status": true,
+      "has_status": false,
       "lifecycle_commands": [
         "init",
         "inspect",
@@ -114,7 +117,7 @@
         "missing_optional:docs"
       ],
       "release_ready": true,
-      "latest_run_id": "despaghettify-105bba0fb9e8"
+      "latest_run_id": "despaghettify-20601af0fea1"
     },
     {
       "suite": "diagnosta",
@@ -152,7 +155,7 @@
         "missing_optional:tests"
       ],
       "release_ready": true,
-      "latest_run_id": "diagnosta-a2d07a0ac407"
+      "latest_run_id": "diagnosta-d832c0609ae6"
     },
     {
       "suite": "docify",
@@ -186,8 +189,8 @@
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "docify-cbf987ff2e7c"
     },
     {
       "suite": "dockerify",
@@ -221,8 +224,8 @@
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "dockerify-66cbd606997f"
     },
     {
       "suite": "documentify",
@@ -256,8 +259,8 @@
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "documentify-1040a185147a"
     },
     {
       "suite": "metrify",
@@ -294,8 +297,8 @@
       "quality_ok": true,
       "quality_missing": [],
       "quality_warnings": [],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "metrify-1c9c381ec0ab"
     },
     {
       "suite": "mvpify",
@@ -330,8 +333,8 @@
       "quality_ok": true,
       "quality_missing": [],
       "quality_warnings": [],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "mvpify-e978863f3d0f"
     },
     {
       "suite": "observifyfy",
@@ -367,7 +370,7 @@
       "quality_missing": [],
       "quality_warnings": [],
       "release_ready": true,
-      "latest_run_id": "observifyfy-8fbc874c8978"
+      "latest_run_id": "observifyfy-60985cec4675"
     },
     {
       "suite": "postmanify",
@@ -396,8 +399,11 @@
       "native_commands": [
         "sync"
       ],
-      "quality_ok": true,
-      "quality_missing": [],
+      "quality_ok": false,
+      "quality_missing": [
+        "reports",
+        "state"
+      ],
       "quality_warnings": [
         "missing_optional:docs"
       ],
@@ -436,8 +442,8 @@
       "quality_ok": true,
       "quality_missing": [],
       "quality_warnings": [],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "securify-a8962e84e7ea"
     },
     {
       "suite": "templatify",
@@ -472,8 +478,8 @@
       "quality_ok": true,
       "quality_missing": [],
       "quality_warnings": [],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "templatify-69681f5d025f"
     },
     {
       "suite": "testify",
@@ -483,7 +489,7 @@
       "has_tools": true,
       "has_docs": true,
       "has_templates": true,
-      "has_status": true,
+      "has_status": false,
       "lifecycle_commands": [
         "init",
         "inspect",
@@ -505,8 +511,8 @@
       "quality_warnings": [
         "missing_optional:docs"
       ],
-      "release_ready": false,
-      "latest_run_id": null
+      "release_ready": true,
+      "latest_run_id": "testify-348f8243d40f"
     },
     {
       "suite": "usabilify",

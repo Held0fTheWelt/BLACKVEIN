@@ -1,0 +1,275 @@
+{
+  "schema_version": "fy.despaghettify-coda-insertion-surface-report.v1",
+  "suite": "despaghettify",
+  "generated_at": "2026-05-18T12:15:35.223903+00:00",
+  "source_report": "despaghettify/reports/latest_check_with_metrics.json",
+  "affected_surfaces": [
+    {
+      "surface_id": "despag-surface-1105966",
+      "suite": "despaghettify",
+      "path": "coda/tools/assembly.py",
+      "summary": "coda/tools/assembly.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-9115859",
+      "suite": "despaghettify",
+      "path": "contractify/adapter/service.py",
+      "summary": "contractify/adapter/service.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-2382968",
+      "suite": "despaghettify",
+      "path": "contractify/tools/adr_governance.py",
+      "summary": "contractify/tools/adr_governance.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-1605682",
+      "suite": "despaghettify",
+      "path": "contractify/tools/canonical_graph.py",
+      "summary": "contractify/tools/canonical_graph.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-8774144",
+      "suite": "despaghettify",
+      "path": "contractify/tools/conflicts.py",
+      "summary": "contractify/tools/conflicts.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-8983205",
+      "suite": "despaghettify",
+      "path": "contractify/tools/discovery.py",
+      "summary": "contractify/tools/discovery.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-6149384",
+      "suite": "despaghettify",
+      "path": "contractify/tools/drift_analysis.py",
+      "summary": "contractify/tools/drift_analysis.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-8511707",
+      "suite": "despaghettify",
+      "path": "contractify/tools/hub_cli.py",
+      "summary": "contractify/tools/hub_cli.py",
+      "surface_kind": "file_hotspot"
+    }
+  ],
+  "structural_risks": [
+    {
+      "risk_id": "despaghettify-risk-8836525",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'coda/tools/assembly.py', 'line_count': 595, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "coda/tools/assembly.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-377160",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'contractify/adapter/service.py', 'line_count': 484, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "contractify/adapter/service.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-5263908",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'contractify/tools/adr_governance.py', 'line_count': 535, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "contractify/tools/adr_governance.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-7014384",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'contractify/tools/canonical_graph.py', 'line_count': 606, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "contractify/tools/canonical_graph.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-7015839",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'contractify/tools/conflicts.py', 'line_count': 532, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "contractify/tools/conflicts.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-4181287",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'contractify/tools/discovery.py', 'line_count': 707, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "contractify/tools/discovery.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-8897148",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'contractify/tools/drift_analysis.py', 'line_count': 429, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "contractify/tools/drift_analysis.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-4484115",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'contractify/tools/hub_cli.py', 'line_count': 359, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "contractify/tools/hub_cli.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-4481002",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'contractify/tools/runtime_mvp_spine.py', 'line_count': 1557, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "contractify/tools/runtime_mvp_spine.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-5878089",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'despaghettify/tools/autonomous_loop.py', 'line_count': 633, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "despaghettify/tools/autonomous_loop.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-8838985",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'despaghettify/tools/hub_cli.py', 'line_count': 1105, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "despaghettify/tools/hub_cli.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-8119508",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'despaghettify/tools/metrics_bundle.py', 'line_count': 449, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "despaghettify/tools/metrics_bundle.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-506532",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'despaghettify/tools/spaghetti_setup_audit.py', 'line_count': 711, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "despaghettify/tools/spaghetti_setup_audit.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-312392",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'diagnosta/tools/analysis.py', 'line_count': 716, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "diagnosta/tools/analysis.py"
+    }
+  ],
+  "hotspot_decision_packet": {
+    "blocking_hotspots": [
+      {
+        "risk_id": "despaghettify-risk-5263908",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'contractify/tools/adr_governance.py', 'line_count': 535, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "contractify/tools/adr_governance.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-7014384",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'contractify/tools/canonical_graph.py', 'line_count': 606, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "contractify/tools/canonical_graph.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-7015839",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'contractify/tools/conflicts.py', 'line_count': 532, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "contractify/tools/conflicts.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-4181287",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'contractify/tools/discovery.py', 'line_count': 707, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "contractify/tools/discovery.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-4481002",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'contractify/tools/runtime_mvp_spine.py', 'line_count': 1557, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "contractify/tools/runtime_mvp_spine.py"
+      }
+    ],
+    "non_blocking_hotspots": [
+      {
+        "risk_id": "despaghettify-risk-8836525",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'coda/tools/assembly.py', 'line_count': 595, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "coda/tools/assembly.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-377160",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'contractify/adapter/service.py', 'line_count': 484, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "contractify/adapter/service.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-8897148",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'contractify/tools/drift_analysis.py', 'line_count': 429, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "contractify/tools/drift_analysis.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-4484115",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'contractify/tools/hub_cli.py', 'line_count': 359, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "contractify/tools/hub_cli.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-5878089",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'despaghettify/tools/autonomous_loop.py', 'line_count': 633, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "despaghettify/tools/autonomous_loop.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-8838985",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'despaghettify/tools/hub_cli.py', 'line_count': 1105, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "despaghettify/tools/hub_cli.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-8119508",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'despaghettify/tools/metrics_bundle.py', 'line_count': 449, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "despaghettify/tools/metrics_bundle.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-506532",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'despaghettify/tools/spaghetti_setup_audit.py', 'line_count': 711, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "despaghettify/tools/spaghetti_setup_audit.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-312392",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'diagnosta/tools/analysis.py', 'line_count': 716, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "diagnosta/tools/analysis.py"
+      }
+    ],
+    "highest_blocking_severity": "medium",
+    "summary": "Despaghettify sees 5 blocking hotspot(s) and 9 packetized non-blocking hotspot(s)."
+  },
+  "summary": "Despaghettify exported 8 affected surface(s) and 14 bounded structural risk signal(s).",
+  "written_paths": {
+    "json_path": "despaghettify/reports/latest_coda_insertion_surface_report.json",
+    "md_path": "despaghettify/reports/latest_coda_insertion_surface_report.md"
+  }
+}

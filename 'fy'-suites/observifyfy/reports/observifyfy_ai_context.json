@@ -1,0 +1,218 @@
+{
+  "purpose": "AI-readable cross-suite operational context for fy-suite self-management.",
+  "managed_internal_roots": {
+    "fy_internal_root": ".",
+    "contractify_internal_adr_root": "docs/ADR",
+    "documentify_internal_docs_root": "docs",
+    "observifyfy_root": "observifyfy"
+  },
+  "suite_focus": [
+    {
+      "suite": "contractify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 24,
+      "journal_count": 12
+    },
+    {
+      "suite": "documentify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 4,
+      "journal_count": 2
+    },
+    {
+      "suite": "docify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 4,
+      "journal_count": 2
+    },
+    {
+      "suite": "despaghettify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 4,
+      "journal_count": 2
+    },
+    {
+      "suite": "dockerify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 4,
+      "journal_count": 2
+    },
+    {
+      "suite": "testify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 6,
+      "journal_count": 3
+    },
+    {
+      "suite": "templatify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 2,
+      "journal_count": 1
+    },
+    {
+      "suite": "securify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 6,
+      "journal_count": 3
+    },
+    {
+      "suite": "diagnosta",
+      "warnings": [
+        "missing_state",
+        "missing_reports",
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "coda",
+      "warnings": [
+        "missing_state",
+        "missing_reports",
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "observifyfy",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 2,
+      "journal_count": 2
+    },
+    {
+      "suite": "mvpify",
+      "warnings": [
+        "missing_state",
+        "missing_reports",
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "metrify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 2,
+      "journal_count": 1
+    }
+  ],
+  "next_steps": [
+    {
+      "suite": "contractify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for contractify."
+    },
+    {
+      "suite": "documentify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for documentify."
+    },
+    {
+      "suite": "docify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for docify."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for despaghettify."
+    },
+    {
+      "suite": "dockerify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for dockerify."
+    },
+    {
+      "suite": "testify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for testify."
+    },
+    {
+      "suite": "templatify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for templatify."
+    },
+    {
+      "suite": "securify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for securify."
+    },
+    {
+      "suite": "diagnosta",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for diagnosta."
+    },
+    {
+      "suite": "coda",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for coda."
+    },
+    {
+      "suite": "observifyfy",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for observifyfy."
+    },
+    {
+      "suite": "mvpify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for mvpify."
+    }
+  ],
+  "search_hints": [
+    "suite health",
+    "freshness",
+    "cross-suite conflicts",
+    "contractify internal ADR management",
+    "documentify internal docs management",
+    "status pages",
+    "run journals",
+    "mvpify imported MVP mirroring",
+    "metrify cost and usage summaries",
+    "diagnosta readiness cases",
+    "diagnosta blocker graphs",
+    "coda closure packs",
+    "coda residue ledgers"
+  ],
+  "memory_contract": {
+    "store": "observifyfy tracks suite operations memory, not project-facing truth",
+    "refresh_rule": "prefer latest run evidence and internal docs over stale summaries",
+    "guardrails": [
+      "do_not_overwrite_project_truth",
+      "do_not_flatten_contractify_or_testify_findings"
+    ]
+  }
+}
