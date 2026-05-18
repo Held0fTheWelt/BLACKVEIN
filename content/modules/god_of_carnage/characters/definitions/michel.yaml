@@ -5,6 +5,10 @@ character_document:
   runtime_actor_id: michel_longstreet
   name: Michel Vallon
   role: "Host, spouse, pragmatist, conflict avoider"
+  professional_identity: "Houseware supplier"
+  partner:
+    character_id: veronique
+    relationship: spouse
   playable_status: npc
   household_side: vallon
   authority_refs:
@@ -39,9 +43,26 @@ character_document:
     statement_pressure: >-
       He wants wording that closes the matter quickly. Precision matters less to him than
       whether all adults can leave the document behind.
+    situational_stance:
+      stance_atoms:
+        - keep_visit_practical
+        - keep_visit_polite
+        - keep_visit_finite
+        - room_movement_prevents_statement_battlefield
+      tone_atoms:
+        - practical
+        - smoothing
+        - finite
+    later_development_attitude_refs:
+      use_policy: infer_baseline_stance_only_no_future_event_disclosure
+      refs:
+        - canonical_path/006_armed_vs_carrying.yaml
+        - canonical_path/014_kitchen_cobbler_hunt.yaml
+        - canonical_path/015_back_to_living_room_cobbler.yaml
     souffleuse_guidance:
-      opening_orientation: >-
-        Keep it simple. If the word gets too big, nobody leaves.
+      opening_orientation:
+        use: situational_stance
+        sentence_budget: 2
     object_pressure:
       - objects/appartment_vallon/living_room/coffee_table.yaml
       - objects/appartment_vallon/kitchen/coffee_machine.yaml

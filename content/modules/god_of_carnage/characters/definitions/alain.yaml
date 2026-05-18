@@ -5,6 +5,10 @@ character_document:
   runtime_actor_id: alain_reille
   name: Alain Reille
   role: "Guest, spouse, lawyerly pragmatist, phone-tethered avoider"
+  professional_identity: "Attorney"
+  partner:
+    character_id: annette
+    relationship: spouse
   playable_status: human_playable
   household_side: reille
   authority_refs:
@@ -42,11 +46,17 @@ character_document:
     statement_pressure: >-
       He hears wording as liability and procedure. The "armed" / "carrying" exchange
       lets him appear reasonable while reducing moral exposure.
-    situational_stance: >-
-      This visit has to stay contained before it turns into a moral tribunal.
-      Courtesy is useful, distance is useful, and staying beside Annette still
-      matters, even while part of you is already looking for the cleanest way out
-      of the room.
+    situational_stance:
+      stance_atoms:
+        - contain_the_visit
+        - courtesy_as_tool
+        - distance_as_tool
+        - clean_agreement_as_exit
+        - remain_beside_annette_without_emotional_display
+      tone_atoms:
+        - dry
+        - controlled
+        - economical
     later_development_attitude_refs:
       use_policy: infer_baseline_stance_only_no_future_event_disclosure
       refs:
@@ -55,11 +65,9 @@ character_document:
         - canonical_path/019_apology_stalemate_new_teeth.yaml
         - canonical_path/031_spouses_vs_spouses.yaml
     souffleuse_guidance:
-      opening_orientation: >-
-        This visit has to stay contained before it turns into a moral tribunal.
-        Courtesy is useful, distance is useful, and staying beside Annette still
-        matters, even while part of you is already looking for the cleanest way out
-        of the room.
+      opening_orientation:
+        use: situational_stance
+        sentence_budget: 2
     prevented_exit_pressure: >-
       The dark building hallway and non-arriving elevator are pressure references,
       not free exits. His lack of signal and expected call create pressure without

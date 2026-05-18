@@ -11,6 +11,10 @@
   var typewriterEngine = null;
   var blockRenderer = null;
   var playControls = null;
+  var openingGenerationInFlight = false;
+  var openingBootstrapIdle = false;
+  var pendingOpeningPayload = null;
+  var openingPayloadApplied = false;
 
   function initializeMVP5() {
     const transcriptRoot = document.getElementById("turn-transcript");
@@ -62,13 +66,41 @@
     return null;
   }
 
+  function bootBlockIsFirst(blocks) {
+    const first = Array.isArray(blocks) && blocks.length ? blocks[0] : null;
+    if (!first || typeof first !== "object") return false;
+    return first.id === "runtime-dos-boot" || String(first.block_type || "").toLowerCase() === "system_boot";
+  }
+
+  function markRuntimeBootStable(payload) {
+    if (!payload || typeof payload !== "object") return payload;
+    const sourceVso = payload.visible_scene_output
+      || (payload.data && payload.data.visible_scene_output)
+      || null;
+    const blocks = sourceVso && Array.isArray(sourceVso.blocks) ? sourceVso.blocks : [];
+    if (!bootBlockIsFirst(blocks)) return payload;
+    const nextVso = Object.assign({}, sourceVso, {
+      typewriter_slice_start_index: Math.min(1, blocks.length),
+    });
+    const next = Object.assign({}, payload, {
+      visible_scene_output: nextVso,
+    });
+    if (payload.data && typeof payload.data === "object") {
+      next.data = Object.assign({}, payload.data, {
+        visible_scene_output: nextVso,
+      });
+    }
+    return next;
+  }
+
   function payloadWithRuntimeBoot(payload, options) {
     if (!options || !options.dos_boot) return payload;
     const bootstrap = window.PlayRuntimeBootstrap;
     if (!bootstrap || typeof bootstrap.withDosBootPayload !== "function") {
       return payload;
     }
-    return bootstrap.withDosBootPayload(payload);
+    const wrapped = bootstrap.withDosBootPayload(payload);
+    return options.dos_boot_completed ? markRuntimeBootStable(wrapped) : wrapped;
   }
 
   function shouldUseRuntimeBoot(payload) {
@@ -93,10 +125,110 @@
     }
     if (mvp5Ready && orchestrator) {
       orchestrator.loadTurn(displayPayload);
+      updateExecutionAvailability(payload);
       return true;
     }
 
     return false;
+  }
+
+  function updateExecutionAvailability(payload) {
+    if (!payload || typeof payload !== "object" || !Object.prototype.hasOwnProperty.call(payload, "can_execute")) {
+      return;
+    }
+    const canExecute = !!payload.can_execute;
+    const ta = document.getElementById("player-input");
+    const btn = document.getElementById("execute-turn-btn");
+    if (ta) ta.disabled = !canExecute;
+    if (btn) btn.disabled = !canExecute;
+  }
+
+  function statusText(text) {
+    const executeStatus = document.getElementById("execute-status");
+    if (executeStatus) {
+      executeStatus.textContent = text;
+    }
+  }
+
+  function hasVisibleNarrative(payload) {
+    const blocks = extractBlocksFromPayload(payload) || [];
+    return blocks.some(function (block) {
+      if (!block || typeof block !== "object") return false;
+      const kind = String(block.block_type || "").toLowerCase();
+      if (kind === "system_boot" || kind === "system_meta" || kind.startsWith("diagnostic") || kind.startsWith("debug")) {
+        return false;
+      }
+      const text = String(block.player_display_text != null ? block.player_display_text : block.text || "").trim();
+      return text.length > 0;
+    });
+  }
+
+  function shouldGenerateOpening(payload) {
+    if (!payload || typeof payload !== "object") return false;
+    if (payload.opening_present === true || hasVisibleNarrative(payload)) return false;
+    const status = String(payload.opening_generation_status || "").trim().toLowerCase();
+    if (status === "ready_with_opening" || status === "committed" || status === "ready") return false;
+    const runtimeSessionId = String(payload.runtime_session_id || payload.world_engine_story_session_id || "").trim();
+    return !!shell.getAttribute("data-session-id") && !!runtimeSessionId;
+  }
+
+  function maybeApplyPendingOpening() {
+    if (!pendingOpeningPayload || openingPayloadApplied || !openingBootstrapIdle) {
+      return;
+    }
+    openingPayloadApplied = true;
+    const applied = applyRuntimePayload(pendingOpeningPayload, {
+      dos_boot: true,
+      dos_boot_completed: true,
+    });
+    if (applied) {
+      statusText("Opening ready.");
+    }
+  }
+
+  document.addEventListener("play-cinematic-idle", function () {
+    if (!openingGenerationInFlight && !pendingOpeningPayload) return;
+    openingBootstrapIdle = true;
+    maybeApplyPendingOpening();
+  });
+
+  function requestOpeningGeneration() {
+    if (openingGenerationInFlight || openingPayloadApplied) return;
+    const sessionId = shell.getAttribute("data-session-id");
+    if (!sessionId) return;
+    openingGenerationInFlight = true;
+    statusText("Generating opening...");
+    fetch("/play/" + encodeURIComponent(sessionId) + "/opening", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      credentials: "same-origin",
+      body: "{}",
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          return { ok: r.ok, data: data };
+        });
+      })
+      .then(function (res) {
+        if (!res.ok || !res.data.ok) {
+          statusText((res.data && res.data.error) || "Opening failed.");
+          return;
+        }
+        pendingOpeningPayload = res.data;
+        if (typewriterEngine && typewriterEngine.getQueueState) {
+          const state = typewriterEngine.getQueueState();
+          if (!state.current_block_id) {
+            openingBootstrapIdle = true;
+          }
+        }
+        maybeApplyPendingOpening();
+      })
+      .catch(function () {
+        statusText("Opening generation failed. Try refreshing the session.");
+      });
   }
 
   window.playShellApplyRuntimePayload = applyRuntimePayload;
@@ -114,6 +246,9 @@
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
     const bootstrapOptions = { dos_boot: shouldUseRuntimeBoot(bootstrapPayload) };
     const applied = applyRuntimePayload(bootstrapPayload, bootstrapOptions);
+    if (!bootstrapOptions.dos_boot) {
+      openingBootstrapIdle = true;
+    }
     const displayPayload = payloadWithRuntimeBoot(bootstrapPayload, bootstrapOptions);
     const blocks = extractBlocksFromPayload(displayPayload);
     if (!applied && blocks && blocks.length) {
@@ -123,6 +258,9 @@
       if (mvp5Ready && orchestrator) {
         orchestrator.loadTurn(displayPayload);
       }
+    }
+    if (shouldGenerateOpening(bootstrapPayload)) {
+      requestOpeningGeneration();
     }
   }
 

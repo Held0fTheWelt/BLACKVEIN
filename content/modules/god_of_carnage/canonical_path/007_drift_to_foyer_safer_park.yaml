@@ -11,7 +11,7 @@
     summary: >-
       Veronique prints the corrected statement and hands it to Annette.
       Alain begins stepping backward toward the foyer. Michel and Veronique
-      comment ironically that Parc Montsouris was always thought safe.
+      comment ironically that Parc Mont Sourire was always thought safe.
       Veronique thanks them for coming, names the adversarial stance they are
       avoiding, invokes a sense of community. Alain undercuts with
       'the children haven't got that yet â€” our child'. Annette echoes
@@ -72,7 +72,7 @@
         actor: veronique
         intent: state_ironic_reflection_we_thought_the_park_was_safe
         required_facts:
-          - "park_token: Parc Montsouris"
+          - "park_token: Parc Mont Sourire"
           - "comparison_token: unlike other parts of the city"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_safer_park
         paraphrase_policy: structural_paraphrase_required
@@ -88,7 +88,7 @@
       beat_pattern_ref: amiable_echo
       beat_pattern_params:
         actor: michel
-        echoed_phrase_token: "Parc Montsouris was always safe"
+        echoed_phrase_token: "Parc Mont Sourire was always safe"
         quote_anchor: knowledge/opening_quote_anchors.yaml#quote_safer_park
         word_count_target: 4
         tone: friendly_confirmation

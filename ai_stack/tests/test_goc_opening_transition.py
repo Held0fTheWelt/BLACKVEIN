@@ -41,7 +41,7 @@ def test_opening_part_1_requires_schoolyard_and_civilised():
         "On the playground two boys used a stick; parents agreed to a civilised sit-down."
     )
     assert schoolyard_incident_present(
-        "At the edge of Parc Montsouris, near a basketball court, boys argued over a stick."
+        "At the edge of Parc Mont Sourire, near a basketball court, boys argued over a stick."
     )
     assert not opening_part_1_premise_present("Two families meet in a Paris salon.")
 

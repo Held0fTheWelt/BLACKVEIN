@@ -1,3 +1,5 @@
+import json
+
 from ai_stack.goc_narrator_path import build_goc_narrator_path_opening
 from ai_stack.goc_souffleuse import (
     SOUFFLEUSE_INTERNAL_LANGUAGE,
@@ -34,21 +36,28 @@ def test_goc_souffleuse_uses_content_cue_and_prompt_store_for_opening_orientatio
     assert block["session_output_language"] == "de"
     assert block["visible_output_language"] == "en"
     assert block["requires_output_realization"] is True
-    assert "Annette Reille" not in block["text"]
     assert "Study" not in block["text"]
     assert "Souffleuse:" not in block["text"]
     assert "Stay close to yourself" not in block["text"]
     assert "Arbeitszimmer" not in block["text"]
-    assert "careful politeness" in block["text"]
-    assert "Ferdinand" in block["text"]
+    source_payload = json.loads(block["text"])
+    assert source_payload["identity"]["name"] == "Annette Reille"
+    assert source_payload["identity"]["professional_identity"] == "Investment broker"
+    assert source_payload["identity"]["partner"]["name"] == "Alain Reille"
+    assert "politeness_must_not_imply_consent" in source_payload["situational_stance"]["stance_atoms"]
+    assert "andere Familie" not in block["text"]
+    assert "another family's" not in block["text"]
     assert "armed" not in block["text"].lower()
-    assert "case" not in block["text"].lower()
     assert "source_facts" in block and block["source_facts"]["character_public_identity"]
-    assert block["source_facts"]["character_souffleuse_guidance"]
-    assert block["source_facts"]["character_situational_stance"]
+    assert block["source_facts"]["character_souffleuse_guidance"]["use"] == "situational_stance"
+    assert block["source_facts"]["character_situational_stance"]["stance_atoms"]
     assert block["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
     assert block["source_facts"]["character_name"] == "Annette Reille"
     assert block["source_facts"]["character_role"]
+    assert block["source_facts"]["character_professional_identity"] == "Investment broker"
+    assert block["source_facts"]["character_partner"]["name"] == "Alain Reille"
+    assert block["source_facts"]["character_partner"]["professional_identity"] == "Attorney"
+    assert block["source_facts"]["character_voice"]["register"] == "polite_compressed_precise"
     assert block["source_facts"]["current_location"]["id"]
     assert block["source_facts"]["incident_location"]["id"]
     assert "character_stance" in block["guidance_kinds"]
@@ -81,10 +90,15 @@ def test_goc_souffleuse_opening_orientation_is_character_specific() -> None:
     assert annette["target_actor_id"] == "annette_reille"
     assert alain["target_actor_id"] == "alain_reille"
     assert annette["text"] != alain["text"]
-    assert "Ferdinand" in annette["text"]
-    assert "moral tribunal" in alain["text"]
+    annette_payload = json.loads(annette["text"])
+    alain_payload = json.loads(alain["text"])
+    assert annette_payload["identity"]["professional_identity"] == "Investment broker"
+    assert annette_payload["identity"]["partner"]["name"] == "Alain Reille"
+    assert "ferdinand_remains_child_and_son" in annette_payload["situational_stance"]["stance_atoms"]
+    assert alain_payload["identity"]["professional_identity"] == "Attorney"
+    assert alain_payload["identity"]["partner"]["name"] == "Annette Reille"
+    assert "clean_agreement_as_exit" in alain_payload["situational_stance"]["stance_atoms"]
     assert "loaded word" not in alain["text"].lower()
     assert "armed" not in alain["text"].lower()
     assert annette["source_facts"]["character_statement_pressure"] != alain["source_facts"]["character_statement_pressure"]
-    assert annette["source_facts"]["character_souffleuse_guidance"] != alain["source_facts"]["character_souffleuse_guidance"]
     assert annette["source_facts"]["character_situational_stance"] != alain["source_facts"]["character_situational_stance"]

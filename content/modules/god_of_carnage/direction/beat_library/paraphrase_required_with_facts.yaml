@@ -127,7 +127,7 @@
           intent: read_aloud_first_half_of_written_statement
           required_facts:
             - "date_token: 11. Januar 14:30"
-            - "location_token: Parc Montsouris"
+            - "location_token: Parc Mont Sourire"
             - "aggressor_id: ferdinand"
             - "aggressor_age: 11"
             - "aggressor_carried_word: armed"

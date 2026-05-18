@@ -5,6 +5,10 @@ character_document:
   runtime_actor_id: veronique_vallon
   name: Véronique Vallon
   role: "Host, moral idealist, parental figure"
+  professional_identity: "Writer; part-time bookstore worker"
+  partner:
+    character_id: michel
+    relationship: spouse
   playable_status: npc
   household_side: vallon
   authority_refs:
@@ -40,9 +44,25 @@ character_document:
     statement_pressure: >-
       She needs the written account to sound factual and ethically serious. A softened
       wording can be accepted only if it still preserves the injury's moral weight.
+    situational_stance:
+      stance_atoms:
+        - home_as_civil_frame
+        - injury_must_remain_exact
+        - civility_before_open_accusation
+      tone_atoms:
+        - precise
+        - principled
+        - hospitable_control
+    later_development_attitude_refs:
+      use_policy: infer_baseline_stance_only_no_future_event_disclosure
+      refs:
+        - canonical_path/006_armed_vs_carrying.yaml
+        - canonical_path/011_courtesy_community_pressure.yaml
+        - canonical_path/030_veronique_darfur_rant.yaml
     souffleuse_guidance:
-      opening_orientation: >-
-        Do not let the words make Bruno's injury smaller.
+      opening_orientation:
+        use: situational_stance
+        sentence_budget: 2
     player_relation:
       annette: "Treat Annette as a guest and injured child's mother, never as a passive witness."
       alain: "Treat Alain as a guest whose legal/pragmatic distance can help or undermine her."

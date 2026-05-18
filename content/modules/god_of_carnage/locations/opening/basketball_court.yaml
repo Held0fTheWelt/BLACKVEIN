@@ -1,6 +1,6 @@
 location:
   id: basketball_court
-  name: "Parc Montsouris basketball court"
+  name: "Parc Mont Sourire basketball court"
   category: exterior_memory
   playable_access: opening_narration_only
   description: >-

@@ -7,7 +7,7 @@ object:
   playable_access: statement_gate
   description: >-
     A laptop on the study desk, already open to the written statement about
-    the incident at Parc Montsouris.
+    the incident at Parc Mont Sourire.
   interaction_notes:
     look_at: "Shows the statement as a shared document without handing control to the player."
     type: "Only the current statement-authority beat may alter the text."

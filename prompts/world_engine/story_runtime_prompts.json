@@ -83,13 +83,19 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
         "player_name",
+        "opening_identity",
+        "professional_identity",
+        "partner_name",
+        "partner_relationship",
+        "partner_professional_identity",
         "player_side_label",
         "location_name",
         "incident_location_name",
-        "situational_stance"
+        "situational_stance",
+        "source_payload"
       ],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -111,13 +117,19 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
         "player_name",
+        "opening_identity",
+        "professional_identity",
+        "partner_name",
+        "partner_relationship",
+        "partner_professional_identity",
         "player_side_label",
         "location_name",
         "incident_location_name",
-        "situational_stance"
+        "situational_stance",
+        "source_payload"
       ],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -136,9 +148,9 @@
       "description": "Second-person inner-voice nudge for a content-marked character stance cue.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["situational_stance"],
+      "variables": ["source_payload"],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -158,9 +170,9 @@
       "description": "Second-person inner-voice nudge for a content-marked character stance cue.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["situational_stance"],
+      "variables": ["source_payload"],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -179,9 +191,9 @@
       "description": "Compatibility alias for older content-marked Souffleuse cues; source text remains English and visible wording is handled by output realization.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["situational_stance"],
+      "variables": ["source_payload"],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -201,9 +213,9 @@
       "description": "Compatibility alias for older content-marked Souffleuse cues; source text remains English.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
-      "variables": ["situational_stance"],
+      "variables": ["source_payload"],
       "template_lines": [
-        "{situational_stance}"
+        "{source_payload}"
       ],
       "metadata": {
         "internal_resolution_language": "en",

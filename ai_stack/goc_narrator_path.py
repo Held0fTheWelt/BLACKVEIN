@@ -198,6 +198,7 @@ def _beat_source_facts(step: dict[str, Any], beat: dict[str, Any]) -> dict[str, 
             "sequence": int(step.get("sequence") or 0),
             "name": str(step.get("name") or "").strip(),
             "mode": str(step.get("mode") or "").strip(),
+            "scene_transition": _scene_transition(step),
             "summary": str((step.get("scene_anchor") or {}).get("summary") or "").strip()
             if isinstance(step.get("scene_anchor"), dict)
             else "",
@@ -261,6 +262,31 @@ def _scene_anchor_scene(step: dict[str, Any] | None) -> str:
     return str(anchor.get("scene") or "").strip()
 
 
+def _scene_transition(step: dict[str, Any] | None) -> dict[str, Any]:
+    row = step if isinstance(step, dict) else {}
+    raw = row.get("scene_transition") if isinstance(row.get("scene_transition"), dict) else {}
+    kind = str(raw.get("kind") or "").strip()
+    if not kind:
+        return {}
+    out: dict[str, Any] = {
+        "kind": kind,
+        "trigger": str(raw.get("trigger") or "").strip(),
+        "output_mode": str(raw.get("output_mode") or "").strip(),
+        "applies_to": str(raw.get("applies_to") or "first_visible_block_only").strip()
+        or "first_visible_block_only",
+        "source_language": str(raw.get("source_language") or "en").strip() or "en",
+    }
+    for key in ("direction", "avoid"):
+        values = [
+            str(item).strip()
+            for item in raw.get(key)
+            if str(item).strip()
+        ] if isinstance(raw.get(key), list) else []
+        if values:
+            out[key] = values
+    return {key: value for key, value in out.items() if value}
+
+
 def _transition_facts(
     *,
     previous_step: dict[str, Any] | None,
@@ -272,6 +298,7 @@ def _transition_facts(
     curr_scene = _scene_anchor_scene(current_step)
     if not previous_step:
         return {"kind": "opening_start", "location_changed": False, "scene_changed": False}
+    transition = _scene_transition(current_step)
     if prev_loc_id == curr_loc_id and prev_scene == curr_scene:
         return {"kind": "continuous", "location_changed": False, "scene_changed": False}
     locations = _locations_by_id()
@@ -280,7 +307,7 @@ def _transition_facts(
         if isinstance(previous_step, dict) and isinstance(previous_step.get("next_point"), dict)
         else {}
     )
-    return {
+    out = {
         "kind": "location_or_scene_shift",
         "location_changed": prev_loc_id != curr_loc_id,
         "scene_changed": bool(prev_scene and curr_scene and prev_scene != curr_scene),
@@ -291,6 +318,9 @@ def _transition_facts(
         "handoff": str(previous_next.get("handoff") or "").strip(),
         "module_context": _module_context(),
     }
+    if transition:
+        out["directed_transition"] = transition
+    return out
 
 
 def _visual_emphasis(beat: dict[str, Any]) -> dict[str, Any] | None:
@@ -318,8 +348,14 @@ def _block(
     previous_step: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_facts = _beat_source_facts(step, mandatory_beat)
+    first_beat = next(iter(_mandatory_beats(step)), {})
+    transition_previous_step = (
+        previous_step
+        if str(first_beat.get("id") or "").strip() == str(mandatory_beat.get("id") or "").strip()
+        else step
+    )
     source_facts["transition_from_previous"] = _transition_facts(
-        previous_step=previous_step,
+        previous_step=transition_previous_step,
         current_step=step,
     )
     block = {
@@ -413,6 +449,7 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
             "support_refs": step.get("support_refs") if isinstance(step.get("support_refs"), list) else [],
             "object_refs": step.get("object_refs") if isinstance(step.get("object_refs"), list) else [],
             "present": step.get("present") if isinstance(step.get("present"), dict) else {},
+            "scene_transition": _scene_transition(step),
             "mandatory_beat_ids": [
                 str(beat.get("id") or "").strip()
                 for beat in _mandatory_beats(step)

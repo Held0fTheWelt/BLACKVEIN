@@ -16,7 +16,7 @@ scene_graph:
     - id: prologue_park_edge
       phase_id: opening
       sequence: 1
-      title: "Parc Montsouris edge"
+      title: "Parc Mont Sourire edge"
       location_id: park_edge
       scene_function: opening_prologue_establish
       visibility: narrator_only

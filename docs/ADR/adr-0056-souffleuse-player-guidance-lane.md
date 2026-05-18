@@ -76,10 +76,11 @@ Souffleuse guidance is not generic help text. It is scoped to the current human
 actor.
 
 The source block SHALL include `target_actor_id` and character-derived
-`source_facts`, including at least the public identity, baseline attitude,
-situational stance, and later-development attitude references where available.
-Later references may be used only to infer baseline stance; they must not reveal
-or anticipate future beats. This means the same canonical cue
+`source_facts`, including at least identity, profession, partner, public
+identity, baseline attitude, structured situational stance atoms, and
+later-development attitude references where available. Later references may be
+used only to infer baseline stance; they must not reveal or anticipate future
+beats. This means the same canonical cue
 may produce different source guidance for Annette and Alain:
 
 - Annette guidance may be grounded in guest civility, maternal defense,
@@ -87,17 +88,19 @@ may produce different source guidance for Annette and Alain:
 - Alain guidance may be grounded in containment, procedural distance,
   divided attention, and exit management.
 
-The output module may translate and phrase this guidance for the player, but it
-must preserve the actor-specific stance and must not collapse different
-playable characters into a single generic hint.
+The output module may phrase this guidance for the player, but it must preserve
+the actor-specific stance and must not collapse different playable characters
+into a single generic hint. It must synthesize prose from structured English
+facts/atoms; it must not translate a prewritten source sentence.
 
 ### D3 - Natural inward surface
 
 Souffleuse output must read like a small thought the current character could
 plausibly have, not like guidance spoken by a system about the character.
 
-Souffleuse source and output SHOULD be compact, usually one sentence. They SHOULD
-use the character's pressure vocabulary:
+Souffleuse source SHOULD be structured English facts, not finished prose.
+Souffleuse output SHOULD be compact, usually one or two short sentences. It
+SHOULD use the character's pressure vocabulary:
 
 - Annette may frame the cue around Ferdinand, family dignity, restraint, and the
   fear of being morally cornered.
@@ -111,7 +114,8 @@ use the character's pressure vocabulary:
 Souffleuse source and output MUST NOT:
 
 - prefix or name the lane, such as `Souffleuse:`;
-- begin by telling the player who they are;
+- begin by telling the player who they are unless the content cue is an explicit
+  opening orientation cue;
 - summarize location, household side, role policy, or controls;
 - explain the cue in phrases such as "for this role", "you are", or
   "this means";

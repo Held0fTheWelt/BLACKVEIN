@@ -30,6 +30,7 @@ def test_goc_narrator_path_opening_is_speech_free_and_canonical() -> None:
     assert blocks[0]["source_facts"]["transition_from_previous"]["kind"] == "opening_start"
     assert "Winter afternoon" in blocks[0]["text"]
     assert any("home office" in block["text"] for block in blocks)
+    assert any("Parc Mont Sourire" in str(block["source_facts"]) for block in blocks)
     transition_blocks = [
         block
         for block in blocks
@@ -37,6 +38,15 @@ def test_goc_narrator_path_opening_is_speech_free_and_canonical() -> None:
     ]
     assert transition_blocks
     assert transition_blocks[0]["source_facts"]["transition_from_previous"]["current_location"]["id"]
+    hard_cut_blocks = [
+        block
+        for block in blocks
+        if (block["source_facts"].get("transition_from_previous") or {})
+        .get("directed_transition", {})
+        .get("kind")
+        == "hard_cut"
+    ]
+    assert [block["canonical_mandatory_beat_id"] for block in hard_cut_blocks] == ["room_perception_winter_light"]
     emphasis_blocks = [block for block in blocks if block.get("visual_emphasis")]
     assert emphasis_blocks
     assert emphasis_blocks[0]["visual_emphasis"]["kind"] == "dramatic_moment"

@@ -466,6 +466,7 @@ class CreateStorySessionRequest(BaseModel):
     session_output_language: str = "de"
     user_id: str | None = None
     content_provenance: dict[str, Any] | None = None
+    skip_graph_opening_on_create: bool = False
 
 
 class ExecuteStoryTurnRequest(BaseModel):
@@ -703,6 +704,7 @@ def create_story_session(
                 },
                 trace_id=trace_id if isinstance(trace_id, str) else None,
                 session_id=story_session_id,
+                skip_graph_opening_on_create=payload.skip_graph_opening_on_create,
             )
             opening_turn = next(
                 (
@@ -762,6 +764,7 @@ def create_story_session(
             "current_scene_id": session.current_scene_id,
             "content_provenance": session.content_provenance,
             "opening_turn": opening_turn,
+            "opening_generation_status": "ready_with_opening" if isinstance(opening_turn, dict) else "pending",
             "session_loop": session_loop,
             "runtime_config_status": manager.runtime_config_status(),
             "warnings": [
@@ -793,6 +796,27 @@ def create_story_session(
                 adapter.set_active_span(previous_active_span)
             except Exception:
                 logger.warning("Langfuse active span restore failed during session create", exc_info=True)
+
+
+@router.post("/story/sessions/{session_id}/opening", dependencies=[Depends(_require_internal_api_key)])
+def generate_story_session_opening(
+    session_id: str,
+    request: Request,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    trace_id = getattr(request.state, "trace_id", None)
+    try:
+        turn = manager.execute_opening(
+            session_id=session_id,
+            trace_id=trace_id if isinstance(trace_id, str) else None,
+        )
+        return {
+            "session_id": session_id,
+            "turn": turn,
+            "opening_generation_status": "ready_with_opening",
+        }
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
 
 
 @router.post("/story/sessions/{session_id}/turns", dependencies=[Depends(_require_internal_api_key)])

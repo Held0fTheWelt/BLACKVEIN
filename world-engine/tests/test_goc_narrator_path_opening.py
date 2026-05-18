@@ -33,15 +33,20 @@ class _OutputModuleAdapter(BaseModelAdapter):
             assert source["scene_blocks"][0]["target_actor_id"] == "veronique_vallon"
             assert source["scene_blocks"][0]["source_facts"]["character_statement_pressure"]
             assert source["scene_blocks"][0]["source_facts"]["character_situational_stance"]
+            assert source["scene_blocks"][0]["source_facts"]["character_professional_identity"]
+            assert source["scene_blocks"][0]["source_facts"]["character_partner"]["name"]
+            assert source["scene_blocks"][0]["source_facts"]["character_voice"]
             assert source["scene_blocks"][0]["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
             assert source["scene_blocks"][0]["source_facts"]["character_souffleuse_guidance"]
-            assert "Souffleuse:" not in source["scene_blocks"][0]["text"]
-            assert not source["scene_blocks"][0]["text"].startswith("You are ")
+            assert "text" not in source["scene_blocks"][0]
             payload = {
                 "scene_blocks": [
                     {
                         "id": block["id"],
-                        "text": "Du merkst, wie viel von diesem Treffen schon festgelegt scheint, bevor jemand gesprochen hat.",
+                        "text": (
+                            "Du bist Véronique Vallon, Schriftstellerin; Michel ist bei dir. "
+                            "Dein Zuhause soll höflich bleiben, ohne Brunos Verletzung klein zu machen."
+                        ),
                     }
                     for block in source["scene_blocks"]
                 ]
@@ -61,6 +66,15 @@ class _OutputModuleAdapter(BaseModelAdapter):
             (block["source_facts"].get("transition_from_previous") or {}).get("location_changed")
             for block in source["scene_blocks"]
         )
+        hard_cut_blocks = [
+            block
+            for block in source["scene_blocks"]
+            if (block["source_facts"].get("transition_from_previous") or {})
+            .get("directed_transition", {})
+            .get("kind")
+            == "hard_cut"
+        ]
+        assert [block["canonical_mandatory_beat_id"] for block in hard_cut_blocks] == ["room_perception_winter_light"]
         assert any(block.get("visual_emphasis", {}).get("kind") == "dramatic_moment" for block in source["scene_blocks"])
         payload = {
             "scene_blocks": [
@@ -205,7 +219,8 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     assert narrator_blocks[0]["source"] == "narrator_path_synthesis_module"
     assert len(souffleuse_blocks) == 1
     assert "Du bist" in souffleuse_blocks[0]["text"]
-    assert "geklärt werden muss" in souffleuse_blocks[0]["text"]
+    assert "Michel" in souffleuse_blocks[0]["text"]
+    assert "Schriftstellerin" in souffleuse_blocks[0]["text"]
     assert "Souffleuse:" not in souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["speaker_label"] == "Souffleuse"
     assert souffleuse_blocks[0]["player_display_text"] == souffleuse_blocks[0]["text"]

@@ -146,6 +146,8 @@ class TypewriterEngine {
     this.current_block = null;
     this.test_mode = testMode;
     this._onDeliveryComplete = null;
+    this._scroll_frame = null;
+    this._pending_scroll_container = null;
     this.config = {
       characters_per_second: 44,
       pause_before_ms: 150,
@@ -175,6 +177,49 @@ class TypewriterEngine {
 
   _resolveBlockElement(blockId) {
     return document.querySelector(`[data-block-id="${blockId}"]`);
+  }
+
+  _resolveScrollContainer(el) {
+    let current = el;
+    while (current) {
+      if (
+        current.getAttribute &&
+        (
+          current.getAttribute('data-typewriter-shell') === 'true' ||
+          current.classList.contains('play-story-window__body')
+        )
+      ) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+
+  _scrollCurrentLineIntoView(item) {
+    if (!item || !item.block_el) return;
+    const container = this._resolveScrollContainer(item.block_el);
+    if (!container) return;
+
+    const applyScroll = () => {
+      container.scrollTop = container.scrollHeight;
+    };
+
+    if (this.test_mode || typeof requestAnimationFrame !== 'function') {
+      applyScroll();
+      return;
+    }
+
+    this._pending_scroll_container = container;
+    if (this._scroll_frame !== null) return;
+    this._scroll_frame = requestAnimationFrame(() => {
+      const target = this._pending_scroll_container;
+      this._pending_scroll_container = null;
+      this._scroll_frame = null;
+      if (target) {
+        target.scrollTop = target.scrollHeight;
+      }
+    });
   }
 
   _resetBlockDom(el, profile) {
@@ -318,6 +363,7 @@ class TypewriterEngine {
     } else {
       item.block_el.appendChild(frag);
     }
+    this._scrollCurrentLineIntoView(item);
   }
 
   _completeCurrentBlock() {
@@ -383,6 +429,11 @@ class TypewriterEngine {
     this.clock.stop();
     this.queue = [];
     this.current_block = null;
+    if (this._scroll_frame !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this._scroll_frame);
+    }
+    this._scroll_frame = null;
+    this._pending_scroll_container = null;
     this._onDeliveryComplete = null;
   }
 }

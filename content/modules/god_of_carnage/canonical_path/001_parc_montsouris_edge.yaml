@@ -8,7 +8,7 @@ canonical_path_step:
   scene_anchor:
     scene: 1
     summary: >-
-      Establishing image. The public edge of Parc Montsouris on an ordinary
+      Establishing image. The public edge of Parc Mont Sourire on an ordinary
       winter afternoon. About a dozen boys around the basketball court.
       Bicycles parked at the rack. No adult voices, no named characters
       yet. This is the world before the incident.
@@ -51,7 +51,7 @@ canonical_path_step:
       beat_pattern_ref: narrator_perception_block
       beat_pattern_params:
         perception_lines:
-          - "Winter afternoon. The public edge of Parc Montsouris."
+          - "Winter afternoon. The public edge of Parc Mont Sourire."
           - "A dozen boys are spread around the basketball court."
           - "Bicycles lean against the rack at the entrance."
         sensory_anchors:

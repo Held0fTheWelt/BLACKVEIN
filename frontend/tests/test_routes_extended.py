@@ -323,6 +323,16 @@ def test_play_create_missing_template(client):
     assert "/play" in r.headers["Location"]
 
 
+def test_play_create_missing_template_json(client):
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.post("/play/start", data={}, headers={"Accept": "application/json"}, follow_redirects=False)
+    assert r.status_code == 400
+    payload = r.get_json()
+    assert payload["ok"] is False
+    assert "template" in payload["error"].lower()
+
+
 def test_play_create_api_error(client, monkeypatch):
     monkeypatch.setattr(
         "app.player_backend.request_backend",
@@ -362,6 +372,96 @@ def test_play_create_success(client, monkeypatch):
     assert "/play/run-99" in r.headers["Location"]
     assert calls[-1][1] == "/api/v1/game/player-sessions"
     assert calls[-1][2]["json_data"]["template_id"] == "t1"
+
+
+def test_play_create_success_json(client, monkeypatch):
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return FakeResponse(payload={"run_id": "run-99", "opening_generation_status": "committed"})
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.post(
+        "/play/start",
+        data={"template_id": "t1", "session_output_language": "de"},
+        headers={"Accept": "application/json"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 200
+    payload = r.get_json()
+    assert payload["ok"] is True
+    assert payload["run_id"] == "run-99"
+    assert payload["redirect_url"].endswith("/play/run-99")
+    assert payload["opening_generation_status"] == "committed"
+    assert calls[-1][1] == "/api/v1/game/player-sessions"
+    assert calls[-1][2]["json_data"]["template_id"] == "t1"
+
+
+def test_play_create_json_can_skip_opening_on_create(client, monkeypatch):
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return FakeResponse(payload={"run_id": "run-99", "opening_generation_status": "pending"})
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.post(
+        "/play/start",
+        data={
+            "template_id": "t1",
+            "session_output_language": "de",
+            "skip_graph_opening_on_create": "1",
+        },
+        headers={"Accept": "application/json"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 200
+    assert r.get_json()["redirect_url"].endswith("/play/run-99")
+    assert calls[-1][2]["json_data"]["skip_graph_opening_on_create"] is True
+
+
+def test_play_opening_success(client, monkeypatch):
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return FakeResponse(
+            payload={
+                "contract": "game_player_session_v1",
+                "run_id": "run-99",
+                "template_id": "t1",
+                "module_id": "god_of_carnage",
+                "runtime_session_id": "story-1",
+                "runtime_session_ready": True,
+                "can_execute": True,
+                "opening_generation_status": "ready_with_opening",
+                "opening_present": True,
+                "visible_scene_output": {
+                    "blocks": [
+                        {"id": "opening-1", "block_type": "narrator", "text": "Opening."},
+                    ],
+                    "typewriter_slice_start_index": 0,
+                },
+                "story_entries": [],
+            }
+        )
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.post("/play/run-99/opening", headers={"Accept": "application/json"})
+    assert r.status_code == 200
+    payload = r.get_json()
+    assert payload["ok"] is True
+    assert payload["opening_present"] is True
+    assert payload["visible_scene_output"]["blocks"][0]["id"] == "opening-1"
+    assert calls[-1][0] == "POST"
+    assert calls[-1][1] == "/api/v1/game/player-sessions/run-99/opening"
 
 
 def test_play_shell_renders_canonical_story_entries_without_ticket_or_backend_session(client, monkeypatch):

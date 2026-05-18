@@ -41,6 +41,7 @@
     </label>
 
     <button type="submit">Create run</button>
+    <span id="play-launcher-status" class="play-execute-status" role="status"></span>
   </form>
 </section>
 
@@ -60,4 +61,8 @@
     updateRoleVisibility();
   })();
 </script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='play_session_start.js') }}" defer></script>
 {% endblock %}

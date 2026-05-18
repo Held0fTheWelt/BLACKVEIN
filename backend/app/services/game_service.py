@@ -559,6 +559,7 @@ def create_story_session(
     runtime_mode: str | None = None,
     generation_mode: str | None = None,
     content_provenance: dict | None = None,
+    skip_graph_opening_on_create: bool = False,
 ) -> dict:
     if not current_app.config.get("PLAY_SERVICE_ALLOW_NEW_SESSIONS", True):
         raise GameServiceError(
@@ -572,6 +573,8 @@ def create_story_session(
         "session_output_language": session_output_language,
         "content_provenance": content_provenance or {},
     }
+    if skip_graph_opening_on_create:
+        json_payload["skip_graph_opening_on_create"] = True
     if user_id:
         json_payload["user_id"] = user_id
     _enforce_story_runtime_budget_guards(runtime_projection=runtime_projection)
@@ -610,6 +613,45 @@ def create_story_session(
         )
     else:
         _validate_story_session_loop_evidence(payload)
+    return payload
+
+
+def execute_story_opening(
+    *,
+    session_id: str,
+    trace_id: str | None = None,
+    langfuse_trace_id: str | None = None,
+    trace_origin: str | None = None,
+    execution_tier: str | None = None,
+    canonical_player_flow: bool | None = None,
+    test_case_id: str | None = None,
+    runtime_mode: str | None = None,
+    generation_mode: str | None = None,
+) -> dict:
+    _enforce_story_runtime_budget_guards(session_id=session_id)
+    payload = _request(
+        "POST",
+        f"/api/story/sessions/{session_id}/opening",
+        json_payload={},
+        internal=True,
+        trace_id=trace_id,
+        langfuse_trace_id=langfuse_trace_id,
+        trace_origin=trace_origin,
+        execution_tier=execution_tier,
+        canonical_player_flow=canonical_player_flow,
+        test_case_id=test_case_id,
+        runtime_mode=runtime_mode,
+        generation_mode=generation_mode,
+        timeout_seconds=current_app.config.get("PLAY_SERVICE_STORY_SESSION_TIMEOUT", 75),
+    )
+    if not isinstance(payload, dict) or "turn" not in payload:
+        raise GameServiceError("Play service returned an unexpected story-opening payload.")
+    turn = payload.get("turn") if isinstance(payload.get("turn"), dict) else {}
+    _validate_story_turn_canonical_evidence(turn)
+    _ingest_runtime_turn_cost(
+        session_id=session_id,
+        turn_payload=turn,
+    )
     return payload
 
 

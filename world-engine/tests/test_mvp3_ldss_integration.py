@@ -108,6 +108,27 @@ def _make_manager_with_session(
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp3
+def test_create_session_can_defer_opening_with_explicit_skip_flag():
+    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    mgr._skip_graph_opening_on_create = False
+    mgr._execute_opening_locked = MagicMock(side_effect=AssertionError("opening should be deferred"))
+    mgr._emit_session_loop_observation = MagicMock()
+
+    session = mgr.create_session(
+        module_id="god_of_carnage",
+        runtime_projection=_goc_solo_projection("annette"),
+        skip_graph_opening_on_create=True,
+    )
+
+    assert session.session_id
+    assert session.history == []
+    assert not any(
+        isinstance(row, dict) and row.get("turn_kind") == "opening"
+        for row in session.diagnostics
+    )
+
+
+@pytest.mark.mvp3
 def test_execute_turn_produces_scene_turn_envelope_annette():
     """execute_turn for GoC Annette session produces SceneTurnEnvelope.v2."""
     mgr, session = _make_manager_with_session("annette")

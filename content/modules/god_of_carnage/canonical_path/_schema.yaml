@@ -46,6 +46,7 @@
       - support_refs
       - object_refs
       - character_refs
+      - scene_transition
       - optional_micro_beats
       - player_intrusion_windows
       - souffleuse_cues
@@ -83,6 +84,37 @@
             type: string
             description: "Optional id of an earlier step that began the same scene"
             optional: true
+
+      scene_transition:
+        type: object
+        optional: true
+        description: >-
+          Generic narrator-direction flag for authored hard breaks, montage cuts,
+          or non-player-agitated scene changes. Runtime must treat this as
+          semantic direction for the narrator synthesis prompt, never as localized
+          prose or hardcoded output.
+        fields:
+          kind:
+            type: string
+            allowed_values:
+              - hard_cut
+              - montage_cut
+              - location_jump
+          trigger:
+            type: string
+            examples: [non_player_agitated_scene_break, authored_time_jump]
+          output_mode:
+            type: string
+            examples: [explicit_cut_and_scene_change, cinematic_location_reframe]
+          applies_to:
+            type: string
+            allowed_values: [first_visible_block_only, whole_step]
+          direction:
+            type: array
+            items: semantic_direction_atom
+          avoid:
+            type: array
+            items: semantic_avoidance_atom
 
       mode:
         type: string

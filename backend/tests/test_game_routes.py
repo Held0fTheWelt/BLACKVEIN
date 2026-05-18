@@ -332,6 +332,170 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     assert slots[0].metadata_json["session_output_language"] == "de"
 
 
+def test_game_player_session_create_can_skip_opening_on_create(
+    client,
+    auth_headers,
+    test_user,
+    monkeypatch,
+):
+    class Projection:
+        def model_dump(self, mode="json"):
+            return {"module_id": "god_of_carnage", "module_version": "0.1.0", "start_scene_id": "scene_1"}
+
+    class Compiled:
+        runtime_projection = Projection()
+
+    captured_story_kwargs = {}
+
+    def fake_create_story_session(**kwargs):
+        captured_story_kwargs.update(kwargs)
+        return {
+            "session_id": "story-session-skip",
+            "opening_generation_status": "pending",
+            "session_loop": {
+                "status": "runtime_engine_initialized",
+                "session_id": "story-session-skip",
+                "module_id": "god_of_carnage",
+                "runtime_world": {
+                    "status": "initialized",
+                    "schema_version": "runtime_world.v1",
+                    "diagnostic_summary": {},
+                },
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        lambda **kwargs: _goc_solo_run_payload("run-skip", selected_player_role=kwargs["selected_player_role"]),
+    )
+    monkeypatch.setattr("app.api.v1.game_routes.resolve_canonical_module_id_for_template", lambda template_id: "god_of_carnage")
+    monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: Compiled())
+    monkeypatch.setattr("app.api.v1.game_routes.create_story_session", fake_create_story_session)
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.get_story_state",
+        lambda session_id, trace_id=None: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 0,
+            "session_loop": {
+                "status": "runtime_engine_initialized",
+                "session_id": session_id,
+                "module_id": "god_of_carnage",
+                "runtime_world": {
+                    "status": "initialized",
+                    "schema_version": "runtime_world.v1",
+                    "diagnostic_summary": {},
+                },
+            },
+            "story_window": {"contract": "authoritative_story_window_v1", "entries": []},
+        },
+    )
+
+    response = client.post(
+        "/api/v1/game/player-sessions",
+        json={
+            "runtime_profile_id": "god_of_carnage_solo",
+            "selected_player_role": "annette",
+            "skip_graph_opening_on_create": True,
+        },
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert captured_story_kwargs["skip_graph_opening_on_create"] is True
+    assert data["runtime_session_id"] == "story-session-skip"
+    assert data["opening_present"] is False
+    assert data["opening_generation_status"] == "creating_opening"
+    assert data["can_execute"] is False
+
+
+def test_game_player_session_opening_generates_delayed_opening(
+    client,
+    auth_headers,
+    test_user,
+    app,
+    monkeypatch,
+):
+    user, _ = test_user
+    with app.app_context():
+        db.session.add(
+            GameSaveSlot(
+                user_id=user.id,
+                slot_key=f"player-{hashlib.sha1('run-opening'.encode('utf-8')).hexdigest()[:24]}",
+                title="Opening pending",
+                template_id="god_of_carnage_solo",
+                template_title="God of Carnage",
+                run_id="run-opening",
+                kind="canonical_player_session",
+                status="active",
+                metadata_json={
+                    "module_id": "god_of_carnage",
+                    "runtime_session_id": "story-opening",
+                },
+            )
+        )
+        db.session.commit()
+
+    state_calls = []
+
+    def fake_get_story_state(session_id, trace_id=None):
+        state_calls.append(session_id)
+        entries = []
+        history_count = 0
+        if len(state_calls) > 1:
+            entries = [
+                {
+                    "kind": "opening",
+                    "role": "runtime",
+                    "speaker": "World of Shadows",
+                    "turn_number": 0,
+                    "text": "The room finally speaks.",
+                }
+            ]
+            history_count = 1
+        return {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": history_count,
+            "story_window": {"contract": "authoritative_story_window_v1", "entries": entries},
+        }
+
+    opening_calls = []
+
+    def fake_execute_story_opening(**kwargs):
+        opening_calls.append(kwargs)
+        return {
+            "turn": {
+                "turn_kind": "opening",
+                "turn_number": 0,
+                "canonical_turn_id": "opening-0",
+                "turn_aspect_ledger": {"turn_aspect_ledger": {}},
+                "runtime_governance_surface": {},
+                "visible_output_bundle": {
+                    "scene_blocks": [
+                        {"id": "opening-1", "block_type": "narrator", "text": "The room finally speaks."},
+                    ],
+                },
+            }
+        }
+
+    monkeypatch.setattr("app.api.v1.game_routes.get_story_state", fake_get_story_state)
+    monkeypatch.setattr("app.api.v1.game_routes.execute_story_opening", fake_execute_story_opening)
+
+    response = client.post("/api/v1/game/player-sessions/run-opening/opening", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert opening_calls[0]["session_id"] == "story-opening"
+    assert data["opening_present"] is True
+    assert data["story_entries"][0]["text"] == "The room finally speaks."
+
+
 def test_canonical_player_trace_classification_marks_local_langfuse_as_local(monkeypatch):
     from app.api.v1.game_routes import _trace_classification
 

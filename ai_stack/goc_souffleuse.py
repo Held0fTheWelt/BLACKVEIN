@@ -9,6 +9,7 @@ output module.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from ai_stack.goc_yaml_authority import (
@@ -100,6 +101,90 @@ def _side_label(character_doc: dict[str, Any], *, lang: str) -> str:
         label = side.replace("_", " ").title()
         return f"{label} side"
     return "your side"
+
+
+def _partner_doc(character_doc: dict[str, Any]) -> dict[str, Any]:
+    partner = character_doc.get("partner") if isinstance(character_doc.get("partner"), dict) else {}
+    partner_id = _clean(partner.get("character_id") or partner.get("id") or partner.get("actor_id"))
+    if not partner_id:
+        return {}
+    docs = load_goc_character_documents_yaml()
+    if isinstance(docs.get(partner_id), dict):
+        return docs[partner_id]
+    actor_id = _clean(goc_actor_identity(partner_id).get("actor_id")) or partner_id
+    key = _clean(goc_character_key_for_actor_id(actor_id))
+    if key and isinstance(docs.get(key), dict):
+        return docs[key]
+    for doc in docs.values():
+        if not isinstance(doc, dict):
+            continue
+        if partner_id in {
+            _clean(doc.get("id")),
+            _clean(doc.get("canonical_id")),
+            _clean(doc.get("actor_id")),
+            _clean(doc.get("runtime_actor_id")),
+        }:
+            return doc
+    return {}
+
+
+def _partner_fact(character_doc: dict[str, Any]) -> dict[str, str]:
+    partner = character_doc.get("partner") if isinstance(character_doc.get("partner"), dict) else {}
+    doc = _partner_doc(character_doc)
+    return {
+        key: value
+        for key, value in {
+            "character_id": _clean(partner.get("character_id") or doc.get("id") or doc.get("canonical_id")),
+            "name": _clean(doc.get("name")),
+            "relationship": _clean(partner.get("relationship")),
+            "professional_identity": _clean(doc.get("professional_identity")),
+        }.items()
+        if value
+    }
+
+
+def _identity_line(character_doc: dict[str, Any]) -> str:
+    name = _clean(character_doc.get("name")) or "Player"
+    profession = _clean(character_doc.get("professional_identity"))
+    partner = _partner_fact(character_doc)
+    parts = [name]
+    if profession:
+        parts.append(profession)
+    if partner.get("name"):
+        relation = partner.get("relationship") or "partner"
+        parts.append(f"with {partner['name']} ({relation})")
+    return "; ".join(parts) + "."
+
+
+def _structured_stance(character_doc: dict[str, Any]) -> dict[str, Any]:
+    opening_canon = character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
+    raw = opening_canon.get("situational_stance")
+    if isinstance(raw, dict):
+        stance = dict(raw)
+    elif _clean(raw):
+        stance = {"legacy_stance_summary": _clean(raw)}
+    else:
+        stance = {}
+    if not stance:
+        baseline = _clean(character_doc.get("baseline_attitude"))
+        public_identity = _clean(character_doc.get("public_identity"))
+        if baseline:
+            stance["baseline_attitude"] = baseline
+        if public_identity:
+            stance["public_identity"] = public_identity
+    return stance
+
+
+def _structured_guidance(character_doc: dict[str, Any]) -> dict[str, Any]:
+    opening_canon = character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
+    guidance = opening_canon.get("souffleuse_guidance")
+    guidance = guidance if isinstance(guidance, dict) else {}
+    raw = guidance.get("opening_orientation")
+    if isinstance(raw, dict):
+        return dict(raw)
+    if _clean(raw):
+        return {"legacy_guidance_summary": _clean(raw)}
+    return {"use": "situational_stance"}
 
 
 def _source_refs_for_cue(
@@ -204,28 +289,30 @@ def _projection_variables(
     first_step = _indexed_steps().get(first_step_id) or {}
     incident_ref = first_step.get("location_ref") if isinstance(first_step.get("location_ref"), dict) else {}
     incident_location = locations.get(_clean(incident_ref.get("location_id"))) or {}
-    opening_canon = character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
-    souffleuse_guidance = (
-        opening_canon.get("souffleuse_guidance")
-        if isinstance(opening_canon.get("souffleuse_guidance"), dict)
-        else {}
-    )
-    situational_stance = (
-        _clean(souffleuse_guidance.get("opening_orientation"))
-        or _clean(souffleuse_guidance.get("situational_stance"))
-        or _clean(opening_canon.get("situational_stance"))
-        or _clean(souffleuse_guidance.get("role_pressure"))
-        or _clean(opening_canon.get("statement_pressure"))
-        or _clean(character_doc.get("baseline_attitude"))
-        or _clean(character_doc.get("public_identity"))
-    )
+    situational_stance = _structured_stance(character_doc)
+    partner_fact = _partner_fact(character_doc)
+    source_payload = {
+        "identity": {
+            "name": _clean(character_doc.get("name")) or "Player",
+            "professional_identity": _clean(character_doc.get("professional_identity")),
+            "partner": partner_fact,
+            "household_side": _clean(character_doc.get("household_side")),
+        },
+        "situational_stance": situational_stance,
+    }
     return {
+        "opening_identity": _identity_line(character_doc),
         "player_name": _clean(character_doc.get("name")) or "Player",
+        "professional_identity": _clean(character_doc.get("professional_identity")),
+        "partner_name": partner_fact.get("name", ""),
+        "partner_relationship": partner_fact.get("relationship", "") if partner_fact else "",
+        "partner_professional_identity": partner_fact.get("professional_identity", "") if partner_fact else "",
         "player_side_label": _side_label(character_doc, lang=lang),
         "location_name": _display_location_name(current_location, lang=lang),
         "incident_location_name": _display_location_name(incident_location, lang=lang),
-        "situational_stance": situational_stance,
-        "role_pressure": situational_stance,
+        "situational_stance": json.dumps(situational_stance, ensure_ascii=False, sort_keys=True),
+        "source_payload": json.dumps(source_payload, ensure_ascii=False, sort_keys=True),
+        "role_pressure": json.dumps(situational_stance, ensure_ascii=False, sort_keys=True),
     }
 
 
@@ -332,11 +419,7 @@ def build_goc_opening_souffleuse_projection(
         character_opening_canon = (
             character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
         )
-        character_souffleuse_guidance = (
-            character_opening_canon.get("souffleuse_guidance")
-            if isinstance(character_opening_canon.get("souffleuse_guidance"), dict)
-            else {}
-        )
+        character_souffleuse_guidance = _structured_guidance(character_doc)
         later_development_attitude_refs = (
             character_opening_canon.get("later_development_attitude_refs")
             if isinstance(character_opening_canon.get("later_development_attitude_refs"), dict)
@@ -381,14 +464,15 @@ def build_goc_opening_souffleuse_projection(
             "source_facts": {
                 "character_name": _clean(character_doc.get("name")),
                 "character_role": _clean(character_doc.get("role")),
+                "character_professional_identity": _clean(character_doc.get("professional_identity")),
+                "character_partner": _partner_fact(character_doc),
                 "character_household_side": _clean(character_doc.get("household_side")),
                 "character_public_identity": _clean(character_doc.get("public_identity")),
                 "character_baseline_attitude": _clean(character_doc.get("baseline_attitude")),
+                "character_voice": character_doc.get("voice") if isinstance(character_doc.get("voice"), dict) else {},
                 "character_player_agency_policy": _clean(character_opening_canon.get("player_agency_policy")),
-                "character_situational_stance": _clean(character_opening_canon.get("situational_stance")),
-                "character_souffleuse_guidance": _clean(
-                    character_souffleuse_guidance.get("opening_orientation")
-                ),
+                "character_situational_stance": _structured_stance(character_doc),
+                "character_souffleuse_guidance": character_souffleuse_guidance,
                 "character_statement_pressure": _clean(character_opening_canon.get("statement_pressure")),
                 "later_development_attitude_refs": later_development_attitude_refs,
                 "future_knowledge_policy": _clean(

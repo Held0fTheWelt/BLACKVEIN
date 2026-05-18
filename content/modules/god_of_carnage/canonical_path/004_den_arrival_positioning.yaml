@@ -12,6 +12,22 @@
       laptop in the study. Veronique is seated at the device, Michel stands
       beside her in a friendly way, Annette and Alain two steps back in
       office clothes. No one has spoken yet.
+  scene_transition:
+    kind: hard_cut
+    trigger: non_player_agitated_scene_break
+    output_mode: explicit_cut_and_scene_change
+    applies_to: first_visible_block_only
+    source_language: en
+    direction:
+      - break_out_of_smooth_continuous_narration
+      - open_with_concise_cut_or_scene_change_cue_in_session_output_language
+      - establish_current_place_as_private_study_in_vallon_apartment
+      - do_not_narrate_travel_path_through_apartment_unless_authored
+      - then_stage_the_adults_around_the_laptop_as_a_tableau
+    avoid:
+      - soft_causal_bridge_from_park_to_study
+      - generic_room_inventory_opening
+      - player_agency_explanation
 
   duration_target_seconds: 35
   duration_max_seconds: 55

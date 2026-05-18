@@ -515,6 +515,37 @@ def _wants_json_response() -> bool:
     return request.accept_mimetypes.best_match(["application/json", "text/html"]) == "application/json"
 
 
+def _request_value(name: str, default: str = "") -> str:
+    if request.is_json:
+        data = request.get_json(silent=True)
+        if isinstance(data, dict):
+            return str(data.get(name) or default)
+    return str(request.form.get(name) or default)
+
+
+def _request_bool(name: str) -> bool:
+    if request.is_json:
+        data = request.get_json(silent=True)
+        if isinstance(data, dict):
+            raw = data.get(name)
+        else:
+            raw = None
+    else:
+        raw = request.form.get(name)
+    if isinstance(raw, bool):
+        return raw
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _play_create_error(message: str, *, status_code: int = 400, **extra: Any):
+    if _wants_json_response():
+        payload = {"ok": False, "error": message}
+        payload.update(extra)
+        return jsonify(payload), status_code
+    flash(message, "error")
+    return redirect(url_for("frontend.play_start"))
+
+
 def _player_input_from_request() -> str:
     if request.is_json:
         data = request.get_json(silent=True)
@@ -559,22 +590,19 @@ _GOC_VALID_ROLES = {"annette", "alain"}
 def play_create():
     from uuid import uuid4
 
-    template_id = (request.form.get("template_id") or "").strip()
+    template_id = _request_value("template_id").strip()
     if not template_id:
-        flash("Please select a template.", "error")
-        return redirect(url_for("frontend.play_start"))
+        return _play_create_error("Please select a template.")
 
     trace_id = g.get("trace_id") or uuid4().hex
 
     # FIX-005: god_of_carnage_solo requires runtime_profile_id + selected_player_role.
     if template_id in _PROFILE_ONLY_TEMPLATES:
-        selected_player_role = (request.form.get("selected_player_role") or "").strip()
+        selected_player_role = _request_value("selected_player_role").strip()
         if not selected_player_role:
-            flash("Please choose a character (Annette or Alain) to start God of Carnage.", "error")
-            return redirect(url_for("frontend.play_start"))
+            return _play_create_error("Please choose a character (Annette or Alain) to start God of Carnage.")
         if selected_player_role not in _GOC_VALID_ROLES:
-            flash(f"Invalid character selection: {selected_player_role!r}. Choose Annette or Alain.", "error")
-            return redirect(url_for("frontend.play_start"))
+            return _play_create_error(f"Invalid character selection: {selected_player_role!r}. Choose Annette or Alain.")
         json_data = {
             "runtime_profile_id": template_id,
             "selected_player_role": selected_player_role,
@@ -583,8 +611,10 @@ def play_create():
     else:
         json_data = {"template_id": template_id, "trace_id": trace_id}
 
-    session_output_language = (request.form.get("session_output_language") or "de").strip()
+    session_output_language = _request_value("session_output_language", "de").strip()
     json_data["session_output_language"] = session_output_language
+    if _request_bool("skip_graph_opening_on_create"):
+        json_data["skip_graph_opening_on_create"] = True
 
     response = player_backend.request_backend(
         "POST",
@@ -604,6 +634,7 @@ def play_create():
         if _wants_json_response():
             status_code = exc.status_code if 400 <= int(exc.status_code or 0) <= 599 else 502
             response_data = {
+                "ok": False,
                 "error": "Could not start game session",
                 "error_code": error_code,
                 "error_detail": error_detail,
@@ -628,9 +659,19 @@ def play_create():
         return redirect(url_for("frontend.play_start"))
     run_id = payload.get("run_id") or payload.get("run", {}).get("id")
     if not run_id:
-        flash("Player session creation returned no run id.", "error")
-        return redirect(url_for("frontend.play_start"))
-    return redirect(url_for("frontend.play_shell", session_id=run_id))
+        return _play_create_error("Player session creation returned no run id.", status_code=502)
+    redirect_url = url_for("frontend.play_shell", session_id=run_id)
+    if _wants_json_response():
+        return jsonify(
+            {
+                "ok": True,
+                "run_id": run_id,
+                "redirect_url": redirect_url,
+                "runtime_session_id": payload.get("runtime_session_id") or payload.get("session_id"),
+                "opening_generation_status": payload.get("opening_generation_status"),
+            }
+        ), 200
+    return redirect(redirect_url)
 
 
 @frontend_bp.route("/play/<session_id>")
@@ -679,6 +720,7 @@ def play_shell(session_id: str):
             "runtime_session_ready": bool(payload.get("runtime_session_ready")),
             "can_execute": bool(payload.get("can_execute")),
             "opening_generation_status": payload.get("opening_generation_status"),
+            "opening_present": bool(payload.get("opening_present")),
             "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
             "shell_state_view": shell_state_view,
             "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
@@ -708,6 +750,55 @@ def play_shell(session_id: str):
         )
     response_obj.template = "session_shell.html"
     return response_obj
+
+
+@frontend_bp.route("/play/<session_id>/opening", methods=["POST"])
+@require_login
+def play_opening(session_id: str):
+    response = player_backend.request_backend(
+        "POST",
+        f"/api/v1/game/player-sessions/{session_id}/opening",
+        json_data={},
+    )
+    try:
+        payload = player_backend.require_success(response, "Could not generate opening.")
+    except BackendApiError as exc:
+        status_code = exc.status_code if 400 <= int(exc.status_code or 0) <= 599 else 502
+        return jsonify({"ok": False, "error": str(exc), "backend_status_code": exc.status_code}), status_code
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "Opening generation returned an invalid response."}), 502
+
+    _evict_legacy_large_session_keys()
+    shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
+    raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
+    story_entries = _normalize_story_entries_for_shell(
+        raw_story_entries,
+        shell_state_view=shell_state_view,
+    )
+    visible_scene_output = _visible_scene_output_for_typewriter(
+        payload,
+        story_entries=story_entries,
+    )
+    return jsonify(
+        {
+            "ok": True,
+            "contract": payload.get("contract"),
+            "run_id": session_id,
+            "template_id": payload.get("template_id"),
+            "module_id": payload.get("module_id"),
+            "runtime_session_id": payload.get("runtime_session_id"),
+            "runtime_session_ready": bool(payload.get("runtime_session_ready")),
+            "can_execute": bool(payload.get("can_execute")),
+            "opening_generation_status": payload.get("opening_generation_status"),
+            "opening_present": bool(payload.get("opening_present")),
+            "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
+            "shell_state_view": shell_state_view,
+            "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
+            "visible_scene_output": visible_scene_output,
+            "story_entries": story_entries,
+            "story_window": payload.get("story_window") if isinstance(payload.get("story_window"), dict) else {},
+        }
+    ), 200
 
 
 @frontend_bp.route("/play/<session_id>/execute", methods=["POST"])
@@ -745,6 +836,7 @@ def play_execute(session_id: str):
                 "runtime_session_ready": bool(payload.get("runtime_session_ready")),
                 "can_execute": bool(payload.get("can_execute")),
                 "opening_generation_status": payload.get("opening_generation_status"),
+                "opening_present": bool(payload.get("opening_present")),
                 "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
                 "shell_state_view": shell_state_view,
                 "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
@@ -763,6 +855,7 @@ def play_execute(session_id: str):
             "runtime_session_ready": bool(payload.get("runtime_session_ready")),
             "can_execute": bool(payload.get("can_execute")),
             "opening_generation_status": payload.get("opening_generation_status"),
+            "opening_present": bool(payload.get("opening_present")),
             "session_loop": payload.get("session_loop") if isinstance(payload.get("session_loop"), dict) else None,
             "shell_state_view": shell_state_view,
             "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,

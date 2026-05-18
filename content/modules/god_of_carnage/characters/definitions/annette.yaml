@@ -5,6 +5,10 @@ character_document:
   runtime_actor_id: annette_reille
   name: Annette Reille
   role: "Guest, spouse, controlled observer under pressure"
+  professional_identity: "Investment broker"
+  partner:
+    character_id: alain
+    relationship: spouse
   playable_status: human_playable
   household_side: reille
   authority_refs:
@@ -42,11 +46,16 @@ character_document:
       The wording exchange is not abstract to her: every softened word may protect
       Ferdinand from being defined as a criminal, and every harsher word may trap
       her family in the hosts' moral theatre.
-    situational_stance: >-
-      Inside another family's careful politeness, Ferdinand is already present in
-      every silence. Composure matters, but it should not become surrender: this
-      meeting must still leave room for your son to be a child, and for you not
-      to be reduced to the mother of an accusation.
+    situational_stance:
+      stance_atoms:
+        - guarded_civility
+        - politeness_must_not_imply_consent
+        - ferdinand_remains_child_and_son
+        - resist_being_defined_only_as_accused_childs_mother
+      tone_atoms:
+        - controlled
+        - courteous
+        - compressed
     later_development_attitude_refs:
       use_policy: infer_baseline_stance_only_no_future_event_disclosure
       refs:
@@ -55,11 +64,9 @@ character_document:
         - canonical_path/013_apology_pressure_eleven.yaml
         - canonical_path/019_apology_stalemate_new_teeth.yaml
     souffleuse_guidance:
-      opening_orientation: >-
-        Inside another family's careful politeness, Ferdinand is already present in
-        every silence. Composure matters, but it should not become surrender: this
-        meeting must still leave room for your son to be a child, and for you not
-        to be reduced to the mother of an accusation.
+      opening_orientation:
+        use: situational_stance
+        sentence_budget: 2
     injury_pressure: >-
       Dental detail gives her a fact that can be held quietly, not a required speech.
       If the player stays silent, other adults may misread the silence but must not

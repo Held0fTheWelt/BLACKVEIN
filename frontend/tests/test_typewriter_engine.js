@@ -308,6 +308,32 @@ describe('TypewriterEngine', () => {
       expect(blockEl.textContent).toBe('Hello');
     });
 
+    test('should keep the active typewriter line visible in the story scroll container', () => {
+      const scrollRoot = document.createElement('div');
+      scrollRoot.setAttribute('data-typewriter-shell', 'true');
+      Object.defineProperty(scrollRoot, 'scrollHeight', {
+        configurable: true,
+        value: 640,
+      });
+      container.appendChild(scrollRoot);
+
+      const blockEl = document.createElement('div');
+      blockEl.setAttribute('data-block-id', 'block-scroll');
+      scrollRoot.appendChild(blockEl);
+
+      engine.setConfig({ characters_per_second: 5 });
+      engine.startDelivery({
+        id: 'block-scroll',
+        text: 'Hello',
+        delivery: {},
+      });
+
+      expect(scrollRoot.scrollTop).toBe(0);
+      engine.clock.advanceBy(250);
+
+      expect(scrollRoot.scrollTop).toBe(640);
+    });
+
     test('should complete block after full duration', () => {
       const block = {
         id: 'block-1',

@@ -9729,6 +9729,10 @@ class StoryRuntimeManager:
             "If source_facts.transition_from_previous.location_changed or scene_changed is true, the block must "
             "narratively orient the shift before describing local detail. Use the current location, prior handoff, "
             "and module setting from source_facts; do not jump directly from one place into room inventory. "
+            "If source_facts.transition_from_previous.directed_transition.kind is hard_cut, treat it as a hard "
+            "authored scene break: briefly break out of smooth narration with a cut/scene-change cue in the target "
+            "language, then establish the exact current place and tableau. Do not invent a travel bridge, do not "
+            "translate direction atoms literally, and do not hardcode any specific wording. "
             "Do not copy the coverage_cues as finished prose; treat them as facts to synthesize. "
             "Avoid list cadence, template phrasing, recap language, and visible seams between source fields. "
             "Do not add dialogue, accusations, explanations, role labels, or new facts. "
@@ -9760,14 +9764,13 @@ class StoryRuntimeManager:
                     if isinstance(block.get("guidance_kinds"), list)
                     else [],
                     "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
-                    "text": block.get("text"),
                 }
                 for block in source_blocks
             ],
         }
         return (
             "You are the World of Shadows Souffleuse output module.\n"
-            "Input text is English internal player guidance. Produce a short, natural "
+            "Input is English internal player-guidance facts, not player-visible prose. Produce a short, natural "
             f"player-visible hint in session_output_language={target_language}.\n"
             "Preserve block count, block ids, actor-specific stance, and cue boundaries. "
             "Do not name the guidance lane, do not prefix the text with 'Souffleuse:', "
@@ -9775,14 +9778,16 @@ class StoryRuntimeManager:
             "distinguishes formality. Write in the playable character's own inward register: the way "
             "that character might briefly speak to themselves while taking in the situation. If "
             "guidance_kinds includes situation_orientation or character_stance, the cue may establish "
-            "how the character stands toward what has happened, why this meeting matters to them, and "
-            "what they are already carrying inwardly, using only source_facts. Later-development refs "
-            "may inform baseline stance only; do not reveal, quote, or anticipate future beats. Do not "
+            "who the player character is, their profession and partner if source_facts provides them, how the "
+            "character stands toward what has happened, and why this meeting matters to them, using only source_facts. "
+            "Keep this compact: usually two short sentences, never a biography. Use source_facts.character_voice "
+            "to match register and rhythm. Later-development refs may inform baseline stance only; do not reveal, "
+            "quote, or anticipate future beats. Do not "
             "use outside labels such as role, tension, pressure, player, or controls in the visible text. "
-            "Do not begin by telling the player who they are. Do not add player actions, exact line "
-            "commands, NPC speech, hidden intent, or new facts. "
-            "Prefer two or three short sentences for orientation cues and one short sentence for quiet "
-            "stance-only cues.\n"
+            "Do not add player actions, exact line commands, NPC speech, hidden intent, or new facts. "
+            "Prefer one short identity/profession/partner sentence and one short stance sentence for orientation cues.\n"
+            "Treat any *_atoms, ids, or enum-like values as semantic hints, not as wording to translate. "
+            "Do not copy atom names into visible text.\n"
             "Return valid JSON only, with this shape: "
             '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
             f"Souffleuse output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
@@ -11979,6 +11984,15 @@ class StoryRuntimeManager:
             prior_ci=prior_ci,
         )
 
+    def execute_opening(self, *, session_id: str, trace_id: str | None = None) -> dict[str, Any]:
+        with self._session_turn_lock(session_id):
+            session = self.get_session(session_id)
+            for row in reversed(session.history or []):
+                if isinstance(row, dict) and str(row.get("turn_kind") or "").strip().lower() == "opening":
+                    return row
+            self._assert_live_player_governance()
+            return self._execute_opening_locked(session_id, trace_id=trace_id)
+
     def _create_story_session_record(
         self,
         *,
@@ -12135,6 +12149,7 @@ class StoryRuntimeManager:
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
         session_id: str | None = None,
+        skip_graph_opening_on_create: bool = False,
     ) -> StorySession:
         # Generate trace_id if not provided for audit trail correlation.
         if not trace_id:
@@ -12153,7 +12168,7 @@ class StoryRuntimeManager:
             trace_id=trace_id,
         )
         self._emit_session_loop_observation(session=session, trace_id=trace_id)
-        if self._skip_graph_opening_on_create:
+        if skip_graph_opening_on_create or self._skip_graph_opening_on_create:
             return session
         self._assert_live_player_governance()
         attempts = self._opening_retry_count() + 1

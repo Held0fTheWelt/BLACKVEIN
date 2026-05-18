@@ -17,7 +17,7 @@ locations, objects, characters, knowledge, direction, and policy files.
 **Title**: God of Carnage
 **Reference**: `god_of_carnage`
 **Role**: Reference implementation module for modular story content structure
-**Scope**: Four-character apartment drama, beginning with the Parc Montsouris
+**Scope**: Four-character apartment drama, beginning with the Parc Mont Sourire
 incident and moving through building threshold, apartment civility, social
 pressure, and eventual escalation.
 **Quality Principle**: This module is the reference, not an exception. All
@@ -126,7 +126,7 @@ Four primary relationship axes govern character dynamics:
 
 The opening path is numbered and ascending. Its early steps move from:
 
-- Parc Montsouris edge and basketball court incident,
+- Parc Mont Sourire edge and basketball court incident,
 - the struck boy, bicycle beat, and disappearance,
 - dark building hallway with elevator/stairwell pressure,
 - living room handover and apartment entry,
@@ -150,7 +150,7 @@ Locations live one place per file under `locations/`.
 
 Current GoC location groups:
 
-- `locations/opening/`: Parc Montsouris edge, basketball court, playground.
+- `locations/opening/`: Parc Mont Sourire edge, basketball court, playground.
 - `locations/building/`: building hallway and stairwell.
 - `locations/appartment_vallon/`: apartment entry, living room, hallway,
   kitchen, bathroom, pantry, study, locked bedrooms, and layout policy.

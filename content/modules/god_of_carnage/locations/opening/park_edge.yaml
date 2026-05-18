@@ -1,6 +1,6 @@
 location:
   id: park_edge
-  name: "Parc Montsouris edge"
+  name: "Parc Mont Sourire edge"
   category: exterior_memory
   playable_access: opening_narration_only
   description: >-
