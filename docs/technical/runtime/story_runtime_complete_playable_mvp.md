@@ -32,12 +32,12 @@ Retrieval hits are assembled into `context_text` and passed into LangChain invoc
 
 ## Backend play bridge
 
-`POST /api/v1/sessions/<backend_session_id>/turns` lazily creates the World Engine story session on the first turn. When that happens, the bridge response may include:
+`POST /api/v1/game/player-sessions/<run_id>` creates or resumes the World Engine story session before play, and `POST /api/v1/game/player-sessions/<run_id>/turns` executes turns against that story-session id. The player-session response may include:
 
 - **`opening_turn`** — Turn 0 envelope from the create call
 - **`world_engine_opening_meta`** — `current_scene_id`, `turn_counter`, `module_id` for UI projection
 
-The frontend play shell persists the opening row **before** the first player turn in the transcript.
+The frontend play shell renders the opening row **before** the first player turn in the transcript.
 
 ## Runtime config reload
 

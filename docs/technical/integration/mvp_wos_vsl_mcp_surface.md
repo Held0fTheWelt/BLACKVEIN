@@ -16,7 +16,7 @@
 
 - `WOS_MCP_SUITE` — filter exposed tools/resources/prompts to one of the five MVP suites (see `tools/mcp_server/README.md`).
 - `WOS_MCP_OPERATING_PROFILE` — gate `write_capable` tools (`healthy` vs review-safe modes).
-- `BACKEND_BEARER_TOKEN` — required for backend `GET /api/v1/sessions/...` used by session tools and resources.
+- `BACKEND_BEARER_TOKEN` — required for backend admin/governance routes used by MCP-adjacent tools and resources.
 
 ## Validation
 

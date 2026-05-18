@@ -32,7 +32,8 @@ Introduce **Souffleuse** as a Director-selected player guidance lane.
 
 The Souffleuse:
 
-- speaks in second person as an inner role voice;
+- speaks as a concise inward role voice in the current playable character's
+  register;
 - is player-visible as a hint/notice lane, not narrator prose;
 - is selected from authored `canonical_path.*.souffleuse_cues`;
 - uses `internal_resolution_language: en`;
@@ -41,7 +42,8 @@ The Souffleuse:
 - realizes non-English player-visible text through the story output module, not
   through localized prompt-store prose;
 - has `commit_impact: ui_guidance_only`;
-- may orient role, location, emotional pressure, and possible action surfaces;
+- may orient immediate playable pressure without explaining the role from the
+  outside;
 - must not commit a player action, force an exact line, reveal hidden NPC intent,
   duplicate narrator description, or become canonical fact.
 
@@ -79,7 +81,7 @@ opening statement pressure where available. This means the same canonical cue
 may produce different source guidance for Annette and Alain:
 
 - Annette guidance may be grounded in guest civility, maternal defense, bodily
-  pressure, and the risk that softened wording judges her child.
+  pressure, and the risk that loaded wording turns Ferdinand into a case.
 - Alain guidance may be grounded in procedural language, liability, phone/work
   pressure, and exit management.
 
@@ -87,7 +89,33 @@ The output module may translate and phrase this guidance for the player, but it
 must preserve the actor-specific pressure and must not collapse different
 playable characters into a single generic hint.
 
-### D3 - No hardcoded localized Souffleuse prose
+### D3 - Natural inward surface
+
+Souffleuse output must read like a small thought the current character could
+plausibly have, not like guidance spoken by a system about the character.
+
+Souffleuse source and output SHOULD be compact, usually one sentence. They SHOULD
+use the character's pressure vocabulary:
+
+- Annette may frame the cue around Ferdinand, family dignity, restraint, and the
+  fear of being morally cornered.
+- Alain may frame the cue around procedure, wording, liability, detachment, and
+  exit management.
+- Véronique may frame the cue around exactness, Bruno's injury, hospitality, and
+  moral seriousness.
+- Michel may frame the cue around practicality, closure, and keeping the meeting
+  from hardening.
+
+Souffleuse source and output MUST NOT:
+
+- prefix or name the lane, such as `Souffleuse:`;
+- begin by telling the player who they are;
+- summarize location, household side, role policy, or controls;
+- explain the cue in phrases such as "for this role", "you are", or
+  "this means";
+- expand a compact cue into an outside-observer diagnosis.
+
+### D4 - No hardcoded localized Souffleuse prose
 
 Runtime code and module content SHALL NOT add localized Souffleuse text as a
 shortcut. Forbidden examples include:
@@ -132,9 +160,9 @@ Current focused verification:
 
 The AI-stack Souffleuse tests assert that German sessions still produce English
 source guidance before output realization, and that Annette and Alain receive
-different role-pressure source text. The World-Engine opening test asserts that
-German visible Souffleuse text comes from the output module and carries
-`souffleuse_output_realization` diagnostics.
+different inward source text. The World-Engine opening test asserts that German
+visible Souffleuse text comes from the output module, carries
+`souffleuse_output_realization` diagnostics, and is not lane-prefixed.
 
 ## Related ADRs
 

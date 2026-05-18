@@ -1,4 +1,4 @@
-"""MCP handlers for backend health, session lifecycle, and session-scoped HTTP mirrors."""
+"""MCP handlers for backend health and canonical player-session HTTP mirrors."""
 
 from __future__ import annotations
 

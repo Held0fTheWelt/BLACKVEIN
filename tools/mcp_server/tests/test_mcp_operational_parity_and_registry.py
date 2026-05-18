@@ -203,7 +203,7 @@ def test_g_mcp_06_execute_turn_is_implemented_when_write_profile_allows(monkeypa
         assert "result" in resp or "error" not in resp
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
-        assert "/sessions/s1/turns" in args[0]
+        assert "/game/player-sessions/s1/turns" in args[0]
         assert kwargs.get("json") == {"player_input": "test"}
 
 

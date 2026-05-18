@@ -9689,38 +9689,48 @@ class StoryRuntimeManager:
     def _narrator_path_output_prompt(
         *,
         source_blocks: list[dict[str, Any]],
+        narrator_path: dict[str, Any],
         source_language: str,
         target_language: str,
     ) -> str:
         payload = {
             "source_language": source_language,
             "session_output_language": target_language,
+            "source_input_mode": narrator_path.get("source_input_mode"),
+            "path_id": narrator_path.get("path_id"),
+            "canonical_step_ids": narrator_path.get("canonical_step_ids"),
+            "narrative_source_frames": narrator_path.get("narrative_source_frames")
+            if isinstance(narrator_path.get("narrative_source_frames"), list)
+            else [],
             "scene_blocks": [
                 {
                     "id": block.get("id"),
                     "block_type": block.get("block_type"),
-                    "visible_lane": block.get("visible_lane"),
-                    "target_actor_id": block.get("target_actor_id"),
                     "canonical_step_id": block.get("canonical_step_id"),
+                    "canonical_step_sequence": block.get("canonical_step_sequence"),
                     "canonical_mandatory_beat_id": block.get("canonical_mandatory_beat_id"),
-                    "voice_mode": block.get("voice_mode"),
+                    "source_refs": block.get("source_refs") if isinstance(block.get("source_refs"), list) else [],
                     "source_facts": block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {},
-                    "text": block.get("text"),
                 }
                 for block in source_blocks
             ],
         }
         return (
-            "You are the World of Shadows story output module.\n"
-            "Input text is canonical authoring text. Produce player-visible narration in "
+            "You are the World of Shadows narrator synthesis module.\n"
+            "Input is English semantic content authority, not player-visible prose. "
+            "Use the canonical steps, source facts, locations, objects, sensory tags, "
+            "presence, and mandatory beat coverage to write fresh player-visible narration in "
             f"session_output_language={target_language}.\n"
-            "Preserve block count, block ids, order, facts, and narrative distance. "
-            "Narrator blocks remain narrator perception. "
-            "Do not add dialogue, accusations, explanations, or new facts. "
-            "Do not summarize multiple blocks into one block.\n"
+            "Preserve block count, block ids, order, canonical beat coverage, and narrative distance. "
+            "Each output block is narrator perception, one to three natural sentences. "
+            "Do not copy the coverage_cues as finished prose; treat them as facts to synthesize. "
+            "Avoid list cadence, template phrasing, recap language, and visible seams between source fields. "
+            "Do not add dialogue, accusations, explanations, role labels, or new facts. "
+            "Do not summarize multiple blocks into one block. Keep the opening playable: concrete, situated, "
+            "and cinematic enough to feel generated from the room/world rather than pasted from notes.\n"
             "Return valid JSON only, with this shape: "
             '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
-            f"Canonical output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
+            f"Narrator synthesis input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
         )
 
     @staticmethod
@@ -9748,11 +9758,17 @@ class StoryRuntimeManager:
         }
         return (
             "You are the World of Shadows Souffleuse output module.\n"
-            "Input text is English internal Souffleuse guidance. Produce player-visible "
-            f"Souffleuse text in session_output_language={target_language}.\n"
-            "Preserve block count, block ids, second-person address, inner-voice function, "
-            "and cue boundaries. Do not add player actions, exact line commands, NPC speech, "
-            "hidden intent, or new facts.\n"
+            "Input text is English internal player guidance. Produce a short, natural "
+            f"player-visible hint in session_output_language={target_language}.\n"
+            "Preserve block count, block ids, actor-specific pressure, and cue boundaries. "
+            "Do not name the guidance lane, do not prefix the text with 'Souffleuse:', "
+            "and do not write 'inner voice'. Do not start by telling the player who they are. "
+            "Write in the playable character's own inward register: the way that character might "
+            "briefly speak to themselves under pressure. Do not expand the cue into a role summary, "
+            "location recap, control explanation, or outside-observer diagnosis. Avoid phrases like "
+            "'for this role', 'you are', or 'this means'. Avoid grand, motivational, or abstract "
+            "phrasing. Do not add player actions, exact line commands, NPC speech, hidden intent, "
+            "or new facts. Prefer one short sentence; use two only if the source block truly needs it.\n"
             "Return valid JSON only, with this shape: "
             '{"scene_blocks":[{"id":"...","text":"..."}]}.\n\n'
             f"Souffleuse output-module input:\n{json.dumps(payload, ensure_ascii=False, sort_keys=True)}"
@@ -9787,7 +9803,10 @@ class StoryRuntimeManager:
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         source_language = str(narrator_path.get("authoring_language") or "en").strip().lower()[:2] or "en"
         target_language = str(session.session_output_language or source_language).strip().lower()[:2] or source_language
-        if target_language == source_language:
+        model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
+        if adapter is None:
+            if target_language != source_language:
+                raise RuntimeError("narrator_path_synthesis_module_unavailable")
             realized = []
             for block in source_blocks:
                 nb = dict(block)
@@ -9797,19 +9816,18 @@ class StoryRuntimeManager:
                 realized.append(nb)
             return realized, {
                 "contract": "narrator_path_output_realization.v1",
-                "status": "not_required",
+                "status": "fallback_no_output_model",
                 "source_language": source_language,
                 "session_output_language": target_language,
                 "adapter": NARRATOR_PATH_ADAPTER,
                 "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
-                "usage_source": "canonical_content_renderer",
+                "usage_source": "canonical_content_renderer_fallback",
+                "fallback_reason": "no_non_mock_output_model",
             }
 
-        model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
-        if adapter is None:
-            raise RuntimeError("narrator_path_output_module_unavailable")
         prompt = self._narrator_path_output_prompt(
             source_blocks=source_blocks,
+            narrator_path=narrator_path,
             source_language=source_language,
             target_language=target_language,
         )
@@ -9819,7 +9837,7 @@ class StoryRuntimeManager:
             model_name=api_model,
         )
         if not result.success:
-            raise RuntimeError(str(result.metadata.get("error") or "narrator_path_output_module_failed"))
+            raise RuntimeError(str(result.metadata.get("error") or "narrator_path_synthesis_module_failed"))
         parsed = self._parse_narrator_path_output_json(result.content)
         rows = parsed.get("scene_blocks") if isinstance(parsed.get("scene_blocks"), list) else []
         by_id = {
@@ -9844,21 +9862,21 @@ class StoryRuntimeManager:
             nb["source_language"] = source_language
             nb["session_output_language"] = target_language
             nb["visible_output_language"] = target_language
-            nb["source"] = "narrator_path_output_module"
+            nb["source"] = "narrator_path_synthesis_module"
             realized.append(nb)
         if missing_ids or len(realized) != len(source_blocks):
-            raise RuntimeError("narrator_path_output_module_incomplete_blocks")
+            raise RuntimeError("narrator_path_synthesis_module_incomplete_blocks")
         return realized, {
             "contract": "narrator_path_output_realization.v1",
-            "status": "realized",
+            "status": "synthesized",
             "source_language": source_language,
             "session_output_language": target_language,
             "adapter": str((result.metadata or {}).get("adapter") or getattr(adapter, "adapter_name", "") or provider),
-            "adapter_invocation_mode": "narrator_path_output_module",
+            "adapter_invocation_mode": "narrator_path_synthesis_module",
             "provider": provider,
             "model_id": model_id,
             "api_model": api_model,
-            "usage_source": "output_module",
+            "usage_source": "narrator_synthesis_module",
             "block_count": len(realized),
         }
 
@@ -10038,7 +10056,10 @@ class StoryRuntimeManager:
             for step_id in (narrator_path.get("canonical_step_ids") or [])
             if str(step_id).strip()
         ]
-        output_realized = str(output_realization.get("status") or "").strip() == "realized"
+        output_realized = str(output_realization.get("status") or "").strip() in {
+            "realized",
+            "synthesized",
+        }
         souffleuse_output_realized = (
             str(souffleuse_output_realization.get("status") or "").strip() == "realized"
         )
@@ -10065,11 +10086,11 @@ class StoryRuntimeManager:
             )
         }
         if output_realized:
-            phase_costs["narrator_path_output_module"] = build_unavailable_phase_cost(
-                phase="narrator_path_output_module",
+            phase_costs["narrator_path_synthesis_module"] = build_unavailable_phase_cost(
+                phase="narrator_path_synthesis_module",
                 provider=generation_provider,
                 model=generation_model,
-                reason="output_module_usage_unavailable",
+                reason="usage_accounting_unavailable",
                 scene_block_count=len(blocks),
                 adapter=output_realization.get("adapter"),
             )
@@ -12112,6 +12133,12 @@ class StoryRuntimeManager:
             content_provenance=content_provenance,
             session_id=session_id,
         )
+        self._log_session_loop_event(
+            event="runtime_engine_initialized",
+            session=session,
+            trace_id=trace_id,
+        )
+        self._emit_session_loop_observation(session=session, trace_id=trace_id)
         if self._skip_graph_opening_on_create:
             return session
         self._assert_live_player_governance()

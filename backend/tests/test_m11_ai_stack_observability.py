@@ -16,7 +16,7 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     session_id = "we-x"
 
     monkeypatch.setattr(
-        "app.services.game_service.get_story_state",
+        "app.services.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -25,7 +25,7 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
         },
     )
     monkeypatch.setattr(
-        "app.services.game_service.get_story_diagnostics",
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -82,7 +82,14 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     assert "retrieval_index_version" in rm
 
 
-def test_admin_session_evidence_404_for_unknown_session(client, moderator_headers):
+def test_admin_session_evidence_404_for_unknown_session(client, moderator_headers, monkeypatch):
+    from app.services.game_service import GameServiceError
+
+    def _missing(*_a, **_k):
+        raise GameServiceError("missing", status_code=404)
+
+    monkeypatch.setattr("app.services.ai_stack_evidence_service.get_story_state", _missing)
+
     response = client.get(
         "/api/v1/admin/ai-stack/session-evidence/nonexistent-session-id",
         headers=moderator_headers,
@@ -140,7 +147,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
     session_id = "we-y"
 
     monkeypatch.setattr(
-        "app.services.game_service.get_story_state",
+        "app.services.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -149,7 +156,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         },
     )
     monkeypatch.setattr(
-        "app.services.game_service.get_story_diagnostics",
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -274,7 +281,7 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
     session_id = "we-z"
 
     monkeypatch.setattr(
-        "app.services.game_service.get_story_state",
+        "app.services.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -283,7 +290,7 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
         },
     )
     monkeypatch.setattr(
-        "app.services.game_service.get_story_diagnostics",
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -319,7 +326,7 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
     """Empty diagnostics must not imply a healthy last-turn graph or retrieval tier."""
     session_id = "we-empty"
     monkeypatch.setattr(
-        "app.services.game_service.get_story_state",
+        "app.services.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -328,7 +335,7 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
         },
     )
     monkeypatch.setattr(
-        "app.services.game_service.get_story_diagnostics",
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {"diagnostics": [], "committed_state": {"current_scene_id": "s0", "turn_counter": 0}},
     )
     monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)

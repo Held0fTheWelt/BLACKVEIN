@@ -222,10 +222,9 @@ normalizing input to English and grounding it against content.
 Natural language input is treated as the default story-play path end-to-end:
 
 1. Frontend shell form (`/play/<run_id>/execute`) submits `operator_input`.
-2. Frontend route forwards the text to backend session turns as `player_input`.
-3. Backend route (`POST /api/v1/sessions/<session_id>/turns`) may create a thin
-   semantic-contract/structural preview and proxies execution to the
-   World-Engine story runtime.
+2. Frontend route forwards the text to canonical player-session turns as `player_input`.
+3. Backend route (`POST /api/v1/game/player-sessions/<run_id>/turns`) resolves the
+   World-Engine story-session id and proxies execution to the story runtime.
 4. World-Engine runtime executes the turn through `RuntimeTurnGraphExecutor`,
    whose first node is `translate_player_input`; only after that does
    `interpret_input` build the runtime intent surface.

@@ -39,6 +39,9 @@ character_document:
     statement_pressure: >-
       He wants wording that closes the matter quickly. Precision matters less to him than
       whether all adults can leave the document behind.
+    souffleuse_guidance:
+      opening_orientation: >-
+        Keep it simple. If the word gets too big, nobody leaves.
     object_pressure:
       - objects/appartment_vallon/living_room/coffee_table.yaml
       - objects/appartment_vallon/kitchen/coffee_machine.yaml

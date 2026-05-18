@@ -44,11 +44,12 @@ def test_session_create_tool_handler():
     with patch("tools.mcp_server.tools_registry.BackendClient") as MockClient:
         with patch("tools.mcp_server.tools_registry.FileSystemTools"):
             mock_instance = MockClient.return_value
-            mock_instance.create_session.return_value = {"session_id": "sess-456"}
+            mock_instance._post.return_value = {"run_id": "run-456", "runtime_session_id": "story-456"}
             registry = create_default_registry()
             tool = registry.get("wos.session.create")
-            result = tool.handler({"module_id": "god_of_carnage"})
-            assert result["session_id"] == "sess-456"
+            result = tool.handler({"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"})
+            assert result["run_id"] == "run-456"
+            assert result["runtime_session_id"] == "story-456"
 
 
 def test_list_modules_tool_handler():

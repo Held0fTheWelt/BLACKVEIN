@@ -164,7 +164,7 @@ class McpResourceReader:
         if m_sess:
             sid = m_sess.group(1)
             try:
-                data = self._backend._get(f"{self._backend.base_url}/api/v1/sessions/{sid}", trace_id)
+                data = self._backend._get(f"{self._backend.base_url}/api/v1/game/player-sessions/{sid}", trace_id)
             except JsonRpcError as e:
                 data = {"error": e.message, "code": e.code}
             return "application/json", _json_text(data)
@@ -174,7 +174,7 @@ class McpResourceReader:
             sid = m_diag.group(1)
             try:
                 data = self._backend._get(
-                    f"{self._backend.base_url}/api/v1/sessions/{sid}/diagnostics", trace_id
+                    f"{self._backend.base_url}/api/v1/admin/ai-stack/session-evidence/{sid}", trace_id
                 )
             except JsonRpcError as e:
                 data = {"error": e.message, "code": e.code}
@@ -184,7 +184,13 @@ class McpResourceReader:
         if m_state:
             sid = m_state.group(1)
             try:
-                data = self._backend._get(f"{self._backend.base_url}/api/v1/sessions/{sid}/state", trace_id)
+                raw = self._backend._get(f"{self._backend.base_url}/api/v1/game/player-sessions/{sid}", trace_id)
+                data = {
+                    "run_id": raw.get("run_id") or sid,
+                    "runtime_session_id": raw.get("runtime_session_id"),
+                    "state": raw.get("shell_state_view") or raw.get("state") or {},
+                    "story_entries": raw.get("story_entries") or [],
+                }
             except JsonRpcError as e:
                 data = {"error": e.message, "code": e.code}
             return "application/json", _json_text(data)
@@ -198,9 +204,13 @@ class McpResourceReader:
             except (TypeError, ValueError):
                 lim = 100
             try:
-                data = self._backend._get(
-                    f"{self._backend.base_url}/api/v1/sessions/{sid}/logs?limit={lim}", trace_id
-                )
+                raw = self._backend._get(f"{self._backend.base_url}/api/v1/game/player-sessions/{sid}", trace_id)
+                entries = raw.get("story_entries") if isinstance(raw.get("story_entries"), list) else []
+                data = {
+                    "run_id": raw.get("run_id") or sid,
+                    "runtime_session_id": raw.get("runtime_session_id"),
+                    "history": entries[-lim:],
+                }
             except JsonRpcError as e:
                 data = {"error": e.message, "code": e.code}
             return "application/json", _json_text(data)

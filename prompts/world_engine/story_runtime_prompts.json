@@ -78,7 +78,7 @@
       "prompt_type": "runtime_projection_template",
       "domain": "world_engine",
       "tags": ["story-runtime", "souffleuse", "opening", "player-guidance"],
-      "description": "Compatibility alias for German sessions. Source wording remains English; German is produced by the story output module.",
+      "description": "Compatibility alias for German sessions. Source wording remains an English character-specific inward thought; German is produced by the story output module.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
@@ -89,13 +89,7 @@
         "role_pressure"
       ],
       "template_lines": [
-        "You are {player_name}, {player_side_label}. The incident at {incident_location_name} already sits between the families; this meeting is trying to turn it into a shared account.",
-        "",
-        "You are in the {location_name}. Whatever you type is read as action, perception, movement, or direct speech.",
-        "",
-        "For this role, the immediate pressure is specific: {role_pressure}",
-        "",
-        "Souffleuse: Stay close to yourself. What looks polite here may already press on your role; silence, a glance, or a single word can be enough to shift the direction."
+        "{role_pressure}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -112,7 +106,7 @@
       "prompt_type": "runtime_projection_template",
       "domain": "world_engine",
       "tags": ["story-runtime", "souffleuse", "opening", "player-guidance"],
-      "description": "Player-facing second-person inner-voice orientation for an authored Souffleuse cue.",
+      "description": "English source cue for a concise character-specific inward thought.",
       "source_path": "ai_stack/goc_souffleuse.py",
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
@@ -123,13 +117,7 @@
         "role_pressure"
       ],
       "template_lines": [
-        "You are {player_name}, {player_side_label}. The incident at {incident_location_name} already sits between the families; this meeting is trying to turn it into a shared account.",
-        "",
-        "You are in the {location_name}. Whatever you type is read as action, perception, movement, or direct speech.",
-        "",
-        "For this role, the immediate pressure is specific: {role_pressure}",
-        "",
-        "Souffleuse: Stay close to yourself. What looks polite here may already press on your role; silence, a glance, or a single word can be enough to shift the direction."
+        "{role_pressure}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -150,7 +138,7 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": ["role_pressure"],
       "template_lines": [
-        "Souffleuse: {role_pressure}"
+        "{role_pressure}"
       ],
       "metadata": {
         "internal_resolution_language": "en",
@@ -172,7 +160,7 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": ["role_pressure"],
       "template_lines": [
-        "Souffleuse: {role_pressure}"
+        "{role_pressure}"
       ],
       "metadata": {
         "internal_resolution_language": "en",

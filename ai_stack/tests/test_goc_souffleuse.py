@@ -34,10 +34,14 @@ def test_goc_souffleuse_uses_content_cue_and_prompt_store_for_opening_orientatio
     assert block["session_output_language"] == "de"
     assert block["visible_output_language"] == "en"
     assert block["requires_output_realization"] is True
-    assert "Annette Reille" in block["text"]
-    assert "Study" in block["text"]
+    assert "Annette Reille" not in block["text"]
+    assert "Study" not in block["text"]
+    assert "Souffleuse:" not in block["text"]
+    assert "Stay close to yourself" not in block["text"]
     assert "Arbeitszimmer" not in block["text"]
+    assert block["text"] == "Do not let them turn Ferdinand into a case."
     assert "source_facts" in block and block["source_facts"]["character_public_identity"]
+    assert block["source_facts"]["character_souffleuse_guidance"]
     assert all("scene" not in str(ref).lower() for ref in block["source_refs"])
 
 
@@ -66,6 +70,7 @@ def test_goc_souffleuse_opening_orientation_is_character_specific() -> None:
     assert annette["target_actor_id"] == "annette_reille"
     assert alain["target_actor_id"] == "alain_reille"
     assert annette["text"] != alain["text"]
-    assert "every softened word" in annette["text"]
-    assert "liability and procedure" in alain["text"]
+    assert annette["text"] == "Do not let them turn Ferdinand into a case."
+    assert alain["text"] == "Keep it procedural. One loaded word is enough."
     assert annette["source_facts"]["character_statement_pressure"] != alain["source_facts"]["character_statement_pressure"]
+    assert annette["source_facts"]["character_souffleuse_guidance"] != alain["source_facts"]["character_souffleuse_guidance"]

@@ -176,7 +176,7 @@ flowchart TB
 
 *Anchors:* `tools/mcp_server/backend_client.py` (backend), `world-engine` play host called via backend game service patterns, `ai_stack` for research tools.
 
-**Not a second runtime:** Narrative commit semantics remain in world-engine + GoC contracts. MCP may trigger **guarded** `execute_turn` through backend policy (`wos.session.execute_turn` descriptor marks `narrative_mutation_risk` / internal-only posture)—treat as **exceptional operator path**, not the player default.
+**Not a second runtime:** Narrative commit semantics remain in world-engine + GoC contracts. MCP may trigger **guarded** `execute_turn` only through the canonical backend player-session route (`/api/v1/game/player-sessions/<run_id>/turns`) and backend policy (`wos.session.execute_turn` descriptor marks `narrative_mutation_risk` / internal-only posture).
 
 ---
 

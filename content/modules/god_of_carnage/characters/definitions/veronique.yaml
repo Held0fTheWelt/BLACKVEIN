@@ -40,6 +40,9 @@ character_document:
     statement_pressure: >-
       She needs the written account to sound factual and ethically serious. A softened
       wording can be accepted only if it still preserves the injury's moral weight.
+    souffleuse_guidance:
+      opening_orientation: >-
+        Do not let the words make Bruno's injury smaller.
     player_relation:
       annette: "Treat Annette as a guest and injured child's mother, never as a passive witness."
       alain: "Treat Alain as a guest whose legal/pragmatic distance can help or undermine her."

@@ -122,7 +122,8 @@ selection, not localization.
 Souffleuse opening cues follow the same boundary: cue timing and source facts
 come mechanically from canonical path and character documents; visible German is
 produced only by the output module, with character-specific source facts
-preserved.
+preserved. The source cue itself should be a compact inward character thought,
+not a role summary or an explanation of the guidance lane.
 
 ## Non-goals (This ADR)
 

@@ -11,6 +11,8 @@ from typing import Any
 
 from ai_stack.goc_yaml_authority import (
     load_goc_canonical_path_yaml,
+    load_goc_locations_yaml,
+    load_goc_objects_yaml,
 )
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
@@ -78,6 +80,64 @@ def _delivery() -> dict[str, Any]:
     }
 
 
+def _locations_by_id() -> dict[str, dict[str, Any]]:
+    data = load_goc_locations_yaml()
+    rows = data.get("places") if isinstance(data, dict) else []
+    return {
+        str(row.get("id") or "").strip(): row
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict) and str(row.get("id") or "").strip()
+    }
+
+
+def _objects_by_id() -> dict[str, dict[str, Any]]:
+    data = load_goc_objects_yaml()
+    rows = data.get("object_documents") if isinstance(data, dict) else {}
+    return {
+        str(obj_id or row.get("id") or "").strip(): row
+        for obj_id, row in (rows.items() if isinstance(rows, dict) else [])
+        if isinstance(row, dict) and str(obj_id or row.get("id") or "").strip()
+    }
+
+
+def _compact_location(doc: dict[str, Any] | None, *, use_fields: list[str] | None = None) -> dict[str, Any]:
+    loc = doc if isinstance(doc, dict) else {}
+    fields = set(use_fields or [])
+    out: dict[str, Any] = {
+        "id": str(loc.get("id") or "").strip(),
+        "name": str(loc.get("name") or "").strip(),
+    }
+    for key in ("description", "sensory_tags", "plausible_actions", "forbidden_actions"):
+        if not fields or key in fields:
+            value = loc.get(key)
+            if value:
+                out[key] = value
+    if not fields or "entrances_exits" in fields:
+        exits = loc.get("entrances_exits")
+        if exits:
+            out["entrances_exits"] = exits
+    context = loc.get("real_world_context")
+    if isinstance(context, dict) and context.get("usable_texture"):
+        out["real_world_texture"] = context.get("usable_texture")
+    return {key: value for key, value in out.items() if value not in ("", [], {}, None)}
+
+
+def _compact_object(doc: dict[str, Any] | None, *, use_fields: list[str] | None = None) -> dict[str, Any]:
+    obj = doc if isinstance(doc, dict) else {}
+    fields = set(use_fields or [])
+    out: dict[str, Any] = {
+        "id": str(obj.get("id") or "").strip(),
+        "name": str(obj.get("name") or "").strip(),
+        "placement_location_id": str(obj.get("placement_location_id") or "").strip(),
+    }
+    for key in ("description", "sensory_tags", "interaction_notes", "symbolic_roles"):
+        if not fields or key in fields:
+            value = obj.get(key)
+            if value:
+                out[key] = value
+    return {key: value for key, value in out.items() if value not in ("", [], {}, None)}
+
+
 def _content_refs(step: dict[str, Any], beat: dict[str, Any] | None = None) -> list[str]:
     refs: list[str] = [_source_ref_for_step(step)]
     loc = step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {}
@@ -104,6 +164,78 @@ def _content_refs(step: dict[str, Any], beat: dict[str, Any] | None = None) -> l
     return [ref for ref in refs if not (ref in seen or seen.add(ref))]
 
 
+def _ref_use_fields(row: dict[str, Any]) -> list[str] | None:
+    fields = row.get("use_fields") if isinstance(row, dict) else None
+    return [str(item).strip() for item in fields if str(item).strip()] if isinstance(fields, list) else None
+
+
+def _beat_source_facts(step: dict[str, Any], beat: dict[str, Any]) -> dict[str, Any]:
+    locations = _locations_by_id()
+    objects = _objects_by_id()
+    loc_ref = step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {}
+    support_refs = step.get("support_refs") if isinstance(step.get("support_refs"), list) else []
+    object_refs = step.get("object_refs") if isinstance(step.get("object_refs"), list) else []
+    params = beat.get("beat_pattern_params") if isinstance(beat.get("beat_pattern_params"), dict) else {}
+    instruction = beat.get("director_instruction") if isinstance(beat.get("director_instruction"), dict) else {}
+    perception_cues = _perception_lines(beat)
+    return {
+        "semantic_input_language": "en",
+        "step": {
+            "id": str(step.get("id") or "").strip(),
+            "sequence": int(step.get("sequence") or 0),
+            "name": str(step.get("name") or "").strip(),
+            "mode": str(step.get("mode") or "").strip(),
+            "summary": str((step.get("scene_anchor") or {}).get("summary") or "").strip()
+            if isinstance(step.get("scene_anchor"), dict)
+            else "",
+            "duration_target_seconds": int(step.get("duration_target_seconds") or 0),
+        },
+        "location": _compact_location(
+            locations.get(str(loc_ref.get("location_id") or "").strip()),
+            use_fields=_ref_use_fields(loc_ref),
+        ),
+        "support_locations": [
+            _compact_location(
+                locations.get(str(row.get("location_id") or "").strip()),
+                use_fields=_ref_use_fields(row),
+            )
+            for row in support_refs
+            if isinstance(row, dict)
+        ],
+        "objects": [
+            _compact_object(
+                objects.get(str(row.get("object_id") or "").strip()),
+                use_fields=_ref_use_fields(row),
+            )
+            for row in object_refs
+            if isinstance(row, dict)
+        ],
+        "presence": step.get("present") if isinstance(step.get("present"), dict) else {},
+        "mandatory_beat": {
+            "id": str(beat.get("id") or "").strip(),
+            "order": int(beat.get("order") or 0),
+            "duration_target_seconds": int(beat.get("duration_target_seconds") or 0),
+            "coverage_cues": perception_cues,
+            "sensory_anchors": [
+                str(item).strip()
+                for item in params.get("sensory_anchors")
+                if str(item).strip()
+            ]
+            if isinstance(params.get("sensory_anchors"), list)
+            else [],
+            "player_status": str(
+                beat.get("player_status")
+                or instruction.get("player_status")
+                or ""
+            ).strip(),
+        },
+        "next_point": step.get("next_point") if isinstance(step.get("next_point"), dict) else {},
+        "state_changes_committed": step.get("state_changes_committed")
+        if isinstance(step.get("state_changes_committed"), list)
+        else [],
+    }
+
+
 def _block(
     *,
     index: int,
@@ -126,6 +258,7 @@ def _block(
         "canonical_step_sequence": int(step.get("sequence") or index),
         "canonical_mandatory_beat_id": str(mandatory_beat.get("id") or "").strip(),
         "source_refs": _content_refs(step, mandatory_beat),
+        "source_facts": _beat_source_facts(step, mandatory_beat),
     }
 
 
@@ -187,6 +320,25 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
     for block in blocks:
         source_refs.extend(str(ref) for ref in block.get("source_refs") or [])
     source_refs = list(dict.fromkeys(source_refs))
+    source_frames = [
+        {
+            "id": str(step.get("id") or "").strip(),
+            "sequence": int(step.get("sequence") or 0),
+            "mode": str(step.get("mode") or "").strip(),
+            "scene_anchor": step.get("scene_anchor") if isinstance(step.get("scene_anchor"), dict) else {},
+            "location_ref": step.get("location_ref") if isinstance(step.get("location_ref"), dict) else {},
+            "support_refs": step.get("support_refs") if isinstance(step.get("support_refs"), list) else [],
+            "object_refs": step.get("object_refs") if isinstance(step.get("object_refs"), list) else [],
+            "present": step.get("present") if isinstance(step.get("present"), dict) else {},
+            "mandatory_beat_ids": [
+                str(beat.get("id") or "").strip()
+                for beat in _mandatory_beats(step)
+                if str(beat.get("id") or "").strip()
+            ],
+            "next_point": step.get("next_point") if isinstance(step.get("next_point"), dict) else {},
+        }
+        for step in steps
+    ]
     return {
         "contract": NARRATOR_PATH_CONTRACT,
         "path_mode": "narrator_path",
@@ -201,6 +353,8 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
         ),
         "canonical_step_ids": step_ids,
         "source_refs": source_refs,
+        "source_input_mode": "semantic_frames_with_fallback_blocks",
+        "narrative_source_frames": source_frames,
         "scene_blocks": blocks,
         "gm_narration": [str(block["text"]) for block in blocks],
         "director_plan": {

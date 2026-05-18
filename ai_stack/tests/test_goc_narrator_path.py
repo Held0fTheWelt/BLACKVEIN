@@ -21,9 +21,15 @@ def test_goc_narrator_path_opening_is_speech_free_and_canonical() -> None:
     assert {block["block_type"] for block in blocks} == {"narrator"}
     assert all(not block.get("actor_id") for block in blocks)
     assert all("source_refs" in block and block["source_refs"] for block in blocks)
+    assert all("source_facts" in block and block["source_facts"] for block in blocks)
     assert blocks[0]["canonical_mandatory_beat_id"] == "park_edge_establishing_image"
+    assert blocks[0]["source_facts"]["semantic_input_language"] == "en"
+    assert blocks[0]["source_facts"]["location"]["id"] == "park_edge"
+    assert blocks[0]["source_facts"]["mandatory_beat"]["coverage_cues"]
     assert "Winter afternoon" in blocks[0]["text"]
     assert any("home office" in block["text"] for block in blocks)
+    assert out["source_input_mode"] == "semantic_frames_with_fallback_blocks"
+    assert out["narrative_source_frames"][0]["id"] == "opening_001_parc_montsouris_edge"
 
 
 def test_goc_narrator_path_director_plan_skips_actor_lanes() -> None:
@@ -73,4 +79,8 @@ def test_goc_narrator_path_projects_mandatory_beat_content(monkeypatch) -> None:
         "Authored line one. Authored line two."
     ]
     assert out["scene_blocks"][0]["canonical_mandatory_beat_id"] == "synthetic_visible_beat"
+    assert out["scene_blocks"][0]["source_facts"]["mandatory_beat"]["coverage_cues"] == [
+        "Authored line one.",
+        "Authored line two.",
+    ]
     assert out["requires_output_realization"] is True

@@ -32,11 +32,14 @@ class _OutputModuleAdapter(BaseModelAdapter):
             source = json.loads(prompt.split("Souffleuse output-module input:\n", 1)[1])
             assert source["scene_blocks"][0]["target_actor_id"] == "veronique_vallon"
             assert source["scene_blocks"][0]["source_facts"]["character_statement_pressure"]
+            assert source["scene_blocks"][0]["source_facts"]["character_souffleuse_guidance"]
+            assert "Souffleuse:" not in source["scene_blocks"][0]["text"]
+            assert not source["scene_blocks"][0]["text"].startswith("You are ")
             payload = {
                 "scene_blocks": [
                     {
                         "id": block["id"],
-                        "text": "Souffleuse: Du merkst, dass dieses Wort nicht harmlos ist.",
+                        "text": "Nicht kleiner machen.",
                     }
                     for block in source["scene_blocks"]
                 ]
@@ -46,10 +49,15 @@ class _OutputModuleAdapter(BaseModelAdapter):
                 success=True,
                 metadata={"adapter": self.adapter_name},
             )
-        source = json.loads(prompt.split("Canonical output-module input:\n", 1)[1])
+        source = json.loads(prompt.split("Narrator synthesis input:\n", 1)[1])
+        assert source["source_input_mode"] == "semantic_frames_with_fallback_blocks"
+        assert source["narrative_source_frames"]
+        assert "text" not in source["scene_blocks"][0]
+        assert source["scene_blocks"][0]["source_facts"]["semantic_input_language"] == "en"
+        assert source["scene_blocks"][0]["source_facts"]["mandatory_beat"]["coverage_cues"]
         payload = {
             "scene_blocks": [
-                {"id": block["id"], "text": f"Ausgabemodul Block {index}."}
+                {"id": block["id"], "text": f"Synthetisierte Erzählung {index}."}
                 for index, block in enumerate(source["scene_blocks"], start=1)
             ]
         }
@@ -186,10 +194,12 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     narrator_blocks = [block for block in blocks if block["block_type"] == "narrator"]
     souffleuse_blocks = [block for block in blocks if block["block_type"] == "souffleuse"]
 
-    assert narrator_blocks[0]["text"] == "Ausgabemodul Block 1."
-    assert narrator_blocks[0]["source"] == "narrator_path_output_module"
+    assert narrator_blocks[0]["text"] == "Synthetisierte Erzählung 1."
+    assert narrator_blocks[0]["source"] == "narrator_path_synthesis_module"
     assert len(souffleuse_blocks) == 1
-    assert "Du merkst" in souffleuse_blocks[0]["text"]
+    assert souffleuse_blocks[0]["text"] == "Nicht kleiner machen."
+    assert "Souffleuse:" not in souffleuse_blocks[0]["text"]
+    assert "Du bist" not in souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["speaker_label"] == "Souffleuse"
     assert souffleuse_blocks[0]["player_display_text"] == souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["source_before_output_module"] == "canonical_path_souffleuse_cue"
@@ -198,9 +208,10 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     assert souffleuse_blocks[0]["requires_output_realization"] is False
     assert souffleuse_blocks[0]["output_realization_source"] == "souffleuse_output_module"
     realization = opening["runtime_governance_surface"]["narrator_path"]["output_realization"]
-    assert realization["status"] == "realized"
+    assert realization["status"] == "synthesized"
     assert realization["session_output_language"] == "de"
     assert realization["adapter"] == "test_output_module"
+    assert realization["adapter_invocation_mode"] == "narrator_path_synthesis_module"
     souffleuse_realization = opening["runtime_governance_surface"]["narrator_path"][
         "souffleuse_output_realization"
     ]

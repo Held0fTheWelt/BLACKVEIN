@@ -205,13 +205,20 @@ def _projection_variables(
     incident_ref = first_step.get("location_ref") if isinstance(first_step.get("location_ref"), dict) else {}
     incident_location = locations.get(_clean(incident_ref.get("location_id"))) or {}
     opening_canon = character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
+    souffleuse_guidance = (
+        opening_canon.get("souffleuse_guidance")
+        if isinstance(opening_canon.get("souffleuse_guidance"), dict)
+        else {}
+    )
     return {
         "player_name": _clean(character_doc.get("name")) or "Player",
         "player_side_label": _side_label(character_doc, lang=lang),
         "location_name": _display_location_name(current_location, lang=lang),
         "incident_location_name": _display_location_name(incident_location, lang=lang),
         "role_pressure": (
-            _clean(opening_canon.get("statement_pressure"))
+            _clean(souffleuse_guidance.get("opening_orientation"))
+            or _clean(souffleuse_guidance.get("role_pressure"))
+            or _clean(opening_canon.get("statement_pressure"))
             or _clean(character_doc.get("baseline_attitude"))
             or _clean(character_doc.get("public_identity"))
         ),
@@ -287,6 +294,14 @@ def build_goc_opening_souffleuse_projection(
             continue
         cue_id = _clean(cue.get("id")) or "souffleuse_cue"
         capability = _clean(cue.get("capability")) or SOUFFLEUSE_OPENING_ROLE_ORIENTATION
+        character_opening_canon = (
+            character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
+        )
+        character_souffleuse_guidance = (
+            character_opening_canon.get("souffleuse_guidance")
+            if isinstance(character_opening_canon.get("souffleuse_guidance"), dict)
+            else {}
+        )
         block = {
             "id": f"opening-souffleuse-{cue_id}",
             "block_type": SOUFFLEUSE_BLOCK_TYPE,
@@ -323,11 +338,10 @@ def build_goc_opening_souffleuse_projection(
             "source_facts": {
                 "character_public_identity": _clean(character_doc.get("public_identity")),
                 "character_baseline_attitude": _clean(character_doc.get("baseline_attitude")),
-                "character_statement_pressure": _clean(
-                    (character_doc.get("opening_canon") or {}).get("statement_pressure")
-                    if isinstance(character_doc.get("opening_canon"), dict)
-                    else ""
+                "character_souffleuse_guidance": _clean(
+                    character_souffleuse_guidance.get("opening_orientation")
                 ),
+                "character_statement_pressure": _clean(character_opening_canon.get("statement_pressure")),
             },
         }
         out_blocks.append(block)

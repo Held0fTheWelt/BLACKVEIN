@@ -309,7 +309,7 @@ sequenceDiagram
   B-->>C: JSON response + warnings if applicable
 ```
 
-**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/session_routes.py`, `docs/technical/architecture/canonical_runtime_contract.md`.
+**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`, `docs/technical/architecture/canonical_runtime_contract.md`.
 
 ---
 

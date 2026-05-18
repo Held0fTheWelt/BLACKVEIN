@@ -10,7 +10,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 - **`prompts/list`** + **`prompts/get`** for recurring operator/author/AI workflows
 - Explicit tool classes: `read_only`, `review_bound`, `write_capable` + operating profile gating
 - Stable per-token/local rate limiting; trace IDs are not used as quota keys
-- HTTP client with 5-second timeout and automatic retry; optional bearer token for backend session routes
+- HTTP client with 5-second timeout and automatic retry; optional bearer token for backend player-session and governance routes
 - Langfuse/runtime evidence normalization for `turn_aspect_ledger`, beat, capability, narrator/NPC authority, visible-origin, commit, and hierarchical-memory proof
 - Read-only Quality Lab diagnostics (`wos.quality_lab.*`) for judge, trace, MCP exchange, pattern, investigation, repair-wave, judge-set, and content-revision analysis
 - **`WOS_MCP_SUITE`** env to expose only one suite’s tools/resources/prompts (default: all)
@@ -23,7 +23,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 |----------|---------|---------|
 | `INTERNAL_RUNTIME_CONFIG_TOKEN` | from `.env` (see above) | Same internal runtime trust token as backend internal APIs (`X-Internal-Config-Token`); optional if unset |
 | `BACKEND_BASE_URL` | `http://localhost:8000` | Backend API endpoint (override for your deploy) |
-| `BACKEND_BEARER_TOKEN` | (empty) | Bearer for MCP-protected session routes (`/api/v1/sessions/...`) |
+| `BACKEND_BEARER_TOKEN` | (empty) | Bearer for backend player-session and governance routes (`/api/v1/game/player-sessions/...`, `/api/v1/admin/ai-stack/...`) |
 | `LANGFUSE_MCP_BASE_URL` | `http://localhost:3000` for local stdio MCP | Host-side MCP Langfuse API URL. Use this when backend/world-engine use Docker DNS (`http://langfuse-web:3000`) but MCP runs outside Docker. |
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
 | `WOS_MCP_OPERATING_PROFILE` | `healthy` | `healthy` allows `write_capable` tools; `review_safe` / `test_isolated` deny them |
@@ -38,7 +38,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 | Tool | Input | Purpose |
 |------|-------|---------|
 | `wos.system.health` | (none) | Check backend health status |
-| `wos.session.create` | `module_id`, `module_version?` | Create new game session |
+| `wos.session.create` | `run_id?`, `runtime_profile_id?`, `selected_player_role?` | Create or resume canonical player session |
 
 ### P1: Filesystem Utilities
 
@@ -185,12 +185,12 @@ The examples below show the **inner** JSON only (after unwrap) for readability.
 
 **Request:**
 ```json
-{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.session.create", "arguments": {"module_id": "god_of_carnage"}}}
+{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.session.create", "arguments": {"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"}}}
 ```
 
 **Response:**
 ```json
-{"jsonrpc": "2.0", "id": 3, "result": {"session_id": "sess-12345", "module_id": "god_of_carnage"}}
+{"jsonrpc": "2.0", "id": 3, "result": {"contract": "game_player_session_v1", "run_id": "run-12345", "runtime_session_id": "story-session-12345"}}
 ```
 
 ### tools/call: List Modules

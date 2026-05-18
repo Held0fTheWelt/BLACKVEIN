@@ -12,11 +12,11 @@ Canonical tool names and suite membership are defined in code: `ai_stack/mcp_can
 
 | Suite id | Responsibility |
 |----------|----------------|
-| `wos-admin` | Operations, health, capability catalog, operator legibility, backend session snapshot |
+| `wos-admin` | Operations, health, capability catalog, operator legibility, player-session snapshot |
 | `wos-author` | Draft / workspace content inspection (filesystem-backed slice material) |
 | `wos-ai` | Research, evaluation, canon issue/proposal **preview** (no direct publish) |
-| `wos-runtime-read` | Read-only runtime observability: diagnostics, state, event logs |
-| `wos-runtime-control` | Narrow control: session shell create, guarded turn execution |
+| `wos-runtime-read` | Read-only runtime observability: story-session evidence, state, story entries |
+| `wos-runtime-control` | Narrow control: player-session create/resume, guarded turn execution |
 
 ## Tools by suite
 
@@ -25,7 +25,7 @@ Canonical tool names and suite membership are defined in code: `ai_stack/mcp_can
 | `wos.system.health` | `wos-admin` | Backend reachability |
 | `wos.capabilities.catalog` | `wos-admin` | Capability registry mirror |
 | `wos.mcp.operator_truth` | `wos-admin` | Surface aggregate / alignment |
-| `wos.session.get` | `wos-admin` | Backend session snapshot (operator) |
+| `wos.session.get` | `wos-admin` | Canonical player-session snapshot by run id |
 | `wos.goc.list_modules` | `wos-author` | List workspace modules |
 | `wos.goc.get_module` | `wos-author` | Fetch module payload |
 | `wos.content.search` | `wos-author` | Repo content search |
@@ -40,11 +40,11 @@ Canonical tool names and suite membership are defined in code: `ai_stack/mcp_can
 | `wos.research.bundle.build` | `wos-ai` | Review bundle |
 | `wos.canon.improvement.propose` | `wos-ai` | Proposal generation (non-publish) |
 | `wos.canon.improvement.preview` | `wos-ai` | Proposal preview |
-| `wos.session.diag` | `wos-runtime-read` | Session diagnostics |
-| `wos.session.state` | `wos-runtime-read` | Runtime/session state |
-| `wos.session.logs` | `wos-runtime-read` | Session event logs |
-| `wos.session.create` | `wos-runtime-control` | Create backend session shell |
-| `wos.session.execute_turn` | `wos-runtime-control` | Turn execution (guarded; prefer player/runtime path) |
+| `wos.session.diag` | `wos-runtime-read` | World-Engine story-session evidence |
+| `wos.session.state` | `wos-runtime-read` | Player-session shell state by run id |
+| `wos.session.logs` | `wos-runtime-read` | Player-session story entries by run id |
+| `wos.session.create` | `wos-runtime-control` | Create or resume canonical player session |
+| `wos.session.execute_turn` | `wos-runtime-control` | Turn execution through `/api/v1/game/player-sessions/<run_id>/turns` |
 
 ## MCP resources (stable reads)
 
@@ -55,10 +55,10 @@ Resources mirror read-only HTTP/FS paths **without** mixing read and write opera
 | `wos://system/health` | `wos-admin` | Backend health | — |
 | `wos://mcp/operator_truth` | `wos-admin` | Aggregated operator truth | optional query `probe_backend=true` |
 | `wos://capabilities/catalog` | `wos-admin` | Capability catalog JSON | — |
-| `wos://session/{session_id}` | `wos-admin` | `GET /api/v1/sessions/{id}` | path `session_id` |
-| `wos://session/{session_id}/diagnostics` | `wos-runtime-read` | Diagnostics | path |
-| `wos://session/{session_id}/state` | `wos-runtime-read` | Story/runtime state | path |
-| `wos://session/{session_id}/logs` | `wos-runtime-read` | Session logs | path; optional `?limit=N` |
+| `wos://session/{run_id}` | `wos-admin` | `GET /api/v1/game/player-sessions/{run_id}` | path `run_id` |
+| `wos://session/{story_session_id}/diagnostics` | `wos-runtime-read` | `GET /api/v1/admin/ai-stack/session-evidence/{story_session_id}` | path |
+| `wos://session/{run_id}/state` | `wos-runtime-read` | Player-session shell state | path |
+| `wos://session/{run_id}/logs` | `wos-runtime-read` | Player-session story entries | path; optional `?limit=N` |
 | `wos://content/modules` | `wos-author` | Module list (FS) | — |
 | `wos://content/module/{module_id}` | `wos-author` | Single module (FS) | path `module_id` |
 

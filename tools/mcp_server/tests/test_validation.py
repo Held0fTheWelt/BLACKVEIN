@@ -4,7 +4,7 @@ from tools.mcp_server.errors import InvalidInputError
 
 
 def test_missing_required_field_raises_error():
-    """Input validation rejects missing required fields."""
+    """Handler rejects missing player-session creation identifiers."""
     server = McpServer()
     request = {
         "jsonrpc": "2.0",
@@ -16,5 +16,6 @@ def test_missing_required_field_raises_error():
         }
     }
     response = server.dispatch(request, "trace-1")
-    assert "error" in response
-    assert response["error"]["code"] == -32602
+    assert "result" in response
+    text = response["result"]["content"][0]["text"]
+    assert "run_id, template_id, runtime_profile_id, or module_id required" in text

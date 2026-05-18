@@ -723,7 +723,7 @@ flowchart LR
 
 The **World Engine** (`world-engine/`) is the **authoritative FastAPI play host** for **template runs** and **story sessions**. Its deepest **commit semantics** are explicit in the **story runtime** (`StoryRuntimeManager` + `resolve_narrative_commit`). The **backend** integrates via **`game_service`** and must not silently re-host the same authority inside Flask. **AI** runs **around** those commit seams, not **instead** of them. **MCP** remains **control-plane adjacent** in Phase A. Use this document as the **canonical entry**; drill into linked contracts and tests when changing behavior.
 
-**Verification-oriented tests (non-exhaustive):** `world-engine/tests/test_backend_bridge_contract.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`, `backend/tests/test_session_api_contracts.py`.
+**Verification-oriented tests (non-exhaustive):** `world-engine/tests/test_backend_bridge_contract.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`, `backend/tests/test_game_routes.py`.
 
 ---
 

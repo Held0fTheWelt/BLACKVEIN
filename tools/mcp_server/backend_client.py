@@ -21,16 +21,16 @@ class BackendClient:
         return self._get(url, trace_id)
 
     def create_session(self, module_id: str, trace_id: str, module_version: Optional[str] = None) -> Dict[str, Any]:
-        """Create a new game session."""
-        url = f"{self.base_url}/api/v1/sessions"
-        payload = {"module_id": module_id}
+        """Create a canonical player session through the current game API."""
+        url = f"{self.base_url}/api/v1/game/player-sessions"
+        payload = {"runtime_profile_id": module_id}
         if module_version:
             payload["module_version"] = module_version
         return self._post(url, trace_id, json=payload)
 
     def _get(self, url: str, trace_id: str) -> Dict[str, Any]:
         """Make GET request with timeout and retry logic."""
-        headers = {"X-Trace-ID": trace_id}
+        headers = {"X-Trace-ID": trace_id, "X-WoS-Trace-Id": trace_id}
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
 
@@ -68,6 +68,7 @@ class BackendClient:
         """Make POST request with timeout and retry logic."""
         headers = kwargs.pop("headers", {})
         headers["X-Trace-ID"] = trace_id
+        headers["X-WoS-Trace-Id"] = trace_id
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
 

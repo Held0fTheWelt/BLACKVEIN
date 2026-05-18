@@ -290,41 +290,26 @@ When Engine cannot generate a valid AI proposal:
 
 ---
 
-## API Contract (W3 Minimum)
+## API Contract (Current Player Path)
 
-The World Engine exposes these HTTP endpoints:
+The backend player-facing session API is:
 
-### POST `/api/v1/sessions`
-- **Purpose**: Start a new session
-- **Input**: `{ "module_id": "god_of_carnage" }`
-- **Output**: `{ "session_id": "uuid", "session_state": {...} }`
-- **Status**: 201 Created
-
-### GET `/api/v1/sessions/{session_id}`
-- **Purpose**: Retrieve current session state
-- **Output**: Full session state (metadata + characters + relationships + current scene)
-- **Status**: 200 OK (if session exists) or 404 Not Found
-
-### POST `/api/v1/sessions/{session_id}/turn`
-- **Purpose**: Execute one turn
-- **Input**: `{ "input": "string (player action or dialogue)" }`
-- **Output**: `{ "turn_result": {...}, "new_scene": {...}, "error": optional }`
-- **Status**: 200 OK (even if error occurred; error is in response body)
-
-### GET `/api/v1/sessions/{session_id}/logs`
-- **Purpose**: Retrieve all logs for the session
-- **Query**: `?type=event&type=ai_decision&type=validation` (optional filters)
-- **Output**: `{ "event_log": [...], "ai_decision_log": [...], "validation_log": [...] }`
+### POST `/api/v1/game/player-sessions`
+- **Purpose**: Create or resume a canonical player session for a run/template.
+- **Input**: `{ "run_id": "optional", "runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette" }`
+- **Output**: `game_player_session_v1` with `run_id`, `runtime_session_id`, story entries, and shell state.
 - **Status**: 200 OK
 
-### GET `/api/v1/sessions/{session_id}/logs/state-delta`
-- **Purpose**: Retrieve state delta log
-- **Output**: `{ "state_delta_log": [...] }`
-- **Status**: 200 OK
+### GET `/api/v1/game/player-sessions/{run_id}`
+- **Purpose**: Resume the canonical player session and fetch current story window.
+- **Output**: `game_player_session_v1`
+- **Status**: 200 OK or honest bridge error when World-Engine is unavailable.
 
-### DELETE `/api/v1/sessions/{session_id}`
-- **Purpose**: End session (optional)
-- **Status**: 204 No Content
+### POST `/api/v1/game/player-sessions/{run_id}/turns`
+- **Purpose**: Execute one player turn through the World-Engine story session.
+- **Input**: `{ "player_input": "string (player action or dialogue)" }`
+- **Output**: turn payload, updated state projection, story entries, trace metadata.
+- **Status**: 200 OK or `502` with `failure_class=world_engine_unreachable`.
 
 ---
 
