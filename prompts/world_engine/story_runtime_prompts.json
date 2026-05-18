@@ -83,7 +83,6 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
         "player_name",
-        "opening_identity",
         "professional_identity",
         "partner_name",
         "partner_relationship",
@@ -117,7 +116,6 @@
       "source_symbol": "build_goc_opening_souffleuse_projection",
       "variables": [
         "player_name",
-        "opening_identity",
         "professional_identity",
         "partner_name",
         "partner_relationship",

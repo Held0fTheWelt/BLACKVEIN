@@ -23,6 +23,20 @@ canonical_path_step:
     interaction_density: player_driven
     player_agency: "First free action, silence, observation, gesture, or line."
 
+  player_freedom_policy:
+    policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
+    free_movement: allowed_unless_hard_denied_or_prevented
+    free_object_interaction: allow_canon_safe_mundane_affordance_inference
+    canonical_path_progression: hold_for_free_player_action
+
+  canonical_path_control:
+    free_player_action_default: hold_current_step
+    waiting_policy: social_hold_if_required_participant_absent
+    narrator_instruction: >-
+      Free player action after handoff should be realized as local narration or
+      NPC response without advancing the directed path unless a later content
+      marker explicitly resumes canonical progression.
+
   path_point:
     present:
       named_characters:
@@ -36,6 +50,8 @@ canonical_path_step:
       - gesture
       - remain_silent
       - speak
+      - move_to_accessible_location
+      - interact_with_canon_safe_local_object
     must_not:
       - duplicate_location_description
       - assign_player_speech

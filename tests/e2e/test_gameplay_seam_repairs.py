@@ -137,57 +137,71 @@ class TestTurnResponseValidation:
     """PHASE 2 REPAIR: Turn response validation against canonical contract"""
 
     def test_backend_validates_world_engine_response(self, client, player_backend_mock):
-        """Verify backend validates world-engine turn response contains required fields."""
-        from backend.app.api.v1.session_routes import _validate_world_engine_turn_contract
-        from backend.app.services.game_service import GameServiceError
+        """Verify backend validates world-engine turn response contains canonical evidence."""
+        from app.services.game_service import _validate_story_turn_canonical_evidence
 
-        # Valid turn response with all required fields
+        # Valid turn response with all canonical evidence fields.
         valid_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
             "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": {"turn_aspect_ledger": {"input": {"status": "passed"}}},
+            "diagnostics": {"quality_class": "healthy"},
             "visible_output_bundle": {"gm_narration": ["The room is quiet."]},
         }
 
         # Should not raise
-        _validate_world_engine_turn_contract(valid_turn)
+        _validate_story_turn_canonical_evidence(valid_turn)
 
     def test_backend_rejects_missing_required_fields(self):
-        """Verify backend rejects turn response missing required fields."""
-        from backend.app.api.v1.session_routes import _validate_world_engine_turn_contract
-        from backend.app.services.game_service import GameServiceError
+        """Verify backend rejects turn response missing visible output evidence."""
+        from app.services.game_service import (
+            GameServiceError,
+            _validate_story_turn_canonical_evidence,
+        )
 
-        # Missing visible_output_bundle
+        # Missing visible_output_bundle / visible_scene_output.
         invalid_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
             "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": {"turn_aspect_ledger": {"input": {"status": "passed"}}},
+            "diagnostics": {"quality_class": "healthy"},
         }
 
-        with pytest.raises(GameServiceError):
-            _validate_world_engine_turn_contract(invalid_turn)
+        with pytest.raises(GameServiceError) as exc:
+            _validate_story_turn_canonical_evidence(invalid_turn)
+        assert "visible_output" in exc.value.payload["missing"]
 
-    def test_backend_validates_field_types(self):
-        """Verify backend validates field types (dict vs string)."""
-        from backend.app.api.v1.session_routes import _validate_world_engine_turn_contract
-        from backend.app.services.game_service import GameServiceError
+    def test_backend_validates_canonical_evidence_field_types(self):
+        """Verify backend validates canonical evidence field types (dict vs string)."""
+        from app.services.game_service import (
+            GameServiceError,
+            _validate_story_turn_canonical_evidence,
+        )
 
-        # Wrong type for interpreted_input (should be dict, not string)
+        # Wrong type for turn_aspect_ledger (should be a nested dict).
         invalid_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
-            "interpreted_input": "speech",  # Should be dict
+            "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": "not-a-ledger",
+            "diagnostics": {"quality_class": "healthy"},
             "visible_output_bundle": {"gm_narration": ["The room is quiet."]},
         }
 
-        with pytest.raises(GameServiceError):
-            _validate_world_engine_turn_contract(invalid_turn)
+        with pytest.raises(GameServiceError) as exc:
+            _validate_story_turn_canonical_evidence(invalid_turn)
+        assert "turn_aspect_ledger" in exc.value.payload["missing"]
 
 
 class TestFrontendTurnProjection:

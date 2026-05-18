@@ -170,14 +170,16 @@
         - speak_minimally
         - look_to_spouse
         - point_to_screen_or_object
+        - move_to_accessible_location
+        - interact_with_canon_safe_local_object
       forbidden:
         - propose_a_different_word_as_player
-        - leave_the_study
         - take_over_alain_authority
+      canonical_response: wait_for_player_return
       redirect_policy: >-
         If the player suggests a word instead of observing, the director
-        writes a brief narrator_perception ("No one answers the player.
-        Veronique waits for Alain.") and completes the forces_response chain.
+        writes a brief narrator_perception showing that the adults wait for
+        Alain's authority on the wording, then completes the forces_response chain.
         The player's word is stored in runtime_intelligence as
         'player_word_suggestion_not_canonical' but is not adopted into the
         committed statement text.
@@ -186,19 +188,25 @@
       allowed:
         - silent_observation
         - small_gesture
+        - move_to_accessible_location
+        - interact_with_canon_safe_local_object
       forbidden:
         - speak
+      canonical_response: continue_only_non_load_bearing_business
       redirect_policy: >-
         Micro-window for body language. If the player speaks, narrator_perception
-        ("Michel has already drawn breath.") and Michel's echo runs immediately.
+        shows the queued response and Michel's echo runs immediately.
 
     - between: [veronique_types_correction, null]
       allowed:
         - speak
         - move_in_room
+        - move_to_accessible_location
+        - interact_with_canon_safe_local_object
         - acknowledge_outcome
       forbidden:
         - dismiss_the_compromise
+      canonical_response: resume_on_return
       redirect_policy: >-
         First real player window with room to maneuver. The player may comment
         on the compromise, point at the statement, or try a new direction. The

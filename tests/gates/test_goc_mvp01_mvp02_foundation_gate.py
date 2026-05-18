@@ -43,6 +43,13 @@ def _canonical_characters_doc() -> dict:
         return yaml.safe_load(f)
 
 
+def _load_yaml(path: Path) -> dict:
+    with open(path, encoding="utf-8") as f:
+        doc = yaml.safe_load(f) or {}
+    assert isinstance(doc, dict), f"{path} must parse as a YAML mapping"
+    return doc
+
+
 def _canonical_god_of_carnage_title() -> str:
     """Display title from canonical module.yaml (single source of truth; gate wave 01)."""
     return str(_canonical_module_doc()["title"])
@@ -189,14 +196,29 @@ class TestMVP02RulesEnforced:
         characters = _canonical_character_ids()
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in characters, "visitor must not exist as a canonical character"
 
-    def test_canonical_module_has_scenes(self):
-        """Canonical module must define scene phases (story truth)."""
-        scene_file = _GOC_MODULE_ROOT / "scenes.yaml"
-        assert scene_file.exists(), "scenes.yaml not found in canonical module"
-        with open(scene_file) as f:
-            doc = yaml.safe_load(f)
-        phases = doc.get("scene_phases", {})
-        assert len(phases) >= 1, "Canonical module must define at least one scene phase"
+    def test_canonical_module_has_directed_story_authority(self):
+        """Canonical module must define story truth through canonical_path, not legacy scenes.yaml."""
+        legacy_scene_file = _GOC_MODULE_ROOT / "scenes.yaml"
+        assert not legacy_scene_file.exists(), "Legacy scenes.yaml must not return as a second story authority"
+
+        path_index_file = _GOC_MODULE_ROOT / "canonical_path" / "index.yaml"
+        assert path_index_file.exists(), "canonical_path/index.yaml not found in canonical module"
+        path_index = _load_yaml(path_index_file).get("canonical_path") or {}
+        step_order = path_index.get("step_order") or []
+        assert len(step_order) >= 1, "Canonical module must define at least one canonical path step"
+
+        for step_id in step_order:
+            step_file = _GOC_MODULE_ROOT / "canonical_path" / f"{str(step_id).removeprefix('opening_')}.yaml"
+            assert step_file.exists(), f"Canonical path step file missing: {step_file.relative_to(_GOC_MODULE_ROOT)}"
+            step_doc = _load_yaml(step_file).get("canonical_path_step") or {}
+            assert step_doc.get("id") == step_id, f"{step_file.name} id does not match step_order"
+
+        scene_graph_file = _GOC_MODULE_ROOT / "scene_graph.yaml"
+        assert scene_graph_file.exists(), "scene_graph.yaml runtime index not found in canonical module"
+        scene_graph = _load_yaml(scene_graph_file).get("scene_graph") or {}
+        assert scene_graph.get("primary_direction_document") == "canonical_path/index.yaml"
+        nodes = scene_graph.get("nodes") or []
+        assert nodes, "scene_graph.yaml must expose runtime nodes over canonical_path/location ids"
 
 
 @pytest.mark.foundation_gate

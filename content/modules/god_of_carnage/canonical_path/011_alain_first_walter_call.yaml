@@ -81,8 +81,9 @@
       beat_pattern_params:
         between_beat_a: first_walter_call_full_pattern
         between_beat_b: null
-        allowed: [silent_observation, small_gesture, speak_minimally]
-        forbidden: [interrupt_call, leave_the_room, touch_alains_phone]
+        allowed: [silent_observation, small_gesture, speak_minimally, move_to_accessible_location, interact_with_canon_safe_local_object]
+        forbidden: [interrupt_call, touch_alains_phone]
+        canonical_response: continue_only_non_load_bearing_business
         redirect_kind: queued_input_no_visible_reaction
 
   themes_realized_here:

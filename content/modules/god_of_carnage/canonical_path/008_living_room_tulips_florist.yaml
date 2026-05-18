@@ -194,8 +194,9 @@
       beat_pattern_params:
         between_beat_a: cowans_drift_toward_foyer_followed
         between_beat_b: annette_asks_about_damaged_tooth
-        allowed: [silent_observation, look_at_named_object, small_gesture, speak_minimally]
-        forbidden: [propose_alternative_for_npc, leave_the_room]
+        allowed: [silent_observation, look_at_named_object, small_gesture, speak_minimally, move_to_accessible_location, interact_with_canon_safe_local_object]
+        forbidden: [propose_alternative_for_npc]
+        canonical_response: wait_for_player_return
         redirect_kind: narrator_perception_redirect
 
   themes_realized_here:

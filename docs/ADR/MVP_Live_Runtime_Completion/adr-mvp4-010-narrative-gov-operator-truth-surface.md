@@ -17,7 +17,7 @@ The administration-tool's Narrative Gov `runtime.html` page was a placeholder wi
    - `content_module_health` — is canonical content loaded?
    - `runtime_profile_health` — is the profile story-truth-free?
    - `runtime_module_health` — is the runtime module story-truth-free?
-   - `ldss_health` — is LDSS evidenced_live_path with a real trace ID?
+   - `ldss_health` — does the last turn carry LDSS evidence (`approved` direct canonical-step proof or `evidenced_live_path` story-manager projection) with trace metadata?
    - `frontend_render_contract_health` — are scene blocks present and legacy blob absent?
    - `actor_lane_health` — is enforcement active? Is visitor absent?
 
@@ -65,5 +65,6 @@ flowchart LR
 ## Validation Evidence
 
 - `test_mvp04_narrative_gov_surface_returns_runtime_evidence` — PASS
+- `test_mvp04_narrative_gov_treats_direct_approved_ldss_as_evidenced` — PASS
 - `test_mvp04_diagnostics_endpoint_returns_last_turn_evidence` — PASS (structural proof)
 - `test_narrative_gov_summary_after_turn` (world-engine integration) — PASS

@@ -31,21 +31,23 @@ class _OutputModuleAdapter(BaseModelAdapter):
         if "Souffleuse output-module input:\n" in prompt:
             source = json.loads(prompt.split("Souffleuse output-module input:\n", 1)[1])
             assert source["scene_blocks"][0]["target_actor_id"] == "veronique_vallon"
-            assert source["scene_blocks"][0]["source_facts"]["character_statement_pressure"]
             assert source["scene_blocks"][0]["source_facts"]["character_situational_stance"]
             assert source["scene_blocks"][0]["source_facts"]["character_professional_identity"]
             assert source["scene_blocks"][0]["source_facts"]["character_partner"]["name"]
             assert source["scene_blocks"][0]["source_facts"]["character_voice"]
             assert source["scene_blocks"][0]["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
             assert source["scene_blocks"][0]["source_facts"]["character_souffleuse_guidance"]
+            assert source["scene_blocks"][0]["source_facts"]["cue_surface_policy"]["output_shape"] == "inward_footing_not_character_sheet"
+            assert "pre_action_inward_footing" in source["scene_blocks"][0]["guidance_kinds"]
+            assert "character_statement_pressure" not in source["scene_blocks"][0]["source_facts"]
             assert "text" not in source["scene_blocks"][0]
             payload = {
                 "scene_blocks": [
                     {
                         "id": block["id"],
                         "text": (
-                            "Du bist Véronique Vallon, Schriftstellerin; Michel ist bei dir. "
-                            "Dein Zuhause soll höflich bleiben, ohne Brunos Verletzung klein zu machen."
+                            "Véroniques Blick bleibt beim Laptop; Michel steht nah genug, um die Form zu halten. "
+                            "Das Haus soll höflich bleiben, ohne Brunos Verletzung klein zu machen."
                         ),
                     }
                     for block in source["scene_blocks"]
@@ -218,9 +220,9 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     assert narrator_blocks[0]["text"] == "Synthetisierte Erzählung 1."
     assert narrator_blocks[0]["source"] == "narrator_path_synthesis_module"
     assert len(souffleuse_blocks) == 1
-    assert "Du bist" in souffleuse_blocks[0]["text"]
+    assert "Du bist" not in souffleuse_blocks[0]["text"]
     assert "Michel" in souffleuse_blocks[0]["text"]
-    assert "Schriftstellerin" in souffleuse_blocks[0]["text"]
+    assert "Laptop" in souffleuse_blocks[0]["text"]
     assert "Souffleuse:" not in souffleuse_blocks[0]["text"]
     assert souffleuse_blocks[0]["speaker_label"] == "Souffleuse"
     assert souffleuse_blocks[0]["player_display_text"] == souffleuse_blocks[0]["text"]

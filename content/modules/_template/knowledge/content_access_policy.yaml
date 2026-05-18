@@ -12,4 +12,8 @@ content_access_policy:
         gate: entry_or_exit_pressure
       service_room:
         gate: narrator_consequence
+  inferred_plausible:
+    policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
+    meaning: "AI-resolved mundane, local, reversible affordance where authored content is silent."
+    runtime_expectation: narrator_realizes_as_local_non_canonical_detail_after_semantic_policy_check
   default_denial_style: recover_with_in_world_boundary

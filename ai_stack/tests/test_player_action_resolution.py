@@ -44,22 +44,26 @@ def _semantic_interpreted(
     action_kind: str,
     actor_id: str = "annette_reille",
     commit_policy: str = "commit_action",
+    extra_semantic: dict | None = None,
 ) -> dict:
+    semantic = {
+        "player_input_kind": "action",
+        "verb": verb,
+        "action_kind": action_kind,
+        "target_query": target_query,
+        "resolved_target_id": target_id,
+        "resolved_target_type": target_type,
+        "commit_policy": commit_policy,
+        "confidence": "high" if target_id else "low",
+    }
+    if isinstance(extra_semantic, dict):
+        semantic.update(extra_semantic)
     return {
         "player_input_kind": "action",
         "narrator_response_expected": True,
         "npc_response_expected": False,
         "actor_id": actor_id,
-        "semantic_action": {
-            "player_input_kind": "action",
-            "verb": verb,
-            "action_kind": action_kind,
-            "target_query": target_query,
-            "resolved_target_id": target_id,
-            "resolved_target_type": target_type,
-            "commit_policy": commit_policy,
-            "confidence": "high" if target_id else "low",
-        },
+        "semantic_action": semantic,
     }
 
 
@@ -211,6 +215,67 @@ def test_semantic_unknown_target_returns_clarification_status() -> None:
             target_query="Mordor",
             target_id=None,
             target_type=None,
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    aff = out["affordance_resolution"]
+    assert aff["affordance_status"] == "unknown_target"
+    assert aff["action_commit_policy"] == "needs_clarification"
+
+
+def test_ai_semantic_canon_safe_plausible_object_gap_commits_without_content_map() -> None:
+    out = resolve_player_action(
+        raw_text="Öffne den unbenannten Behälter",
+        interpreted_input=_semantic_interpreted(
+            verb="open",
+            action_kind="object_interaction",
+            target_query="unlisted household container",
+            target_id=None,
+            target_type="object",
+            extra_semantic={
+                "normalized_english_text": "Open the unlisted household container",
+                "inference_mode": "canon_safe_plausible_affordance",
+                "inferred_target_id": "inferred_local_household_container",
+                "canon_safety": "content_silent_mundane",
+                "canonical_risk": "low",
+                "inferred_affordance_summary": "A mundane household container implied by apartment use.",
+                "confidence": "medium",
+            },
+        ),
+        module_id="god_of_carnage",
+        runtime_projection=_runtime_projection(),
+        content_modules_root=_content_root(),
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["resolved_target_id"] == "inferred_local_household_container"
+    assert frame["resolved_target_type"] == "object"
+    assert frame["target_resolution_source"] == "ai_semantic_resolution.plausible_inference"
+    assert frame["access_status"] == "inferred_plausible"
+    assert frame["semantic_inference"]["canonical_risk"] == "low"
+    assert frame["canonical_path_effect"] == "hold_current_step"
+    assert aff["affordance_status"] == "allowed"
+    assert aff["action_commit_policy"] == "commit_action"
+
+
+def test_ai_semantic_canon_risky_unknown_target_stays_clarification() -> None:
+    out = resolve_player_action(
+        raw_text="Suche den verborgenen Beweis",
+        interpreted_input=_semantic_interpreted(
+            verb="look_at",
+            action_kind="perception",
+            target_query="hidden decisive evidence",
+            target_id=None,
+            target_type="object",
+            extra_semantic={
+                "normalized_english_text": "Look for hidden decisive evidence",
+                "inference_mode": "canon_safe_plausible_affordance",
+                "canon_safety": "hidden_or_load_bearing_fact",
+                "canonical_risk": "high",
+                "confidence": "low",
+            },
         ),
         module_id="god_of_carnage",
         runtime_projection=_runtime_projection(),

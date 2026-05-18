@@ -87,6 +87,18 @@ def build_local_context_transition(
     rt = player_action_frame.get("resolved_target") if isinstance(player_action_frame.get("resolved_target"), dict) else {}
     target_id = str(rt.get("target_id") or "").strip()
     target_alias = str(rt.get("matched_alias") or rt.get("canonical_name") or "").strip()
+    target_resolution_source = str(player_action_frame.get("target_resolution_source") or "").strip()
+    access_status = str(player_action_frame.get("access_status") or "").strip()
+    semantic_inference = (
+        player_action_frame.get("semantic_inference")
+        if isinstance(player_action_frame.get("semantic_inference"), dict)
+        else {}
+    )
+    plausible_inferred_target = (
+        target_resolution_source == "ai_semantic_resolution.plausible_inference"
+        or access_status == "inferred_plausible"
+        or bool(semantic_inference)
+    )
 
     scene_af = (scene_affordance_model.get("scene_affordances") or {}) if isinstance(scene_affordance_model, dict) else {}
     current_loc = str(
@@ -97,14 +109,10 @@ def build_local_context_transition(
     ).strip()
     current_area = current_loc
 
-    is_movement = verb in {"move_to", "stand_up"} or action_kind == "movement"
-
-    is_movement = verb in {"move_to", "stand_up"} or action_kind == "movement"
-    is_perception = verb in {"look_at", "listen_to"} or action_kind == "perception"
-    is_object_interaction = (
-        action_kind == "object_interaction"
-        or verb in {"activate", "deactivate", "open", "place", "take"}
-    )
+    is_movement = action_kind == "movement"
+    is_posture_change = action_kind == "posture_change"
+    is_perception = action_kind == "perception"
+    is_object_interaction = action_kind == "object_interaction"
     transition_allowed = affordance_status in {"allowed", "allowed_offscreen", "partial"}
 
     transition: dict[str, Any] = {
@@ -117,11 +125,14 @@ def build_local_context_transition(
         "new_area_established": False,
         "location_found": False,
         "object_found": False,
+        "object_inferred": False,
         "target_id": target_id or None,
         "target_alias": target_alias or None,
+        "target_resolution_source": target_resolution_source or None,
+        "semantic_inference": dict(semantic_inference) if semantic_inference else None,
     }
 
-    if is_movement and transition_allowed and verb != "stand_up":
+    if is_movement and transition_allowed:
         loc = _find_location(scene_affordance_model, target_id, target_alias)
         if loc:
             to_id = str(loc.get("id") or "").strip()
@@ -132,18 +143,24 @@ def build_local_context_transition(
         transition["transition_type"] = (
             "move_offscreen" if affordance_status == "allowed_offscreen" else "movement"
         )
-    elif is_movement and verb == "stand_up":
+    elif is_posture_change:
         transition["transition_type"] = "posture_change"
         transition["new_area_established"] = False
     elif is_perception:
         obj = _find_object(scene_affordance_model, target_id, target_alias)
         if obj:
             transition["object_found"] = True
+        elif plausible_inferred_target:
+            transition["object_found"] = True
+            transition["object_inferred"] = True
         transition["transition_type"] = "perception"
     elif is_object_interaction:
         obj = _find_object(scene_affordance_model, target_id, target_alias)
         if obj:
             transition["object_found"] = True
+        elif plausible_inferred_target:
+            transition["object_found"] = True
+            transition["object_inferred"] = True
         transition["transition_type"] = "object_interaction"
 
     return transition
@@ -161,6 +178,11 @@ def build_narrator_consequence_plan(
     rt = player_action_frame.get("resolved_target") if isinstance(player_action_frame.get("resolved_target"), dict) else {}
     target_id = str(rt.get("target_id") or "").strip()
     target_alias = str(rt.get("matched_alias") or rt.get("canonical_name") or "").strip()
+    semantic_inference = (
+        player_action_frame.get("semantic_inference")
+        if isinstance(player_action_frame.get("semantic_inference"), dict)
+        else {}
+    )
 
     transition_type = str(local_context_transition.get("transition_type") or "").strip()
     lang_key = lang[:2].lower() if lang else "de"
@@ -179,25 +201,42 @@ def build_narrator_consequence_plan(
             if detail:
                 consequence_text = str(detail)
                 consequence_type = "area_transition"
-                source = "content_description"
+                source = "scene_affordance_detail"
             affordances_available = list(loc.get("available_affordances") or [])
     elif transition_type == "perception" and local_context_transition.get("object_found"):
-        obj = _find_object(scene_affordance_model, target_id, target_alias)
-        if obj:
-            detail_map = obj.get("perception_detail") or {}
-            detail = detail_map.get(lang_key) or detail_map.get("de") or detail_map.get("en")
-            detail = detail or obj.get("description")
-            if detail:
-                consequence_text = str(detail)
-                consequence_type = "perception_result"
-                source = "content_description"
+        if local_context_transition.get("object_inferred"):
+            consequence_type = "plausible_perception_result"
+            source = "ai_semantic_plausible_inference"
+            affordances_available = []
+        else:
+            obj = _find_object(scene_affordance_model, target_id, target_alias)
+            if obj:
+                detail_map = obj.get("perception_detail") or {}
+                detail = detail_map.get(lang_key) or detail_map.get("de") or detail_map.get("en")
+                detail = detail or obj.get("description")
+                if detail:
+                    consequence_text = str(detail)
+                    consequence_type = "perception_result"
+                    source = "scene_affordance_detail"
     elif transition_type == "object_interaction" and local_context_transition.get("object_found"):
-        consequence_type = "object_state_change"
+        if local_context_transition.get("object_inferred"):
+            consequence_type = "plausible_object_interaction"
+            source = "ai_semantic_plausible_inference"
+        else:
+            consequence_type = "object_state_change"
 
     return {
         "consequence_text": consequence_text,
         "consequence_type": consequence_type,
         "source": source,
+        "requires_model_realization": source == "ai_semantic_plausible_inference" or consequence_text is None,
+        "inferred_target": {
+            "target_id": target_id or None,
+            "target_alias": target_alias or None,
+            "semantic_inference": dict(semantic_inference) if semantic_inference else None,
+        }
+        if source == "ai_semantic_plausible_inference"
+        else None,
         "local_context_updated": local_context_transition.get("new_area_established", False),
         "affordances_available": affordances_available,
         "transition_type": transition_type,

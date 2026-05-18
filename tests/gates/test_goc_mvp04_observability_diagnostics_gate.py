@@ -93,6 +93,23 @@ _MVP4_COST_B = _load_gate_fixture_yaml("mvp4_phase_b_cost_summary.yaml")
 _MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
 _PRIMARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[0]
 _SECONDARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[1]
+_GOC_MODULE_ROOT = REPO_ROOT / "content" / "modules" / "god_of_carnage"
+_CANONICAL_PATH = None
+
+
+def _canonical_path():
+    global _CANONICAL_PATH
+    if _CANONICAL_PATH is None:
+        from ai_stack.canonical_path_resolver import load_canonical_path
+
+        _CANONICAL_PATH = load_canonical_path(_GOC_MODULE_ROOT)
+    return _CANONICAL_PATH
+
+
+def _canonical_step_id_for(human: str) -> str:
+    if human == _SECONDARY_HUMAN_ID:
+        return "opening_005_statement_reading"
+    return "opening_006_armed_vs_carrying"
 
 
 def _goc_projection(human: str = _PRIMARY_HUMAN_ID) -> dict:
@@ -153,6 +170,8 @@ def _build_test_envelope(human: str = _PRIMARY_HUMAN_ID, turn: int = 1) -> Diagn
         human_actor_id=human,
         npc_actor_ids=goc_npc_actor_ids_for_selected(human),
         player_input=_diag_player,
+        canonical_step_id=_canonical_step_id_for(human),
+        canonical_path=_canonical_path(),
     )
     ldss_output = run_ldss(ldss_input)
     scene_env = build_scene_turn_envelope_v2(
@@ -272,8 +291,9 @@ def test_mvp04_response_packaging_uses_committed_state():
     """Envelope explicitly marks response as packaged from committed state."""
     env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     assert env.response_packaged_from_committed_state is True
-    # LDSS diagnostics show evidenced_live_path (not raw AI)
-    assert env.live_dramatic_scene_simulator.get("status") == "evidenced_live_path"
+    # Direct canonical-step LDSS diagnostics show approved authored evidence (not raw AI).
+    assert env.live_dramatic_scene_simulator.get("status") == "approved"
+    assert env.live_dramatic_scene_simulator.get("decision_count", 0) > 0
     assert env.frontend_render_contract.get("legacy_blob_used") is False
 
 
@@ -514,6 +534,24 @@ def test_mvp04_narrative_gov_surface_returns_runtime_evidence():
     assert_narrative_gov_template_renders_panel_contract(template_path)
 
 
+@pytest.mark.mvp4
+def test_mvp04_narrative_gov_treats_direct_approved_ldss_as_evidenced():
+    """NarrativeGovSummary recognizes direct canonical-step LDSS proof."""
+    summary = build_narrative_gov_summary(
+        last_story_session_id="test-session-direct-ldss",
+        last_turn_number=1,
+        last_trace_id="trace-direct-ldss",
+        ldss_status="approved",
+        scene_block_count=2,
+        legacy_blob_used=False,
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID),
+    )
+    d = summary.to_dict()
+    assert d["ldss_health"]["status"] == "approved"
+    assert d["ldss_health"]["evidenced"] is True
+
+
 # ---------------------------------------------------------------------------
 # False-green protection
 # ---------------------------------------------------------------------------
@@ -526,7 +564,7 @@ def test_mvp04_rejects_false_green_static_field_presence():
         story_session_id="test-empty",
         turn_number=0,
         live_dramatic_scene_simulator={
-            "status": "evidenced_live_path",
+            "status": "approved",
             "invoked": False,
             "decision_count": 0,  # placeholder
             "scene_block_count": 0,  # placeholder

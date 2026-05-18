@@ -27,7 +27,7 @@ def _mock_graph_state(*, force_ldss_scene_fallback: bool = False) -> dict:
 
     By default the visible bundle yields live scene blocks (live graph primary).
     Set ``force_ldss_scene_fallback=True`` to skip live projection and exercise
-    the LDSS envelope builder (``evidenced_live_path`` diagnostics).
+    the LDSS envelope builder (approved canonical-path diagnostics).
     """
     state = {
         "validation_outcome": {
@@ -206,8 +206,8 @@ def test_scene_envelope_diagnostics_live_graph_primary_skips_ldss():
 
 
 @pytest.mark.mvp3
-def test_scene_envelope_diagnostics_evidenced_live_path_via_ldss_fallback():
-    """When live projection is bypassed, LDSS builds the envelope (evidenced_live_path)."""
+def test_scene_envelope_diagnostics_approved_via_ldss_fallback():
+    """When live projection is bypassed, LDSS builds the approved canonical envelope."""
     mgr, session = _make_manager_with_session("annette", force_ldss_scene_fallback=True)
     result = mgr.execute_turn(
         session_id=session.session_id,
@@ -216,11 +216,54 @@ def test_scene_envelope_diagnostics_evidenced_live_path_via_ldss_fallback():
 
     env = result["scene_turn_envelope"]
     diag = env["diagnostics"]["live_dramatic_scene_simulator"]
-    assert diag["status"] == "evidenced_live_path"
+    assert diag["status"] == "approved"
     assert diag["invoked"] is True
     assert diag["entrypoint"] == "story.turn.execute"
     assert diag["legacy_blob_used"] is False
     assert diag["scene_block_count"] >= 2
+
+
+@pytest.mark.mvp3
+def test_ldss_fallback_holds_canonical_step_for_free_player_action():
+    """Free local action must not spend the next canonical narrator step."""
+    mgr, session = _make_manager_with_session("annette", force_ldss_scene_fallback=True)
+    session.canonical_step_id = "opening_005_statement_reading"
+    graph_state = _mock_graph_state(force_ldss_scene_fallback=True)
+    graph_state["player_action_frame"] = {
+        "player_input_kind": "action",
+        "action_kind": "object_interaction",
+        "canonical_path_effect": "hold_current_step",
+    }
+    graph_state["affordance_resolution"] = {
+        "affordance_status": "allowed",
+        "action_commit_policy": "commit_action",
+    }
+    mgr.turn_graph.run.return_value = graph_state
+
+    result = mgr.execute_turn(
+        session_id=session.session_id,
+        player_input="I open a local object.",
+    )
+
+    assert "scene_turn_envelope" in result
+    assert session.canonical_step_id == "opening_005_statement_reading"
+
+
+@pytest.mark.mvp3
+def test_ldss_fallback_advances_canonical_step_without_free_action_hold():
+    """Canonical LDSS fallback keeps its normal advancement when no hold is requested."""
+    mgr, session = _make_manager_with_session("annette", force_ldss_scene_fallback=True)
+    session.canonical_step_id = "opening_005_statement_reading"
+    graph_state = _mock_graph_state(force_ldss_scene_fallback=True)
+    mgr.turn_graph.run.return_value = graph_state
+
+    result = mgr.execute_turn(
+        session_id=session.session_id,
+        player_input="I continue.",
+    )
+
+    assert "scene_turn_envelope" in result
+    assert session.canonical_step_id != "opening_005_statement_reading"
 
 
 @pytest.mark.mvp3

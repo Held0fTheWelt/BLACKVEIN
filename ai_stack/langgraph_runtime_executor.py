@@ -149,6 +149,11 @@ from ai_stack.environment_state_contracts import (
     build_environment_render_context,
     normalize_environment_state,
 )
+from ai_stack.narrator_consequence_contracts import (
+    build_local_context_transition,
+    build_narrator_consequence_plan,
+    normalize_scene_affordance_model_for_contracts,
+)
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -375,6 +380,10 @@ def _compact_semantic_catalog(module_id: str) -> dict[str, Any]:
     return {
         "module_id": module_id,
         "schema_version": surface.get("schema_version"),
+        "adapter_policy": surface.get("adapter_policy") if isinstance(surface.get("adapter_policy"), dict) else {},
+        "player_freedom_policy": surface.get("player_freedom_policy")
+        if isinstance(surface.get("player_freedom_policy"), dict)
+        else {},
         "locations": _compact_rows(
             surface.get("locations"),
             ("id", "name", "content_terms", "playable_access", "connected_place_ids", "inventory_object_ids"),
@@ -411,6 +420,9 @@ def _semantic_translation_prompt(
             "First translate or normalize the player input to English.",
             "Then ground the English meaning against the English-authored content catalog.",
             "Do not use lookup tables, phrase maps, verb maps, actor alias maps, or locale files.",
+            "If a target is present in the catalog, prefer the catalog id.",
+            "If the catalog is silent, follow content_catalog.player_freedom_policy.semantic_resolution_requirements; only mark an inferred target when that policy is satisfied by the meaning of the input and the English content context.",
+            "For free committed player actions, set canonical_path_effect from the content policy rather than advancing the canonical path.",
             "If meaning or target is uncertain, set commit_policy to needs_clarification.",
             "Expected top-level JSON keys:",
             "- semantic_action: object following the semantic_resolution_contract expected_ai_output",
@@ -446,6 +458,12 @@ def _semantic_payloads_from_translation_output(parsed: dict[str, Any]) -> tuple[
             "target_query_english",
             "resolved_target_id",
             "resolved_target_type",
+            "inference_mode",
+            "inferred_target_id",
+            "canon_safety",
+            "canonical_risk",
+            "canonical_path_effect",
+            "inferred_affordance_summary",
             "commit_policy",
         }
         if any(key in parsed for key in action_keys):
@@ -838,35 +856,27 @@ def _normalized_word_set(text: str) -> set[str]:
 
 
 def _authority_text_matches_player_action(text: str, frame: dict[str, Any]) -> bool:
-    """Generic overlap check: action ontology verb/target, not fixture phrases."""
+    """Generic overlap check against resolved semantic fields, without verb/language maps."""
     blob = str(text or "").strip().lower()
     if not blob:
         return False
-    target_query = str(frame.get("target_query") or "").strip()
-    target_id = str(frame.get("resolved_target_id") or "").strip()
-    target_hit = False
-    for candidate in (target_query, target_id):
-        if candidate and candidate.lower() in blob:
-            target_hit = True
-            break
-    verb = str(frame.get("verb") or "").strip().lower()
-    verb_markers = {
-        "move_to": {"go", "geht", "gehen", "tritt", "betritt", "moves", "walks"},
-        "look_at": {"look", "looks", "schau", "schaut", "blick", "blickt", "sieht"},
-        "listen_to": {"listen", "listens", "hoer", "hoert", "hört", "lauscht"},
-        "take": {"take", "takes", "nimmt", "nehme", "nimm"},
-        "activate": {"activate", "activates", "schaltet", "schalte", "macht"},
-        "deactivate": {"deactivate", "deactivates", "schaltet", "schalte", "macht"},
-        "open": {"open", "opens", "oeffnet", "öffnet", "oeffne", "öffne"},
-        "place": {"place", "places", "legt", "lege", "stellt", "stelle"},
-        "stand_up": {"stand", "stands", "steht"},
-    }.get(verb, {verb} if verb else set())
     words = _normalized_word_set(blob)
-    verb_hit = bool(words.intersection(verb_markers))
-    if target_query or target_id:
-        return target_hit and (verb_hit or len(_normalized_word_set(target_query).intersection(words)) >= 1)
-    raw_words = _normalized_word_set(str(frame.get("source_text") or ""))
-    return verb_hit and len(raw_words.intersection(words)) >= 2
+    target_terms: set[str] = set()
+    for value in (
+        frame.get("target_query"),
+        frame.get("resolved_target_id"),
+        (frame.get("resolved_target") or {}).get("matched_alias")
+        if isinstance(frame.get("resolved_target"), dict)
+        else None,
+        (frame.get("resolved_target") or {}).get("canonical_name")
+        if isinstance(frame.get("resolved_target"), dict)
+        else None,
+    ):
+        target_terms.update(_normalized_word_set(str(value or "")))
+    if target_terms:
+        return bool(words.intersection(target_terms))
+    raw_words = _normalized_word_set(str(frame.get("source_text") or frame.get("raw_text") or ""))
+    return len(raw_words.intersection(words)) >= 2
 
 
 def _npc_action_controls_human_actor(row: dict[str, Any], human_scope: set[str]) -> bool:
@@ -4380,6 +4390,19 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "constraints make that impossible."
         )
     scene_plan = state.get("scene_plan_record") if isinstance(state.get("scene_plan_record"), dict) else {}
+    player_action_frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
+    affordance_resolution = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
+    narrator_consequence_plan = (
+        state.get("narrator_consequence_plan")
+        if isinstance(state.get("narrator_consequence_plan"), dict)
+        else {}
+    )
+    local_context_transition = (
+        state.get("local_context_transition")
+        if isinstance(state.get("local_context_transition"), dict)
+        else {}
+    )
+    player_freedom_policy = _runtime_governance_section(state, "player_freedom")
 
     packet = {
         "contract": "dramatic_generation_packet.v1",
@@ -4661,6 +4684,31 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")),
             "npc_response_expected": bool(interpreted_input.get("npc_response_expected")),
         },
+        "player_action_resolution": {
+            "player_action_frame": player_action_frame,
+            "affordance_resolution": affordance_resolution,
+            "local_context_transition": local_context_transition,
+            "narrator_consequence_plan": narrator_consequence_plan,
+            "player_freedom_policy": player_freedom_policy,
+            "canonical_path_control": {
+                "free_player_actions_hold_current_step": bool(player_freedom_policy.get("enabled", True)),
+                "current_canonical_step_id": state.get("canonical_step_id"),
+                "rule": (
+                    "Committed player movement, perception, waiting, and object interaction may update player local context "
+                    "but must not advance or rewrite the canonical_path unless a content marker explicitly authorizes progression."
+                ),
+                "waiting_social_hold": (
+                    "If a required participant is absent or delayed, realize a brief social hold or offscreen pause instead of spending mandatory dialogue."
+                ),
+            },
+            "instruction": (
+                "When player_action_frame commits a narrator-only consequence, realize that consequence through the narrator. "
+                "For ai_semantic_resolution.plausible_inference, follow player_freedom_policy and narrator_consequence_plan; "
+                "realize only what the semantic policy marks as low-risk and do not advance the canonical path unless canonical_path_effect permits it."
+            ),
+        }
+        if player_action_frame or affordance_resolution or narrator_consequence_plan
+        else {},
         "character_mind_records": compact_minds,
         "character_voice_profiles": compact_voice_profiles,
         "continuity_constraints": continuity_constraints,
@@ -6170,6 +6218,33 @@ class RuntimeTurnGraphExecutor:
         )
         if model:
             update["scene_affordance_model"] = model
+        if frame and aff and model:
+            try:
+                sam = normalize_scene_affordance_model_for_contracts(model)
+                local_context_transition = build_local_context_transition(
+                    player_action_frame=frame,
+                    affordance_resolution=aff,
+                    scene_affordance_model=sam,
+                    current_player_local_context=state.get("player_local_context")
+                    if isinstance(state.get("player_local_context"), dict)
+                    else None,
+                )
+                narrator_consequence_plan = build_narrator_consequence_plan(
+                    lang=str(state.get("session_output_language") or "de"),
+                    player_action_frame=frame,
+                    affordance_resolution=aff,
+                    scene_affordance_model=sam,
+                    local_context_transition=local_context_transition,
+                )
+                if local_context_transition:
+                    update["local_context_transition"] = local_context_transition
+                if narrator_consequence_plan:
+                    update["narrator_consequence_plan"] = narrator_consequence_plan
+            except Exception as exc:
+                update["action_resolution_consequence_error"] = {
+                    "error_code": "narrator_consequence_plan_build_failed",
+                    "error": str(exc)[:240],
+                }
         if interp and frame:
             affn = frame.get("affordance_resolution") if isinstance(frame.get("affordance_resolution"), dict) else {}
             pol = str(affn.get("action_commit_policy") or "").strip().lower()
@@ -6335,10 +6410,21 @@ class RuntimeTurnGraphExecutor:
         pol = str(aff.get("action_commit_policy") or "").strip().lower()
         st = str(aff.get("affordance_status") or "").strip().lower()
         verb = str(frame.get("verb") or "").strip().lower()
+        source = str(
+            aff.get("target_resolution_source")
+            or frame.get("target_resolution_source")
+            or ""
+        ).strip()
+        access_status = str(aff.get("access_status") or frame.get("access_status") or "").strip()
+        if source == "ai_semantic_resolution.plausible_inference" or access_status == "inferred_plausible":
+            return "full_pipeline"
         if pol == "needs_clarification" or st in {"unknown_target", "ambiguous"}:
             return "authoritative_action_resolution"
         if st in {"blocked", "unsafe"}:
             return "authoritative_action_resolution"
+        ncp = state.get("narrator_consequence_plan") if isinstance(state.get("narrator_consequence_plan"), dict) else {}
+        if bool(ncp.get("requires_model_realization")):
+            return "full_pipeline"
         allowed_verbs = {
             str(item).strip().lower()
             for item in (short_path_policy.get("allowed_verbs") or [])

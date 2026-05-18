@@ -12,6 +12,7 @@ Run with: python3 tests/e2e/validate_repairs_manual.py
 
 import sys
 import os
+import importlib.util
 from pathlib import Path
 
 # Fix encoding for Windows
@@ -25,6 +26,23 @@ backend_path = Path(__file__).parent.parent.parent / "backend"
 frontend_path = Path(__file__).parent.parent.parent / "frontend"
 sys.path.insert(0, str(backend_path))
 sys.path.insert(0, str(frontend_path))
+
+
+def _load_backend_game_service():
+    """Load backend game_service without colliding with frontend's top-level app package."""
+    module_name = "_wos_backend_game_service_manual"
+    if module_name in sys.modules:
+        return sys.modules[module_name]
+
+    module_path = backend_path / "app" / "services" / "game_service.py"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load backend game_service from {module_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_template_mapping_config():
@@ -64,22 +82,26 @@ def test_backend_turn_validation():
     print("="*70)
 
     try:
-        from backend.app.api.v1.session_routes import _validate_world_engine_turn_contract
-        from backend.app.services.game_service import GameServiceError
+        game_service = _load_backend_game_service()
+        GameServiceError = game_service.GameServiceError
+        _validate_story_turn_canonical_evidence = game_service._validate_story_turn_canonical_evidence
 
         # Test 2a: Valid turn response passes validation
         print("\n2a: Testing VALID turn response...")
         valid_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
             "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": {"turn_aspect_ledger": {"input": {"status": "passed"}}},
+            "diagnostics": {"quality_class": "healthy"},
             "visible_output_bundle": {"gm_narration": ["The room is quiet."]},
         }
 
         try:
-            _validate_world_engine_turn_contract(valid_turn)
+            _validate_story_turn_canonical_evidence(valid_turn)
             print("  ✓ Valid turn response passed validation")
         except Exception as e:
             print(f"  ✗ Unexpected error: {e}")
@@ -88,33 +110,39 @@ def test_backend_turn_validation():
         # Test 2b: Missing required field raises error
         print("\n2b: Testing INVALID turn response (missing visible_output_bundle)...")
         invalid_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
             "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": {"turn_aspect_ledger": {"input": {"status": "passed"}}},
+            "diagnostics": {"quality_class": "healthy"},
         }
 
         try:
-            _validate_world_engine_turn_contract(invalid_turn)
+            _validate_story_turn_canonical_evidence(invalid_turn)
             print("  ✗ Should have raised error for missing visible_output_bundle")
             return False
         except GameServiceError as e:
             print(f"  ✓ Correctly rejected invalid turn: {e}")
 
         # Test 2c: Wrong type validation
-        print("\n2c: Testing INVALID field type (interpreted_input as string)...")
+        print("\n2c: Testing INVALID field type (turn_aspect_ledger as string)...")
         wrong_type_turn = {
+            "canonical_turn_id": "story-1:turn:1",
             "turn_number": 1,
             "turn_kind": "player",
-            "interpreted_input": "speech",  # Should be dict
+            "interpreted_input": {"kind": "speech"},
             "narrative_commit": {"committed_scene_id": "scene_1"},
             "validation_outcome": {"status": "approved"},
+            "turn_aspect_ledger": "not-a-ledger",
+            "diagnostics": {"quality_class": "healthy"},
             "visible_output_bundle": {"gm_narration": ["The room is quiet."]},
         }
 
         try:
-            _validate_world_engine_turn_contract(wrong_type_turn)
+            _validate_story_turn_canonical_evidence(wrong_type_turn)
             print("  ✗ Should have raised error for wrong field type")
             return False
         except GameServiceError as e:

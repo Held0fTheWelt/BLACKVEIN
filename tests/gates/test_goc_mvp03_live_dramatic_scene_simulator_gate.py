@@ -83,6 +83,17 @@ _MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inpu
 _MVP3_PRE_COMMIT = copy.deepcopy(_load_gate_fixture_yaml("mvp3_pre_commit_validator_stimuli.yaml"))
 _PRIMARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[0]
 _SECONDARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[1]
+_GOC_MODULE_ROOT = Path(__file__).resolve().parents[2] / "content" / "modules" / "god_of_carnage"
+_CANONICAL_PATH = None
+
+
+def _canonical_path():
+    global _CANONICAL_PATH
+    if _CANONICAL_PATH is None:
+        from ai_stack.canonical_path_resolver import load_canonical_path
+
+        _CANONICAL_PATH = load_canonical_path(_GOC_MODULE_ROOT)
+    return _CANONICAL_PATH
 
 
 def _npc_actor_ids_for(human_actor_id: str) -> list[str]:
@@ -119,7 +130,12 @@ def _scene_block_from_pre_commit_scenario(
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
-def _primary_human_ldss_input(turn: int = 1) -> LDSSInput:
+def _primary_human_ldss_input(
+    turn: int = 1,
+    *,
+    canonical_step_id: str | None = "opening_006_armed_vs_carrying",
+    player_input: str | None = None,
+) -> LDSSInput:
     return build_ldss_input_from_session(
         session_id=f"test-session-{_PRIMARY_HUMAN_ID}",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
@@ -127,11 +143,18 @@ def _primary_human_ldss_input(turn: int = 1) -> LDSSInput:
         selected_player_role=_PRIMARY_HUMAN_ID,
         human_actor_id=_PRIMARY_HUMAN_ID,
         npc_actor_ids=_npc_actor_ids_for(_PRIMARY_HUMAN_ID),
-        player_input=_MVP3_LDSS_INPUTS["primary_human_ldss_input"],
+        player_input=player_input or _MVP3_LDSS_INPUTS["primary_human_ldss_input"],
+        canonical_step_id=canonical_step_id,
+        canonical_path=_canonical_path() if canonical_step_id else None,
     )
 
 
-def _secondary_human_ldss_input(turn: int = 1) -> LDSSInput:
+def _secondary_human_ldss_input(
+    turn: int = 1,
+    *,
+    canonical_step_id: str | None = "opening_005_statement_reading",
+    player_input: str | None = None,
+) -> LDSSInput:
     return build_ldss_input_from_session(
         session_id=f"test-session-{_SECONDARY_HUMAN_ID}",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
@@ -139,7 +162,9 @@ def _secondary_human_ldss_input(turn: int = 1) -> LDSSInput:
         selected_player_role=_SECONDARY_HUMAN_ID,
         human_actor_id=_SECONDARY_HUMAN_ID,
         npc_actor_ids=_npc_actor_ids_for(_SECONDARY_HUMAN_ID),
-        player_input=_MVP3_LDSS_INPUTS["secondary_human_ldss_input"],
+        player_input=player_input or _MVP3_LDSS_INPUTS["secondary_human_ldss_input"],
+        canonical_step_id=canonical_step_id,
+        canonical_path=_canonical_path() if canonical_step_id else None,
     )
 
 
@@ -202,13 +227,8 @@ def test_mvp3_gate_start_secondary_human_live_scene_turn():
 @pytest.mark.mvp3
 def test_mvp3_gate_npcs_act_without_direct_address():
     """NPCs produce speech/action without player directly addressing them."""
-    ldss_input = build_ldss_input_from_session(
-        session_id="test-session",
-        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
-        turn_number=2,
-        selected_player_role=_PRIMARY_HUMAN_ID,
-        human_actor_id=_PRIMARY_HUMAN_ID,
-        npc_actor_ids=_npc_actor_ids_for(_PRIMARY_HUMAN_ID),
+    ldss_input = _primary_human_ldss_input(
+        turn=2,
         player_input=_MVP3_LDSS_INPUTS["npc_autonomous_scene_turn"],
     )
     ldss_output = run_ldss(ldss_input)
@@ -325,7 +345,7 @@ def test_mvp3_gate_responder_candidates_exclude_human():
     )
     assert result2.status == "approved"
 
-    # NPC agency plan from deterministic mock excludes human
+    # NPC agency plan from canonical-step rendering excludes human.
     ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     plan = ldss_output.npc_agency_plan
@@ -433,7 +453,7 @@ def test_mvp3_gate_response_packaged_from_committed_state():
 
     # Diagnostics prove real LDSS path, not raw AI
     diag = d["diagnostics"]["live_dramatic_scene_simulator"]
-    assert diag["status"] == "evidenced_live_path"
+    assert diag["status"] == "approved"
     assert diag["invoked"] is True
     assert diag["entrypoint"] == "story.turn.execute"
     assert diag["legacy_blob_used"] is False
@@ -508,22 +528,22 @@ def test_mvp3_gate_too_thin_mock_output_recovered_or_rejected_without_commit():
     assert passivity_result.status == "rejected"
     assert passivity_result.error_code == passivity_spec["expected_error_code"]
 
-    # run_ldss never produces thin output (deterministic mock always has NPC response)
+    # Canonical-step LDSS output is not the degraded/no-visible-generation path.
     ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     passivity_final = validate_passivity(ldss_output.visible_scene_output.blocks)
     assert passivity_final.status == "approved", (
-        "Deterministic mock output must always pass passivity validation"
+        "Canonical-step LDSS output must pass passivity validation"
     )
 
 
 # ---------------------------------------------------------------------------
-# Fallback output satisfies validation
+# Canonical path output satisfies validation
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp3
-def test_mvp3_gate_fallback_output_satisfies_validation():
-    """Deterministic mock/fallback output passes all MVP3 validators."""
+def test_mvp3_gate_canonical_path_output_satisfies_validation():
+    """Canonical-step output passes all MVP3 validators."""
     ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     blocks = ldss_output.visible_scene_output.blocks
@@ -551,6 +571,22 @@ def test_mvp3_gate_fallback_output_satisfies_validation():
             assert narrator_result.status == "approved", (
                 f"Narrator block failed voice validation: {narrator_result.message}\nText: {block.text}"
             )
+
+
+@pytest.mark.mvp3
+def test_mvp3_gate_missing_canonical_step_returns_degraded_notice():
+    """Fallback without canonical visible generation is explicit degradation, not fabricated scene truth."""
+    ldss_input = _primary_human_ldss_input(canonical_step_id=None)
+    ldss_output = run_ldss(ldss_input)
+    blocks = ldss_output.visible_scene_output.blocks
+
+    assert ldss_output.status == "degraded_error"
+    assert ldss_output.error_code == "ldss_no_live_visible_generation"
+    assert len(blocks) == 1
+    assert blocks[0].block_type == "system_degraded_notice"
+    assert validate_actor_lane_blocks(blocks, human_actor_id=ldss_input.human_actor_id).status == "approved"
+    assert validate_dramatic_mass(blocks).status == "rejected"
+    assert validate_passivity(blocks).status == "rejected"
 
 
 # ---------------------------------------------------------------------------

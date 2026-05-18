@@ -93,6 +93,14 @@ the actor-specific stance and must not collapse different playable characters
 into a single generic hint. It must synthesize prose from structured English
 facts/atoms; it must not translate a prewritten source sentence.
 
+Opening orientation uses the authored guidance kind
+`pre_action_inward_footing`: the character's inward footing before player
+action, before NPC-driven argument, and before statement wording pressure. This
+cue is grounded in `situational_stance`, public identity, baseline attitude,
+voice, profession, partner, current location, and incident location. It is not
+`statement_pressure`; statement wording pressure belongs to later content cues
+where the written account or disputed wording is actually active.
+
 ### D3 - Natural inward surface
 
 Souffleuse output must read like a small thought the current character could
@@ -114,8 +122,8 @@ SHOULD use the character's pressure vocabulary:
 Souffleuse source and output MUST NOT:
 
 - prefix or name the lane, such as `Souffleuse:`;
-- begin by telling the player who they are unless the content cue is an explicit
-  opening orientation cue;
+- reduce opening orientation to a character-sheet sentence such as name,
+  profession, partner, and location in apposition;
 - summarize location, household side, role policy, or controls;
 - explain the cue in phrases such as "for this role", "you are", or
   "this means";

@@ -50,9 +50,16 @@ def _root():
 
 def _frame(verb: str, target_id: str = "", alias: str = "", action_kind: str = "") -> dict:
     resolved_target = {"target_id": target_id, "matched_alias": alias} if target_id or alias else {}
+    if not action_kind:
+        action_kind = {
+            "move_to": "movement",
+            "look_at": "perception",
+            "listen_to": "perception",
+            "open": "object_interaction",
+        }.get(verb, verb)
     return {
         "verb": verb,
-        "action_kind": action_kind or verb,
+        "action_kind": action_kind,
         "resolved_target": resolved_target,
     }
 
@@ -123,7 +130,7 @@ def test_move_to_hallway_adjacent_transition_type():
 
 def test_move_to_kitchen_alias_matching():
     lct = build_local_context_transition(
-        player_action_frame=_frame("move_to", "Küche", "Küche"),
+        player_action_frame=_frame("move_to", "kitchen", "kitchen"),
         affordance_resolution=_aff("allowed_offscreen"),
         scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
         current_player_local_context=None,
@@ -135,7 +142,7 @@ def test_move_to_kitchen_alias_matching():
 
 def test_stand_up_no_area_change():
     lct = build_local_context_transition(
-        player_action_frame=_frame("stand_up", action_kind="movement"),
+        player_action_frame=_frame("stand_up", action_kind="posture_change"),
         affordance_resolution=_aff("allowed"),
         scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
         current_player_local_context=None,
@@ -356,7 +363,7 @@ def test_updated_context_after_kitchen_move():
     )
     assert uplc["current_area"] == "kitchen"
     assert "look_at" in uplc.get("available_affordances", [])
-    assert "take" in uplc.get("available_affordances", [])
+    assert "take_minor_service_item" in uplc.get("available_affordances", [])
 
 
 def test_updated_context_perception_does_not_change_area():
@@ -555,6 +562,44 @@ def test_synthetic_gen_perception_not_action_restatement_for_window():
         target_label="window",
     )
     assert narr != fallback_template
+
+
+def test_inferred_plausible_object_requires_model_realization_metadata():
+    frame = {
+        "verb": "open",
+        "action_kind": "object_interaction",
+        "target_resolution_source": "ai_semantic_resolution.plausible_inference",
+        "access_status": "inferred_plausible",
+        "resolved_target": {
+            "target_id": "inferred_local_household_container",
+            "matched_alias": "unlisted household container",
+        },
+        "semantic_inference": {
+            "mode": "canon_safe_plausible_affordance",
+            "canon_safety": "content_silent_mundane",
+            "canonical_risk": "low",
+        },
+    }
+    lct = build_local_context_transition(
+        player_action_frame=frame,
+        affordance_resolution=_aff("allowed", "commit_action"),
+        scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
+        current_player_local_context={"current_location_id": "kitchen"},
+    )
+    ncp = build_narrator_consequence_plan(
+        lang="en",
+        player_action_frame=frame,
+        affordance_resolution=_aff("allowed", "commit_action"),
+        scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
+        local_context_transition=lct,
+    )
+    assert lct["transition_type"] == "object_interaction"
+    assert lct["object_found"] is True
+    assert lct["object_inferred"] is True
+    assert ncp["source"] == "ai_semantic_plausible_inference"
+    assert ncp["consequence_type"] == "plausible_object_interaction"
+    assert ncp["requires_model_realization"] is True
+    assert ncp["consequence_text"] is None
 
 
 # ---------------------------------------------------------------------------

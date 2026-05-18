@@ -22,11 +22,11 @@ MVP3 introduces LDSS as a non-optional live-path component that wraps the turn's
 
 5. **LDSS invocation point**: `_finalize_committed_turn()` in `world-engine/app/story_runtime/manager.py` calls `_build_ldss_scene_envelope()` after validation and commit. LDSS runs on committed state only.
 
-6. **evidenced_live_path**: The diagnostics field `diagnostics.live_dramatic_scene_simulator.status` must be `"evidenced_live_path"` when LDSS ran through the real turn route. The diagnostics include `story_session_id`, `turn_number`, `input_hash`, `output_hash`, `decision_count`, `scene_block_count`, and `legacy_blob_used=false`.
+6. **LDSS diagnostics status**: The diagnostics field `diagnostics.live_dramatic_scene_simulator.status` reports the active LDSS outcome. Direct canonical-step LDSS envelope builds report `"approved"` when the authored canonical path step produced valid visible blocks. Full story-turn manager routes may project that same successful LDSS evidence as `"evidenced_live_path"` in higher-level runtime diagnostics. The diagnostics include `story_session_id`, `turn_number`, `input_hash`, `output_hash`, `decision_count`, `scene_block_count`, and `legacy_blob_used=false`.
 
 7. **Legacy blob rejection**: The response packager must not use legacy text blobs as final output. `legacy_blob_used` must be `false` in diagnostics.
 
-8. **Deterministic mock**: When no real AI generation is available, `build_deterministic_ldss_output()` produces a valid proposal that satisfies all validators.
+8. **Deterministic output sources**: When a resolvable `canonical_step_id` and canonical path bundle are present, LDSS renders deterministic visible scene blocks from authored canonical path truth. When no live/canonical visible generation is available, `build_deterministic_ldss_output()` returns an explicit `system_degraded_notice` with `status="degraded_error"` and a non-empty error code; it must not fabricate narrator/NPC story truth merely to satisfy validators.
 
 ## Affected Services/Files
 
@@ -41,6 +41,7 @@ MVP3 introduces LDSS as a non-optional live-path component that wraps the turn's
 - Non-GoC sessions do not produce a scene envelope (LDSS is GoC-specific)
 - The response is packaged from committed state, not raw AI output
 - Diagnostics provide turn-level observability for MVP4 (Narrative Gov, Langfuse)
+- A degraded LDSS fallback is valid as an error surface, not as a successful dramatic scene; gates that require NPC participation must use canonical-step or live-generated output.
 
 ## Diagrams
 
@@ -60,8 +61,10 @@ flowchart LR
 
 ## Validation Evidence
 
-- `test_mvp3_gate_start_annette_live_scene_turn` — PASS
-- `test_mvp3_gate_start_alain_live_scene_turn` — PASS
+- `test_mvp3_gate_start_primary_human_live_scene_turn` — PASS
+- `test_mvp3_gate_start_secondary_human_live_scene_turn` — PASS
+- `test_mvp3_gate_canonical_path_output_satisfies_validation` — PASS
+- `test_mvp3_gate_missing_canonical_step_returns_degraded_notice` — PASS
 - `test_mvp3_gate_response_packaged_from_committed_state` — PASS
 - `test_mvp3_gate_trace_header_preserved_on_story_turn` — PASS
 - `test_execute_turn_produces_scene_turn_envelope_annette` — PASS

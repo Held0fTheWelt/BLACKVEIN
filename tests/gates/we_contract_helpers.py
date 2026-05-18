@@ -370,6 +370,9 @@ NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS: tuple[str, ...] = (
 ) + NARRATIVE_GOV_JSON_KEYS
 
 
+MVP4_EXECUTE_TURN_INTEGRATION_TIMEOUT_SECONDS = 300
+
+
 def assert_manager_get_narrative_gov_summary_calls_builder(manager_py: Path) -> None:
     """``StoryRuntimeManager.get_narrative_gov_summary`` must call ``build_narrative_gov_summary`` (AST oracle)."""
     tree = ast.parse(manager_py.read_text(encoding="utf-8"))
@@ -423,7 +426,21 @@ def assert_mvp4_execute_turn_diagnostics_integration_passes(repo_root: Path) -> 
         "--no-cov",
         "--tb=short",
     ]
-    proc = subprocess.run(cmd, cwd=str(we), env=env, capture_output=True, text=True, timeout=180)
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(we),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=MVP4_EXECUTE_TURN_INTEGRATION_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise AssertionError(
+            "execute_turn diagnostics envelope integration timed out after "
+            f"{MVP4_EXECUTE_TURN_INTEGRATION_TIMEOUT_SECONDS}s:\n"
+            f"{exc.stdout or ''}\n{exc.stderr or ''}"
+        ) from exc
     assert proc.returncode == 0, (
         "execute_turn diagnostics envelope integration must pass (see world-engine test):\n"
         f"{proc.stdout}\n{proc.stderr}"

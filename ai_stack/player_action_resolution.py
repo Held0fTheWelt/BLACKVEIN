@@ -9,6 +9,7 @@ to hidden maps.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from ai_stack.action_resolution_contracts import (
     AffordanceResolutionContract,
     PlayerActionFrameContract,
     ResolvedTarget,
+    fold_unicode,
     fold_match,
 )
 from ai_stack.environment_state_contracts import (
@@ -133,6 +135,9 @@ def build_scene_affordance_model(
         "current_area": surface.get("current_area"),
         "inferred_area_policy": surface.get("setting_id"),
         "semantic_resolution_contract": surface.get("semantic_resolution_contract"),
+        "player_freedom_policy": surface.get("player_freedom_policy")
+        if isinstance(surface.get("player_freedom_policy"), dict)
+        else {},
         "locations": surface.get("locations") if isinstance(surface.get("locations"), list) else [],
         "objects": surface.get("objects") if isinstance(surface.get("objects"), list) else [],
         "actors": actors,
@@ -168,9 +173,150 @@ def _status_policy_for_access(access: str | None) -> tuple[str, str]:
         return ("prevented", "no_commit")
     if "locked" in raw:
         return ("blocked", "no_commit")
+    if "inferred_plausible" in raw:
+        return ("allowed", "commit_action")
     if "offscreen" in raw or "implied" in raw:
         return ("allowed_offscreen", "commit_action")
     return ("allowed", "commit_action")
+
+
+def _semantic_text(semantic: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = semantic.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _slug_from_english_text(value: str) -> str:
+    folded = fold_unicode(value)
+    slug = re.sub(r"[^a-z0-9]+", "_", folded).strip("_")
+    return slug[:64] or "target"
+
+
+def _policy_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def _player_freedom_policy(affordance_model: dict[str, Any]) -> dict[str, Any]:
+    policy = affordance_model.get("player_freedom_policy")
+    return policy if isinstance(policy, dict) else {}
+
+
+def _catalog_silent_policy(affordance_model: dict[str, Any]) -> dict[str, Any]:
+    policy = _player_freedom_policy(affordance_model)
+    req = policy.get("semantic_resolution_requirements")
+    req = req if isinstance(req, dict) else {}
+    silent = req.get("if_catalog_silent")
+    return silent if isinstance(silent, dict) else {}
+
+
+def _semantic_allows_plausible_inference(
+    semantic: dict[str, Any],
+    *,
+    affordance_model: dict[str, Any],
+    action_kind: str,
+    target_query: str | None,
+    target_type: str | None,
+) -> bool:
+    if not target_query:
+        return False
+    policy = _player_freedom_policy(affordance_model)
+    if not bool((policy.get("plausible_affordance_inference") or {}).get("enabled")):
+        return False
+    silent_policy = _catalog_silent_policy(affordance_model)
+    if not silent_policy:
+        return False
+    ttype = str(target_type or "").strip().lower()
+    allowed_types = set(_policy_values(silent_policy.get("allowed_target_types")))
+    if allowed_types and ttype and ttype not in allowed_types:
+        return False
+    mode = _semantic_text(
+        semantic,
+        "inference_mode",
+        "target_inference_mode",
+        "plausible_inference_mode",
+    ).lower()
+    allowed_modes = set(_policy_values(silent_policy.get("allowed_inference_modes")))
+    if not mode or (allowed_modes and mode not in allowed_modes):
+        return False
+    risk = _semantic_text(semantic, "canonical_risk", "canon_risk", "risk").lower()
+    safety = _semantic_text(semantic, "canon_safety", "canonical_safety", "safety").lower()
+    allowed_safety = set(_policy_values(silent_policy.get("allowed_canon_safety")))
+    required_risk = str(silent_policy.get("require_canonical_risk") or "").strip().lower()
+    if allowed_safety and safety not in allowed_safety:
+        return False
+    if required_risk and risk != required_risk:
+        return False
+    return True
+
+
+def _inferred_target_from_semantics(
+    semantic: dict[str, Any],
+    *,
+    affordance_model: dict[str, Any],
+    action_kind: str,
+    target_query: str | None,
+    target_type: str | None,
+) -> tuple[str, str, str, str, dict[str, Any]] | None:
+    if not _semantic_allows_plausible_inference(
+        semantic,
+        affordance_model=affordance_model,
+        action_kind=action_kind,
+        target_query=target_query,
+        target_type=target_type,
+    ):
+        return None
+    silent_policy = _catalog_silent_policy(affordance_model)
+    allowed_types = _policy_values(silent_policy.get("allowed_target_types"))
+    inferred_type = str(target_type or semantic.get("inferred_target_type") or (allowed_types[0] if allowed_types else "")).strip().lower()
+    if allowed_types and inferred_type not in set(allowed_types):
+        return None
+    inferred_type = inferred_type or "object"
+    provided_id = _semantic_text(semantic, "inferred_target_id", "inferred_object_id")
+    slug = _slug_from_english_text(provided_id or str(target_query or ""))
+    prefix = str(silent_policy.get("runtime_target_id_prefix") or "inferred_local").strip() or "inferred_local"
+    inferred_id = provided_id if provided_id else f"{prefix}_{slug}"
+    mode = _semantic_text(
+        semantic,
+        "inference_mode",
+        "target_inference_mode",
+        "plausible_inference_mode",
+    ) or "canon_safe_plausible_affordance"
+    inference = {
+        "mode": mode,
+        "canon_safety": _semantic_text(semantic, "canon_safety", "canonical_safety") or "content_silent_mundane",
+        "canonical_risk": _semantic_text(semantic, "canonical_risk", "canon_risk") or "low",
+        "inferred_affordance_summary": _semantic_text(
+            semantic,
+            "inferred_affordance_summary",
+            "inferred_detail_summary",
+            "reasoning_summary",
+        )
+        or None,
+        "policy": "canon_safe_mundane_affordance_gap",
+    }
+    return (inferred_id, inferred_type, "allowed", "commit_action", inference)
+
+
+def _canonical_path_effect_from_policy(
+    semantic: dict[str, Any],
+    affordance_model: dict[str, Any],
+    *,
+    action_commit_policy: str,
+) -> str | None:
+    explicit = _semantic_text(semantic, "canonical_path_effect", "canonical_path_progression")
+    if explicit:
+        return explicit
+    if action_commit_policy != "commit_action":
+        return None
+    policy = _player_freedom_policy(affordance_model)
+    control = policy.get("canonical_path_control")
+    control = control if isinstance(control, dict) else {}
+    return str(control.get("default_for_free_player_action") or "").strip() or None
 
 
 def _row_by_id(
@@ -283,6 +429,8 @@ def _make_frame(
     normalized_english_text: str | None = None,
     session_input_language: str | None = None,
     session_output_language: str | None = None,
+    semantic_inference: dict[str, Any] | None = None,
+    canonical_path_effect: str | None = None,
 ) -> PlayerActionFrameContract:
     return PlayerActionFrameContract(
         raw_text=str(raw_text or "").strip(),
@@ -306,6 +454,8 @@ def _make_frame(
         internal_resolution_language="en",
         session_input_language=session_input_language,
         session_output_language=session_output_language,
+        semantic_inference=semantic_inference if isinstance(semantic_inference, dict) else None,
+        canonical_path_effect=canonical_path_effect,
     )
 
 
@@ -465,6 +615,7 @@ def resolve_player_action(
     target_type = str(semantic.get("resolved_target_type") or semantic.get("target_type") or "").strip() or None
 
     row, row_type = _row_by_id(affordance_model, target_id, target_type)
+    semantic_inference: dict[str, Any] | None = None
     if row:
         access = _access(row)
         status, policy = _status_policy_for_access(access)
@@ -473,6 +624,18 @@ def resolve_player_action(
         source = "ai_semantic_resolution.content_id"
     else:
         status, policy, tid, ttyp, source, access = _resolve_query(target_query, affordance_model)
+        if status == "unknown_target":
+            inferred = _inferred_target_from_semantics(
+                semantic,
+                affordance_model=affordance_model,
+                action_kind=action_kind,
+                target_query=target_query,
+                target_type=target_type,
+            )
+            if inferred:
+                tid, ttyp, status, policy, semantic_inference = inferred
+                source = "ai_semantic_resolution.plausible_inference"
+                access = "inferred_plausible"
 
     ai_policy = str(semantic.get("commit_policy") or "").strip()
     if status in {"unknown_target", "ambiguous"}:
@@ -480,6 +643,11 @@ def resolve_player_action(
     elif ai_policy in {"commit_action", "commit_speech", "no_commit", "needs_clarification", "recover_or_reject"}:
         policy = ai_policy
     confidence = str(semantic.get("confidence") or ("high" if tid else "low")).strip() or "low"
+    canonical_path_effect = _canonical_path_effect_from_policy(
+        semantic,
+        affordance_model,
+        action_commit_policy=policy,
+    )
     rt = _resolved_target(
         target_id=tid,
         target_type=ttyp,
@@ -540,6 +708,8 @@ def resolve_player_action(
         normalized_english_text=normalized_english_text,
         session_input_language=session_input_language,
         session_output_language=session_output_language,
+        semantic_inference=semantic_inference,
+        canonical_path_effect=canonical_path_effect,
     )
     return {
         "player_action_frame": frame.to_dict(),

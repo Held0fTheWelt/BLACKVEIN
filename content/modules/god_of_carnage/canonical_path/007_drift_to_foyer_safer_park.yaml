@@ -219,8 +219,9 @@
       beat_pattern_params:
         between_beat_a: veronique_we_dont_have_to_thank_each_other_sense_of_community
         between_beat_b: alain_kids_havent_got_that_notion_straight
-        allowed: [silent_observation, look_to_spouse, small_gesture]
-        forbidden: [propose_alternative_for_npc, leave_the_room]
+        allowed: [silent_observation, look_to_spouse, small_gesture, move_to_accessible_location, interact_with_canon_safe_local_object]
+        forbidden: [propose_alternative_for_npc]
+        canonical_response: wait_for_player_return
         redirect_kind: narrator_perception_redirect
 
   themes_realized_here:

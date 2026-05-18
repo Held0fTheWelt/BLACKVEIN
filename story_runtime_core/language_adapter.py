@@ -264,9 +264,13 @@ def build_semantic_resolution_contract(
             "internal_resolution_language": "en",
             "do_not_translate_by_lookup_table": True,
             "ground_targets_in_content_ids_when_possible": True,
+            "infer_canon_safe_mundane_affordance_gaps_when_content_is_silent": True,
+            "plausible_inference_is_not_a_new_content_database": True,
+            "keep_player_local_context_separate_from_canonical_path_progress": True,
+            "reject_or_clarify_canon_risky_hidden_or_load_bearing_inventions": True,
             "ground_against_english_authored_content": True,
             "preserve_player_visible_language_for_echo": True,
-            "preserve_unknowns_as_clarification_requests": True,
+            "preserve_uncertain_unknowns_as_clarification_requests": True,
         },
         "input": {
             "raw_player_text": str(raw_text or ""),
@@ -285,6 +289,12 @@ def build_semantic_resolution_contract(
             "source_query": "optional English source/container text span or null",
             "resolved_source_id": "optional content id or null",
             "commit_policy": "commit_action|commit_speech|no_commit|needs_clarification|recover_or_reject",
+            "inference_mode": "none|content_grounded|canon_safe_plausible_affordance|plausible_implied_object|plausible_implied_detail",
+            "inferred_target_id": "optional stable English id only when target is not in catalog but is mundane, local, reversible, and canon-safe",
+            "canon_safety": "canon_compatible|content_silent_mundane|contradicts_content|hidden_or_load_bearing_fact|uncertain",
+            "canonical_risk": "low|medium|high",
+            "canonical_path_effect": "optional value from module player_freedom_policy, e.g. hold_current_step for free local actions",
+            "inferred_affordance_summary": "short English description of the mundane inferred affordance, never final visible prose",
             "confidence": "high|medium|low",
             "reasoning_summary": "short grounding explanation citing content ids/fields",
         },
@@ -297,6 +307,12 @@ def _interaction_surface_cached(module_dir_s: str) -> dict[str, Any]:
     module_id = module_dir.name
     layout, layout_rooms = _read_layout_rooms(module_dir)
     doc_locations = _read_location_documents(module_dir)
+    player_freedom_payload = _read_yaml(module_dir / "knowledge" / "player_freedom_policy.yaml")
+    player_freedom_policy = (
+        player_freedom_payload.get("player_freedom_policy")
+        if isinstance(player_freedom_payload.get("player_freedom_policy"), dict)
+        else {}
+    )
     merged_locations: dict[str, dict[str, Any]] = {}
     for rid, row in layout_rooms.items():
         merged_locations[rid] = dict(row)
@@ -318,8 +334,15 @@ def _interaction_surface_cached(module_dir_s: str) -> dict[str, Any]:
             "module_language_lookup_files_required": False,
             "engine_maps_allowed": False,
             "meaning_source": "ai_semantic_resolution_against_content_catalog",
+            "plausible_affordance_inference": {
+                "enabled": True,
+                "scope": "mundane local object or ambient detail gaps only",
+                "canonical_path_mutation": "forbidden",
+                "requires_ai_canon_safety_fields": True,
+            },
         },
         "semantic_resolution_contract": build_semantic_resolution_contract(),
+        "player_freedom_policy": player_freedom_policy,
         "locations": [
             _location_surface(module_dir, rid, row)
             for rid, row in sorted(merged_locations.items())
@@ -472,7 +495,9 @@ def load_session_language_model_directive(
         "internal semantic grounding against the English-authored content catalog. Then write "
         f"player-visible narration in session_output_language={output_language}. Do not use module "
         "language lookup files or engine lookup maps for meaning; infer intent from the utterance and "
-        "grounded content catalog."
+        "grounded content catalog. If the catalog is silent but the requested affordance is mundane, "
+        "local, reversible, and canon-compatible, mark it as a low-risk plausible affordance inference "
+        "instead of creating a lookup rule; otherwise ask for clarification or reject/recover."
     )
 
 

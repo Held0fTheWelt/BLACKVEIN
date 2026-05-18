@@ -22,6 +22,13 @@ def test_interaction_surface_is_content_derived_and_map_free() -> None:
     assert surface["adapter_policy"]["engine_maps_allowed"] is False
     assert surface["semantic_resolution_contract"]["policy"]["no_hardcoded_language_maps"] is True
     assert surface["semantic_resolution_contract"]["policy"]["translate_input_to_internal_english_before_grounding"] is True
+    assert (
+        surface["semantic_resolution_contract"]["policy"][
+            "infer_canon_safe_mundane_affordance_gaps_when_content_is_silent"
+        ]
+        is True
+    )
+    assert surface["player_freedom_policy"]["plausible_affordance_inference"]["enabled"] is True
     assert surface["semantic_resolution_contract"]["input"]["internal_resolution_language"] == "en"
     assert {row.get("id") for row in surface["locations"]}.issuperset({"living_room", "kitchen"})
     assert {row.get("id") for row in surface["objects"]}.issuperset({"coffee_table", "elevator"})

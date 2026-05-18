@@ -60,7 +60,10 @@ def test_goc_souffleuse_uses_content_cue_and_prompt_store_for_opening_orientatio
     assert block["source_facts"]["character_voice"]["register"] == "polite_compressed_precise"
     assert block["source_facts"]["current_location"]["id"]
     assert block["source_facts"]["incident_location"]["id"]
+    assert block["source_facts"]["cue_surface_policy"]["output_shape"] == "inward_footing_not_character_sheet"
+    assert "character_statement_pressure" not in block["source_facts"]
     assert "character_stance" in block["guidance_kinds"]
+    assert "pre_action_inward_footing" in block["guidance_kinds"]
     assert "input_affordance" not in block["guidance_kinds"]
     assert all("scene" not in str(ref).lower() for ref in block["source_refs"])
 
@@ -100,5 +103,4 @@ def test_goc_souffleuse_opening_orientation_is_character_specific() -> None:
     assert "clean_agreement_as_exit" in alain_payload["situational_stance"]["stance_atoms"]
     assert "loaded word" not in alain["text"].lower()
     assert "armed" not in alain["text"].lower()
-    assert annette["source_facts"]["character_statement_pressure"] != alain["source_facts"]["character_statement_pressure"]
     assert annette["source_facts"]["character_situational_stance"] != alain["source_facts"]["character_situational_stance"]

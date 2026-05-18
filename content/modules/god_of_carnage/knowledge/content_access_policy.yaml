@@ -19,14 +19,17 @@ content_access_policy:
       meaning: "Never allow this as a committed player or AI action."
       runtime_expectation: reject_or_recover_before_commit
     gated:
-      meaning: "Allowed only when listed requirements are met."
-      runtime_expectation: resolve_with_narrator_or_scene_transition
+      meaning: "Allowed with narrator mediation, local-context update, or authored timing requirements; not a denial."
+      runtime_expectation: resolve_with_narrator_or_scene_transition_without_advancing_canonical_path_by_default
     prevented:
       meaning: "Temporarily blocked by authored scene pressure, not morally or physically impossible."
       runtime_expectation: narrate_as_pressure_and_hold_or_redirect
     narrator_only:
       meaning: "Can be described by the narrator, but not directly entered or manipulated."
       runtime_expectation: block_as_player_affordance
+    inferred_plausible:
+      meaning: "AI-resolved mundane, local, reversible affordance where content is silent."
+      runtime_expectation: narrator_realizes_as_local_non_canonical_detail_after_canon_safety_check
 
   blocked_entities:
     - id: no_return_to_park_after_opening
@@ -131,7 +134,8 @@ content_access_policy:
       target_id: kitchen
       decision: gated
       requirements:
-        - current_scene_phase_allows_adjacent_room
+        - room_is_playable_in_apartment_layout
+        - canonical_path_holds_or_waits_if_required_participant_absent
         - narrator_consequence_required
 
     - id: dining_room_navigation
@@ -139,7 +143,8 @@ content_access_policy:
       target_id: dining_room
       decision: gated
       requirements:
-        - current_scene_phase_allows_adjacent_room
+        - room_is_playable_in_apartment_layout
+        - canonical_path_holds_or_waits_if_required_participant_absent
         - narrator_consequence_required
 
     - id: bedroom_navigation
@@ -164,7 +169,8 @@ content_access_policy:
       target_id: pantry
       decision: gated
       requirements:
-        - current_scene_phase_allows_adjacent_room
+        - room_is_playable_in_apartment_layout
+        - canonical_path_holds_or_waits_if_required_participant_absent
         - narrator_consequence_required
 
     - id: study_navigation
@@ -172,7 +178,8 @@ content_access_policy:
       target_id: study
       decision: gated
       requirements:
-        - current_scene_phase_allows_adjacent_room
+        - room_is_playable_in_apartment_layout
+        - canonical_path_holds_or_waits_if_required_participant_absent
         - privacy_boundary_acknowledged
         - narrator_consequence_required
 
@@ -183,3 +190,6 @@ content_access_policy:
       requirements:
         - phase_5_or_valid_closure_pressure
         - transition_safeguard_passed
+
+  policy_refs:
+    player_freedom_policy: knowledge/player_freedom_policy.yaml#player_freedom_policy

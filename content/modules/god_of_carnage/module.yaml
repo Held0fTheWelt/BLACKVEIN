@@ -52,22 +52,46 @@ files:
   - characters/voices/character_voice_alain.yaml
   - characters/voices/voice_consistency.yaml
   - canonical_path/index.yaml               # Primary directed story spine
+  - canonical_path/_schema.yaml
+  - canonical_path/theme_coverage_map.yaml
   - canonical_path/001_parc_montsouris_edge.yaml
   - canonical_path/002_argument_stick_blow.yaml
   - canonical_path/003_bicycle_disappearance.yaml
-  - canonical_path/004_dark_building_hallway.yaml
-  - canonical_path/005_living_room_threshold.yaml
-  - canonical_path/006_apartment_entry_greetings.yaml
-  - canonical_path/007_living_room_arrangement.yaml
-  - canonical_path/008_statement_on_table.yaml
-  - canonical_path/009_wording_dispute_armed_carrying.yaml
-  - canonical_path/010_injury_detail_dental_consequence.yaml
-  - canonical_path/011_courtesy_community_pressure.yaml
-  - canonical_path/012_tulips_and_hospitality.yaml
-  - canonical_path/013_first_playable_courtesy_gap.yaml
-  - canonical_path/014_player_response_ripple.yaml
-  - canonical_path/015_phone_exit_pressure.yaml
-  - canonical_path/016_opening_sustained_play_pressure_field.yaml
+  - canonical_path/004_den_arrival_positioning.yaml
+  - canonical_path/005_statement_reading.yaml
+  - canonical_path/006_armed_vs_carrying.yaml
+  - canonical_path/007_drift_to_foyer_safer_park.yaml
+  - canonical_path/008_living_room_tulips_florist.yaml
+  - canonical_path/009_root_canal_observation_period.yaml
+  - canonical_path/010_snitch_sense_of_honor.yaml
+  - canonical_path/011_alain_first_walter_call.yaml
+  - canonical_path/012_jobs_and_hamster.yaml
+  - canonical_path/013_apology_pressure_eleven.yaml
+  - canonical_path/014_kitchen_cobbler_hunt.yaml
+  - canonical_path/015_back_to_living_room_cobbler.yaml
+  - canonical_path/016_cobbler_eating_recipe_tooth_jab.yaml
+  - canonical_path/017_alain_second_walter_call.yaml
+  - canonical_path/018_hamster_inquiry_annette_pushback.yaml
+  - canonical_path/019_apology_stalemate_new_teeth.yaml
+  - canonical_path/020_drink_offering_rum_proposed.yaml
+  - canonical_path/021_rum_poured_caring_parent_crap.yaml
+  - canonical_path/022_drink_fueled_accusations_peak.yaml
+  - canonical_path/023_annette_vomits_kokoschka.yaml
+  - canonical_path/024_bathroom_blow_dryer_rescue.yaml
+  - canonical_path/025_doodle_darjeeling_pet_names.yaml
+  - canonical_path/026_annette_returns_name_calling_abuse.yaml
+  - canonical_path/027_alain_cnn_call_deny_deny_deny.yaml
+  - canonical_path/028_alliance_shifts_women_vs_men.yaml
+  - canonical_path/029_whiskey_offered_annette_drinks.yaml
+  - canonical_path/030_veronique_darfur_rant.yaml
+  - canonical_path/031_spouses_vs_spouses.yaml
+  - canonical_path/032_annette_blind_drunk_pivot.yaml
+  - canonical_path/033_phone_destroyed_in_tulips.yaml
+  - canonical_path/034_phone_aftermath.yaml
+  - canonical_path/035_veronique_smashes_tulips.yaml
+  - canonical_path/036_long_stupor_silence.yaml
+  - canonical_path/037_park_hamster_ironic_reveal.yaml
+  - canonical_path/038_handoff_or_terminal.yaml
   - objects/index.yaml                         # Object index; apartment objects are grouped by location subfolders
   - objects/opening/bicycle_rack.yaml
   - objects/appartment_vallon/living_room/coffee_table.yaml
@@ -139,6 +163,7 @@ files:
   - knowledge/opening_quote_anchors.yaml
   - knowledge/hard_forbidden_rules.yaml
   - knowledge/content_access_policy.yaml
+  - knowledge/player_freedom_policy.yaml
   - hints/index.yaml
   - hints/themes/violence_vs_civilization.yaml
   - hints/symbols/art_books_opening_staging.yaml
@@ -156,6 +181,11 @@ quality_principles:
 # these generic switches; it must not branch on this module's concrete actors,
 # rooms, phases, beats, or prose.
 runtime_intelligence:
+  player_freedom:
+    enabled: true
+    policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
+    canonical_path_control: hold_current_canonical_step_for_free_player_actions
+    plausible_affordance_inference: ai_semantic_canon_safe_gap_filling
   action_resolution_short_path:
     enabled: true
     blocked_player_input_kinds:

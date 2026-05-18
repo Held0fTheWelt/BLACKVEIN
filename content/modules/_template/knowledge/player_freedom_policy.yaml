@@ -1,0 +1,62 @@
+player_freedom_policy:
+  id: template_player_freedom_policy_v1
+  authority: module_authorial_runtime_policy
+  authoring_language: en
+
+  principle: >-
+    The selected player character may move, observe, wait, and interact with
+    local objects unless module content marks a hard denial or temporary
+    prevented condition. These actions update player local context, not the
+    directed canonical path, unless a content marker explicitly says otherwise.
+
+  canonical_path_control:
+    default_for_free_player_action: hold_current_step
+    movement_does_not_imply_canonical_scene_change: true
+    object_interaction_does_not_create_load_bearing_story_fact: true
+    narrator_must_keep_current_canonical_pressure_available: true
+    social_wait_policy: >-
+      If a required participant is absent, delayed, or prevented, hold the
+      social room instead of spending mandatory dialogue without them.
+
+  plausible_affordance_inference:
+    enabled: true
+    mode: ai_semantic_canon_safe_gap_filling
+    allowed_scope:
+      - mundane_local_objects_implied_by_location_category
+      - ordinary_contents_inside_ordinary_containers
+      - reversible_object_states
+      - sensory_details_consistent_with_location
+      - non_load_bearing_household_or_workplace_use
+    forbidden_scope:
+      - hidden_evidence
+      - weapons_or_threat_objects
+      - bodies_or_major_injury_revelations
+      - new_people_or_animals
+      - new_exits_or_rooms
+      - decisive_plot_information
+      - private_document_truths_not_authored_elsewhere
+      - contradictions_to_location_object_or_character_files
+
+  semantic_resolution_requirements:
+    internal_language: en
+    require_content_grounding_first: true
+    target_catalog_match_preferred: true
+    if_catalog_silent:
+      allowed_target_types:
+        - object
+      runtime_target_id_prefix: inferred_local
+      allowed_inference_modes:
+        - canon_safe_plausible_affordance
+        - plausible_implied_object
+        - plausible_implied_detail
+        - mundane_object_use
+        - content_silent_mundane_affordance
+      allowed_canon_safety:
+        - canon_compatible
+        - content_silent_mundane
+        - non_load_bearing
+        - reversible_local_detail
+      require_canonical_risk: low
+      require_narrator_realization: true
+    if_uncertain_or_load_bearing:
+      decision: needs_clarification_or_recover

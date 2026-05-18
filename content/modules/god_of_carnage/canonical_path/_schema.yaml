@@ -49,6 +49,8 @@
       - scene_transition
       - optional_micro_beats
       - player_intrusion_windows
+      - player_freedom_policy
+      - canonical_path_control
       - souffleuse_cues
       - carry_forward_state
 
@@ -165,8 +167,52 @@
             redirect_policy:
               type: string
               description: >-
-                Narrator directive used when player attempts a forbidden action.
-                Must keep the player in the room without explicit refusal text.
+                Narrator directive used when player attempts a hard-denied or
+                temporarily prevented action. Ordinary movement away from the
+                room must not be listed as forbidden unless a specific hard
+                denial exists in content_access_policy.
+            canonical_response:
+              type: string
+              allowed_values:
+                - hold_current_step
+                - wait_for_player_return
+                - continue_only_non_load_bearing_business
+                - resume_on_return
+              description: >-
+                How the Director keeps the narrator path stable when the
+                player uses free movement, perception, waiting, or object
+                interaction inside this timing window.
+
+      player_freedom_policy:
+        type: object
+        optional: true
+        fields:
+          policy_ref:
+            type: content_ref
+          free_movement:
+            type: string
+            allowed_values: [allowed_unless_hard_denied_or_prevented]
+          free_object_interaction:
+            type: string
+            allowed_values: [allow_canon_safe_mundane_affordance_inference]
+          canonical_path_progression:
+            type: string
+            allowed_values: [hold_for_free_player_action]
+
+      canonical_path_control:
+        type: object
+        optional: true
+        fields:
+          free_player_action_default:
+            type: string
+            allowed_values: [hold_current_step]
+          waiting_policy:
+            type: string
+            allowed_values:
+              - social_hold_if_required_participant_absent
+          narrator_instruction:
+            type: string
+            description: "English semantic direction only; no final visible prose."
 
       souffleuse_cues:
         type: array

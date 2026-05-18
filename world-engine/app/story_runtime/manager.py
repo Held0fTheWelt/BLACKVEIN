@@ -8625,6 +8625,13 @@ def _resolve_canonical_path_for_session(session: "StorySession") -> Any | None:
         return None
 
 
+def _turn_holds_canonical_path_for_free_player_action(graph_state: dict[str, Any]) -> bool:
+    frame = graph_state.get("player_action_frame") if isinstance(graph_state.get("player_action_frame"), dict) else {}
+    if not frame:
+        return False
+    return str(frame.get("canonical_path_effect") or "").strip() == "hold_current_step"
+
+
 def _build_ldss_scene_envelope(
     *,
     session: "StorySession",
@@ -8681,6 +8688,7 @@ def _build_ldss_scene_envelope(
         and session.canonical_step_id
         and ldss_output.status == "approved"
         and ldss_output.visible_actor_response_present
+        and not _turn_holds_canonical_path_for_free_player_action(graph_state)
     ):
         nxt = canonical_path.next_step_id_after(session.canonical_step_id)
         if nxt:
@@ -9780,12 +9788,19 @@ class StoryRuntimeManager:
             "guidance_kinds includes situation_orientation or character_stance, the cue may establish "
             "who the player character is, their profession and partner if source_facts provides them, how the "
             "character stands toward what has happened, and why this meeting matters to them, using only source_facts. "
-            "Keep this compact: usually two short sentences, never a biography. Use source_facts.character_voice "
+            "Follow source_facts.cue_surface_policy when present. Keep this compact: usually two short sentences, "
+            "never a biography. Use source_facts.character_voice "
             "to match register and rhythm. Later-development refs may inform baseline stance only; do not reveal, "
             "quote, or anticipate future beats. Do not "
             "use outside labels such as role, tension, pressure, player, or controls in the visible text. "
             "Do not add player actions, exact line commands, NPC speech, hidden intent, or new facts. "
-            "Prefer one short identity/profession/partner sentence and one short stance sentence for orientation cues.\n"
+            "If guidance_kinds includes pre_action_inward_footing, treat the cue as the character's baseline "
+            "inner footing before action or statement dispute. Use character_situational_stance, public identity, "
+            "baseline attitude, voice, profession, partner, current location, and incident location; do not infer "
+            "or foreground statement wording pressure unless the source block explicitly provides it for that cue. "
+            "Do not use a fixed character-sheet lead such as 'You are X, profession, with Y' unless the source "
+            "cannot otherwise be made clear. Weave identity, profession, and partner into the character's present "
+            "inward footing instead of listing them. Do not mirror or translate source-fact wording literally.\n"
             "Treat any *_atoms, ids, or enum-like values as semantic hints, not as wording to translate. "
             "Do not copy atom names into visible text.\n"
             "Return valid JSON only, with this shape: "

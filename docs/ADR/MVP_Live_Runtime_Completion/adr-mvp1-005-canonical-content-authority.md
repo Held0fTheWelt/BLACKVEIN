@@ -14,6 +14,8 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 
 1. **`content/modules/god_of_carnage/`** is the sole canonical content authority for God of Carnage story truth: character identities, relationships, locations, objects, canonical path steps, escalation policy, beats, content-access rules, and NPC voice intent.
 
+   The current authored story spine is **not** `scenes.yaml`. Directed story truth lives in `canonical_path/index.yaml` and the numbered `canonical_path/*.yaml` step files. `scene_graph.yaml` is retained only as a runtime/compatibility node index over canonical path and location IDs; it must not become a second scene-description database.
+
 2. **`god_of_carnage_solo` ExperienceTemplate** (in `story_runtime_core/`) is runtime scaffolding only — it provides the game-engine participation model (lobby seats, room graph, action menus). It does not author story truth.
 
 3. **Runtime profile** (`world-engine/app/runtime/profiles.py`) resolves canonical actor IDs from the modular character content under `content/modules/god_of_carnage/characters/` at runtime via `_resolve_goc_content()`, not from hardcoded constants.
@@ -24,6 +26,9 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 
 ## Affected Services/Files
 
+- `content/modules/god_of_carnage/module.yaml` — canonical module metadata and file registry
+- `content/modules/god_of_carnage/canonical_path/index.yaml` and numbered `canonical_path/*.yaml` — directed story spine and beat authority
+- `content/modules/god_of_carnage/scene_graph.yaml` — runtime node index over canonical path/location IDs; not a story-truth replacement for `canonical_path/`
 - `content/modules/god_of_carnage/characters/index.yaml` and `characters/definitions/*.yaml` — canonical authority for character IDs
 - `world-engine/app/runtime/profiles.py` — `_resolve_goc_content()` reads canonical character content, produces content hash
 - `story_runtime_core/goc_solo_builtin_roles_rooms.py` — role IDs must match canonical character IDs
@@ -35,6 +40,7 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 - Test `test_goc_solo_runtime_projection_is_derived_from_canonical_content` will fail if they drift
 - The runtime profile produces a `content_hash` from canonical character content in `build_actor_ownership()`, enabling drift detection
 - MVP 2 can trust that `human_actor_id` and `npc_actor_ids` in the handoff trace back to canonical content
+- Foundation gates must verify the active content shape (`canonical_path/` plus `scene_graph.yaml`) and must not require legacy flat story files such as `scenes.yaml`, `transitions.yaml`, `triggers.yaml`, or `endings.yaml`.
 
 ## Diagrams
 
@@ -42,9 +48,13 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 
 ```mermaid
 flowchart TB
-  Y[characters/ + module YAML]
+  Y[content module YAML surfaces]
+  CP[canonical_path/ directed spine]
+  SG[scene_graph runtime index]
   TPL[god_of_carnage_solo template]
   Y -->|subset IDs enforced by tests| TPL
+  CP --> SG
+  SG -->|indexes only| PROF
   Y --> PROF[Runtime profile resolver]
   PROF --> HASH[content_hash drift detection]
 ```
@@ -62,6 +72,7 @@ flowchart TB
 - `test_runtime_module_contains_no_story_truth` — PASS
 - `test_role_slug_map_uses_content_resolved_actor_ids` — PASS
 - `test_build_actor_ownership_includes_content_hash` — PASS
+- `test_canonical_module_has_directed_story_authority` — PASS
 
 ## Related Findings
 

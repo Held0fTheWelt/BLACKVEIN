@@ -80,6 +80,48 @@ class SemanticTranslationAdapter(BaseModelAdapter):
         return ModelCallResult(content="ok", success=True, metadata={"adapter": self.adapter_name})
 
 
+class SemanticTranslationNarrationAdapter(BaseModelAdapter):
+    adapter_name = "openai"
+
+    def __init__(self, semantic_action: dict, narrative_response: str) -> None:
+        self.semantic_action = dict(semantic_action)
+        self.narrative_response = narrative_response
+        self.prompts: list[str] = []
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
+        self.prompts.append(prompt)
+        if "Resolve the player input before any story turn processing." in prompt:
+            return ModelCallResult(
+                content=json.dumps({"semantic_action": dict(self.semantic_action)}),
+                success=True,
+                metadata={"adapter": self.adapter_name, "model_name": model_name},
+            )
+        assert "narrator_consequence_plan" in prompt
+        assert "player_freedom_policy" in prompt
+        assert "canonical_path_effect" in prompt
+        payload = {
+            "schema_version": "runtime_actor_turn_v1",
+            "narration_summary": self.narrative_response,
+            "narrative_response": self.narrative_response,
+            "spoken_lines": [],
+            "action_lines": [],
+            "state_effects": [],
+            "function_type": "local_action_consequence",
+        }
+        return ModelCallResult(
+            content=json.dumps(payload),
+            success=True,
+            metadata={"adapter": self.adapter_name, "model_name": model_name},
+        )
+
+
 class PromptCaptureAdapter(BaseModelAdapter):
     adapter_name = "mock"
 
@@ -233,6 +275,28 @@ def _build_graph_with_semantic_translation(tmp_path: Path, semantic_action: dict
         routing=routing,
         registry=registry,
         adapters={"mock": SuccessAdapter(), "openai": translator, "ollama": translator},
+        retriever=ContextRetriever(corpus),
+        assembler=ContextPackAssembler(),
+    )
+
+
+def _build_graph_with_semantic_translation_and_narration(
+    tmp_path: Path,
+    semantic_action: dict,
+    narrative_response: str,
+) -> RuntimeTurnGraphExecutor:
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("God of Carnage graph semantic narration sample.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    registry = build_default_registry()
+    routing = RoutingPolicy(registry)
+    adapter = SemanticTranslationNarrationAdapter(semantic_action, narrative_response)
+    return RuntimeTurnGraphExecutor(
+        interpreter=interpret_player_input,
+        routing=routing,
+        registry=registry,
+        adapters={"mock": SuccessAdapter(), "openai": adapter, "ollama": adapter},
         retriever=ContextRetriever(corpus),
         assembler=ContextPackAssembler(),
     )
@@ -532,6 +596,120 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     render_environment = render_support.get("environment") or {}
     assert render_environment.get("current_room_id") == environment_state.get("current_room_id")
     assert "environment_state_bound" in (result.get("visibility_class_markers") or [])
+
+
+def test_runtime_turn_graph_routes_inferred_mundane_action_to_narrator_model(tmp_path: Path) -> None:
+    graph = _build_graph_with_semantic_translation(
+        tmp_path,
+        {
+            "normalized_english_text": "Open the unlisted household container.",
+            "player_input_kind": "action",
+            "action_kind": "object_interaction",
+            "verb": "open",
+            "target_query_english": "unlisted household container",
+            "resolved_target_type": "object",
+            "inference_mode": "canon_safe_plausible_affordance",
+            "inferred_target_id": "inferred_local_household_container",
+            "canon_safety": "content_silent_mundane",
+            "canonical_risk": "low",
+            "inferred_affordance_summary": "A mundane local object implied by the current location.",
+            "commit_policy": "commit_action",
+            "confidence": "medium",
+        },
+    )
+
+    result = graph.run(
+        session_id="session-action-inferred",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Öffne den unbenannten Behälter",
+        trace_id="trace-action-inferred-1",
+        turn_number=1,
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+
+    nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
+    frame = result.get("player_action_frame") or {}
+    ncp = result.get("narrator_consequence_plan") or {}
+    repro = (result.get("graph_diagnostics") or {}).get("repro_metadata") or {}
+    gen_meta = (result.get("generation") or {}).get("metadata") or {}
+
+    assert "resolve_player_action" in nodes
+    assert "authoritative_action_resolution" not in nodes
+    assert "route_model" in nodes
+    assert "invoke_model" in nodes
+    assert frame.get("target_resolution_source") == "ai_semantic_resolution.plausible_inference"
+    assert frame.get("access_status") == "inferred_plausible"
+    assert frame.get("canonical_path_effect") == "hold_current_step"
+    assert ncp.get("source") == "ai_semantic_plausible_inference"
+    assert ncp.get("requires_model_realization") is True
+    assert repro.get("graph_path_summary") == "primary_invoke_langchain_only"
+    assert gen_meta.get("dramatic_generation_packet_included") is True
+
+
+def test_runtime_turn_graph_realizes_inferred_mundane_action_as_visible_narration(tmp_path: Path) -> None:
+    visible_text = (
+        "The small local action stays inside the room: the object opens, "
+        "and nothing about the larger argument is spent by it."
+    )
+    graph = _build_graph_with_semantic_translation_and_narration(
+        tmp_path,
+        {
+            "normalized_english_text": "Open the unlisted household container.",
+            "player_input_kind": "action",
+            "action_kind": "object_interaction",
+            "verb": "open",
+            "target_query_english": "unlisted household container",
+            "resolved_target_type": "object",
+            "inference_mode": "canon_safe_plausible_affordance",
+            "inferred_target_id": "inferred_local_household_container",
+            "canon_safety": "content_silent_mundane",
+            "canonical_risk": "low",
+            "inferred_affordance_summary": "A mundane local object implied by the current location.",
+            "commit_policy": "commit_action",
+            "confidence": "medium",
+        },
+        visible_text,
+    )
+
+    result = graph.run(
+        session_id="session-action-inferred-visible",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Öffne den unbenannten Behälter",
+        trace_id="trace-action-inferred-visible-1",
+        turn_number=1,
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+
+    bundle = result.get("visible_output_bundle") or {}
+    structured = ((result.get("generation") or {}).get("metadata") or {}).get("structured_output") or {}
+
+    assert visible_text in (bundle.get("gm_narration") or [])
+    assert structured.get("function_type") == "local_action_consequence"
+    assert structured.get("spoken_lines") == []
+    assert structured.get("action_lines") == []
+    assert (result.get("player_action_frame") or {}).get("canonical_path_effect") == "hold_current_step"
 
 
 def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:

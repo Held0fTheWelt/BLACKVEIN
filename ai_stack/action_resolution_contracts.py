@@ -152,6 +152,8 @@ class PlayerActionFrameContract:
     internal_resolution_language: str = "en"
     session_input_language: str | None = None
     session_output_language: str | None = None
+    semantic_inference: dict[str, Any] | None = None
+    canonical_path_effect: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         aff = self.affordance_resolution.to_dict()
@@ -188,5 +190,7 @@ class PlayerActionFrameContract:
             "internal_resolution_language": self.internal_resolution_language,
             "session_input_language": self.session_input_language,
             "session_output_language": self.session_output_language,
+            "semantic_inference": dict(self.semantic_inference) if isinstance(self.semantic_inference, dict) else None,
+            "canonical_path_effect": self.canonical_path_effect,
         }
         return base

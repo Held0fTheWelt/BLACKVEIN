@@ -339,12 +339,23 @@ def apply_legacy_structured_hydration(
     transition_pattern = str(state.get("transition_pattern") or "").strip().lower()
     hydrated_any = False
     cleaned = dict(structured)
+    interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+    frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
+    ncp = state.get("narrator_consequence_plan") if isinstance(state.get("narrator_consequence_plan"), dict) else {}
+    narrator_only_local_consequence = (
+        bool(ncp.get("requires_model_realization"))
+        and not bool(interp.get("npc_response_expected"))
+        and not bool(frame.get("npc_response_expected"))
+    )
 
-    if should_hydrate_legacy_actor_lanes(
-        cleaned,
-        module_id=GOC_MODULE_ID,
-        transition_pattern=transition_pattern,
-        parser_error=parser_error,
+    if (
+        not narrator_only_local_consequence
+        and should_hydrate_legacy_actor_lanes(
+            cleaned,
+            module_id=GOC_MODULE_ID,
+            transition_pattern=transition_pattern,
+            parser_error=parser_error,
+        )
     ):
         cleaned, actor_changed = hydrate_legacy_actor_lanes(
             cleaned,

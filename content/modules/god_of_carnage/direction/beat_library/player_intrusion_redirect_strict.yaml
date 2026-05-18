@@ -4,10 +4,11 @@
   category: structural
   purpose: >-
     Defines a player_intrusion_window between two mandatory_beats with a
-    strict redirect_policy that keeps the script chain intact when the
-    player attempts to act outside the allowed envelope. Critical for
-    script-fidelity: without this pattern, a player who speaks during a
-    forces_response chain could derail the canonical_path.
+    strict redirect_policy that keeps the canonical path intact when the
+    player attempts to act outside the allowed envelope. Free movement and
+    canon-safe object interaction are not forbidden by this pattern; they
+    hold or pause the current step unless a content marker explicitly permits
+    canonical progression.
 
   parameters:
     - name: between_beat_a
@@ -36,6 +37,8 @@
         - acknowledge_outcome
         - point_to_screen_or_object
         - look_to_spouse
+        - move_to_accessible_location
+        - interact_with_canon_safe_local_object
 
     - name: forbidden
       type: array
@@ -45,7 +48,6 @@
       values:
         - speak
         - speak_for_another_npc
-        - leave_the_room
         - touch_named_object
         - propose_alternative_for_npc
         - dismiss_the_compromise
@@ -71,10 +73,18 @@
       type: string
       required: false
       description: >-
-        Optional template line the LDSS uses for narrator_perception_redirect.
-        Must pass narrator_perception_block's lexical filter. If omitted,
-        the LDSS generates a default ('Niemand reagiert. [Source actor]
-        wartet einen Atemzug lÃ¤nger.').
+        Optional semantic direction for narrator_perception_redirect. This
+        must not contain final localized visible prose; the runtime generates
+        player-visible wording in the session output language.
+
+    - name: canonical_response
+      type: enum
+      values:
+        - hold_current_step
+        - wait_for_player_return
+        - continue_only_non_load_bearing_business
+        - resume_on_return
+      default: hold_current_step
 
     - name: log_to_runtime_intelligence
       type: boolean
@@ -101,6 +111,9 @@
           if redirect_kind == mark_player_initiative_log_only:
             write to runtime_intelligence.player_canonical_path_deviations
             no visible output
+        On allowed free movement or canon-safe object interaction:
+          update player local context when committed
+          hold the canonical path according to canonical_response
       log_to_runtime_intelligence: "{{ log_to_runtime_intelligence }}"
 
   validation_when_used:
@@ -140,11 +153,12 @@
             - point_to_screen_or_object
           forbidden:
             - propose_alternative_for_npc
-            - leave_the_room
             - take_over_npc_authority
+          canonical_response: wait_for_player_return
           redirect_kind: narrator_perception_redirect
           redirect_narrator_line_template: >-
-            Niemand antwortet auf den Player. Veronique wartet auf Alain.
+            English semantic direction only: show the room holding for the
+            required responder without accepting the forbidden substitution.
 
   used_in_pilots:
     - canonical_path/004_den_arrival_positioning.yaml (between positions and mood)

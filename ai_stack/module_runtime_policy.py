@@ -329,6 +329,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     raw = raw if isinstance(raw, dict) else {}
     action_short_path = raw.get("action_resolution_short_path")
     action_short_path = action_short_path if isinstance(action_short_path, dict) else {}
+    player_freedom = raw.get("player_freedom")
+    player_freedom = player_freedom if isinstance(player_freedom, dict) else {}
     visible_projection = raw.get("visible_projection")
     visible_projection = visible_projection if isinstance(visible_projection, dict) else {}
     continuity = raw.get("continuity")
@@ -404,6 +406,13 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(action_short_path.get("blocked_player_input_kinds"), list)
                 else []
             ),
+        },
+        "player_freedom": {
+            "enabled": bool(player_freedom.get("enabled", False)),
+            "policy_ref": str(player_freedom.get("policy_ref") or "").strip() or None,
+            "canonical_path_control": str(player_freedom.get("canonical_path_control") or "").strip() or None,
+            "plausible_affordance_inference": str(player_freedom.get("plausible_affordance_inference") or "").strip()
+            or None,
         },
         "visible_projection": {
             "enabled": bool(visible_projection.get("enabled", False)),

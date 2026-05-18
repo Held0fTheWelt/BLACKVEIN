@@ -143,19 +143,6 @@ def _partner_fact(character_doc: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _identity_line(character_doc: dict[str, Any]) -> str:
-    name = _clean(character_doc.get("name")) or "Player"
-    profession = _clean(character_doc.get("professional_identity"))
-    partner = _partner_fact(character_doc)
-    parts = [name]
-    if profession:
-        parts.append(profession)
-    if partner.get("name"):
-        relation = partner.get("relationship") or "partner"
-        parts.append(f"with {partner['name']} ({relation})")
-    return "; ".join(parts) + "."
-
-
 def _structured_stance(character_doc: dict[str, Any]) -> dict[str, Any]:
     opening_canon = character_doc.get("opening_canon") if isinstance(character_doc.get("opening_canon"), dict) else {}
     raw = opening_canon.get("situational_stance")
@@ -301,7 +288,6 @@ def _projection_variables(
         "situational_stance": situational_stance,
     }
     return {
-        "opening_identity": _identity_line(character_doc),
         "player_name": _clean(character_doc.get("name")) or "Player",
         "professional_identity": _clean(character_doc.get("professional_identity")),
         "partner_name": partner_fact.get("name", ""),
@@ -473,7 +459,6 @@ def build_goc_opening_souffleuse_projection(
                 "character_player_agency_policy": _clean(character_opening_canon.get("player_agency_policy")),
                 "character_situational_stance": _structured_stance(character_doc),
                 "character_souffleuse_guidance": character_souffleuse_guidance,
-                "character_statement_pressure": _clean(character_opening_canon.get("statement_pressure")),
                 "later_development_attitude_refs": later_development_attitude_refs,
                 "future_knowledge_policy": _clean(
                     cue.get("future_knowledge_policy")
@@ -482,6 +467,7 @@ def build_goc_opening_souffleuse_projection(
                 "current_location": _location_fact(current_location),
                 "incident_location": _location_fact(incident_location),
                 "guidance_kinds": guidance_kinds,
+                "cue_surface_policy": cue.get("surface_policy") if isinstance(cue.get("surface_policy"), dict) else {},
             },
         }
         out_blocks.append(block)

@@ -64,6 +64,7 @@ files:
   - knowledge/opening_quote_anchors.yaml
   - knowledge/hard_forbidden_rules.yaml
   - knowledge/content_access_policy.yaml
+  - knowledge/player_freedom_policy.yaml
   - hints/index.yaml
   - hints/example_phase_context.yaml
 
@@ -72,3 +73,10 @@ quality_principles:
   - "Put story truth in module files; keep engine logic generic."
   - "Let the engine language adapter handle player-visible language; do not create language lookup files or action maps."
   - "Do not duplicate location descriptions outside locations/; reference location ids instead."
+
+runtime_intelligence:
+  player_freedom:
+    enabled: true
+    policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
+    canonical_path_control: hold_current_canonical_step_for_free_player_actions
+    plausible_affordance_inference: ai_semantic_canon_safe_gap_filling

@@ -154,6 +154,11 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["enabled"] is True
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["transition_weights"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["player_freedom"]["enabled"] is True
+    assert (
+        policy["runtime_governance_policy"]["player_freedom"]["canonical_path_control"]
+        == "hold_current_canonical_step_for_free_player_actions"
+    )
     assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "character_documents" in policy["content_sources"]
     assert "actor_pressure_profiles" in policy["content_sources"]

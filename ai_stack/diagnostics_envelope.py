@@ -62,6 +62,16 @@ def _hash_text(text: str) -> str:
     return f"sha256:{hashlib.sha256(text.encode()).hexdigest()[:16]}"
 
 
+_LDSS_EVIDENCE_STATUSES: frozenset[str] = frozenset({
+    "evidenced_live_path",
+    "approved",
+})
+
+
+def _ldss_status_has_live_evidence(status: Any) -> bool:
+    return str(status or "").strip() in _LDSS_EVIDENCE_STATUSES
+
+
 # ---------------------------------------------------------------------------
 # DegradationEvent
 # ---------------------------------------------------------------------------
@@ -261,7 +271,9 @@ class DiagnosticsEnvelope:
         if not self.story_session_id:
             return False, "diagnostics_missing_evidence"
         ldss = self.live_dramatic_scene_simulator
-        if ldss.get("status") != "evidenced_live_path":
+        if not _ldss_status_has_live_evidence(ldss.get("status")):
+            return False, "diagnostics_missing_ldss_proof"
+        if ldss.get("error_present") or ldss.get("error_code"):
             return False, "diagnostics_missing_ldss_proof"
         if ldss.get("decision_count", 0) <= 0:
             return False, "diagnostics_missing_evidence"
@@ -524,6 +536,9 @@ def build_diagnostics_envelope(
         "status": scene_ldss_diag.get("status") or "not_invoked",
         "invoked": bool(scene_ldss_diag.get("invoked")),
         "entrypoint": scene_ldss_diag.get("entrypoint") or "story.turn.execute",
+        "error_present": bool(scene_ldss_diag.get("error_present")),
+        "error_code": scene_ldss_diag.get("error_code"),
+        "error_message": scene_ldss_diag.get("error_message"),
         "simulator_version": "ldss.v1",
         "decision_count": int(scene_ldss_diag.get("decision_count") or 0),
         "output_contract": "visible_scene_output.blocks.v1",
@@ -770,7 +785,7 @@ def build_narrative_gov_summary(
         "last_trace_id": last_trace_id,
         "last_session_id": last_story_session_id,
         "last_turn_number": last_turn_number,
-        "evidenced": ldss_status == "evidenced_live_path",
+        "evidenced": _ldss_status_has_live_evidence(ldss_status),
     }
 
     frontend_health = {

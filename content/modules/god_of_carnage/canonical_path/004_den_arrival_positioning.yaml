@@ -29,6 +29,20 @@
       - generic_room_inventory_opening
       - player_agency_explanation
 
+  player_freedom_policy:
+    policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
+    free_movement: allowed_unless_hard_denied_or_prevented
+    free_object_interaction: allow_canon_safe_mundane_affordance_inference
+    canonical_path_progression: hold_for_free_player_action
+
+  canonical_path_control:
+    free_player_action_default: hold_current_step
+    waiting_policy: social_hold_if_required_participant_absent
+    narrator_instruction: >-
+      Before the statement is read, free player movement or object interaction
+      should produce local narration and a social hold; do not spend mandatory
+      statement beats while a required participant is away.
+
   duration_target_seconds: 35
   duration_max_seconds: 55
 
@@ -111,15 +125,17 @@
         - look_at_named_object
         - shift_weight_or_posture
         - silent_observation
+        - move_to_accessible_location
+        - interact_with_canon_safe_local_object
       forbidden:
         - speak
-        - leave_the_study
         - touch_the_laptop_or_papers
+      canonical_response: hold_current_step
       redirect_policy: >-
-        If the player speaks or moves before the hosts' first word, the
-        director writes a brief narrator_perception
-        ("No one answers. Veronique waits a breath longer than necessary.")
-        and returns to the next mandatory_beat.
+        If the player speaks or touches the statement materials before the hosts' first word, the
+        director writes a brief narrator_perception showing the room holding
+        politely without accepting the interruption, then returns to the next
+        mandatory_beat.
 
   souffleuse_cues:
     - id: opening_first_player_orientation
@@ -134,6 +150,23 @@
         - situation_orientation
         - character_stance
         - pre_action_inward_footing
+      surface_policy:
+        output_shape: inward_footing_not_character_sheet
+        identity_handling:
+          name: use_only_if_needed_for_player_orientation
+          profession: weave_as_present_pressure_lens_not_apposition
+          partner: introduce_as_nearby_relation_not_roster_fact
+          location: use_as_felt_social_footing_not_address_label
+        stance_handling:
+          focus: baseline_relation_to_the_situation_before_any_statement_dispute
+          derive_from: situational_stance
+          do_not_forecast_later_wording_argument: true
+        avoid:
+          - direct_identity_inventory_sentence
+          - formula_you_are_name_profession_with_partner_in_place
+          - comma_chain_of_name_job_partner_location
+          - statement_wording_before_statement_is_read
+          - slogan_or_maxim_about_words
       future_knowledge_policy: infer_baseline_stance_only_no_future_event_disclosure
       audience: current_human_actor
       prompt_key:

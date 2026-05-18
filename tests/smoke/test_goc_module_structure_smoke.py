@@ -39,6 +39,21 @@ def _load_character_roster(module_root: Path) -> dict:
     return roster
 
 
+def _canonical_path_step_files(module_root: Path) -> list[str]:
+    """Return numbered canonical path files declared by canonical_path/index.yaml."""
+    index_path = module_root / "canonical_path" / "index.yaml"
+    with open(index_path, encoding="utf-8") as f:
+        doc = yaml.safe_load(f) or {}
+    canonical_path = doc.get("canonical_path") or {}
+    step_order = canonical_path.get("step_order") or []
+    assert isinstance(step_order, list), "canonical_path/index.yaml step_order must be a list"
+    files = []
+    for step_id in step_order:
+        clean_id = str(step_id).removeprefix("opening_")
+        files.append(f"canonical_path/{clean_id}.yaml")
+    return files
+
+
 class TestGocModuleStructureSmoke:
     """Verify God of Carnage module canonical structure exists and is valid."""
 
@@ -60,22 +75,6 @@ class TestGocModuleStructureSmoke:
         "characters/voices/character_voice_alain.yaml",
         "characters/voices/voice_consistency.yaml",
         "canonical_path/index.yaml",
-        "canonical_path/001_parc_montsouris_edge.yaml",
-        "canonical_path/002_argument_stick_blow.yaml",
-        "canonical_path/003_bicycle_disappearance.yaml",
-        "canonical_path/004_dark_building_hallway.yaml",
-        "canonical_path/005_living_room_handover.yaml",
-        "canonical_path/006_apartment_entry_greetings.yaml",
-        "canonical_path/007_living_room_arrangement.yaml",
-        "canonical_path/008_statement_on_table.yaml",
-        "canonical_path/009_wording_dispute_armed_carrying.yaml",
-        "canonical_path/010_injury_detail_dental_consequence.yaml",
-        "canonical_path/011_courtesy_community_pressure.yaml",
-        "canonical_path/012_tulips_and_hospitality.yaml",
-        "canonical_path/013_first_playable_courtesy_gap.yaml",
-        "canonical_path/014_player_response_ripple.yaml",
-        "canonical_path/015_phone_exit_pressure.yaml",
-        "canonical_path/016_opening_sustained_play_handoff.yaml",
         "locations/index.yaml",
         "locations/appartment_vallon/apartment_layout.yaml",
         "objects/index.yaml",
@@ -129,7 +128,7 @@ class TestGocModuleStructureSmoke:
 
     def test_core_files_exist(self):
         """All required core module files exist."""
-        for filename in self.REQUIRED_CORE_FILES:
+        for filename in [*self.REQUIRED_CORE_FILES, *_canonical_path_step_files(self.MODULE_ROOT)]:
             filepath = self.MODULE_ROOT / filename
             assert filepath.exists(), f"Required file {filename} not found"
             assert filepath.is_file(), f"Required file {filename} is not a file"
@@ -244,7 +243,7 @@ class TestGocModuleStructureSmoke:
 
     def test_yaml_files_parse(self):
         """All YAML files are valid and parse without error."""
-        for filename in self.REQUIRED_CORE_FILES:
+        for filename in [*self.REQUIRED_CORE_FILES, *_canonical_path_step_files(self.MODULE_ROOT)]:
             filepath = self.MODULE_ROOT / filename
             try:
                 with open(filepath, encoding="utf-8") as f:
@@ -376,6 +375,10 @@ class TestGocModuleStructureSmoke:
         for listed_file in listed_files:
             normalized = str(listed_file).split("#", 1)[0].strip()
             assert normalized in actual_files, f"Listed file {listed_file} not found on disk"
+        for canonical_step_file in _canonical_path_step_files(self.MODULE_ROOT):
+            assert canonical_step_file in listed_files, (
+                f"module.yaml file registry missing canonical path step: {canonical_step_file}"
+            )
 
 
 class TestGocModuleConsistencySmoke:

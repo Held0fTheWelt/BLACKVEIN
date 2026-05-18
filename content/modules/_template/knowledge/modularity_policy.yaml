@@ -107,6 +107,8 @@ modularity_policy:
         - access_policy
         - hard_runtime_rules
         - quote_anchor_policy
+        - player_freedom_policy
+        - canon_safe_affordance_inference_policy
       root: knowledge/
       must_reference:
         - locations/
@@ -146,6 +148,8 @@ modularity_policy:
       rule: "Direction and knowledge files must cite refs instead of repeating visible-world or spatial-model lists."
     - id: no_parallel_trigger_transition_ending_compendia
       rule: "Do not create standalone triggers.yaml, transitions.yaml, endings.yaml, or escalation_axes.yaml; keep phase pressure in phase_beat_policy and concrete sequence in canonical_path."
+    - id: inferred_affordances_are_not_content_files
+      rule: "AI-inferred mundane affordances fill runtime gaps only; they do not become a second object database or canonical fact unless later authored as one object per file."
 
   authoring_checks:
     required_in_canonical_path_steps:
