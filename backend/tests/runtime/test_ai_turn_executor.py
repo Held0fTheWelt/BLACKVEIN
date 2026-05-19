@@ -301,7 +301,8 @@ class TestBuildAdapterRequestInterpretation:
         log = session.metadata.get("operator_input_interpretation_log") or []
         assert len(log) == 1
         assert log[0]["turn_number"] == turn
-        assert log[0]["envelope"]["primary_mode"] == InputPrimaryMode.REACTION.value
+        assert log[0]["envelope"]["primary_mode"] == InputPrimaryMode.UNKNOWN.value
+        assert "semantic_ai_resolution_required" in log[0]["envelope"]["ambiguity_markers"]
 
 
 # ===== Integration Tests: Execute Turn with AI =====

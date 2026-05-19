@@ -63,6 +63,15 @@ Pre-AI deterministic previews must be conservative. They may emit
 language-specific word lists to classify unquoted input as action, reaction,
 question, movement, perception, or social intent.
 
+Backend-local preview surfaces follow the same rule. `AdapterRequest`
+diagnostics from `app.runtime.input_interpreter.interpret_operator_input` may
+record unquoted text such as `I nod.` as `primary_mode=unknown` with
+`semantic_ai_resolution_required`; the improvement sandbox may record
+action-like free text such as `I take the lantern...` as
+`interpreted_kind=ambiguous` / `triggered_tags=["uncertain"]`. These are not
+regressions: action, reaction, movement, and perception labels require
+structural command/dialogue syntax or downstream semantic AI evidence.
+
 ## Meta control input
 
 Out-of-world and out-of-character player input is represented as

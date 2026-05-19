@@ -96,7 +96,8 @@ class TestAdapterRequest:
             input_interpretation=interp,
         )
         assert request.input_interpretation is interp
-        assert request.input_interpretation.primary_mode == InputPrimaryMode.REACTION
+        assert request.input_interpretation.primary_mode == InputPrimaryMode.UNKNOWN
+        assert "semantic_ai_resolution_required" in request.input_interpretation.ambiguity_markers
 
 
 class TestAdapterResponse:

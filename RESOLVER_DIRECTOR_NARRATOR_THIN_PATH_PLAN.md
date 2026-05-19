@@ -106,7 +106,7 @@ Visible Blocks
 
 | Vertrag | Pflichtfelder | Datei |
 |---|---|---|
-| `semantic_resolution_output.v1` | `semantic_action`, `player_input_kind`, `resolved_target_type/id`, `possibility`, `kanon_break: bool`, `kanon_break_reason: str\|null`, `glück_disposition_input` | `ai_stack/player_action_resolution.py` (Erweiterung) |
+| `semantic_resolution_output.v1` | `semantic_action`, `player_input_kind`, `resolved_target_type/id`, `possibility`, `kanon_break: bool`, `kanon_break_reason: str\|null` | `ai_stack/player_action_resolution.py` (Erweiterung; Glück in `outcome_disposition` des Directors) |
 | `realization_plan.v1` | `realization_owner ∈ {narrator, actor_line, narrator+actor_line}`, `capabilities_selected: [str]`, `outcome_disposition: {success\|partial\|fail, reason}`, `language_target`, `visibility_constraints: [str]` | neu: `ai_stack/director_realization_composer.py` |
 | `kanon_break_check.v1` | nur ein Feld: `is_kanon_break: bool` + `reason: str`. Definition: `is_kanon_break = true` nur wenn die Aktion das **Weiterspielen unmöglich macht** (physisch unmöglich, kriminell/böse, irreversibel verheerend). Reversible Veränderung ≠ Bruch. | Resolver-Output, Director-Konsum |
 
@@ -114,7 +114,7 @@ Visible Blocks
 
 - `translate_player_input` (Ingress) — unverändert.
 - `interpret_input` — unverändert.
-- `resolve_player_action` — erweitert um `kanon_break`-Feld und `glück_disposition_input`, sonst unverändert.
+- `resolve_player_action` — erweitert um `kanon_break`-Felder, sonst unverändert.
 - `_player_input_scene_blocks_for_story_window` (zwei grüne Karten) — unverändert.
 - Frontend-Renderer — unverändert.
 - ADR-0054/0055/0034 — unverändert.
@@ -287,6 +287,10 @@ Anzeige-Standort: `narrative_systems.html` (siehe NPC_INTERACTION-Plan §3.5 Sta
 | A.3-1 | `dramatic_irony` als Director-Input | offen | `dramatic_irony_runtime.py` |
 | A.3-2 | Composer-Logik für Sachfragen | offen | — |
 | A.3-3 | Live-Smoke (3 Inputs) | offen | — |
+
+### PR-A — Abschluss
+
+**Status: COMPLETE (2026-05-19).** Normative Dokumentation: [ADR-0062](docs/ADR/adr-0062-director-realization-thin-path.md), [director_realization_thin_path_contract.md](docs/technical/runtime/director_realization_thin_path_contract.md).
 
 ### PR-B / PR-C
 

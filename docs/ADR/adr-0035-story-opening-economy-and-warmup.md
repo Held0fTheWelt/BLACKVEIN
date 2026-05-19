@@ -201,6 +201,10 @@ Current verification uses structured/content-derived assertions:
 - `backend/tests/content/test_content_compiler.py`
 - `backend/tests/content/test_module_loader.py`
 - Pi15 environment-state tests that assert opening/session state projection from canonical content
+- Content compiler retrieval tests derive canonical-step ids from the current
+  `content/modules/god_of_carnage/canonical_path/*.yaml` authority. They must
+  not assert removed historical step aliases when the canonical path has been
+  split or renamed.
 
 ## References
 

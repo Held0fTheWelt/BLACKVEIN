@@ -18,6 +18,8 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 5. Backend resolves the stored World-Engine story session and proxies turn execution through `game_service`.
 6. World-Engine executes the turn through the runtime graph and returns interpreted turn output.
 
+**Player-turn graph (ADR-0062):** `resolve_player_action` → `director_compose_realization` → `realize_via_capabilities` → model invoke → validate → commit. See [director_realization_thin_path_contract.md](director_realization_thin_path_contract.md).
+
 ## Command compatibility
 
 - Explicit commands (`/` and `!` forms) remain supported.

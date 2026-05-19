@@ -705,17 +705,18 @@ def test_sandbox_turn_uses_semantic_interpretation():
 
 
 def test_sandbox_turn_action_input_is_classified_correctly():
-    """Action verb input must produce interpreted_kind == 'action'."""
+    """Unresolved action-like free text remains ambiguous without semantic AI evidence."""
     result = _simulate_sandbox_turn(
         variant=_DUMMY_VARIANT,
         player_input="I take the lantern and move to the eastern corridor.",
         turn_number=2,
     )
-    assert result["interpreted_kind"] == "action", (
-        f"Expected 'action', got {result['interpreted_kind']!r}"
+    assert result["interpreted_kind"] == "ambiguous", (
+        f"Expected 'ambiguous', got {result['interpreted_kind']!r}"
     )
     assert result["guard_rejected"] is False
-    assert result["triggered_tags"] == ["action"]
+    assert result["triggered_tags"] == ["uncertain"]
+    assert result["interpretation_confidence"] > 0.0
 
 
 def test_evaluate_experiment_builds_comparison_package_and_rationale(tmp_path):

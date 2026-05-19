@@ -123,7 +123,7 @@ def test_retrieval_corpus_seed_emits_entity_chunks_for_god_of_carnage():
     art_books = by_id["object:art_books"]
     assert art_books.metadata["placement_location_id"] == "living_room"
 
-    step = by_id["canonical_step:opening_009_wording_dispute_armed_carrying"]
+    step = by_id["canonical_step:opening_009_root_canal_observation_period"]
     assert step.metadata["sequence"] == 9
     assert step.metadata["location_id"] == "living_room"
 
