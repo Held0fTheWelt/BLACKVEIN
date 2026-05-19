@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Final
 
 from ai_stack.director_pulse_contracts import (
@@ -56,8 +56,12 @@ from ai_stack.director_pulse_contracts import (
 )
 from ai_stack.director_pulse_shadow import evaluate_director_tick
 from ai_stack.phase2_off_stage_updates import (
+    OffStageCommitInputs,
     OffStageUpdateInputs,
+    SAFETY_GATE_BLOCKED,
+    build_default_off_stage_commit_result,
     build_off_stage_update_candidate,
+    commit_off_stage_update_candidates,
 )
 from ai_stack.phase2_stream_readiness import (
     classify_capability_availability,
@@ -67,6 +71,9 @@ from ai_stack.phase2_stream_readiness import (
 # ── Feature flag ──────────────────────────────────────────────────────────────
 
 PHASE2_AUTONOMOUS_TICK_ENABLED: Final[str] = "PHASE2_AUTONOMOUS_TICK_ENABLED"
+PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED: Final[str] = (
+    "PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED"
+)
 
 _TRUE_VALUES: Final[frozenset[str]] = frozenset(("1", "true", "yes", "on"))
 
@@ -77,6 +84,16 @@ def is_autonomous_tick_enabled() -> bool:
     Fail-closed: any unset / unparseable value is treated as disabled.
     """
     raw = os.environ.get(PHASE2_AUTONOMOUS_TICK_ENABLED, "false")
+    return str(raw or "").strip().lower() in _TRUE_VALUES
+
+
+def is_autonomous_pause_loop_enabled() -> bool:
+    """True when Stage H multi-tick pause loops are enabled server-side.
+
+    Fail-closed and separate from the single-tick flag: enabling autonomous
+    ticks does not automatically enable repeated pause-loop evaluation.
+    """
+    raw = os.environ.get(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "false")
     return str(raw or "").strip().lower() in _TRUE_VALUES
 
 
@@ -112,12 +129,36 @@ SILENCE_REASONS: Final[frozenset[str]] = frozenset({
 })
 
 
+# ── Stage H loop triggers / stop reasons ─────────────────────────────────────
+
+LOOP_TRIGGER_USER_PAUSE: Final[str] = "user_pause"
+LOOP_TRIGGER_SILENCE: Final[str] = "silence"
+LOOP_TRIGGER_GATHERING_PAUSED: Final[str] = "gathering_paused"
+
+LOOP_TRIGGER_KINDS: Final[frozenset[str]] = frozenset({
+    LOOP_TRIGGER_USER_PAUSE,
+    LOOP_TRIGGER_SILENCE,
+    LOOP_TRIGGER_GATHERING_PAUSED,
+})
+
+LOOP_STOP_DISABLED: Final[str] = "loop_disabled"
+LOOP_STOP_INVALID_TRIGGER: Final[str] = "invalid_loop_trigger"
+LOOP_STOP_MAX_TICKS: Final[str] = "max_ticks_per_pause"
+LOOP_STOP_COOLDOWN_ACTIVE: Final[str] = "cooldown_active"
+LOOP_STOP_ELAPSED_INPUT_MISSING: Final[str] = "elapsed_input_missing"
+LOOP_STOP_PLAYER_CUT_IN: Final[str] = "player_cut_in"
+LOOP_STOP_UNSAFE_CANDIDATE: Final[str] = "unsafe_candidate"
+LOOP_STOP_NO_MOTIVATION_THRESHOLD: Final[str] = "no_motivation_threshold_crossed"
+LOOP_STOP_TICK_SUPPRESSED: Final[str] = "tick_suppressed"
+
+
 # ── Cooldown ──────────────────────────────────────────────────────────────────
 
 _DEFAULT_MIN_TICK_INTERVAL_MS: Final[float] = 1500.0
+_DEFAULT_MAX_TICKS_PER_PAUSE: Final[int] = 1
 
 
-def _extract_min_tick_interval_ms(
+def resolve_min_tick_interval_ms(
     pacing_rhythm_policy: dict[str, Any] | None,
     explicit_override_ms: float | None,
 ) -> float:
@@ -135,6 +176,21 @@ def _extract_min_tick_interval_ms(
             except (TypeError, ValueError):
                 pass
     return _DEFAULT_MIN_TICK_INTERVAL_MS
+
+
+def resolve_max_ticks_per_pause(
+    pacing_rhythm_policy: dict[str, Any] | None,
+    explicit_override: int | None = None,
+) -> int:
+    """Resolve the Stage H per-pause tick cap from policy / override."""
+    raw = explicit_override
+    if raw is None and isinstance(pacing_rhythm_policy, dict):
+        raw = pacing_rhythm_policy.get("max_ticks_per_pause")
+    try:
+        parsed = int(raw) if raw is not None else _DEFAULT_MAX_TICKS_PER_PAUSE
+    except (TypeError, ValueError):
+        parsed = _DEFAULT_MAX_TICKS_PER_PAUSE
+    return max(1, min(8, parsed))
 
 
 def _cooldown_active(
@@ -187,6 +243,15 @@ class AutonomousTickInputs:
     visible_npc_ids: list[str] = field(default_factory=list)
     known_actor_ids: list[str] = field(default_factory=list)
     known_room_ids: list[str] = field(default_factory=list)
+    # Stage G — opt-in off-stage commit policy/targets. Omitted means preview-only.
+    off_stage_updates_policy: dict[str, Any] | None = None
+    relationship_state_record: dict[str, Any] | None = None
+    hierarchical_memory_snapshot: dict[str, Any] | None = None
+    hierarchical_memory_policy: dict[str, Any] | None = None
+    module_runtime_policy: dict[str, Any] | None = None
+    module_id: str | None = None
+    runtime_profile_id: str | None = None
+    turn_number: int | None = None
 
 
 @dataclass
@@ -220,6 +285,7 @@ class AutonomousTickOutcome:
     capability_outputs_missing: list[str] = field(default_factory=list)
     motivation_score_component_sources: dict[str, str] = field(default_factory=dict)
     off_stage_update_candidate: dict[str, Any] = field(default_factory=dict)
+    off_stage_commit_result: dict[str, Any] = field(default_factory=dict)
     canonical_path_advanced: bool = False
     mandatory_beat_consumed: bool = False
     shadow_only: bool = False
@@ -243,9 +309,54 @@ class AutonomousTickOutcome:
             "capability_outputs_missing": list(self.capability_outputs_missing),
             "motivation_score_component_sources": dict(self.motivation_score_component_sources),
             "off_stage_update_candidate": dict(self.off_stage_update_candidate),
+            "off_stage_commit_result": dict(self.off_stage_commit_result),
             "canonical_path_advanced": self.canonical_path_advanced,
             "mandatory_beat_consumed": self.mandatory_beat_consumed,
             "shadow_only": self.shadow_only,
+        }
+
+
+@dataclass
+class AutonomousPauseLoopInputs:
+    """Pure Stage H loop inputs for a single explicit pause opportunity."""
+
+    tick_inputs: AutonomousTickInputs
+    loop_trigger_kind: str = LOOP_TRIGGER_USER_PAUSE
+    max_ticks_per_pause: int | None = None
+    elapsed_ms_between_ticks: list[float] = field(default_factory=list)
+    player_cut_in_after_tick_index: int | None = None
+
+
+@dataclass
+class AutonomousPauseLoopOutcome:
+    """Diagnostic result for one bounded autonomous pause loop."""
+
+    loop_enabled: bool
+    loop_trigger_kind: str
+    tick_outcomes: list[AutonomousTickOutcome]
+    stop_reason: str
+    max_ticks_per_pause: int
+    min_tick_interval_ms: float
+    stopped_on_player_cut_in: bool = False
+    stopped_on_unsafe_candidate: bool = False
+    canonical_path_advanced: bool = False
+    mandatory_beat_consumed: bool = False
+    proof_level: str = "local_only"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "loop_enabled": self.loop_enabled,
+            "loop_trigger_kind": self.loop_trigger_kind,
+            "tick_count": len(self.tick_outcomes),
+            "max_ticks_per_pause": self.max_ticks_per_pause,
+            "min_tick_interval_ms": self.min_tick_interval_ms,
+            "stop_reason": self.stop_reason,
+            "stopped_on_player_cut_in": self.stopped_on_player_cut_in,
+            "stopped_on_unsafe_candidate": self.stopped_on_unsafe_candidate,
+            "canonical_path_advanced": self.canonical_path_advanced,
+            "mandatory_beat_consumed": self.mandatory_beat_consumed,
+            "proof_level": self.proof_level,
+            "tick_summaries": [outcome.to_dict() for outcome in self.tick_outcomes],
         }
 
 
@@ -284,6 +395,35 @@ def _validate_trigger(trigger_kind: str) -> bool:
     return trigger_kind in TRIGGER_KINDS
 
 
+def _candidate_is_unsafe(outcome: AutonomousTickOutcome) -> bool:
+    candidate = (
+        outcome.off_stage_update_candidate
+        if isinstance(outcome.off_stage_update_candidate, dict)
+        else {}
+    )
+    return candidate.get("off_stage_safety_gate_result") == SAFETY_GATE_BLOCKED
+
+
+def _commit_artifacts_from_outcome(
+    outcome: AutonomousTickOutcome,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    commit = (
+        outcome.off_stage_commit_result
+        if isinstance(outcome.off_stage_commit_result, dict)
+        else {}
+    )
+    relationship_state: dict[str, Any] | None = None
+    memory_snapshot: dict[str, Any] | None = None
+    for row in commit.get("target_results") or []:
+        if not isinstance(row, dict) or not row.get("committed"):
+            continue
+        if isinstance(row.get("relationship_state_record"), dict):
+            relationship_state = row["relationship_state_record"]
+        if isinstance(row.get("hierarchical_memory_snapshot"), dict):
+            memory_snapshot = row["hierarchical_memory_snapshot"]
+    return relationship_state, memory_snapshot
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -313,7 +453,7 @@ def should_emit_autonomous_tick(
         return False, SUPPRESS_ALREADY_EMITTING
     if not inputs.npc_ids:
         return False, SUPPRESS_NO_NPCS_PRESENT
-    min_interval = _extract_min_tick_interval_ms(
+    min_interval = resolve_min_tick_interval_ms(
         inputs.pacing_rhythm_policy,
         inputs.min_tick_interval_ms_override,
     )
@@ -352,7 +492,7 @@ def evaluate_autonomous_tick(
     if enabled is None:
         enabled = is_autonomous_tick_enabled()
     resolved_tick_id = inputs.tick_id or str(uuid.uuid4())
-    min_interval = _extract_min_tick_interval_ms(
+    min_interval = resolve_min_tick_interval_ms(
         inputs.pacing_rhythm_policy,
         inputs.min_tick_interval_ms_override,
     )
@@ -415,6 +555,10 @@ def evaluate_autonomous_tick(
                 gathering_paused=inputs.gathering_paused,
             )
         )
+        suppressed_commit_result = build_default_off_stage_commit_result(
+            suppressed_off_stage,
+            reason="no_off_stage_candidate",
+        )
         return AutonomousTickOutcome(
             tick_id=resolved_tick_id,
             autonomous_tick_enabled=enabled,
@@ -433,6 +577,7 @@ def evaluate_autonomous_tick(
             capability_outputs_missing=capability_outputs_missing,
             motivation_score_component_sources=component_sources,
             off_stage_update_candidate=suppressed_off_stage,
+            off_stage_commit_result=suppressed_commit_result,
         )
 
     # Allowed — delegate the actor-selection logic to evaluate_director_tick.
@@ -505,6 +650,22 @@ def evaluate_autonomous_tick(
             gathering_paused=inputs.gathering_paused,
         )
     )
+    off_stage_commit_result = commit_off_stage_update_candidates(
+        OffStageCommitInputs(
+            candidate_result=off_stage_result,
+            policy=inputs.off_stage_updates_policy,
+            known_actor_ids=list(inputs.known_actor_ids),
+            known_room_ids=list(inputs.known_room_ids),
+            relationship_state_record=inputs.relationship_state_record
+            or inputs.relationship_state_output,
+            hierarchical_memory_snapshot=inputs.hierarchical_memory_snapshot,
+            hierarchical_memory_policy=inputs.hierarchical_memory_policy,
+            module_runtime_policy=inputs.module_runtime_policy,
+            module_id=inputs.module_id,
+            runtime_profile_id=inputs.runtime_profile_id,
+            turn_number=inputs.turn_number,
+        )
+    )
 
     return AutonomousTickOutcome(
         tick_id=resolved_tick_id,
@@ -524,12 +685,123 @@ def evaluate_autonomous_tick(
         capability_outputs_missing=capability_outputs_missing,
         motivation_score_component_sources=component_sources,
         off_stage_update_candidate=off_stage_result,
+        off_stage_commit_result=off_stage_commit_result,
+    )
+
+
+def evaluate_autonomous_pause_loop(
+    inputs: AutonomousPauseLoopInputs,
+    *,
+    enabled: bool | None = None,
+    tick_enabled: bool | None = None,
+) -> AutonomousPauseLoopOutcome:
+    """Evaluate a bounded Stage H autonomous loop for an explicit pause.
+
+    This pure coordinator never sleeps and never schedules by itself. Callers
+    must provide elapsed evidence for ticks after the first one, which keeps
+    repeated evaluations tied to an explicit pause opportunity rather than an
+    ambient timer.
+    """
+    loop_enabled = is_autonomous_pause_loop_enabled() if enabled is None else bool(enabled)
+    min_interval = resolve_min_tick_interval_ms(
+        inputs.tick_inputs.pacing_rhythm_policy,
+        inputs.tick_inputs.min_tick_interval_ms_override,
+    )
+    max_ticks = resolve_max_ticks_per_pause(
+        inputs.tick_inputs.pacing_rhythm_policy,
+        inputs.max_ticks_per_pause,
+    )
+    if not loop_enabled:
+        return AutonomousPauseLoopOutcome(
+            loop_enabled=False,
+            loop_trigger_kind=inputs.loop_trigger_kind,
+            tick_outcomes=[],
+            stop_reason=LOOP_STOP_DISABLED,
+            max_ticks_per_pause=max_ticks,
+            min_tick_interval_ms=min_interval,
+        )
+    if inputs.loop_trigger_kind not in LOOP_TRIGGER_KINDS:
+        return AutonomousPauseLoopOutcome(
+            loop_enabled=True,
+            loop_trigger_kind=inputs.loop_trigger_kind,
+            tick_outcomes=[],
+            stop_reason=LOOP_STOP_INVALID_TRIGGER,
+            max_ticks_per_pause=max_ticks,
+            min_tick_interval_ms=min_interval,
+        )
+
+    outcomes: list[AutonomousTickOutcome] = []
+    stop_reason = LOOP_STOP_MAX_TICKS
+    stopped_on_player_cut_in = False
+    stopped_on_unsafe_candidate = False
+    relationship_state = inputs.tick_inputs.relationship_state_record
+    memory_snapshot = inputs.tick_inputs.hierarchical_memory_snapshot
+
+    for tick_index in range(max_ticks):
+        if tick_index == 0:
+            since_last_tick_ms = inputs.tick_inputs.since_last_tick_ms
+        else:
+            elapsed_index = tick_index - 1
+            if elapsed_index >= len(inputs.elapsed_ms_between_ticks):
+                stop_reason = LOOP_STOP_ELAPSED_INPUT_MISSING
+                break
+            since_last_tick_ms = inputs.elapsed_ms_between_ticks[elapsed_index]
+
+        tick_inputs = replace(
+            inputs.tick_inputs,
+            tick_id=(inputs.tick_inputs.tick_id if tick_index == 0 else str(uuid.uuid4())),
+            since_last_tick_ms=since_last_tick_ms,
+            relationship_state_record=relationship_state,
+            hierarchical_memory_snapshot=memory_snapshot,
+            pending_player_input=False,
+            already_streaming_block=False,
+        )
+        outcome = evaluate_autonomous_tick(tick_inputs, enabled=tick_enabled)
+        outcomes.append(outcome)
+
+        committed_relationship, committed_memory = _commit_artifacts_from_outcome(outcome)
+        if committed_relationship is not None:
+            relationship_state = committed_relationship
+        if committed_memory is not None:
+            memory_snapshot = committed_memory
+
+        if inputs.player_cut_in_after_tick_index == tick_index:
+            stop_reason = LOOP_STOP_PLAYER_CUT_IN
+            stopped_on_player_cut_in = True
+            break
+        if outcome.autonomous_tick_suppressed_reason == SUPPRESS_COOLDOWN_ACTIVE:
+            stop_reason = LOOP_STOP_COOLDOWN_ACTIVE
+            break
+        if outcome.autonomous_tick_suppressed_reason:
+            stop_reason = LOOP_STOP_TICK_SUPPRESSED
+            break
+        if _candidate_is_unsafe(outcome):
+            stop_reason = LOOP_STOP_UNSAFE_CANDIDATE
+            stopped_on_unsafe_candidate = True
+            break
+        if outcome.block_stream_event is None:
+            stop_reason = LOOP_STOP_NO_MOTIVATION_THRESHOLD
+            break
+
+    return AutonomousPauseLoopOutcome(
+        loop_enabled=True,
+        loop_trigger_kind=inputs.loop_trigger_kind,
+        tick_outcomes=outcomes,
+        stop_reason=stop_reason,
+        max_ticks_per_pause=max_ticks,
+        min_tick_interval_ms=min_interval,
+        stopped_on_player_cut_in=stopped_on_player_cut_in,
+        stopped_on_unsafe_candidate=stopped_on_unsafe_candidate,
+        canonical_path_advanced=False,
+        mandatory_beat_consumed=False,
     )
 
 
 __all__ = [
     "PHASE2_AUTONOMOUS_TICK_ENABLED",
+    "PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED",
     "is_autonomous_tick_enabled",
+    "is_autonomous_pause_loop_enabled",
     "SUPPRESS_FLAG_DISABLED",
     "SUPPRESS_NO_NPCS_PRESENT",
     "SUPPRESS_COOLDOWN_ACTIVE",
@@ -541,8 +813,26 @@ __all__ = [
     "SILENCE_GATHERING_PAUSED_OFF_STAGE",
     "SILENCE_DIRECTOR_CHOSE",
     "SILENCE_REASONS",
+    "LOOP_TRIGGER_USER_PAUSE",
+    "LOOP_TRIGGER_SILENCE",
+    "LOOP_TRIGGER_GATHERING_PAUSED",
+    "LOOP_TRIGGER_KINDS",
+    "LOOP_STOP_DISABLED",
+    "LOOP_STOP_INVALID_TRIGGER",
+    "LOOP_STOP_MAX_TICKS",
+    "LOOP_STOP_COOLDOWN_ACTIVE",
+    "LOOP_STOP_ELAPSED_INPUT_MISSING",
+    "LOOP_STOP_PLAYER_CUT_IN",
+    "LOOP_STOP_UNSAFE_CANDIDATE",
+    "LOOP_STOP_NO_MOTIVATION_THRESHOLD",
+    "LOOP_STOP_TICK_SUPPRESSED",
     "AutonomousTickInputs",
     "AutonomousTickOutcome",
+    "AutonomousPauseLoopInputs",
+    "AutonomousPauseLoopOutcome",
+    "resolve_min_tick_interval_ms",
+    "resolve_max_ticks_per_pause",
     "should_emit_autonomous_tick",
     "evaluate_autonomous_tick",
+    "evaluate_autonomous_pause_loop",
 ]

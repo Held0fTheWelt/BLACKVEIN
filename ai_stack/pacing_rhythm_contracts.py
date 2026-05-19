@@ -179,5 +179,11 @@ def normalize_pacing_rhythm_policy(policy: dict[str, Any] | None) -> dict[str, A
         "default_max_visible_blocks": _bounded_int(
             raw.get("default_max_visible_blocks"), 6, minimum=1, maximum=12
         ),
+        "min_tick_interval_ms": _bounded_int(
+            raw.get("min_tick_interval_ms"), 1500, minimum=0, maximum=60000
+        ),
+        "max_ticks_per_pause": _bounded_int(
+            raw.get("max_ticks_per_pause"), 1, minimum=1, maximum=8
+        ),
         "source": "module_runtime_policy.pacing_rhythm",
     }

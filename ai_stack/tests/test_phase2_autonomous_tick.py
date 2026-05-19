@@ -47,6 +47,15 @@ from ai_stack.director_pulse_contracts import (
     TRIGGER_STATE_CHANGE,
 )
 from ai_stack.phase2_autonomous_tick import (
+    LOOP_STOP_COOLDOWN_ACTIVE,
+    LOOP_STOP_DISABLED,
+    LOOP_STOP_ELAPSED_INPUT_MISSING,
+    LOOP_STOP_MAX_TICKS,
+    LOOP_STOP_NO_MOTIVATION_THRESHOLD,
+    LOOP_STOP_PLAYER_CUT_IN,
+    LOOP_STOP_UNSAFE_CANDIDATE,
+    LOOP_TRIGGER_USER_PAUSE,
+    PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED,
     PHASE2_AUTONOMOUS_TICK_ENABLED,
     SILENCE_GATHERING_PAUSED_OFF_STAGE,
     SILENCE_NO_NPC_ABOVE_THRESHOLD,
@@ -56,9 +65,12 @@ from ai_stack.phase2_autonomous_tick import (
     SUPPRESS_INVALID_TRIGGER,
     SUPPRESS_NO_NPCS_PRESENT,
     SUPPRESS_PENDING_PLAYER_INPUT,
+    AutonomousPauseLoopInputs,
     AutonomousTickInputs,
     AutonomousTickOutcome,
+    evaluate_autonomous_pause_loop,
     evaluate_autonomous_tick,
+    is_autonomous_pause_loop_enabled,
     is_autonomous_tick_enabled,
     should_emit_autonomous_tick,
 )
@@ -132,6 +144,8 @@ def _ready_inputs(**overrides: Any) -> AutonomousTickInputs:
         actor_pressure_profiles=_actor_profiles("npc_a"),
         npc_motivation_score_policy=_policy_low_threshold(),
         since_last_tick_ms=None,
+        visible_npc_ids=["npc_a"],
+        known_actor_ids=["npc_a"],
     )
     defaults.update(overrides)
     return AutonomousTickInputs(**defaults)
@@ -418,6 +432,210 @@ class TestCooldown:
         assert outcome.cooldown_state["min_tick_interval_ms"] == 5000.0
         assert outcome.cooldown_state["cooldown_active"] is True
         assert outcome.autonomous_tick_suppressed_reason == SUPPRESS_COOLDOWN_ACTIVE
+
+
+# ── Stage H — bounded autonomous pause loop ──────────────────────────────────
+
+
+class TestAutonomousPauseLoop:
+    def test_loop_disabled_by_default(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, raising=False)
+        assert is_autonomous_pause_loop_enabled() is False
+
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(tick_inputs=_ready_inputs()),
+            tick_enabled=True,
+        )
+        assert outcome.loop_enabled is False
+        assert outcome.stop_reason == LOOP_STOP_DISABLED
+        assert outcome.tick_outcomes == []
+
+    def test_loop_enabled_by_flag(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "true")
+        assert is_autonomous_pause_loop_enabled() is True
+
+    def test_max_ticks_per_pause_enforced(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 2,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.loop_enabled is True
+        assert outcome.stop_reason == LOOP_STOP_MAX_TICKS
+        assert len(outcome.tick_outcomes) == 2
+        assert all(t.block_stream_event is not None for t in outcome.tick_outcomes)
+
+    def test_cooldown_enforced_between_ticks(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 5000,
+                        "max_ticks_per_pause": 2,
+                    },
+                ),
+                elapsed_ms_between_ticks=[100],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.stop_reason == LOOP_STOP_COOLDOWN_ACTIVE
+        assert len(outcome.tick_outcomes) == 2
+        assert outcome.tick_outcomes[1].autonomous_tick_suppressed_reason == SUPPRESS_COOLDOWN_ACTIVE
+
+    def test_additional_tick_requires_elapsed_evidence(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 1000,
+                        "max_ticks_per_pause": 2,
+                    },
+                ),
+                elapsed_ms_between_ticks=[],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.stop_reason == LOOP_STOP_ELAPSED_INPUT_MISSING
+        assert len(outcome.tick_outcomes) == 1
+
+    def test_no_npc_above_threshold_yields_silence_then_stops(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    scene_energy_output=_scene_energy_low(),
+                    social_pressure_output=_social_pressure_low(),
+                    npc_motivation_score_policy=_policy_high_threshold(),
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 3,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0, 0],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.stop_reason == LOOP_STOP_NO_MOTIVATION_THRESHOLD
+        assert len(outcome.tick_outcomes) == 1
+        assert outcome.tick_outcomes[0].silence_reason == SILENCE_NO_NPC_ABOVE_THRESHOLD
+
+    def test_highest_motivated_npc_wins_each_tick(self):
+        profiles = {
+            "profiles": {
+                "npc_low": {"pressure_markers": [{"t": "x"}]},
+                "npc_high": {"pressure_markers": [{"t": str(i)} for i in range(10)]},
+            }
+        }
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    npc_ids=["npc_low", "npc_high"],
+                    actor_pressure_profiles=profiles,
+                    visible_npc_ids=["npc_low", "npc_high"],
+                    known_actor_ids=["npc_low", "npc_high"],
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 2,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert [tick.chosen_actor_id for tick in outcome.tick_outcomes] == [
+            "npc_high",
+            "npc_high",
+        ]
+
+    def test_cut_in_stops_loop(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 3,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0, 0],
+                player_cut_in_after_tick_index=0,
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.stop_reason == LOOP_STOP_PLAYER_CUT_IN
+        assert outcome.stopped_on_player_cut_in is True
+        assert len(outcome.tick_outcomes) == 1
+
+    def test_unsafe_off_stage_candidate_stops_loop(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    visible_npc_ids=[],
+                    known_actor_ids=["npc_b"],
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 3,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0, 0],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.stop_reason == LOOP_STOP_UNSAFE_CANDIDATE
+        assert outcome.stopped_on_unsafe_candidate is True
+        assert len(outcome.tick_outcomes) == 1
+
+    def test_off_stage_commits_remain_stage_g_gated(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    visible_npc_ids=[],
+                    known_actor_ids=["npc_a"],
+                    known_room_ids=["room_a"],
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 1,
+                    },
+                ),
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        commit = outcome.tick_outcomes[0].off_stage_commit_result
+        assert commit["attempted"] is True
+        assert commit["committed"] is False
+        assert commit["reason"] == "auto_commit_disabled"
+
+    def test_loop_invariants_never_advance_path_or_consume_beats(self):
+        outcome = evaluate_autonomous_pause_loop(
+            AutonomousPauseLoopInputs(
+                tick_inputs=_ready_inputs(
+                    pacing_rhythm_policy={
+                        "min_tick_interval_ms": 0,
+                        "max_ticks_per_pause": 2,
+                    },
+                ),
+                elapsed_ms_between_ticks=[0],
+            ),
+            enabled=True,
+            tick_enabled=True,
+        )
+        assert outcome.canonical_path_advanced is False
+        assert outcome.mandatory_beat_consumed is False
+        assert all(t.canonical_path_advanced is False for t in outcome.tick_outcomes)
+        assert all(t.mandatory_beat_consumed is False for t in outcome.tick_outcomes)
 
 
 # ── Hard boundaries (Stage E) ────────────────────────────────────────────────

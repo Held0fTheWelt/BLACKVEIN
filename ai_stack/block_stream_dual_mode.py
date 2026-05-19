@@ -279,6 +279,7 @@ def augment_envelope_with_block_stream(
     actor_pressure_profiles: dict[str, Any] | None = None,
     npc_motivation_score_policy: dict[str, Any] | None = None,
     pacing_rhythm_policy: dict[str, Any] | None = None,
+    off_stage_updates_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Augment an existing ``scene_turn_envelope.v2`` dict with dual-mode fields.
 
@@ -305,6 +306,7 @@ def augment_envelope_with_block_stream(
         narrative_momentum_output: Structured narrative_momentum output.
         actor_pressure_profiles: Loaded actor_pressure_profiles.yaml data.
         npc_motivation_score_policy: runtime_intelligence.npc_motivation_score policy.
+        off_stage_updates_policy: runtime_intelligence.off_stage_updates policy.
 
     Returns:
         Augmented envelope dict (new top-level dict, sharing inner refs).
@@ -422,6 +424,7 @@ def augment_envelope_with_block_stream(
             "actor_pressure_profiles": actor_pressure_profiles,
             "npc_motivation_score_policy": npc_motivation_score_policy,
             "pacing_rhythm_policy": pacing_rhythm_policy,
+            "off_stage_updates_policy": off_stage_updates_policy,
             "capability_outputs_used": cap_used,
             "capability_outputs_missing": cap_missing,
             "shadow_only": True,

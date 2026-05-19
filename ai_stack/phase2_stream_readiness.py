@@ -155,6 +155,7 @@ def extract_module_policies_for_director(
     runtime_intelligence = _pick_dict(
         gs.get("runtime_intelligence"),
         cfg.get("runtime_intelligence"),
+        cfg.get("runtime_governance_policy"),
     ) or {}
 
     npc_motivation_score_policy = _pick_dict(

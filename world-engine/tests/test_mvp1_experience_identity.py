@@ -876,7 +876,7 @@ class TestSessionOutputLanguage:
         assert response.status_code == 200
 
     def test_create_story_session_defaults_to_de_when_omitted(self, client, internal_api_key):
-        """Legacy test name: omitted output language defaults to English, not German."""
+        """Omitted output language defaults to German."""
         response = client.post(
             "/api/story/sessions",
             headers={"X-Play-Service-Key": internal_api_key},
@@ -889,8 +889,8 @@ class TestSessionOutputLanguage:
         assert response.status_code == 200
         body = response.json()
         session = client.app.state.story_manager.get_session(body["session_id"])
-        assert session.session_output_language == "en"
-        assert session.session_input_language == "en"
+        assert session.session_output_language == "de"
+        assert session.session_input_language == "de"
         assert body["opening_generation_status"] == "pending"
 
     def _full_projection(self):
@@ -932,7 +932,7 @@ class TestSessionOutputLanguage:
         assert session.session_output_language == "en"
 
     def test_story_session_default_language_is_de(self):
-        """Legacy test name: StorySession defaults to English when language is omitted."""
+        """StorySession defaults to German when language is omitted."""
         from app.story_runtime import StoryRuntimeManager
         mgr = StoryRuntimeManager(session_store=None, adapters={})
         session = mgr.create_session(
@@ -940,8 +940,8 @@ class TestSessionOutputLanguage:
             runtime_projection=self._full_projection(),
             skip_graph_opening_on_create=True,
         )
-        assert session.session_output_language == "en"
-        assert session.session_input_language == "en"
+        assert session.session_output_language == "de"
+        assert session.session_input_language == "de"
 
     def test_opening_prompt_contains_german_directive_for_de(self):
         """_build_opening_prompt must include German language directive when session_output_language=de (ADR-0036)."""

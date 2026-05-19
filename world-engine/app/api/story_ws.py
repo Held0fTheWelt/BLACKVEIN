@@ -44,8 +44,20 @@ from starlette.concurrency import run_in_threadpool
 from ai_stack.phase2_autonomous_tick import (
     AutonomousTickInputs,
     AutonomousTickOutcome,
+    LOOP_STOP_COOLDOWN_ACTIVE,
+    LOOP_STOP_MAX_TICKS,
+    LOOP_STOP_NO_MOTIVATION_THRESHOLD,
+    LOOP_STOP_PLAYER_CUT_IN,
+    LOOP_STOP_TICK_SUPPRESSED,
+    LOOP_STOP_UNSAFE_CANDIDATE,
+    LOOP_TRIGGER_GATHERING_PAUSED,
+    LOOP_TRIGGER_SILENCE,
+    LOOP_TRIGGER_USER_PAUSE,
     evaluate_autonomous_tick,
+    is_autonomous_pause_loop_enabled,
     is_autonomous_tick_enabled,
+    resolve_max_ticks_per_pause,
+    resolve_min_tick_interval_ms,
 )
 from ai_stack.phase2_ws_session_loop import (
     CLIENT_MSG_CUT_IN,
@@ -242,6 +254,12 @@ def _extract_autonomous_tick_inputs(
         visible_npc_ids=visible_npc_ids,
         known_actor_ids=known_actor_ids,
         known_room_ids=known_room_ids,
+        off_stage_updates_policy=director_pulse.get("off_stage_updates_policy")
+        if isinstance(director_pulse.get("off_stage_updates_policy"), dict)
+        else None,
+        relationship_state_record=cap_outputs.get("relationship_state_output")
+        if isinstance(cap_outputs.get("relationship_state_output"), dict)
+        else None,
     )
 
 
@@ -269,7 +287,73 @@ def _autonomous_tick_summary(outcome: AutonomousTickOutcome) -> dict[str, Any]:
         "capability_outputs_missing": list(outcome.capability_outputs_missing),
         "motivation_score_component_sources": dict(outcome.motivation_score_component_sources),
         "off_stage_update_candidate": dict(outcome.off_stage_update_candidate),
+        "off_stage_commit_result": dict(outcome.off_stage_commit_result),
     }
+
+
+def _summary_with_loop_metadata(
+    outcome: AutonomousTickOutcome,
+    *,
+    tick_index: int,
+    max_ticks_per_pause: int,
+    loop_enabled: bool,
+    loop_trigger_kind: str,
+) -> dict[str, Any]:
+    summary = _autonomous_tick_summary(outcome)
+    summary["autonomous_pause_loop"] = {
+        "enabled": bool(loop_enabled),
+        "tick_index": tick_index,
+        "tick_number": tick_index + 1,
+        "max_ticks_per_pause": max_ticks_per_pause,
+        "loop_trigger_kind": loop_trigger_kind,
+        "canonical_path_advanced": False,
+        "mandatory_beat_consumed": False,
+        "proof_level": "local_only",
+    }
+    return summary
+
+
+def _autonomous_candidate_blocked(outcome: AutonomousTickOutcome) -> bool:
+    candidate = (
+        outcome.off_stage_update_candidate
+        if isinstance(outcome.off_stage_update_candidate, dict)
+        else {}
+    )
+    return candidate.get("off_stage_safety_gate_result") == "blocked"
+
+
+async def _wait_for_pause_interval_or_input(
+    websocket: WebSocket,
+    *,
+    seconds: float,
+) -> dict[str, Any] | None:
+    """Wait during an explicit pause interval; return player input if one arrives."""
+    if seconds <= 0:
+        return None
+    while True:
+        try:
+            message = await asyncio.wait_for(websocket.receive_json(), timeout=seconds)
+        except asyncio.TimeoutError:
+            return None
+        except WebSocketDisconnect:
+            raise
+        except Exception:
+            return None
+        if not isinstance(message, dict):
+            return None
+        kind = str(message.get("kind") or "")
+        if kind == CLIENT_MSG_PING:
+            await websocket.send_json({"kind": "pong"})
+            continue
+        if kind == CLIENT_MSG_CUT_IN:
+            return message
+        if kind == CLIENT_MSG_START_TURN and str(message.get("player_input") or "").strip():
+            return {
+                "kind": CLIENT_MSG_CUT_IN,
+                "player_input": str(message.get("player_input") or "").strip(),
+                "source_kind": CLIENT_MSG_START_TURN,
+            }
+        return None
 
 
 # ── Streaming loop ────────────────────────────────────────────────────────────
@@ -396,15 +480,20 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
     autonomous_last_tick_ms: float | None = None
     autonomous_summaries: list[dict[str, Any]] = []
     autonomous_cut_in_interrupted: bool = False
+    pending_priority_start: dict[str, Any] | None = None
 
     try:
         await websocket.send_json(msg_stream_started(session_id=session_id, turn_id=None))
 
         while True:
-            try:
-                message = await websocket.receive_json()
-            except WebSocketDisconnect:
-                return
+            if pending_priority_start is not None:
+                message = pending_priority_start
+                pending_priority_start = None
+            else:
+                try:
+                    message = await websocket.receive_json()
+                except WebSocketDisconnect:
+                    return
             if not isinstance(message, dict):
                 await websocket.send_json(msg_stream_error(reason="malformed_message"))
                 continue
@@ -497,74 +586,161 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                 # the input for the next user turn.
                 continue
 
-            # ── Stage E: Autonomous Director Tick ─────────────────────────
-            # After a clean user-turn delivery, the Director MAY emit one
-            # autonomous NPC block when motivation crosses threshold. The
-            # coordinator decides; the transport just delivers.
-            autonomous_outcome: AutonomousTickOutcome | None = None
-            if is_autonomous_tick_enabled():
-                tick_inputs = _extract_autonomous_tick_inputs(
-                    turn, trigger_kind="motivation_threshold_crossed",
-                )
-                if tick_inputs is not None:
-                    tick_inputs.since_last_tick_ms = autonomous_last_tick_ms
-                    tick_inputs.pending_player_input = bool(queued_carryover)
-                    tick_inputs.already_streaming_block = False
-                    autonomous_outcome = evaluate_autonomous_tick(tick_inputs)
-                    summary = _autonomous_tick_summary(autonomous_outcome)
-                    autonomous_summaries.append(summary)
-                    autonomous_last_tick_ms = 0.0  # reset clock — next tick is "now"
-                    await websocket.send_json(
-                        msg_autonomous_tick_evaluated(summary=summary)
-                    )
-
-            if autonomous_outcome is None or autonomous_outcome.block_stream_event is None:
-                # No autonomous emission (flag off, no NPCs above threshold,
-                # cooldown, etc.). The user-turn stream already idled cleanly;
-                # one stream_idle marks the conversation as quiescent.
+            # ── Stage E/H: Autonomous Director Tick / Pause Loop ───────────
+            # After a clean user-turn delivery, the Director MAY emit
+            # autonomous NPC blocks. Stage E remains a single tick by default;
+            # Stage H enables a bounded explicit-pause loop behind its own flag.
+            if not is_autonomous_tick_enabled():
                 await websocket.send_json(msg_stream_idle(reason="completed"))
                 continue
 
-            # Emit the autonomous block (with cut-in support identical to the
-            # user-turn stream).
-            autonomous_state = WSSessionLoopState(session_id=session_id)
-            cut_in_queue = asyncio.Queue(maxsize=1)
-            reader_task = asyncio.create_task(
-                _drain_cut_in_messages(websocket, cut_in_queue, autonomous_state)
+            tick_inputs = _extract_autonomous_tick_inputs(
+                turn, trigger_kind="motivation_threshold_crossed",
             )
-            try:
-                await _stream_events_to_client(
-                    websocket,
-                    autonomous_state,
-                    [autonomous_outcome.block_stream_event],
-                    cut_in_queue=cut_in_queue,
-                    pacing_seconds=pacing_seconds,
-                    autonomous_originator=True,
-                )
-            finally:
-                autonomous_state.stream_finished = True
-                if not reader_task.done():
-                    reader_task.cancel()
-                    try:
-                        await reader_task
-                    except (asyncio.CancelledError, Exception):
-                        pass
+            if tick_inputs is None:
+                await websocket.send_json(msg_stream_idle(reason="completed"))
+                continue
 
-            if autonomous_state.last_cut_kind is not None:
-                # Player interrupted the autonomous block. Carry input to
-                # the next start_turn — identical semantics to the user-turn cut.
-                autonomous_cut_in_interrupted = True
-                if autonomous_state.queued_player_inputs:
-                    queued_carryover.extend(autonomous_state.queued_player_inputs)
-                # Mark interruption in the most recent summary so audit + tests
-                # can correlate the cut with its originating tick.
-                if autonomous_summaries:
-                    autonomous_summaries[-1] = {
-                        **autonomous_summaries[-1],
-                        "cut_in_interrupted_autonomous_tick": True,
-                    }
-            else:
+            loop_enabled = is_autonomous_pause_loop_enabled()
+            max_ticks_per_pause = (
+                resolve_max_ticks_per_pause(tick_inputs.pacing_rhythm_policy)
+                if loop_enabled
+                else 1
+            )
+            min_tick_interval_ms = resolve_min_tick_interval_ms(
+                tick_inputs.pacing_rhythm_policy,
+                tick_inputs.min_tick_interval_ms_override,
+            )
+            loop_trigger_kind = (
+                LOOP_TRIGGER_GATHERING_PAUSED
+                if tick_inputs.gathering_paused
+                else LOOP_TRIGGER_USER_PAUSE
+            )
+            stop_reason = LOOP_STOP_MAX_TICKS
+            autonomous_block_emitted = False
+            autonomous_stop_cut_in = False
+
+            for tick_index in range(max_ticks_per_pause):
+                if tick_index == 0:
+                    tick_inputs.since_last_tick_ms = autonomous_last_tick_ms
+                else:
+                    wait_message = await _wait_for_pause_interval_or_input(
+                        websocket,
+                        seconds=min_tick_interval_ms / 1000.0,
+                    )
+                    if wait_message is not None:
+                        stop_reason = LOOP_STOP_PLAYER_CUT_IN
+                        autonomous_stop_cut_in = True
+                        if wait_message.get("source_kind") == CLIENT_MSG_START_TURN:
+                            pending_priority_start = {
+                                "kind": CLIENT_MSG_START_TURN,
+                                "player_input": str(wait_message.get("player_input") or ""),
+                            }
+                        else:
+                            idle_cut_state = WSSessionLoopState(session_id=session_id)
+                            cut_outcome = apply_cut_in(
+                                idle_cut_state,
+                                tick_id=str(uuid.uuid4()),
+                                player_input_payload=wait_message,
+                            )
+                            await websocket.send_json(msg_block_cut(cut_outcome=cut_outcome))
+                            queued_carryover.append(wait_message)
+                        break
+                    tick_inputs.since_last_tick_ms = min_tick_interval_ms
+
+                tick_inputs.pending_player_input = bool(queued_carryover)
+                tick_inputs.already_streaming_block = False
+                autonomous_outcome = evaluate_autonomous_tick(tick_inputs)
+                summary = _summary_with_loop_metadata(
+                    autonomous_outcome,
+                    tick_index=tick_index,
+                    max_ticks_per_pause=max_ticks_per_pause,
+                    loop_enabled=loop_enabled,
+                    loop_trigger_kind=loop_trigger_kind,
+                )
+
+                if autonomous_outcome.autonomous_tick_suppressed_reason == LOOP_STOP_COOLDOWN_ACTIVE:
+                    stop_reason = LOOP_STOP_COOLDOWN_ACTIVE
+                    summary["autonomous_pause_loop"]["stop_reason"] = stop_reason
+                elif autonomous_outcome.autonomous_tick_suppressed_reason:
+                    stop_reason = LOOP_STOP_TICK_SUPPRESSED
+                    summary["autonomous_pause_loop"]["stop_reason"] = stop_reason
+                elif _autonomous_candidate_blocked(autonomous_outcome):
+                    stop_reason = LOOP_STOP_UNSAFE_CANDIDATE
+                    summary["autonomous_pause_loop"]["stop_reason"] = stop_reason
+                elif autonomous_outcome.block_stream_event is None:
+                    stop_reason = LOOP_STOP_NO_MOTIVATION_THRESHOLD
+                    summary["autonomous_pause_loop"]["stop_reason"] = stop_reason
+                elif tick_index + 1 >= max_ticks_per_pause:
+                    summary["autonomous_pause_loop"]["stop_reason"] = LOOP_STOP_MAX_TICKS
+
+                autonomous_summaries.append(summary)
+                autonomous_last_tick_ms = 0.0  # reset clock — next tick is "now"
+                await websocket.send_json(msg_autonomous_tick_evaluated(summary=summary))
+
+                if stop_reason in {
+                    LOOP_STOP_COOLDOWN_ACTIVE,
+                    LOOP_STOP_TICK_SUPPRESSED,
+                    LOOP_STOP_UNSAFE_CANDIDATE,
+                    LOOP_STOP_NO_MOTIVATION_THRESHOLD,
+                }:
+                    break
+
+                if autonomous_outcome.block_stream_event is None:
+                    break
+
+                autonomous_block_emitted = True
+                autonomous_state = WSSessionLoopState(session_id=session_id)
+                cut_in_queue = asyncio.Queue(maxsize=1)
+                reader_task = asyncio.create_task(
+                    _drain_cut_in_messages(websocket, cut_in_queue, autonomous_state)
+                )
+                try:
+                    await _stream_events_to_client(
+                        websocket,
+                        autonomous_state,
+                        [autonomous_outcome.block_stream_event],
+                        cut_in_queue=cut_in_queue,
+                        pacing_seconds=pacing_seconds,
+                        autonomous_originator=True,
+                    )
+                finally:
+                    autonomous_state.stream_finished = True
+                    if not reader_task.done():
+                        reader_task.cancel()
+                        try:
+                            await reader_task
+                        except (asyncio.CancelledError, Exception):
+                            pass
+
+                if autonomous_state.last_cut_kind is not None:
+                    # Player interrupted the autonomous block. Carry input to
+                    # the next start_turn — identical semantics to the user-turn cut.
+                    stop_reason = LOOP_STOP_PLAYER_CUT_IN
+                    autonomous_stop_cut_in = True
+                    autonomous_cut_in_interrupted = True
+                    if autonomous_state.queued_player_inputs:
+                        queued_carryover.extend(autonomous_state.queued_player_inputs)
+                    if autonomous_summaries:
+                        autonomous_summaries[-1] = {
+                            **autonomous_summaries[-1],
+                            "cut_in_interrupted_autonomous_tick": True,
+                        }
+                    break
+
+                if not loop_enabled:
+                    break
+
+            if autonomous_stop_cut_in:
+                # A cut-in or priority start-turn supersedes autonomous follow-up.
+                continue
+
+            if loop_enabled:
+                await websocket.send_json(msg_stream_idle(reason="autonomous_pause_loop_completed"))
+            elif autonomous_block_emitted:
                 await websocket.send_json(msg_stream_idle(reason="autonomous_tick_completed"))
+            else:
+                await websocket.send_json(msg_stream_idle(reason="completed"))
 
     except WebSocketDisconnect:
         return
@@ -598,10 +774,17 @@ def ws_session_loop_support() -> dict[str, Any]:
     """
     enabled = is_ws_session_loop_enabled()
     autonomous_enabled = is_autonomous_tick_enabled()
+    autonomous_loop_enabled = is_autonomous_pause_loop_enabled()
     return {
         "ws_session_loop_supported": enabled,
         "live_interruption_supported": enabled,
         "autonomous_tick_enabled": autonomous_enabled,
+        "autonomous_pause_loop_enabled": autonomous_loop_enabled,
+        "autonomous_pause_loop_trigger_kinds": [
+            LOOP_TRIGGER_USER_PAUSE,
+            LOOP_TRIGGER_SILENCE,
+            LOOP_TRIGGER_GATHERING_PAUSED,
+        ],
         "autonomous_tick_trigger_kinds": [
             "player_input",
             "motivation_threshold_crossed",

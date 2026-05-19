@@ -674,7 +674,7 @@ def _player_session_bundle(
 
 
 _ALLOWED_OUTPUT_LANGUAGES = frozenset({"de", "en"})
-_DEFAULT_OUTPUT_LANGUAGE = "en"
+_DEFAULT_OUTPUT_LANGUAGE = "de"
 
 
 def _persist_player_session_binding(

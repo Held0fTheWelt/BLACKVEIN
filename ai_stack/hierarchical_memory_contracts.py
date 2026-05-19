@@ -615,6 +615,140 @@ def build_hierarchical_memory_write(
     ).to_dict()
 
 
+def build_off_stage_hierarchical_memory_write(
+    *,
+    memory_policy: dict[str, Any] | None,
+    candidate: dict[str, Any] | None,
+    module_id: str | None = None,
+    runtime_profile_id: str | None = None,
+    turn_number: Any = None,
+) -> dict[str, Any]:
+    """Build a bounded hierarchical-memory write for an off-stage candidate.
+
+    This is intentionally still a hierarchical-memory contract write: callers
+    must merge the returned result through ``merge_hierarchical_memory_snapshot``.
+    The item is local-only evidence, not a prompt log and not canonical-path
+    progression.
+    """
+    policy = normalize_hierarchical_memory_policy(memory_policy)
+    cand = candidate if isinstance(candidate, dict) else {}
+    source_tick_id = _text(cand.get("originating_tick_id"), max_chars=120)
+    candidate_id = _text(cand.get("candidate_id"), max_chars=120)
+    source_id = f"local_only:off_stage:{source_tick_id or candidate_id}"
+    policy_present = bool(
+        policy.get("enabled")
+        or any(t.get("enabled") for t in policy.get("tiers") or [] if isinstance(t, dict))
+    )
+    if not policy_present:
+        return HierarchicalMemoryWriteResult(
+            status="not_applicable",
+            policy_present=False,
+            policy_enabled=False,
+            write_allowed=False,
+            source_canonical_turn_id=source_id,
+            skipped_tiers=list(MEMORY_TIERS),
+            failure_reason="memory_policy_missing",
+        ).to_dict()
+    if not policy.get("enabled"):
+        return HierarchicalMemoryWriteResult(
+            status="not_applicable",
+            policy_present=True,
+            policy_enabled=False,
+            write_allowed=False,
+            source_canonical_turn_id=source_id,
+            selected_tiers=enabled_memory_tiers(policy),
+            skipped_tiers=enabled_memory_tiers(policy),
+            failure_reason="memory_policy_disabled",
+        ).to_dict()
+    if not cand:
+        return HierarchicalMemoryWriteResult(
+            status="failed",
+            policy_present=True,
+            policy_enabled=True,
+            write_allowed=False,
+            source_canonical_turn_id=source_id,
+            selected_tiers=enabled_memory_tiers(policy),
+            skipped_tiers=enabled_memory_tiers(policy),
+            failure_reason="memory_candidate_missing",
+        ).to_dict()
+
+    tier = _text(cand.get("memory_tier_target") or "actor", max_chars=48)
+    if tier not in MEMORY_TIERS:
+        return HierarchicalMemoryWriteResult(
+            status="failed",
+            policy_present=True,
+            policy_enabled=True,
+            write_allowed=False,
+            source_canonical_turn_id=source_id,
+            selected_tiers=enabled_memory_tiers(policy),
+            skipped_tiers=enabled_memory_tiers(policy),
+            failure_reason="memory_tier_not_recognized",
+        ).to_dict()
+    selected = enabled_memory_tiers(policy)
+    if tier not in selected:
+        return HierarchicalMemoryWriteResult(
+            status="not_applicable",
+            policy_present=True,
+            policy_enabled=True,
+            write_allowed=False,
+            source_canonical_turn_id=source_id,
+            selected_tiers=selected,
+            skipped_tiers=selected,
+            failure_reason="memory_tier_not_enabled",
+        ).to_dict()
+
+    try:
+        source_turn_number = max(0, int(turn_number or 0))
+    except (TypeError, ValueError):
+        source_turn_number = 0
+    actor_id = _text(cand.get("actor_id"), max_chars=120)
+    evidence_kind = _text(cand.get("evidence_kind"), max_chars=80) or "off_stage_update"
+    score = cand.get("observed_motivation_score")
+    try:
+        score_value = round(float(score), 3) if score is not None else None
+    except (TypeError, ValueError):
+        score_value = None
+    summary = (
+        f"off_stage_update; actor={actor_id or 'unknown'}; "
+        f"evidence={evidence_kind}; score={score_value if score_value is not None else 'none'}"
+    )
+    item = HierarchicalMemoryItem(
+        tier=tier,
+        item_id=_stable_id(tier, source_id, actor_id, evidence_kind, score_value),
+        source_canonical_turn_id=source_id,
+        source_turn_number=source_turn_number,
+        module_id=module_id,
+        runtime_profile_id=runtime_profile_id,
+        summary=summary,
+        tags=_unique_texts(["off_stage_update", evidence_kind], max_items=6),
+        actor_ids=_unique_texts([actor_id], max_items=4),
+        evidence_refs=_unique_texts([source_id, candidate_id], max_items=4),
+        data=_safe_dict(
+            {
+                "candidate_id": candidate_id,
+                "candidate_kind": cand.get("candidate_kind"),
+                "originating_tick_id": source_tick_id,
+                "evidence_kind": evidence_kind,
+                "observed_motivation_score": score_value,
+                "structured_only": cand.get("structured_only"),
+                "proof_level": "local_only",
+            }
+        ),
+    ).to_dict()
+    return HierarchicalMemoryWriteResult(
+        status="passed",
+        policy_present=True,
+        policy_enabled=True,
+        write_allowed=True,
+        source_canonical_turn_id=source_id,
+        selected_tiers=selected,
+        written_items=[item],
+        skipped_tiers=[t for t in selected if t != tier],
+        failure_reason=None,
+        uncommitted_write_detected=False,
+    ).to_dict()
+
+
 def merge_hierarchical_memory_snapshot(
     *,
     prior_snapshot: dict[str, Any] | None,

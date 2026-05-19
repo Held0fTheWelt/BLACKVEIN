@@ -181,6 +181,13 @@ quality_principles:
 # these generic switches; it must not branch on this module's concrete actors,
 # rooms, phases, beats, or prose.
 runtime_intelligence:
+  off_stage_updates:
+    auto_commit_enabled: false
+    allowed_candidate_kinds:
+      - relationship_tension_update
+      - off_stage_memory_note
+    require_safety_gate_pass: true
+    max_commits_per_tick: 1
   player_freedom:
     enabled: true
     policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy
@@ -340,6 +347,8 @@ runtime_intelligence:
   pacing_rhythm:
     enabled: true
     schema_version: pacing_rhythm_policy.v1
+    min_tick_interval_ms: 1500
+    max_ticks_per_pause: 3
     max_repeated_cadence_count: 2
     default_max_visible_blocks: 6
     cadence_profiles:

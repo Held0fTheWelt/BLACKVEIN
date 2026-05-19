@@ -311,6 +311,7 @@ class TestCoordinatorSurfacesStageFFields:
             "capability_outputs_missing",
             "motivation_score_component_sources",
             "off_stage_update_candidate",
+            "off_stage_commit_result",
         ):
             assert required in d, f"missing Stage F field: {required}"
 

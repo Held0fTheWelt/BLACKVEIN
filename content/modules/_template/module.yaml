@@ -75,6 +75,16 @@ quality_principles:
   - "Do not duplicate location descriptions outside locations/; reference location ids instead."
 
 runtime_intelligence:
+  off_stage_updates:
+    auto_commit_enabled: false
+    allowed_candidate_kinds:
+      - relationship_tension_update
+      - off_stage_memory_note
+    require_safety_gate_pass: true
+    max_commits_per_tick: 1
+  pacing_rhythm:
+    min_tick_interval_ms: 1500
+    max_ticks_per_pause: 1
   player_freedom:
     enabled: true
     policy_ref: knowledge/player_freedom_policy.yaml#player_freedom_policy

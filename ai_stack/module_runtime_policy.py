@@ -31,6 +31,7 @@ from ai_stack.meta_narrative_awareness_contracts import (
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 from ai_stack.narrative_momentum_contracts import normalize_narrative_momentum_policy
 from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
+from ai_stack.phase2_off_stage_updates import normalize_off_stage_updates_policy
 from ai_stack.relationship_state_contracts import normalize_relationship_state_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
 from ai_stack.sensory_context_contracts import normalize_sensory_context_policy
@@ -387,24 +388,21 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         if isinstance(relationship_state_machine, dict)
         else {}
     )
+    off_stage_updates = raw.get("off_stage_updates")
+    off_stage_updates = (
+        off_stage_updates if isinstance(off_stage_updates, dict) else {}
+    )
 
     return {
         "action_resolution_short_path": {
             "enabled": bool(action_short_path.get("enabled", False)),
-            "allowed_player_input_kinds": _json_safe(
-                action_short_path.get("allowed_player_input_kinds")
-                if isinstance(action_short_path.get("allowed_player_input_kinds"), list)
-                else []
-            ),
-            "allowed_verbs": _json_safe(
-                action_short_path.get("allowed_verbs")
-                if isinstance(action_short_path.get("allowed_verbs"), list)
-                else []
-            ),
-            "blocked_player_input_kinds": _json_safe(
-                action_short_path.get("blocked_player_input_kinds")
-                if isinstance(action_short_path.get("blocked_player_input_kinds"), list)
-                else []
+            "routing_basis": str(
+                action_short_path.get("routing_basis")
+                or "semantic_action_frame_evidence"
+            ).strip()
+            or "semantic_action_frame_evidence",
+            "no_verb_or_input_kind_whitelists": bool(
+                action_short_path.get("no_verb_or_input_kind_whitelists", True)
             ),
         },
         "player_freedom": {
@@ -453,6 +451,7 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "relationship_state_machine": normalize_relationship_state_policy(
             relationship_state_machine
         ),
+        "off_stage_updates": normalize_off_stage_updates_policy(off_stage_updates),
         "dramatic_irony": normalize_dramatic_irony_policy(dramatic_irony),
         "expectation_variation": normalize_expectation_variation_policy(
             expectation_variation

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 SESSION_LOOP_LOG_POLICY_VERSION = "session_loop_logging.v1"
 SESSION_LOOP_LOG_EVENT_VERSION = "session_loop_log_event.v1"
-DEFAULT_SESSION_LANGUAGE = "en"
+DEFAULT_SESSION_LANGUAGE = "de"
 SESSION_LOOP_LOG_LEVELS = {
     "debug": logging.DEBUG,
     "info": logging.INFO,
@@ -11686,6 +11686,12 @@ class StoryRuntimeManager:
                         director_policies = extract_module_policies_for_director(
                             graph_state, module_policy_dict
                         )
+                        off_stage_updates_policy = (
+                            module_policy_dict.get("runtime_governance_policy", {}).get("off_stage_updates")
+                            if isinstance(module_policy_dict, dict)
+                            and isinstance(module_policy_dict.get("runtime_governance_policy"), dict)
+                            else None
+                        )
                         scene_turn_envelope = augment_envelope_with_block_stream(
                             scene_turn_envelope,
                             npc_ids=list(scene_turn_envelope.get("npc_actor_ids") or []),
@@ -11696,6 +11702,7 @@ class StoryRuntimeManager:
                             actor_pressure_profiles=director_policies["actor_pressure_profiles"],
                             npc_motivation_score_policy=director_policies["npc_motivation_score_policy"],
                             pacing_rhythm_policy=director_policies["pacing_rhythm_policy"],
+                            off_stage_updates_policy=off_stage_updates_policy,
                         )
                         # Stage C: readiness + primary selection — read-only, additive.
                         # Bundle path and all existing keys are never mutated.
@@ -12189,7 +12196,8 @@ class StoryRuntimeManager:
         quote_use_as = str(directive.get("quote_anchor_use_as") or "").strip()
 
         target_language = (
-            str(session.session_output_language or "en").strip().lower()[:2] or "en"
+            str(session.session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2]
+            or DEFAULT_SESSION_LANGUAGE
         )
 
         prompt_lines = [

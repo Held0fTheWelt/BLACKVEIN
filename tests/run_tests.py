@@ -465,10 +465,17 @@ def _import_probe(
 def _probe_ai_stack_langgraph_lane() -> tuple[bool, str]:
     """Same LangChain / LangGraph / export surface as CI (``ai_stack-tests.yml``, engine job)."""
     graph_py = (
+        "import traceback\n"
         "import langchain_core, ai_stack\n"
         "import langgraph\n"
-        "assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE, "
-        "'pip install -e ./story_runtime_core -e \"./ai_stack[test]\" from repo root'\n"
+        "if not ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE:\n"
+        "    print('LANGGRAPH_RUNTIME_EXPORT_ERROR=' + repr(getattr(ai_stack, 'LANGGRAPH_RUNTIME_EXPORT_ERROR', None)))\n"
+        "    try:\n"
+        "        import ai_stack.langgraph_runtime\n"
+        "        print('direct_import_ai_stack.langgraph_runtime=ok')\n"
+        "    except Exception:\n"
+        "        traceback.print_exc()\n"
+        "    raise AssertionError('pip install -e ./story_runtime_core -e \"./ai_stack[test]\" from repo root')\n"
         "from ai_stack import RuntimeTurnGraphExecutor\n"
         "assert RuntimeTurnGraphExecutor is not None\n"
     )

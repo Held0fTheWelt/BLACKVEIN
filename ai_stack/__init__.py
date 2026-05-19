@@ -13,6 +13,7 @@ ensure_langchain_reviver_explicit_core()
 # If False, use `pip install -e "./ai_stack[test]"` or `pip install -r ai_stack/requirements-test.txt`
 # plus editable `story_runtime_core`, and ensure the repository root is on PYTHONPATH.
 LANGGRAPH_RUNTIME_EXPORT_AVAILABLE: bool = False
+LANGGRAPH_RUNTIME_EXPORT_ERROR: str | None = None
 from .capabilities import (
     CapabilityAccessDeniedError,
     CapabilityDefinition,
@@ -123,6 +124,7 @@ try:
     )
 
     LANGGRAPH_RUNTIME_EXPORT_AVAILABLE = True
+    LANGGRAPH_RUNTIME_EXPORT_ERROR = None
 
     __all__.extend(
         [
@@ -132,10 +134,11 @@ try:
             "ensure_langgraph_available",
         ]
     )
-except ImportError:
-    pass
+except ImportError as exc:
+    LANGGRAPH_RUNTIME_EXPORT_ERROR = f"{type(exc).__name__}: {exc}"
 
 __all__.append("LANGGRAPH_RUNTIME_EXPORT_AVAILABLE")
+__all__.append("LANGGRAPH_RUNTIME_EXPORT_ERROR")
 
 try:
     from .langchain_integration import (

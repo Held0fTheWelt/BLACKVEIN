@@ -1313,6 +1313,49 @@ describe('BlocksOrchestrator', () => {
       expect(s.autonomous_tick_silence_count).toBe(0);
     });
 
+    test('multi-tick autonomous summaries preserve latest loop diagnostics', () => {
+      const first = {
+        tick_id: 'tick-loop-1',
+        chosen_actor_id: 'npc_a',
+        chosen_action_kind: 'speak',
+        block_emitted: true,
+        motivation_scores: { npc_a: 0.8 },
+        cooldown_state: { cooldown_active: false, min_tick_interval_ms: 0 },
+        autonomous_pause_loop: {
+          enabled: true,
+          tick_index: 0,
+          tick_number: 1,
+          max_ticks_per_pause: 2,
+          loop_trigger_kind: 'user_pause',
+        },
+      };
+      const second = {
+        tick_id: 'tick-loop-2',
+        chosen_actor_id: 'npc_a',
+        chosen_action_kind: 'speak',
+        block_emitted: true,
+        motivation_scores: { npc_a: 0.82 },
+        cooldown_state: { cooldown_active: false, min_tick_interval_ms: 0 },
+        autonomous_pause_loop: {
+          enabled: true,
+          tick_index: 1,
+          tick_number: 2,
+          max_ticks_per_pause: 2,
+          loop_trigger_kind: 'user_pause',
+          stop_reason: 'max_ticks_per_pause',
+        },
+      };
+
+      orchestrator._handleWsMessage({ kind: 'autonomous_tick_evaluated', summary: first });
+      orchestrator._handleWsMessage({ kind: 'autonomous_tick_evaluated', summary: second });
+
+      const s = orchestrator.getState();
+      expect(s.autonomous_tick_evaluated_count).toBe(2);
+      expect(s.last_autonomous_tick_summary).toEqual(second);
+      expect(s.last_autonomous_tick_summary.autonomous_pause_loop.tick_number).toBe(2);
+      expect(s.autonomous_tick_silence_count).toBe(0);
+    });
+
     test('autonomous_tick_evaluated with silence increments silence counter', () => {
       const summary = {
         tick_id: 'tick-2',

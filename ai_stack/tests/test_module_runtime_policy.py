@@ -153,6 +153,11 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     )
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["enabled"] is True
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["transition_weights"]
+    assert policy["runtime_governance_policy"]["off_stage_updates"]["auto_commit_enabled"] is False
+    assert (
+        "relationship_tension_update"
+        in policy["runtime_governance_policy"]["off_stage_updates"]["allowed_candidate_kinds"]
+    )
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
     assert (
         policy["runtime_governance_policy"]["action_resolution_short_path"]["routing_basis"]

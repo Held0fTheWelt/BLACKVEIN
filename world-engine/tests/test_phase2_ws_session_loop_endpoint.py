@@ -131,9 +131,11 @@ def _autonomous_envelope_extras(
     high_motivation: bool = True,
     gathering_paused: bool = False,
     pacing_min_ms: float | None = None,
+    max_ticks_per_pause: int | None = None,
     visible_npc_ids: list[str] | None = None,
     known_actor_ids: list[str] | None = None,
     known_room_ids: list[str] | None = None,
+    marker_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Build the envelope additions the WS loop needs for Stage E/F emission.
 
@@ -145,7 +147,12 @@ def _autonomous_envelope_extras(
     """
     profiles = {
         "profiles": {
-            npc_id: {"pressure_markers": [{"t": str(i)} for i in range(10)]}
+            npc_id: {
+                "pressure_markers": [
+                    {"t": str(i)}
+                    for i in range((marker_counts or {}).get(npc_id, 10))
+                ]
+            }
             for npc_id in npc_ids
         }
     }
@@ -169,8 +176,13 @@ def _autonomous_envelope_extras(
         "actor_pressure_profiles": profiles,
         "npc_motivation_score_policy": policy,
     }
-    if pacing_min_ms is not None:
-        director_pulse["pacing_rhythm_policy"] = {"min_tick_interval_ms": pacing_min_ms}
+    if pacing_min_ms is not None or max_ticks_per_pause is not None:
+        pacing_policy: dict[str, Any] = {}
+        if pacing_min_ms is not None:
+            pacing_policy["min_tick_interval_ms"] = pacing_min_ms
+        if max_ticks_per_pause is not None:
+            pacing_policy["max_ticks_per_pause"] = max_ticks_per_pause
+        director_pulse["pacing_rhythm_policy"] = pacing_policy
     diagnostics: dict[str, Any] = {"director_pulse": director_pulse}
     if gathering_paused:
         diagnostics["director_gathering_state"] = {"paused": True}
@@ -500,19 +512,38 @@ def autonomous_disabled(monkeypatch):
     monkeypatch.setenv(PHASE2_AUTONOMOUS_TICK_ENABLED, "false")
 
 
+@pytest.fixture
+def autonomous_pause_loop_enabled(monkeypatch):
+    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
+    monkeypatch.setenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "true")
+
+
+@pytest.fixture
+def autonomous_pause_loop_disabled(monkeypatch):
+    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
+    monkeypatch.setenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "false")
+
+
 class TestAutonomousTickSupportFlag:
-    def test_support_endpoint_reports_autonomous_enabled(self, ws_enabled, autonomous_enabled, env_test_mode):
+    def test_support_endpoint_reports_autonomous_enabled(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
         app = _make_app()
         client = TestClient(app)
         data = client.get("/api/story/runtime/ws-session-loop-support").json()
         assert data["autonomous_tick_enabled"] is True
+        assert data["autonomous_pause_loop_enabled"] is True
+        assert "user_pause" in data["autonomous_pause_loop_trigger_kinds"]
         assert "motivation_threshold_crossed" in data["autonomous_tick_trigger_kinds"]
 
-    def test_support_endpoint_reports_autonomous_disabled(self, ws_enabled, autonomous_disabled, env_test_mode):
+    def test_support_endpoint_reports_autonomous_disabled(
+        self, ws_enabled, autonomous_disabled, autonomous_pause_loop_disabled, env_test_mode,
+    ):
         app = _make_app()
         client = TestClient(app)
         data = client.get("/api/story/runtime/ws-session-loop-support").json()
         assert data["autonomous_tick_enabled"] is False
+        assert data["autonomous_pause_loop_enabled"] is False
 
     def test_no_autonomous_message_when_flag_disabled(self, ws_enabled, autonomous_disabled, env_test_mode):
         """Flag off → no autonomous_tick_evaluated message after a user turn."""
@@ -733,6 +764,182 @@ class TestAutonomousGatheringPaused:
             assert summary["mandatory_beat_consumed"] is False
 
 
+class TestAutonomousPauseLoop:
+    def test_loop_disabled_by_default_keeps_single_tick_behavior(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_disabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            pacing_min_ms=0,
+            max_ticks_per_pause=3,
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            seen: list[dict[str, Any]] = []
+            for _ in range(20):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle":
+                    break
+            evaluated = [m for m in seen if m["kind"] == "autonomous_tick_evaluated"]
+            assert len(evaluated) == 1
+            assert evaluated[0]["summary"]["autonomous_pause_loop"]["enabled"] is False
+            assert seen[-1]["reason"] == "autonomous_tick_completed"
+
+    def test_loop_enabled_streams_multiple_autonomous_blocks_until_max(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            pacing_min_ms=0,
+            max_ticks_per_pause=2,
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            seen: list[dict[str, Any]] = []
+            for _ in range(30):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle":
+                    break
+            evaluated = [m for m in seen if m["kind"] == "autonomous_tick_evaluated"]
+            autonomous_blocks = [
+                m for m in seen
+                if m["kind"] == "block_started"
+                and ((m.get("block_stream_event") or {}).get("block_payload") or {}).get("originator")
+                == "autonomous_tick"
+            ]
+            assert len(evaluated) == 2
+            assert len(autonomous_blocks) == 2
+            assert evaluated[-1]["summary"]["autonomous_pause_loop"]["stop_reason"] == "max_ticks_per_pause"
+            assert seen[-1]["reason"] == "autonomous_pause_loop_completed"
+
+    def test_loop_silence_tick_is_diagnostic_and_stops(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=False,
+            pacing_min_ms=0,
+            max_ticks_per_pause=3,
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            seen: list[dict[str, Any]] = []
+            for _ in range(15):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle":
+                    break
+            evaluated = [m for m in seen if m["kind"] == "autonomous_tick_evaluated"]
+            assert len(evaluated) == 1
+            summary = evaluated[0]["summary"]
+            assert summary["block_emitted"] is False
+            assert summary["autonomous_pause_loop"]["stop_reason"] == "no_motivation_threshold_crossed"
+            assert summary["canonical_path_advanced"] is False
+            assert summary["mandatory_beat_consumed"] is False
+
+    def test_highest_motivated_npc_wins_loop_tick(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_low", "npc_high"],
+            high_motivation=True,
+            pacing_min_ms=0,
+            max_ticks_per_pause=1,
+            marker_counts={"npc_low": 1, "npc_high": 10},
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            summary = None
+            for _ in range(15):
+                m = ws.receive_json()
+                if m["kind"] == "autonomous_tick_evaluated":
+                    summary = m["summary"]
+                    break
+            assert summary is not None
+            assert summary["chosen_actor_id"] == "npc_high"
+
+    def test_cut_in_between_autonomous_ticks_stops_loop(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            pacing_min_ms=300,
+            max_ticks_per_pause=3,
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            evaluated_count = 0
+            saw_first_autonomous_completed = False
+            for _ in range(20):
+                m = ws.receive_json()
+                if m["kind"] == "autonomous_tick_evaluated":
+                    evaluated_count += 1
+                if m["kind"] == "block_completed" and evaluated_count == 1:
+                    saw_first_autonomous_completed = True
+                    break
+            assert saw_first_autonomous_completed is True
+            ws.send_json({"kind": "cut_in", "player_input": "I interrupt the pause."})
+            cut = None
+            for _ in range(10):
+                m = ws.receive_json()
+                if m["kind"] == "block_cut":
+                    cut = m
+                    break
+            assert cut is not None
+            assert cut["cut_kind"] == "no_active_block"
+            assert evaluated_count == 1
+
+    def test_off_stage_commits_remain_gated_inside_loop(
+        self, ws_enabled, autonomous_enabled, autonomous_pause_loop_enabled, env_test_mode,
+    ):
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            pacing_min_ms=0,
+            max_ticks_per_pause=1,
+            visible_npc_ids=[],
+            known_actor_ids=["npc_a"],
+            known_room_ids=["room_a"],
+        )
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            summary = None
+            for _ in range(15):
+                m = ws.receive_json()
+                if m["kind"] == "autonomous_tick_evaluated":
+                    summary = m["summary"]
+                    break
+            assert summary is not None
+            assert summary["off_stage_update_candidate"]["off_stage_safety_gate_result"] == "pass"
+            commit = summary["off_stage_commit_result"]
+            assert commit["attempted"] is True
+            assert commit["committed"] is False
+            assert commit["reason"] == "auto_commit_disabled"
+
+
 class TestRESTAndBundlePreserved:
     """Stage E must not touch the REST/bundle fallback path."""
 
@@ -836,6 +1043,10 @@ class TestStageFAutonomousSummaryFields:
             assert cand.get("off_stage_safety_gate_result") in {
                 "pass", "blocked", "not_applicable",
             }
+            commit = m["summary"].get("off_stage_commit_result")
+            assert isinstance(commit, dict)
+            assert commit.get("canonical_path_advanced") is False
+            assert commit.get("mandatory_beat_consumed") is False
 
     def test_off_stage_pass_when_chosen_actor_not_visible(
         self, ws_enabled, autonomous_enabled, env_test_mode,

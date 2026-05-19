@@ -14,6 +14,7 @@ def test_langgraph_exports_deferred_without_langchain_core() -> None:
     if importlib.util.find_spec("langchain_core") is not None:
         pytest.skip("langchain_core installed; full export contract is checked in the companion test.")
     assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE is False
+    assert isinstance(ai_stack.LANGGRAPH_RUNTIME_EXPORT_ERROR, str)
     assert "RuntimeTurnGraphExecutor" not in ai_stack.__all__
 
 
@@ -30,5 +31,6 @@ def test_langgraph_export_flag_matches_runtime_import() -> None:
     from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 
     assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE is True
+    assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_ERROR is None
     assert "RuntimeTurnGraphExecutor" in ai_stack.__all__
     assert ai_stack.RuntimeTurnGraphExecutor is RuntimeTurnGraphExecutor
