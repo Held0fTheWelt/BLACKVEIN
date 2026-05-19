@@ -240,6 +240,7 @@ from ai_stack.goc_narrator_path import (
     NARRATOR_PATH_ADAPTER,
     NARRATOR_PATH_INVOCATION_MODE,
     build_goc_narrator_path_opening,
+    build_goc_scripted_continuation,
 )
 from ai_stack.goc_souffleuse import (
     SOUFFLEUSE_ADAPTER,
@@ -11666,13 +11667,25 @@ class StoryRuntimeManager:
                     from ai_stack.block_stream_dual_mode import (
                         augment_envelope_with_block_stream,
                         is_dual_mode_enabled,
+                        is_primary_enabled,
                     )
                     from ai_stack.phase2_stream_readiness import (
-                        extract_capability_outputs_from_graph_state,
+                        compute_primary_selection,
                         compute_stream_readiness,
+                        extract_capability_outputs_from_graph_state,
+                        extract_module_policies_for_director,
                     )
                     if is_dual_mode_enabled():
                         cap_outputs = extract_capability_outputs_from_graph_state(graph_state)
+                        # Stage F: pull Director policies from graph_state / module config.
+                        module_policy_dict = (
+                            graph_state.get("module_runtime_policy")
+                            if isinstance(graph_state.get("module_runtime_policy"), dict)
+                            else None
+                        )
+                        director_policies = extract_module_policies_for_director(
+                            graph_state, module_policy_dict
+                        )
                         scene_turn_envelope = augment_envelope_with_block_stream(
                             scene_turn_envelope,
                             npc_ids=list(scene_turn_envelope.get("npc_actor_ids") or []),
@@ -11680,20 +11693,27 @@ class StoryRuntimeManager:
                             social_pressure_output=cap_outputs["social_pressure_output"],
                             relationship_state_output=cap_outputs["relationship_state_output"],
                             narrative_momentum_output=cap_outputs["narrative_momentum_output"],
+                            actor_pressure_profiles=director_policies["actor_pressure_profiles"],
+                            npc_motivation_score_policy=director_policies["npc_motivation_score_policy"],
+                            pacing_rhythm_policy=director_policies["pacing_rhythm_policy"],
                         )
-                        # Stage C readiness diagnostics — read-only, additive.
+                        # Stage C: readiness + primary selection — read-only, additive.
+                        # Bundle path and all existing keys are never mutated.
                         readiness = compute_stream_readiness(
                             scene_turn_envelope,
                             graph_state=graph_state,
                             ws_session_loop_supported=False,
                             frontend_event_adapter_deployed=True,
                         )
+                        primary_selection = compute_primary_selection(readiness)
+                        primary_selection["primary_flag_enabled"] = is_primary_enabled()
                         existing_diag = scene_turn_envelope.get("diagnostics") or {}
                         scene_turn_envelope = {
                             **scene_turn_envelope,
                             "diagnostics": {
                                 **existing_diag,
                                 "phase2_event_stream_readiness": readiness,
+                                "phase2_primary_selection": primary_selection,
                             },
                         }
                 except Exception:
@@ -12085,6 +12105,225 @@ class StoryRuntimeManager:
         self._persist_session(session)
         return event
 
+    # ------------------------------------------------------------------
+    # Scripted canon continuation (post-opening Steps 005+)
+    # ------------------------------------------------------------------
+
+    def _build_scripted_continuation(
+        self,
+        *,
+        session: StorySession,
+        after_step_id: str,
+        opening_block_count: int,
+        trace_id: str | None,
+    ) -> dict[str, Any]:
+        """Build scripted continuation blocks for steps after the opening.
+
+        Returns the raw continuation result from
+        ``build_goc_scripted_continuation`` with scene blocks that may
+        contain ``requires_llm_realization=True`` entries (npc_speak).
+        Those blocks are realized via the same LLM adapter used for
+        narrator path output realization.
+        """
+        continuation = build_goc_scripted_continuation(
+            after_step_id=after_step_id,
+            session_output_language=session.session_output_language,
+            block_index_start=opening_block_count + 1,
+        )
+        realized_blocks: list[dict[str, Any]] = []
+        for block in continuation.get("scene_blocks", []):
+            if not isinstance(block, dict):
+                continue
+            if block.get("requires_llm_realization"):
+                realized = self._realize_npc_speak_block(
+                    block=block,
+                    session=session,
+                    continuation=continuation,
+                    trace_id=trace_id,
+                )
+                realized_blocks.append(realized)
+            else:
+                source_language = str(continuation.get("authoring_language") or "en").strip().lower()[:2] or "en"
+                target_language = (
+                    str(session.session_output_language or source_language).strip().lower()[:2]
+                    or source_language
+                )
+                if target_language != source_language:
+                    translated_blocks, _ = self._realize_narrator_path_output(
+                        source_blocks=[block],
+                        narrator_path=continuation,
+                        session=session,
+                    )
+                    if translated_blocks:
+                        realized_blocks.append(translated_blocks[0])
+                    else:
+                        realized_blocks.append(block)
+                else:
+                    realized_blocks.append(block)
+        continuation["scene_blocks"] = realized_blocks
+        return continuation
+
+    def _realize_npc_speak_block(
+        self,
+        *,
+        block: dict[str, Any],
+        session: StorySession,
+        continuation: dict[str, Any],
+        trace_id: str | None,
+    ) -> dict[str, Any]:
+        """Realize a single ``npc_speak`` block via LLM.
+
+        Builds a prompt from the block's ``npc_speak_directive`` and
+        ``source_facts``, calls the same adapter used for narrator path
+        output, and replaces the placeholder text with the realized speech.
+        """
+        directive = block.get("npc_speak_directive") if isinstance(block.get("npc_speak_directive"), dict) else {}
+        source_facts = block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {}
+        actor_id = str(directive.get("actor") or block.get("actor_id") or "").strip()
+        intent = str(directive.get("intent") or "").strip()
+        required_facts = directive.get("required_facts") or []
+        paraphrase_policy = str(directive.get("paraphrase_policy") or "structural_paraphrase_required").strip()
+        minimum_visible = str(directive.get("minimum_visible") or "").strip()
+        forbidden_drift = directive.get("forbidden_drift") or []
+        quote_excerpt = str(directive.get("quote_anchor_excerpt") or "").strip()
+        quote_use_as = str(directive.get("quote_anchor_use_as") or "").strip()
+
+        target_language = (
+            str(session.session_output_language or "en").strip().lower()[:2] or "en"
+        )
+
+        prompt_lines = [
+            f"You are realizing scripted NPC speech for character '{actor_id}' in the God of Carnage interactive experience.",
+            f"Output language: {target_language}",
+            f"",
+            f"## Directive",
+            f"- Actor: {actor_id}",
+            f"- Intent: {intent}",
+            f"- Required facts to include: {', '.join(str(f) for f in required_facts) if isinstance(required_facts, list) else str(required_facts)}",
+            f"- Paraphrase policy: {paraphrase_policy}",
+            f"- Minimum visible: {minimum_visible}",
+            f"- Forbidden drift: {', '.join(str(f) for f in forbidden_drift) if isinstance(forbidden_drift, list) else str(forbidden_drift)}",
+        ]
+        if quote_excerpt:
+            prompt_lines.extend([
+                f"",
+                f"## Quote anchor (short reference only, do NOT reproduce verbatim)",
+                f"- Excerpt: \"{quote_excerpt}\"",
+                f"- Use as: {quote_use_as}",
+            ])
+
+        step_info = source_facts.get("step") if isinstance(source_facts.get("step"), dict) else {}
+        presence = source_facts.get("presence") if isinstance(source_facts.get("presence"), dict) else {}
+        if step_info or presence:
+            prompt_lines.extend([
+                f"",
+                f"## Scene context",
+                f"- Step: {step_info.get('name', '')}",
+                f"- Present characters: {', '.join(presence.get('named_characters', []))}",
+                f"- Speaker in focus: {presence.get('speaker_in_focus', actor_id)}",
+            ])
+
+        prompt_lines.extend([
+            f"",
+            f"## Instructions",
+            f"Produce a single spoken line (1-3 sentences) for {actor_id}.",
+            f"The line must:",
+            f"- Be in {target_language}",
+            f"- Include all required facts naturally",
+            f"- Respect the paraphrase policy ({paraphrase_policy})",
+            f"- Match the character's voice and personality",
+            f"- Stay within the minimum_visible description",
+            f"- Avoid all forbidden drift items",
+            f"",
+            f"Return ONLY the spoken line text, nothing else.",
+        ])
+
+        prompt_text = "\n".join(prompt_lines)
+
+        model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
+        if adapter is None:
+            realized_block = dict(block)
+            realized_block["requires_llm_realization"] = False
+            realized_block["realization_status"] = "fallback_no_adapter"
+            return realized_block
+
+        try:
+            result = adapter.generate(
+                prompt_text,
+                timeout_seconds=timeout_seconds or 20.0,
+                model_name=api_model,
+            )
+        except Exception:
+            realized_block = dict(block)
+            realized_block["requires_llm_realization"] = False
+            realized_block["realization_status"] = "fallback_adapter_error"
+            return realized_block
+
+        realized_block = dict(block)
+        if result.success and str(result.content or "").strip():
+            realized_block["text"] = str(result.content).strip()
+            realized_block["realization_status"] = "realized"
+        else:
+            realized_block["realization_status"] = "fallback_generation_failed"
+        realized_block["requires_llm_realization"] = False
+        realized_block["realization_metadata"] = {
+            "provider": provider,
+            "model": api_model,
+            "adapter": str(getattr(adapter, "adapter_id", model_id) or ""),
+        }
+        return realized_block
+
+    @staticmethod
+    def _merge_continuation_into_opening_state(
+        graph_state: dict[str, Any],
+        continuation: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Append continuation scene blocks to the opening graph state."""
+        graph_state = dict(graph_state)
+
+        # The narrator-path opening stores blocks in
+        # ``visible_output_bundle.scene_blocks``.
+        bundle = graph_state.get("visible_output_bundle")
+        if isinstance(bundle, dict):
+            bundle = dict(bundle)
+            existing_blocks = list(bundle.get("scene_blocks") or [])
+            existing_blocks.extend(continuation.get("scene_blocks", []))
+            bundle["scene_blocks"] = existing_blocks
+            gm_narration = list(bundle.get("gm_narration") or [])
+            for blk in continuation.get("scene_blocks", []):
+                if isinstance(blk, dict) and str(blk.get("text") or "").strip():
+                    gm_narration.append(str(blk["text"]).strip())
+            bundle["gm_narration"] = gm_narration
+            graph_state["visible_output_bundle"] = bundle
+        else:
+            cont_blocks = continuation.get("scene_blocks", [])
+            graph_state["visible_output_bundle"] = {
+                "scene_blocks": cont_blocks,
+                "gm_narration": [
+                    str(blk.get("text") or "").strip()
+                    for blk in cont_blocks
+                    if isinstance(blk, dict) and str(blk.get("text") or "").strip()
+                ],
+                "spoken_lines": [],
+                "action_lines": [],
+            }
+
+        opening_step_ids = list(
+            graph_state.get("opening_scene_sequence", {}).get("canonical_step_ids") or []
+        ) if isinstance(graph_state.get("opening_scene_sequence"), dict) else []
+        cont_step_ids = continuation.get("canonical_step_ids", [])
+        if cont_step_ids:
+            merged_ids = list(dict.fromkeys([*opening_step_ids, *cont_step_ids]))
+            if isinstance(graph_state.get("opening_scene_sequence"), dict):
+                graph_state["opening_scene_sequence"] = dict(graph_state["opening_scene_sequence"])
+                graph_state["opening_scene_sequence"]["canonical_step_ids"] = merged_ids
+            if isinstance(graph_state.get("narrator_path"), dict):
+                graph_state["narrator_path"] = dict(graph_state["narrator_path"])
+                graph_state["narrator_path"]["canonical_step_ids"] = merged_ids
+
+        graph_state["scripted_continuation_applied"] = True
+        return graph_state
+
     def _execute_opening_locked(self, session_id: str, trace_id: str | None) -> dict[str, Any]:
         session = self.get_session(session_id)
         prompt = "Director selected narrator_path for speech-free canonical opening."
@@ -12178,7 +12417,57 @@ class StoryRuntimeManager:
             )
 
         session.updated_at = datetime.now(timezone.utc)
-        return self._finalize_committed_turn(
+
+        # --- WP-1: set canonical_step_id after opening commit ---
+        opening_step_ids = (
+            graph_state.get("narrator_path", {}).get("canonical_step_ids")
+            if isinstance(graph_state.get("narrator_path"), dict)
+            else None
+        ) or []
+        if not opening_step_ids:
+            opening_step_ids = [
+                str(sid).strip()
+                for sid in (graph_state.get("opening_scene_sequence", {}).get("canonical_step_ids") or [])
+                if str(sid).strip()
+            ]
+        last_opening_step_id = opening_step_ids[-1] if opening_step_ids else ""
+
+        # --- WP-3/5: scripted canon continuation after opening ---
+        continuation_result: dict[str, Any] | None = None
+        if last_opening_step_id and session.module_id == GOD_OF_CARNAGE_MODULE_ID:
+            try:
+                _vob = graph_state.get("visible_output_bundle")
+                _opening_blocks = (
+                    _vob.get("scene_blocks", []) if isinstance(_vob, dict) else []
+                )
+                continuation_result = self._build_scripted_continuation(
+                    session=session,
+                    after_step_id=last_opening_step_id,
+                    opening_block_count=len(_opening_blocks),
+                    trace_id=trace_id,
+                )
+            except Exception as exc:
+                log_story_runtime_failure(
+                    trace_id=trace_id,
+                    story_session_id=session.session_id,
+                    operation="scripted_continuation",
+                    message=str(exc),
+                    failure_class="scripted_continuation_exception",
+                )
+
+        if continuation_result and continuation_result.get("scene_blocks"):
+            graph_state = self._merge_continuation_into_opening_state(
+                graph_state,
+                continuation_result,
+            )
+
+        # WP-1/4: advance canonical step pointer
+        if continuation_result and continuation_result.get("last_step_id"):
+            session.canonical_step_id = continuation_result["last_step_id"]
+        elif last_opening_step_id:
+            session.canonical_step_id = last_opening_step_id
+
+        result = self._finalize_committed_turn(
             session=session,
             graph_state=graph_state,
             trace_id=trace_id,
@@ -12192,6 +12481,19 @@ class StoryRuntimeManager:
             host_experience_template=host_experience_template,
             prior_ci=prior_ci,
         )
+
+        if continuation_result:
+            result["scripted_continuation"] = {
+                "contract": continuation_result.get("contract"),
+                "canonical_step_ids": continuation_result.get("canonical_step_ids", []),
+                "last_step_id": continuation_result.get("last_step_id"),
+                "realized_beat_ids": continuation_result.get("realized_beat_ids", []),
+                "stopped_at_player_window": continuation_result.get("stopped_at_player_window", False),
+                "stopped_at_beat_id": continuation_result.get("stopped_at_beat_id"),
+                "scene_block_count": len(continuation_result.get("scene_blocks", [])),
+            }
+
+        return result
 
     def execute_opening(self, *, session_id: str, trace_id: str | None = None) -> dict[str, Any]:
         with self._session_turn_lock(session_id):

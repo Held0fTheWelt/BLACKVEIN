@@ -33,6 +33,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import httpx
 
 from app.api.http import router as http_router
+from app.api.story_ws import story_ws_router, story_ws_support_router
 from app.api.ws import router as ws_router
 from app.auth.tickets import TicketManager
 from app.ui_backend_proxy import backend_proxy_response, user_capabilities
@@ -439,6 +440,8 @@ app.add_middleware(
 )
 app.include_router(http_router)
 app.include_router(ws_router)
+app.include_router(story_ws_router)
+app.include_router(story_ws_support_router)
 app.mount("/static", StaticFiles(directory=WEB_ROOT / "static"), name="static")
 register_world_engine_ui_routes(app)
 

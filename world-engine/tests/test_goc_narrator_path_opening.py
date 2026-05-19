@@ -178,13 +178,22 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     souffleuse_blocks = [block for block in blocks if block["block_type"] == "souffleuse"]
     assert len(narrator_blocks) >= 6
     assert len(souffleuse_blocks) == 1
-    assert {block["block_type"] for block in blocks} == {"narrator", "souffleuse"}
+    expected_types = {"narrator", "souffleuse"}
+    continuation = opening.get("scripted_continuation")
+    if continuation and continuation.get("scene_block_count", 0) > 0:
+        expected_types.add("actor_line")
+    assert {block["block_type"] for block in blocks} == expected_types
     assert narrator_blocks[0]["canonical_mandatory_beat_id"] == "park_edge_establishing_image"
     assert "Winter afternoon" in narrator_blocks[0]["text"]
     assert any("home office" in block["text"] for block in narrator_blocks)
     assert souffleuse_blocks[0]["visible_lane"] == "player_hint"
     assert souffleuse_blocks[0]["internal_resolution_language"] == "en"
     assert "souffleuse.situational_stance" in opening["director_narrator_path_plan"]["selected_capabilities"]
+
+    if continuation:
+        assert continuation.get("stopped_at_player_window") is True
+        assert continuation.get("stopped_at_beat_id") == "silence_after_reading"
+        assert "opening_005_statement_reading" in (continuation.get("canonical_step_ids") or [])
 
     route = opening["model_route"]
     generation = route["generation"]
@@ -194,8 +203,11 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     assert opening["selected_responder_set"] == []
 
     envelope = opening["scene_turn_envelope"]
-    assert envelope["npc_agency_plan"] is None
-    assert envelope["diagnostics"]["npc_agency"]["npc_agency_plan_built"] is False
+    if continuation and continuation.get("scene_block_count", 0) > 0:
+        assert envelope["npc_agency_plan"] is not None
+    else:
+        assert envelope["npc_agency_plan"] is None
+        assert envelope["diagnostics"]["npc_agency"]["npc_agency_plan_built"] is False
     assert opening["runtime_governance_surface"]["director_path_mode"] == "narrator_path"
 
 

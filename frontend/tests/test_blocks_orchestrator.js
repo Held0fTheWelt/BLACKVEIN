@@ -788,4 +788,657 @@ describe('BlocksOrchestrator', () => {
       expect(loadTurnSpy).toHaveBeenCalledWith(response);
     });
   });
+
+  // ── Phase 2 Stage C: Primary Event Stream ────────────────────────────────
+
+  describe('loadTurnFromEventStream() — Stage C primary', () => {
+    function makeEvent(id, blockType = 'narrator', text = 'Text') {
+      return {
+        event_id: `evt-${id}`,
+        tick_id: 'tick-1',
+        lane: 'visible_scene_output',
+        block_payload: { id, block_type: blockType, text },
+      };
+    }
+
+    function makeStageCResponse(events, { canBePrimary = true, parityStatus = 'aligned', hasBundle = true } = {}) {
+      return {
+        visible_scene_output: {
+          blocks: hasBundle ? events.map((e) => e.block_payload) : [],
+          block_stream_events: events,
+        },
+        diagnostics: {
+          phase2_event_stream_readiness: {
+            can_be_primary_candidate: canBePrimary,
+            parity_status: parityStatus,
+            bundle_fallback_available: hasBundle,
+            event_stream_present: events.length > 0,
+          },
+        },
+      };
+    }
+
+    beforeEach(() => {
+      delete window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED;
+      delete window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
+    });
+
+    afterEach(() => {
+      delete window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED;
+      delete window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
+    });
+
+    test('Stage C disabled — uses bundle path', () => {
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('Stage C enabled + readiness candidate + valid events → uses event stream', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledTimes(1);
+      const callArg = loadTurnSpy.mock.calls[0][0];
+      expect(callArg.visible_scene_output._source).toBe('phase2_primary_event_stream');
+    });
+
+    test('Stage C enabled + readiness candidate → blocks carry trace fields', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks[0]._stream_event_id).toBe('evt-b1');
+    });
+
+    test('Stage C: one event renders one block', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks).toHaveLength(1);
+      expect(orchestrator.blocks[0].id).toBe('b1');
+    });
+
+    test('Stage C: two events produce two blocks in order', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const events = [makeEvent('b1', 'narrator', 'First'), makeEvent('b2', 'actor_line', 'Second')];
+      const response = makeStageCResponse(events, { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks).toHaveLength(2);
+      expect(orchestrator.blocks[0].id).toBe('b1');
+      expect(orchestrator.blocks[1].id).toBe('b2');
+    });
+
+    test('Stage C fallback: not candidate → falls back to bundle', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: false, parityStatus: 'count_mismatch' });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('Stage C fallback: missing events → falls back', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const response = makeStageCResponse([], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('Stage C fallback: absent readiness diagnostics → falls back', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      // No diagnostics field in response
+      const response = {
+        visible_scene_output: {
+          blocks: [event.block_payload],
+          block_stream_events: [event],
+        },
+      };
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('Stage C: _lastPrimarySelection records primary used', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true, parityStatus: 'aligned' });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const sel = orchestrator._lastPrimarySelection;
+      expect(sel.event_stream_primary_attempted).toBe(true);
+      expect(sel.event_stream_primary_used).toBe(true);
+      expect(sel.event_stream_fallback_used).toBe(false);
+      expect(sel.event_stream_fallback_reason).toBeNull();
+      expect(sel.parity_status).toBe('aligned');
+    });
+
+    test('Stage C fallback: _lastPrimarySelection records fallback reason', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: false, parityStatus: 'count_mismatch' });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const sel = orchestrator._lastPrimarySelection;
+      expect(sel.event_stream_primary_attempted).toBe(true);
+      expect(sel.event_stream_primary_used).toBe(false);
+      expect(sel.event_stream_fallback_used).toBe(true);
+      expect(sel.event_stream_fallback_reason).toBe('readiness_not_candidate');
+    });
+
+    test('Stage C: fallback reason event_stream_invalid_or_missing when events absent', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const response = makeStageCResponse([], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator._lastPrimarySelection.event_stream_fallback_reason)
+        .toBe('event_stream_invalid_or_missing');
+    });
+
+    test('Stage C: getState includes last_primary_selection', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const state = orchestrator.getState();
+      expect(state.last_primary_selection).toBeDefined();
+      expect(state.last_primary_selection.event_stream_primary_used).toBe(true);
+    });
+
+    test('Stage C disabled and Stage B disabled → both absent → loadTurn called directly', () => {
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      // No primary or Stage B flag — direct bundle path
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+      expect(orchestrator._lastPrimarySelection).toBeNull();
+    });
+
+    test('Stage B still works when only Stage B flag set (no Stage C flag)', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = {
+        visible_scene_output: {
+          blocks: [event.block_payload],
+          block_stream_events: [event],
+        },
+      };
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const callArg = loadTurnSpy.mock.calls[0][0];
+      expect(callArg.visible_scene_output._source).toBe('phase2_event_stream');
+    });
+
+    test('aligned stream primary output equivalent to bundle content', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const payload = { id: 'b1', block_type: 'narrator', text: 'Hello world.' };
+      const event = { event_id: 'e1', tick_id: 't1', lane: 'visible_scene_output', block_payload: payload };
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      // Block text matches original payload
+      expect(orchestrator.blocks[0].id).toBe('b1');
+      expect(orchestrator.blocks[0].text).toBe('Hello world.');
+      expect(orchestrator.blocks[0].block_type).toBe('narrator');
+    });
+
+    test('original response not mutated by Stage C path', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+      const originalSource = response.visible_scene_output._source;
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(response.visible_scene_output._source).toBe(originalSource);
+    });
+
+    test('no Pi/Π runtime keys in selection diagnostics', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStageCResponse([event], { canBePrimary: true });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const selStr = JSON.stringify(orchestrator._lastPrimarySelection);
+      expect(selStr).not.toMatch(/\bΠ\d+\b|\bPi\d+\b/);
+    });
+  });
+
+  // ── Phase 2 WS Session Loop ────────────────────────────────────────────────
+
+  describe('Phase 2 WS Session Loop', () => {
+    function makeEvent(id, blockType = 'narrator', text = 'Hello') {
+      return {
+        event_id: `evt-${id}`,
+        tick_id: 'tick-1',
+        block_type: blockType,
+        lane: 'visible_scene_output',
+        block_payload: { id, block_type: blockType, text },
+      };
+    }
+
+    beforeEach(() => {
+      delete window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED;
+    });
+    afterEach(() => {
+      delete window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED;
+      try { orchestrator.disconnectStream(); } catch (_e) { /* ignore */ }
+    });
+
+    test('default getState exposes WS diagnostics fields with safe defaults', () => {
+      const state = orchestrator.getState();
+      expect(state).toEqual(
+        expect.objectContaining({
+          ws_session_loop_supported: false,
+          live_interruption_supported: false,
+          ws_connected: false,
+          active_block_id: null,
+          last_player_cut_in_event: null,
+          cut_in_count: 0,
+          stream_fallback_reason: null,
+          proof_level: 'unknown',
+          ws_queued_input_count: 0,
+        }),
+      );
+    });
+
+    test('connectStream — flag disabled → returns false, records fallback reason', () => {
+      const onFallback = jest.fn();
+      const ok = orchestrator.connectStream({ url: 'ws://x/', onFallback });
+      expect(ok).toBe(false);
+      expect(onFallback).toHaveBeenCalledWith('flag_disabled');
+      expect(orchestrator.getState().stream_fallback_reason).toBe('flag_disabled');
+    });
+
+    test('connectStream — missing URL → returns false with fallback reason', () => {
+      window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED = true;
+      const onFallback = jest.fn();
+      const ok = orchestrator.connectStream({ url: '', onFallback });
+      expect(ok).toBe(false);
+      expect(onFallback).toHaveBeenCalledWith('missing_url');
+      expect(orchestrator.getState().stream_fallback_reason).toBe('missing_url');
+    });
+
+    test('connectStream — WebSocket constructor throws → fallback reason recorded', () => {
+      window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED = true;
+      const onFallback = jest.fn();
+      const originalWS = global.WebSocket;
+      global.WebSocket = function () { throw new Error('blocked'); };
+      try {
+        const ok = orchestrator.connectStream({ url: 'ws://x/', onFallback });
+        expect(ok).toBe(false);
+        expect(onFallback).toHaveBeenCalledWith('connect_threw');
+      } finally {
+        global.WebSocket = originalWS;
+      }
+    });
+
+    test('_handleWsMessage stream_started flips support flag', () => {
+      orchestrator._handleWsMessage({ kind: 'stream_started', session_id: 'sess-1' });
+      const s = orchestrator.getState();
+      expect(s.ws_session_loop_supported).toBe(true);
+      expect(s.proof_level).toBe('live_loop_active');
+    });
+
+    test('_handleWsMessage block_started → renders block and sets active_block_id + live flag', () => {
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-b1',
+        block_stream_event: makeEvent('b1', 'narrator', 'First'),
+      });
+      const s = orchestrator.getState();
+      expect(s.active_block_id).toBe('evt-b1');
+      expect(s.live_interruption_supported).toBe(true);
+      // appendNarratorBlock pushed onto blocks
+      expect(orchestrator.blocks).toHaveLength(1);
+      expect(orchestrator.blocks[0].id).toBe('b1');
+    });
+
+    test('_handleWsMessage block_completed → clears active flags', () => {
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-b1',
+        block_stream_event: makeEvent('b1'),
+      });
+      orchestrator._handleWsMessage({ kind: 'block_completed', event_id: 'evt-b1' });
+      const s = orchestrator.getState();
+      expect(s.active_block_id).toBe(null);
+      expect(s.live_interruption_supported).toBe(false);
+    });
+
+    test('_handleWsMessage block_cut em_dash → cut_in_count increments + cut event captured', () => {
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-b1',
+        block_stream_event: makeEvent('b1', 'actor_line', 'Je suis—'),
+      });
+      const cutEvent = {
+        schema_version: 'player_cut_in_event.v1',
+        cut_in_id: 'cut-1',
+        tick_id: 'tick-1',
+        interrupted_block_id: 'evt-b1',
+        interrupted_block_type: 'actor_line',
+        cut_kind: 'em_dash',
+        player_input_payload: { text: 'Stop!' },
+      };
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'em_dash',
+        event_id: 'evt-b1',
+        player_cut_in_event: cutEvent,
+        drop_remaining_blocks: true,
+        flush_active_block: false,
+      });
+      const s = orchestrator.getState();
+      expect(s.cut_in_count).toBe(1);
+      expect(s.last_player_cut_in_event).toEqual(cutEvent);
+      expect(s.active_block_id).toBe(null);
+    });
+
+    test('_handleWsMessage block_cut skip_to_end → calls revealAll', () => {
+      const revealSpy = jest.spyOn(orchestrator, 'revealAll').mockImplementation(() => {});
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'skip_to_end',
+        player_cut_in_event: { cut_kind: 'skip_to_end' },
+      });
+      expect(revealSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('_handleWsMessage stream_error → sets stream_fallback_reason', () => {
+      orchestrator._handleWsMessage({ kind: 'stream_error', reason: 'turn_execution_failed' });
+      expect(orchestrator.getState().stream_fallback_reason).toBe('turn_execution_failed');
+    });
+
+    test('sendCutIn queues input when socket not open and does not lose it', () => {
+      const result = orchestrator.sendCutIn('Hello');
+      expect(result).toBe(false);
+      const drained = orchestrator.drainQueuedPlayerInputs();
+      expect(drained).toHaveLength(1);
+      expect(drained[0].player_input).toBe('Hello');
+      // After drain, the queue is empty.
+      expect(orchestrator.getState().ws_queued_input_count).toBe(0);
+    });
+
+    test('wsStartTurn rejects when socket not open', () => {
+      const ok = orchestrator.wsStartTurn('go');
+      expect(ok).toBe(false);
+    });
+
+    test('no Pi/Π runtime keys in WS diagnostics', () => {
+      orchestrator._handleWsMessage({ kind: 'stream_started', session_id: 's' });
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-b1',
+        block_stream_event: makeEvent('b1'),
+      });
+      const stateStr = JSON.stringify(orchestrator.getState());
+      expect(stateStr).not.toMatch(/\bΠ\d+\b|\bPi\d+\b/);
+    });
+
+    test('cut-in semantics by block type: actor_line → em_dash drops queue, skip_to_end flushes', () => {
+      // Pure renderer-side: verify the orchestrator handles each cut_kind without
+      // mishandling the active block state.
+      orchestrator._handleWsMessage({ kind: 'stream_started', session_id: 's' });
+      orchestrator._handleWsMessage({
+        kind: 'block_started', event_id: 'evt-a', block_stream_event: makeEvent('a', 'actor_line', 'hi'),
+      });
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'em_dash',
+        player_cut_in_event: { cut_kind: 'em_dash' },
+        drop_remaining_blocks: true,
+        flush_active_block: false,
+      });
+      let s = orchestrator.getState();
+      expect(s.cut_in_count).toBe(1);
+      expect(s.active_block_id).toBe(null);
+
+      // Second cycle: narrator + skip_to_end
+      const revealSpy = jest.spyOn(orchestrator, 'revealAll').mockImplementation(() => {});
+      orchestrator._handleWsMessage({
+        kind: 'block_started', event_id: 'evt-n', block_stream_event: makeEvent('n', 'narrator', 'creak'),
+      });
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'skip_to_end',
+        player_cut_in_event: { cut_kind: 'skip_to_end' },
+        drop_remaining_blocks: true,
+        flush_active_block: true,
+      });
+      s = orchestrator.getState();
+      expect(s.cut_in_count).toBe(2);
+      expect(revealSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('no_active_block cut-in does not affect renderer state', () => {
+      const revealSpy = jest.spyOn(orchestrator, 'revealAll').mockImplementation(() => {});
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'no_active_block',
+        player_cut_in_event: { cut_kind: 'no_active_block' },
+        drop_remaining_blocks: false,
+        flush_active_block: false,
+      });
+      expect(revealSpy).not.toHaveBeenCalled();
+      expect(orchestrator.getState().cut_in_count).toBe(1);
+    });
+
+    // ── Phase 2 Stage E — autonomous Director tick reception ──────────────
+
+    function makeAutonomousEvent(id, actorId, text = 'autonomous line', tickId = 'tick-auto-1') {
+      return {
+        schema_version: 'block_stream_event.v1',
+        event_id: 'evt-' + id,
+        tick_id: tickId,
+        block_type: 'actor_line',
+        cut_in_state: 'uninterrupted',
+        lane: 'visible_scene_output',
+        source: actorId,
+        block_payload: {
+          id,
+          block_type: 'actor_line',
+          actor_id: actorId,
+          text,
+          originator: 'autonomous_tick',
+          autonomous_tick_id: tickId,
+        },
+      };
+    }
+
+    test('default getState exposes Stage E autonomous-tick counters at zero', () => {
+      const state = orchestrator.getState();
+      expect(state).toEqual(
+        expect.objectContaining({
+          autonomous_tick_evaluated_count: 0,
+          autonomous_tick_block_received_count: 0,
+          autonomous_tick_silence_count: 0,
+          autonomous_tick_cut_in_interrupted_count: 0,
+          last_autonomous_tick_summary: null,
+          active_block_is_autonomous: false,
+        }),
+      );
+    });
+
+    test('autonomous_tick_evaluated message records summary and increments counter', () => {
+      const summary = {
+        tick_id: 'tick-1',
+        tick_trigger_kind: 'motivation_threshold_crossed',
+        chosen_actor_id: 'npc_a',
+        chosen_action_kind: 'speak',
+        block_emitted: true,
+        motivation_scores: { npc_a: 0.8 },
+        cooldown_state: { cooldown_active: false, min_tick_interval_ms: 1500 },
+        silence_reason: null,
+      };
+      orchestrator._handleWsMessage({ kind: 'autonomous_tick_evaluated', summary });
+      const s = orchestrator.getState();
+      expect(s.autonomous_tick_evaluated_count).toBe(1);
+      expect(s.last_autonomous_tick_summary).toEqual(summary);
+      expect(s.autonomous_tick_silence_count).toBe(0);
+    });
+
+    test('autonomous_tick_evaluated with silence increments silence counter', () => {
+      const summary = {
+        tick_id: 'tick-2',
+        chosen_actor_id: null,
+        block_emitted: false,
+        silence_reason: 'no_npc_above_motivation_threshold',
+        motivation_scores: {},
+        cooldown_state: { cooldown_active: false, min_tick_interval_ms: 1500 },
+      };
+      orchestrator._handleWsMessage({ kind: 'autonomous_tick_evaluated', summary });
+      const s = orchestrator.getState();
+      expect(s.autonomous_tick_evaluated_count).toBe(1);
+      expect(s.autonomous_tick_silence_count).toBe(1);
+      expect(s.autonomous_tick_block_received_count).toBe(0);
+    });
+
+    test('autonomous block_started is recognised via originator + counter increments', () => {
+      const event = makeAutonomousEvent('b-auto', 'npc_a');
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: event.event_id,
+        block_stream_event: event,
+      });
+      const s = orchestrator.getState();
+      expect(s.active_block_is_autonomous).toBe(true);
+      expect(s.autonomous_tick_block_received_count).toBe(1);
+    });
+
+    test('non-autonomous block_started leaves Stage E counters untouched', () => {
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-user',
+        block_stream_event: makeEvent('user-block', 'narrator', 'Player turn'),
+      });
+      const s = orchestrator.getState();
+      expect(s.active_block_is_autonomous).toBe(false);
+      expect(s.autonomous_tick_block_received_count).toBe(0);
+    });
+
+    test('cut-in during autonomous actor_line increments cut_in_interrupted counter', () => {
+      const event = makeAutonomousEvent('b-auto', 'npc_a');
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: event.event_id,
+        block_stream_event: event,
+      });
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'em_dash',
+        event_id: event.event_id,
+        block_type: 'actor_line',
+        player_cut_in_event: {
+          schema_version: 'player_cut_in_event.v1',
+          cut_kind: 'em_dash',
+          interrupted_block_id: event.event_id,
+          interrupted_block_type: 'actor_line',
+          player_input_payload: { text: 'Wait!' },
+        },
+        drop_remaining_blocks: true,
+        flush_active_block: false,
+      });
+      const s = orchestrator.getState();
+      expect(s.autonomous_tick_cut_in_interrupted_count).toBe(1);
+      expect(s.cut_in_count).toBe(1);
+      expect(s.active_block_is_autonomous).toBe(false);
+    });
+
+    test('cut-in during non-autonomous block does NOT touch autonomous counter', () => {
+      orchestrator._handleWsMessage({
+        kind: 'block_started',
+        event_id: 'evt-user',
+        block_stream_event: makeEvent('user', 'actor_line', 'human says'),
+      });
+      orchestrator._handleWsMessage({
+        kind: 'block_cut',
+        cut_kind: 'em_dash',
+        player_cut_in_event: { cut_kind: 'em_dash' },
+      });
+      const s = orchestrator.getState();
+      expect(s.cut_in_count).toBe(1);
+      expect(s.autonomous_tick_cut_in_interrupted_count).toBe(0);
+    });
+
+    test('autonomous block recognised even without originator if tick_id matches last summary', () => {
+      orchestrator._handleWsMessage({
+        kind: 'autonomous_tick_evaluated',
+        summary: {
+          tick_id: 'tick-shared',
+          chosen_actor_id: 'npc_b',
+          block_emitted: true,
+          motivation_scores: { npc_b: 0.9 },
+          cooldown_state: { cooldown_active: false, min_tick_interval_ms: 1500 },
+        },
+      });
+      // A block whose payload lacks originator but shares tick_id with the
+      // evaluated summary still counts as autonomous (defensive fallback).
+      const event = {
+        schema_version: 'block_stream_event.v1',
+        event_id: 'evt-x',
+        tick_id: 'tick-shared',
+        block_type: 'actor_line',
+        cut_in_state: 'uninterrupted',
+        lane: 'visible_scene_output',
+        source: 'npc_b',
+        block_payload: {
+          id: 'x', block_type: 'actor_line', actor_id: 'npc_b', text: 'shared tick',
+        },
+      };
+      orchestrator._handleWsMessage({
+        kind: 'block_started', event_id: 'evt-x', block_stream_event: event,
+      });
+      expect(orchestrator.getState().autonomous_tick_block_received_count).toBe(1);
+    });
+
+    test('no Pi/Π keys in Stage E diagnostic state', () => {
+      orchestrator._handleWsMessage({
+        kind: 'autonomous_tick_evaluated',
+        summary: {
+          tick_id: 't', chosen_actor_id: 'npc_a', block_emitted: false,
+          silence_reason: 'no_npc_above_motivation_threshold',
+          motivation_scores: { npc_a: 0.3 },
+          cooldown_state: { cooldown_active: false, min_tick_interval_ms: 1500 },
+        },
+      });
+      const stateStr = JSON.stringify(orchestrator.getState());
+      expect(stateStr).not.toMatch(/\bΠ\d+\b|\bPi\d+\b/);
+    });
+  });
 });

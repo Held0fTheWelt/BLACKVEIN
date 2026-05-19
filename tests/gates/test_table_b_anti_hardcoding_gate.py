@@ -263,6 +263,10 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
     "ai_stack/director_pulse_contracts.py",
     "ai_stack/director_pulse_shadow.py",
+    # Phase 2 Stage E — Autonomous Director tick consults pacing_rhythm for cooldown
+    "ai_stack/phase2_autonomous_tick.py",
+    # Phase 2 Stage F — Director policy/source classifier reads pacing_rhythm policy
+    "ai_stack/phase2_stream_readiness.py",
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {

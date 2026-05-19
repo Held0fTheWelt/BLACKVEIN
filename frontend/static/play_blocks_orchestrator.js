@@ -36,6 +36,32 @@ class BlocksOrchestrator {
     this.sliceQueue = [];
     /** @type {number} Index into sliceQueue for the block currently being typed */
     this.currentSliceIndex = 0;
+    /** @type {object|null} Diagnostics from last loadTurnFromEventStream call */
+    this._lastPrimarySelection = null;
+
+    // ── Phase 2 WS session loop diagnostics ─────────────────────────────────
+    /** @type {WebSocket|null} */
+    this._wsSocket = null;
+    this._wsConnected = false;
+    this._wsActiveBlockId = null;
+    this._wsLastPlayerCutInEvent = null;
+    this._wsCutInCount = 0;
+    this._wsStreamFallbackReason = null;
+    this._wsLiveInterruptionSupported = false;
+    this._wsSessionLoopSupported = false;
+    this._wsProofLevel = 'unknown';
+    this._wsInputQueue = [];
+    this._wsOnMessage = null;
+
+    // ── Phase 2 Stage E: autonomous Director tick diagnostics ──────────────
+    this._autonomousTickEvaluatedCount = 0;
+    this._autonomousTickBlockReceivedCount = 0;
+    this._autonomousTickSilenceCount = 0;
+    this._autonomousTickCutInInterruptedCount = 0;
+    /** @type {Object|null} latest server-sent summary */
+    this._lastAutonomousTickSummary = null;
+    /** @type {boolean} true while a block_started message was tagged autonomous */
+    this._activeBlockIsAutonomous = false;
   }
 
   _isDiagnosticsBlock(block) {
@@ -329,6 +355,22 @@ class BlocksOrchestrator {
       typewriter_state: this.typewriter.getQueueState(),
       slice_queue_length: this.sliceQueue.length,
       current_slice_index: this.currentSliceIndex,
+      last_primary_selection: this._lastPrimarySelection,
+      ws_session_loop_supported: this._wsSessionLoopSupported,
+      live_interruption_supported: this._wsLiveInterruptionSupported,
+      ws_connected: this._wsConnected,
+      active_block_id: this._wsActiveBlockId,
+      last_player_cut_in_event: this._wsLastPlayerCutInEvent,
+      cut_in_count: this._wsCutInCount,
+      stream_fallback_reason: this._wsStreamFallbackReason,
+      proof_level: this._wsProofLevel,
+      ws_queued_input_count: this._wsInputQueue.length,
+      autonomous_tick_evaluated_count: this._autonomousTickEvaluatedCount,
+      autonomous_tick_block_received_count: this._autonomousTickBlockReceivedCount,
+      autonomous_tick_silence_count: this._autonomousTickSilenceCount,
+      autonomous_tick_cut_in_interrupted_count: this._autonomousTickCutInInterruptedCount,
+      last_autonomous_tick_summary: this._lastAutonomousTickSummary,
+      active_block_is_autonomous: this._activeBlockIsAutonomous,
     };
   }
 
@@ -359,57 +401,351 @@ class BlocksOrchestrator {
   /**
    * Load turn from block_stream_events (Phase 2 event-stream path).
    *
-   * Feature-gated: only active when window.WOS_PHASE2_BLOCK_STREAM_ENABLED is
-   * truthy. Falls back to loadTurn() if the event stream is absent, invalid,
-   * or the gate is off. The existing blocks[] bundle path remains the default.
+   * Stage C (primary): when WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED is truthy,
+   * reads server-provided readiness diagnostics to decide primary vs fallback.
+   * Records the selection in _lastPrimarySelection for diagnostics inspection.
+   *
+   * Stage B (dual-mode): when only WOS_PHASE2_BLOCK_STREAM_ENABLED is truthy,
+   * uses event stream if valid, falls back to bundle without readiness check.
+   *
+   * Default (both flags off): delegates directly to loadTurn() — bundle path.
    *
    * @param {Object} response - HTTP response with visible_scene_output
    */
   loadTurnFromEventStream(response) {
-    // Feature gate: default off. Set window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true to enable.
-    const gateOn = typeof window !== 'undefined' && !!window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
-    if (!gateOn) {
-      this.loadTurn(response);
-      return;
-    }
+    const stageC = typeof window !== 'undefined' && !!window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED;
+    const stageB = typeof window !== 'undefined' && !!window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
 
     const vso = (response && response.visible_scene_output) || null;
+    const diag = (response && response.diagnostics) || null;
+    const readiness = (diag && diag.phase2_event_stream_readiness) || null;
     const streamEvents = (vso && Array.isArray(vso.block_stream_events) && vso.block_stream_events) || null;
 
-    // Validate: must have at least one event with a block_payload
-    const hasValidEvents = streamEvents && streamEvents.some(
+    const hasValidEvents = !!(streamEvents && streamEvents.some(
       (e) => e && typeof e === 'object' && e.block_payload && typeof e.block_payload === 'object'
-    );
+    ));
 
-    if (!hasValidEvents) {
-      // Fallback to bundle — preserves existing rendering path.
+    // ── Stage C: primary selection with server-provided readiness ─────────────
+    if (stageC) {
+      const canBePrimary = !!(readiness && readiness.can_be_primary_candidate);
+
+      if (canBePrimary && hasValidEvents) {
+        const blocks = [];
+        for (const event of streamEvents) {
+          const block = this._blockFromStreamEvent(event);
+          if (block) blocks.push(block);
+        }
+        if (blocks.length > 0) {
+          this._lastPrimarySelection = {
+            event_stream_primary_attempted: true,
+            event_stream_primary_used: true,
+            event_stream_fallback_used: false,
+            event_stream_fallback_reason: null,
+            parity_status: (readiness && readiness.parity_status) || null,
+            bundle_fallback_available: !!(readiness && readiness.bundle_fallback_available),
+          };
+          const syntheticVso = {
+            ...(vso || {}),
+            blocks,
+            typewriter_slice_start_index: 0,
+            _source: 'phase2_primary_event_stream',
+          };
+          this.loadTurn({ ...response, visible_scene_output: syntheticVso });
+          return;
+        }
+      }
+
+      // Stage C fallback — record reason, load bundle
+      const reason = !hasValidEvents ? 'event_stream_invalid_or_missing'
+                   : !readiness ? 'readiness_diagnostics_absent'
+                   : 'readiness_not_candidate';
+      this._lastPrimarySelection = {
+        event_stream_primary_attempted: true,
+        event_stream_primary_used: false,
+        event_stream_fallback_used: true,
+        event_stream_fallback_reason: reason,
+        parity_status: (readiness && readiness.parity_status) || null,
+        bundle_fallback_available: !!(vso && Array.isArray(vso.blocks) && vso.blocks.length > 0),
+      };
       this.loadTurn(response);
       return;
     }
 
-    // Convert events to block shapes
+    // ── Stage B: dual-mode gate (no readiness check) ──────────────────────────
+    if (!stageB) {
+      this.loadTurn(response);
+      return;
+    }
+
+    if (!hasValidEvents) {
+      this.loadTurn(response);
+      return;
+    }
+
     const blocks = [];
     for (const event of streamEvents) {
       const block = this._blockFromStreamEvent(event);
       if (block) blocks.push(block);
     }
-
     if (blocks.length === 0) {
       this.loadTurn(response);
       return;
     }
 
-    // Reuse loadTurn logic by constructing a synthetic response with the
-    // event-stream blocks in place of bundle blocks. The rest of the
-    // rendering pipeline (typewriter, slice queue, accessibility) is unchanged.
     const syntheticVso = {
       ...(vso || {}),
       blocks,
-      // Preserve slice start: all blocks animated (event stream is always fresh).
       typewriter_slice_start_index: 0,
       _source: 'phase2_event_stream',
     };
     this.loadTurn({ ...response, visible_scene_output: syntheticVso });
+  }
+
+  // ── Phase 2 WS Session Loop ────────────────────────────────────────────────
+
+  /**
+   * Whether the WS session loop is enabled in this browser window.
+   *
+   * Server reports support separately; both must be truthy for live cut-in.
+   * @returns {boolean}
+   */
+  isWsSessionLoopFlagEnabled() {
+    return (typeof window !== 'undefined' && !!window.WOS_PHASE2_WS_SESSION_LOOP_ENABLED);
+  }
+
+  /**
+   * Connect to the Phase 2 story-session WebSocket.
+   *
+   * Falls back silently to REST/bundle if the flag is off, the WebSocket
+   * global is missing, or the socket fails to open. Never throws.
+   *
+   * @param {Object} opts
+   * @param {string} opts.url               — ws:// or wss:// URL (no key)
+   * @param {string} [opts.key]             — internal API key (query param ?key=)
+   * @param {Function} [opts.onFallback]    — invoked with (reason) when WS unusable
+   * @param {Function} [opts.restFallback]  — invoked when WS fails post-connect
+   * @returns {boolean} — true when a connection attempt was started
+   */
+  connectStream(opts) {
+    const options = opts || {};
+    if (!this.isWsSessionLoopFlagEnabled()) {
+      this._wsStreamFallbackReason = 'flag_disabled';
+      if (typeof options.onFallback === 'function') options.onFallback('flag_disabled');
+      return false;
+    }
+    if (typeof WebSocket === 'undefined') {
+      this._wsStreamFallbackReason = 'websocket_unavailable';
+      if (typeof options.onFallback === 'function') options.onFallback('websocket_unavailable');
+      return false;
+    }
+    let url = String(options.url || '');
+    if (!url) {
+      this._wsStreamFallbackReason = 'missing_url';
+      if (typeof options.onFallback === 'function') options.onFallback('missing_url');
+      return false;
+    }
+    if (options.key) {
+      const sep = url.indexOf('?') >= 0 ? '&' : '?';
+      url = url + sep + 'key=' + encodeURIComponent(String(options.key));
+    }
+
+    let socket;
+    try {
+      socket = new WebSocket(url);
+    } catch (err) {
+      this._wsStreamFallbackReason = 'connect_threw';
+      if (typeof options.onFallback === 'function') options.onFallback('connect_threw');
+      return false;
+    }
+    this._wsSocket = socket;
+    this._wsSessionLoopSupported = true; // tentative; server stream_started confirms
+
+    socket.onopen = () => {
+      this._wsConnected = true;
+      this._wsStreamFallbackReason = null;
+    };
+    socket.onclose = () => {
+      this._wsConnected = false;
+      this._wsActiveBlockId = null;
+      this._wsLiveInterruptionSupported = false;
+      this._wsSocket = null;
+    };
+    socket.onerror = () => {
+      this._wsConnected = false;
+      this._wsStreamFallbackReason = this._wsStreamFallbackReason || 'socket_error';
+      if (typeof options.restFallback === 'function') options.restFallback('socket_error');
+    };
+    socket.onmessage = (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.data); }
+      catch (_e) { return; }
+      this._handleWsMessage(parsed);
+      if (typeof this._wsOnMessage === 'function') {
+        try { this._wsOnMessage(parsed); } catch (_e) { /* ignore */ }
+      }
+    };
+    return true;
+  }
+
+  /**
+   * Send a start_turn request over WS. Returns true if dispatched.
+   *
+   * @param {string} playerInput
+   */
+  wsStartTurn(playerInput) {
+    if (!this._wsSocket || this._wsSocket.readyState !== 1 /* OPEN */) return false;
+    const text = String(playerInput || '').trim();
+    if (!text) return false;
+    this._wsSocket.send(JSON.stringify({ kind: 'start_turn', player_input: text }));
+    return true;
+  }
+
+  /**
+   * Send a cut_in over WS while a block is streaming.
+   *
+   * Never loses the input: if the socket isn't open, it is queued in
+   * ``_wsInputQueue`` so the caller can replay it on the next turn (e.g.
+   * via the REST path or a reconnected WS).
+   *
+   * @param {string} playerInput
+   * @returns {boolean}
+   */
+  sendCutIn(playerInput) {
+    const text = String(playerInput || '').trim();
+    if (!text) return false;
+    if (!this._wsSocket || this._wsSocket.readyState !== 1 /* OPEN */) {
+      this._wsInputQueue.push({ player_input: text, queued_at: Date.now(), reason: 'ws_not_open' });
+      return false;
+    }
+    this._wsSocket.send(JSON.stringify({ kind: 'cut_in', player_input: text }));
+    return true;
+  }
+
+  /**
+   * Disconnect the WS session loop. Safe to call multiple times.
+   */
+  disconnectStream() {
+    if (this._wsSocket && typeof this._wsSocket.close === 'function') {
+      try { this._wsSocket.close(); } catch (_e) { /* ignore */ }
+    }
+    this._wsSocket = null;
+    this._wsConnected = false;
+    this._wsActiveBlockId = null;
+    this._wsLiveInterruptionSupported = false;
+  }
+
+  /**
+   * Drain queued player inputs (e.g. for replay over REST after WS failure).
+   * @returns {Object[]}
+   */
+  drainQueuedPlayerInputs() {
+    const drained = this._wsInputQueue.slice();
+    this._wsInputQueue = [];
+    return drained;
+  }
+
+  /**
+   * Handle a server → client WS message. Internal — exposed for tests via
+   * direct invocation (no behavior changes if called manually).
+   *
+   * @param {Object} message
+   */
+  _handleWsMessage(message) {
+    if (!message || typeof message !== 'object') return;
+    const kind = String(message.kind || '');
+    if (kind === 'stream_started') {
+      this._wsSessionLoopSupported = true;
+      this._wsStreamFallbackReason = null;
+      this._wsActiveBlockId = null;
+      this._wsLiveInterruptionSupported = false;
+      this._wsProofLevel = 'live_loop_active';
+      return;
+    }
+    if (kind === 'autonomous_tick_evaluated') {
+      this._autonomousTickEvaluatedCount = (this._autonomousTickEvaluatedCount || 0) + 1;
+      const summary = (message.summary && typeof message.summary === 'object') ? message.summary : {};
+      this._lastAutonomousTickSummary = summary;
+      if (!summary.block_emitted) {
+        this._autonomousTickSilenceCount = (this._autonomousTickSilenceCount || 0) + 1;
+      }
+      return;
+    }
+    if (kind === 'block_started') {
+      const event = message.block_stream_event || null;
+      const block = this._blockFromStreamEvent(event);
+      this._wsActiveBlockId = message.event_id || (event && event.event_id) || null;
+      this._wsLiveInterruptionSupported = !!this._wsActiveBlockId;
+      const isAutonomous = !!(
+        block && (
+          block.originator === 'autonomous_tick'
+          || (this._lastAutonomousTickSummary
+              && this._lastAutonomousTickSummary.block_emitted
+              && this._lastAutonomousTickSummary.tick_id
+              && event && event.tick_id === this._lastAutonomousTickSummary.tick_id)
+        )
+      );
+      this._activeBlockIsAutonomous = isAutonomous;
+      if (isAutonomous) {
+        this._autonomousTickBlockReceivedCount = (this._autonomousTickBlockReceivedCount || 0) + 1;
+      }
+      if (block) {
+        this.appendNarratorBlock(block);
+      }
+      return;
+    }
+    if (kind === 'block_completed') {
+      this._wsActiveBlockId = null;
+      this._wsLiveInterruptionSupported = false;
+      this._activeBlockIsAutonomous = false;
+      return;
+    }
+    if (kind === 'block_cut') {
+      this._wsCutInCount = (this._wsCutInCount || 0) + 1;
+      this._wsLastPlayerCutInEvent = message.player_cut_in_event || null;
+      const cutKind = String(message.cut_kind || '');
+      if (this._activeBlockIsAutonomous) {
+        this._autonomousTickCutInInterruptedCount = (this._autonomousTickCutInInterruptedCount || 0) + 1;
+      }
+      if (cutKind === 'em_dash') {
+        this._applyEmDashToActiveBlock();
+      } else if (cutKind === 'skip_to_end') {
+        try { this.revealAll(); } catch (_e) { /* ignore */ }
+      }
+      this._wsActiveBlockId = null;
+      this._wsLiveInterruptionSupported = false;
+      this._activeBlockIsAutonomous = false;
+      return;
+    }
+    if (kind === 'stream_idle') {
+      this._wsActiveBlockId = null;
+      this._wsLiveInterruptionSupported = false;
+      this._activeBlockIsAutonomous = false;
+      return;
+    }
+    if (kind === 'stream_error') {
+      this._wsStreamFallbackReason = String(message.reason || 'stream_error');
+      this._wsLiveInterruptionSupported = false;
+      return;
+    }
+  }
+
+  /**
+   * Append "—" to the currently active block as a visual em-dash cut marker.
+   * No-ops in accessibility mode (em-dash is purely a typewriter affordance).
+   */
+  _applyEmDashToActiveBlock() {
+    if (this.accessibility_mode) return;
+    const tw = this.typewriter.getQueueState ? this.typewriter.getQueueState() : null;
+    const activeId = tw && tw.current_block_id ? tw.current_block_id : (this._wsActiveBlockId || null);
+    if (!activeId) return;
+    const el = this.renderer.getBlockElement(activeId);
+    if (!el) return;
+    const current = String(el.textContent || '');
+    if (current.endsWith('—')) return;
+    el.textContent = current.replace(/\s+$/, '') + '—';
+    if (typeof this.typewriter.skipBlock === 'function') {
+      try { this.typewriter.skipBlock(activeId); } catch (_e) { /* ignore */ }
+    }
   }
 }
 

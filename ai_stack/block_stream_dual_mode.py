@@ -56,15 +56,25 @@ from ai_stack.director_pulse_contracts import (
 )
 from ai_stack.director_pulse_shadow import evaluate_director_tick
 
-# ── Feature flag ──────────────────────────────────────────────────────────────
-# Default: off. Set PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED=true to enable.
+# ── Feature flags ─────────────────────────────────────────────────────────────
+# Dual mode: block_stream_events produced in parallel with bundle (shadow only).
+# Primary:   block_stream_events become the primary rendering path (Stage C).
+# Both default off. Invalid values fail closed.
 
 _ENV_FLAG = "PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED"
+_PRIMARY_FLAG = "PHASE2_BLOCK_STREAM_PRIMARY_ENABLED"
+
+_TRUE_VALUES = frozenset(("1", "true", "yes"))
 
 
 def is_dual_mode_enabled() -> bool:
     """Return True when the dual-mode event stream is active."""
-    return os.environ.get(_ENV_FLAG, "false").strip().lower() in ("1", "true", "yes")
+    return os.environ.get(_ENV_FLAG, "false").strip().lower() in _TRUE_VALUES
+
+
+def is_primary_enabled() -> bool:
+    """Return True when Stage C primary event stream rendering is enabled."""
+    return os.environ.get(_PRIMARY_FLAG, "false").strip().lower() in _TRUE_VALUES
 
 
 # ── Block-type normalisation ──────────────────────────────────────────────────
@@ -268,6 +278,7 @@ def augment_envelope_with_block_stream(
     narrative_momentum_output: dict[str, Any] | None = None,
     actor_pressure_profiles: dict[str, Any] | None = None,
     npc_motivation_score_policy: dict[str, Any] | None = None,
+    pacing_rhythm_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Augment an existing ``scene_turn_envelope.v2`` dict with dual-mode fields.
 
@@ -358,7 +369,40 @@ def augment_envelope_with_block_stream(
     except Exception:
         score_sources = {}
 
-    # Build augmented diagnostics (all existing keys preserved)
+    # Stage F — also classify component sources with the 3-tier vocabulary,
+    # and compute the capability-availability tuple, so the WS endpoint can
+    # surface them on the autonomous_tick_evaluated summary without recomputing.
+    try:
+        from ai_stack.phase2_stream_readiness import (
+            classify_capability_availability,
+            classify_motivation_component_sources,
+        )
+        component_sources = classify_motivation_component_sources(
+            scene_energy_output=scene_energy_output,
+            social_pressure_output=social_pressure_output,
+            relationship_state_output=relationship_state_output,
+            narrative_momentum_output=narrative_momentum_output,
+            actor_pressure_profiles=actor_pressure_profiles,
+            npc_motivation_score_policy=npc_motivation_score_policy,
+        )
+        cap_used, cap_missing = classify_capability_availability(
+            scene_energy_output=scene_energy_output,
+            social_pressure_output=social_pressure_output,
+            relationship_state_output=relationship_state_output,
+            narrative_momentum_output=narrative_momentum_output,
+            actor_pressure_profiles=actor_pressure_profiles,
+            npc_motivation_score_policy=npc_motivation_score_policy,
+            pacing_rhythm_policy=pacing_rhythm_policy,
+        )
+    except Exception:
+        component_sources = {}
+        cap_used, cap_missing = [], []
+
+    # Build augmented diagnostics (all existing keys preserved).
+    # Stage F additions: capability_outputs (the structured outputs that fed
+    # this tick), actor_pressure_profiles, npc_motivation_score_policy,
+    # pacing_rhythm_policy, motivation_score_component_sources,
+    # capability_outputs_used, capability_outputs_missing.
     existing_diag = envelope.get("diagnostics") or {}
     new_diag: dict[str, Any] = {
         **existing_diag,
@@ -368,6 +412,18 @@ def augment_envelope_with_block_stream(
             "player_cut_in_event": pulse_result.get("player_cut_in_event"),
             "parity": parity,
             "motivation_score_sources": score_sources,
+            "motivation_score_component_sources": component_sources,
+            "capability_outputs": {
+                "scene_energy_output": scene_energy_output,
+                "social_pressure_output": social_pressure_output,
+                "relationship_state_output": relationship_state_output,
+                "narrative_momentum_output": narrative_momentum_output,
+            },
+            "actor_pressure_profiles": actor_pressure_profiles,
+            "npc_motivation_score_policy": npc_motivation_score_policy,
+            "pacing_rhythm_policy": pacing_rhythm_policy,
+            "capability_outputs_used": cap_used,
+            "capability_outputs_missing": cap_missing,
             "shadow_only": True,
             "dual_mode_enabled": True,
         },
@@ -382,12 +438,15 @@ def augment_envelope_with_block_stream(
 
 __all__ = [
     "is_dual_mode_enabled",
+    "is_primary_enabled",
     "bundle_blocks_to_stream_events",
     "compute_parity_diagnostics",
     "block_stream_event_to_block_shape",
     "augment_envelope_with_block_stream",
     "PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED",
+    "PHASE2_BLOCK_STREAM_PRIMARY_ENABLED",
 ]
 
-# Export the flag name as a constant for use in tests and manager
+# Export flag names as constants for use in tests and manager
 PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED = _ENV_FLAG
+PHASE2_BLOCK_STREAM_PRIMARY_ENABLED = _PRIMARY_FLAG
