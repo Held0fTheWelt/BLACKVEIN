@@ -11656,20 +11656,46 @@ class StoryRuntimeManager:
                         ldss_span.end()
 
             if scene_turn_envelope:
-                # Phase 2 Stage B — Dual Mode Block Stream (ADR-0058).
+                # Phase 2 Stage B/C — Dual Mode Block Stream (ADR-0058).
                 # Augment envelope with parallel block_stream_events when the
-                # feature flag is on. Bundle path and all existing keys are
-                # preserved unchanged; augmentation is purely additive.
+                # feature flag is on. Real capability outputs from graph_state
+                # are extracted and passed so NPC motivation scores use actual
+                # runtime signals rather than defaults where available.
+                # Bundle path and all existing keys are preserved unchanged.
                 try:
                     from ai_stack.block_stream_dual_mode import (
                         augment_envelope_with_block_stream,
                         is_dual_mode_enabled,
                     )
+                    from ai_stack.phase2_stream_readiness import (
+                        extract_capability_outputs_from_graph_state,
+                        compute_stream_readiness,
+                    )
                     if is_dual_mode_enabled():
+                        cap_outputs = extract_capability_outputs_from_graph_state(graph_state)
                         scene_turn_envelope = augment_envelope_with_block_stream(
                             scene_turn_envelope,
                             npc_ids=list(scene_turn_envelope.get("npc_actor_ids") or []),
+                            scene_energy_output=cap_outputs["scene_energy_output"],
+                            social_pressure_output=cap_outputs["social_pressure_output"],
+                            relationship_state_output=cap_outputs["relationship_state_output"],
+                            narrative_momentum_output=cap_outputs["narrative_momentum_output"],
                         )
+                        # Stage C readiness diagnostics — read-only, additive.
+                        readiness = compute_stream_readiness(
+                            scene_turn_envelope,
+                            graph_state=graph_state,
+                            ws_session_loop_supported=False,
+                            frontend_event_adapter_deployed=True,
+                        )
+                        existing_diag = scene_turn_envelope.get("diagnostics") or {}
+                        scene_turn_envelope = {
+                            **scene_turn_envelope,
+                            "diagnostics": {
+                                **existing_diag,
+                                "phase2_event_stream_readiness": readiness,
+                            },
+                        }
                 except Exception:
                     pass  # Dual-mode failure must never break the bundle path.
 

@@ -3,6 +3,12 @@
 This module is intentionally a renderer, not a second content database. It
 loads the numbered canonical path and referenced location/object authority, then
 projects the first narrator-only transition into visible blocks.
+
+The scripted continuation path extends the same architecture past the
+narrator-only opening (Steps 001-004) into scripted mandatory dialog and
+scripted-with-player-window steps (005+), adding LLM-realized NPC speech
+for ``director_instruction.npc_speak`` beats while keeping deterministic
+``narrator_perception_only`` rendering unchanged.
 """
 
 from __future__ import annotations
@@ -14,12 +20,24 @@ from ai_stack.goc_yaml_authority import (
     load_goc_canonical_path_yaml,
     load_goc_locations_yaml,
     load_goc_objects_yaml,
+    load_goc_opening_quote_anchors_yaml,
 )
 from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 NARRATOR_PATH_CONTRACT = "goc_narrator_path.opening.v1"
+SCRIPTED_CONTINUATION_CONTRACT = "goc_narrator_path.scripted_continuation.v1"
 NARRATOR_PATH_ADAPTER = "goc_narrator_path_direct"
 NARRATOR_PATH_INVOCATION_MODE = "narrator_path_direct"
+
+PLAYER_STATUS_BLOCKED = frozenset({
+    "spectator_blocked",
+    "observer_no_initiative",
+})
+
+SCRIPTED_STEP_MODES = frozenset({
+    "scripted_mandatory_dialog",
+    "scripted_with_player_window",
+})
 
 
 def _opening_steps() -> list[dict[str, Any]]:
@@ -494,6 +512,276 @@ def build_goc_narrator_path_opening(*, session_output_language: str = "de") -> d
                 "branch_forecast",
             ],
             "canonical_step_ids": step_ids,
+            "content_source_refs": source_refs,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Scripted canon continuation (Steps 005+)
+# ---------------------------------------------------------------------------
+
+def _load_quote_anchor(anchor_ref: str) -> dict[str, Any]:
+    """Load a quote anchor by ``knowledge/opening_quote_anchors.yaml#<id>``."""
+    anchor_id = anchor_ref.rsplit("#", 1)[-1].strip() if "#" in anchor_ref else anchor_ref.strip()
+    if not anchor_id:
+        return {}
+    anchors_data = load_goc_opening_quote_anchors_yaml()
+    anchors = anchors_data.get("anchors") if isinstance(anchors_data, dict) else []
+    if not isinstance(anchors, list):
+        anchors = []
+    for anchor in anchors:
+        if isinstance(anchor, dict) and str(anchor.get("id") or "").strip() == anchor_id:
+            return dict(anchor)
+    return {}
+
+
+def _extract_npc_speak(beat: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract the ``npc_speak`` directive from a beat, or ``None``."""
+    instruction = beat.get("director_instruction") if isinstance(beat.get("director_instruction"), dict) else {}
+    npc_speak = instruction.get("npc_speak") if isinstance(instruction.get("npc_speak"), dict) else None
+    return dict(npc_speak) if npc_speak else None
+
+
+def _beat_player_status(beat: dict[str, Any]) -> str:
+    """Return the ``player_status`` string for a beat."""
+    instruction = beat.get("director_instruction") if isinstance(beat.get("director_instruction"), dict) else {}
+    return str(
+        beat.get("player_status")
+        or instruction.get("player_status")
+        or ""
+    ).strip()
+
+
+def _is_player_blocked(beat: dict[str, Any]) -> bool:
+    status = _beat_player_status(beat)
+    if not status:
+        return True
+    return status in PLAYER_STATUS_BLOCKED
+
+
+def _npc_speak_block(
+    *,
+    index: int,
+    npc_speak: dict[str, Any],
+    beat: dict[str, Any],
+    step: dict[str, Any],
+    quote_anchor: dict[str, Any],
+    previous_step: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build an ``actor_line`` scene block from an ``npc_speak`` directive.
+
+    The ``text`` field is a placeholder that will be replaced by LLM
+    realization in the manager.  We embed the full directive as
+    ``source_facts.npc_speak`` so the realization prompt has everything.
+    """
+    actor_id = str(npc_speak.get("actor") or "").strip()
+    intent = str(npc_speak.get("intent") or "").strip()
+    required_facts = npc_speak.get("required_facts") or []
+    paraphrase_policy = str(npc_speak.get("paraphrase_policy") or "structural_paraphrase_required").strip()
+    minimum_visible = str(npc_speak.get("minimum_visible") or "").strip()
+    forbidden_drift = npc_speak.get("forbidden_drift") or []
+
+    source_facts = _beat_source_facts(step, beat)
+    source_facts["npc_speak"] = {
+        "actor": actor_id,
+        "intent": intent,
+        "required_facts": required_facts if isinstance(required_facts, list) else [required_facts],
+        "paraphrase_policy": paraphrase_policy,
+        "minimum_visible": minimum_visible,
+        "forbidden_drift": forbidden_drift if isinstance(forbidden_drift, list) else [forbidden_drift],
+        "quote_anchor": quote_anchor,
+    }
+
+    return {
+        "id": f"scripted-continuation-{index}",
+        "block_type": "actor_line",
+        "speaker_label": actor_id,
+        "actor_id": actor_id,
+        "target_actor_id": None,
+        "text": f"[{actor_id}: {intent}]",
+        "delivery": _delivery(),
+        "source": "narrator_path_scripted_npc_speak",
+        "narration_beat": str(beat.get("id") or "").strip(),
+        "canonical_step_id": str(step.get("id") or "").strip(),
+        "canonical_step_sequence": int(step.get("sequence") or 0),
+        "canonical_mandatory_beat_id": str(beat.get("id") or "").strip(),
+        "source_refs": _content_refs(step, beat),
+        "source_facts": source_facts,
+        "requires_llm_realization": True,
+        "npc_speak_directive": {
+            "actor": actor_id,
+            "intent": intent,
+            "required_facts": required_facts if isinstance(required_facts, list) else [required_facts],
+            "paraphrase_policy": paraphrase_policy,
+            "minimum_visible": minimum_visible,
+            "forbidden_drift": forbidden_drift if isinstance(forbidden_drift, list) else [forbidden_drift],
+            "quote_anchor_id": str(quote_anchor.get("id") or "").strip(),
+            "quote_anchor_excerpt": str(quote_anchor.get("excerpt") or "").strip(),
+            "quote_anchor_use_as": str(quote_anchor.get("use_as") or "").strip(),
+        },
+    }
+
+
+def _get_step_by_id(step_id: str) -> dict[str, Any] | None:
+    """Load a single canonical step dict by id from the raw YAML."""
+    data = load_goc_canonical_path_yaml()
+    steps = data.get("steps") if isinstance(data, dict) else []
+    for row in (steps if isinstance(steps, list) else []):
+        if isinstance(row, dict) and str(row.get("id") or "").strip() == step_id:
+            return row
+    return None
+
+
+def _step_order_after(after_step_id: str) -> list[str]:
+    """Return the ordered list of step IDs that come after ``after_step_id``."""
+    data = load_goc_canonical_path_yaml()
+    step_order = [
+        str(sid).strip()
+        for sid in (data.get("step_order") if isinstance(data.get("step_order"), list) else [])
+        if str(sid).strip()
+    ]
+    try:
+        idx = step_order.index(after_step_id)
+    except ValueError:
+        return []
+    return step_order[idx + 1:]
+
+
+def build_goc_scripted_continuation(
+    *,
+    after_step_id: str,
+    session_output_language: str = "de",
+    block_index_start: int = 1,
+) -> dict[str, Any]:
+    """Render scripted continuation beats after the opening's last step.
+
+    Iterates through canonical steps after ``after_step_id`` whose mode is in
+    ``SCRIPTED_STEP_MODES``.  For each step it walks the mandatory beats in
+    order.  When a beat's ``player_status`` is not in ``PLAYER_STATUS_BLOCKED``
+    the iteration stops — that beat is the first player window.
+
+    Returns a dict with:
+    - ``scene_blocks``: list of blocks (``narrator`` for perception lines,
+      ``actor_line`` with ``requires_llm_realization=True`` for npc_speak)
+    - ``last_step_id``: the id of the last step whose beats were (partially)
+      rendered
+    - ``realized_beat_ids``: ordered list of beat ids that were rendered
+    - ``stopped_at_player_window``: True if we stopped at a player window
+    - ``stopped_at_beat_id``: the beat id where we stopped (the first
+      player-active beat), or None
+    - ``canonical_step_ids``: ordered list of step ids that were visited
+    """
+    remaining = _step_order_after(after_step_id)
+    blocks: list[dict[str, Any]] = []
+    realized_beat_ids: list[str] = []
+    canonical_step_ids: list[str] = []
+    source_refs: list[str] = []
+    last_step_id = after_step_id
+    stopped_at_player_window = False
+    stopped_at_beat_id: str | None = None
+    block_idx = block_index_start
+    previous_step: dict[str, Any] | None = _get_step_by_id(after_step_id)
+
+    for step_id in remaining:
+        step = _get_step_by_id(step_id)
+        if step is None:
+            break
+        mode = str(step.get("mode") or "").strip()
+        if mode not in SCRIPTED_STEP_MODES:
+            break
+
+        canonical_step_ids.append(step_id)
+        last_step_id = step_id
+
+        for beat in _mandatory_beats(step):
+            if not _is_player_blocked(beat):
+                stopped_at_player_window = True
+                stopped_at_beat_id = str(beat.get("id") or "").strip()
+                break
+
+            beat_id = str(beat.get("id") or "").strip()
+            npc_speak = _extract_npc_speak(beat)
+
+            if npc_speak:
+                anchor_ref = str(npc_speak.get("quote_anchor") or "").strip()
+                quote_anchor = _load_quote_anchor(anchor_ref) if anchor_ref else {}
+                blk = _npc_speak_block(
+                    index=block_idx,
+                    npc_speak=npc_speak,
+                    beat=beat,
+                    step=step,
+                    quote_anchor=quote_anchor,
+                    previous_step=previous_step,
+                )
+                blocks.append(blk)
+                source_refs.extend(str(ref) for ref in blk.get("source_refs") or [])
+                block_idx += 1
+
+            perception = _perception_lines(beat)
+            if perception:
+                text = sanitize_gm_narration_beat_line(" ".join(perception))
+                if text:
+                    blk = _block(
+                        index=block_idx,
+                        text=text,
+                        beat=beat_id,
+                        step=step,
+                        mandatory_beat=beat,
+                        previous_step=previous_step,
+                    )
+                    blk["id"] = f"scripted-continuation-{block_idx}"
+                    blk["source"] = "narrator_path_scripted_perception"
+                    blocks.append(blk)
+                    source_refs.extend(str(ref) for ref in blk.get("source_refs") or [])
+                    block_idx += 1
+
+            realized_beat_ids.append(beat_id)
+
+        if stopped_at_player_window:
+            break
+        previous_step = step
+
+    canonical_path = load_goc_canonical_path_yaml()
+    authoring_language = str(canonical_path.get("authoring_language") or "en").strip().lower()[:2] or "en"
+    source_refs = list(dict.fromkeys(source_refs))
+
+    return {
+        "contract": SCRIPTED_CONTINUATION_CONTRACT,
+        "path_mode": "narrator_path_scripted_continuation",
+        "adapter": NARRATOR_PATH_ADAPTER,
+        "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
+        "authoring_language": authoring_language,
+        "session_output_language": str(session_output_language or "").strip().lower()[:2] or None,
+        "requires_output_realization": (
+            bool(str(session_output_language or "").strip())
+            and (str(session_output_language or "").strip().lower()[:2] != authoring_language)
+        ),
+        "scene_blocks": blocks,
+        "source_refs": source_refs,
+        "canonical_step_ids": canonical_step_ids,
+        "last_step_id": last_step_id,
+        "realized_beat_ids": realized_beat_ids,
+        "stopped_at_player_window": stopped_at_player_window,
+        "stopped_at_beat_id": stopped_at_beat_id,
+        "director_plan": {
+            "contract": "director_narrator_path_plan.v1",
+            "path_mode": "narrator_path_scripted_continuation",
+            "speech_allowed": True,
+            "npc_agency_required": False,
+            "player_action_resolution_required": False,
+            "selected_capabilities": [
+                "narrator.opening_event.realize",
+                "narrator.scripted_npc_speech.realize",
+            ],
+            "skipped_capability_groups": [
+                "player_action_resolution",
+                "affordance_evaluation",
+                "npc_agency",
+                "dramatic_irony",
+                "branch_forecast",
+            ],
+            "canonical_step_ids": canonical_step_ids,
             "content_source_refs": source_refs,
         },
     }

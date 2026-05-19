@@ -345,6 +345,19 @@ def augment_envelope_with_block_stream(
         "block_stream_events": stream_events,
     }
 
+    # Classify which inputs came from real capability outputs vs defaults.
+    # Imported here to avoid circular import (phase2_stream_readiness → director_pulse_contracts).
+    try:
+        from ai_stack.phase2_stream_readiness import classify_motivation_score_sources
+        score_sources = classify_motivation_score_sources(None)
+        # Override per actual inputs passed
+        score_sources["scene_energy"] = "real_capability_output" if scene_energy_output else "default_score"
+        score_sources["social_pressure"] = "real_capability_output" if social_pressure_output else "default_score"
+        score_sources["relationship_axis_pressure"] = "real_capability_output" if relationship_state_output else "default_score"
+        score_sources["narrative_momentum"] = "real_capability_output" if narrative_momentum_output else "default_score"
+    except Exception:
+        score_sources = {}
+
     # Build augmented diagnostics (all existing keys preserved)
     existing_diag = envelope.get("diagnostics") or {}
     new_diag: dict[str, Any] = {
@@ -354,6 +367,7 @@ def augment_envelope_with_block_stream(
             "npc_motivation_scores": pulse_result["npc_motivation_scores"],
             "player_cut_in_event": pulse_result.get("player_cut_in_event"),
             "parity": parity,
+            "motivation_score_sources": score_sources,
             "shadow_only": True,
             "dual_mode_enabled": True,
         },

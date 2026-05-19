@@ -563,4 +563,229 @@ describe('BlocksOrchestrator', () => {
       );
     });
   });
+
+  // ── Phase 2 Stage B→C: Event Stream Adapter ──────────────────────────────
+
+  describe('_blockFromStreamEvent()', () => {
+    test('extracts block_payload and adds trace fields', () => {
+      const event = {
+        event_id: 'evt-1',
+        tick_id: 'tick-1',
+        lane: 'visible_scene_output',
+        block_payload: { id: 'b1', block_type: 'narrator', text: 'Hello.' },
+      };
+      const block = orchestrator._blockFromStreamEvent(event);
+      expect(block.id).toBe('b1');
+      expect(block.block_type).toBe('narrator');
+      expect(block.text).toBe('Hello.');
+      expect(block._stream_event_id).toBe('evt-1');
+      expect(block._tick_id).toBe('tick-1');
+      expect(block._lane).toBe('visible_scene_output');
+    });
+
+    test('returns null for null input', () => {
+      expect(orchestrator._blockFromStreamEvent(null)).toBeNull();
+    });
+
+    test('returns null when block_payload is absent', () => {
+      expect(orchestrator._blockFromStreamEvent({ event_id: 'x' })).toBeNull();
+    });
+
+    test('returns null when block_payload is not an object', () => {
+      expect(orchestrator._blockFromStreamEvent({ block_payload: 'string' })).toBeNull();
+    });
+
+    test('defaults _lane to visible_scene_output when lane absent', () => {
+      const event = {
+        event_id: 'e1',
+        tick_id: 't1',
+        block_payload: { id: 'b1', block_type: 'narrator', text: 'Hi' },
+      };
+      const block = orchestrator._blockFromStreamEvent(event);
+      expect(block._lane).toBe('visible_scene_output');
+    });
+
+    test('preserves all block_payload fields', () => {
+      const payload = {
+        id: 'b2',
+        block_type: 'actor_line',
+        text: 'Line',
+        speaker_label: 'Véronique',
+        actor_id: 'veronique',
+        delivery: 'normal',
+      };
+      const event = { event_id: 'e2', tick_id: 't2', lane: 'visible_scene_output', block_payload: payload };
+      const block = orchestrator._blockFromStreamEvent(event);
+      expect(block.speaker_label).toBe('Véronique');
+      expect(block.actor_id).toBe('veronique');
+      expect(block.delivery).toBe('normal');
+    });
+  });
+
+  describe('loadTurnFromEventStream()', () => {
+    function makeStreamResponse(events, extraVso = {}) {
+      return {
+        visible_scene_output: {
+          blocks: events.map((e) => e.block_payload),
+          block_stream_events: events,
+          ...extraVso,
+        },
+      };
+    }
+
+    function makeEvent(id, blockType = 'narrator', text = 'Text') {
+      return {
+        event_id: `evt-${id}`,
+        tick_id: 'tick-1',
+        lane: 'visible_scene_output',
+        block_payload: { id, block_type: blockType, text },
+      };
+    }
+
+    beforeEach(() => {
+      // Ensure window flag is undefined (default off)
+      delete window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
+    });
+
+    afterEach(() => {
+      delete window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
+    });
+
+    test('falls back to loadTurn when feature gate is off', () => {
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      // loadTurn called with the original response (gate off → no synthetic vso)
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('falls back to loadTurn when block_stream_events absent', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const response = { visible_scene_output: { blocks: [{ id: 'b1', block_type: 'narrator', text: 'Hi' }] } };
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('falls back to loadTurn when stream events have no valid block_payload', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const response = {
+        visible_scene_output: {
+          blocks: [],
+          block_stream_events: [{ event_id: 'e1' }], // no block_payload
+        },
+      };
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+
+    test('uses event stream when gate is on and events are valid', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      // loadTurn called with synthetic response (not original)
+      expect(loadTurnSpy).toHaveBeenCalledTimes(1);
+      const callArg = loadTurnSpy.mock.calls[0][0];
+      expect(callArg.visible_scene_output._source).toBe('phase2_event_stream');
+      expect(callArg.visible_scene_output.typewriter_slice_start_index).toBe(0);
+    });
+
+    test('one event produces one rendered block', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks).toHaveLength(1);
+      expect(orchestrator.blocks[0].id).toBe('b1');
+    });
+
+    test('two events produce two blocks in order', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const events = [makeEvent('b1', 'narrator', 'First'), makeEvent('b2', 'actor_line', 'Second')];
+      const response = makeStreamResponse(events);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks).toHaveLength(2);
+      expect(orchestrator.blocks[0].id).toBe('b1');
+      expect(orchestrator.blocks[1].id).toBe('b2');
+    });
+
+    test('event-derived blocks carry trace fields', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(orchestrator.blocks[0]._stream_event_id).toBe('evt-b1');
+      expect(orchestrator.blocks[0]._tick_id).toBe('tick-1');
+    });
+
+    test('synthetic vso preserves other vso fields', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event], { contract: 'visible_scene_output.v1', extra_key: 'preserved' });
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      const callArg = loadTurnSpy.mock.calls[0][0];
+      expect(callArg.visible_scene_output.contract).toBe('visible_scene_output.v1');
+      expect(callArg.visible_scene_output.extra_key).toBe('preserved');
+    });
+
+    test('typewriter starts delivery for the first event-derived block', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'b1' }),
+      );
+    });
+
+    test('original response is not mutated', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const event = makeEvent('b1');
+      const response = makeStreamResponse([event]);
+      const originalBlocks = response.visible_scene_output.blocks.slice();
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(response.visible_scene_output.blocks).toEqual(originalBlocks);
+      expect(response.visible_scene_output._source).toBeUndefined();
+    });
+
+    test('empty block_stream_events array falls back to loadTurn', () => {
+      window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true;
+      const loadTurnSpy = jest.spyOn(orchestrator, 'loadTurn');
+      const response = {
+        visible_scene_output: {
+          blocks: [{ id: 'b1', block_type: 'narrator', text: 'Hi' }],
+          block_stream_events: [],
+        },
+      };
+
+      orchestrator.loadTurnFromEventStream(response);
+
+      expect(loadTurnSpy).toHaveBeenCalledWith(response);
+    });
+  });
 });

@@ -331,6 +331,86 @@ class BlocksOrchestrator {
       current_slice_index: this.currentSliceIndex,
     };
   }
+
+  // ── Phase 2 Stage B→C: Event Stream Adapter ────────────────────────────────
+
+  /**
+   * Convert a single block_stream_event.v1 to the existing block shape.
+   *
+   * The block_payload already carries the same fields as a bundle block.
+   * This shim extracts it and adds Phase 2 trace fields so blocks rendered
+   * from the event stream are distinguishable in dev tools.
+   *
+   * @param {Object} event - A block_stream_event.v1 dict
+   * @returns {Object|null} - Block dict for renderer/typewriter, or null if invalid
+   */
+  _blockFromStreamEvent(event) {
+    if (!event || typeof event !== 'object') return null;
+    const payload = event.block_payload;
+    if (!payload || typeof payload !== 'object') return null;
+    return {
+      ...payload,
+      _stream_event_id: event.event_id || '',
+      _tick_id: event.tick_id || '',
+      _lane: event.lane || 'visible_scene_output',
+    };
+  }
+
+  /**
+   * Load turn from block_stream_events (Phase 2 event-stream path).
+   *
+   * Feature-gated: only active when window.WOS_PHASE2_BLOCK_STREAM_ENABLED is
+   * truthy. Falls back to loadTurn() if the event stream is absent, invalid,
+   * or the gate is off. The existing blocks[] bundle path remains the default.
+   *
+   * @param {Object} response - HTTP response with visible_scene_output
+   */
+  loadTurnFromEventStream(response) {
+    // Feature gate: default off. Set window.WOS_PHASE2_BLOCK_STREAM_ENABLED = true to enable.
+    const gateOn = typeof window !== 'undefined' && !!window.WOS_PHASE2_BLOCK_STREAM_ENABLED;
+    if (!gateOn) {
+      this.loadTurn(response);
+      return;
+    }
+
+    const vso = (response && response.visible_scene_output) || null;
+    const streamEvents = (vso && Array.isArray(vso.block_stream_events) && vso.block_stream_events) || null;
+
+    // Validate: must have at least one event with a block_payload
+    const hasValidEvents = streamEvents && streamEvents.some(
+      (e) => e && typeof e === 'object' && e.block_payload && typeof e.block_payload === 'object'
+    );
+
+    if (!hasValidEvents) {
+      // Fallback to bundle — preserves existing rendering path.
+      this.loadTurn(response);
+      return;
+    }
+
+    // Convert events to block shapes
+    const blocks = [];
+    for (const event of streamEvents) {
+      const block = this._blockFromStreamEvent(event);
+      if (block) blocks.push(block);
+    }
+
+    if (blocks.length === 0) {
+      this.loadTurn(response);
+      return;
+    }
+
+    // Reuse loadTurn logic by constructing a synthetic response with the
+    // event-stream blocks in place of bundle blocks. The rest of the
+    // rendering pipeline (typewriter, slice queue, accessibility) is unchanged.
+    const syntheticVso = {
+      ...(vso || {}),
+      blocks,
+      // Preserve slice start: all blocks animated (event stream is always fresh).
+      typewriter_slice_start_index: 0,
+      _source: 'phase2_event_stream',
+    };
+    this.loadTurn({ ...response, visible_scene_output: syntheticVso });
+  }
 }
 
 if (typeof window !== 'undefined') {

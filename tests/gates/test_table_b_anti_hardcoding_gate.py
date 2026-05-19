@@ -196,6 +196,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/director_pulse_shadow.py",
     "ai_stack/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
+    "ai_stack/phase2_stream_readiness.py",
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
@@ -242,6 +243,7 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "ai_stack/director_pulse_shadow.py",
     "ai_stack/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
+    "ai_stack/phase2_stream_readiness.py",
 }
 
 PACING_RHYTHM_CANONICAL_SURFACES = {
