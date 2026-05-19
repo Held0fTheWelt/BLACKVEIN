@@ -80,8 +80,14 @@ def test_game_player_session_create_includes_actor_ownership_handoff(client, aut
                     "module_id": "god_of_carnage",
                     "turn_counter": 0,
                     "opening_turn": {
+                        "canonical_turn_id": "we_session_123:opening:0",
                         "turn_number": 0,
                         "turn_kind": "opening",
+                        "turn_aspect_ledger": {
+                            "turn_aspect_ledger": {
+                                "opening": {"status": "committed"},
+                            },
+                        },
                         "visible_output_bundle": {
                             "gm_narration": [opening_text],
                             "scene_blocks": [{"block_type": "narrator", "text": opening_text}],
@@ -126,6 +132,8 @@ def test_game_player_session_create_includes_actor_ownership_handoff(client, aut
         # Contract 1: opening_turn must exist and be non-empty
         assert data.get("opening_turn") is not None, "opening_turn missing from backend response"
         opening_turn = data.get("opening_turn")
+        assert opening_turn.get("canonical_turn_id") == "we_session_123:opening:0"
+        assert isinstance(opening_turn.get("turn_aspect_ledger"), dict)
         assert opening_turn.get("turn_kind") == "opening"
 
         # Contract 2: opening must have visible output

@@ -16,7 +16,10 @@ cd backend
 python scripts/generate_openapi_spec.py --write
 ```
 
-CI prüft mit `python scripts/generate_openapi_spec.py --check`, dass die Spec zum Code passt.
+Der Drift-Test führt denselben Generator zuerst mit `--write` aus und prüft
+danach mit `--check`, dass die Spec zum Code passt. Manuell kann derselbe
+Refresh über `python scripts/generate_openapi_spec.py --write` ausgeführt
+werden.
 
 ## Taxonomie
 

@@ -20,8 +20,8 @@ The roadmap defines Phase 1 (free player action + Director-Pause) and Phase 2 (D
 | Phase | PR | Theme | Status | PIV artifact |
 |-------|----|-------|--------|--------------|
 | 1 | **PR-0** | Runtime contracts + PIV baseline + diagnostic snapshot envelope | **Draft (this commit)** | [`pr_0_npc_interactivity_contracts_piv.md`](../implementation_logs/pr_0_npc_interactivity_contracts_piv.md) |
-| 1 | PR-A | Resolver-Contract closure (`free_player_action_resolution.v1`, `resolved_target_type: "location"` for movement) | Not started | _to be added before PR-A merge_ |
-| 1 | PR-B | Live-effect propagation (`narrator_consequence_realization.v1`, `canonical_path_hold_effect.v1`) | Not started | _to be added before PR-B merge_ |
+| 1 | **PR-A** | Resolver-Contract closure (`free_player_action_resolution.v1`, `resolved_target_type: "location"` for movement) | **Draft (this commit)** | [`pr_a_resolver_contract_closure_piv.md`](../implementation_logs/pr_a_resolver_contract_closure_piv.md) |
+| 1 | **PR-B** | Live-effect propagation (`narrator_consequence_realization.v1`, `canonical_path_hold_effect.v1`) | **Draft (this commit)** | [`pr_b_live_effect_propagation_piv.md`](../implementation_logs/pr_b_live_effect_propagation_piv.md) |
 | 1 | PR-C | Director-Pause mode (`director_gathering_state.v1`, `compute_gathering_state`, beat-consumption gate, narrator reaction hook) | Not started | _to be added before PR-C merge_ |
 | 2 | ADR-0058 / Pulse-MVP | Director-driven tick + Block-Stream-Bus | Not started | _to be added before Phase 2 PRs_ |
 | 2 | ADR-0059 | Motivation-Score (per-NPC, principled-deterministic) | Not started | _to be added before Phase 2 PRs_ |

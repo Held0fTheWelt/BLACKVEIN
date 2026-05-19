@@ -40,6 +40,11 @@ Story state is returned as `story_window.contract == "authoritative_story_window
 - player turn entries from submitted input;
 - runtime response entries from `visible_output_bundle`, spoken lines, and committed consequences.
 
+When the backend receives an `opening_turn` during player-session creation, it
+must be a canonical World-Engine committed turn with `canonical_turn_id` and
+`turn_aspect_ledger`. Legacy opening stubs without those fields are bridge
+errors, not playable sessions.
+
 The frontend story window renders `story_entries` at entry and replaces the same window after each turn with the returned authoritative entries. Transport metadata, ticket state, byte counts, backend session ids, graph internals, and operator bundles are not player story output.
 
 The first turn is legal only when `runtime_session_ready == true`, `can_execute == true`, and the story window has received the committed opening state. The input control is disabled otherwise.

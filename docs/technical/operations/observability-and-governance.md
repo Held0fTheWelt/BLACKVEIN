@@ -75,6 +75,20 @@ Captured in **`generation`** summaries on the runtime turn state and mirrored un
 
 - `attempted`, `success`, `error` (sanitized string), `fallback_used`, `metadata` from adapters (must not include secrets).
 
+## Langfuse runtime configuration
+
+Langfuse operational truth is backend-managed. The runtime reads the single
+`observability_configs` row keyed by `service_id="langfuse"` and active
+`observability_credentials` rows keyed by `service_id` + `secret_name`
+(`public_key`, `secret_key`). The Admin Tool connection test and automated
+backend integration coverage use `test_observability_connection()` /
+`verify_langfuse_runtime_connectivity()` so the probe exercises the same
+backend-stored config and credential path as production tracing.
+
+Direct trace creation against Langfuse Cloud belongs only in explicitly named
+live-cloud tests, and even those must use backend-stored credentials rather
+than environment-only or legacy model fields.
+
 ## Retrieval observability
 
 `retrieval` dict and `repro_metadata` include:
@@ -234,6 +248,11 @@ Readiness reporting must remain honest:
 - `GET /admin/ai-stack/release-readiness` includes **`decision_support`** (cross-cutting booleans and latest artifact hints), optional **`known_environment_sensitivities`**, and per-area **`evidence_posture`** strings—still aggregate-only for story runtime until session evidence is fetched.
 
 ### Session evidence bundle (`build_session_evidence_bundle`)
+
+Session evidence is keyed by the World-Engine story-session id and is fetched
+through the backend `game_service` bridge. The bundle does not inspect removed
+backend runtime sessions; a World-Engine 404 returns
+`world_engine_story_session_not_found`.
 
 Moderator/admin session evidence includes **`execution_truth`**:
 

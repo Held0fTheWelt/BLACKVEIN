@@ -26,6 +26,12 @@ from ai_stack.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
+from ai_stack.canonical_path_hold_effect_contracts import (
+    build_canonical_path_hold_effect,
+)
+from ai_stack.free_player_action_resolution_contracts import (
+    build_free_player_action_resolution,
+)
 from story_runtime_core.language_adapter import build_interaction_surface, resolve_content_modules_root
 from story_runtime_core.player_input_intent_contract import (
     is_mixed_player_input_kind,
@@ -499,6 +505,63 @@ def _make_frame(
     )
 
 
+def _finalize_resolution_envelope(
+    *,
+    frame: PlayerActionFrameContract,
+    aff: AffordanceResolutionContract,
+    scene_affordance_model: dict[str, Any],
+    semantic_payload: dict[str, Any] | None,
+    kanon_break: bool = False,
+    kanon_break_reason: str | None = None,
+    target_location_hint: Any = None,
+) -> dict[str, Any]:
+    """Compose the resolver return envelope including ``free_player_action_resolution.v1``.
+
+    The envelope shape is preserved from the original four return paths of
+    ``resolve_player_action`` (frame, affordance, scene affordance model,
+    kanon_break, kanon_break_reason). PR-A adds:
+
+    * the closed-enum contract dict under
+      ``"free_player_action_resolution"`` at the envelope root, and
+    * the same dict embedded inside the frame at
+      ``frame_dict["free_player_action_resolution"]`` so existing graph-state
+      propagation flows the contract through to downstream consumers without
+      requiring executor / manager edits.
+    """
+    frame_dict = frame.to_dict()
+    aff_dict = aff.to_dict()
+    contract = build_free_player_action_resolution(
+        affordance_resolution=aff_dict,
+        player_action_frame=frame_dict,
+        semantic_payload=semantic_payload,
+        target_resolution_source=aff_dict.get("target_resolution_source"),
+        target_location_hint=target_location_hint,
+    )
+    frame_dict["free_player_action_resolution"] = contract
+    # PR-B: project canonical_path_hold_effect.v1 over the resolver contract +
+    # the existing frame.canonical_path_effect literal. The builder returns
+    # None for any action class that must not hold (unknown / criminal /
+    # high-risk / non-commit / not "hold_current_step"); the dict is attached
+    # to the envelope only when applicable so consumers can branch on its
+    # presence without dispatch helpers.
+    hold_effect = build_canonical_path_hold_effect(
+        free_player_action_resolution=contract,
+        canonical_path_effect=frame_dict.get("canonical_path_effect"),
+        affordance_resolution=aff_dict,
+    )
+    if hold_effect is not None:
+        frame_dict["canonical_path_hold_effect"] = hold_effect
+    return {
+        "player_action_frame": frame_dict,
+        "affordance_resolution": aff_dict,
+        "scene_affordance_model": scene_affordance_model,
+        "kanon_break": bool(kanon_break),
+        "kanon_break_reason": kanon_break_reason if kanon_break else None,
+        "free_player_action_resolution": contract,
+        "canonical_path_hold_effect": hold_effect,
+    }
+
+
 def resolve_player_action(
     *,
     raw_text: str,
@@ -545,13 +608,12 @@ def resolve_player_action(
             validation_surface="meta_control_path",
             projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
         )
-        return {
-            "player_action_frame": frame.to_dict(),
-            "affordance_resolution": aff.to_dict(),
-            "scene_affordance_model": {},
-            "kanon_break": False,
-            "kanon_break_reason": None,
-        }
+        return _finalize_resolution_envelope(
+            frame=frame,
+            aff=aff,
+            scene_affordance_model={},
+            semantic_payload=None,
+        )
 
     affordance_model = build_scene_affordance_model(
         module_id=module_id,
@@ -593,13 +655,12 @@ def resolve_player_action(
             session_input_language=session_input_language,
             session_output_language=session_output_language,
         )
-        return {
-            "player_action_frame": frame.to_dict(),
-            "affordance_resolution": aff.to_dict(),
-            "scene_affordance_model": affordance_model,
-            "kanon_break": False,
-            "kanon_break_reason": None,
-        }
+        return _finalize_resolution_envelope(
+            frame=frame,
+            aff=aff,
+            scene_affordance_model=affordance_model,
+            semantic_payload=None,
+        )
 
     if is_speech_like_player_input_kind(pik) and not semantic:
         aff = AffordanceResolutionContract(
@@ -627,13 +688,12 @@ def resolve_player_action(
             session_input_language=session_input_language,
             session_output_language=session_output_language,
         )
-        return {
-            "player_action_frame": frame.to_dict(),
-            "affordance_resolution": aff.to_dict(),
-            "scene_affordance_model": affordance_model,
-            "kanon_break": False,
-            "kanon_break_reason": None,
-        }
+        return _finalize_resolution_envelope(
+            frame=frame,
+            aff=aff,
+            scene_affordance_model=affordance_model,
+            semantic_payload=None,
+        )
 
     pik = str(semantic.get("player_input_kind") or pik).strip().lower() or pik
     normalized_english_text = (
@@ -774,10 +834,22 @@ def resolve_player_action(
     )
     if not kanon_break:
         kanon_break_reason = None
-    return {
-        "player_action_frame": frame.to_dict(),
-        "affordance_resolution": aff.to_dict(),
-        "scene_affordance_model": affordance_model,
-        "kanon_break": kanon_break,
-        "kanon_break_reason": kanon_break_reason,
-    }
+    target_location_hint = (
+        _semantic_text(
+            semantic,
+            "target_location",
+            "containing_location_id",
+            "containing_location",
+            "actor_location_id",
+        )
+        or None
+    )
+    return _finalize_resolution_envelope(
+        frame=frame,
+        aff=aff,
+        scene_affordance_model=affordance_model,
+        semantic_payload=semantic,
+        kanon_break=kanon_break,
+        kanon_break_reason=kanon_break_reason,
+        target_location_hint=target_location_hint,
+    )

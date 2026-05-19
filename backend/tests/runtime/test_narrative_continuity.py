@@ -251,6 +251,7 @@ def test_relationship_salience_from_state_changed_paths_not_only_triggers():
 def test_lore_direction_rationale_responds_to_progression_momentum(
     god_of_carnage_module, content_modules_root
 ):
+    """GoC momentum is a continuity signal, not an inferred ending preview."""
     from app.runtime.session_start import start_session
 
     started = start_session("god_of_carnage", root_path=content_modules_root)
@@ -303,7 +304,9 @@ def test_lore_direction_rationale_responds_to_progression_momentum(
     )
     assert "momentum=stalled" in lore_stalled.selection_rationale
     assert "momentum=resolving" in lore_resolving.selection_rationale
-    assert "approaching_resolution" in lore_resolving.selection_rationale
+    assert "continuity_stalled_scene_hold" in lore_stalled.selection_rationale
+    assert "approaching_resolution" not in lore_resolving.selection_rationale
+    assert not [u for u in lore_resolving.selected_units if u.unit_type == "ending"]
     assert len(lore_stalled.selected_units) <= 15
     assert len(lore_resolving.selected_units) <= 15
 

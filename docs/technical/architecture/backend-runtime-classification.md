@@ -35,6 +35,21 @@ Shared **schemas**, **validation**, **presentation**, and **serialization** that
 | `ai_failure_recovery.py` | Recovery policies and snapshots for the in-process path. |
 | `npc_behaviors.py`, `adapter_registry.py` | Supporting registry/behavior hooks. |
 
+`next_situation.py` is phase-vocabulary strict: `SessionState.current_scene_id`
+must already be present in `ContentModule.scene_phases`. Scene-graph node ids
+from `scene_graph.yaml` are not backfilled as compatibility aliases in this
+transitional helper.
+
+`reference_policy.py` applies the same phase-vocabulary rule for scene
+references: self-reference is allowed only after the referenced id exists in
+`ContentModule.scene_phases`. A current GoC `scene_graph.yaml` node such as
+`prologue_park_edge` is therefore rejected as `unknown_scene`, not remapped.
+
+`lore_direction_context.py` and its derivation helpers surface progression
+momentum in bounded rationale codes. Resolving momentum can select ending
+guidance only when the loaded module has authored `ending_conditions`; it is
+not a compatibility shim for legacy GoC `endings.yaml`.
+
 ### 2. Deprecated transitional logic
 
 Code paths that **execute or host** narrative/runtime behavior **inside the backend process** for tests or local simulation. They are not mounted as a second live runtime.

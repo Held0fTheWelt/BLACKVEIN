@@ -41,7 +41,7 @@ Zuordnung erfolgt im Generator [`backend/scripts/generate_openapi_spec.py`](../.
 ## Maschinenlesbare Pflege
 
 - **`openapi.yaml`** wird mit `python backend/scripts/generate_openapi_spec.py --write` aus den registrierten Flask-Routen erzeugt (Pfad-Inventar + Tags + Stub-Operationen).
-- **Drift-Test:** [`backend/tests/test_openapi_drift.py`](../../backend/tests/test_openapi_drift.py) — schlägt fehl, wenn Routen und Spec auseinanderlaufen.
+- **Drift-Test:** [`backend/tests/test_openapi_drift.py`](../../backend/tests/test_openapi_drift.py) — regeneriert die YAML aus der Flask-URL-Map und prüft anschließend, dass die Spec reproduzierbar zum Code passt.
 
 ## World Engine (FastAPI)
 

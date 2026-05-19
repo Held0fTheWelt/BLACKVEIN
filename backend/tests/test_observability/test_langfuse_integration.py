@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
 from unittest.mock import patch
 
-import pytest
 from app.extensions import db
-from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
-from app.services.observability_governance_service import write_observability_credential
+from app.models.governance_core import ObservabilityConfig
+from app.services.observability_governance_service import (
+    test_observability_connection as run_observability_connection_test,
+    write_observability_credential,
+)
 
 
 class TestLangfuseCredentialsEndpoint:
@@ -431,56 +435,114 @@ class TestLangfuseAdapterIntegration:
         # Should be different instances after reset
         assert adapter1 is not adapter2
 
-    def test_langfuse_connection(self, client, db_session, app):
-        """Verify real Langfuse Cloud connection and trace creation (integration test)."""
-        from app.observability.langfuse_adapter import LangfuseAdapter
+    def test_langfuse_connection(self, db_session, app, monkeypatch):
+        """Connection test uses governed backend Langfuse data, not legacy Cloud/env fields."""
+        from app.services.observability_governance_service import get_observability_config
 
-        # Setup: ensure Langfuse is properly configured from database
-        config = db_session.query(ObservabilityConfig).filter_by(code="langfuse").first()
-        if not config:
-            pytest.skip("Langfuse not configured in database; skipping cloud connection test")
-
-        if not config.is_enabled:
-            pytest.skip("Langfuse disabled in database; skipping cloud connection test")
-
-        secret_key = db_session.query(ObservabilityCredential).filter_by(
-            observability_config_id=config.id, key="secret_key"
-        ).first()
-        if not secret_key or not secret_key.encrypted_value:
-            pytest.skip("Langfuse secret_key not configured; skipping cloud connection test")
-
-        # Get Langfuse adapter and verify it's ready
-        adapter = LangfuseAdapter.get_instance()
-        assert adapter.is_ready, "Langfuse adapter should be ready for cloud connection test"
-        assert adapter.client is not None, "Langfuse client should be initialized"
-
-        trace_id = adapter.create_trace_id("langfuse-cloud-connection-test")
-        trace = adapter.start_trace(
-            name="langfuse_cloud_connection_test",
-            session_id="we-langfuse-test",
-            run_id="run-langfuse-test",
-            module_id="god_of_carnage",
-            metadata={"canonical_player_flow": True, "route": "/api/v1/game/player-sessions/<run_id>/turns"},
-            trace_id=trace_id,
-            user_id="test_langfuse",
+        config = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="http://langfuse-web:3000",
+            environment="test",
+            release="pytest",
         )
-        assert trace is not None, "Trace span should be created"
-        adapter.end_trace(trace)
+        db.session.add(config)
+        db.session.commit()
+        write_observability_credential(
+            public_key="pk-lf-backend-test",
+            secret_key="sk-lf-backend-test",
+            actor="pytest",
+        )
 
-        # Flush traces to Langfuse Cloud (synchronous for test verification)
-        adapter.flush()
+        seen: dict[str, object] = {}
 
-        # Verify: attempt to fetch the trace from Langfuse Cloud
-        # This proves the trace was actually sent and received by the service
-        try:
-            langfuse_trace = adapter.client.get_trace(trace_id)
-            assert langfuse_trace is not None, f"Trace {trace_id} should exist in Langfuse Cloud"
-            assert langfuse_trace.id == trace_id, f"Fetched trace ID should match: {trace_id}"
-        except Exception as e:
-            pytest.skip(f"Could not verify trace in Langfuse Cloud: {e}. (Connection issue; skipping)")
+        class FakeSpan:
+            def __enter__(self):
+                return self
 
-        # Success: trace was created and sent to Langfuse Cloud
-        assert True, "Langfuse Cloud connection verified"
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def update(self, **kwargs):
+                seen["span_update"] = kwargs
+
+        class FakeTraceApi:
+            def get(self, trace_id):
+                seen["fetched_trace_id"] = trace_id
+                return SimpleNamespace(id=trace_id)
+
+        class FakeLangfuse:
+            def __init__(self, *, public_key, secret_key, base_url, environment, release, sample_rate):
+                seen["client_init"] = {
+                    "public_key": public_key,
+                    "secret_key": secret_key,
+                    "base_url": base_url,
+                    "environment": environment,
+                    "release": release,
+                    "sample_rate": sample_rate,
+                }
+                self.api = SimpleNamespace(trace=FakeTraceApi())
+                self._trace_id = "trace-backend-observability"
+
+            def start_as_current_observation(self, *, as_type, name, metadata):
+                seen["observation"] = {
+                    "as_type": as_type,
+                    "name": name,
+                    "metadata": metadata,
+                }
+                return FakeSpan()
+
+            def get_current_trace_id(self):
+                return self._trace_id
+
+            def flush(self):
+                seen["flush_count"] = int(seen.get("flush_count", 0)) + 1
+
+            def get_trace_url(self, *, trace_id):
+                return f"http://langfuse-web:3000/project/traces/{trace_id}"
+
+        def fake_resolve_base_url(*, public_key, secret_key, configured_base_url):
+            seen["resolved_credentials"] = {
+                "public_key": public_key,
+                "secret_key": secret_key,
+                "configured_base_url": configured_base_url,
+            }
+            return configured_base_url, None, ["backend-test-project"]
+
+        monkeypatch.setitem(sys.modules, "langfuse", SimpleNamespace(Langfuse=FakeLangfuse))
+        monkeypatch.setattr(
+            "app.services.observability_governance_service._resolve_langfuse_base_url_for_credentials",
+            fake_resolve_base_url,
+        )
+
+        with app.app_context():
+            result = run_observability_connection_test("pytest")
+
+        assert result["ok"] is True
+        assert result["health_status"] == "connected"
+        assert result["credentials_source"] == "backend_observability_credentials"
+        assert result["base_url"] == "http://langfuse-web:3000"
+        assert result["trace_id"] == "trace-backend-observability"
+        assert result["verified_trace_id"] == "trace-backend-observability"
+        assert seen["resolved_credentials"] == {
+            "public_key": "pk-lf-backend-test",
+            "secret_key": "sk-lf-backend-test",
+            "configured_base_url": "http://langfuse-web:3000",
+        }
+        assert seen["client_init"] == {
+            "public_key": "pk-lf-backend-test",
+            "secret_key": "sk-lf-backend-test",
+            "base_url": "http://langfuse-web:3000",
+            "environment": "test",
+            "release": "pytest",
+            "sample_rate": 1.0,
+        }
+
+        status = get_observability_config()
+        assert status["health_status"] == "connected"
+        assert status["last_tested_at"] is not None
 
 
 class TestLangfuseVerifyToolEndpoint:

@@ -11,6 +11,7 @@ Accepted
 - Layer 1 (platform secrets/wiring): `docker-up.py` generates and preserves these; `backend/app/config.py` reads them.
 - Layer 2 (provider credentials): optional in `.env`; `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` must be a complete pair if present.
 - Layer 3 (governed runtime settings): `backend/app/services/observability_governance_service.py` owns Langfuse operational config; `/manage/observability-settings` is the admin UI surface.
+- Langfuse connection verification uses backend-managed `observability_configs.service_id="langfuse"` plus active encrypted `observability_credentials` rows; direct Cloud/env-only checks are limited to explicitly marked live-cloud tests.
 - `REDIS_URL` is part of bootstrap governance; Redis is provisioned in Docker Compose by default.
 - No `LANGFUSE_ENABLED` legacy toggle exists; the old model is explicitly prohibited in this ADR.
 - `HF_TOKEN` is a provider credential in Layer 2; no admin UI screen — set in `.env`.
@@ -157,6 +158,7 @@ The current correct Langfuse rule is:
 - `.env` may contain optional bootstrap credentials
 - backend settings are the operational source of truth
 - play-service and runtime behavior consume the resolved backend-published configuration
+- automated backend connection tests must exercise `test_observability_connection()` / `verify_langfuse_runtime_connectivity()` against that backend-managed config, not legacy `code` fields, `observability_config_id` credential joins, or direct adapter-created Cloud traces
 
 This means a local operator can:
 
@@ -223,6 +225,7 @@ When adding a new variable:
 - [ ] incomplete `LANGFUSE_*` pairs fail bootstrap clearly
 - [ ] complete `LANGFUSE_*` pairs can be imported into backend observability settings
 - [ ] backend starts with valid env even when Langfuse is managed later through backend settings
+- [ ] Langfuse connection checks read `service_id="langfuse"` backend config and active `secret_name` credentials before any network probe
 - [ ] Docker path uses shared Redis-backed governance storage rather than worker-local state
 
 ## References

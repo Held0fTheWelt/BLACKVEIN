@@ -87,16 +87,29 @@ class TestSceneReferences:
     """Test scene reference validation (existence + reachability)."""
 
     def test_self_reference_scene_allowed(self, god_of_carnage_module, god_of_carnage_module_with_state):
-        """Current scene can reference itself."""
+        """Self-reference is allowed only for canonical scene_phase ids."""
         current_scene = god_of_carnage_module_with_state.current_scene_id
-        decision = ReferencePolicy.evaluate(
+        assert current_scene not in god_of_carnage_module.scene_phases
+
+        graph_node_decision = ReferencePolicy.evaluate(
             "scene",
             current_scene,
             god_of_carnage_module,
             session=god_of_carnage_module_with_state,
             current_scene_id=current_scene
         )
-        assert decision.allowed is True
+        assert graph_node_decision.allowed is False
+        assert graph_node_decision.reason_code == "unknown_scene"
+
+        phase_scene = next(iter(god_of_carnage_module.scene_phases.keys()))
+        phase_decision = ReferencePolicy.evaluate(
+            "scene",
+            phase_scene,
+            god_of_carnage_module,
+            session=god_of_carnage_module_with_state,
+            current_scene_id=phase_scene
+        )
+        assert phase_decision.allowed is True
 
     def test_unknown_scene_reference(self, god_of_carnage_module, god_of_carnage_module_with_state):
         """Nonexistent scene reference is rejected."""

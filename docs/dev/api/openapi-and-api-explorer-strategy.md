@@ -6,7 +6,7 @@ Plan for how HTTP APIs are **documented** and **discovered** in World of Shadows
 
 - A large **Markdown** backend reference exists: [`docs/api/REFERENCE.md`](../../api/REFERENCE.md).
 - Backend serves **technical HTML** under `/backend/*` (see root `README.md`); templates live under `backend/app/info/templates/` (e.g. `api.html`).
-- **OpenAPI inventory:** [`docs/api/openapi.yaml`](../../api/openapi.yaml) is generated from registered Flask routes via [`backend/scripts/generate_openapi_spec.py`](../../../backend/scripts/generate_openapi_spec.py) (`--write` / `--check`). Served at **`/backend/openapi.yaml`**; **Redoc** UI at **`/backend/api-explorer`**.
+- **OpenAPI inventory:** [`docs/api/openapi.yaml`](../../api/openapi.yaml) is generated from registered Flask routes via [`backend/scripts/generate_openapi_spec.py`](../../../backend/scripts/generate_openapi_spec.py) (`--write` / `--check`). The drift test refreshes the generated YAML with `--write` before running `--check`, so the Flask URL map remains the source of truth and the YAML stays an updated artifact. Served at **`/backend/openapi.yaml`**; **Redoc** UI at **`/backend/api-explorer`**.
 - Tag taxonomy and mapping to info pages: [`docs/api/openapi-taxonomy.md`](../../api/openapi-taxonomy.md).
 - Postman assets: `docs/api/POSTMAN_COLLECTION.md` and `postman/` tree.
 

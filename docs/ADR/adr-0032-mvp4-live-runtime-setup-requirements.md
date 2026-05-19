@@ -10,7 +10,7 @@ Accepted
 
 1. Governed session-create handoff: complete `runtime_projection` with actor ownership forwarded from `backend/app/api/v1/game_routes.py` → `world-engine/app/api/http.py`; incomplete requests rejected with HTTP 400 (`StorySessionContractError`).
 2. Truthful opening/turn execution: deterministic phases report `0` token/cost; `quality_class` distinguishes live vs. degraded.
-3. Diagnostics envelope: each committed turn carries validation outcome, quality class, route provenance, cost summary, narrator streaming state.
+3. Diagnostics envelope: each committed turn carries validation outcome, quality class, route provenance, cost summary, narrator streaming state, `canonical_turn_id`, and `turn_aspect_ledger`.
 4. `can_execute` derived from real story-window entry count; `narrator_streaming` propagated through backend and frontend payloads.
 5. Operator routes: `/api/v1/admin/mvp4/` exposes session summary, cost reports, token budget, evaluations.
 6. Shared governance storage: Redis-backed JSON storage initialized in `backend/app/factory_app.py`; `REDIS_URL` in bootstrap environment.
@@ -71,6 +71,12 @@ Backend-to-world-engine session creation for governed live modules must carry:
 World-engine must reject incomplete or inconsistent governed requests with a hard contract error exposed as HTTP `400`.
 
 This is now a required live invariant, not a best-effort enrichment.
+
+Backend acceptance of a World-Engine `opening_turn` is also governed: the
+opening must carry canonical commit evidence (`canonical_turn_id` and
+`turn_aspect_ledger`). Backend player-session tests must mock current
+World-Engine story-session payloads, not legacy opening stubs without canonical
+evidence.
 
 ### 2. Opening and turn execution must be truthful, not cosmetically "live"
 
@@ -137,6 +143,7 @@ The implementation now includes:
 - complete `runtime_projection` handoff from backend live session creation
 - hard world-engine validation of governed direct session-create calls
 - `StorySessionContractError` mapped to HTTP `400`
+- backend rejection of opening-turn payloads that lack canonical commit evidence
 - top-level `narrator_streaming` propagation in backend and frontend session payloads
 - truthful `diagnostics_envelope.cost_summary` ingestion into backend governance services
 - session summaries and cost/evaluation operator routes under `/api/v1/admin/mvp4/...`

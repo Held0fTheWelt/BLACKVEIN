@@ -24,6 +24,18 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 
 5. **`god_of_carnage_solo` runtime module** cannot own characters, rooms, objects, canonical path steps, relationships, or endings as story truth. `assert_profile_contains_no_story_truth()` enforces this for profile dicts.
 
+6. Backend transitional continuity helpers may expose progression momentum
+   (`momentum=resolving`, `momentum=stalled`, etc.) as context-selection
+   rationale, but they must not infer GoC ending previews unless the active
+   `ContentModule` exposes authored `ending_conditions`. The current GoC
+   module shape intentionally omits legacy standalone `endings.yaml`; tests
+   must not require `approaching_resolution` for this module.
+
+7. Canonical GoC YAML is UTF-8 content. Tests and loaders that parse
+   `content/modules/god_of_carnage/**/*.yaml` must open files with explicit
+   UTF-8 encoding so Windows locale defaults such as `cp1252` do not become a
+   second, accidental content contract.
+
 ## Affected Services/Files
 
 - `content/modules/god_of_carnage/module.yaml` — canonical module metadata and file registry
@@ -41,6 +53,10 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 - The runtime profile produces a `content_hash` from canonical character content in `build_actor_ownership()`, enabling drift detection
 - MVP 2 can trust that `human_actor_id` and `npc_actor_ids` in the handoff trace back to canonical content
 - Foundation gates must verify the active content shape (`canonical_path/` plus `scene_graph.yaml`) and must not require legacy flat story files such as `scenes.yaml`, `transitions.yaml`, `triggers.yaml`, or `endings.yaml`.
+- Lore/direction continuity tests for GoC must treat resolving momentum as a
+  bounded context signal, not as proof that an authored ending exists.
+- Content parse tests must be locale-independent and read canonical YAML as
+  UTF-8, matching the authored repository content.
 
 ## Diagrams
 

@@ -4191,6 +4191,31 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/admin/world-engine/story/sessions/{session_id}/thin-path-summary:
+    get:
+      tags:
+      - WorldEngineConsole
+      summary: GET /admin/world-engine/story/sessions/{session_id}/thin-path-summary
+      operationId: get_api_v1_admin_world_engine_story_sessions_session_id_thin_path_summary
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
   /api/v1/admin/world-engine/story/sessions/{session_id}/turns:
     post:
       tags:
@@ -6754,6 +6779,31 @@ paths:
       - GameBootstrap
       summary: GET /game/player-sessions/{run_id}
       operationId: get_api_v1_game_player_sessions_run_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/game/player-sessions/{run_id}/opening:
+    post:
+      tags:
+      - GameBootstrap
+      summary: POST /game/player-sessions/{run_id}/opening
+      operationId: post_api_v1_game_player_sessions_run_id_opening
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).

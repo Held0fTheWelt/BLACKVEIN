@@ -168,7 +168,7 @@ class TestW1ContentFilesLoadable:
         assert len(yaml_files) >= 8, "Should have at least 8 YAML files"
 
         for yaml_file in yaml_files:
-            with open(yaml_file) as f:
+            with open(yaml_file, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             assert data is not None, f"Failed to parse {yaml_file.name}"
 

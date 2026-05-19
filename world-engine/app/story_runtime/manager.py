@@ -3326,6 +3326,29 @@ def _build_langfuse_path_summary(
         "realize_via_capabilities_outcome": graph_state.get("realize_via_capabilities_outcome"),
         "kanon_break": bool(graph_state.get("kanon_break")),
         "kanon_break_reason": graph_state.get("kanon_break_reason"),
+        # PR-B: live effect propagation fields. The hold-effect dict is
+        # ``None`` for action classes that must not hold (unknown / criminal
+        # / high-risk / non-commit). The realization contract is always
+        # emitted; ``visible_block_emitted`` and ``non_realization_reason``
+        # carry the explicit status. See
+        # ``docs/implementation_logs/pr_b_live_effect_propagation_piv.md``.
+        "canonical_path_hold_effect": (
+            graph_state.get("canonical_path_hold_effect")
+            if isinstance(graph_state.get("canonical_path_hold_effect"), dict)
+            else None
+        ),
+        "narrator_consequence_realization": (
+            graph_state.get("narrator_consequence_realization")
+            if isinstance(graph_state.get("narrator_consequence_realization"), dict)
+            else None
+        ),
+        "visible_block_emitted": bool(
+            (
+                graph_state.get("narrator_consequence_realization")
+                if isinstance(graph_state.get("narrator_consequence_realization"), dict)
+                else {}
+            ).get("visible_block_emitted")
+        ),
         "director_path_mode": graph_state.get("director_path_mode")
         or (
             "director_realization_composer"
@@ -14206,6 +14229,12 @@ class StoryRuntimeManager:
                     "selected_capabilities": ps.get("selected_capabilities") or [],
                     "kanon_break": ps.get("kanon_break"),
                     "kanon_break_reason": ps.get("kanon_break_reason"),
+                    # PR-B: live effect propagation projection per turn.
+                    "canonical_path_hold_effect": ps.get("canonical_path_hold_effect"),
+                    "narrator_consequence_realization": ps.get(
+                        "narrator_consequence_realization"
+                    ),
+                    "visible_block_emitted": bool(ps.get("visible_block_emitted")),
                     "director_path_mode": ps.get("director_path_mode"),
                     "visible_scene_block_count": block_count,
                     "nodes_executed": ps.get("nodes_executed") or [],

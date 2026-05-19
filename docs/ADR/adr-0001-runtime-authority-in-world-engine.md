@@ -9,6 +9,10 @@ Accepted
 
 - `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`) is the single authoritative runtime host for story sessions, turn execution, and session lifecycle.
 - `backend/app/api/v1/game_routes.py` proxies to world-engine; no competing session commit logic exists in the backend layer.
+- Backend AI-stack session evidence bundles resolve evidence through
+  `game_service.get_story_state` / `get_story_diagnostics` for the
+  World-Engine story-session id; they do not consult removed backend runtime
+  sessions.
 - `story_runtime_core` provides shared interpretation and registry/adapters consumed by the play service.
 - AI output proposal-only contract enforced: validation + commit seams in `world-engine/app/api/http.py`.
 - Governance investigation confirms: `CTR-ADR-0001-RUNTIME-AUTHORITY` implemented by `world-engine/app/story_runtime/manager.py` and `world-engine/app/api/http.py`, validated by `world-engine/tests/test_story_runtime_api.py`.
@@ -42,6 +46,10 @@ World of Shadows split **platform API / governance** from **live narrative execu
 2. **`backend`** remains responsible for content curation, publishing controls, review/moderation workflows, policy validation, and admin/operator diagnostics integration - **not** for hosting canonical player HTML or re-implementing committed turn logic.
 3. **`story_runtime_core`** holds shared interpretation, registry/adapters, and reusable models consumed by the play service.
 4. **AI output** remains **non-authoritative proposal data** until validated and committed by runtime seams (see `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` for GoC specifics).
+5. Governance evidence for a session is keyed by the World-Engine
+   story-session id. A missing story session is represented as
+   `world_engine_story_session_not_found`; backend-local `SessionState`
+   lookups are not a fallback authority.
 
 ## Consequences
 **Positive**

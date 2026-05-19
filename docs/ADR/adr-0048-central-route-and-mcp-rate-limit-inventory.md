@@ -58,6 +58,11 @@ That split made it easy for operator-facing views or tests to drift from runtime
 
 9. Rate-limit telemetry must be privacy-preserving: hashed limiter keys only, no raw bearer tokens, cookies, IP addresses, email addresses, request bodies, prompts, reset tokens, or provider credentials.
 
+10. The generated OpenAPI YAML is an artifact, not a hand-maintained source.
+    The OpenAPI drift test may run `generate_openapi_spec.py --write` before
+    `--check` so route changes refresh the YAML from the Flask URL map before
+    inventory/catalog assertions consume it.
+
 ## Consequences
 
 **Positive:**
@@ -99,6 +104,7 @@ flowchart LR
 
 Current verification:
 
+- `PYTHONPATH=backend python -m pytest backend/tests/test_openapi_drift.py -q --tb=short --no-cov`
 - `PYTHONPATH=backend python -m pytest backend/tests/test_backend_info_routes.py -q --tb=short --no-cov`
 - `PYTHONPATH=backend python -m pytest backend/tests/test_backend_info_routes.py tools/mcp_server/tests/test_rate_limit.py tools/mcp_server/tests/test_registry.py -q --tb=short --no-cov`
 - `python -m pytest tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py -q --tb=short --no-cov`

@@ -155,6 +155,9 @@ from ai_stack.narrator_consequence_contracts import (
     build_updated_player_local_context,
     normalize_scene_affordance_model_for_contracts,
 )
+from ai_stack.narrator_consequence_realization_contracts import (
+    build_narrator_consequence_realization,
+)
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -6302,6 +6305,14 @@ class RuntimeTurnGraphExecutor:
             update["scene_affordance_model"] = model
         update["kanon_break"] = bool(resolution.get("kanon_break"))
         update["kanon_break_reason"] = resolution.get("kanon_break_reason") or None
+        # PR-B: lift canonical_path_hold_effect.v1 into graph state as a
+        # top-level key so the manager / thin-path summary can read it
+        # uniformly without inspecting the frame literal. The resolver
+        # envelope returns None for ineligible action classes; we only
+        # surface the dict when present.
+        hold_effect = resolution.get("canonical_path_hold_effect")
+        if isinstance(hold_effect, dict):
+            update["canonical_path_hold_effect"] = hold_effect
         if frame and aff and model:
             try:
                 sam = normalize_scene_affordance_model_for_contracts(model)
@@ -10381,6 +10392,35 @@ class RuntimeTurnGraphExecutor:
         update["visible_output_bundle"] = bundle
         update["visibility_class_markers"] = vis_markers
         update["transition_pattern"] = tp
+        # PR-B: project narrator_consequence_realization.v1 from the
+        # narrator_consequence_plan and the rendered scene_blocks. The
+        # contract always emits; non-realization is recorded explicitly via
+        # ``non_realization_reason`` so the operator never has to infer
+        # status from the absence of a block.
+        try:
+            ncp = state.get("narrator_consequence_plan") if isinstance(
+                state.get("narrator_consequence_plan"), dict
+            ) else None
+            scene_blocks = bundle.get("scene_blocks") if isinstance(bundle, dict) else None
+            actor_lane_v = (
+                validation.get("actor_lane_validation")
+                if isinstance(validation, dict) else {}
+            )
+            validation_gated = bool(
+                isinstance(actor_lane_v, dict)
+                and str(actor_lane_v.get("status") or "").strip().lower() == "rejected"
+            )
+            update["narrator_consequence_realization"] = (
+                build_narrator_consequence_realization(
+                    narrator_consequence_plan=ncp,
+                    visible_scene_blocks=scene_blocks if isinstance(scene_blocks, list) else None,
+                    validation_gated=validation_gated,
+                )
+            )
+        except Exception:
+            # Defensive: realization projection failures must not block
+            # render. The thin-path summary tolerates the missing key.
+            pass
         return update
 
     def _package_output(self, state: RuntimeTurnState) -> RuntimeTurnState:

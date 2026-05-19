@@ -21,6 +21,7 @@ from app.services.ai_stack_evidence_service import (
     _latest_improvement_package,
     build_release_readiness_report,
 )
+from app.services.game_service import GameServiceError
 
 
 class TestSummarizeToolInfluence:
@@ -515,18 +516,28 @@ class TestSessionEvidenceBundle:
     """Tests for session evidence bundle functions."""
 
     def test_assemble_session_evidence_bundle_no_session(self):
-        """Test assembling bundle when session not found."""
-        with patch("app.services.ai_stack_evidence_service.get_runtime_session") as mock_get:
-            mock_get.return_value = None
+        """Missing World-Engine story session returns not-found evidence."""
+        with (
+            patch("app.services.ai_stack_evidence_service.get_story_state") as mock_state,
+            patch("app.services.ai_stack_evidence_service.get_story_diagnostics") as mock_diag,
+        ):
+            mock_state.side_effect = GameServiceError(
+                "Story session not found",
+                status_code=404,
+            )
 
             result = assemble_session_evidence_bundle(
                 session_id="sess-123",
                 trace_id="trace-456"
             )
 
-            # When session not found, it returns a dict
-            assert isinstance(result, dict)
-            mock_get.assert_called_once_with("sess-123")
+            assert result == {
+                "trace_id": "trace-456",
+                "error": "world_engine_story_session_not_found",
+                "session_id": "sess-123",
+            }
+            mock_state.assert_called_once_with("sess-123", trace_id="trace-456")
+            mock_diag.assert_not_called()
 
     def test_build_session_evidence_bundle(self):
         """Test wrapper function."""
