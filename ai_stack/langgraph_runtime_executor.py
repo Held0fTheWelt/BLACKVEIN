@@ -4990,31 +4990,38 @@ def complete_actor_locations_for_gathering(
     current_step_scene_id: str | None,
     selected_human_actor_id: str | None = None,
     free_player_action_resolution: dict[str, Any] | None = None,
+    environment_current_room_id: str | None = None,
 ) -> dict[str, Any]:
     """Complete actor_locations with actor_lane_context NPC fallback.
 
-    Resolution order:
+    Resolution order for actor_locations:
     1. Environment state / canonical actor_locations wins for any ID already
        present.
-    2. Missing NPC IDs from ``actor_lane_context.npc_actor_ids`` are defaulted
-       to ``current_step_scene_id`` (the gathering scene) — the safe runtime
-       assumption is that NPCs are at the gathering unless the environment
-       explicitly says otherwise.
+    2. Missing NPC IDs from ``actor_lane_context`` are defaulted to the best
+       available room-level location: ``environment_current_room_id`` first
+       (from ``environment_state.current_room_id`` — actual room, room-level),
+       then ``current_step_scene_id`` (which may be a coarse scene identifier).
     3. The selected human actor's location is updated from the resolved
        ``target_location`` in ``free_player_action_resolution`` when present.
 
-    Fail-closed rule: when ``current_step_scene_id`` is absent but there are
-    NPC IDs missing from ``actor_locations``, we cannot safely default their
-    positions, so we return ``diagnostic_blocker=True`` with reason
-    ``missing_current_step_scene_id``.  The caller must emit a Director-Pause
-    blocker in that case and must **not** call ``compute_gathering_state``.
+    Gathering scene derivation (Phase 1 without active room tracking):
+    NPCs do not move in Phase 1 — their actor_location IS the gathering room.
+    ``gathering_scene_id`` is therefore derived from the most common NPC
+    location in the completed actor_locations, not from ``current_step_scene_id``
+    (which may be a scene-level identifier like ``"scene_1"`` that does not
+    match room-level actor_location values).  This ensures that the topology
+    check in ``compute_gathering_state`` uses room-level IDs on both sides.
 
-    No hardcoded actor IDs, room names, or module-specific content.  All NPC
-    IDs come from ``actor_lane_context``; all locations come from runtime state
-    or the resolved action target.
+    Fail-closed rule: when no fallback location is available (both
+    ``environment_current_room_id`` and ``current_step_scene_id`` are absent)
+    but there are NPC IDs missing from ``actor_locations``, return
+    ``diagnostic_blocker=True`` with reason ``missing_current_step_scene_id``.
+
+    No hardcoded actor IDs, room names, or module-specific content.
 
     Returns a dict with keys:
         actor_locations: completed mapping (copy, never mutates input)
+        gathering_scene_id: room-level ID to use for compute_gathering_state
         source: "environment_state_with_actor_lane_fallback"
         fallback_actor_ids: list of NPC IDs whose location was defaulted
         original_actor_locations: the input actor_locations before completion
@@ -5062,10 +5069,18 @@ def complete_actor_locations_for_gathering(
     # Determine which NPCs are missing from actor_locations
     missing_npc_ids = [nid for nid in npc_ids if nid not in locations]
 
+    # Best available room-level fallback for missing NPCs.
+    # environment_current_room_id is preferred because it is always a room-level
+    # ID (from environment_state.current_room_id), while current_step_scene_id
+    # may be a coarse scene identifier (e.g. "scene_1") that does not appear in
+    # actor_locations values.
+    fallback_location: str | None = environment_current_room_id or current_step_scene_id
+
     if missing_npc_ids:
-        if not current_step_scene_id:
+        if not fallback_location:
             return {
                 "actor_locations": locations,
+                "gathering_scene_id": None,
                 "source": "environment_state_with_actor_lane_fallback",
                 "fallback_actor_ids": [],
                 "original_actor_locations": original_locations,
@@ -5073,10 +5088,31 @@ def complete_actor_locations_for_gathering(
                 "reason": "missing_current_step_scene_id",
             }
         for nid in missing_npc_ids:
-            locations[nid] = current_step_scene_id
+            locations[nid] = fallback_location
+
+    # Derive gathering_scene_id from NPC locations (Phase 1 without room
+    # tracking: NPCs never move, so their current location IS the gathering
+    # room).  Using the most common NPC location ensures the topology check in
+    # compute_gathering_state uses the same room-level ID as actor_locations.
+    npc_location_values = [
+        str(locations[nid]).strip()
+        for nid in npc_ids
+        if nid in locations and str(locations[nid] or "").strip()
+    ]
+    if npc_location_values:
+        # Most common NPC location = gathering room
+        _counts: dict[str, int] = {}
+        for _loc in npc_location_values:
+            _counts[_loc] = _counts.get(_loc, 0) + 1
+        gathering_scene_id: str | None = max(_counts, key=lambda k: _counts[k])
+    elif environment_current_room_id:
+        gathering_scene_id = environment_current_room_id
+    else:
+        gathering_scene_id = current_step_scene_id
 
     return {
         "actor_locations": locations,
+        "gathering_scene_id": gathering_scene_id,
         "source": "environment_state_with_actor_lane_fallback",
         "fallback_actor_ids": missing_npc_ids,
         "original_actor_locations": original_locations,
@@ -6558,19 +6594,31 @@ class RuntimeTurnGraphExecutor:
                 #    current_step_scene_id.  The safe runtime assumption is
                 #    that NPCs are at the gathering unless the environment
                 #    explicitly says otherwise.
+                _pr_c_env_state = (
+                    state.get("environment_state")
+                    if isinstance(state.get("environment_state"), dict)
+                    else {}
+                )
                 _pr_c_actor_locations_raw = (
                     state.get("actor_locations")
                     if isinstance(state.get("actor_locations"), dict)
                     else {}
                 )
                 if not _pr_c_actor_locations_raw:
-                    _env_state = (
-                        state.get("environment_state")
-                        if isinstance(state.get("environment_state"), dict)
-                        else {}
-                    )
-                    if isinstance(_env_state.get("actor_locations"), dict):
-                        _pr_c_actor_locations_raw = dict(_env_state["actor_locations"])
+                    if isinstance(_pr_c_env_state.get("actor_locations"), dict):
+                        _pr_c_actor_locations_raw = dict(_pr_c_env_state["actor_locations"])
+                # Room-level gathering reference — used as NPC fallback location
+                # and as priority source for gathering_scene_id derivation.
+                # environment_state.current_room_id is always room-level; it
+                # matches the values in actor_locations (anchor_room_id at game
+                # start, updated on committed movement).  current_step_scene_id
+                # may be a coarse scene identifier (e.g. "scene_1") that does
+                # not appear in actor_locations.
+                _pr_c_env_current_room_id: str | None = (
+                    str(_pr_c_env_state["current_room_id"]).strip()
+                    if str(_pr_c_env_state.get("current_room_id") or "").strip()
+                    else None
+                )
                 _pr_c_subject_actor_id = _derive_director_subject_actor_id(state, frame)
                 _pr_c_alc = (
                     state.get("actor_lane_context")
@@ -6583,8 +6631,18 @@ class RuntimeTurnGraphExecutor:
                     current_step_scene_id=_pr_c_scene_id,
                     selected_human_actor_id=_pr_c_subject_actor_id,
                     free_player_action_resolution=free_player_resolution,
+                    environment_current_room_id=_pr_c_env_current_room_id,
                 )
                 # --- end actor_locations source resolution ---
+                # gathering_scene_id is room-level, derived from NPC locations.
+                # NPCs do not move in Phase 1 → their location IS the gathering
+                # room.  Using this instead of _pr_c_scene_id ensures that the
+                # topology comparison in compute_gathering_state has matching
+                # granularity on both sides (room-level vs room-level).
+                _pr_c_gathering_scene_id: str | None = (
+                    _pr_c_location_completion.get("gathering_scene_id")
+                    or _pr_c_scene_id
+                )
                 if _pr_c_location_completion["diagnostic_blocker"]:
                     update["director_gathering_state"] = _director_gathering_blocker(
                         reason=_pr_c_location_completion["reason"],
@@ -6593,6 +6651,7 @@ class RuntimeTurnGraphExecutor:
                     update.setdefault("graph_diagnostics", {}).update({
                         "actor_location_completion": _pr_c_location_completion,
                         "current_step_scene_id": _pr_c_scene_id,
+                        "gathering_scene_id": _pr_c_gathering_scene_id,
                         "selected_human_actor_id": _pr_c_subject_actor_id,
                     })
                     # Skip compute_gathering_state — fail closed on missing scene.
@@ -6617,7 +6676,7 @@ class RuntimeTurnGraphExecutor:
                     director_gathering = compute_gathering_state(
                         actor_locations=_pr_c_actor_locations,
                         current_step_named_characters=_pr_c_named_chars,
-                        current_step_scene_id=_pr_c_scene_id,
+                        current_step_scene_id=_pr_c_gathering_scene_id,
                         participation_relevance=_pr_c_participation,
                         visibility_audibility=_pr_c_visibility,
                         subject_actor_id=_pr_c_subject_actor_id,

@@ -852,3 +852,24 @@ runtime_intelligence:
     privacy_safe_memory_only: true
     model_context_visibility: bounded_structured_only
     default_commit_impact: recover
+  npc_motivation_score:
+    enabled: true
+    schema_version: npc_motivation_score_policy.v1
+    # Weights for semantic capability inputs (sum normalised to 1.0 by engine).
+    # All names are semantic runtime names; no Pi/Π runtime keys.
+    score_weights:
+      scene_energy: 0.25
+      social_pressure: 0.30
+      relationship_axis_pressure: 0.25
+      narrative_momentum: 0.20
+    # Base threshold for motivation activation before per-actor modifier is applied.
+    base_threshold: 0.55
+    # Per-actor threshold multipliers. Values < 1.0 lower the threshold (speaks readily);
+    # values > 1.0 raise it (waits longer). Engine reads this as a generic dict; no
+    # actor-ID branches exist in runtime code.
+    actor_pressure_modifiers:
+      veronique: 0.90
+      michel: 1.10
+      annette: 0.95
+      alain: 1.20
+    silence_when_no_threshold_crossed: true
