@@ -510,6 +510,39 @@ def _rejected_post_cut_in_candidates(
     return rejected
 
 
+def _extract_actor_voice_profiles_from_envelope(
+    envelope: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Surface authored voice profiles for the post-cut-in composition layer.
+
+    The profiles are diagnostic — they ride along the turn envelope so the
+    follow-up composition can reference baseline_tone / current_phase_voice_hint
+    / speech_patterns from authored content. We never synthesize a profile here.
+    """
+    if not isinstance(envelope, dict):
+        return []
+    diagnostics = (
+        envelope.get("diagnostics")
+        if isinstance(envelope.get("diagnostics"), dict)
+        else {}
+    )
+    for source in (
+        envelope.get("character_voice_profiles"),
+        envelope.get("actor_voice_profiles"),
+        diagnostics.get("character_voice_profiles"),
+        diagnostics.get("actor_voice_profiles"),
+    ):
+        if isinstance(source, list) and source:
+            return [row for row in source if isinstance(row, dict)]
+        if isinstance(source, dict) and source:
+            return [
+                {**row, "runtime_actor_id": row.get("runtime_actor_id") or actor_id}
+                for actor_id, row in source.items()
+                if isinstance(row, dict)
+            ]
+    return []
+
+
 def _post_cut_in_director_context(
     turn: dict[str, Any] | None,
     *,
@@ -529,6 +562,12 @@ def _post_cut_in_director_context(
         if isinstance(diagnostics.get("validator_plan"), dict)
         else {}
     )
+    actor_voice_profiles = _extract_actor_voice_profiles_from_envelope(envelope)
+    capability_outputs = (
+        director_pulse.get("capability_outputs")
+        if isinstance(director_pulse.get("capability_outputs"), dict)
+        else {}
+    )
     context = {
         "turn_id": _extract_turn_id(turn),
         "block_event_count": len(events),
@@ -544,6 +583,27 @@ def _post_cut_in_director_context(
         "visible_npc_actor_ids": list(tick_inputs.visible_npc_ids) if tick_inputs else [],
         "known_actor_ids": list(tick_inputs.known_actor_ids) if tick_inputs else [],
         "known_room_ids": list(tick_inputs.known_room_ids) if tick_inputs else [],
+        "actor_voice_profiles": actor_voice_profiles,
+        "scene_energy_output": (
+            capability_outputs.get("scene_energy_output")
+            if isinstance(capability_outputs.get("scene_energy_output"), dict)
+            else None
+        ),
+        "social_pressure_output": (
+            capability_outputs.get("social_pressure_output")
+            if isinstance(capability_outputs.get("social_pressure_output"), dict)
+            else None
+        ),
+        "relationship_state_output": (
+            capability_outputs.get("relationship_state_output")
+            if isinstance(capability_outputs.get("relationship_state_output"), dict)
+            else None
+        ),
+        "narrative_momentum_output": (
+            capability_outputs.get("narrative_momentum_output")
+            if isinstance(capability_outputs.get("narrative_momentum_output"), dict)
+            else None
+        ),
     }
     if outcome is not None:
         context.update({

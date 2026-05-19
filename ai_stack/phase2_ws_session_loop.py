@@ -25,9 +25,10 @@ Hard guarantees (ADR-0058):
 from __future__ import annotations
 
 import os
+import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from ai_stack.director_pulse_contracts import (
     ACTION_SILENCE,
@@ -71,6 +72,96 @@ PROOF_LEVEL_LOCAL_ONLY = "local_only"
 HANDOFF_STATUS_PROMOTED = "promoted"
 HANDOFF_STATUS_NOT_APPLICABLE = "not_applicable"
 NON_HANDOFF_REASON_NO_PLAYER_INPUT = "no_promotable_player_input"
+POST_CUT_IN_FOLLOW_UP_GENERATION = "post_cut_in_follow_up"
+MAX_PROMOTED_INPUT_EXCERPT_CHARS = 240
+MAX_COMPOSED_FOLLOW_UP_CHARS = 280
+
+# ── Stage M — composition modes & safety gate vocabulary (closed enums) ──────
+COMPOSITION_MODE_TEMPLATE_RENDER = "template_render"
+COMPOSITION_MODE_SEMANTIC_GENERATION = "semantic_generation"
+COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE = (
+    "template_fallback_after_semantic_failure"
+)
+COMPOSITION_MODE_NOT_APPLICABLE = "not_applicable"
+COMPOSITION_MODES = frozenset({
+    COMPOSITION_MODE_TEMPLATE_RENDER,
+    COMPOSITION_MODE_SEMANTIC_GENERATION,
+    COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE,
+    COMPOSITION_MODE_NOT_APPLICABLE,
+})
+
+SOURCE_CONTEXT_VOICE_PROFILE = "voice_profile"
+SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT = "promoted_player_input"
+SOURCE_CONTEXT_INTERRUPTED_BLOCK = "interrupted_block"
+SOURCE_CONTEXT_MOTIVATION_SCORE = "motivation_score"
+SOURCE_CONTEXT_RELATIONSHIP_STATE = "relationship_state"
+SOURCE_CONTEXT_SCENE_ENERGY = "scene_energy"
+SOURCE_CONTEXT_SOCIAL_PRESSURE = "social_pressure"
+SOURCE_CONTEXT_RECENT_VISIBLE_CONTEXT = "recent_visible_context"
+SOURCE_CONTEXT_INFORMATION_DISCLOSURE_TARGET = "information_disclosure_target"
+SOURCE_CONTEXTS = frozenset({
+    SOURCE_CONTEXT_VOICE_PROFILE,
+    SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT,
+    SOURCE_CONTEXT_INTERRUPTED_BLOCK,
+    SOURCE_CONTEXT_MOTIVATION_SCORE,
+    SOURCE_CONTEXT_RELATIONSHIP_STATE,
+    SOURCE_CONTEXT_SCENE_ENERGY,
+    SOURCE_CONTEXT_SOCIAL_PRESSURE,
+    SOURCE_CONTEXT_RECENT_VISIBLE_CONTEXT,
+    SOURCE_CONTEXT_INFORMATION_DISCLOSURE_TARGET,
+})
+
+SAFETY_GATE_VOICE_FORBIDDEN_MARKERS = "voice_forbidden_markers"
+SAFETY_GATE_ACTOR_LANE = "actor_lane"
+SAFETY_GATE_LENGTH = "length"
+SAFETY_GATE_NO_NEW_PEOPLE = "no_new_people"
+SAFETY_GATE_NO_NEW_ROOMS = "no_new_rooms"
+SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS = "no_forbidden_plot_facts"
+SAFETY_GATE_INFORMATION_DISCLOSURE = "information_disclosure"
+SAFETY_GATES = frozenset({
+    SAFETY_GATE_VOICE_FORBIDDEN_MARKERS,
+    SAFETY_GATE_ACTOR_LANE,
+    SAFETY_GATE_LENGTH,
+    SAFETY_GATE_NO_NEW_PEOPLE,
+    SAFETY_GATE_NO_NEW_ROOMS,
+    SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS,
+    SAFETY_GATE_INFORMATION_DISCLOSURE,
+})
+
+SAFETY_GATE_RESULT_PASS = "pass"
+SAFETY_GATE_RESULT_REJECT = "reject"
+SAFETY_GATE_RESULT_NOT_APPLICABLE = "not_applicable"
+
+# Feature flag: semantic generation is opt-in even when a provider is supplied.
+PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED = (
+    "PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED"
+)
+
+_FOLLOW_UP_PROFILE_TEMPLATE_KEYS = (
+    "post_cut_in_reply",
+    "post_cut_in_response",
+    "post_cut_in_response_template",
+    "follow_up_reply",
+    "follow_up_response",
+    "follow_up_response_template",
+    "cut_in_reply",
+    "cut_in_response",
+    "short_reaction",
+    "subtext",
+)
+_FOLLOW_UP_ALLOWED_PLACEHOLDERS = frozenset({
+    "actor_id",
+    "baseline_tone",
+    "current_phase_voice_hint",
+    "interrupted_block_id",
+    "interrupted_block_type",
+    "motivation_score",
+    "player_input",
+    "promoted_player_input",
+    "promoted_player_input_id",
+    "voice_hint",
+})
+_PLACEHOLDER_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 # ── Feature flag ──────────────────────────────────────────────────────────────
 
@@ -85,6 +176,17 @@ def is_ws_session_loop_enabled() -> bool:
     Fail-closed: any unset / unparseable value is treated as disabled.
     """
     raw = os.environ.get(PHASE2_WS_SESSION_LOOP_ENABLED, "false")
+    return str(raw or "").strip().lower() in _TRUE_VALUES
+
+
+def is_follow_up_semantic_composition_enabled() -> bool:
+    """Return True iff Stage M semantic NPC follow-up composition is enabled.
+
+    Fail-closed: when the env var is unset/unparseable the dispatcher stays on
+    the deterministic template path. A provider is *additionally* required —
+    enabling this flag alone does not trigger semantic generation.
+    """
+    raw = os.environ.get(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "false")
     return str(raw or "").strip().lower() in _TRUE_VALUES
 
 
@@ -381,6 +483,13 @@ def _player_input_text(player_input_payload: dict[str, Any] | None) -> str:
     return ""
 
 
+def _compact_one_line(text: str, *, limit: int) -> str:
+    compact = " ".join(str(text or "").split())
+    if limit <= 0 or len(compact) <= limit:
+        return compact
+    return compact[: limit - 3].rstrip() + "..."
+
+
 def _promoted_player_input_id(player_input_payload: dict[str, Any] | None) -> str:
     if isinstance(player_input_payload, dict):
         for key in ("player_input_id", "input_id", "message_id"):
@@ -388,6 +497,844 @@ def _promoted_player_input_id(player_input_payload: dict[str, Any] | None) -> st
             if value:
                 return value
     return str(uuid.uuid4())
+
+
+def _profile_actor_ids(profile: dict[str, Any]) -> set[str]:
+    ids: set[str] = set()
+    for key in ("runtime_actor_id", "actor_id", "character_key", "character_id"):
+        value = str(profile.get(key) or "").strip()
+        if value:
+            ids.add(value)
+    return ids
+
+
+def _voice_profiles_by_actor(context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    raw_profiles: Any = None
+    for key in ("actor_voice_profiles", "character_voice_profiles", "voice_profiles"):
+        candidate = context.get(key)
+        if candidate:
+            raw_profiles = candidate
+            break
+
+    indexed: dict[str, dict[str, Any]] = {}
+    if isinstance(raw_profiles, dict):
+        for actor_id, profile in raw_profiles.items():
+            if not isinstance(profile, dict):
+                continue
+            profile_copy = dict(profile)
+            profile_copy.setdefault("runtime_actor_id", str(actor_id))
+            for pid in _profile_actor_ids(profile_copy) or {str(actor_id)}:
+                indexed[pid] = profile_copy
+    elif isinstance(raw_profiles, list):
+        for profile in raw_profiles:
+            if not isinstance(profile, dict):
+                continue
+            for pid in _profile_actor_ids(profile):
+                indexed[pid] = dict(profile)
+    return indexed
+
+
+def _string_from_profile_container(
+    container: dict[str, Any],
+    *,
+    prefix: str,
+) -> tuple[str, str] | None:
+    for key in _FOLLOW_UP_PROFILE_TEMPLATE_KEYS:
+        value = container.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip(), f"{prefix}.{key}"
+    return None
+
+
+def _follow_up_template_from_profile(profile: dict[str, Any]) -> tuple[str, str] | None:
+    profile_composition = (
+        profile.get("follow_up_composition")
+        if isinstance(profile.get("follow_up_composition"), dict)
+        else {}
+    )
+    selected = _string_from_profile_container(
+        profile_composition,
+        prefix="follow_up_composition",
+    )
+    if selected:
+        return selected
+    speech_patterns = (
+        profile.get("speech_patterns")
+        if isinstance(profile.get("speech_patterns"), dict)
+        else {}
+    )
+    selected = _string_from_profile_container(
+        speech_patterns,
+        prefix="speech_patterns",
+    )
+    if selected:
+        return selected
+    return _string_from_profile_container(profile, prefix="voice_profile")
+
+
+def _motivation_score_for_actor(
+    *,
+    context: dict[str, Any],
+    actor_id: str,
+) -> float | None:
+    raw_scores = context.get("motivation_scores")
+    if not isinstance(raw_scores, dict):
+        return None
+    raw_score = raw_scores.get(actor_id)
+    if isinstance(raw_score, (int, float)):
+        return float(raw_score)
+    if isinstance(raw_score, dict):
+        score = raw_score.get("score")
+        if isinstance(score, (int, float)):
+            return float(score)
+    return None
+
+
+def _render_follow_up_template(
+    *,
+    template: str,
+    replanning: dict[str, Any],
+    profile: dict[str, Any],
+    actor_id: str,
+    motivation_score: float | None,
+) -> tuple[str, list[str], str | None]:
+    placeholders = _PLACEHOLDER_RE.findall(template)
+    unknown = sorted({
+        name for name in placeholders if name not in _FOLLOW_UP_ALLOWED_PLACEHOLDERS
+    })
+    if unknown:
+        return "", [], "unsupported_follow_up_template_placeholder"
+    if "{" in _PLACEHOLDER_RE.sub("", template) or "}" in _PLACEHOLDER_RE.sub("", template):
+        return "", [], "malformed_follow_up_template"
+
+    promoted_input = (
+        replanning.get("promoted_input")
+        if isinstance(replanning.get("promoted_input"), dict)
+        else {}
+    )
+    promoted_text = str(promoted_input.get("text_excerpt") or "").strip()
+    values = {
+        "actor_id": actor_id,
+        "baseline_tone": str(profile.get("baseline_tone") or "").strip(),
+        "current_phase_voice_hint": str(
+            profile.get("current_phase_voice_hint") or ""
+        ).strip(),
+        "interrupted_block_id": str(replanning.get("interrupted_block_id") or "").strip(),
+        "interrupted_block_type": str(
+            replanning.get("interrupted_block_type") or ""
+        ).strip(),
+        "motivation_score": (
+            f"{motivation_score:.2f}" if motivation_score is not None else ""
+        ),
+        "player_input": promoted_text,
+        "promoted_player_input": promoted_text,
+        "promoted_player_input_id": str(
+            promoted_input.get("promoted_player_input_id")
+            or replanning.get("promoted_player_input_id")
+            or ""
+        ).strip(),
+        "voice_hint": str(profile.get("current_phase_voice_hint") or "").strip(),
+    }
+    rendered = template
+    for name in sorted(set(placeholders), key=len, reverse=True):
+        rendered = rendered.replace("{" + name + "}", values.get(name, ""))
+    rendered = _compact_one_line(rendered, limit=MAX_COMPOSED_FOLLOW_UP_CHARS)
+    if not rendered:
+        return "", sorted(set(placeholders)), "empty_composed_follow_up"
+    return rendered, sorted(set(placeholders)), None
+
+
+# ── Stage M — safety gates, source-context derivation, semantic dispatch ─────
+
+
+# Provider contract (callable injected by host). The dispatcher passes a fully
+# structured request dict; the provider returns either a non-empty ``text``
+# under ``success: True``, or an ``error_code`` under ``success: False``. The
+# provider is *never* the safety oracle — it produces text only; gates are run
+# by this module on the returned text regardless of provider claims.
+FollowUpSemanticProvider = Callable[[dict[str, Any]], dict[str, Any]]
+
+
+def _profile_forbidden_language_markers(profile: dict[str, Any]) -> list[str]:
+    """Return the closed-enum list of forbidden language markers for the actor.
+
+    Authored content owns the list (``voice_consistency.forbidden_language_markers``).
+    Empty list → gate is ``not_applicable`` (no claim about output content).
+    """
+    raw = profile.get("forbidden_language_markers") if isinstance(profile, dict) else None
+    if isinstance(raw, dict):
+        out: list[str] = []
+        for value in raw.values():
+            if isinstance(value, str) and value.strip():
+                out.append(value.strip())
+            elif isinstance(value, list):
+                out.extend(str(v).strip() for v in value if isinstance(v, str) and v.strip())
+        return out
+    if isinstance(raw, list):
+        return [str(v).strip() for v in raw if isinstance(v, str) and v.strip()]
+    return []
+
+
+def _closed_enum_str_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if isinstance(v, str) and v.strip()]
+    return []
+
+
+def _context_known_actor_ids(context: dict[str, Any]) -> set[str]:
+    return {
+        s
+        for s in _closed_enum_str_list(context.get("known_actor_ids"))
+    }
+
+
+def _context_ai_forbidden_actor_ids(context: dict[str, Any]) -> set[str]:
+    lane_ctx = (
+        context.get("actor_lane_context")
+        if isinstance(context.get("actor_lane_context"), dict)
+        else {}
+    )
+    direct = _closed_enum_str_list(context.get("ai_forbidden_actor_ids"))
+    nested = _closed_enum_str_list(lane_ctx.get("ai_forbidden_actor_ids"))
+    forbidden: set[str] = {*direct, *nested}
+    human = str(lane_ctx.get("human_actor_id") or context.get("human_actor_id") or "").strip()
+    if human:
+        forbidden.add(human)
+    return forbidden
+
+
+def _gate_voice_forbidden_markers(text: str, profile: dict[str, Any]) -> tuple[str, str | None]:
+    markers = _profile_forbidden_language_markers(profile)
+    if not markers:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    lower = text.lower()
+    for marker in markers:
+        if marker.lower() in lower:
+            return SAFETY_GATE_RESULT_REJECT, f"voice_forbidden_marker:{marker}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _gate_actor_lane(actor_id: str, context: dict[str, Any]) -> tuple[str, str | None]:
+    forbidden = _context_ai_forbidden_actor_ids(context)
+    if not forbidden:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    if actor_id in forbidden:
+        return SAFETY_GATE_RESULT_REJECT, f"actor_lane_forbidden_speaker:{actor_id}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _gate_length(text: str) -> tuple[str, str | None]:
+    if not text:
+        return SAFETY_GATE_RESULT_REJECT, "empty_composed_follow_up"
+    if len(text) > MAX_COMPOSED_FOLLOW_UP_CHARS:
+        return SAFETY_GATE_RESULT_REJECT, "composed_follow_up_exceeds_length_cap"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _contains_any_token(text: str, tokens: list[str]) -> str | None:
+    """Closed-enum substring containment, case-insensitive. Returns the first hit."""
+    if not tokens:
+        return None
+    lower = text.lower()
+    for token in tokens:
+        candidate = token.lower().strip()
+        if candidate and candidate in lower:
+            return token
+    return None
+
+
+def _gate_no_new_people(
+    text: str, context: dict[str, Any], actor_id: str
+) -> tuple[str, str | None]:
+    forbidden = _closed_enum_str_list(context.get("forbidden_new_person_tokens"))
+    if not forbidden:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    hit = _contains_any_token(text, forbidden)
+    if hit:
+        return SAFETY_GATE_RESULT_REJECT, f"new_person_mentioned:{hit}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _gate_no_new_rooms(text: str, context: dict[str, Any]) -> tuple[str, str | None]:
+    forbidden = _closed_enum_str_list(context.get("forbidden_new_room_tokens"))
+    if not forbidden:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    hit = _contains_any_token(text, forbidden)
+    if hit:
+        return SAFETY_GATE_RESULT_REJECT, f"new_room_mentioned:{hit}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _gate_no_forbidden_plot_facts(
+    text: str, context: dict[str, Any]
+) -> tuple[str, str | None]:
+    forbidden = _closed_enum_str_list(context.get("forbidden_plot_fact_tokens"))
+    if not forbidden:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    hit = _contains_any_token(text, forbidden)
+    if hit:
+        return SAFETY_GATE_RESULT_REJECT, f"forbidden_plot_fact_mentioned:{hit}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _gate_information_disclosure(
+    text: str, context: dict[str, Any]
+) -> tuple[str, str | None]:
+    target = (
+        context.get("information_disclosure_target")
+        if isinstance(context.get("information_disclosure_target"), dict)
+        else {}
+    )
+    if not target:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    withheld_tokens: list[str] = []
+    for unit in target.get("withheld_units") or []:
+        if isinstance(unit, dict):
+            tokens = _closed_enum_str_list(unit.get("forbidden_disclosure_tokens"))
+            withheld_tokens.extend(tokens)
+    if not withheld_tokens:
+        return SAFETY_GATE_RESULT_NOT_APPLICABLE, None
+    hit = _contains_any_token(text, withheld_tokens)
+    if hit:
+        return SAFETY_GATE_RESULT_REJECT, f"forbidden_disclosure:{hit}"
+    return SAFETY_GATE_RESULT_PASS, None
+
+
+def _run_safety_gates(
+    *,
+    text: str,
+    actor_id: str,
+    profile: dict[str, Any],
+    context: dict[str, Any],
+) -> dict[str, Any]:
+    """Run every closed-enum safety gate on a candidate follow-up text.
+
+    Each gate returns ``pass`` / ``reject`` / ``not_applicable`` deterministically.
+    The whole composition is rejected if *any* gate returns ``reject``.
+    """
+    gate_calls: list[tuple[str, tuple[str, str | None]]] = [
+        (SAFETY_GATE_LENGTH, _gate_length(text)),
+        (SAFETY_GATE_ACTOR_LANE, _gate_actor_lane(actor_id, context)),
+        (SAFETY_GATE_VOICE_FORBIDDEN_MARKERS, _gate_voice_forbidden_markers(text, profile)),
+        (SAFETY_GATE_NO_NEW_PEOPLE, _gate_no_new_people(text, context, actor_id)),
+        (SAFETY_GATE_NO_NEW_ROOMS, _gate_no_new_rooms(text, context)),
+        (
+            SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS,
+            _gate_no_forbidden_plot_facts(text, context),
+        ),
+        (
+            SAFETY_GATE_INFORMATION_DISCLOSURE,
+            _gate_information_disclosure(text, context),
+        ),
+    ]
+    decisions: dict[str, str] = {}
+    rejected_reason: str | None = None
+    for name, (result, reason) in gate_calls:
+        decisions[name] = result
+        if result == SAFETY_GATE_RESULT_REJECT and rejected_reason is None:
+            rejected_reason = reason or f"{name}_rejected"
+    return {
+        "all_pass": rejected_reason is None,
+        "decisions": decisions,
+        "rejected_reason": rejected_reason,
+    }
+
+
+def _derive_source_contexts(
+    *,
+    replanning: dict[str, Any],
+    context: dict[str, Any],
+    profile_used: bool,
+    motivation_score: float | None,
+    placeholders_used: list[str] | None = None,
+) -> list[str]:
+    contexts: set[str] = set()
+    placeholders_used = placeholders_used or []
+    if profile_used:
+        contexts.add(SOURCE_CONTEXT_VOICE_PROFILE)
+    promoted = (
+        replanning.get("promoted_input")
+        if isinstance(replanning.get("promoted_input"), dict)
+        else {}
+    )
+    if str(promoted.get("text_excerpt") or "").strip() or any(
+        p in placeholders_used
+        for p in ("promoted_player_input", "player_input", "promoted_player_input_id")
+    ):
+        contexts.add(SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT)
+    if str(replanning.get("interrupted_block_id") or "").strip() or any(
+        p in placeholders_used
+        for p in ("interrupted_block_id", "interrupted_block_type")
+    ):
+        contexts.add(SOURCE_CONTEXT_INTERRUPTED_BLOCK)
+    if motivation_score is not None or "motivation_score" in placeholders_used:
+        contexts.add(SOURCE_CONTEXT_MOTIVATION_SCORE)
+    if isinstance(context.get("relationship_state_output"), dict) and context.get(
+        "relationship_state_output"
+    ):
+        contexts.add(SOURCE_CONTEXT_RELATIONSHIP_STATE)
+    if isinstance(context.get("scene_energy_output"), dict) and context.get(
+        "scene_energy_output"
+    ):
+        contexts.add(SOURCE_CONTEXT_SCENE_ENERGY)
+    if isinstance(context.get("social_pressure_output"), dict) and context.get(
+        "social_pressure_output"
+    ):
+        contexts.add(SOURCE_CONTEXT_SOCIAL_PRESSURE)
+    if isinstance(context.get("recent_visible_blocks"), list) and context.get(
+        "recent_visible_blocks"
+    ):
+        contexts.add(SOURCE_CONTEXT_RECENT_VISIBLE_CONTEXT)
+    if isinstance(context.get("information_disclosure_target"), dict) and context.get(
+        "information_disclosure_target"
+    ):
+        contexts.add(SOURCE_CONTEXT_INFORMATION_DISCLOSURE_TARGET)
+    return sorted(contexts)
+
+
+def _voice_profile_actor_id(profile: dict[str, Any]) -> str | None:
+    return (
+        profile.get("runtime_actor_id")
+        or profile.get("actor_id")
+        or profile.get("character_key")
+    )
+
+
+def _compose_template_render_follow_up(
+    *,
+    replanning: dict[str, Any],
+    context: dict[str, Any],
+    actor_id: str,
+    profile: dict[str, Any],
+) -> dict[str, Any]:
+    """Deterministic template path. Renders an authored template from the
+    voice profile and runs every safety gate on the rendered text.
+    """
+    selected_template = _follow_up_template_from_profile(profile)
+    motivation_score = _motivation_score_for_actor(context=context, actor_id=actor_id)
+    if selected_template is None:
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_TEMPLATE_RENDER,
+            "reason": "voice_profile_follow_up_material_unavailable",
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": None,
+            "input_fields_used": [],
+            "motivation_score": motivation_score,
+            "source_contexts": _derive_source_contexts(
+                replanning=replanning,
+                context=context,
+                profile_used=True,
+                motivation_score=motivation_score,
+            ),
+            "safety_gate_result": "reject",
+            "safety_gate_decisions": {},
+            "rejected_reason": "voice_profile_follow_up_material_unavailable",
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": None,
+        }
+
+    template, source_field = selected_template
+    text, placeholders, reason = _render_follow_up_template(
+        template=template,
+        replanning=replanning,
+        profile=profile,
+        actor_id=actor_id,
+        motivation_score=motivation_score,
+    )
+    if reason:
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_TEMPLATE_RENDER,
+            "reason": reason,
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": source_field,
+            "input_fields_used": placeholders,
+            "motivation_score": motivation_score,
+            "source_contexts": _derive_source_contexts(
+                replanning=replanning,
+                context=context,
+                profile_used=True,
+                motivation_score=motivation_score,
+                placeholders_used=placeholders,
+            ),
+            "safety_gate_result": "reject",
+            "safety_gate_decisions": {},
+            "rejected_reason": reason,
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": None,
+        }
+
+    gate_result = _run_safety_gates(
+        text=text,
+        actor_id=actor_id,
+        profile=profile,
+        context=context,
+    )
+    if not gate_result["all_pass"]:
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_TEMPLATE_RENDER,
+            "reason": gate_result["rejected_reason"] or "safety_gate_rejected",
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": source_field,
+            "input_fields_used": placeholders,
+            "motivation_score": motivation_score,
+            "source_contexts": _derive_source_contexts(
+                replanning=replanning,
+                context=context,
+                profile_used=True,
+                motivation_score=motivation_score,
+                placeholders_used=placeholders,
+            ),
+            "safety_gate_result": "reject",
+            "safety_gate_decisions": gate_result["decisions"],
+            "rejected_reason": gate_result["rejected_reason"],
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": None,
+        }
+    return {
+        "attempted": True,
+        "composed": True,
+        "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+        "composition_mode": COMPOSITION_MODE_TEMPLATE_RENDER,
+        "reason": "composed_from_voice_profile",
+        "text": text,
+        "voice_profile_used": True,
+        "voice_profile_actor_id": _voice_profile_actor_id(profile),
+        "voice_profile_source_field": source_field,
+        "input_fields_used": placeholders,
+        "motivation_score": motivation_score,
+        "source_contexts": _derive_source_contexts(
+            replanning=replanning,
+            context=context,
+            profile_used=True,
+            motivation_score=motivation_score,
+            placeholders_used=placeholders,
+        ),
+        "safety_gate_result": "pass",
+        "safety_gate_decisions": gate_result["decisions"],
+        "rejected_reason": None,
+        "new_people_introduced": False,
+        "new_rooms_introduced": False,
+        "plot_facts_introduced": False,
+        "provider_metadata": None,
+    }
+
+
+def _build_follow_up_composition_request(
+    *,
+    replanning: dict[str, Any],
+    context: dict[str, Any],
+    actor_id: str,
+    profile: dict[str, Any],
+    motivation_score: float | None,
+) -> dict[str, Any]:
+    """Structured input handed to the semantic composition provider.
+
+    The provider sees a *projection* of the runtime — never the canonical
+    graph. It receives no mutators and no commit handles. The only writable
+    thing the provider influences is its returned ``text``.
+    """
+    promoted = (
+        replanning.get("promoted_input")
+        if isinstance(replanning.get("promoted_input"), dict)
+        else {}
+    )
+    return {
+        "schema_version": "follow_up_composition_request.v1",
+        "actor_id": actor_id,
+        "voice_profile": dict(profile),
+        "promoted_player_input": {
+            "text": str(promoted.get("text_excerpt") or "").strip(),
+            "promoted_player_input_id": str(
+                promoted.get("promoted_player_input_id")
+                or replanning.get("promoted_player_input_id")
+                or ""
+            ).strip(),
+        },
+        "interrupted_block": {
+            "interrupted_block_id": str(replanning.get("interrupted_block_id") or "").strip(),
+            "interrupted_block_type": str(
+                replanning.get("interrupted_block_type") or ""
+            ).strip(),
+        },
+        "motivation_score": motivation_score,
+        "relationship_state": (
+            context.get("relationship_state_output")
+            if isinstance(context.get("relationship_state_output"), dict)
+            else None
+        ),
+        "scene_energy": (
+            context.get("scene_energy_output")
+            if isinstance(context.get("scene_energy_output"), dict)
+            else None
+        ),
+        "social_pressure": (
+            context.get("social_pressure_output")
+            if isinstance(context.get("social_pressure_output"), dict)
+            else None
+        ),
+        "recent_visible_context": (
+            list(context.get("recent_visible_blocks"))
+            if isinstance(context.get("recent_visible_blocks"), list)
+            else []
+        ),
+        "information_disclosure_target": (
+            context.get("information_disclosure_target")
+            if isinstance(context.get("information_disclosure_target"), dict)
+            else None
+        ),
+        "max_text_chars": MAX_COMPOSED_FOLLOW_UP_CHARS,
+        "voice_forbidden_markers": _profile_forbidden_language_markers(profile),
+    }
+
+
+def _compose_semantic_npc_follow_up(
+    *,
+    replanning: dict[str, Any],
+    context: dict[str, Any],
+    actor_id: str,
+    profile: dict[str, Any],
+    provider: FollowUpSemanticProvider,
+) -> dict[str, Any]:
+    """Semantic path. Calls the injected provider, then runs every safety gate.
+
+    The provider's claim of success is *advisory*; the gates own the final
+    pass/reject decision. The provider never touches state — it just returns
+    text or an error code.
+    """
+    motivation_score = _motivation_score_for_actor(context=context, actor_id=actor_id)
+    request = _build_follow_up_composition_request(
+        replanning=replanning,
+        context=context,
+        actor_id=actor_id,
+        profile=profile,
+        motivation_score=motivation_score,
+    )
+    source_contexts = _derive_source_contexts(
+        replanning=replanning,
+        context=context,
+        profile_used=True,
+        motivation_score=motivation_score,
+    )
+    try:
+        response = provider(request) or {}
+    except Exception as exc:  # noqa: BLE001 — provider faults must not crash the loop
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_SEMANTIC_GENERATION,
+            "reason": "semantic_provider_exception",
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": None,
+            "input_fields_used": [],
+            "motivation_score": motivation_score,
+            "source_contexts": source_contexts,
+            "safety_gate_result": "not_applicable",
+            "safety_gate_decisions": {},
+            "rejected_reason": "semantic_provider_exception",
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": {"exception_type": type(exc).__name__},
+        }
+    if not isinstance(response, dict):
+        response = {}
+    provider_metadata = (
+        response.get("metadata") if isinstance(response.get("metadata"), dict) else {}
+    )
+    if not response.get("success") or not isinstance(response.get("text"), str):
+        error_code = str(response.get("error_code") or "semantic_provider_returned_no_text")
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_SEMANTIC_GENERATION,
+            "reason": error_code,
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": None,
+            "input_fields_used": [],
+            "motivation_score": motivation_score,
+            "source_contexts": source_contexts,
+            "safety_gate_result": "not_applicable",
+            "safety_gate_decisions": {},
+            "rejected_reason": error_code,
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": dict(provider_metadata),
+        }
+    candidate_text = _compact_one_line(
+        str(response.get("text") or ""), limit=MAX_COMPOSED_FOLLOW_UP_CHARS
+    )
+    gate_result = _run_safety_gates(
+        text=candidate_text,
+        actor_id=actor_id,
+        profile=profile,
+        context=context,
+    )
+    if not gate_result["all_pass"]:
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_SEMANTIC_GENERATION,
+            "reason": gate_result["rejected_reason"] or "semantic_output_safety_gate_rejected",
+            "voice_profile_used": True,
+            "voice_profile_actor_id": _voice_profile_actor_id(profile),
+            "voice_profile_source_field": None,
+            "input_fields_used": [],
+            "motivation_score": motivation_score,
+            "source_contexts": source_contexts,
+            "safety_gate_result": "reject",
+            "safety_gate_decisions": gate_result["decisions"],
+            "rejected_reason": gate_result["rejected_reason"],
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": dict(provider_metadata),
+        }
+    return {
+        "attempted": True,
+        "composed": True,
+        "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+        "composition_mode": COMPOSITION_MODE_SEMANTIC_GENERATION,
+        "reason": "composed_from_semantic_provider",
+        "text": candidate_text,
+        "voice_profile_used": True,
+        "voice_profile_actor_id": _voice_profile_actor_id(profile),
+        "voice_profile_source_field": None,
+        "input_fields_used": [],
+        "motivation_score": motivation_score,
+        "source_contexts": source_contexts,
+        "safety_gate_result": "pass",
+        "safety_gate_decisions": gate_result["decisions"],
+        "rejected_reason": None,
+        "new_people_introduced": False,
+        "new_rooms_introduced": False,
+        "plot_facts_introduced": False,
+        "provider_metadata": dict(provider_metadata),
+    }
+
+
+def _compose_npc_follow_up(
+    *,
+    replanning: dict[str, Any],
+    context: dict[str, Any],
+    actor_id: str,
+    composition_provider: FollowUpSemanticProvider | None = None,
+) -> dict[str, Any]:
+    """Dispatcher: tries semantic first when enabled + provider available, then
+    falls back to the deterministic template path. The voice profile gate is
+    the *first* hard prerequisite — without a profile the dispatcher never
+    invokes a provider.
+    """
+    profiles_by_actor = _voice_profiles_by_actor(context)
+    profile = profiles_by_actor.get(actor_id)
+    if not isinstance(profile, dict):
+        return {
+            "attempted": True,
+            "composed": False,
+            "composition_kind": NEXT_ACTION_SOURCE_NPC_RESPONSE,
+            "composition_mode": COMPOSITION_MODE_NOT_APPLICABLE,
+            "reason": "voice_profile_unavailable",
+            "voice_profile_used": False,
+            "voice_profile_actor_id": None,
+            "voice_profile_source_field": None,
+            "input_fields_used": [],
+            "motivation_score": None,
+            "source_contexts": [],
+            "safety_gate_result": "reject",
+            "safety_gate_decisions": {},
+            "rejected_reason": "voice_profile_unavailable",
+            "new_people_introduced": False,
+            "new_rooms_introduced": False,
+            "plot_facts_introduced": False,
+            "provider_metadata": None,
+        }
+
+    semantic_enabled = is_follow_up_semantic_composition_enabled()
+    semantic_attempted = False
+    semantic_result: dict[str, Any] | None = None
+    if semantic_enabled and composition_provider is not None:
+        semantic_attempted = True
+        semantic_result = _compose_semantic_npc_follow_up(
+            replanning=replanning,
+            context=context,
+            actor_id=actor_id,
+            profile=profile,
+            provider=composition_provider,
+        )
+        if semantic_result.get("composed"):
+            return semantic_result
+
+    template_result = _compose_template_render_follow_up(
+        replanning=replanning,
+        context=context,
+        actor_id=actor_id,
+        profile=profile,
+    )
+    if semantic_attempted:
+        # Tag mode so observers can tell "template-was-direct" from
+        # "template-after-semantic-failure".
+        template_result = dict(template_result)
+        template_result["composition_mode"] = (
+            COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+        template_result["semantic_attempt_metadata"] = {
+            "composition_mode": COMPOSITION_MODE_SEMANTIC_GENERATION,
+            "rejected_reason": (semantic_result or {}).get("rejected_reason"),
+            "provider_metadata": (semantic_result or {}).get("provider_metadata"),
+            "safety_gate_decisions": (semantic_result or {}).get("safety_gate_decisions") or {},
+        }
+    return template_result
+
+
+def _non_composed_result(
+    *,
+    composition_kind: str,
+    reason: str,
+    attempted: bool = False,
+) -> dict[str, Any]:
+    return {
+        "attempted": attempted,
+        "composed": False,
+        "composition_kind": composition_kind,
+        "composition_mode": COMPOSITION_MODE_NOT_APPLICABLE,
+        "reason": reason,
+        "voice_profile_used": False,
+        "voice_profile_actor_id": None,
+        "voice_profile_source_field": None,
+        "input_fields_used": [],
+        "motivation_score": None,
+        "source_contexts": [],
+        "safety_gate_result": "not_applicable" if not attempted else "reject",
+        "safety_gate_decisions": {},
+        "rejected_reason": None if not attempted else reason,
+        "new_people_introduced": False,
+        "new_rooms_introduced": False,
+        "plot_facts_introduced": False,
+        "provider_metadata": None,
+    }
 
 
 def build_player_cut_in_handoff(
@@ -475,6 +1422,12 @@ def build_post_cut_in_replanning_decision(
         if isinstance(outcome.get("player_cut_in_event"), dict)
         else {}
     )
+    player_input_payload = (
+        cut_event.get("player_input_payload")
+        if isinstance(cut_event.get("player_input_payload"), dict)
+        else {}
+    )
+    promoted_text = _player_input_text(player_input_payload)
     request = (
         outcome.get("replanning_request")
         if isinstance(outcome.get("replanning_request"), dict)
@@ -526,6 +1479,11 @@ def build_post_cut_in_replanning_decision(
             "promoted_player_input_id": handoff.get("promoted_player_input_id"),
             "source_handoff_id": handoff.get("handoff_id"),
             "text_present": bool(handoff.get("promoted_player_input_id")),
+            "text_excerpt": _compact_one_line(
+                promoted_text,
+                limit=MAX_PROMOTED_INPUT_EXCERPT_CHARS,
+            ),
+            "text_length": len(promoted_text),
         },
         "canceled_prior_plan": {
             "prior_plan_canceled": bool(canceled_event_ids or canceled_ticks),
@@ -546,13 +1504,21 @@ def build_post_cut_in_follow_up_event(
     *,
     decision: dict[str, Any],
     follow_up_id: str | None = None,
+    composition_provider: FollowUpSemanticProvider | None = None,
 ) -> dict[str, Any]:
-    """Build an executable future-only follow-up artifact for Stage L.
+    """Build an executable future-only follow-up artifact for Stage L+M.
 
     A safe NPC response produces a ``block_stream_event.v1`` to append after
     already-planned promoted-input output. Silence produces an explicit
     diagnostic silence event. Unsupported or unsafe selections produce a
     no-follow-up diagnostic with no emitted block.
+
+    Stage M (semantic composition): when ``composition_provider`` is supplied
+    and ``PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED`` is on, the dispatcher
+    invokes the provider for an NPC reply, runs every safety gate, and either
+    accepts the semantic output or falls back to the deterministic template
+    path. The composition_mode field on the returned ``composition_result``
+    records which path produced the emitted text.
     """
     replanning = decision if isinstance(decision, dict) else {}
     resolved_follow_up_id = follow_up_id or str(uuid.uuid4())
@@ -572,41 +1538,105 @@ def build_post_cut_in_follow_up_event(
     block_event: dict[str, Any] | None = None
     silence_reason = replanning.get("silence_reason")
     no_follow_up_reason: str | None = None
+    composition_result = _non_composed_result(
+        composition_kind=source or "unknown",
+        reason="composition_not_attempted",
+    )
 
     if source == NEXT_ACTION_SOURCE_NPC_RESPONSE:
         if not actor_id:
             no_follow_up_reason = "missing_selected_actor_id"
+            composition_result = _non_composed_result(
+                composition_kind=NEXT_ACTION_SOURCE_NPC_RESPONSE,
+                reason=no_follow_up_reason,
+                attempted=True,
+            )
         elif known_actor_ids and actor_id not in known_actor_ids:
             no_follow_up_reason = "unsafe_unknown_actor"
+            composition_result = _non_composed_result(
+                composition_kind=NEXT_ACTION_SOURCE_NPC_RESPONSE,
+                reason=no_follow_up_reason,
+                attempted=True,
+            )
         elif action_kind != ACTION_SPEAK:
             no_follow_up_reason = "unsupported_next_action_kind"
-        else:
-            payload = {
-                "id": str(uuid.uuid4()),
-                "block_type": BLOCK_TYPE_ACTOR_LINE,
-                "actor_id": actor_id,
-                "text": "",
-                "originator": "post_cut_in_follow_up",
-                "post_cut_in_replanning_id": replanning.get("replanning_id"),
-                "post_cut_in_follow_up_id": resolved_follow_up_id,
-                "selected_next_action_source": source,
-                "selected_next_action_kind": action_kind,
-            }
-            block_event = build_block_stream_event(
-                tick_id=str(uuid.uuid4()),
-                block_type=BLOCK_TYPE_ACTOR_LINE,
-                block_payload=payload,
-                cut_in_state=CUT_IN_UNINTERRUPTED,
-                lane=LANE_VISIBLE_SCENE_OUTPUT,
-                source=actor_id,
+            composition_result = _non_composed_result(
+                composition_kind=NEXT_ACTION_SOURCE_NPC_RESPONSE,
+                reason=no_follow_up_reason,
+                attempted=True,
             )
-            block_event["event_generation"] = "post_cut_in_follow_up"
-            block_event["post_cut_in_replanning_id"] = replanning.get("replanning_id")
-            block_event["post_cut_in_follow_up_id"] = resolved_follow_up_id
+        else:
+            composition_result = _compose_npc_follow_up(
+                replanning=replanning,
+                context=context,
+                actor_id=actor_id,
+                composition_provider=composition_provider,
+            )
+            if not composition_result.get("composed"):
+                no_follow_up_reason = str(
+                    composition_result.get("reason") or "follow_up_composition_rejected"
+                )
+            else:
+                composed_text = str(composition_result.get("text") or "")
+                voice_profile_actor_id = composition_result.get("voice_profile_actor_id")
+                source_field = composition_result.get("voice_profile_source_field")
+                input_fields_used = list(composition_result.get("input_fields_used") or [])
+                motivation_score = composition_result.get("motivation_score")
+                composition_mode = composition_result.get("composition_mode")
+                source_contexts = list(composition_result.get("source_contexts") or [])
+                safety_gate_decisions = dict(
+                    composition_result.get("safety_gate_decisions") or {}
+                )
+                provider_metadata = composition_result.get("provider_metadata")
+                payload = {
+                    "id": str(uuid.uuid4()),
+                    "block_type": BLOCK_TYPE_ACTOR_LINE,
+                    "actor_id": actor_id,
+                    "text": composed_text,
+                    "originator": POST_CUT_IN_FOLLOW_UP_GENERATION,
+                    "post_cut_in_replanning_id": replanning.get("replanning_id"),
+                    "post_cut_in_follow_up_id": resolved_follow_up_id,
+                    "selected_next_action_source": source,
+                    "selected_next_action_kind": action_kind,
+                    "composition_mode": composition_mode,
+                    "source_contexts": source_contexts,
+                    "safety_gate_decisions": safety_gate_decisions,
+                    "provider_metadata": provider_metadata,
+                    "voice_profile_used": True,
+                    "voice_profile_actor_id": voice_profile_actor_id,
+                    "voice_profile_source_field": source_field,
+                    "composition_inputs_used": input_fields_used,
+                    "motivation_score": motivation_score,
+                    "new_people_introduced": False,
+                    "new_rooms_introduced": False,
+                    "plot_facts_introduced": False,
+                }
+                block_event = build_block_stream_event(
+                    tick_id=str(uuid.uuid4()),
+                    block_type=BLOCK_TYPE_ACTOR_LINE,
+                    block_payload=payload,
+                    cut_in_state=CUT_IN_UNINTERRUPTED,
+                    lane=LANE_VISIBLE_SCENE_OUTPUT,
+                    source=actor_id,
+                )
+                block_event["event_generation"] = POST_CUT_IN_FOLLOW_UP_GENERATION
+                block_event["post_cut_in_replanning_id"] = replanning.get("replanning_id")
+                block_event["post_cut_in_follow_up_id"] = resolved_follow_up_id
     elif source == NEXT_ACTION_SOURCE_SILENCE or action_kind == ACTION_SILENCE:
         silence_reason = silence_reason or "director_chose_silence"
+        composition_result = _non_composed_result(
+            composition_kind=NEXT_ACTION_SOURCE_SILENCE,
+            reason=str(silence_reason),
+            attempted=False,
+        )
+        composition_result["safety_gate_result"] = "pass"
     else:
         no_follow_up_reason = "unsupported_next_action_source"
+        composition_result = _non_composed_result(
+            composition_kind=source or "unknown",
+            reason=no_follow_up_reason,
+            attempted=True,
+        )
 
     return {
         "schema_version": SCHEMA_POST_CUT_IN_FOLLOW_UP_EVENT,
@@ -618,6 +1648,7 @@ def build_post_cut_in_follow_up_event(
         "emitted_event_id": block_event.get("event_id") if block_event else None,
         "silence_reason": silence_reason if block_event is None else None,
         "no_follow_up_reason": no_follow_up_reason,
+        "composition_result": composition_result,
         "block_stream_event": block_event,
         "historical_events_mutated": False,
         "graph_state_mutated_mid_turn": False,

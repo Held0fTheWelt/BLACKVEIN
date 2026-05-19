@@ -40,6 +40,11 @@ from ai_stack.phase2_ws_session_loop import (
     CLIENT_MSG_CUT_IN,
     CLIENT_MSG_PING,
     CLIENT_MSG_START_TURN,
+    COMPOSITION_MODE_NOT_APPLICABLE,
+    COMPOSITION_MODE_SEMANTIC_GENERATION,
+    COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE,
+    COMPOSITION_MODE_TEMPLATE_RENDER,
+    COMPOSITION_MODES,
     HANDOFF_STATUS_PROMOTED,
     MSG_PLAYER_CUT_IN_HANDOFF,
     MSG_POST_CUT_IN_FOLLOW_UP_EVENT,
@@ -52,11 +57,30 @@ from ai_stack.phase2_ws_session_loop import (
     MSG_STREAM_ERROR,
     MSG_STREAM_IDLE,
     MSG_STREAM_STARTED,
+    PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED,
     PHASE2_WS_SESSION_LOOP_ENABLED,
     EVENT_GENERATION_REPLANNED_AFTER_CUT_IN,
     NEXT_TURN_TRIGGER_PLAYER_CUT_IN_HANDOFF,
+    SAFETY_GATES,
+    SAFETY_GATE_ACTOR_LANE,
+    SAFETY_GATE_INFORMATION_DISCLOSURE,
+    SAFETY_GATE_LENGTH,
+    SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS,
+    SAFETY_GATE_NO_NEW_PEOPLE,
+    SAFETY_GATE_NO_NEW_ROOMS,
+    SAFETY_GATE_RESULT_NOT_APPLICABLE,
+    SAFETY_GATE_RESULT_PASS,
+    SAFETY_GATE_RESULT_REJECT,
+    SAFETY_GATE_VOICE_FORBIDDEN_MARKERS,
     SCHEMA_POST_CUT_IN_FOLLOW_UP_EVENT,
     SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+    SOURCE_CONTEXT_MOTIVATION_SCORE,
+    SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT,
+    SOURCE_CONTEXT_RELATIONSHIP_STATE,
+    SOURCE_CONTEXT_SCENE_ENERGY,
+    SOURCE_CONTEXT_SOCIAL_PRESSURE,
+    SOURCE_CONTEXT_VOICE_PROFILE,
+    SOURCE_CONTEXTS,
     REPLANNED_SILENCE_REASON_PLAYER_INPUT_PRIORITY,
     SCHEMA_PLAYER_CUT_IN_HANDOFF,
     SCHEMA_REPLANNING_DECISION,
@@ -71,6 +95,7 @@ from ai_stack.phase2_ws_session_loop import (
     build_post_cut_in_follow_up_event,
     build_post_cut_in_replanning_decision,
     cut_in_state_for_kind,
+    is_follow_up_semantic_composition_enabled,
     is_ws_session_loop_enabled,
     msg_autonomous_tick_evaluated,
     msg_block_completed,
@@ -525,16 +550,56 @@ class TestPostCutInReplanningDecision:
         assert decision["prior_plan_canceled"] is False
 
 
+_VOICE_PROFILE_NPC_A: dict[str, Any] = {
+    "runtime_actor_id": "npc_a",
+    "character_key": "npc_a",
+    "baseline_tone": "controlled fury",
+    "current_phase_voice_hint": "answer the interruption head-on",
+    "speech_patterns": {
+        "follow_up_reply": "{actor_id}: {promoted_player_input}",
+    },
+}
+
+
+def _decision_with_voice_profile(
+    *,
+    replanning_id: str = "post-1",
+    actor_id: str = "npc_a",
+    extra_context: dict[str, Any] | None = None,
+    promoted_input: dict[str, Any] | None = None,
+    interrupted_block_id: str = "evt-active",
+    interrupted_block_type: str = BLOCK_TYPE_ACTOR_LINE,
+) -> dict[str, Any]:
+    """Build a minimal post_cut_in decision that supplies a voice profile."""
+    context = {
+        "known_actor_ids": [actor_id],
+        "actor_voice_profiles": [dict(_VOICE_PROFILE_NPC_A)],
+        "motivation_scores": {actor_id: 0.72},
+    }
+    if extra_context:
+        context.update(extra_context)
+    return {
+        "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+        "replanning_id": replanning_id,
+        "selected_next_action_source": "npc_response",
+        "selected_next_actor_id": actor_id,
+        "selected_next_action_kind": "speak",
+        "new_director_context": context,
+        "interrupted_block_id": interrupted_block_id,
+        "interrupted_block_type": interrupted_block_type,
+        "promoted_player_input_id": "input-1",
+        "promoted_input": promoted_input or {
+            "promoted_player_input_id": "input-1",
+            "text_excerpt": "Why are you doing this?",
+            "text_length": 22,
+            "text_present": True,
+        },
+    }
+
+
 class TestPostCutInFollowUpEvent:
     def test_npc_response_builds_block_stream_event(self):
-        decision = {
-            "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
-            "replanning_id": "post-1",
-            "selected_next_action_source": "npc_response",
-            "selected_next_actor_id": "npc_a",
-            "selected_next_action_kind": "speak",
-            "new_director_context": {"known_actor_ids": ["npc_a"]},
-        }
+        decision = _decision_with_voice_profile(replanning_id="post-1")
 
         follow_up = build_post_cut_in_follow_up_event(
             decision=decision,
@@ -561,6 +626,151 @@ class TestPostCutInFollowUpEvent:
         assert follow_up["commit_or_readiness_changed"] is False
         assert follow_up["canonical_path_advanced"] is False
         assert follow_up["mandatory_beat_consumed"] is False
+
+    def test_npc_response_composes_from_voice_profile_template(self):
+        decision = _decision_with_voice_profile()
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+        payload = follow_up["block_stream_event"]["block_payload"]
+        composition = follow_up["composition_result"]
+
+        assert payload["voice_profile_used"] is True
+        assert payload["voice_profile_actor_id"] == "npc_a"
+        assert payload["voice_profile_source_field"] == "speech_patterns.follow_up_reply"
+        assert payload["text"] == "npc_a: Why are you doing this?"
+        assert payload["motivation_score"] == 0.72
+        assert composition["composed"] is True
+        assert composition["reason"] == "composed_from_voice_profile"
+        assert composition["voice_profile_used"] is True
+        assert composition["safety_gate_result"] == "pass"
+        assert "promoted_player_input" in composition["input_fields_used"]
+        assert "actor_id" in composition["input_fields_used"]
+
+    def test_npc_follow_up_introduces_no_new_people_rooms_or_plot_facts(self):
+        decision = _decision_with_voice_profile()
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+        composition = follow_up["composition_result"]
+        payload = follow_up["block_stream_event"]["block_payload"]
+
+        assert composition["new_people_introduced"] is False
+        assert composition["new_rooms_introduced"] is False
+        assert composition["plot_facts_introduced"] is False
+        assert payload["new_people_introduced"] is False
+        assert payload["new_rooms_introduced"] is False
+        assert payload["plot_facts_introduced"] is False
+
+    def test_npc_follow_up_does_not_mutate_history_or_commit_state(self):
+        decision = _decision_with_voice_profile()
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        assert follow_up["historical_events_mutated"] is False
+        assert follow_up["graph_state_mutated_mid_turn"] is False
+        assert follow_up["validation_outcome_changed"] is False
+        assert follow_up["commit_or_readiness_changed"] is False
+        assert follow_up["canonical_path_advanced"] is False
+        assert follow_up["mandatory_beat_consumed"] is False
+
+    def test_missing_voice_profile_yields_no_follow_up_reason(self):
+        decision = {
+            "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+            "replanning_id": "post-no-vp",
+            "selected_next_action_source": "npc_response",
+            "selected_next_actor_id": "npc_a",
+            "selected_next_action_kind": "speak",
+            "new_director_context": {"known_actor_ids": ["npc_a"]},
+        }
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        assert follow_up["emitted_event_id"] is None
+        assert follow_up["block_stream_event"] is None
+        assert follow_up["no_follow_up_reason"] == "voice_profile_unavailable"
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is False
+        assert composition["voice_profile_used"] is False
+        assert composition["safety_gate_result"] == "reject"
+
+    def test_voice_profile_without_follow_up_material_yields_no_follow_up(self):
+        decision = {
+            "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+            "replanning_id": "post-no-material",
+            "selected_next_action_source": "npc_response",
+            "selected_next_actor_id": "npc_a",
+            "selected_next_action_kind": "speak",
+            "new_director_context": {
+                "known_actor_ids": ["npc_a"],
+                "actor_voice_profiles": [{
+                    "runtime_actor_id": "npc_a",
+                    "baseline_tone": "anger",
+                    # no follow-up template keys at any nesting level
+                }],
+            },
+        }
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        assert follow_up["emitted_event_id"] is None
+        assert follow_up["no_follow_up_reason"] == "voice_profile_follow_up_material_unavailable"
+        composition = follow_up["composition_result"]
+        assert composition["voice_profile_used"] is True
+        assert composition["composed"] is False
+
+    def test_unknown_placeholder_in_template_is_rejected(self):
+        decision = _decision_with_voice_profile(
+            extra_context={
+                "actor_voice_profiles": [{
+                    "runtime_actor_id": "npc_a",
+                    "speech_patterns": {"follow_up_reply": "{not_a_real_field}"},
+                }],
+            },
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        assert follow_up["emitted_event_id"] is None
+        assert follow_up["no_follow_up_reason"] == "unsupported_follow_up_template_placeholder"
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is False
+        assert composition["safety_gate_result"] == "reject"
+
+    def test_silence_composition_result_is_attempted_false_and_passes_gate(self):
+        follow_up = build_post_cut_in_follow_up_event(
+            decision={
+                "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+                "replanning_id": "post-silence",
+                "selected_next_action_source": "silence",
+                "selected_next_actor_id": None,
+                "selected_next_action_kind": "silence",
+                "silence_reason": "no_npc_above_motivation_threshold",
+            },
+        )
+
+        composition = follow_up["composition_result"]
+        assert composition["attempted"] is False
+        assert composition["composed"] is False
+        assert composition["composition_kind"] == "silence"
+        assert composition["safety_gate_result"] == "pass"
+        assert follow_up["silence_reason"] == "no_npc_above_motivation_threshold"
+
+    def test_unsafe_actor_composition_result_marks_attempted_and_rejected(self):
+        follow_up = build_post_cut_in_follow_up_event(
+            decision={
+                "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+                "replanning_id": "post-unsafe",
+                "selected_next_action_source": "npc_response",
+                "selected_next_actor_id": "npc_unknown",
+                "selected_next_action_kind": "speak",
+                "new_director_context": {"known_actor_ids": ["npc_a"]},
+            },
+        )
+
+        composition = follow_up["composition_result"]
+        assert follow_up["no_follow_up_reason"] == "unsafe_unknown_actor"
+        assert composition["attempted"] is True
+        assert composition["composed"] is False
+        assert composition["safety_gate_result"] == "reject"
+        assert composition["new_people_introduced"] is False
+        assert composition["new_rooms_introduced"] is False
+        assert composition["plot_facts_introduced"] is False
 
     def test_silence_builds_explicit_silence_event(self):
         follow_up = build_post_cut_in_follow_up_event(
@@ -769,3 +979,582 @@ class TestAdr0039Discipline:
             source = fh.read().lower()
         for term in ("speaker_queue", "round_robin", "turn_order", "fixed_roster"):
             assert term not in source
+
+
+# ── Stage M — semantic composition modes & safety gates ─────────────────────
+
+
+class _FakeSemanticProvider:
+    """Deterministic test double for the semantic composition provider.
+
+    Records every request and replays canned responses. Never imports the
+    real OpenAI adapter — this lets us assert dispatch + safety semantics in
+    isolation from any model SDK.
+    """
+
+    def __init__(self, response: dict[str, Any], *, raise_exception: bool = False):
+        self._response = response
+        self._raise = raise_exception
+        self.calls: list[dict[str, Any]] = []
+
+    def __call__(self, request: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append(request)
+        if self._raise:
+            raise RuntimeError("provider blew up")
+        return dict(self._response)
+
+
+def _decision_with_full_context(
+    *,
+    actor_id: str = "npc_a",
+    follow_up_template: str = "{actor_id}: replying about {promoted_player_input}",
+    extra_profile: dict[str, Any] | None = None,
+    extra_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    profile = {
+        "runtime_actor_id": actor_id,
+        "character_key": actor_id,
+        "baseline_tone": "controlled fury",
+        "current_phase_voice_hint": "answer the interruption head-on",
+        "speech_patterns": {"follow_up_reply": follow_up_template},
+    }
+    if extra_profile:
+        profile.update(extra_profile)
+    context: dict[str, Any] = {
+        "known_actor_ids": [actor_id],
+        "actor_voice_profiles": [profile],
+        "motivation_scores": {actor_id: 0.72},
+        "scene_energy_output": {"energy_level": "volatile"},
+        "social_pressure_output": {"band": "high"},
+        "relationship_state_output": {"pair_states": {}},
+    }
+    if extra_context:
+        context.update(extra_context)
+    return {
+        "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+        "replanning_id": "post-m-1",
+        "selected_next_action_source": "npc_response",
+        "selected_next_actor_id": actor_id,
+        "selected_next_action_kind": "speak",
+        "new_director_context": context,
+        "interrupted_block_id": "evt-active",
+        "interrupted_block_type": BLOCK_TYPE_ACTOR_LINE,
+        "promoted_player_input_id": "input-1",
+        "promoted_input": {
+            "promoted_player_input_id": "input-1",
+            "text_excerpt": "Why are you doing this?",
+            "text_length": 22,
+            "text_present": True,
+        },
+    }
+
+
+class TestSemanticCompositionFeatureFlag:
+    def test_flag_name_constant(self):
+        assert (
+            PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED
+            == "PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED"
+        )
+
+    def test_default_is_off(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raising=False)
+        assert is_follow_up_semantic_composition_enabled() is False
+
+    def test_truthy_values_enable(self, monkeypatch):
+        for raw in ("1", "true", "TRUE", "yes", "on"):
+            monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raw)
+            assert is_follow_up_semantic_composition_enabled() is True
+
+    def test_unparseable_stays_off(self, monkeypatch):
+        for raw in ("", "maybe", "0", "false", "off", "no"):
+            monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raw)
+            assert is_follow_up_semantic_composition_enabled() is False
+
+
+class TestCompositionModesClosedEnums:
+    def test_modes_are_strings_in_closed_set(self):
+        assert COMPOSITION_MODE_TEMPLATE_RENDER in COMPOSITION_MODES
+        assert COMPOSITION_MODE_SEMANTIC_GENERATION in COMPOSITION_MODES
+        assert COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE in COMPOSITION_MODES
+        assert COMPOSITION_MODE_NOT_APPLICABLE in COMPOSITION_MODES
+        assert len(COMPOSITION_MODES) == 4
+
+    def test_source_contexts_are_strings_in_closed_set(self):
+        for value in (
+            SOURCE_CONTEXT_VOICE_PROFILE,
+            SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT,
+            SOURCE_CONTEXT_MOTIVATION_SCORE,
+            SOURCE_CONTEXT_RELATIONSHIP_STATE,
+            SOURCE_CONTEXT_SCENE_ENERGY,
+            SOURCE_CONTEXT_SOCIAL_PRESSURE,
+        ):
+            assert value in SOURCE_CONTEXTS
+
+    def test_safety_gate_results_are_three_valued(self):
+        assert SAFETY_GATE_RESULT_PASS == "pass"
+        assert SAFETY_GATE_RESULT_REJECT == "reject"
+        assert SAFETY_GATE_RESULT_NOT_APPLICABLE == "not_applicable"
+
+
+class TestSemanticCompositionDispatch:
+    def test_template_render_when_no_provider_and_flag_off(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raising=False)
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is True
+        assert composition["composition_mode"] == COMPOSITION_MODE_TEMPLATE_RENDER
+        payload = follow_up["block_stream_event"]["block_payload"]
+        assert payload["composition_mode"] == COMPOSITION_MODE_TEMPLATE_RENDER
+        assert payload["provider_metadata"] is None
+
+    def test_template_render_when_flag_on_but_no_provider(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        composition = follow_up["composition_result"]
+        assert composition["composition_mode"] == COMPOSITION_MODE_TEMPLATE_RENDER
+        assert composition["composed"] is True
+
+    def test_template_render_when_provider_supplied_but_flag_off(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raising=False)
+        provider = _FakeSemanticProvider(
+            {"text": "semantic text", "success": True, "metadata": {"model": "x"}}
+        )
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        assert provider.calls == []
+        assert follow_up["composition_result"]["composition_mode"] == COMPOSITION_MODE_TEMPLATE_RENDER
+
+    def test_semantic_generation_when_flag_on_and_provider_returns_safe_text(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "I will not let you decide for me.",
+            "success": True,
+            "metadata": {"model": "fake-model", "tokens": 42},
+        })
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        assert len(provider.calls) == 1
+        request = provider.calls[0]
+        assert request["schema_version"] == "follow_up_composition_request.v1"
+        assert request["actor_id"] == "npc_a"
+        assert request["promoted_player_input"]["text"] == "Why are you doing this?"
+        assert request["motivation_score"] == 0.72
+        assert request["scene_energy"] == {"energy_level": "volatile"}
+        assert request["social_pressure"] == {"band": "high"}
+        assert request["relationship_state"] == {"pair_states": {}}
+        assert request["voice_profile"]["baseline_tone"] == "controlled fury"
+
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is True
+        assert composition["composition_mode"] == COMPOSITION_MODE_SEMANTIC_GENERATION
+        assert composition["text"] == "I will not let you decide for me."
+        assert composition["provider_metadata"] == {"model": "fake-model", "tokens": 42}
+        assert SOURCE_CONTEXT_VOICE_PROFILE in composition["source_contexts"]
+        assert SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT in composition["source_contexts"]
+        assert SOURCE_CONTEXT_MOTIVATION_SCORE in composition["source_contexts"]
+        assert SOURCE_CONTEXT_SCENE_ENERGY in composition["source_contexts"]
+        assert SOURCE_CONTEXT_SOCIAL_PRESSURE in composition["source_contexts"]
+
+        payload = follow_up["block_stream_event"]["block_payload"]
+        assert payload["composition_mode"] == COMPOSITION_MODE_SEMANTIC_GENERATION
+        assert payload["provider_metadata"] == {"model": "fake-model", "tokens": 42}
+        assert payload["text"] == "I will not let you decide for me."
+
+    def test_semantic_falls_back_to_template_when_provider_returns_failure(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "success": False,
+            "error_code": "model_timeout",
+            "metadata": {"http_status": 504},
+        })
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is True
+        assert (
+            composition["composition_mode"]
+            == COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+        # The fallback carries metadata about why semantic failed.
+        assert composition["semantic_attempt_metadata"]["rejected_reason"] == "model_timeout"
+        assert composition["semantic_attempt_metadata"]["provider_metadata"] == {
+            "http_status": 504
+        }
+
+    def test_semantic_falls_back_to_template_when_provider_exception(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({}, raise_exception=True)
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is True
+        assert (
+            composition["composition_mode"]
+            == COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+        assert (
+            composition["semantic_attempt_metadata"]["rejected_reason"]
+            == "semantic_provider_exception"
+        )
+
+    def test_semantic_disabled_when_voice_profile_missing(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({"text": "x", "success": True})
+        decision = {
+            "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+            "replanning_id": "post-no-vp",
+            "selected_next_action_source": "npc_response",
+            "selected_next_actor_id": "npc_a",
+            "selected_next_action_kind": "speak",
+            "new_director_context": {"known_actor_ids": ["npc_a"]},
+        }
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        assert provider.calls == []  # voice profile gate runs first
+        assert follow_up["no_follow_up_reason"] == "voice_profile_unavailable"
+        composition = follow_up["composition_result"]
+        assert composition["composition_mode"] == COMPOSITION_MODE_NOT_APPLICABLE
+
+
+class TestSemanticCompositionSafetyGates:
+    def test_voice_forbidden_marker_in_semantic_text_falls_back_to_template(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "I disagree, and frankly NEVERMIND about this.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context(
+            extra_profile={"forbidden_language_markers": ["NEVERMIND"]},
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        # Semantic text rejected by voice marker gate → fallback used.
+        assert composition["composed"] is True
+        assert (
+            composition["composition_mode"]
+            == COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+        rejected_reason = composition["semantic_attempt_metadata"]["rejected_reason"]
+        assert rejected_reason is not None and "NEVERMIND" in rejected_reason
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_VOICE_FORBIDDEN_MARKERS] == SAFETY_GATE_RESULT_REJECT
+
+    def test_actor_lane_gate_rejects_when_speaker_is_ai_forbidden(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "I refuse to apologize.",
+            "success": True,
+            "metadata": {},
+        })
+        # Speaker actor is also flagged as ai_forbidden in the lane context.
+        # The check is fully closed-enum: no whitelists, just the actor-lane
+        # context we were given.
+        decision = _decision_with_full_context(
+            extra_context={
+                "actor_lane_context": {
+                    "ai_forbidden_actor_ids": ["npc_a"],
+                    "human_actor_id": "human_b",
+                },
+            },
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        # Both semantic and template paths reject (gate runs on both texts);
+        # final result is no_follow_up with an actor_lane reason.
+        assert follow_up["no_follow_up_reason"] is not None
+        assert "actor_lane_forbidden_speaker" in follow_up["no_follow_up_reason"]
+        # Composition mode reflects the last (template) attempt, tagged as fallback.
+        assert (
+            composition["composition_mode"]
+            == COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+
+    def test_no_new_people_gate_rejects_semantic_text_with_forbidden_token(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "Maybe Sergeant Hawthorne can settle this.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context(
+            extra_context={"forbidden_new_person_tokens": ["Sergeant Hawthorne"]},
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_NO_NEW_PEOPLE] == SAFETY_GATE_RESULT_REJECT
+        # Fell back to template (which doesn't mention Hawthorne).
+        assert composition["composed"] is True
+        assert (
+            composition["composition_mode"]
+            == COMPOSITION_MODE_TEMPLATE_FALLBACK_AFTER_SEMANTIC_FAILURE
+        )
+
+    def test_no_new_rooms_gate_rejects_semantic_text_with_forbidden_room(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "Let's continue this in the rooftop terrace.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context(
+            extra_context={"forbidden_new_room_tokens": ["rooftop terrace"]},
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_NO_NEW_ROOMS] == SAFETY_GATE_RESULT_REJECT
+
+    def test_no_forbidden_plot_facts_gate_rejects_semantic_text(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "You know I poisoned him last Christmas.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context(
+            extra_context={"forbidden_plot_fact_tokens": ["poisoned him"]},
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS] == SAFETY_GATE_RESULT_REJECT
+
+    def test_information_disclosure_gate_rejects_withheld_unit_token(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "The combination is 4729.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context(
+            extra_context={
+                "information_disclosure_target": {
+                    "withheld_units": [
+                        {"unit_id": "safe_code", "forbidden_disclosure_tokens": ["4729"]}
+                    ],
+                }
+            },
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_INFORMATION_DISCLOSURE] == SAFETY_GATE_RESULT_REJECT
+
+    def test_length_gate_rejects_oversize_semantic_output(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        # Even after the compact-one-line cap, the dispatcher truncates to
+        # MAX_COMPOSED_FOLLOW_UP_CHARS *before* gating. So we exercise the
+        # empty-text branch instead, which the length gate also catches.
+        provider = _FakeSemanticProvider({
+            "text": "",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        gates = composition["semantic_attempt_metadata"]["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_LENGTH] == SAFETY_GATE_RESULT_REJECT
+
+    def test_safety_gates_are_not_applicable_when_no_policy_provided(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "A plain reply that mentions nothing special.",
+            "success": True,
+            "metadata": {},
+        })
+        decision = _decision_with_full_context()  # no forbidden tokens or markers
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        composition = follow_up["composition_result"]
+        assert composition["composed"] is True
+        gates = composition["safety_gate_decisions"]
+        assert gates[SAFETY_GATE_VOICE_FORBIDDEN_MARKERS] == SAFETY_GATE_RESULT_NOT_APPLICABLE
+        assert gates[SAFETY_GATE_NO_NEW_PEOPLE] == SAFETY_GATE_RESULT_NOT_APPLICABLE
+        assert gates[SAFETY_GATE_NO_NEW_ROOMS] == SAFETY_GATE_RESULT_NOT_APPLICABLE
+        assert gates[SAFETY_GATE_NO_FORBIDDEN_PLOT_FACTS] == SAFETY_GATE_RESULT_NOT_APPLICABLE
+        assert gates[SAFETY_GATE_INFORMATION_DISCLOSURE] == SAFETY_GATE_RESULT_NOT_APPLICABLE
+        assert gates[SAFETY_GATE_LENGTH] == SAFETY_GATE_RESULT_PASS
+
+
+class TestSemanticCompositionInvariants:
+    def test_semantic_mode_preserves_history_and_commit_invariants(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "Reasonable in-character response.",
+            "success": True,
+            "metadata": {"model": "fake"},
+        })
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        assert follow_up["historical_events_mutated"] is False
+        assert follow_up["graph_state_mutated_mid_turn"] is False
+        assert follow_up["validation_outcome_changed"] is False
+        assert follow_up["commit_or_readiness_changed"] is False
+        assert follow_up["canonical_path_advanced"] is False
+        assert follow_up["mandatory_beat_consumed"] is False
+        composition = follow_up["composition_result"]
+        assert composition["new_people_introduced"] is False
+        assert composition["new_rooms_introduced"] is False
+        assert composition["plot_facts_introduced"] is False
+        payload = follow_up["block_stream_event"]["block_payload"]
+        assert payload["new_people_introduced"] is False
+        assert payload["new_rooms_introduced"] is False
+        assert payload["plot_facts_introduced"] is False
+
+    def test_fallback_mode_preserves_history_and_commit_invariants(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({"success": False, "error_code": "x"})
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        assert follow_up["historical_events_mutated"] is False
+        assert follow_up["validation_outcome_changed"] is False
+        assert follow_up["commit_or_readiness_changed"] is False
+
+    def test_no_provider_call_for_silence_source(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({"text": "x", "success": True})
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision={
+                "schema_version": SCHEMA_POST_CUT_IN_REPLANNING_DECISION,
+                "replanning_id": "post-silence",
+                "selected_next_action_source": "silence",
+                "selected_next_actor_id": None,
+                "selected_next_action_kind": "silence",
+                "silence_reason": "no_npc_above_motivation_threshold",
+            },
+            composition_provider=provider,
+        )
+
+        assert provider.calls == []
+        assert follow_up["composition_result"]["composition_mode"] == COMPOSITION_MODE_NOT_APPLICABLE
+
+
+class TestSemanticCompositionDiagnostics:
+    def test_source_contexts_listed_for_template_render(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raising=False)
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        composition = follow_up["composition_result"]
+        assert SOURCE_CONTEXT_VOICE_PROFILE in composition["source_contexts"]
+        assert SOURCE_CONTEXT_PROMOTED_PLAYER_INPUT in composition["source_contexts"]
+        # Template uses motivation_score placeholder? Only if template references it.
+        # Our test template doesn't, so motivation_score is *available* but not
+        # listed unless either the placeholder or context-side surface exists.
+        # The score is in context, so the derivation includes it.
+        assert SOURCE_CONTEXT_MOTIVATION_SCORE in composition["source_contexts"]
+        # Scene-energy / social-pressure live in context only when configured.
+        assert SOURCE_CONTEXT_SCENE_ENERGY in composition["source_contexts"]
+        assert SOURCE_CONTEXT_SOCIAL_PRESSURE in composition["source_contexts"]
+        assert SOURCE_CONTEXT_RELATIONSHIP_STATE in composition["source_contexts"]
+
+    def test_safety_gate_decisions_propagate_to_payload(self, monkeypatch):
+        monkeypatch.delenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, raising=False)
+        decision = _decision_with_full_context(
+            extra_profile={"forbidden_language_markers": ["foobar"]},
+        )
+
+        follow_up = build_post_cut_in_follow_up_event(decision=decision)
+
+        payload = follow_up["block_stream_event"]["block_payload"]
+        assert payload["safety_gate_decisions"][SAFETY_GATE_VOICE_FORBIDDEN_MARKERS] == "pass"
+        assert SAFETY_GATE_LENGTH in payload["safety_gate_decisions"]
+
+    def test_composition_mode_in_payload_matches_result(self, monkeypatch):
+        monkeypatch.setenv(PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED, "true")
+        provider = _FakeSemanticProvider({
+            "text": "Direct semantic reply.",
+            "success": True,
+            "metadata": {"model": "fake"},
+        })
+        decision = _decision_with_full_context()
+
+        follow_up = build_post_cut_in_follow_up_event(
+            decision=decision, composition_provider=provider
+        )
+
+        payload = follow_up["block_stream_event"]["block_payload"]
+        assert (
+            payload["composition_mode"]
+            == follow_up["composition_result"]["composition_mode"]
+            == COMPOSITION_MODE_SEMANTIC_GENERATION
+        )

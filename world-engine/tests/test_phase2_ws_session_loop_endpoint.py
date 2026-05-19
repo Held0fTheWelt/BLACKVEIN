@@ -143,6 +143,7 @@ def _autonomous_envelope_extras(
     known_actor_ids: list[str] | None = None,
     known_room_ids: list[str] | None = None,
     marker_counts: dict[str, int] | None = None,
+    actor_voice_profiles: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the envelope additions the WS loop needs for Stage E/F emission.
 
@@ -203,7 +204,26 @@ def _autonomous_envelope_extras(
         extras["known_actor_ids"] = list(known_actor_ids)
     if known_room_ids is not None:
         extras["known_room_ids"] = list(known_room_ids)
+    if actor_voice_profiles is not None:
+        extras["character_voice_profiles"] = list(actor_voice_profiles)
     return extras
+
+
+def _voice_profile_for(
+    actor_id: str,
+    *,
+    follow_up_reply: str = "{actor_id}: {promoted_player_input}",
+    baseline_tone: str = "controlled fury",
+    current_phase_voice_hint: str = "answer the interruption head-on",
+) -> dict[str, Any]:
+    """Minimal authored voice profile usable by the follow-up composition layer."""
+    return {
+        "runtime_actor_id": actor_id,
+        "character_key": actor_id,
+        "baseline_tone": baseline_tone,
+        "current_phase_voice_hint": current_phase_voice_hint,
+        "speech_patterns": {"follow_up_reply": follow_up_reply},
+    }
 
 
 @pytest.fixture
@@ -515,7 +535,11 @@ class TestCutInOverWs:
         self, ws_enabled, env_test_mode,
     ):
         manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
-        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            actor_voice_profiles=[_voice_profile_for("npc_a")],
+        )
         app = _make_app(events=manager_events, autonomous_envelope_extras=extras)
         client = TestClient(app)
         with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
@@ -554,8 +578,25 @@ class TestCutInOverWs:
             assert follow_up["selected_next_actor_id"] == "npc_a"
             assert follow_up["emitted_event_id"]
             assert follow_up["no_follow_up_reason"] is None
+            composition = follow_up["composition_result"]
+            assert composition["composed"] is True
+            assert composition["voice_profile_used"] is True
+            assert composition["voice_profile_actor_id"] == "npc_a"
+            assert composition["new_people_introduced"] is False
+            assert composition["new_rooms_introduced"] is False
+            assert composition["plot_facts_introduced"] is False
+            assert composition["safety_gate_result"] == "pass"
             assert follow_block_started is not None
             assert follow_block_started["event_id"] == follow_up["emitted_event_id"]
+            follow_payload = (
+                follow_block_started.get("block_stream_event", {}).get("block_payload", {})
+            )
+            assert follow_payload["voice_profile_used"] is True
+            assert follow_payload["voice_profile_actor_id"] == "npc_a"
+            assert follow_payload["new_people_introduced"] is False
+            assert follow_payload["new_rooms_introduced"] is False
+            assert follow_payload["plot_facts_introduced"] is False
+            assert "Answer me." in follow_payload["text"]
 
     def test_post_cut_in_replanning_can_choose_silence(
         self, ws_enabled, env_test_mode,
@@ -1039,7 +1080,11 @@ class TestAutonomousCutIn:
     ):
         """Player turn → autonomous block → cut-in → handoff → replanning → follow-up."""
         monkeypatch.setenv("PHASE2_WS_BLOCK_PACING_SECONDS", "0.3")
-        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
+        extras = _autonomous_envelope_extras(
+            npc_ids=["npc_a"],
+            high_motivation=True,
+            actor_voice_profiles=[_voice_profile_for("npc_a")],
+        )
         app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
         client = TestClient(app)
         with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
