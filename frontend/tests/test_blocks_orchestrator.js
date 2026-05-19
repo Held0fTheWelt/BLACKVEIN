@@ -1070,6 +1070,15 @@ describe('BlocksOrchestrator', () => {
           active_block_id: null,
           last_player_cut_in_event: null,
           cut_in_count: 0,
+          replanning_count: 0,
+          last_replanning_request: null,
+          last_replanning_decision: null,
+          cut_in_handoff_count: 0,
+          last_player_cut_in_handoff: null,
+          post_cut_in_replanning_count: 0,
+          last_post_cut_in_replanning_decision: null,
+          post_cut_in_follow_up_count: 0,
+          last_post_cut_in_follow_up_event: null,
           stream_fallback_reason: null,
           proof_level: 'unknown',
           ws_queued_input_count: 0,
@@ -1163,10 +1172,48 @@ describe('BlocksOrchestrator', () => {
         player_cut_in_event: cutEvent,
         drop_remaining_blocks: true,
         flush_active_block: false,
+        replanning_request: {
+          schema_version: 'replanning_request.v1',
+          request_id: 'req-1',
+          replanning_reason: 'player_cut_in',
+        },
+        replanning_decision: {
+          schema_version: 'replanning_decision.v1',
+          decision_id: 'decision-1',
+          request_id: 'req-1',
+          next_action_source: 'player_input_priority',
+          event_generation: 'replanned_after_cut_in',
+          replanned_event_ids: ['evt-replanned-1'],
+        },
+        player_cut_in_handoff: {
+          schema_version: 'player_cut_in_handoff.v1',
+          handoff_id: 'handoff-1',
+          cut_in_id: 'cut-1',
+          promoted_player_input_id: 'input-1',
+          source_replanning_decision_id: 'decision-1',
+          next_turn_trigger: 'player_cut_in_handoff',
+          autonomous_loop_paused: true,
+          handoff_status: 'promoted',
+          canceled_event_ids: ['evt-future'],
+          canceled_ticks: 1,
+          historical_events_mutated: false,
+          validation_outcome_changed: false,
+          commit_or_readiness_changed: false,
+          canonical_path_advanced: false,
+          mandatory_beat_consumed: false,
+        },
       });
       const s = orchestrator.getState();
       expect(s.cut_in_count).toBe(1);
       expect(s.last_player_cut_in_event).toEqual(cutEvent);
+      expect(s.replanning_count).toBe(1);
+      expect(s.last_replanning_request.schema_version).toBe('replanning_request.v1');
+      expect(s.last_replanning_decision.next_action_source).toBe('player_input_priority');
+      expect(s.last_replanning_decision.event_generation).toBe('replanned_after_cut_in');
+      expect(s.last_replanning_decision.replanned_event_ids).toEqual(['evt-replanned-1']);
+      expect(s.cut_in_handoff_count).toBe(1);
+      expect(s.last_player_cut_in_handoff.next_turn_trigger).toBe('player_cut_in_handoff');
+      expect(s.last_player_cut_in_handoff.autonomous_loop_paused).toBe(true);
       expect(s.active_block_id).toBe(null);
     });
 
@@ -1257,6 +1304,141 @@ describe('BlocksOrchestrator', () => {
       });
       expect(revealSpy).not.toHaveBeenCalled();
       expect(orchestrator.getState().cut_in_count).toBe(1);
+    });
+
+    test('standalone replanning_decision message records diagnostics', () => {
+      const request = {
+        schema_version: 'replanning_request.v1',
+        request_id: 'req-2',
+        replanning_reason: 'player_cut_in',
+        committed_event_ids: ['evt-a'],
+        streamed_but_not_committed_event_ids: ['evt-b'],
+        not_yet_started_event_ids: ['evt-c'],
+      };
+      const decision = {
+        schema_version: 'replanning_decision.v1',
+        request_id: 'req-2',
+        canceled_event_ids: ['evt-c'],
+        canceled_ticks: 1,
+        next_action_source: 'player_input_priority',
+        event_generation: 'replanned_after_cut_in',
+        replanned_event_ids: ['evt-replanned-2'],
+        mutates_committed_events: false,
+      };
+
+      orchestrator._handleWsMessage({
+        kind: 'replanning_decision',
+        replanning_request: request,
+        replanning_decision: decision,
+      });
+
+      const s = orchestrator.getState();
+      expect(s.replanning_count).toBe(1);
+      expect(s.last_replanning_request).toEqual(request);
+      expect(s.last_replanning_decision).toEqual(decision);
+      expect(s.last_replanning_decision.event_generation).toBe('replanned_after_cut_in');
+      expect(s.last_replanning_decision.mutates_committed_events).toBe(false);
+    });
+
+    test('standalone player_cut_in_handoff message records diagnostics', () => {
+      const handoff = {
+        schema_version: 'player_cut_in_handoff.v1',
+        handoff_id: 'handoff-2',
+        cut_in_id: 'cut-2',
+        promoted_player_input_id: 'input-2',
+        source_replanning_decision_id: 'decision-2',
+        next_turn_trigger: 'player_cut_in_handoff',
+        autonomous_loop_paused: true,
+        handoff_status: 'promoted',
+        canceled_event_ids: ['evt-canceled'],
+        canceled_ticks: 2,
+        historical_events_mutated: false,
+        validation_outcome_changed: false,
+        commit_or_readiness_changed: false,
+        canonical_path_advanced: false,
+        mandatory_beat_consumed: false,
+      };
+
+      orchestrator._handleWsMessage({
+        kind: 'player_cut_in_handoff',
+        player_cut_in_handoff: handoff,
+      });
+
+      const s = orchestrator.getState();
+      expect(s.cut_in_handoff_count).toBe(1);
+      expect(s.last_player_cut_in_handoff).toEqual(handoff);
+      expect(s.last_player_cut_in_handoff.promoted_player_input_id).toBe('input-2');
+    });
+
+    test('standalone post_cut_in_replanning_decision message records diagnostics', () => {
+      const decision = {
+        schema_version: 'post_cut_in_replanning_decision.v1',
+        replanning_id: 'post-1',
+        source_handoff_id: 'handoff-2',
+        promoted_player_input_id: 'input-2',
+        interrupted_block_id: 'evt-old',
+        interrupted_block_type: 'actor_line',
+        cut_kind: 'em_dash',
+        prior_plan_canceled: true,
+        canceled_event_ids: ['evt-future'],
+        canceled_ticks: 1,
+        new_director_context: {
+          director_tick_context: { trigger_kind: 'player_input' },
+          capability_outputs_used: ['scene_energy'],
+        },
+        selected_next_action_source: 'npc_response',
+        selected_next_actor_id: 'npc_a',
+        selected_next_action_kind: 'speak',
+        candidate_actions: [{ candidate_id: 'npc_response:npc_a', actor_id: 'npc_a' }],
+        rejected_candidates: [{ candidate_id: 'silence', rejection_reason: 'lower_priority_after_cut_in' }],
+        silence_reason: null,
+        historical_events_mutated: false,
+        validation_outcome_changed: false,
+        commit_or_readiness_changed: false,
+        canonical_path_advanced: false,
+        mandatory_beat_consumed: false,
+      };
+
+      orchestrator._handleWsMessage({
+        kind: 'post_cut_in_replanning_decision',
+        post_cut_in_replanning_decision: decision,
+      });
+
+      const s = orchestrator.getState();
+      expect(s.post_cut_in_replanning_count).toBe(1);
+      expect(s.last_post_cut_in_replanning_decision).toEqual(decision);
+      expect(s.last_post_cut_in_replanning_decision.selected_next_action_source).toBe('npc_response');
+      expect(s.last_post_cut_in_replanning_decision.historical_events_mutated).toBe(false);
+    });
+
+    test('standalone post_cut_in_follow_up_event message records diagnostics', () => {
+      const followUp = {
+        schema_version: 'post_cut_in_follow_up_event.v1',
+        follow_up_id: 'follow-1',
+        source_replanning_id: 'post-1',
+        selected_next_action_source: 'npc_response',
+        selected_next_actor_id: 'npc_a',
+        selected_next_action_kind: 'speak',
+        emitted_event_id: 'evt-follow',
+        silence_reason: null,
+        no_follow_up_reason: null,
+        historical_events_mutated: false,
+        validation_outcome_changed: false,
+        commit_or_readiness_changed: false,
+        canonical_path_advanced: false,
+        mandatory_beat_consumed: false,
+      };
+
+      orchestrator._handleWsMessage({
+        kind: 'post_cut_in_follow_up_event',
+        post_cut_in_follow_up_event: followUp,
+      });
+
+      const s = orchestrator.getState();
+      expect(s.post_cut_in_follow_up_count).toBe(1);
+      expect(s.last_post_cut_in_follow_up_event).toEqual(followUp);
+      expect(s.last_post_cut_in_follow_up_event.emitted_event_id).toBe('evt-follow');
+      expect(s.last_post_cut_in_follow_up_event.historical_events_mutated).toBe(false);
     });
 
     // ── Phase 2 Stage E — autonomous Director tick reception ──────────────

@@ -41,6 +41,7 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from starlette.concurrency import run_in_threadpool
 
+from ai_stack.director_pulse_contracts import ACTION_SILENCE, ACTION_SPEAK
 from ai_stack.phase2_autonomous_tick import (
     AutonomousTickInputs,
     AutonomousTickOutcome,
@@ -63,13 +64,21 @@ from ai_stack.phase2_ws_session_loop import (
     CLIENT_MSG_CUT_IN,
     CLIENT_MSG_PING,
     CLIENT_MSG_START_TURN,
+    HANDOFF_STATUS_PROMOTED,
+    NEXT_ACTION_SOURCE_NPC_RESPONSE,
+    NEXT_ACTION_SOURCE_SILENCE,
+    NEXT_TURN_TRIGGER_PLAYER_CUT_IN_HANDOFF,
     WSSessionLoopState,
     apply_cut_in,
+    build_post_cut_in_follow_up_event,
+    build_post_cut_in_replanning_decision,
     is_ws_session_loop_enabled,
     msg_autonomous_tick_evaluated,
     msg_block_completed,
     msg_block_cut,
     msg_block_started,
+    msg_post_cut_in_follow_up_event,
+    msg_post_cut_in_replanning_decision,
     msg_stream_error,
     msg_stream_idle,
     msg_stream_started,
@@ -356,6 +365,268 @@ async def _wait_for_pause_interval_or_input(
         return None
 
 
+async def _emit_replanned_events(
+    websocket: WebSocket,
+    replanning_decision: dict[str, Any] | None,
+) -> None:
+    """Deliver controlled future-only replanned events, if the decision made any."""
+    if not isinstance(replanning_decision, dict):
+        return
+    replanned_events = replanning_decision.get("replanned_block_stream_events")
+    if not isinstance(replanned_events, list):
+        return
+    for event in replanned_events:
+        if not isinstance(event, dict):
+            continue
+        await websocket.send_json(msg_block_started(event=event))
+        await websocket.send_json(msg_block_completed(event_id=event.get("event_id")))
+
+
+def _player_input_text(payload: dict[str, Any] | None) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    for key in ("player_input", "text", "utterance"):
+        text = str(payload.get(key) or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _priority_start_from_cut_outcome(cut_outcome: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Promote a Stage-K handoff into an internal next-turn trigger."""
+    if not isinstance(cut_outcome, dict):
+        return None
+    handoff = cut_outcome.get("player_cut_in_handoff")
+    cut_event = cut_outcome.get("player_cut_in_event")
+    if not isinstance(handoff, dict) or not isinstance(cut_event, dict):
+        return None
+    if handoff.get("handoff_status") != HANDOFF_STATUS_PROMOTED:
+        return None
+    payload = (
+        cut_event.get("player_input_payload")
+        if isinstance(cut_event.get("player_input_payload"), dict)
+        else {}
+    )
+    player_input = _player_input_text(payload)
+    if not player_input:
+        return None
+    promoted_input_id = str(handoff.get("promoted_player_input_id") or "").strip()
+    if not promoted_input_id:
+        return None
+    return {
+        "kind": CLIENT_MSG_START_TURN,
+        "player_input": player_input,
+        "player_input_id": promoted_input_id,
+        "source_kind": NEXT_TURN_TRIGGER_PLAYER_CUT_IN_HANDOFF,
+        "handoff_id": handoff.get("handoff_id"),
+        "_cut_outcome": cut_outcome,
+    }
+
+
+def _queue_handoff_for_next_turn(
+    cut_outcome: dict[str, Any] | None,
+    queued_carryover: list[dict[str, Any]],
+    processed_handoff_input_ids: set[str],
+) -> dict[str, Any] | None:
+    handoff_start = _priority_start_from_cut_outcome(cut_outcome)
+    if handoff_start is None:
+        return None
+    input_id = str(handoff_start.get("player_input_id") or "").strip()
+    if not input_id or input_id in processed_handoff_input_ids:
+        return None
+    already_queued = any(
+        str(item.get("player_input_id") or "").strip() == input_id
+        for item in queued_carryover
+        if isinstance(item, dict)
+    )
+    if not already_queued:
+        queued_carryover.append(dict(handoff_start))
+    return handoff_start
+
+
+def _candidate_actions_from_outcome(
+    outcome: AutonomousTickOutcome | None,
+) -> list[dict[str, Any]]:
+    if outcome is None:
+        return [{
+            "candidate_id": "silence",
+            "actor_id": None,
+            "action_kind": ACTION_SILENCE,
+            "score": 0.0,
+            "source": "fallback_no_director_context",
+        }]
+    candidates: list[dict[str, Any]] = []
+    for row in outcome.npc_motivation_scores:
+        if not isinstance(row, dict):
+            continue
+        actor_id = str(row.get("npc_id") or row.get("actor_id") or "").strip()
+        if not actor_id:
+            continue
+        try:
+            score = float(row.get("score") or outcome.motivation_scores.get(actor_id) or 0.0)
+        except (TypeError, ValueError):
+            score = 0.0
+        candidates.append({
+            "candidate_id": f"npc_response:{actor_id}",
+            "actor_id": actor_id,
+            "action_kind": ACTION_SPEAK,
+            "score": score,
+            "source": "motivation_score",
+        })
+    candidates.append({
+        "candidate_id": "silence",
+        "actor_id": None,
+        "action_kind": ACTION_SILENCE,
+        "score": 0.0,
+        "source": "director_silence",
+    })
+    return candidates
+
+
+def _rejected_post_cut_in_candidates(
+    candidate_actions: list[dict[str, Any]],
+    *,
+    selected_actor_id: str | None,
+    selected_action_kind: str,
+) -> list[dict[str, Any]]:
+    rejected: list[dict[str, Any]] = []
+    for candidate in candidate_actions:
+        actor_id = candidate.get("actor_id")
+        action_kind = str(candidate.get("action_kind") or "")
+        selected = (
+            (selected_action_kind == ACTION_SILENCE and action_kind == ACTION_SILENCE)
+            or (
+                selected_actor_id is not None
+                and str(actor_id or "") == selected_actor_id
+                and action_kind == selected_action_kind
+            )
+        )
+        if selected:
+            continue
+        rejected.append({
+            **candidate,
+            "rejection_reason": "lower_priority_after_cut_in",
+        })
+    return rejected
+
+
+def _post_cut_in_director_context(
+    turn: dict[str, Any] | None,
+    *,
+    events: list[dict[str, Any]],
+    tick_inputs: AutonomousTickInputs | None,
+    outcome: AutonomousTickOutcome | None,
+) -> dict[str, Any]:
+    envelope = _extract_envelope(turn) or {}
+    diagnostics = envelope.get("diagnostics") if isinstance(envelope.get("diagnostics"), dict) else {}
+    director_pulse = (
+        diagnostics.get("director_pulse")
+        if isinstance(diagnostics.get("director_pulse"), dict)
+        else {}
+    )
+    validator_plan = (
+        diagnostics.get("validator_plan")
+        if isinstance(diagnostics.get("validator_plan"), dict)
+        else {}
+    )
+    context = {
+        "turn_id": _extract_turn_id(turn),
+        "block_event_count": len(events),
+        "block_types": [
+            str(event.get("block_type") or "")
+            for event in events
+            if isinstance(event, dict)
+        ],
+        "capability_selection_present": bool(director_pulse.get("capability_outputs")),
+        "validator_plan_present": bool(validator_plan),
+        "gathering_paused": bool(tick_inputs.gathering_paused) if tick_inputs else False,
+        "npc_actor_ids": list(tick_inputs.npc_ids) if tick_inputs else [],
+        "visible_npc_actor_ids": list(tick_inputs.visible_npc_ids) if tick_inputs else [],
+        "known_actor_ids": list(tick_inputs.known_actor_ids) if tick_inputs else [],
+        "known_room_ids": list(tick_inputs.known_room_ids) if tick_inputs else [],
+    }
+    if outcome is not None:
+        context.update({
+            "director_tick_context": dict(outcome.director_tick_decision),
+            "capability_outputs_used": list(outcome.capability_outputs_used),
+            "capability_outputs_missing": list(outcome.capability_outputs_missing),
+            "motivation_scores": dict(outcome.motivation_scores),
+            "motivation_score_component_sources": dict(
+                outcome.motivation_score_component_sources
+            ),
+            "autonomous_tick_suppressed_reason": outcome.autonomous_tick_suppressed_reason,
+        })
+    else:
+        context.update({
+            "director_tick_context": {},
+            "capability_outputs_used": [],
+            "capability_outputs_missing": ["director_context_unavailable"],
+            "motivation_scores": {},
+            "motivation_score_component_sources": {},
+            "autonomous_tick_suppressed_reason": "director_context_unavailable",
+        })
+    return context
+
+
+def _build_post_cut_in_decision_for_turn(
+    *,
+    turn: dict[str, Any] | None,
+    events: list[dict[str, Any]],
+    cut_outcome: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(cut_outcome, dict):
+        return None
+    handoff = cut_outcome.get("player_cut_in_handoff")
+    if not isinstance(handoff, dict) or handoff.get("handoff_status") != HANDOFF_STATUS_PROMOTED:
+        return None
+
+    tick_inputs = _extract_autonomous_tick_inputs(turn, trigger_kind="player_input")
+    autonomous_outcome: AutonomousTickOutcome | None = None
+    if tick_inputs is not None:
+        tick_inputs.since_last_tick_ms = None
+        tick_inputs.pending_player_input = False
+        tick_inputs.already_streaming_block = False
+        tick_inputs.off_stage_updates_policy = None
+        tick_inputs.tick_id = str(uuid.uuid4())
+        autonomous_outcome = evaluate_autonomous_tick(tick_inputs, enabled=True)
+
+    candidate_actions = _candidate_actions_from_outcome(autonomous_outcome)
+    if autonomous_outcome is not None and autonomous_outcome.chosen_actor_id:
+        selected_actor = autonomous_outcome.chosen_actor_id
+        selected_action = autonomous_outcome.chosen_action_kind
+        selected_source = NEXT_ACTION_SOURCE_NPC_RESPONSE
+        silence_reason = None
+    else:
+        selected_actor = None
+        selected_action = ACTION_SILENCE
+        selected_source = NEXT_ACTION_SOURCE_SILENCE
+        silence_reason = (
+            autonomous_outcome.silence_reason
+            if autonomous_outcome is not None
+            else "director_context_unavailable"
+        )
+    return build_post_cut_in_replanning_decision(
+        source_handoff=handoff,
+        cut_outcome=cut_outcome,
+        new_director_context=_post_cut_in_director_context(
+            turn,
+            events=events,
+            tick_inputs=tick_inputs,
+            outcome=autonomous_outcome,
+        ),
+        selected_next_action_source=selected_source,
+        selected_next_actor_id=selected_actor,
+        selected_next_action_kind=selected_action,
+        candidate_actions=candidate_actions,
+        rejected_candidates=_rejected_post_cut_in_candidates(
+            candidate_actions,
+            selected_actor_id=selected_actor,
+            selected_action_kind=selected_action,
+        ),
+        silence_reason=silence_reason,
+    )
+
+
 # ── Streaming loop ────────────────────────────────────────────────────────────
 
 
@@ -367,6 +638,7 @@ async def _stream_events_to_client(
     cut_in_queue: asyncio.Queue,
     pacing_seconds: float,
     autonomous_originator: bool = False,
+    canceled_autonomous_ticks_on_cut: int = 0,
 ) -> None:
     """Emit each block as block_started → (pacing) → block_completed.
 
@@ -377,7 +649,7 @@ async def _stream_events_to_client(
     is augmented by the caller for the autonomous-tick branch); the transport
     semantics are identical between user-driven and autonomous block events.
     """
-    for event in events:
+    for event_index, event in enumerate(events):
         if state.stream_finished:
             return
         state.mark_block_started(event)
@@ -400,8 +672,16 @@ async def _stream_events_to_client(
                 state,
                 tick_id=str(event.get("tick_id") or uuid.uuid4()),
                 player_input_payload=cut_msg,
+                pending_events=events[event_index + 1 :],
+                canceled_autonomous_ticks=canceled_autonomous_ticks_on_cut,
             )
             await websocket.send_json(msg_block_cut(cut_outcome=outcome))
+            await _emit_replanned_events(
+                websocket,
+                outcome.get("replanning_decision")
+                if isinstance(outcome.get("replanning_decision"), dict)
+                else None,
+            )
             state.mark_stream_idle()
             return
 
@@ -481,6 +761,7 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
     autonomous_summaries: list[dict[str, Any]] = []
     autonomous_cut_in_interrupted: bool = False
     pending_priority_start: dict[str, Any] | None = None
+    processed_handoff_input_ids: set[str] = set()
 
     try:
         await websocket.send_json(msg_stream_started(session_id=session_id, turn_id=None))
@@ -512,21 +793,47 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                     player_input_payload=message,
                 )
                 await websocket.send_json(msg_block_cut(cut_outcome=outcome))
-                # Player input is preserved — carry forward to the next start_turn.
-                queued_carryover.append(message)
+                pending_priority_start = _queue_handoff_for_next_turn(
+                    outcome,
+                    queued_carryover,
+                    processed_handoff_input_ids,
+                )
                 continue
 
             if kind != CLIENT_MSG_START_TURN:
                 await websocket.send_json(msg_stream_error(reason="unknown_kind", detail=kind))
                 continue
 
+            source_kind = str(message.get("source_kind") or "")
+            message_input_id = str(message.get("player_input_id") or "").strip()
+            handoff_cut_outcome = (
+                message.get("_cut_outcome")
+                if isinstance(message.get("_cut_outcome"), dict)
+                else None
+            )
             player_input = str(message.get("player_input") or "").strip()
             if not player_input and queued_carryover:
-                # Replay carryover from a prior cut-in.
-                player_input = str(queued_carryover[-1].get("player_input") or "").strip()
+                # Replay carryover from a prior cut-in if the immediate
+                # handoff could not be processed before another start request.
+                carryover = queued_carryover[-1]
+                player_input = str(carryover.get("player_input") or "").strip()
+                source_kind = str(carryover.get("source_kind") or source_kind)
+                message_input_id = str(
+                    carryover.get("player_input_id") or message_input_id
+                ).strip()
+                handoff_cut_outcome = (
+                    carryover.get("_cut_outcome")
+                    if isinstance(carryover.get("_cut_outcome"), dict)
+                    else handoff_cut_outcome
+                )
 
             if not player_input:
                 await websocket.send_json(msg_stream_error(reason="missing_player_input"))
+                continue
+
+            is_handoff_turn = source_kind == NEXT_TURN_TRIGGER_PLAYER_CUT_IN_HANDOFF
+            if is_handoff_turn and message_input_id in processed_handoff_input_ids:
+                await websocket.send_json(msg_stream_idle(reason="duplicate_handoff_input_ignored"))
                 continue
 
             try:
@@ -548,11 +855,38 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                 await websocket.send_json(msg_stream_error(reason="turn_execution_failed", detail=str(exc)))
                 continue
 
-            queued_carryover.clear()
+            if is_handoff_turn and message_input_id:
+                processed_handoff_input_ids.add(message_input_id)
+                queued_carryover[:] = [
+                    item for item in queued_carryover
+                    if str(item.get("player_input_id") or "").strip() != message_input_id
+                ]
+            else:
+                queued_carryover.clear()
             turn_id = _extract_turn_id(turn)
-            await websocket.send_json(msg_stream_started(session_id=session_id, turn_id=turn_id))
-
             events = _extract_block_stream_events(turn)
+            await websocket.send_json(msg_stream_started(session_id=session_id, turn_id=turn_id))
+            if is_handoff_turn:
+                post_cut_in_decision = _build_post_cut_in_decision_for_turn(
+                    turn=turn,
+                    events=events,
+                    cut_outcome=handoff_cut_outcome,
+                )
+                if post_cut_in_decision is not None:
+                    await websocket.send_json(
+                        msg_post_cut_in_replanning_decision(
+                            decision=post_cut_in_decision,
+                        )
+                    )
+                    follow_up = build_post_cut_in_follow_up_event(
+                        decision=post_cut_in_decision,
+                    )
+                    await websocket.send_json(
+                        msg_post_cut_in_follow_up_event(follow_up=follow_up)
+                    )
+                    follow_up_event = follow_up.get("block_stream_event")
+                    if isinstance(follow_up_event, dict):
+                        events = [*events, follow_up_event]
             state = WSSessionLoopState(session_id=session_id)
 
             if not events:
@@ -581,9 +915,17 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
             user_turn_cut = state.last_cut_kind is not None
 
             if user_turn_cut:
-                # Player interrupted the user-input turn — do not start an
-                # autonomous tick on top of a cut. The cut already queued
-                # the input for the next user turn.
+                # Player interrupted the user-input turn — promote the queued
+                # input into the next Director evaluation and pause autonomy.
+                pending_priority_start = _queue_handoff_for_next_turn(
+                    state.last_cut_outcome,
+                    queued_carryover,
+                    processed_handoff_input_ids,
+                )
+                continue
+
+            if is_handoff_turn:
+                await websocket.send_json(msg_stream_idle(reason="player_cut_in_handoff_completed"))
                 continue
 
             # ── Stage E/H: Autonomous Director Tick / Pause Loop ───────────
@@ -642,9 +984,23 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                                 idle_cut_state,
                                 tick_id=str(uuid.uuid4()),
                                 player_input_payload=wait_message,
+                                pending_events=[],
+                                canceled_autonomous_ticks=max(
+                                    0, max_ticks_per_pause - tick_index
+                                ),
                             )
                             await websocket.send_json(msg_block_cut(cut_outcome=cut_outcome))
-                            queued_carryover.append(wait_message)
+                            await _emit_replanned_events(
+                                websocket,
+                                cut_outcome.get("replanning_decision")
+                                if isinstance(cut_outcome.get("replanning_decision"), dict)
+                                else None,
+                            )
+                            pending_priority_start = _queue_handoff_for_next_turn(
+                                cut_outcome,
+                                queued_carryover,
+                                processed_handoff_input_ids,
+                            )
                         break
                     tick_inputs.since_last_tick_ms = min_tick_interval_ms
 
@@ -703,6 +1059,9 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                         cut_in_queue=cut_in_queue,
                         pacing_seconds=pacing_seconds,
                         autonomous_originator=True,
+                        canceled_autonomous_ticks_on_cut=max(
+                            0, max_ticks_per_pause - tick_index - 1
+                        ),
                     )
                 finally:
                     autonomous_state.stream_finished = True
@@ -714,13 +1073,16 @@ async def story_session_stream(websocket: WebSocket, session_id: str) -> None:  
                             pass
 
                 if autonomous_state.last_cut_kind is not None:
-                    # Player interrupted the autonomous block. Carry input to
-                    # the next start_turn — identical semantics to the user-turn cut.
+                    # Player interrupted the autonomous block. Promote the
+                    # input before any further autonomous follow-up.
                     stop_reason = LOOP_STOP_PLAYER_CUT_IN
                     autonomous_stop_cut_in = True
                     autonomous_cut_in_interrupted = True
-                    if autonomous_state.queued_player_inputs:
-                        queued_carryover.extend(autonomous_state.queued_player_inputs)
+                    pending_priority_start = _queue_handoff_for_next_turn(
+                        autonomous_state.last_cut_outcome,
+                        queued_carryover,
+                        processed_handoff_input_ids,
+                    )
                     if autonomous_summaries:
                         autonomous_summaries[-1] = {
                             **autonomous_summaries[-1],

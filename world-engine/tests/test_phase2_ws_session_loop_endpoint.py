@@ -37,6 +37,7 @@ from ai_stack.director_pulse_contracts import (
 )
 from ai_stack.phase2_ws_session_loop import (
     PHASE2_WS_SESSION_LOOP_ENABLED,
+    SCHEMA_PLAYER_CUT_IN_HANDOFF,
     is_ws_session_loop_enabled,
 )
 
@@ -62,11 +63,13 @@ class _ManagerStub:
         events: list[dict[str, Any]] | None = None,
         known_sessions: set | None = None,
         autonomous_envelope_extras: dict[str, Any] | None = None,
+        fail_first_execute: bool = False,
     ):
         self.events = events or []
         self.known_sessions = known_sessions if known_sessions is not None else {"sess-1"}
         self.execute_calls: list[dict[str, Any]] = []
         self.autonomous_envelope_extras = autonomous_envelope_extras or {}
+        self.fail_first_execute = fail_first_execute
 
     def execute_turn(self, *, session_id: str, player_input: str, trace_id=None):
         self.execute_calls.append({
@@ -74,6 +77,8 @@ class _ManagerStub:
             "player_input": player_input,
             "trace_id": trace_id,
         })
+        if self.fail_first_execute and len(self.execute_calls) == 1:
+            raise RuntimeError("transient ws handoff failure")
         if session_id not in self.known_sessions:
             raise KeyError(session_id)
         envelope: dict[str, Any] = {
@@ -111,6 +116,7 @@ def _make_app(
     events: list[dict[str, Any]] | None = None,
     known_sessions: set | None = None,
     autonomous_envelope_extras: dict[str, Any] | None = None,
+    fail_first_execute: bool = False,
 ) -> FastAPI:
     from app.api.story_ws import story_ws_router, story_ws_support_router
 
@@ -121,6 +127,7 @@ def _make_app(
         events=events,
         known_sessions=known_sessions,
         autonomous_envelope_extras=autonomous_envelope_extras,
+        fail_first_execute=fail_first_execute,
     )
     return app
 
@@ -382,19 +389,229 @@ class TestCutInOverWs:
             assert cut["kind"] == "block_cut"
             assert cut["cut_kind"] == "no_active_block"
             assert cut["player_cut_in_event"]["cut_kind"] == "no_active_block"
+            assert cut["replanning_request"]["schema_version"] == "replanning_request.v1"
+            assert cut["replanning_decision"]["schema_version"] == "replanning_decision.v1"
+            assert cut["replanning_decision"]["next_action_source"] == "player_input_priority"
+            handoff = cut["player_cut_in_handoff"]
+            assert handoff["schema_version"] == SCHEMA_PLAYER_CUT_IN_HANDOFF
+            assert handoff["handoff_status"] == "promoted"
+            assert handoff["next_turn_trigger"] == "player_cut_in_handoff"
+            assert handoff["autonomous_loop_paused"] is True
 
-    def test_carryover_replayed_into_next_start_turn(self, ws_enabled, env_test_mode):
-        """A no_active_block cut-in queues input; the next start_turn replays it."""
+    def test_cut_in_promotes_queued_input_into_next_director_turn(
+        self, ws_enabled, env_test_mode,
+    ):
+        """A no_active_block cut-in promotes queued input immediately."""
         manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
         app = _make_app(events=manager_events)
         client = TestClient(app)
         with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
             ws.receive_json()  # stream_started
             ws.send_json({"kind": "cut_in", "player_input": "look around"})
-            ws.receive_json()  # block_cut (no_active_block)
-            # Empty player_input on start_turn → server replays the carryover.
-            ws.send_json({"kind": "start_turn", "player_input": ""})
+            cut = ws.receive_json()  # block_cut (no_active_block)
+            assert cut["player_cut_in_handoff"]["handoff_status"] == "promoted"
             # Drain until stream_idle.
+            seen = []
+            for _ in range(8):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle":
+                    break
+            seen_kinds = [m["kind"] for m in seen]
+            assert "stream_started" in seen_kinds
+            post = next(
+                m for m in seen
+                if m["kind"] == "post_cut_in_replanning_decision"
+            )
+            post_decision = post["post_cut_in_replanning_decision"]
+            assert post_decision["schema_version"] == "post_cut_in_replanning_decision.v1"
+            assert post_decision["source_handoff_id"] == cut["player_cut_in_handoff"]["handoff_id"]
+            assert post_decision["promoted_player_input_id"] == (
+                cut["player_cut_in_handoff"]["promoted_player_input_id"]
+            )
+            assert post_decision["historical_events_mutated"] is False
+            assert post_decision["validation_outcome_changed"] is False
+            assert post_decision["commit_or_readiness_changed"] is False
+            follow = next(
+                m for m in seen
+                if m["kind"] == "post_cut_in_follow_up_event"
+            )
+            follow_up = follow["post_cut_in_follow_up_event"]
+            assert follow_up["schema_version"] == "post_cut_in_follow_up_event.v1"
+            assert follow_up["source_replanning_id"] == post_decision["replanning_id"]
+            assert follow_up["historical_events_mutated"] is False
+            assert follow_up["validation_outcome_changed"] is False
+            assert follow_up["commit_or_readiness_changed"] is False
+            # Manager should have executed exactly one turn with the carryover input.
+            manager = app.state.story_manager
+            assert len(manager.execute_calls) == 1
+            assert manager.execute_calls[0]["player_input"] == "look around"
+
+    def test_cut_in_handoff_does_not_process_same_input_twice(
+        self, ws_enabled, env_test_mode,
+    ):
+        manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
+        app = _make_app(events=manager_events)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "cut_in", "player_input": "look around"})
+            cut = ws.receive_json()
+            handoff = cut["player_cut_in_handoff"]
+            for _ in range(8):
+                m = ws.receive_json()
+                if m["kind"] == "stream_idle":
+                    break
+
+            ws.send_json({
+                "kind": "start_turn",
+                "player_input": "look around",
+                "player_input_id": handoff["promoted_player_input_id"],
+                "source_kind": "player_cut_in_handoff",
+            })
+            duplicate = ws.receive_json()
+            assert duplicate["kind"] == "stream_idle"
+            assert duplicate["reason"] == "duplicate_handoff_input_ignored"
+            manager = app.state.story_manager
+            assert len(manager.execute_calls) == 1
+
+    def test_autonomous_loop_pauses_for_promoted_cut_in_input(
+        self, ws_enabled, autonomous_enabled, env_test_mode,
+    ):
+        manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
+        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
+        app = _make_app(events=manager_events, autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "cut_in", "player_input": "I take over."})
+            cut = ws.receive_json()
+            assert cut["player_cut_in_handoff"]["autonomous_loop_paused"] is True
+
+            seen: list[dict[str, Any]] = []
+            for _ in range(10):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle":
+                    break
+            assert [m["kind"] for m in seen].count("autonomous_tick_evaluated") == 0
+            assert seen[-1]["kind"] == "stream_idle"
+            assert seen[-1]["reason"] == "player_cut_in_handoff_completed"
+            manager = app.state.story_manager
+            assert len(manager.execute_calls) == 1
+            assert manager.execute_calls[0]["player_input"] == "I take over."
+
+            ws.send_json({"kind": "start_turn", "player_input": "continue"})
+            reactivated = None
+            for _ in range(12):
+                m = ws.receive_json()
+                if m["kind"] == "autonomous_tick_evaluated":
+                    reactivated = m
+                    break
+            assert reactivated is not None
+            assert reactivated["summary"]["block_emitted"] is True
+
+    def test_post_cut_in_replanning_can_select_npc_response(
+        self, ws_enabled, env_test_mode,
+    ):
+        manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
+        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
+        app = _make_app(events=manager_events, autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "cut_in", "player_input": "Answer me."})
+            ws.receive_json()  # block_cut
+            post_decision = None
+            follow_up = None
+            follow_block_started = None
+            for _ in range(8):
+                m = ws.receive_json()
+                if m["kind"] == "post_cut_in_replanning_decision":
+                    post_decision = m["post_cut_in_replanning_decision"]
+                if m["kind"] == "post_cut_in_follow_up_event":
+                    follow_up = m["post_cut_in_follow_up_event"]
+                if m["kind"] == "block_started":
+                    event = m.get("block_stream_event") or {}
+                    payload = event.get("block_payload") or {}
+                    if payload.get("originator") == "post_cut_in_follow_up":
+                        follow_block_started = m
+                        break
+
+            assert post_decision is not None
+            assert post_decision["selected_next_action_source"] == "npc_response"
+            assert post_decision["selected_next_actor_id"] == "npc_a"
+            assert post_decision["selected_next_action_kind"] == "speak"
+            assert post_decision["new_director_context"]["capability_selection_present"] is True
+            assert post_decision["new_director_context"]["director_tick_context"]["trigger_kind"] == "player_input"
+            assert any(
+                c.get("actor_id") == "npc_a"
+                for c in post_decision["candidate_actions"]
+            )
+            assert follow_up is not None
+            assert follow_up["schema_version"] == "post_cut_in_follow_up_event.v1"
+            assert follow_up["selected_next_action_source"] == "npc_response"
+            assert follow_up["selected_next_actor_id"] == "npc_a"
+            assert follow_up["emitted_event_id"]
+            assert follow_up["no_follow_up_reason"] is None
+            assert follow_block_started is not None
+            assert follow_block_started["event_id"] == follow_up["emitted_event_id"]
+
+    def test_post_cut_in_replanning_can_choose_silence(
+        self, ws_enabled, env_test_mode,
+    ):
+        manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
+        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=False)
+        app = _make_app(events=manager_events, autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "cut_in", "player_input": "Anyone?"})
+            ws.receive_json()  # block_cut
+            post_decision = None
+            follow_up = None
+            follow_block_ids = []
+            for _ in range(10):
+                m = ws.receive_json()
+                if m["kind"] == "post_cut_in_replanning_decision":
+                    post_decision = m["post_cut_in_replanning_decision"]
+                if m["kind"] == "post_cut_in_follow_up_event":
+                    follow_up = m["post_cut_in_follow_up_event"]
+                if m["kind"] == "block_started":
+                    follow_block_ids.append(m.get("event_id"))
+                if m["kind"] == "stream_idle":
+                    break
+
+            assert post_decision is not None
+            assert post_decision["selected_next_action_source"] == "silence"
+            assert post_decision["selected_next_actor_id"] is None
+            assert post_decision["selected_next_action_kind"] == "silence"
+            assert post_decision["silence_reason"]
+            assert any(c.get("candidate_id") == "silence" for c in post_decision["candidate_actions"])
+            assert follow_up is not None
+            assert follow_up["schema_version"] == "post_cut_in_follow_up_event.v1"
+            assert follow_up["selected_next_action_source"] == "silence"
+            assert follow_up["emitted_event_id"] is None
+            assert follow_up["silence_reason"] == post_decision["silence_reason"]
+            assert follow_up["no_follow_up_reason"] is None
+            assert None not in follow_block_ids
+
+    def test_ws_turn_failure_does_not_drop_promoted_cut_in_input(
+        self, ws_enabled, env_test_mode,
+    ):
+        manager_events = [_stream_event(BLOCK_TYPE_NARRATOR)]
+        app = _make_app(events=manager_events, fail_first_execute=True)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "cut_in", "player_input": "keep this input"})
+            cut = ws.receive_json()
+            assert cut["player_cut_in_handoff"]["handoff_status"] == "promoted"
+            err = ws.receive_json()
+            assert err["kind"] == "stream_error"
+            assert err["reason"] == "turn_execution_failed"
+
+            ws.send_json({"kind": "start_turn", "player_input": ""})
             seen_kinds = []
             for _ in range(8):
                 m = ws.receive_json()
@@ -402,10 +619,10 @@ class TestCutInOverWs:
                 if m["kind"] == "stream_idle":
                     break
             assert "stream_started" in seen_kinds
-            # Manager should have executed exactly one turn with the carryover input.
             manager = app.state.story_manager
-            assert len(manager.execute_calls) == 1
-            assert manager.execute_calls[0]["player_input"] == "look around"
+            assert len(manager.execute_calls) == 2
+            assert manager.execute_calls[0]["player_input"] == "keep this input"
+            assert manager.execute_calls[1]["player_input"] == "keep this input"
 
     def test_cut_in_during_actor_line_returns_em_dash(self, ws_enabled, env_test_mode, monkeypatch):
         """When a cut-in arrives during an actor_line block, cut_kind=em_dash."""
@@ -429,6 +646,14 @@ class TestCutInOverWs:
             assert cut["block_type"] == BLOCK_TYPE_ACTOR_LINE
             assert cut["drop_remaining_blocks"] is True
             assert cut["flush_active_block"] is False
+            assert cut["replanning_request"]["streamed_but_not_committed_event_ids"] == [
+                ev["event_id"]
+            ]
+            assert cut["replanning_decision"]["mutates_committed_events"] is False
+            assert cut["replanning_decision"]["event_generation"] == "replanned_after_cut_in"
+            assert len(cut["replanning_decision"]["replanned_event_ids"]) == 1
+            assert cut["player_cut_in_handoff"]["handoff_status"] == "promoted"
+            assert cut["player_cut_in_handoff"]["next_turn_trigger"] == "player_cut_in_handoff"
 
     def test_cut_in_during_narrator_returns_skip_to_end(self, ws_enabled, env_test_mode, monkeypatch):
         monkeypatch.setenv("PHASE2_WS_BLOCK_PACING_SECONDS", "0.3")
@@ -446,6 +671,74 @@ class TestCutInOverWs:
             assert cut["cut_kind"] == "skip_to_end"
             assert cut["drop_remaining_blocks"] is True
             assert cut["flush_active_block"] is True
+
+    def test_cut_in_replanning_boundary_keeps_committed_events_unchanged(
+        self, ws_enabled, env_test_mode, monkeypatch,
+    ):
+        monkeypatch.setenv("PHASE2_WS_BLOCK_PACING_SECONDS", "0.3")
+        first = _stream_event(BLOCK_TYPE_NARRATOR, text="Already done.")
+        second = _stream_event(BLOCK_TYPE_ACTOR_LINE, text="Interrupt me.")
+        third = _stream_event(BLOCK_TYPE_NARRATOR, text="Future only.")
+        app = _make_app(events=[first, second, third])
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "go"})
+            ws.receive_json()  # turn stream_started
+            ws.receive_json()  # first block_started
+            completed = ws.receive_json()
+            assert completed["kind"] == "block_completed"
+            assert completed["event_id"] == first["event_id"]
+            second_started = ws.receive_json()
+            assert second_started["kind"] == "block_started"
+            assert second_started["event_id"] == second["event_id"]
+
+            ws.send_json({"kind": "cut_in", "player_input": "Change course."})
+            cut = ws.receive_json()
+            request = cut["replanning_request"]
+            decision = cut["replanning_decision"]
+
+            assert request["committed_event_ids"] == [first["event_id"]]
+            assert request["streamed_but_not_committed_event_ids"] == [second["event_id"]]
+            assert request["not_yet_started_event_ids"] == [third["event_id"]]
+            assert request["historical_events_mutated"] is False
+            assert request["validation_outcome_changed"] is False
+            assert request["commit_or_readiness_changed"] is False
+            assert decision["canceled_event_ids"] == [third["event_id"]]
+            assert decision["next_action_source"] == "player_input_priority"
+            assert decision["canonical_path_advanced"] is False
+            assert decision["mandatory_beat_consumed"] is False
+            assert decision["event_generation"] == "replanned_after_cut_in"
+            assert len(decision["replanned_event_ids"]) == 1
+            assert decision["replanned_event_ids"][0] != third["event_id"]
+            handoff = cut["player_cut_in_handoff"]
+            assert handoff["source_replanning_decision_id"] == decision["decision_id"]
+            assert handoff["canceled_event_ids"] == [third["event_id"]]
+            assert handoff["canceled_ticks"] == 0
+            assert handoff["historical_events_mutated"] is False
+            assert handoff["validation_outcome_changed"] is False
+            assert handoff["commit_or_readiness_changed"] is False
+            assert handoff["canonical_path_advanced"] is False
+            assert handoff["mandatory_beat_consumed"] is False
+            replanned_started = ws.receive_json()
+            assert replanned_started["kind"] == "block_started"
+            replanned_event = replanned_started["block_stream_event"]
+            assert replanned_event["event_generation"] == "replanned_after_cut_in"
+            assert replanned_event["replaces_event_ids"] == [third["event_id"]]
+            assert replanned_event["next_action_source"] == "player_input_priority"
+            assert replanned_event["director_tick_decision"]["trigger_kind"] == "player_input"
+            replanned_completed = ws.receive_json()
+            assert replanned_completed["kind"] == "block_completed"
+            assert replanned_completed["event_id"] == replanned_event["event_id"]
+            handoff_stream = ws.receive_json()
+            assert handoff_stream["kind"] == "stream_started"
+            post = ws.receive_json()
+            assert post["kind"] == "post_cut_in_replanning_decision"
+            post_decision = post["post_cut_in_replanning_decision"]
+            assert post_decision["interrupted_context"]["committed_event_ids"] == [
+                first["event_id"]
+            ]
+            assert post_decision["historical_events_mutated"] is False
 
 
 # ── REST/bundle fallback discipline ───────────────────────────────────────────
@@ -706,10 +999,10 @@ class TestAutonomousCutIn:
             assert cut["cut_kind"] == "em_dash"
             assert cut["block_type"] == BLOCK_TYPE_ACTOR_LINE
 
-    def test_cut_in_carryover_replayed_on_next_start_turn(
+    def test_cut_in_handoff_runs_after_autonomous_block_cut(
         self, ws_enabled, autonomous_enabled, env_test_mode, monkeypatch,
     ):
-        """A cut into an autonomous block queues input for the next user turn."""
+        """A cut into an autonomous block promotes input into the next turn."""
         monkeypatch.setenv("PHASE2_WS_BLOCK_PACING_SECONDS", "0.3")
         extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
         app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
@@ -724,11 +1017,14 @@ class TestAutonomousCutIn:
                     if bp.get("originator") == "autonomous_tick":
                         break
             ws.send_json({"kind": "cut_in", "player_input": "second"})
+            cut = None
             for _ in range(5):
                 m = ws.receive_json()
                 if m["kind"] == "block_cut":
+                    cut = m
                     break
-            ws.send_json({"kind": "start_turn", "player_input": ""})
+            assert cut is not None
+            assert cut["player_cut_in_handoff"]["handoff_status"] == "promoted"
             # Drain to the next stream_idle.
             for _ in range(12):
                 m = ws.receive_json()
@@ -737,6 +1033,67 @@ class TestAutonomousCutIn:
             manager = app.state.story_manager
             # The carried-over "second" input must have been replayed.
             assert any(call["player_input"] == "second" for call in manager.execute_calls)
+
+    def test_phase2_end_to_end_cut_in_handoff_replanning_follow_up_smoke(
+        self, ws_enabled, autonomous_enabled, env_test_mode, monkeypatch,
+    ):
+        """Player turn → autonomous block → cut-in → handoff → replanning → follow-up."""
+        monkeypatch.setenv("PHASE2_WS_BLOCK_PACING_SECONDS", "0.3")
+        extras = _autonomous_envelope_extras(npc_ids=["npc_a"], high_motivation=True)
+        app = _make_app(events=[_stream_event(BLOCK_TYPE_NARRATOR)], autonomous_envelope_extras=extras)
+        client = TestClient(app)
+        with client.websocket_connect("/api/story/sessions/sess-1/stream") as ws:
+            ws.receive_json()
+            ws.send_json({"kind": "start_turn", "player_input": "first"})
+
+            saw_autonomous_summary = False
+            autonomous_block_started = None
+            for _ in range(20):
+                m = ws.receive_json()
+                if m["kind"] == "autonomous_tick_evaluated":
+                    saw_autonomous_summary = True
+                if m["kind"] == "block_started":
+                    event = m.get("block_stream_event") or {}
+                    payload = event.get("block_payload") or {}
+                    if payload.get("originator") == "autonomous_tick":
+                        autonomous_block_started = m
+                        break
+
+            assert saw_autonomous_summary is True
+            assert autonomous_block_started is not None
+
+            ws.send_json({"kind": "cut_in", "player_input": "I cut in now."})
+            seen: list[dict[str, Any]] = []
+            for _ in range(30):
+                m = ws.receive_json()
+                seen.append(m)
+                if m["kind"] == "stream_idle" and m.get("reason") == "player_cut_in_handoff_completed":
+                    break
+
+            cut = next(m for m in seen if m["kind"] == "block_cut")
+            assert cut["player_cut_in_handoff"]["handoff_status"] == "promoted"
+            post = next(m for m in seen if m["kind"] == "post_cut_in_replanning_decision")
+            post_decision = post["post_cut_in_replanning_decision"]
+            assert post_decision["selected_next_action_source"] == "npc_response"
+            assert post_decision["historical_events_mutated"] is False
+            follow = next(m for m in seen if m["kind"] == "post_cut_in_follow_up_event")
+            follow_up = follow["post_cut_in_follow_up_event"]
+            assert follow_up["schema_version"] == "post_cut_in_follow_up_event.v1"
+            assert follow_up["source_replanning_id"] == post_decision["replanning_id"]
+            assert follow_up["emitted_event_id"]
+            assert follow_up["historical_events_mutated"] is False
+            assert follow_up["validation_outcome_changed"] is False
+            assert follow_up["commit_or_readiness_changed"] is False
+            assert any(
+                m["kind"] == "block_started"
+                and m.get("event_id") == follow_up["emitted_event_id"]
+                for m in seen
+            )
+            manager = app.state.story_manager
+            assert [call["player_input"] for call in manager.execute_calls] == [
+                "first",
+                "I cut in now.",
+            ]
 
 
 class TestAutonomousGatheringPaused:
@@ -907,6 +1264,24 @@ class TestAutonomousPauseLoop:
                     break
             assert cut is not None
             assert cut["cut_kind"] == "no_active_block"
+            assert cut["replanning_request"]["canceled_ticks"] == 2
+            assert cut["replanning_decision"]["canceled_ticks"] == 2
+            assert cut["replanning_decision"]["next_action_source"] == "player_input_priority"
+            assert cut["replanning_decision"]["event_generation"] == "replanned_after_cut_in"
+            assert len(cut["replanning_decision"]["replanned_event_ids"]) == 1
+            assert cut["player_cut_in_handoff"]["autonomous_loop_paused"] is True
+            assert cut["player_cut_in_handoff"]["canceled_ticks"] == 2
+            post_decision = None
+            for _ in range(12):
+                m = ws.receive_json()
+                if m["kind"] == "post_cut_in_replanning_decision":
+                    post_decision = m["post_cut_in_replanning_decision"]
+                    break
+            assert post_decision is not None
+            assert post_decision["prior_plan_canceled"] is True
+            assert post_decision["canceled_ticks"] == 2
+            assert post_decision["source_handoff_id"] == cut["player_cut_in_handoff"]["handoff_id"]
+            assert post_decision["new_director_context"]["director_tick_context"]["trigger_kind"] == "player_input"
             assert evaluated_count == 1
 
     def test_off_stage_commits_remain_gated_inside_loop(

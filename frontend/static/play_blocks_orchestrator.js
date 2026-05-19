@@ -46,6 +46,15 @@ class BlocksOrchestrator {
     this._wsActiveBlockId = null;
     this._wsLastPlayerCutInEvent = null;
     this._wsCutInCount = 0;
+    this._wsReplanningCount = 0;
+    this._lastReplanningRequest = null;
+    this._lastReplanningDecision = null;
+    this._wsCutInHandoffCount = 0;
+    this._lastPlayerCutInHandoff = null;
+    this._postCutInReplanningCount = 0;
+    this._lastPostCutInReplanningDecision = null;
+    this._postCutInFollowUpCount = 0;
+    this._lastPostCutInFollowUpEvent = null;
     this._wsStreamFallbackReason = null;
     this._wsLiveInterruptionSupported = false;
     this._wsSessionLoopSupported = false;
@@ -362,6 +371,15 @@ class BlocksOrchestrator {
       active_block_id: this._wsActiveBlockId,
       last_player_cut_in_event: this._wsLastPlayerCutInEvent,
       cut_in_count: this._wsCutInCount,
+      replanning_count: this._wsReplanningCount,
+      last_replanning_request: this._lastReplanningRequest,
+      last_replanning_decision: this._lastReplanningDecision,
+      cut_in_handoff_count: this._wsCutInHandoffCount,
+      last_player_cut_in_handoff: this._lastPlayerCutInHandoff,
+      post_cut_in_replanning_count: this._postCutInReplanningCount,
+      last_post_cut_in_replanning_decision: this._lastPostCutInReplanningDecision,
+      post_cut_in_follow_up_count: this._postCutInFollowUpCount,
+      last_post_cut_in_follow_up_event: this._lastPostCutInFollowUpEvent,
       stream_fallback_reason: this._wsStreamFallbackReason,
       proof_level: this._wsProofLevel,
       ws_queued_input_count: this._wsInputQueue.length,
@@ -702,6 +720,15 @@ class BlocksOrchestrator {
     if (kind === 'block_cut') {
       this._wsCutInCount = (this._wsCutInCount || 0) + 1;
       this._wsLastPlayerCutInEvent = message.player_cut_in_event || null;
+      if (message.replanning_request || message.replanning_decision) {
+        this._wsReplanningCount = (this._wsReplanningCount || 0) + 1;
+        this._lastReplanningRequest = message.replanning_request || null;
+        this._lastReplanningDecision = message.replanning_decision || null;
+      }
+      if (message.player_cut_in_handoff) {
+        this._wsCutInHandoffCount = (this._wsCutInHandoffCount || 0) + 1;
+        this._lastPlayerCutInHandoff = message.player_cut_in_handoff;
+      }
       const cutKind = String(message.cut_kind || '');
       if (this._activeBlockIsAutonomous) {
         this._autonomousTickCutInInterruptedCount = (this._autonomousTickCutInInterruptedCount || 0) + 1;
@@ -714,6 +741,27 @@ class BlocksOrchestrator {
       this._wsActiveBlockId = null;
       this._wsLiveInterruptionSupported = false;
       this._activeBlockIsAutonomous = false;
+      return;
+    }
+    if (kind === 'replanning_decision') {
+      this._wsReplanningCount = (this._wsReplanningCount || 0) + 1;
+      this._lastReplanningRequest = message.replanning_request || null;
+      this._lastReplanningDecision = message.replanning_decision || null;
+      return;
+    }
+    if (kind === 'player_cut_in_handoff') {
+      this._wsCutInHandoffCount = (this._wsCutInHandoffCount || 0) + 1;
+      this._lastPlayerCutInHandoff = message.player_cut_in_handoff || null;
+      return;
+    }
+    if (kind === 'post_cut_in_replanning_decision') {
+      this._postCutInReplanningCount = (this._postCutInReplanningCount || 0) + 1;
+      this._lastPostCutInReplanningDecision = message.post_cut_in_replanning_decision || null;
+      return;
+    }
+    if (kind === 'post_cut_in_follow_up_event') {
+      this._postCutInFollowUpCount = (this._postCutInFollowUpCount || 0) + 1;
+      this._lastPostCutInFollowUpEvent = message.post_cut_in_follow_up_event || null;
       return;
     }
     if (kind === 'stream_idle') {

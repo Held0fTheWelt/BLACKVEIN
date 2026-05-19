@@ -1,4 +1,4 @@
-"""Greeting-imperative player input becomes two transcript blocks (echo + diegetic)."""
+"""Greeting-like player input is preserved as player-owned transcript blocks."""
 
 from __future__ import annotations
 
@@ -19,21 +19,33 @@ def _blocks_greet(*, raw: str, kind: str = "speech") -> list[dict]:
     )
 
 
-def test_greeting_imperative_de_two_scene_blocks_echo_and_outcome() -> None:
-    blocks = _blocks_greet(raw="Begrüße Veronique")
+def _assert_player_owned_echo_and_outcome(blocks: list[dict], *, raw: str) -> None:
     assert len(blocks) == 2
     assert blocks[0]["block_type"] == "player_input"
-    assert blocks[0]["text"] == "Begrüße Veronique"
     assert blocks[1]["block_type"] == "player_input_outcome"
-    assert "Annette sagt:" in str(blocks[1].get("text") or "")
-    assert "Hallo Véronique" in str(blocks[1].get("text") or "")
+    for block in blocks:
+        assert block["speaker_label"] == "Annette"
+        assert block["actor_id"] == "annette_reille"
+        assert block["actual_owner"] == "player"
+        assert block["authority_owner"] == "player"
+    assert blocks[0]["text"] == raw
+    assert blocks[1]["text"] == raw
+    assert "sagt:" not in blocks[1]["text"]
+    assert "says:" not in blocks[1]["text"]
+
+
+def test_greeting_imperative_de_two_scene_blocks_echo_and_outcome() -> None:
+    _assert_player_owned_echo_and_outcome(
+        _blocks_greet(raw="Begrüße Veronique"),
+        raw="Begrüße Veronique",
+    )
 
 
 def test_ich_begrüße_de_same_two_blocks() -> None:
-    blocks = _blocks_greet(raw="Ich begrüße Veronique")
-    assert len(blocks) == 2
-    assert blocks[0]["text"] == "Ich begrüße Veronique"
-    assert "Véronique" in str(blocks[1].get("text") or "")
+    _assert_player_owned_echo_and_outcome(
+        _blocks_greet(raw="Ich begrüße Veronique"),
+        raw="Ich begrüße Veronique",
+    )
 
 
 def test_direct_address_hallo_echo_and_attributed_outcome_two_blocks() -> None:
@@ -77,13 +89,11 @@ def test_greeting_imperative_en_two_blocks() -> None:
         human_actor_id="annette_reille",
         interpreted_input={"kind": "speech"},
     )
-    assert len(blocks) == 2
-    assert blocks[0]["text"] == "Greet Veronique"
-    assert "Annette says:" in str(blocks[1].get("text") or "")
-    assert "Hello Véronique" in str(blocks[1].get("text") or "")
+    _assert_player_owned_echo_and_outcome(blocks, raw="Greet Veronique")
 
 
 def test_action_kind_greeting_still_two_diegetic_blocks() -> None:
-    blocks = _blocks_greet(raw="Begrüße Veronique", kind="action")
-    assert len(blocks) == 2
-    assert blocks[1]["block_type"] == "player_input_outcome"
+    _assert_player_owned_echo_and_outcome(
+        _blocks_greet(raw="Begrüße Veronique", kind="action"),
+        raw="Begrüße Veronique",
+    )
