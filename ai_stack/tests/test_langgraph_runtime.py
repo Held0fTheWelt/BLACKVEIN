@@ -598,6 +598,68 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert "environment_state_bound" in (result.get("visibility_class_markers") or [])
 
 
+def test_runtime_turn_graph_trace_location_role_normalization_uses_short_path(tmp_path: Path) -> None:
+    graph = _build_graph_with_semantic_translation(
+        tmp_path,
+        {
+            "normalized_english_text": "Go to the kitchen.",
+            "player_input_kind": "physical_action",
+            "action_kind": "go_to",
+            "verb": "go_to",
+            "target_query_english": "the kitchen",
+            "resolved_target_id": "kitchen",
+            "resolved_target_type": "location",
+            "commit_policy": "commit_action",
+            "confidence": "high",
+        },
+    )
+
+    result = graph.run(
+        session_id="session-action-trace-kitchen",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Gehe in die Küche",
+        trace_id="trace-action-trace-kitchen",
+        turn_number=1,
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+
+    nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
+    frame = result.get("player_action_frame") or {}
+    repro = (result.get("graph_diagnostics") or {}).get("repro_metadata") or {}
+    environment_state = result.get("environment_state") or {}
+    visible_bundle = result.get("visible_output_bundle") or {}
+
+    assert "translate_player_input" in nodes
+    assert "resolve_player_action" in nodes
+    assert "authoritative_action_resolution" in nodes
+    assert "route_model" not in nodes
+    assert "invoke_model" not in nodes
+    assert frame.get("player_input_kind") == "physical_action"
+    assert frame.get("action_kind") == "movement"
+    assert frame.get("verb") == "move_to"
+    assert frame.get("resolved_target_id") == "kitchen"
+    assert frame.get("resolved_target_type") == "location"
+    assert frame.get("target_resolution_source") == "ai_semantic_resolution.content_id"
+    assert frame.get("canonical_path_effect") == "hold_current_step"
+    assert environment_state.get("current_room_id") == "kitchen"
+    assert visible_bundle.get("gm_narration")
+    assert visible_bundle.get("spoken_lines") == []
+    assert visible_bundle.get("action_lines") == []
+    assert repro.get("action_resolution_short_path") is True
+    assert repro.get("graph_path_summary") == "authoritative_action_resolution_deterministic"
+
+
 def test_runtime_turn_graph_routes_inferred_mundane_action_to_narrator_model(tmp_path: Path) -> None:
     graph = _build_graph_with_semantic_translation(
         tmp_path,

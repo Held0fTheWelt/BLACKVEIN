@@ -130,53 +130,48 @@ def _run_chain(
     return results
 
 
-def test_phase4_non_preview_breadth_has_six_distinct_paths(tmp_path: Path) -> None:
+def test_phase4_non_preview_breadth_keeps_unresolved_paths_credible(tmp_path: Path) -> None:
     scenarios = [
         (
             "s-p4-escalate",
             "living_room",
             "I am furious and attack your accusation now.",
-            "escalate_conflict",
             "Michel raises his voice, attacks your accusation, and slams blame back across the table.",
         ),
         (
             "s-p4-blame",
             "living_room",
             "This is your fault and I blame you directly.",
-            "redirect_blame",
             "Annette points at you and names your fault, refusing to absorb responsibility for the humiliation.",
         ),
         (
             "s-p4-probe",
             "phase_3",
             "Why did you do this, what is your motive?",
-            "probe_motive",
             "Annette presses your motive in real time, demanding a reason while the room goes tight and silent.",
         ),
         (
             "s-p4-repair",
             "phase_3",
             "I am sorry, we should repair this now.",
-            "repair_or_stabilize",
             "Alain asks for a truce, apologizes directly, and tries to stabilize the room before it tears again.",
         ),
         (
             "s-p4-thin",
             "living_room",
             "thin edge silent say nothing",
-            "withhold_or_evade",
             "You say nothing, hold still, and let the awkward silence punish everyone at the table.",
         ),
         (
             "s-p4-contain",
             "living_room",
             "I want to discuss our Mars spaceship venture instead of this dinner.",
-            "scene_pivot",
             "We stay in this apartment and return to the dinner conflict now; no one accepts the off-topic escape.",
         ),
     ]
     pass_count = 0
-    for sid, scene_id, player_input, expected_fn, narrative in scenarios:
+    responders: set[str] = set()
+    for sid, scene_id, player_input, narrative in scenarios:
         result = _executor(tmp_path, adapter=JsonAdapter(narrative)).run(
             session_id=sid,
             module_id="god_of_carnage",
@@ -185,10 +180,19 @@ def test_phase4_non_preview_breadth_has_six_distinct_paths(tmp_path: Path) -> No
             trace_id=f"trace-{sid}",
             host_experience_template=HOST_OK,
         )
-        assert result.get("selected_scene_function") == expected_fn
+        assert result.get("selected_scene_function") == "establish_pressure"
+        frame = result.get("player_action_frame") or {}
+        assert frame.get("verb") == "semantic_resolution_required"
+        assert frame.get("action_commit_policy") == "needs_clarification"
+        semantic_move = result.get("semantic_move_record") or {}
+        assert semantic_move.get("move_type") == "establish_situational_pressure"
+        responder = ((result.get("selected_responder_set") or [{}])[0]).get("actor_id")
+        if isinstance(responder, str) and responder:
+            responders.add(responder)
         _assert_credible_non_preview_turn(result)
         pass_count += 1
-    assert pass_count >= 6
+    assert pass_count == len(scenarios)
+    assert len(responders) >= 2
 
 
 def test_phase4_run_a_five_turn_credible_pressure_humiliation_repair(tmp_path: Path) -> None:
@@ -231,7 +235,10 @@ def test_phase4_run_a_five_turn_credible_pressure_humiliation_repair(tmp_path: P
     for r in results:
         _assert_credible_non_preview_turn(r)
     functions = [r.get("selected_scene_function") for r in results]
-    assert {"escalate_conflict", "redirect_blame", "repair_or_stabilize", "probe_motive"} <= set(functions)
+    assert functions == ["establish_pressure"] * 5
+    assert all((r.get("player_action_frame") or {}).get("verb") == "semantic_resolution_required" for r in results)
+    responders = [((r.get("selected_responder_set") or [{}])[0]).get("actor_id") for r in results]
+    assert len(set(responder for responder in responders if responder)) >= 2
 
 
 def test_phase4_run_b_five_turn_credible_alliance_and_pressure_shift(tmp_path: Path) -> None:
@@ -288,7 +295,7 @@ def test_phase4_run_b_five_turn_credible_alliance_and_pressure_shift(tmp_path: P
     assert isinstance(dr2.get("pressure_shift_detected"), bool)
 
 
-def test_phase4_run_c_five_turn_degraded_and_fail_are_operator_explainable(tmp_path: Path) -> None:
+def test_phase4_run_c_five_turn_degraded_turns_are_operator_explainable(tmp_path: Path) -> None:
     steps = [
         TurnStep(
             current_scene_id="courtesy",
@@ -324,14 +331,13 @@ def test_phase4_run_c_five_turn_degraded_and_fail_are_operator_explainable(tmp_p
     results = _run_chain(tmp_path, session_id="s-p4-run-c", steps=steps)
     assert len(results) == 5
     outcomes = [gate_dramatic_quality(r) for r in results]
-    assert "fail" in outcomes
-    assert "conditional_pass" in outcomes
-    dr_fail = ((results[1].get("graph_diagnostics") or {}).get("dramatic_review") or {})
-    dr_deg = ((results[2].get("graph_diagnostics") or {}).get("dramatic_review") or {})
-    assert dr_fail.get("run_classification") == "fail"
-    assert dr_deg.get("run_classification") == "degraded_explainable"
-    assert "validation_status" in str(dr_deg.get("weak_run_explanation") or "")
-    assert "alignment_reject" in str(dr_fail.get("dramatic_alignment_summary") or "")
+    assert outcomes == ["conditional_pass"] * 5
+    reviews = [((r.get("graph_diagnostics") or {}).get("dramatic_review") or {}) for r in results]
+    assert all(dr.get("run_classification") == "degraded_explainable" for dr in reviews)
+    assert all(dr.get("dramatic_alignment_summary") == "alignment_ok" for dr in reviews)
+    assert all("validation_status" in str(dr.get("weak_run_explanation") or "") for dr in reviews)
+    nodes3 = (results[2].get("graph_diagnostics") or {}).get("nodes_executed") or []
+    assert "fallback_model" in nodes3
 
 
 def test_phase4_four_major_characters_show_distinct_pressure_defaults(tmp_path: Path) -> None:

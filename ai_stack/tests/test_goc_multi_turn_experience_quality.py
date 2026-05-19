@@ -124,7 +124,7 @@ def _run_chain(tmp_path: Path, *, session_id: str, steps: list[TurnStep]) -> lis
     return results
 
 
-def test_phase3_run_a_non_preview_multiturn_pass(tmp_path: Path) -> None:
+def test_phase3_run_a_unresolved_multiturn_keeps_safe_pressure_default(tmp_path: Path) -> None:
     steps = [
         TurnStep(
             current_scene_id="living_room",
@@ -152,14 +152,21 @@ def test_phase3_run_a_non_preview_multiturn_pass(tmp_path: Path) -> None:
     results = _run_chain(tmp_path, session_id="s-p3-a", steps=steps)
     assert len(results) == 3
     scene_functions = [r.get("selected_scene_function") for r in results]
-    assert "escalate_conflict" in scene_functions
-    assert "withhold_or_evade" in scene_functions
-    assert "probe_motive" in scene_functions
+    assert scene_functions == ["establish_pressure", "establish_pressure", "establish_pressure"]
     for r in results:
         assert isinstance(r.get("experiment_preview"), bool)
         assert gate_turn_integrity(r) == "pass"
         assert gate_diagnostic_sufficiency(r) in ("pass", "conditional_pass")
         assert gate_dramatic_quality(r) in ("pass", "conditional_pass")
+        frame = r.get("player_action_frame") or {}
+        assert frame.get("verb") == "semantic_resolution_required"
+        assert frame.get("action_commit_policy") == "needs_clarification"
+        semantic_move = r.get("semantic_move_record") or {}
+        assert semantic_move.get("move_type") == "establish_situational_pressure"
+        resolution = ((r.get("scene_assessment") or {}).get("multi_pressure_resolution") or {})
+        assert resolution.get("chosen_scene_function") == "establish_pressure"
+        assert resolution.get("candidates") == ["establish_pressure"]
+        assert resolution.get("legacy_keyword_scene_candidates_used") is False
     dr = ((results[1].get("graph_diagnostics") or {}).get("dramatic_review") or {})
     assert "review_explanations" in dr
     vis_lines = (results[1].get("visible_output_bundle") or {}).get("gm_narration") or []
@@ -250,13 +257,16 @@ def test_experience_multiturn_primary_failure_fallback_and_degraded_explained(tm
     results = _run_chain(tmp_path, session_id="s-p3-c", steps=steps)
     assert len(results) == 3
     assert gate_dramatic_quality(results[0]) in ("pass", "conditional_pass")
-    assert gate_dramatic_quality(results[1]) == "fail"
+    assert gate_dramatic_quality(results[1]) == "conditional_pass"
     assert gate_dramatic_quality(results[2]) in ("pass", "conditional_pass")
 
     dr2 = ((results[1].get("graph_diagnostics") or {}).get("dramatic_review") or {})
     dr3 = ((results[2].get("graph_diagnostics") or {}).get("dramatic_review") or {})
-    assert dr2.get("dramatic_quality_status") == "fail"
-    assert "alignment_reject" in str(dr2.get("dramatic_alignment_summary") or "")
+    assert dr2.get("dramatic_quality_status") == "degraded_explainable"
+    assert dr2.get("dramatic_alignment_summary") == "alignment_ok"
+    assert "narrative_momentum_event_missing" in str(dr2.get("weak_run_explanation") or "")
+    effect2 = dr2.get("dramatic_effect_gate_outcome") or {}
+    assert effect2.get("gate_result") == "accepted_with_weak_signal"
     assert dr3.get("dramatic_quality_status") in ("pass", "conditional_pass", "degraded_explainable")
     nodes3 = (results[2].get("graph_diagnostics") or {}).get("nodes_executed") or []
     assert "fallback_model" in nodes3
@@ -270,7 +280,9 @@ def test_experience_multiturn_primary_failure_fallback_and_degraded_explained(tm
     assert isinstance(results[2].get("experiment_preview"), bool)
 
 
-def test_phase3_anti_repetition_same_move_diff_continuity(tmp_path: Path) -> None:
+def test_phase3_anti_repetition_same_unresolved_move_changes_responder_not_safe_scene_function(
+    tmp_path: Path,
+) -> None:
     base_graph = _executor(
         tmp_path,
         adapter=JsonAdapter("The room stays tight and quiet as everyone watches the table without speaking first."),
@@ -302,8 +314,18 @@ def test_phase3_anti_repetition_same_move_diff_continuity(tmp_path: Path) -> Non
             "player_intent": str(((no_prior.get("interpreted_move") or {}).get("player_intent") or "")),
         },
     )
-    assert no_prior.get("selected_scene_function") != with_prior.get("selected_scene_function")
+    assert no_prior.get("selected_scene_function") == "establish_pressure"
+    assert with_prior.get("selected_scene_function") == "establish_pressure"
+    assert (no_prior.get("player_action_frame") or {}).get("verb") == "semantic_resolution_required"
+    assert (with_prior.get("player_action_frame") or {}).get("verb") == "semantic_resolution_required"
+    no_prior_responder = ((no_prior.get("selected_responder_set") or [{}])[0]).get("actor_id")
+    with_prior_responder = ((with_prior.get("selected_responder_set") or [{}])[0]).get("actor_id")
+    assert no_prior_responder != with_prior_responder
+    resolution = ((with_prior.get("scene_assessment") or {}).get("multi_pressure_resolution") or {})
+    assert resolution.get("chosen_scene_function") == "establish_pressure"
+    assert resolution.get("social_state_asymmetry") == "blame_on_host_spouse_axis"
+    responder_resolution = resolution.get("responder_set_resolution") or {}
+    assert responder_resolution.get("secondary_reactor_enabled") is True
     dr = ((with_prior.get("graph_diagnostics") or {}).get("dramatic_review") or {})
     assert dr.get("pattern_repetition_risk") is False
     assert "pattern_variation" in str(dr.get("pattern_repetition_note") or "")
-

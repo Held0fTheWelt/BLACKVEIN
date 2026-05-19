@@ -286,8 +286,16 @@ from ai_stack.langgraph_runtime_state import (
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.prompt_store import render_prompt, render_prompt_lines
-from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.director_realization_composer import (
+    CAPABILITY_ACTOR_SPEECH,
+    CAPABILITY_NARRATOR_CLARIFICATION,
+    CAPABILITY_NARRATOR_DEFERRED,
+    CAPABILITY_NARRATOR_KANON_REFUSAL,
+    CAPABILITY_NARRATOR_LOCATION_TRANSITION,
+    REALIZATION_PLAN_SCHEMA_VERSION,
+    compose_realization_plan,
+)
 from story_runtime_core.language_adapter import (
     build_interaction_surface,
     default_player_intent_commit_flags,
@@ -4857,7 +4865,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("interpret_input", self._interpret_input)
         graph.add_node("meta_control_turn", self._meta_control_turn)
         graph.add_node("resolve_player_action", self._resolve_player_action)
-        graph.add_node("authoritative_action_resolution", self._authoritative_action_resolution_turn)
+        graph.add_node("director_compose_realization", self._director_compose_realization)
+        graph.add_node("realize_via_capabilities", self._realize_via_capabilities)
         graph.add_node("retrieve_context", self._retrieve_context)
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
@@ -4898,15 +4907,9 @@ class RuntimeTurnGraphExecutor:
             },
         )
         graph.add_edge("meta_control_turn", "package_output")
-        graph.add_conditional_edges(
-            "resolve_player_action",
-            self._route_after_resolve_player_action,
-            {
-                "full_pipeline": "retrieve_context",
-                "authoritative_action_resolution": "authoritative_action_resolution",
-            },
-        )
-        graph.add_edge("authoritative_action_resolution", "proposal_normalize")
+        graph.add_edge("resolve_player_action", "director_compose_realization")
+        graph.add_edge("director_compose_realization", "realize_via_capabilities")
+        graph.add_edge("realize_via_capabilities", "route_model")
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
@@ -6218,6 +6221,8 @@ class RuntimeTurnGraphExecutor:
         )
         if model:
             update["scene_affordance_model"] = model
+        update["kanon_break"] = bool(resolution.get("kanon_break"))
+        update["kanon_break_reason"] = resolution.get("kanon_break_reason") or None
         if frame and aff and model:
             try:
                 sam = normalize_scene_affordance_model_for_contracts(model)
@@ -6371,199 +6376,108 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
-    def _route_after_resolve_player_action(self, state: RuntimeTurnState) -> str:
-        """Branch: full LLM pipeline vs synthetic action-resolution surface."""
-        if not self.action_resolution_short_path_enabled:
-            return "full_pipeline"
-        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
-        if bool(interp.get("silence_negative_space_signal")):
-            return "full_pipeline"
+    def _director_compose_realization(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Director composes the realization plan for this player turn."""
+        update = _track(state, node_name="director_compose_realization")
         frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
         aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
-        pik = str(frame.get("player_input_kind") or "").strip().lower()
-        if is_speech_like_player_input_kind(pik) or pik == "meta":
-            return "full_pipeline"
-        if is_mixed_player_input_kind(pik):
-            return "full_pipeline"
-        short_path_policy = _runtime_governance_section(state, "action_resolution_short_path")
-        if not bool(short_path_policy.get("enabled")):
-            return "full_pipeline"
-        pol = str(aff.get("action_commit_policy") or "").strip().lower()
-        st = str(aff.get("affordance_status") or "").strip().lower()
-        source = str(
-            aff.get("target_resolution_source")
-            or frame.get("target_resolution_source")
-            or ""
-        ).strip()
-        validation_surface = str(frame.get("validation_surface") or "").strip()
-        access_status = str(aff.get("access_status") or frame.get("access_status") or "").strip()
-        if source == "semantic_ai_resolution_required" or validation_surface == "semantic_ai_resolution_required":
-            return "full_pipeline"
-        if source == "ai_semantic_resolution.plausible_inference" or access_status == "inferred_plausible":
-            return "full_pipeline"
-        if pol == "commit_speech" or bool(frame.get("npc_response_expected")):
-            return "full_pipeline"
-        if pol == "needs_clarification" or st in {"unknown_target", "ambiguous"}:
-            return "authoritative_action_resolution"
-        if st in {"blocked", "prevented", "unsafe"}:
-            return "authoritative_action_resolution"
-        ncp = state.get("narrator_consequence_plan") if isinstance(state.get("narrator_consequence_plan"), dict) else {}
-        if bool(ncp.get("requires_model_realization")):
-            return "full_pipeline"
-        if pol == "commit_action" and st in {"allowed", "allowed_offscreen", "partial"}:
-            return "authoritative_action_resolution"
-        return "full_pipeline"
-
-    def _authoritative_action_resolution_turn(self, state: RuntimeTurnState) -> RuntimeTurnState:
-        """Deterministic authoritative surface; no LLM invoke (not mock/LDSS/fallback)."""
-        update = _track(state, node_name="authoritative_action_resolution")
-        frame = dict(state.get("player_action_frame") or {})
-        aff = dict(state.get("affordance_resolution") or {})
-        frame["validation_surface"] = "authoritative_action_resolution"
-        lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
-        gen = build_synthetic_generation_for_action_resolution(
-            module_id=str(state.get("module_id") or ""),
-            lang=lang,
+        plan = compose_realization_plan(
             player_action_frame=frame,
             affordance_resolution=aff,
-            content_modules_root=None,
-            scene_affordance_model=state.get("scene_affordance_model") if isinstance(state.get("scene_affordance_model"), dict) else None,
-            current_player_local_context=state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None,
-            environment_state=state.get("environment_state") if isinstance(state.get("environment_state"), dict) else None,
-            environment_model=state.get("environment_model") if isinstance(state.get("environment_model"), dict) else None,
-            actor_lane_context=state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else None,
-            turn_number=int(state.get("turn_number") or 0),
-        )
-        routing = dict(state.get("routing") or {})
-        routing["action_resolution_branch"] = "authoritative_deterministic"
-        routing["action_resolution_short_path"] = True
-        routing["action_resolution_short_path_reason"] = "authoritative_action_resolution"
-        routing["generation_required"] = False
-        routing.setdefault("selected_model", "authoritative_action_resolution")
-        routing.setdefault("selected_provider", "wos_runtime")
-        routing.setdefault("route_reason", "authoritative_action_resolution")
-        player_input_kind = str(frame.get("player_input_kind") or "").strip().lower()
-        action_kind = str(frame.get("action_kind") or "").strip().lower()
-        verb = str(frame.get("verb") or "").strip().lower()
-        affordance_status = str(aff.get("affordance_status") or frame.get("affordance_status") or "").strip().lower()
-        scene_id = str(state.get("current_scene_id") or "unknown_scene").strip() or "unknown_scene"
-        response_plan = {
-            "deterministic_action_resolution": True,
-            "generation_required": False,
-            "player_action_frame_present": bool(frame),
-            "affordance_resolution_present": bool(aff),
-            "narrator_response_expected": bool(frame.get("narrator_response_expected")),
-            "npc_response_expected": bool(frame.get("npc_response_expected")),
-            "affordance_status": affordance_status or None,
-            "action_commit_policy": aff.get("action_commit_policy") or frame.get("action_commit_policy"),
-        }
-        expected_realization: list[str] = []
-        if response_plan["narrator_response_expected"]:
-            expected_realization.append(
-                NARRATOR_PERCEPTION_RESULT_DESCRIBE
-                if is_perception_like_player_input_kind(player_input_kind) or verb in {"look_at", "listen_to"}
-                else NARRATOR_LOCATION_TRANSITION_DESCRIBE
-                if action_kind == "movement" or verb == "move_to"
-                else NARRATOR_OBJECT_STATE_DESCRIBE
-                if action_kind == "object_interaction"
-                else NARRATOR_ACTION_CONSEQUENCE_DESCRIBE
-            )
-        if response_plan["npc_response_expected"]:
-            expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
-        deterministic_beat_id = f"{scene_id}:deterministic_action_resolution:{action_kind or player_input_kind or 'input'}"
-        beat_candidates = phase_beat_candidates(
-            module_policy=state.get("module_runtime_policy")
-            if isinstance(state.get("module_runtime_policy"), dict)
+            kanon_break=bool(state.get("kanon_break")),
+            kanon_break_reason=state.get("kanon_break_reason"),
+            session_output_language=str(state.get("session_output_language") or "de"),
+            scene_affordance_model=state.get("scene_affordance_model")
+            if isinstance(state.get("scene_affordance_model"), dict)
             else None,
-            phase_id=scene_id,
-            fallback_candidate_ids=[deterministic_beat_id],
-            expected_visible_functions=expected_realization,
         )
-        beat_selection = select_beat_candidate(
-            beat_candidates,
-            deterministic_fallback_id=deterministic_beat_id,
-            selection_source="module_policy",
-            selection_reason="authoritative_action_resolution_short_path",
+        update["realization_plan"] = plan
+        return update
+
+    def _realize_via_capabilities(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Translate the realization plan into the prompt for invoke_model."""
+        update = _track(state, node_name="realize_via_capabilities")
+        plan = state.get("realization_plan") if isinstance(state.get("realization_plan"), dict) else {}
+        capabilities = plan.get("capabilities_selected") or []
+        capability = capabilities[0] if capabilities else CAPABILITY_NARRATOR_DEFERRED
+        language = str(plan.get("language_target") or state.get("session_output_language") or "de")
+        frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
+        raw_player = str(state.get("player_input") or "").strip()
+        normalized_en = str(frame.get("normalized_english_text") or "").strip()
+        target_id = str(frame.get("resolved_target_id") or "").strip() or None
+        outcome = (plan.get("outcome_disposition") or {}).get("outcome") or "success"
+        outcome_reason = (plan.get("outcome_disposition") or {}).get("reason") or ""
+
+        prompt_lines: list[str] = [
+            "You are the narrator of an interactive theatre piece.",
+            f"Realize the player turn in session_output_language={language}.",
+            "Stay in inner-perception / orientation voice (ADR-MVP3-013).",
+            "Do not invent new persons, new rooms, plot-bearing facts, or hidden intentions.",
+            "Do not summarize dialogue, do not assign emotions to the player.",
+            "Write a small narrative, not a label. A mechanical one-liner like "
+            "'Du gehst ins Bad' is a failure: the player feels blind and the moment "
+            "feels cold and mechanical. Instead, write a short narrative arc that the "
+            "player experiences:",
+            "  1) Departure: how the player disengages from the current situation "
+            "     (a turn of the head, a step back, the conversation thinning behind them).",
+            "  2) Transition: the bodily movement or interaction itself "
+            "     (the few steps, the threshold, the hand reaching, the door, the corridor).",
+            "  3) Arrival or result: what becomes present now "
+            "     (one or two anchoring sensory details of the destination or the "
+            "     object's response: a smell, a temperature shift, a sound, a texture, a sight).",
+            "Three to six sentences total. Concrete. Physical. Sensory. No abstractions. "
+            "Use second person (du / you). Always in session_output_language.",
+            f"raw_player_input: {raw_player}",
+        ]
+        if normalized_en:
+            prompt_lines.append(f"normalized_english_text: {normalized_en}")
+        if target_id:
+            prompt_lines.append(f"resolved_target_id: {target_id}")
+        if capability == CAPABILITY_NARRATOR_LOCATION_TRANSITION:
+            prompt_lines.append(
+                "Capability: location transition. The player leaves the present scene, "
+                "moves through the spatial path, and arrives at the new location. "
+                "Name the destination by its in-world label in the session language. "
+                "Anchor the arrival with one or two concrete sensory details from the destination."
+            )
+        elif capability == CAPABILITY_NARRATOR_CLARIFICATION:
+            prompt_lines.append(
+                "Capability: clarification in narrator voice. Make the unclarity sensory: "
+                "a moment of hesitation, an unfocused gesture, a half-step that does not commit. "
+                f"Reason: {outcome_reason}. "
+                "Do not list options to the player; let the world hold its breath."
+            )
+        elif capability == CAPABILITY_NARRATOR_KANON_REFUSAL:
+            prompt_lines.append(
+                "Capability: soft refusal. The action cannot be carried out in the playable world. "
+                f"Reason: {outcome_reason}. "
+                "Do not lecture, do not say 'that is impossible'. Let the world resist physically: "
+                "the door does not yield, the hand will not close, the body refuses. "
+                "Return the player to actionable space with one concrete sensory anchor of the current situation."
+            )
+        elif capability == CAPABILITY_ACTOR_SPEECH:
+            prompt_lines.append(
+                "Capability: actor speech. Realize the player's spoken line as actor_line, "
+                "addressed to the situational target. The narrator's role is minimal here; "
+                "if you emit a narration_summary at all, keep it to one short physical beat "
+                "(a glance, a breath, the room around the words)."
+            )
+        else:
+            prompt_lines.append(
+                "Capability not yet fully wired. Produce a brief sensory narrator block "
+                "that acknowledges the player without inventing new world facts."
+            )
+        prompt_lines.append(
+            "Return JSON with keys: narration_summary (the visible narrator text, "
+            "three to six sentences, concrete and sensory), "
+            "spoken_lines (empty unless actor_line), action_lines (empty unless actor_line), "
+            "function_type=string."
         )
-        selected_beat_id = beat_selection.selected_beat_id or deterministic_beat_id
-        rc = self.retrieval_config or RuntimeRetrievalConfig()
-        skip_retrieval: dict[str, Any] = {
-            "domain": RetrievalDomain.RUNTIME.value,
-            "profile": rc.retrieval_profile,
-            "status": "skipped",
-            "retrieval_route": "authoritative_action_resolution_short_path",
-            "hit_count": 0,
-            "sources": [],
-            "ranking_notes": ["authoritative_action_resolution_short_path_no_retrieval"],
-            "index_version": "",
-            "corpus_fingerprint": "",
-            "storage_path": "",
-            "embedding_model_id": "",
-            "top_hit_score": "",
-        }
-        attach_retrieval_governance_summary(skip_retrieval)
-        update["retrieval"] = skip_retrieval
-        update["context_text"] = str(state.get("context_text") or "")
-        update["player_action_frame"] = frame
-        update["generation"] = gen
-        update["routing"] = routing
-        update["response_plan"] = response_plan
-        _gen_meta = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
-        _lct = _gen_meta.get("local_context_transition")
-        _ncp = _gen_meta.get("narrator_consequence_plan")
-        _uplc = _gen_meta.get("updated_player_local_context")
-        _env_candidate = _gen_meta.get("candidate_environment_state")
-        if _lct:
-            update["local_context_transition"] = _lct
-        if _ncp:
-            update["narrator_consequence_plan"] = _ncp
-        if _uplc:
-            update["player_local_context"] = _uplc
-        if isinstance(_env_candidate, dict) and _env_candidate:
-            update["environment_transition"] = {
-                "contract": "environment_transition.v1",
-                "candidate_state_available": True,
-                "source": "authoritative_action_resolution",
-            }
-        update["turn_aspect_ledger"] = set_aspect_record(
-            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
-            ASPECT_BEAT,
-            make_aspect_record(
-                applicable=True,
-                status="partial",
-                expected={
-                    "prior_beat_id": (
-                        (state.get("prior_dramatic_signature") or {}).get("prior_beat_id")
-                        if isinstance(state.get("prior_dramatic_signature"), dict)
-                        else None
-                    ),
-                    "candidate_beats": [candidate.id for candidate in beat_candidates] or [selected_beat_id],
-                    "expected_realization": expected_realization,
-                    "expected_visible_functions": expected_realization,
-                    "deterministic_action_resolution_marker": True,
-                },
-                selected={
-                    "selected_beat_id": selected_beat_id,
-                    "selected_scene_function": "deterministic_action_resolution",
-                    "selection_reason": beat_selection.selection_reason,
-                    "selection_source": beat_selection.selection_source,
-                    "transition_allowed": affordance_status not in {"unsafe"},
-                },
-                actual={
-                    "realized": None,
-                    "committed": None,
-                    "lost_at_stage": None,
-                    "failure_classification": "observability_gap",
-                    "deterministic_action_resolution": True,
-                    "response_plan": response_plan,
-                },
-                reasons=["deterministic_action_resolution_beat_selected_not_yet_realized"],
-                source="runtime",
-                selected_beat=selected_beat_id,
-            ),
-        )
-        update["transition_pattern"] = "hard"
-        update["fallback_needed"] = False
+        update["model_prompt"] = "\n".join(prompt_lines)
+        update["context_text"] = None
+        update["realize_via_capabilities_used_capability"] = capability
+        update["realize_via_capabilities_outcome"] = outcome
+        update["task_type"] = state.get("task_type") or "narrative_formulation"
         return update
 
     def _goc_resolve_canonical_content(self, state: RuntimeTurnState) -> RuntimeTurnState:

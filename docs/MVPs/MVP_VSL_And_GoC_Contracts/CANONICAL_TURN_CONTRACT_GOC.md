@@ -140,6 +140,16 @@ When `interpreted_move` and `scene_assessment` support **more than one** plausib
 2. Rank candidates by the **strongest continuity obligation** they would create **if committed**, using this **continuity-class severity order** (highest first): `revealed_fact` > `dignity_injury` > `alliance_shift` > `blame_pressure` > `situational_pressure` > `repair_attempt` > `refused_cooperation` > `silent_carry`.
 3. Choose the candidate tied at the **highest** implied obligation. If still tied, break ties by **lexicographically smallest** canonical scene-function label.
 
+If the action/speech/semantic resolver cannot commit the raw player input and
+the turn is represented as `semantic_resolution_required` /
+`needs_clarification`, keyword-like raw text does not create additional
+intentions. The director may collapse the candidate set to
+`establish_situational_pressure` -> `establish_pressure`; tests should assert the
+structured resolver and director evidence rather than expecting keyword-derived
+`selected_scene_function` labels from unresolved text. Prior continuity can
+still change `selected_responder_set`, social-state asymmetry, and repetition
+diagnostics for the turn without changing that safe scene-function default.
+
 ### 3.6 Model output boundaries (binding)
 
 The proposal model may **elaborate dramatic expression** (dialogue, beats, proposed effects wording) but **must not silently replace** the following fields once set by director nodes:

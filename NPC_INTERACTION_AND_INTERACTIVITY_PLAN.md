@@ -122,6 +122,39 @@ Diese Aktionen lösen einen **Director-Pause-Modus** aus (§3.4), keinen Hold/Bl
 
 > **An den implementierenden Agenten:** Vor jeder Codeänderung semantische Suche auf den genauen Stand (siehe `CLAUDE.md` „Code Discovery First"). Diese Datei ist die Grundlage, nicht der Patch. **Kein** `if x in {literal_set}` als Lösung — Discriminator gehört in Content/Policy, nicht in Code.
 
+### 3.0 Pflicht-Runtime-Contracts (vor PR-A)
+
+„Semantisch, keine Whitelist" verschiebt die Unschärfe nur dann nicht ins LLM, wenn die **Output-Verträge der Resolver/Director-Pfade hart und überprüfbar** sind. Vor PR-A wird **eine Contract-Spezifikation** (entweder eine `.md`-Datei in `docs/technical/runtime/` oder eine ADR-Ergänzung zu ADR-0057) verlangt, die die folgenden vier Verträge definiert:
+
+| Contract | Pflichtfelder | Verbindlichkeit |
+|----------|---------------|-----------------|
+| **`free_player_action_resolution.v1`** | `resolved_target_type` (`location` \| `object` \| `actor` \| `none`); `resolved_target_id` (oder `null` mit `classification_reason`); `target_location` (room id wenn Bewegung, sonst `null`); `presence_breaks_gathering: bool` (siehe §3.4); `affordance_status` (`allowed` \| `unknown_target`); `canon_safety` (`canon_compatible` \| `content_silent_mundane` \| `non_load_bearing` \| `reversible_local_detail` \| oder Risiko-Wert); `canonical_risk` (`low` \| `medium` \| `high`); `action_commit_policy` (`commit_action` \| `needs_clarification`) | Jeder Bewegungs-Input liefert *alle* Felder; `null` ist explizit erlaubt, aber nur mit Begründungsfeld. Validator-Test pro Feld. |
+| **`director_gathering_state.v1`** | `paused: bool`; wenn `true`: `step_id`, `missing_actor_ids: [actor_id]`, `since_turn: int`, `presence_required_for_step: [actor_id]` (Snapshot zur Eintrittszeit) | Pro Tick atomar; Wechsel `false → true` und `true → false` lösen je einen State-Change-Event aus. |
+| **`canonical_path_hold_effect.v1`** | `effect_kind: "hold_current_step"`; `source` (`ai_semantic_plausible_inference` \| `gathering_paused` \| `social_wait_policy` u. a.); `until_condition: string` (semantische Beschreibung der Auflösungs-Bedingung) | Wird im `graph_state` mitgeführt und von `_turn_holds_canonical_path_for_free_player_action()` gelesen. |
+| **`narrator_consequence_realization.v1`** | `source` (`ai_semantic_plausible_inference` \| `gathering_paused_reaction` \| u. a.); `requires_model_realization: bool`; `realized_block_id` (oder `null` mit `non_realization_reason`); Vertrag-Eigenschaften des erzeugten `narrator`-Blocks (keine neuen Personen/Räume/plot-Fakten) | Wenn `requires_model_realization=true`: ein sichtbarer Block muss entstehen *oder* eine explizite Nicht-Realisierungs-Begründung. |
+
+**Warum vor PR-A:** Sonst implementieren mehrere Agenten dieselbe Idee unterschiedlich, und PR-B/PR-C bauen auf einem unstabilen Vertrag auf. Der Contract ist kein zusätzlicher Bauplatz — er ist die Bedingung dafür, dass PR-A überhaupt akzeptierbar ist.
+
+**Pi/Π-IDs sind nur Index — Runtime-Code nutzt semantische Namen.** Capabilities werden in diesem Plan zur Lesbarkeit oft mit ihrem Π-Label genannt (Π1, Π7, Π11 etc.). Im **Runtime-Code, in Langfuse-Scores, in MCP-Payloads, in API-Feldern, im UI-Routing** dürfen *niemals* Pi-/Π-IDs als aktive Keys erscheinen — Quelle: `docs/MVPs/capability_matrix_status_and_adr_relations.md` Table B-Vorgabe + ADR-0039. Mapping:
+
+| Plan-Label (Index) | Runtime-Identifier |
+|--------------------|---------------------|
+| Π1                 | `hierarchical_memory` |
+| Π7                 | `npc_agency` |
+| Π8                 | `branching_simulation` |
+| Π10                | `voice_consistency` |
+| Π11                | `scene_energy` |
+| Π14                | `silence_negative_space` |
+| Π16                | `dramatic_irony` |
+| Π18                | `pacing_rhythm` |
+| Π19                | `subtext` |
+| Π22                | `social_pressure` |
+| Π23                | `agency_preservation` |
+| Π27                | `relationship_state` |
+| Π31                | `narrative_momentum` |
+
+Implementierungs-Code, ADR-Bauteile, Test-Asserts und UI-Diagnose-Felder verwenden **ausschließlich die rechte Spalte**.
+
 ### 3.1 Live-Smoke-Tour (kein Mock, echter Stack)
 
 Spielsession lokal hochfahren (`docker-up.py`), Session-Sprache DE, Spielfigur Annette. Nach Veroniques erstem Satz (step 005) folgende DE-Inputs testen, je in einer eigenen Session, und gegen die Erwartung prüfen:
@@ -173,11 +206,19 @@ Frage: Wenn `ai_semantic_resolution.plausible_inference` einen mundanen `commit_
 
 **Konzeptioneller Reset gegenüber früheren Plan-Versionen:** Das ist *kein* Spieler-Hold. Der Spieler darf die Wohnung verlassen, in die Küche gehen, Kaffee machen, am Fenster stehen — alles ohne Kanon-Verletzung. Was passiert, ist eine **Director-Modus-Umschaltung**, in der die *Versammlung* wartet, nicht der *Spieler*.
 
-**Discriminator (Hybrid, Stufe 1):**
+**Discriminator (Hybrid, Stufe 1) — präziser als ein reiner Location-Vergleich:**
 
-- **Quelle:** `named_characters` pro Step (in jedem Step deklariert, z. B. `canonical_path/005_…yaml:36`).
-- **Bedingung:** Spielercharakter ∈ `named_characters[current_step]` **und** semantische Aktion-Klassifikation produziert `target_location ≠ current_scene_id` (oder allgemeiner: `presence_breaks_gathering: true`).
-- **Effekt:** Director schaltet in `**gathering_paused`-Zustand**. *Keine Sperre der Spieler-Aktion.* *Keine Hold-Property auf den Step-Pointer.* Stattdessen: ein neuer Director-Modus.
+Ein roher `target_location ≠ current_scene_id`-Vergleich ist zu grob — er trifft nicht den Fall „im selben Raum weg vom Gespräch", „halb aus dem Raum getreten", „an der Tür stehen", „am Fenster lehnen" oder „kurz auf den Flur". Die richtige Komposition liest aus dem Frame:
+
+- **`presence_required_for_step`** — vom Content (`named_characters[current_step]` als Snapshot).
+- **`actor_location`** — aus `runtime_world.actor_locations`.
+- **`participation_relevance`** — semantisches Signal aus der Aktion-Klassifikation (`ai_semantic_resolution`): bricht diese Aktion die Teilnahme am Versammlungs-Beat oder nicht? Auch innerhalb desselben Raumes möglich (demonstrativ am Fenster vom Gespräch wegdrehen).
+- **`visibility / audibility`** — semantisches Signal: ist der Spieler-Charakter trotz Wechsel noch im Hör-/Sichtbereich (Halb-Tür, Türrahmen, Flur direkt nebenan, kurzer Toilettengang) oder echt weg?
+
+Das **abgeleitete Pflichtfeld** `presence_breaks_gathering: bool` (siehe §3.0 `free_player_action_resolution.v1`) entsteht aus dieser Komposition — der Resolver liefert es zusammen mit `target_location`. Der Director-Pause-Modus greift nur, wenn `presence_breaks_gathering=true`, **nicht** bei jedem Raum-Vergleich.
+
+- **Quelle:** `named_characters` pro Step (in jedem Step deklariert, z. B. `canonical_path/005_…yaml:36`), plus `participation_relevance` + `visibility/audibility` aus der semantischen Aktion-Klassifikation.
+- **Effekt:** Director schaltet in `gathering_paused`-Zustand (siehe §3.0 `director_gathering_state.v1`). *Keine Sperre der Spieler-Aktion.* *Keine Hold-Property auf den Step-Pointer.* Stattdessen: ein neuer Director-Modus.
 
 **Verhalten im `gathering_paused`-Modus:**
 
@@ -224,6 +265,15 @@ Der Discriminator wohnt **im Director**, gefüttert aus dem *physischen* Resolve
 ### 3.5 Live-Verifikation — systematische Diagnose-Erweiterung der world-engine UI
 
 **Entscheidung (2026-05-19, erweitert):** Phase 1 wird live verifiziert über die **systematische Erweiterung der bestehenden Diagnose-Seiten in der world-engine UI**. Nicht ein einzelnes neues Sammelpanel, sondern Erweiterungen dort, wo die jeweilige Information **thematisch hingehört**. Standort: `world-engine/app/web/templates/ui/` — bestehende Seiten: `diagnostics.html`, `live_runtime.html`, `narrative_systems.html`, `runtime_ledger.html`, `traces_observability.html`, `runs_sessions.html`, `runtime_status.html`, `validation_authority.html`, `history_events.html` u. a.
+
+**Einheitlicher Datenvertrag für alle Diagnose-Seiten — `runtime_diagnostic_snapshot.v1`:** Damit nicht jede UI-Seite halb andere Dinge zieht, definiert Phase 1 vor PR-A einen **einheitlichen Diagnose-Snapshot pro Session+Turn**:
+
+- **Eine API-/Service-Endpoint-Quelle** (vermutlich Erweiterung von `operator_diagnostics_routes` oder neuer Endpoint in derselben Familie).
+- **Strukturierte Felder**, die alle in §3.0 spezifizierten Contracts widerspiegeln: aktueller Resolver-Output (letzte N), aktueller `director_gathering_state`, aktive `canonical_path_hold_effect`, jüngste `narrator_consequence_realization`, Capability-Konsultationen pro Turn (semantische Namen, nicht Π-IDs), Block-Stream-Ereignisse, Souffleuse-Strom-Eigenschaften.
+- **Versioniert** (`.v1` → spätere Erweiterung als `.v2` ohne Brechen der UI).
+- Jede UI-Seite liest *nur* aus diesem Snapshot — keine direkten Manager-/Ledger-Queries pro Seite.
+
+Begründung: Sonst ziehen `diagnostics.html`, `runtime_ledger.html`, `narrative_systems.html` etc. jeweils halb andere Dinge, und es wird unklar, was die Wahrheit ist. Ein Vertrag = eine Wahrheit.
 
 **Prinzip der Erweiterung:** Für jede neue Director-State-Achse, jeden neuen Capability-Compose-Schritt, jede neue Π-Konsultation und jedes neue Pulse-Ereignis gehört ein Diagnose-Feld **dorthin, wo sein thematischer Nachbar schon sitzt** — nicht in ein generisches Sammel-Panel. Bekannte Felder, die heute noch *nirgendwo* diagnostiziert werden und in Phase 1+2 zu ergänzen sind (illustrative Zuordnung, endgültiger Standort beim Implementieren zu entscheiden):
 
@@ -304,6 +354,23 @@ Der Discriminator wohnt **im Director**, gefüttert aus dem *physischen* Resolve
 
 Erst beginnen, wenn Phase 1 live grün ist. Phase 2 ist *kein* Refactor des Bestehenden, sondern eine **neue Achse** über dem Turn-Cycle.
 
+### 4.0 Pulse-MVP-Contracts (vor ADR-0058 Implementation)
+
+Bevor die volle Director-Pulse-Mechanik gebaut wird, definiert Phase 2 vier minimale Verträge — analog zur §3.0-Disziplin für Phase 1. Diese vier sind das **Pulse-MVP**, auf dem alles weitere aufbaut. Sie gehören zwingend vor die eigentliche Pulse-Implementation und werden Teil von ADR-0058 / ADR-0059:
+
+| Contract | Pflichtfelder | Verbindlichkeit |
+|----------|---------------|-----------------|
+| **`director_tick_decision.v1`** | `tick_id`; `trigger_kind` (`player_input` \| `motivation_threshold_crossed` \| `state_change` \| `cooldown_check`); `triggering_actor_id` (oder `null` wenn state-change/cooldown); `chosen_action_kind` (`speak` \| `gesture` \| `local_mundane_action` \| `follow` \| `react_locally` \| `silence`); `chosen_actor_id` (Initiative-Träger, oder `null` bei Stille); `composition_inputs` (semantische Capability-Outputs konsultiert, Liste mit Runtime-Namen, **keine Π-IDs**); `since_last_tick_ms` | Jeder Tick produziert genau einen Datensatz. Stille-Ticks ebenfalls — als `chosen_action_kind: silence` mit `null`-actor. |
+| **`block_stream_event.v1`** | `event_id`; `tick_id` (Referenz); `block_type` (`narrator` \| `actor_line` \| `actor_action` \| `environment_interaction` \| `souffleuse`); `block_payload` (entsprechend Block-Type); `cut_in_state` (`uninterrupted` \| `cut_em_dash` \| `cut_skip_to_end`); `lane` (`visible_scene_output` \| `player_hint`) | Ein Block = ein Event. Keine Bündel mehr. Cut-In wird im Event vermerkt, nicht als separate Logik. |
+| **`npc_motivation_score.v1`** | `npc_id`; `tick_id`; `score: float` (normalisiert 0..1); `score_components` (strukturierte Beiträge aus `scene_energy`, `social_pressure`, `relationship_axis_pressure`, `narrative_momentum`, `pressure_baseline` — semantische Namen, keine Π-IDs); `threshold: float` (aus `pacing_rhythm` × `actor_pressure_profiles`); `crossed_threshold: bool` | Pro Tick pro anwesendem NPC ein Eintrag. Auch unterschwellige Scores werden festgehalten (für Diagnose und Reproduzierbarkeit). |
+| **`player_cut_in_event.v1`** | `cut_in_id`; `tick_id` (laufender Tick zum Cut-In-Zeitpunkt); `interrupted_block_id` (oder `null` wenn kein Block lief); `interrupted_block_type`; `cut_kind` (`em_dash` \| `skip_to_end` \| `no_active_block`); `player_input_payload` | Spieler-Initiative-Übernahme als first-class Event, gleichberechtigt mit NPC-Initiative. |
+
+**Disziplin:**
+
+- **Pulse-MVP zuerst, Pulse-Vollausbau danach.** Diese vier Verträge sind klein, präzise, testbar. Erst wenn sie stehen, wird die volle Komposition über die Capability-Matrix darübergelegt.
+- **Alle `composition_inputs` und `score_components` nennen semantische Capability-Identifier** (`scene_energy`, `social_pressure`, `relationship_state`, …) — **niemals Π-IDs**. Siehe §3.0 Mapping-Tabelle.
+- **Tests für jeden Contract** vor Aktivierung — analog zu Phase 1.
+
 ### 4.1 Design-Kernanforderungen aus der Grill-Sitzung
 
 1. **Spieler kann jederzeit eingreifen.** Keine „NPC-Bündel" mehr; kein Warten auf Ruhepunkt-Signal als Voraussetzung für Eingabe.
@@ -359,11 +426,16 @@ Phase 2 berührt mehrere Verträge gleichzeitig — vermutlich **drei neue ADRs*
 - **Π19 Subtext** + **Π16 Dramatic irony** — formen den Hinweis so, dass er Sub-Information trägt, ohne explizit zu werden.
 - **Π23 Agency preservation** — schützt: kein NPC-Verhalten off-stage darf die Spieler-Lane koerzieren oder den Spieler zur Rückkehr zwingen.
 
-**Harte Begrenzer:**
-1. **Off-Stage-Updates dürfen niemals den Canonical-Path beeinflussen.** Kein Mandatory-Beat-Konsum, keine Step-Pointer-Bewegung, keine canonical `state_changes_committed` aus off-stage.
-2. **Stimmungs-/Charakter-Kohärenz** ist Grundbedingung — geprüft durch existierende Validatoren der konsultierten Capabilities (Π10 voice_consistency, Π27 relationship transition validation, Π19 subtext sincerity band).
-3. **Keine neuen Personen, Räume, plot-tragende Fakten off-stage.** `forbidden_scope` aus `player_freedom_policy.yaml` gilt für den Director ebenso wie für den Spieler.
-4. **Atmosphärischer Hinweis im Spieler-Raum ist ein einziger Block pro Tick** — kein Off-Stage-Stream.
+**Harte Begrenzer — als zwingende Validatoren / Gates zu implementieren (nicht nur als Plan-Aussage):**
+
+1. **Kein Canonical-Path-Effekt:** kein Mandatory-Beat-Konsum, keine Step-Pointer-Bewegung, keine canonical `state_changes_committed` aus off-stage. **Gate:** `off_stage_event_canonical_path_isolation`-Validator vor commit.
+2. **Keine neuen Personen.** **Gate:** Off-Stage-Output gegen `characters/definitions/`-Roster prüfen; jeder genannte Charakter muss existieren.
+3. **Keine neuen Räume.** **Gate:** Off-Stage-Output gegen das `runtime_world`-Schauplatz-Modell prüfen; keine Raum-Identifikatoren außerhalb des Layouts.
+4. **Keine plot-tragenden Fakten.** **Gate:** Off-Stage-Output wird gegen `forbidden_scope` aus `player_freedom_policy.yaml` validiert (symmetrisch zu Spieler-Aktionen); `hidden_evidence`, `decisive_plot_information`, `private_document_truths_not_authored_elsewhere` triggern Reject.
+5. **Stimmungs-/Charakter-Kohärenz.** **Gate:** `voice_consistency` + `relationship_state` transition validation + `subtext` sincerity band — bereits implementiert, hier explizit als Off-Stage-Pflicht-Gate aktivieren.
+6. **Atmosphärischer Hinweis im Spieler-Raum ist ein einziger Block pro Tick** — kein Off-Stage-Stream. **Gate:** Block-Stream-Bus erlaubt max. 1 off-stage-source Block pro Tick.
+
+Diese Validatoren werden mit der Off-Stage-Auslieferung *zwingend* mitgeliefert. Ohne diese Gates ist „kreative Director-Freiheit off-stage" das genaue Einfallstor für unautorisierte Welt-Erfindung.
 
 **Anti-Patterns:**
 - Keine Enum-Liste „erlaubte off-stage Themen".

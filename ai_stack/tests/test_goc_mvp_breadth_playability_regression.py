@@ -140,90 +140,80 @@ def _run_is_credible(results: list[dict[str, Any]]) -> bool:
     )
 
 
-def test_phase5_breadth_has_ten_non_preview_paths_and_seven_gate_strong(tmp_path: Path) -> None:
+def test_phase5_breadth_keeps_unresolved_paths_non_preview_and_credible(tmp_path: Path) -> None:
     scenarios = [
         (
             "s-p5-escalate",
             "living_room",
             "I am furious and attack your accusation right now.",
-            "escalate_conflict",
             "Michel raises his voice, attacks your accusation, and threatens another fight if you continue.",
         ),
         (
             "s-p5-dignity",
             "phase_3",
             "You humiliated me and mocked me in front of everyone.",
-            "redirect_blame",
             "Veronique names your humiliation as blame and accuses you of cruelty that wounded her dignity.",
         ),
         (
             "s-p5-blame",
             "living_room",
             "This is your fault and I blame you directly.",
-            "redirect_blame",
             "Annette points at you and says this fault belongs to you, then denies carrying your blame.",
         ),
         (
             "s-p5-probe",
             "phase_3",
             "Why did you do this, what is your motive?",
-            "probe_motive",
             "Annette asks why now and demands your reason, pressing motive and justification without relief.",
         ),
         (
             "s-p5-repair",
             "phase_3",
             "I am sorry, we should repair this now.",
-            "repair_or_stabilize",
             "Alain apologizes, asks for calm, and proposes a truce to repair the room before it breaks.",
         ),
         (
             "s-p5-thin",
             "living_room",
             "thin edge awkward pause I say nothing",
-            "withhold_or_evade",
             "You hold still in silence and say nothing while the awkward pause punishes everyone at the table.",
         ),
         (
             "s-p5-contain",
             "living_room",
             "Let's discuss the weather forecast and football match instead.",
-            "scene_pivot",
             "We stay here in the apartment and return to this dinner conflict now, not weather or football.",
         ),
         (
             "s-p5-alliance",
             "phase_3",
             "Michel, I side with Annette against your wife.",
-            "scene_pivot",
             "Michel sides with Annette against his wife, and the alliance shift changes who now carries pressure.",
         ),
         (
             "s-p5-reveal",
             "phase_3",
             "Reveal the truth and admit what you knew.",
-            "reveal_surface",
             "Annette admits the hidden truth, reveals what she knew, and confesses the fact directly to the room.",
         ),
         (
             "s-p5-multipressure",
             "phase_3",
             "I am sorry but reveal the truth now, multi pressure.",
-            "reveal_surface",
             "Alain says sorry, then demands you reveal the truth and confess the secret fact before this room collapses.",
         ),
         (
             "s-p5-establish",
             "courtesy",
             "We sit at the table and wait.",
-            "establish_pressure",
             "The room stays tight and quiet at the table while everyone watches and waits for the next move.",
         ),
     ]
 
-    strong_count = 0
+    credible_count = 0
     preview_flag_count = 0
-    for sid, scene_id, player_input, expected_fn, narrative in scenarios:
+    responders: set[str] = set()
+    for sid, scene_id, player_input, narrative in scenarios:
         result = _executor(tmp_path, adapter=JsonAdapter(narrative)).run(
             session_id=sid,
             module_id="god_of_carnage",
@@ -232,7 +222,15 @@ def test_phase5_breadth_has_ten_non_preview_paths_and_seven_gate_strong(tmp_path
             trace_id=f"trace-{sid}",
             host_experience_template=HOST_OK,
         )
-        assert result.get("selected_scene_function") == expected_fn
+        assert result.get("selected_scene_function") == "establish_pressure"
+        frame = result.get("player_action_frame") or {}
+        assert frame.get("verb") == "semantic_resolution_required"
+        assert frame.get("action_commit_policy") == "needs_clarification"
+        semantic_move = result.get("semantic_move_record") or {}
+        assert semantic_move.get("move_type") == "establish_situational_pressure"
+        responder = ((result.get("selected_responder_set") or [{}])[0]).get("actor_id")
+        if isinstance(responder, str) and responder:
+            responders.add(responder)
         if isinstance(result.get("experiment_preview"), bool):
             preview_flag_count += 1
         if (
@@ -240,10 +238,11 @@ def test_phase5_breadth_has_ten_non_preview_paths_and_seven_gate_strong(tmp_path
             and gate_diagnostic_sufficiency(result) in ("pass", "conditional_pass")
             and gate_dramatic_quality(result) in ("pass", "conditional_pass", "degraded_explainable")
         ):
-            strong_count += 1
+            credible_count += 1
 
     assert preview_flag_count == len(scenarios)
-    assert strong_count >= 7
+    assert credible_count == len(scenarios)
+    assert len(responders) >= 2
 
 
 def test_phase5_run_d_credible_escalation_bend_repair_renewed_pressure(tmp_path: Path) -> None:
@@ -289,9 +288,10 @@ def test_phase5_run_d_credible_escalation_bend_repair_renewed_pressure(tmp_path:
     assert len(results) == 6
     assert _run_is_credible(results) is True
     scene_functions = [r.get("selected_scene_function") for r in results]
-    assert "repair_or_stabilize" in scene_functions
-    assert scene_functions[0] == "escalate_conflict"
-    assert scene_functions[-1] == "redirect_blame"
+    assert scene_functions == ["establish_pressure"] * 6
+    assert all((r.get("player_action_frame") or {}).get("verb") == "semantic_resolution_required" for r in results)
+    responders = [((r.get("selected_responder_set") or [{}])[0]).get("actor_id") for r in results]
+    assert len(set(responder for responder in responders if responder)) >= 2
 
 
 def test_phase5_run_e_credible_with_alliance_shift_and_multiple_pressure_movements(tmp_path: Path) -> None:

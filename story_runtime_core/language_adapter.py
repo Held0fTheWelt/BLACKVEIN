@@ -297,6 +297,8 @@ def build_semantic_resolution_contract(
             "inferred_affordance_summary": "short English description of the mundane inferred affordance, never final visible prose",
             "confidence": "high|medium|low",
             "reasoning_summary": "short grounding explanation citing content ids/fields",
+            "kanon_break": "true ONLY if the action makes continued play impossible (physically impossible like walking through walls or being a superhuman; criminal/evil like murder or sexual coercion; or irreversibly destroys the playable situation). Reversible local change is NOT a break, even if it disrupts the current scene's flow. Default false. Decide from the meaning of the player utterance, not from a verb or room list.",
+            "kanon_break_reason": "short English explanation when kanon_break is true; null otherwise",
         },
         "semantic_ontology_guidance": {
             "use_internal_english_only": True,

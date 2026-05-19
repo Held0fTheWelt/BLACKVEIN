@@ -154,6 +154,13 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["enabled"] is True
     assert policy["runtime_governance_policy"]["relationship_state_machine"]["transition_weights"]
     assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
+    assert (
+        policy["runtime_governance_policy"]["action_resolution_short_path"]["routing_basis"]
+        == "semantic_action_frame_evidence"
+    )
+    assert "allowed_verbs" not in policy["runtime_governance_policy"]["action_resolution_short_path"]
+    assert "allowed_player_input_kinds" not in policy["runtime_governance_policy"]["action_resolution_short_path"]
+    assert "blocked_player_input_kinds" not in policy["runtime_governance_policy"]["action_resolution_short_path"]
     assert policy["runtime_governance_policy"]["player_freedom"]["enabled"] is True
     assert (
         policy["runtime_governance_policy"]["player_freedom"]["canonical_path_control"]

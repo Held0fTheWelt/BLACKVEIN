@@ -189,6 +189,24 @@ def _semantic_text(semantic: dict[str, Any], *keys: str) -> str:
     return ""
 
 
+def _semantic_bool(semantic: dict[str, Any], *keys: str) -> bool:
+    for key in keys:
+        if key not in semantic:
+            continue
+        value = semantic.get(key)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            text = value.strip().lower()
+            if text in {"true", "yes", "1"}:
+                return True
+            if text in {"false", "no", "0", ""}:
+                return False
+        if isinstance(value, (int, float)):
+            return bool(value)
+    return False
+
+
 def _slug_from_english_text(value: str) -> str:
     folded = fold_unicode(value)
     slug = re.sub(r"[^a-z0-9]+", "_", folded).strip("_")
@@ -527,7 +545,13 @@ def resolve_player_action(
             validation_surface="meta_control_path",
             projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
         )
-        return {"player_action_frame": frame.to_dict(), "affordance_resolution": aff.to_dict(), "scene_affordance_model": {}}
+        return {
+            "player_action_frame": frame.to_dict(),
+            "affordance_resolution": aff.to_dict(),
+            "scene_affordance_model": {},
+            "kanon_break": False,
+            "kanon_break_reason": None,
+        }
 
     affordance_model = build_scene_affordance_model(
         module_id=module_id,
@@ -573,6 +597,8 @@ def resolve_player_action(
             "player_action_frame": frame.to_dict(),
             "affordance_resolution": aff.to_dict(),
             "scene_affordance_model": affordance_model,
+            "kanon_break": False,
+            "kanon_break_reason": None,
         }
 
     if is_speech_like_player_input_kind(pik) and not semantic:
@@ -605,6 +631,8 @@ def resolve_player_action(
             "player_action_frame": frame.to_dict(),
             "affordance_resolution": aff.to_dict(),
             "scene_affordance_model": affordance_model,
+            "kanon_break": False,
+            "kanon_break_reason": None,
         }
 
     pik = str(semantic.get("player_input_kind") or pik).strip().lower() or pik
@@ -740,8 +768,16 @@ def resolve_player_action(
         semantic_inference=semantic_inference,
         canonical_path_effect=canonical_path_effect,
     )
+    kanon_break = _semantic_bool(semantic, "kanon_break", "is_kanon_break", "canon_break")
+    kanon_break_reason = (
+        _semantic_text(semantic, "kanon_break_reason", "canon_break_reason") or None
+    )
+    if not kanon_break:
+        kanon_break_reason = None
     return {
         "player_action_frame": frame.to_dict(),
         "affordance_resolution": aff.to_dict(),
         "scene_affordance_model": affordance_model,
+        "kanon_break": kanon_break,
+        "kanon_break_reason": kanon_break_reason,
     }
