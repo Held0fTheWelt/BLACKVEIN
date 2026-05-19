@@ -23,6 +23,7 @@ from ai_stack.langgraph_runtime_executor import (
     _derive_current_step_scene_id_from_state,
     _derive_director_subject_actor_id,
     _derive_named_characters_from_state,
+    complete_actor_locations_for_gathering,
 )
 from ai_stack.langgraph_runtime_package_output import package_runtime_graph_output
 from ai_stack.director_gathering_state_contracts import (
@@ -296,6 +297,358 @@ class TestDiagnosticBlockerContract:
         assert blocker["reason"] == "missing_actor_locations"
         assert blocker["diagnostic_blocker"] is True
         assert should_suppress_mandatory_beat_consumption(blocker) is False
+
+
+class TestCompleteActorLocationsForGathering:
+    """Tests for complete_actor_locations_for_gathering helper.
+
+    All tests use generic actor/room IDs to enforce ADR-0039 anti-hardcoding
+    discipline — no GoC actor IDs, no hardcoded room names.
+    """
+
+    def test_empty_locations_filled_from_actor_lane_context(self):
+        """When actor_locations is empty, NPCs from actor_lane_context are
+        defaulted to current_step_scene_id."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "gathering_room"
+        assert result["actor_locations"]["npc_y"] == "gathering_room"
+        assert result["actor_locations"]["npc_z"] == "gathering_room"
+        assert sorted(result["fallback_actor_ids"]) == ["npc_x", "npc_y", "npc_z"]
+        assert result["source"] == "environment_state_with_actor_lane_fallback"
+
+    def test_existing_env_locations_are_preserved(self):
+        """If environment state already has NPC locations, those win and no
+        fallback is applied for those actors."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+                "npc_z": "other_room",
+            },
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_z"] == "other_room"
+        assert result["fallback_actor_ids"] == []
+
+    def test_fallback_only_fills_missing_npcs_not_already_present(self):
+        """Partial environment state: only the two absent NPCs get the fallback."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"npc_x": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "gathering_room"
+        assert result["actor_locations"]["npc_y"] == "gathering_room"
+        assert result["fallback_actor_ids"] == ["npc_y"]
+
+    def test_missing_scene_id_fails_closed_when_npcs_absent(self):
+        """If current_step_scene_id is absent and NPCs are missing, return
+        diagnostic_blocker=True with reason=missing_current_step_scene_id."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "some_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id=None,
+        )
+        assert result["diagnostic_blocker"] is True
+        assert result["reason"] == "missing_current_step_scene_id"
+        assert result["fallback_actor_ids"] == []
+
+    def test_missing_scene_id_no_blocker_when_no_npcs_missing(self):
+        """If scene_id is absent but all NPCs are already in actor_locations,
+        no diagnostic blocker is needed."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"npc_x": "some_room", "npc_y": "some_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id=None,
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["fallback_actor_ids"] == []
+
+    def test_human_actor_location_follows_resolved_target(self):
+        """selected_human_actor_id gets target_location from
+        free_player_action_resolution when present."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x"],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={
+                "target_location": "other_room",
+                "action_commit_policy": "commit_action",
+            },
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["human_a"] == "other_room"
+
+    def test_human_target_location_not_applied_when_absent(self):
+        """If free_player_action_resolution has no target_location, human
+        location stays as provided in actor_locations."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": [],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+        )
+        assert result["actor_locations"]["human_a"] == "gathering_room"
+
+    def test_input_actor_locations_not_mutated(self):
+        """The original actor_locations dict must not be mutated."""
+        original = {"human_a": "gathering_room"}
+        complete_actor_locations_for_gathering(
+            actor_locations=original,
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert original == {"human_a": "gathering_room"}
+
+    def test_no_hardcoded_goc_actor_ids_in_result(self):
+        """Result must not introduce any God-of-Carnage-specific actor IDs."""
+        goc_ids = {"alain_reille", "annette_reille", "michel_longstreet", "veronique_vallon"}
+        result = complete_actor_locations_for_gathering(
+            actor_locations={},
+            actor_lane_context={
+                "human_actor_id": "generic_human",
+                "npc_actor_ids": ["generic_npc_1", "generic_npc_2"],
+            },
+            current_step_scene_id="meeting_room",
+        )
+        for actor_id in result["actor_locations"]:
+            assert actor_id not in goc_ids, f"Hardcoded GoC ID found: {actor_id}"
+        for actor_id in result["fallback_actor_ids"]:
+            assert actor_id not in goc_ids
+
+    def test_original_actor_locations_exposed_in_result(self):
+        """diagnostic key original_actor_locations must reflect the pre-completion state."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["original_actor_locations"] == {"human_a": "gathering_room"}
+        assert "npc_x" not in result["original_actor_locations"]
+        assert "npc_x" in result["actor_locations"]
+
+    def test_none_actor_locations_treated_as_empty(self):
+        """None actor_locations is treated as empty — fallback applies."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations=None,
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x"],
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "gathering_room"
+        assert result["fallback_actor_ids"] == ["npc_x"]
+
+    def test_fallback_uses_ai_allowed_actor_ids_live_runtime_path(self):
+        """Live runtime path: ActorLaneContext.model_dump() serialises NPCs as
+        ai_allowed_actor_ids, not npc_actor_ids.  The helper must resolve NPCs
+        from ai_allowed_actor_ids when npc_actor_ids is absent."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "contract": "actor_lane_context.v1",
+                "human_actor_id": "human_a",
+                "actor_lanes": {"human_a": "human", "npc_x": "npc", "npc_y": "npc"},
+                "ai_allowed_actor_ids": ["npc_x", "npc_y"],
+                "ai_forbidden_actor_ids": ["human_a"],
+                # NOTE: no npc_actor_ids key — this is the live ActorLaneContext shape
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "gathering_room"
+        assert result["actor_locations"]["npc_y"] == "gathering_room"
+        assert sorted(result["fallback_actor_ids"]) == ["npc_x", "npc_y"]
+
+    def test_fallback_derives_from_actor_lanes_when_no_explicit_list(self):
+        """Ultimate fallback: derive NPC IDs from actor_lanes where lane==npc."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "actor_lanes": {"human_a": "human", "npc_x": "npc"},
+                # No npc_actor_ids, no ai_allowed_actor_ids
+            },
+            current_step_scene_id="gathering_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "gathering_room"
+        assert result["fallback_actor_ids"] == ["npc_x"]
+
+
+class TestDirectorPauseWithActorLaneFallback:
+    """End-to-end Director-Pause scenarios using the actor_lane_context
+    fallback — i.e. the path that previously caused false positives in the
+    live runtime.
+
+    All actor/room IDs are generic (ADR-0039 anti-hardcoding discipline).
+    """
+
+    def _make_full_locations(self, scene: str, npc_ids: list[str], human: str) -> dict:
+        return {actor: scene for actor in npc_ids + [human]}
+
+    def test_mundane_local_action_does_not_pause_gathering(self):
+        """Scenario 1: player does a mundane action; NPCs absent from
+        actor_locations → after fallback all NPCs default to gathering scene
+        → paused=False."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={
+                "presence_breaks_gathering": False,
+                "action_commit_policy": "commit_action",
+            },
+        )
+        assert completion["diagnostic_blocker"] is False
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y", "npc_z"],
+            current_step_scene_id="gathering_room",
+            current_turn_number=3,
+        )
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_leaving_gathering_scene_pauses(self):
+        """Scenario 2: human actor moves to a different room → paused=True;
+        the human is the missing actor."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={
+                "target_location": "other_room",
+                "presence_breaks_gathering": True,
+                "action_commit_policy": "commit_action",
+            },
+        )
+        assert completion["diagnostic_blocker"] is False
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y", "npc_z"],
+            current_step_scene_id="gathering_room",
+            current_turn_number=4,
+        )
+        assert result["paused"] is True
+        assert "human_a" in result["missing_actor_ids"]
+        assert should_suppress_mandatory_beat_consumption(result) is True
+
+    def test_return_to_gathering_clears_pause(self):
+        """Scenario 4: human returns to gathering room → paused=False."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={
+                "target_location": "gathering_room",
+                "action_commit_policy": "commit_action",
+            },
+        )
+        assert completion["diagnostic_blocker"] is False
+        prev = {
+            "schema_version": SCHEMA_VERSION,
+            "paused": True,
+            "step_id": "gathering_room",
+            "missing_actor_ids": ["human_a"],
+            "since_turn": 4,
+            "presence_required_for_step": ["human_a", "npc_x", "npc_y", "npc_z"],
+            "reason": "required_actor_not_at_scene_location",
+            "source": "actor_topology_derived",
+        }
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y", "npc_z"],
+            current_step_scene_id="gathering_room",
+            current_turn_number=6,
+            previous_state=prev,
+        )
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_act_while_paused_stays_paused(self):
+        """Scenario 3: gathering is paused; human stays outside → still paused."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "other_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+        )
+        assert completion["diagnostic_blocker"] is False
+        prev = {
+            "schema_version": SCHEMA_VERSION,
+            "paused": True,
+            "step_id": "gathering_room",
+            "missing_actor_ids": ["human_a"],
+            "since_turn": 4,
+            "presence_required_for_step": ["human_a", "npc_x", "npc_y", "npc_z"],
+            "reason": "required_actor_not_at_scene_location",
+            "source": "actor_topology_derived",
+        }
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y", "npc_z"],
+            current_step_scene_id="gathering_room",
+            current_turn_number=5,
+            previous_state=prev,
+        )
+        assert result["paused"] is True
+        assert "human_a" in result["missing_actor_ids"]
 
 
 class TestPhase1DiagnosticExposure:

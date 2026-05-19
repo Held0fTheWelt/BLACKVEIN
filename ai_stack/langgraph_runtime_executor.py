@@ -4983,6 +4983,108 @@ def _derive_director_subject_actor_id(
     return None
 
 
+def complete_actor_locations_for_gathering(
+    *,
+    actor_locations: dict[str, Any] | None,
+    actor_lane_context: dict[str, Any] | None,
+    current_step_scene_id: str | None,
+    selected_human_actor_id: str | None = None,
+    free_player_action_resolution: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Complete actor_locations with actor_lane_context NPC fallback.
+
+    Resolution order:
+    1. Environment state / canonical actor_locations wins for any ID already
+       present.
+    2. Missing NPC IDs from ``actor_lane_context.npc_actor_ids`` are defaulted
+       to ``current_step_scene_id`` (the gathering scene) — the safe runtime
+       assumption is that NPCs are at the gathering unless the environment
+       explicitly says otherwise.
+    3. The selected human actor's location is updated from the resolved
+       ``target_location`` in ``free_player_action_resolution`` when present.
+
+    Fail-closed rule: when ``current_step_scene_id`` is absent but there are
+    NPC IDs missing from ``actor_locations``, we cannot safely default their
+    positions, so we return ``diagnostic_blocker=True`` with reason
+    ``missing_current_step_scene_id``.  The caller must emit a Director-Pause
+    blocker in that case and must **not** call ``compute_gathering_state``.
+
+    No hardcoded actor IDs, room names, or module-specific content.  All NPC
+    IDs come from ``actor_lane_context``; all locations come from runtime state
+    or the resolved action target.
+
+    Returns a dict with keys:
+        actor_locations: completed mapping (copy, never mutates input)
+        source: "environment_state_with_actor_lane_fallback"
+        fallback_actor_ids: list of NPC IDs whose location was defaulted
+        original_actor_locations: the input actor_locations before completion
+        diagnostic_blocker: bool
+        reason: None or a DIAGNOSTIC_BLOCKER_* string
+    """
+    locations: dict[str, Any] = dict(actor_locations) if isinstance(actor_locations, dict) else {}
+    original_locations: dict[str, Any] = dict(locations)
+
+    alc = actor_lane_context if isinstance(actor_lane_context, dict) else {}
+
+    # NPC ID resolution order (ADR-0039 — no hardcoded roster):
+    # 1. npc_actor_ids   — explicit field used in some test fixtures / LDSS input builder
+    # 2. ai_allowed_actor_ids — live runtime path: ActorLaneContext.model_dump() uses this
+    # 3. actor_lanes entries with lane == "npc" — ultimate fallback
+    npc_ids: list[str] = []
+    _raw_npc_source = (
+        alc.get("npc_actor_ids")
+        or alc.get("ai_allowed_actor_ids")
+        or []
+    )
+    for raw_id in _raw_npc_source:
+        nid = str(raw_id or "").strip()
+        if nid:
+            npc_ids.append(nid)
+    if not npc_ids:
+        _lanes = alc.get("actor_lanes") if isinstance(alc.get("actor_lanes"), dict) else {}
+        for actor_id, lane in _lanes.items():
+            if str(lane).strip() == "npc":
+                aid = str(actor_id).strip()
+                if aid:
+                    npc_ids.append(aid)
+
+    # Resolve target location from free_player_action_resolution
+    target_location: str | None = None
+    if isinstance(free_player_action_resolution, dict):
+        raw_target = free_player_action_resolution.get("target_location")
+        if raw_target:
+            target_location = str(raw_target).strip() or None
+
+    # Apply player/human location from resolved action target
+    if selected_human_actor_id and target_location:
+        locations[selected_human_actor_id] = target_location
+
+    # Determine which NPCs are missing from actor_locations
+    missing_npc_ids = [nid for nid in npc_ids if nid not in locations]
+
+    if missing_npc_ids:
+        if not current_step_scene_id:
+            return {
+                "actor_locations": locations,
+                "source": "environment_state_with_actor_lane_fallback",
+                "fallback_actor_ids": [],
+                "original_actor_locations": original_locations,
+                "diagnostic_blocker": True,
+                "reason": "missing_current_step_scene_id",
+            }
+        for nid in missing_npc_ids:
+            locations[nid] = current_step_scene_id
+
+    return {
+        "actor_locations": locations,
+        "source": "environment_state_with_actor_lane_fallback",
+        "fallback_actor_ids": missing_npc_ids,
+        "original_actor_locations": original_locations,
+        "diagnostic_blocker": False,
+        "reason": None,
+    }
+
+
 def _director_gathering_blocker(
     *,
     reason: str,
@@ -6448,60 +6550,98 @@ class RuntimeTurnGraphExecutor:
                 _pr_c_named_chars = _derive_named_characters_from_state(state)
             if isinstance(_pr_c_named_chars, list):
                 _pr_c_scene_id = _derive_current_step_scene_id_from_state(state)
-                _pr_c_actor_locations = state.get("actor_locations") if isinstance(state.get("actor_locations"), dict) else {}
-                if not _pr_c_actor_locations:
-                    _env_state = state.get("environment_state") if isinstance(state.get("environment_state"), dict) else {}
+                # --- actor_locations source resolution (Phase-1 live fix) ---
+                # 1. Top-level state key wins when present.
+                # 2. Falls back to environment_state.actor_locations.
+                # 3. complete_actor_locations_for_gathering fills in any NPC
+                #    IDs absent from both sources, defaulting them to
+                #    current_step_scene_id.  The safe runtime assumption is
+                #    that NPCs are at the gathering unless the environment
+                #    explicitly says otherwise.
+                _pr_c_actor_locations_raw = (
+                    state.get("actor_locations")
+                    if isinstance(state.get("actor_locations"), dict)
+                    else {}
+                )
+                if not _pr_c_actor_locations_raw:
+                    _env_state = (
+                        state.get("environment_state")
+                        if isinstance(state.get("environment_state"), dict)
+                        else {}
+                    )
                     if isinstance(_env_state.get("actor_locations"), dict):
-                        _pr_c_actor_locations = dict(_env_state["actor_locations"])
+                        _pr_c_actor_locations_raw = dict(_env_state["actor_locations"])
                 _pr_c_subject_actor_id = _derive_director_subject_actor_id(state, frame)
-                if _pr_c_target_location and isinstance(_pr_c_actor_locations, dict):
-                    _pr_c_actor_locations = dict(_pr_c_actor_locations)
-                    if _pr_c_subject_actor_id:
-                        _pr_c_actor_locations[_pr_c_subject_actor_id] = _pr_c_target_location
-                _pr_c_prev_state = (
-                    state.get("director_gathering_state")
-                    if isinstance(state.get("director_gathering_state"), dict)
-                    else state.get("_prior_director_gathering_state")
-                    if isinstance(state.get("_prior_director_gathering_state"), dict)
-                    else None
+                _pr_c_alc = (
+                    state.get("actor_lane_context")
+                    if isinstance(state.get("actor_lane_context"), dict)
+                    else {}
                 )
-                _pr_c_turn = state.get("turn_number")
-                try:
-                    _pr_c_turn_int = int(_pr_c_turn) if _pr_c_turn is not None else None
-                except (TypeError, ValueError):
-                    _pr_c_turn_int = None
-                _pr_c_evidence_required = bool(
-                    isinstance(presence_evidence, dict)
-                    or str(free_player_resolution.get("action_commit_policy") or "").strip() == "commit_action"
-                )
-                director_gathering = compute_gathering_state(
-                    actor_locations=_pr_c_actor_locations,
-                    current_step_named_characters=_pr_c_named_chars,
+                _pr_c_location_completion = complete_actor_locations_for_gathering(
+                    actor_locations=_pr_c_actor_locations_raw,
+                    actor_lane_context=_pr_c_alc,
                     current_step_scene_id=_pr_c_scene_id,
-                    participation_relevance=_pr_c_participation,
-                    visibility_audibility=_pr_c_visibility,
-                    subject_actor_id=_pr_c_subject_actor_id,
-                    participation_evidence_required=_pr_c_evidence_required,
-                    current_turn_number=_pr_c_turn_int,
-                    previous_state=_pr_c_prev_state,
+                    selected_human_actor_id=_pr_c_subject_actor_id,
+                    free_player_action_resolution=free_player_resolution,
                 )
-                update["director_gathering_state"] = director_gathering
-                if not _pr_c_actor_locations:
+                # --- end actor_locations source resolution ---
+                if _pr_c_location_completion["diagnostic_blocker"]:
                     update["director_gathering_state"] = _director_gathering_blocker(
-                        reason=DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
+                        reason=_pr_c_location_completion["reason"],
                         presence_required_for_step=_pr_c_named_chars,
                     )
-                elif isinstance(presence_evidence, dict) and (
-                    _pr_c_participation is None or _pr_c_visibility is None
-                ):
-                    update["director_gathering_state"] = _director_gathering_blocker(
-                        reason=DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
-                        presence_required_for_step=_pr_c_named_chars,
-                        evidence_status={
-                            "participation_relevance_present": _pr_c_participation is not None,
-                            "visibility_audibility_present": _pr_c_visibility is not None,
-                        },
+                    update.setdefault("graph_diagnostics", {}).update({
+                        "actor_location_completion": _pr_c_location_completion,
+                        "current_step_scene_id": _pr_c_scene_id,
+                        "selected_human_actor_id": _pr_c_subject_actor_id,
+                    })
+                    # Skip compute_gathering_state — fail closed on missing scene.
+                else:
+                    _pr_c_actor_locations = _pr_c_location_completion["actor_locations"]
+                    _pr_c_prev_state = (
+                        state.get("director_gathering_state")
+                        if isinstance(state.get("director_gathering_state"), dict)
+                        else state.get("_prior_director_gathering_state")
+                        if isinstance(state.get("_prior_director_gathering_state"), dict)
+                        else None
                     )
+                    _pr_c_turn = state.get("turn_number")
+                    try:
+                        _pr_c_turn_int = int(_pr_c_turn) if _pr_c_turn is not None else None
+                    except (TypeError, ValueError):
+                        _pr_c_turn_int = None
+                    _pr_c_evidence_required = bool(
+                        isinstance(presence_evidence, dict)
+                        or str(free_player_resolution.get("action_commit_policy") or "").strip() == "commit_action"
+                    )
+                    director_gathering = compute_gathering_state(
+                        actor_locations=_pr_c_actor_locations,
+                        current_step_named_characters=_pr_c_named_chars,
+                        current_step_scene_id=_pr_c_scene_id,
+                        participation_relevance=_pr_c_participation,
+                        visibility_audibility=_pr_c_visibility,
+                        subject_actor_id=_pr_c_subject_actor_id,
+                        participation_evidence_required=_pr_c_evidence_required,
+                        current_turn_number=_pr_c_turn_int,
+                        previous_state=_pr_c_prev_state,
+                    )
+                    update["director_gathering_state"] = director_gathering
+                    if not _pr_c_actor_locations:
+                        update["director_gathering_state"] = _director_gathering_blocker(
+                            reason=DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
+                            presence_required_for_step=_pr_c_named_chars,
+                        )
+                    elif isinstance(presence_evidence, dict) and (
+                        _pr_c_participation is None or _pr_c_visibility is None
+                    ):
+                        update["director_gathering_state"] = _director_gathering_blocker(
+                            reason=DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
+                            presence_required_for_step=_pr_c_named_chars,
+                            evidence_status={
+                                "participation_relevance_present": _pr_c_participation is not None,
+                                "visibility_audibility_present": _pr_c_visibility is not None,
+                            },
+                        )
             else:
                 update["director_gathering_state"] = _director_gathering_blocker(
                     reason=DIAGNOSTIC_BLOCKER_MISSING_NAMED_CHARACTERS,

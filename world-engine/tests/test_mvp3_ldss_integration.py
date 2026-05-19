@@ -12,10 +12,38 @@ root test context.
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from ai_stack.rag import ContextPackAssembler, ContextRetriever, InMemoryRetrievalCorpus
 from story_runtime_core.model_registry import ModelRegistry
 from app.story_runtime.manager import StoryRuntimeManager
+
+
+# ---------------------------------------------------------------------------
+# Test-local observability guard
+# ---------------------------------------------------------------------------
+
+
+class _DisabledLangfuseAdapter:
+    def is_enabled(self) -> bool:
+        return False
+
+    def __getattr__(self, _name: str):
+        def _noop(*_args, **_kwargs):
+            return None
+
+        return _noop
+
+
+@pytest.fixture(autouse=True)
+def _disable_langfuse_network_for_ldss_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """LDSS manager tests assert story-runtime packaging, not Langfuse I/O."""
+
+    disabled = _DisabledLangfuseAdapter()
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: disabled,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -83,12 +111,23 @@ def _goc_solo_projection(human: str = "annette") -> dict:
     }
 
 
+def _make_test_manager() -> StoryRuntimeManager:
+    corpus = InMemoryRetrievalCorpus.empty()
+    with patch.object(StoryRuntimeManager, "_rebuild_turn_graph", return_value=None):
+        return StoryRuntimeManager(
+            registry=ModelRegistry(),
+            adapters={},
+            retriever=ContextRetriever(corpus),
+            context_assembler=ContextPackAssembler(),
+        )
+
+
 def _make_manager_with_session(
     human: str = "annette",
     *,
     force_ldss_scene_fallback: bool = False,
 ) -> tuple[StoryRuntimeManager, object]:
-    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    mgr = _make_test_manager()
     assert mgr._skip_graph_opening_on_create is True
 
     session = mgr.create_session(
@@ -109,7 +148,7 @@ def _make_manager_with_session(
 
 @pytest.mark.mvp3
 def test_create_session_can_defer_opening_with_explicit_skip_flag():
-    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    mgr = _make_test_manager()
     mgr._skip_graph_opening_on_create = False
     mgr._execute_opening_locked = MagicMock(side_effect=AssertionError("opening should be deferred"))
     mgr._emit_session_loop_observation = MagicMock()
@@ -269,7 +308,7 @@ def test_ldss_fallback_advances_canonical_step_without_free_action_hold():
 @pytest.mark.mvp3
 def test_non_goc_session_has_no_scene_envelope():
     """Non-GoC sessions (no human_actor_id in projection) produce no scene_turn_envelope."""
-    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    mgr = _make_test_manager()
     session = mgr.create_session(
         module_id="test_module",
         runtime_projection={"module_id": "test_module", "start_scene_id": "start"},
