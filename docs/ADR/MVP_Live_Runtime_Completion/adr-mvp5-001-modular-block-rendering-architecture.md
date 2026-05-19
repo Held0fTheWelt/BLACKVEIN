@@ -58,7 +58,7 @@ Each module has a single responsibility and exports a clean interface. Modules c
 - Enables incremental rendering without reflow of entire scene
 - Simplifies DOM querying for testing and debugging (`document.querySelector('[data-block-id="x"]')`)
 
-**Extended block kinds:** The renderer treats `block_type` as a CSS class suffix (`scene-block--{type}`). Additional player- and opening-specific types (`player_input_outcome`, optional `narration_beat` on `narrator`) and World-Engine projection rules (multi-speaker split, duplicate `actor_action` prune) are specified in [ADR-0034](../adr-0034-player-facing-narrative-shell-contract.md) §Implementation Status and decisions **4b–4c**.
+**Extended block kinds:** The renderer treats `block_type` as a CSS class suffix (`scene-block--{type}`). Additional player- and opening-specific types (`player_input_outcome`, optional `narration_beat` on `narrator` — **canonical beat ids or explicit dramaturgic profiles**, never index-forced `premise`/`scene_setup`/`role_anchor`) and World-Engine projection rules (multi-speaker split, duplicate `actor_action` prune) are specified in [ADR-0034](../adr-0034-player-facing-narrative-shell-contract.md) §**narration_beat semantics** and decisions **4b–4c**.
 
 ### Why No Runtime Regeneration for Skip/Reveal?
 - Skip/Reveal buttons trigger state updates and DOM manipulation, not API calls

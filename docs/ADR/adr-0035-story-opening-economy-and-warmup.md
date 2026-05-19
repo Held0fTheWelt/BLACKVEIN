@@ -28,7 +28,10 @@ Accepted
   Souffleuse blocks selected during the opening.
 - Still outside this ADR: a multi-request warmup choreography, a global relaxation of NPC visibility/passivity rules, and any free-form literary quality judge.
 - Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs
-  block rendering; ADR-0036 governs player-visible output language; ADR-0039
+  block rendering (including §**narration_beat semantics** — literary opening
+  slots `premise` / `scene_setup` / `role_anchor` apply to **gm_narration text**
+  and opening-shape subgates, **not** to forced `scene_blocks[].narration_beat`
+  by card index); ADR-0036 governs player-visible output language; ADR-0039
   governs tests for this contract; ADR-0056 governs the Souffleuse guidance
   lane.
 

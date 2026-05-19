@@ -11,6 +11,7 @@ Active **system** documentation for Better Tomorrow / World of Shadows: architec
 | Area | Path |
 |------|------|
 | Architecture & boundaries | [`architecture/`](architecture/) |
+| Player shell (blocks, typewriter) | [`player-shell/`](player-shell/) — e.g. [`narration_beat_and_opening_slots.md`](player-shell/narration_beat_and_opening_slots.md) |
 | Runtime & sessions | [`runtime/`](runtime/) |
 | AI & retrieval | [`ai/`](ai/) |
 | Integrations | [`integration/`](integration/) |

@@ -36,6 +36,7 @@ OUTCOME_FAIL = "fail"
 
 
 CAPABILITY_NARRATOR_LOCATION_TRANSITION = "narrator.location_transition.describe"
+CAPABILITY_NARRATOR_PERCEPTION = "narrator.perception.describe"
 CAPABILITY_NARRATOR_CLARIFICATION = "narrator.clarification.describe"
 CAPABILITY_NARRATOR_KANON_REFUSAL = "narrator.kanon_break_refusal.describe"
 CAPABILITY_NARRATOR_DEFERRED = "narrator.deferred_capability.placeholder"
@@ -89,7 +90,28 @@ def compose_realization_plan(
             language=lang,
         )
 
-    if commit_policy == "commit_speech" or pik in {"speech", "question"}:
+    # A perception query addresses the world, not an NPC: the player asks
+    # what they find / see / hear at a known location or object. The narrator
+    # answers in-world; this is NOT actor_line speech. We only route to
+    # speech when the player input is a true speech act (addressing someone,
+    # exclamation, statement) without a perception target.
+    is_perception_query = (
+        pik in {"question", "perception", "perception_action"}
+        and target_type in {"location", "object"}
+        and aff_status in {"allowed", "allowed_offscreen", "partial"}
+    )
+    if is_perception_query:
+        return _plan(
+            owner=REALIZATION_OWNER_NARRATOR,
+            capabilities=[CAPABILITY_NARRATOR_PERCEPTION],
+            outcome=OUTCOME_SUCCESS,
+            outcome_reason="perception_of_known_target",
+            decision_reason="perception_realization",
+            language=lang,
+            extras={"target_location_id": target_id} if target_type == "location" else None,
+        )
+
+    if commit_policy == "commit_speech" or pik == "speech":
         return _plan(
             owner=REALIZATION_OWNER_ACTOR_LINE,
             capabilities=[CAPABILITY_ACTOR_SPEECH],

@@ -2027,29 +2027,6 @@ def _maybe_split_goc_opening_into_two_movements(
     return out
 
 
-def _annotate_goc_opening_narration_beats(
-    blocks: list[dict[str, Any]],
-    *,
-    module_id: str | None,
-    turn_number: int,
-) -> None:
-    """Tag the first three opening narrator blocks for play UI (premise / scene / role anchor)."""
-    if turn_number != 0 or str(module_id or "").strip() != GOD_OF_CARNAGE_MODULE_ID:
-        return
-    if len(blocks) < 3:
-        return
-    for i in range(3):
-        b = blocks[i]
-        if not isinstance(b, dict):
-            return
-        bt = str(b.get("block_type") or b.get("type") or "").strip().lower()
-        if bt != "narrator":
-            return
-    beats = ("premise", "scene_setup", "role_anchor")
-    for i in range(3):
-        blocks[i]["narration_beat"] = beats[i]
-
-
 def _dedupe_goc_speaker_colon_stutter(text: str) -> str:
     """Delegate to shared visible-text helper (also applied inside ``sanitize_visible_block_text``)."""
     return dedupe_goc_speaker_colon_stutter_visible(text)
@@ -3333,9 +3310,28 @@ def _build_langfuse_path_summary(
         "selected_capabilities": (
             _capability_projection.get("selected_capabilities")
             or _capability_selection_projection.get("selected_capabilities")
+            or (
+                (graph_state.get("realization_plan") or {}).get("capabilities_selected")
+                if isinstance(graph_state.get("realization_plan"), dict)
+                else None
+            )
             or []
         ),
-        "director_path_mode": graph_state.get("director_path_mode"),
+        "realization_plan": graph_state.get("realization_plan")
+        if isinstance(graph_state.get("realization_plan"), dict)
+        else None,
+        "realize_via_capabilities_used_capability": graph_state.get(
+            "realize_via_capabilities_used_capability"
+        ),
+        "realize_via_capabilities_outcome": graph_state.get("realize_via_capabilities_outcome"),
+        "kanon_break": bool(graph_state.get("kanon_break")),
+        "kanon_break_reason": graph_state.get("kanon_break_reason"),
+        "director_path_mode": graph_state.get("director_path_mode")
+        or (
+            "director_realization_composer"
+            if isinstance(graph_state.get("realization_plan"), dict)
+            else None
+        ),
         "narrator_path_selected": str(graph_state.get("director_path_mode") or "").strip()
         == "narrator_path",
         "director_narrator_path_plan": graph_state.get("director_narrator_path_plan")
@@ -7753,6 +7749,52 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
             "dramatic_context": story_dramatic_context,
         }
 
+        # Thin-path narrator fold: when realize_via_capabilities produced a single
+        # narrator block (and no actor_line / actor_action), the narrator's prose IS
+        # the outcome of the player's input. Fold it into the player_input_outcome
+        # card and suppress the duplicate runtime_response entry below.
+        thin_path_narrator_text: str | None = None
+        thin_path_fold = False
+        _event_scene_blocks_preview = _scene_blocks_from_turn_event(event)
+        _event_realization_plan = (
+            event.get("realization_plan")
+            if isinstance(event.get("realization_plan"), dict)
+            else None
+        )
+        _path_summary_for_event = (
+            event.get("observability_path_summary")
+            if isinstance(event.get("observability_path_summary"), dict)
+            else event.get("path_summary")
+            if isinstance(event.get("path_summary"), dict)
+            else None
+        )
+        _realize_capability = None
+        if _path_summary_for_event:
+            _realize_capability = _path_summary_for_event.get(
+                "realize_via_capabilities_used_capability"
+            )
+        if not _realize_capability and _event_realization_plan:
+            _caps = _event_realization_plan.get("capabilities_selected") or []
+            _realize_capability = _caps[0] if _caps else None
+        _is_narrator_capability = isinstance(_realize_capability, str) and _realize_capability.startswith("narrator.")
+        if _event_scene_blocks_preview:
+            _narr_blocks = [
+                b
+                for b in _event_scene_blocks_preview
+                if str(b.get("block_type") or "").strip().lower() == "narrator"
+            ]
+            _actor_blocks = [
+                b
+                for b in _event_scene_blocks_preview
+                if str(b.get("block_type") or "").strip().lower()
+                in ("actor_line", "actor_action")
+            ]
+            if _is_narrator_capability and len(_narr_blocks) == 1 and not _actor_blocks:
+                _candidate_text = str(_narr_blocks[0].get("text") or "").strip()
+                if _candidate_text:
+                    thin_path_narrator_text = _candidate_text
+                    thin_path_fold = True
+
         if turn_kind != "opening":
             raw_input = str(event.get("raw_input") or "").strip()
             if raw_input:
@@ -7770,6 +7812,12 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                     interpreted_input=interp_sw,
                     module_id=session.module_id,
                 )
+                if thin_path_fold and thin_path_narrator_text and player_blocks:
+                    for _pb in player_blocks:
+                        if str(_pb.get("block_type") or "") == "player_input_outcome":
+                            _pb["text"] = thin_path_narrator_text
+                            _pb["source"] = "narrator_realization_fold"
+                            break
                 _mid_sw = str(session.module_id or GOD_OF_CARNAGE_MODULE_ID).strip() or GOD_OF_CARNAGE_MODULE_ID
                 _lang_sw = str(session.session_output_language or "de").strip().lower()[:2] or "de"
                 _second = resolve_string(
@@ -7794,6 +7842,13 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
 
         visible_lines = _visible_lines_from_turn_event(event)
         scene_blocks = _scene_blocks_from_turn_event(event)
+        if thin_path_fold:
+            scene_blocks = [
+                b
+                for b in scene_blocks
+                if str(b.get("block_type") or "").strip().lower() != "narrator"
+            ]
+            visible_lines = []
         quality_class, degradation_signals, degradation_summary = _canonical_quality_fields_from_surfaces(
             runtime_governance_surface=runtime_governance_surface,
             authority_summary=authority_summary,
@@ -11398,11 +11453,6 @@ class StoryRuntimeManager:
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,
                     commit_turn_number=commit_turn_number,
-                )
-                _annotate_goc_opening_narration_beats(
-                    live_scene_blocks,
-                    module_id=session.module_id,
-                    turn_number=commit_turn_number,
                 )
             if live_scene_blocks:
                 event_bundle = (

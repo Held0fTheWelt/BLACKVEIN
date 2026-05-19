@@ -6,14 +6,14 @@ Accepted
 
 ## Implementation Status
 
-**Core shell contract implemented; some test tiers pending.**
+**Last reviewed:** 2026-05-19. **Core shell contract implemented; some test tiers pending.**
 
 **Implemented:**
 - `frontend/static/play_block_display_text.js`: shared `blockDisplayTextForShell(block)` — `player_display_text != null ? player_display_text : text` (same rule for renderer, orchestrator fill, and typewriter duration/DOM).
 - `frontend/static/play_blocks_orchestrator.js`: HTTP `loadTurn()` builds **`sliceQueue`** (indices `>= typewriter_slice_start_index`, excluding diagnostics); indices below the slice render **full text immediately**; **`this.blocks` always holds every API block** for reveal/skip/accessibility even when slice cards are not yet mounted. **Progressive DOM mount:** only the **first** slice card is **`renderer.render`** on load; further slice cards mount **when their delivery starts** (`_mountBlockIfNeeded` → empty cell → `startDelivery`). The slice is delivered **sequentially** via `TypewriterEngine.startDelivery` + **`setOnDeliveryComplete`**. **`skipCurrentBlock`** completes the active block (full text) then continues the slice; **`revealAll`** mounts any deferred slice rows, fills **full** shell text for pending slice blocks, clears the queue, and detaches the completion hook. **`setAccessibilityMode(true)`** mounts all blocks in `this.blocks` and fills full transcript. **`appendNarratorBlock`** clears slice state and keeps **one block per stream chunk** (unchanged streaming semantics).
 - `frontend/static/play_typewriter_engine.js`: single active block; single `VirtualClock` listener; **`setOnDeliveryComplete(blockId)`** fires after natural completion, skip, or empty display immediate resolve; display text uses `blockDisplayTextForShell`.
-- `frontend/static/play_block_renderer.js`: block rendering with `block_type` semantic distinction; optional `narration_beat` on narrator blocks for presentation (e.g. opening **role anchor** uses extra CSS class).
-- `frontend/static/style.css`: distinct lane chrome per `block_type` (including `player_input_outcome`, narrator role-anchor accent).
+- `frontend/static/play_block_renderer.js`: block rendering with `block_type` semantic distinction; optional `narration_beat` on narrator blocks for typewriter pacing and **opt-in** presentation accents (see §**narration_beat semantics** — not index-forced opening tags).
+- `frontend/static/style.css`: distinct lane chrome per `block_type` (including `player_input_outcome`); `scene-block--narrator-role-anchor` only when a block **explicitly** carries `narration_beat: "role_anchor"`.
 - `frontend/static/play_shell.js`: orchestrates renderer + typewriter + controls.
 - `frontend/static/play_runtime_bootstrap.js`: shell-owned DOS-style startup bootstrap. It can prepend a player-visible `system_boot` block with `narration_beat: "boot"` before the first Director-owned story slice, deriving readiness lines from the bootstrap payload (`runtime_session_ready`, `can_execute`, `session_loop`, `shell_state_view`, `visible_scene_output`, and optional scene/capability plan fields). This block is a runtime UI handoff, not committed narrative content.
 - Legacy fallback: if `typewriter_slice_start_index` absent, last block is animated (pre-2026-05 behavior preserved).
@@ -30,7 +30,7 @@ Accepted
 - **Structured row diagnostics:** If a single `spoken_lines` dict row’s text contains multiple roster speaker prefixes, `ai_stack/goc_turn_seams.run_visible_render` adds marker `goc_multi_speaker_merged_into_single_spoken_line_row` (soft signal for operators / quality gates; projection still splits at commit when the jam appears in projected `actor_line` text).
 - **PLAYER-SHELL-NARRATIVE-CARD-01:** HTTP `visible_scene_output.blocks` are **player-facing narrative cards** built by `ai_stack/player_narrative_cards.build_player_facing_narrative_cards` from semantic `scene_blocks` (semantic `block_type` preserved; `card_style` / `visible_lane` / `player_display_text` added). Adjacent same-actor `actor_action` folds into the prior `actor_line` card; subsumed duplicates are dropped from the shell list; diagnostics live under `player_shell_narrative_card_diagnostics`.
 - **Human-bound player transcript (GoC live):** `_player_input_scene_blocks_for_story_window` **always** emits **two** blocks when `human_actor_id` is set: `player_input` (verbatim typing) then `player_input_outcome` (diegetic attributed line; imperative greets still use the scripted polite outcome for the second card). The shell renders each as its own card (see §4b).
-- **Opening narrator beats:** After `_maybe_split_goc_opening_into_two_movements`, `_annotate_goc_opening_narration_beats` sets `narration_beat` on the first three GoC turn-0 narrator blocks (`premise` / `scene_setup` / `role_anchor`) for UI accent only; `block_type` stays `narrator` for shape contracts.
+- **Opening literary slots vs shell `narration_beat`:** See §**narration_beat semantics** and **Removed patterns**. `_annotate_goc_opening_narration_beats` was **removed** (2026-05); do not reintroduce index-based `premise` / `scene_setup` / `role_anchor` tagging on `scene_blocks`.
 - Pytests: `world-engine/tests/test_goc_multi_speaker_actor_line_split.py`, `world-engine/tests/test_goc_player_input_greeting_imperative.py`, `ai_stack/tests/test_goc_npc_transcript_projection.py`, `ai_stack/tests/test_wave3_multi_actor_vitality.py` (jammed-row marker).
 
 **Not yet fully implemented:**
@@ -62,7 +62,8 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 4b. **Extended player-facing block kinds (shell must render faithfully):**
    - **`player_input_outcome`:** Second card in the **always-two** human-bound player pair: echo (`player_input`) then diegetic shell line (`player_input_outcome`, e.g. *Annette sagt: „…“* or scripted greet outcome after *Begrüße …*). Same cumulative rules as other blocks; **distinct** CSS lane from `player_input` (darker green bar / panel — presentation only).
-   - **`narration_beat` (optional metadata on `narrator` blocks):** Opaque to lane typing; renderer may add a class (e.g. opening **role anchor**) for accent. Consumers must not treat unknown keys as errors.
+   - **`narration_beat` (optional on `narrator` blocks):** Typewriter profile key and optional CSS accent. **Must reflect authored or operational metadata on that block** — see §**narration_beat semantics**. Unknown values fall back to the typewriter `default` profile; consumers must not treat unknown keys as errors.
+   - **`visual_emphasis` (optional):** Separate from `narration_beat` — e.g. `dramatic_moment` drives card chrome via `scene-block--visual-emphasis-*`, not the legacy opening index hack.
 
 4c. **NPC lane cardinality (engine projection):** For God of Carnage live projection, **distinct NPC speakers must appear as separate `actor_line` blocks** when the model merged them into one visible string. The World-Engine normalizes before finalize (see Implementation Status). **One jammed string → N blocks** (N emerges from content); **redundant `actor_action` tail already present in a prior `actor_line` → dropped**. This is **structural** truthfulness of the transcript, not a substitute for model-side dramaturgy.
 
@@ -79,6 +80,36 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 10. **Direct narrator-tail cleanup (presentation-only):** The player-facing card builder may remove a **directly adjacent** story-lane NPC card when a preceding narrator card already fully subsumes that NPC visible text under the redundancy guardrails; this affects only the rendered player-card projection (`visible_scene_output.blocks`) and does **not** modify committed semantic runtime `scene_blocks`.
 
 11. **Runtime bootstrap is shell-owned, not narrative-owned:** On initial page bootstrap only, the shell may prepend a `system_boot` block before `visible_scene_output.blocks` and set the displayed payload's `typewriter_slice_start_index` to `0` so the boot and then the narrative slice type sequentially. The required command line is `C:\WOS> START DIRECTOR_TICK`; subsequent warmup lines report system readiness for manager/dispatcher/capability/content/session surfaces from the payload when present and fall back to explicit `STANDBY` / `PENDING` / `WAITING` states when not present. This boot block must not be persisted as a story-window entry and must not be injected for ordinary turn updates unless a caller explicitly requests a bootstrap mode.
+
+### narration_beat semantics (normative)
+
+`scene_blocks[].narration_beat` is **presentation and typewriter metadata** on a **specific block**. It is **not** a substitute for canonical mandatory-beat identity, literary opening structure, or Langfuse opening-shape vocabulary.
+
+| Source | Valid `narration_beat` values | Consumer behaviour |
+|--------|------------------------------|-------------------|
+| **Canonical narrator path** (`ai_stack/goc_narrator_path.py`) | Mandatory beat **id** from YAML (e.g. `park_edge_establishing_image`, `stick_strikes_face`) | Typewriter `default` profile unless id matches a named profile; **no** `scene-block--narrator-role-anchor` unless value is literally `role_anchor` |
+| **Runtime bootstrap** (`play_runtime_bootstrap.js`) | `boot` | `boot` typewriter profile; operational UI only |
+| **Explicit dramaturgic annotation** (rare; author/model) | `role_anchor`, `tension`, `dialogue`, `action`, `reflection` | Matching profile in `TYPEWRITER_BEAT_PROFILES`; `role_anchor` adds `scene-block--narrator-role-anchor` (sweep CSS — must not clip multi-line text; see ADR-0046 follow-up) |
+| **Dramatic emphasis** | Use `visual_emphasis.kind` (e.g. `dramatic_moment`), **not** `narration_beat` | `scene-block--visual-emphasis-dramatic-moment` |
+
+**Literary opening slots** (`premise`, `scene_setup`, `role_anchor` as *story structure*) apply to **`gm_narration` text**, not to shell block indices:
+
+- `ai_stack/goc_opening_transition.py` — validates/reorders the first three narrator **strings** before projection.
+- `ai_stack/opening_shape_normalizer.py` — normalizes model `narration_summary` into beat strings.
+- `_compute_opening_shape_subgates` in `world-engine/app/story_runtime/manager.py` — Langfuse evidence; checks that indices 0–2 are `narrator` **block types** (subgate names `narrator_intro_present`, `role_anchor_present`, `scene_setup_present` are **historical labels**, not `narration_beat` values to write onto blocks).
+
+**Do not conflate** “opening has three narrator cards” with “card 0 = premise, card 1 = scene_setup, card 2 = role_anchor”. With narrator-path openings there are **many** narrator blocks; the third visible card is ordinary canonical content.
+
+### Removed patterns (do not restore)
+
+| Removed | Was | Why removed |
+|---------|-----|-------------|
+| `_annotate_goc_opening_narration_beats` | Forced `premise` / `scene_setup` / `role_anchor` onto `blocks[0..2].narration_beat` after projection | Overwrote canonical beat ids; wrongly triggered `scene-block--narrator-role-anchor` + `overflow: hidden` on the third card; broke multi-line typewriter layout |
+| Index-based opening UI tagging | Any post-projection pass that maps block index → literary slot name | Superseded by content-authored `narration_beat` + `visual_emphasis`; narrator-path uses mandatory beat ids |
+
+**Guard test:** `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags` — first three projected opening blocks must not carry `premise`, `scene_setup`, or `role_anchor` as `narration_beat`.
+
+**Internal label stripping:** Model leaks such as `role_anchor:` in **text** are removed by `visible_narrative_contract` — that is unrelated to the `narration_beat` field.
 
 ## Consequences
 
@@ -127,6 +158,7 @@ flowchart LR
 - World-Engine: `tests/test_trace_middleware.py` (`test_world_engine_turn_execute_langfuse_correlates_player_input_hash`; ADR-0033 §13.6).
 - Frontend: Jest — `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; `typewriter_slice_start_index` sequential delivery when present; **deferred slice DOM mount** + `revealAll` / accessibility mount missing blocks; legacy last-block fallback when absent), `frontend/tests/test_runtime_bootstrap.js` (DOS boot block construction, no duplicate boot injection, explicit opt-out modes). Run via `npm test` in `frontend/`, orchestrated after pytest by `python tests/run_tests.py --suite frontend` or `--mvp5`.
 - World-Engine: `world-engine/tests/test_goc_multi_speaker_actor_line_split.py`, `world-engine/tests/test_goc_player_input_greeting_imperative.py` (split / prune / two-card player transcript).
+- World-Engine: `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags` (no legacy opening UI beat names on `scene_blocks[].narration_beat`).
 
 CI environments that run shell gates must install frontend npm devDependencies so Jest can execute.
 
@@ -137,7 +169,9 @@ CI environments that run shell gates must install frontend npm devDependencies s
 - [ADR-MVP5-001](MVP_Live_Runtime_Completion/adr-mvp5-001-modular-block-rendering-architecture.md) (modular renderer; block-per-div)
 - [TEST_SUITE_CONTRACT](../testing/TEST_SUITE_CONTRACT.md)
 - `backend/app/api/v1/game_routes.py`
-- `world-engine/app/story_runtime/manager.py` (`_finalize_visible_blocks_with_goc_actor_split`, `_player_input_scene_blocks_for_story_window`, `_annotate_goc_opening_narration_beats`)
+- `world-engine/app/story_runtime/manager.py` (`_finalize_visible_blocks_with_goc_actor_split`, `_player_input_scene_blocks_for_story_window`, `_maybe_split_goc_opening_into_two_movements` — **not** `_annotate_goc_opening_narration_beats`, removed 2026-05)
+- `ai_stack/goc_opening_transition.py`, `ai_stack/goc_narrator_path.py` (literary opening strings vs canonical `narration_beat` on blocks)
+- `docs/technical/player-shell/narration_beat_and_opening_slots.md` (operator cheat sheet)
 - `ai_stack/goc_npc_transcript_projection.py`, `ai_stack/story_runtime_experience.py`, `ai_stack/goc_turn_seams.py` (`run_visible_render` diagnostics)
 - `frontend/static/play_shell.js`
 - `frontend/static/play_runtime_bootstrap.js`

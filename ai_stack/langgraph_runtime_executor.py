@@ -152,6 +152,7 @@ from ai_stack.environment_state_contracts import (
 from ai_stack.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
+    build_updated_player_local_context,
     normalize_scene_affordance_model_for_contracts,
 )
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
@@ -293,6 +294,7 @@ from ai_stack.director_realization_composer import (
     CAPABILITY_NARRATOR_DEFERRED,
     CAPABILITY_NARRATOR_KANON_REFUSAL,
     CAPABILITY_NARRATOR_LOCATION_TRANSITION,
+    CAPABILITY_NARRATOR_PERCEPTION,
     REALIZATION_PLAN_SCHEMA_VERSION,
     compose_realization_plan,
 )
@@ -4826,6 +4828,83 @@ def _drama_aware_routing_requirements(state: RuntimeTurnState) -> dict[str, Any]
     }
 
 
+def _destination_context_block(
+    scene_affordance_model: dict[str, Any] | None,
+    target_id: str | None,
+    target_type: str | None,
+    language: str,
+) -> str | None:
+    """Build a destination_context fact block for the narrator-realization prompt.
+
+    Pulls authored content from scene_affordance_model so the narrator can name
+    concrete objects, sensory anchors, and descriptions of the destination room
+    or interacted object. The runtime model exposes locations/objects either
+    under ``scene_affordances`` or at the top level — both shapes are accepted.
+
+    Returns None when no content is found; the caller omits the block.
+    """
+    if not isinstance(scene_affordance_model, dict) or not target_id:
+        return None
+    inner = scene_affordance_model.get("scene_affordances")
+    if isinstance(inner, dict) and (inner.get("locations") or inner.get("objects")):
+        scene = inner
+    else:
+        scene = {
+            "locations": scene_affordance_model.get("locations") or [],
+            "objects": scene_affordance_model.get("objects") or [],
+        }
+    location_rows = [r for r in (scene.get("locations") or []) if isinstance(r, dict)]
+    object_rows = [r for r in (scene.get("objects") or []) if isinstance(r, dict)]
+    row: dict[str, Any] | None = None
+    resolved_kind: str | None = None
+    primary = location_rows if target_type in (None, "", "location") else object_rows
+    secondary = object_rows if primary is location_rows else location_rows
+    primary_kind = "location" if primary is location_rows else "object"
+    secondary_kind = "object" if primary_kind == "location" else "location"
+    for candidate in primary:
+        if str(candidate.get("id") or "").strip() == target_id:
+            row = candidate
+            resolved_kind = primary_kind
+            break
+    if row is None:
+        for candidate in secondary:
+            if str(candidate.get("id") or "").strip() == target_id:
+                row = candidate
+                resolved_kind = secondary_kind
+                break
+    if row is None:
+        return None
+    target_type = target_type or resolved_kind
+    lang = (language or "de").strip().lower()[:2] or "de"
+    detail_map = row.get("entry_sensory_detail") if isinstance(row.get("entry_sensory_detail"), dict) else None
+    if detail_map is None:
+        detail_map = row.get("perception_detail") if isinstance(row.get("perception_detail"), dict) else None
+    detail = ""
+    if isinstance(detail_map, dict):
+        detail = str(detail_map.get(lang) or detail_map.get("de") or detail_map.get("en") or "").strip()
+    if not detail:
+        detail = str(row.get("description") or "").strip()
+    sensory_tags = [str(t).strip() for t in (row.get("sensory_tags") or []) if str(t).strip()]
+    inventory_ids = [str(t).strip() for t in (row.get("inventory_object_ids") or []) if str(t).strip()]
+    plausible_actions = [str(t).strip() for t in (row.get("plausible_actions") or []) if str(t).strip()]
+    label = str(row.get("name") or row.get("label") or target_id).strip()
+    lines: list[str] = [
+        "destination_context (authored content; narrator must anchor act 3 in these facts):",
+        f"  type: {target_type or 'location'}",
+        f"  id: {target_id}",
+        f"  label: {label}",
+    ]
+    if detail:
+        lines.append(f"  description (English source; translate to session_output_language): {detail}")
+    if sensory_tags:
+        lines.append(f"  sensory_anchors: {', '.join(sensory_tags)}")
+    if inventory_ids:
+        lines.append(f"  visible_objects: {', '.join(inventory_ids)}")
+    if plausible_actions:
+        lines.append(f"  plausible_actions: {', '.join(plausible_actions)}")
+    return "\n".join(lines)
+
+
 @dataclass
 class RuntimeTurnGraphExecutor:
     """``RuntimeTurnGraphExecutor`` groups related behaviour; callers should read members for contracts and threading assumptions.
@@ -6395,7 +6474,13 @@ class RuntimeTurnGraphExecutor:
         return update
 
     def _realize_via_capabilities(self, state: RuntimeTurnState) -> RuntimeTurnState:
-        """Translate the realization plan into the prompt for invoke_model."""
+        """Translate the realization plan into the prompt for invoke_model.
+
+        For thin-path capabilities, also commits state effects so the world
+        actually changes (player_local_context, environment_transition) — the
+        narrator's prose alone is not enough. The player must arrive somewhere
+        and the engine must know it.
+        """
         update = _track(state, node_name="realize_via_capabilities")
         plan = state.get("realization_plan") if isinstance(state.get("realization_plan"), dict) else {}
         capabilities = plan.get("capabilities_selected") or []
@@ -6405,8 +6490,10 @@ class RuntimeTurnGraphExecutor:
         raw_player = str(state.get("player_input") or "").strip()
         normalized_en = str(frame.get("normalized_english_text") or "").strip()
         target_id = str(frame.get("resolved_target_id") or "").strip() or None
+        target_type = str(frame.get("resolved_target_type") or "").strip().lower() or None
         outcome = (plan.get("outcome_disposition") or {}).get("outcome") or "success"
         outcome_reason = (plan.get("outcome_disposition") or {}).get("reason") or ""
+        sam = state.get("scene_affordance_model") if isinstance(state.get("scene_affordance_model"), dict) else {}
 
         prompt_lines: list[str] = [
             "You are the narrator of an interactive theatre piece.",
@@ -6414,53 +6501,74 @@ class RuntimeTurnGraphExecutor:
             "Stay in inner-perception / orientation voice (ADR-MVP3-013).",
             "Do not invent new persons, new rooms, plot-bearing facts, or hidden intentions.",
             "Do not summarize dialogue, do not assign emotions to the player.",
-            "Write a small narrative, not a label. A mechanical one-liner like "
-            "'Du gehst ins Bad' is a failure: the player feels blind and the moment "
-            "feels cold and mechanical. Instead, write a short narrative arc that the "
-            "player experiences:",
-            "  1) Departure: how the player disengages from the current situation "
-            "     (a turn of the head, a step back, the conversation thinning behind them).",
-            "  2) Transition: the bodily movement or interaction itself "
-            "     (the few steps, the threshold, the hand reaching, the door, the corridor).",
-            "  3) Arrival or result: what becomes present now "
-            "     (one or two anchoring sensory details of the destination or the "
-            "     object's response: a smell, a temperature shift, a sound, a texture, a sight).",
-            "Three to six sentences total. Concrete. Physical. Sensory. No abstractions. "
-            "Use second person (du / you). Always in session_output_language.",
+            "Write a narrative, not a label. Every action must be narrated to its "
+            "natural rest point — the moment at which the world makes sense again "
+            "and the player can take the next step. Stopping at a threshold without "
+            "entering, or stating an action without realizing it, is a failure mode.",
+            "Three-act arc; the third act is mandatory:",
+            "  1) Departure from the present situation.",
+            "  2) The transition itself — the bodily movement, or the use of the object.",
+            "  3) Result at the rest point. For movement: the player has crossed the "
+            "     threshold and is present inside the destination, with concrete "
+            "     sensory anchors of that destination. For perception: what is now "
+            "     perceived. For object interaction: the object's realized response. "
+            "     Narrate to the rest point, not to the trigger.",
+            "Four to six sentences. The last sentence or two MUST be at the rest "
+            "point: inside the destination, or at what is perceived, or with the "
+            "object's effect already in the world. Concrete, physical, sensory. "
+            "Anchor act 3 in the destination_context facts below, not in your own "
+            "invented details. Use second-person address in session_output_language.",
             f"raw_player_input: {raw_player}",
         ]
         if normalized_en:
             prompt_lines.append(f"normalized_english_text: {normalized_en}")
         if target_id:
             prompt_lines.append(f"resolved_target_id: {target_id}")
+        destination_block = _destination_context_block(sam, target_id, target_type, language)
+        if destination_block:
+            prompt_lines.append(destination_block)
         if capability == CAPABILITY_NARRATOR_LOCATION_TRANSITION:
             prompt_lines.append(
                 "Capability: location transition. The player leaves the present scene, "
-                "moves through the spatial path, and arrives at the new location. "
-                "Name the destination by its in-world label in the session language. "
-                "Anchor the arrival with one or two concrete sensory details from the destination."
+                "moves through the spatial path, and arrives inside the new location. "
+                "Name the destination by its in-world label in the session_output_language. "
+                "Act 3 must be set inside the destination room, anchored in the "
+                "destination_context facts above. Use at least two of those facts as "
+                "concrete sensory presence in the rest point."
+            )
+        elif capability == CAPABILITY_NARRATOR_PERCEPTION:
+            prompt_lines.append(
+                "Capability: perception. The player asks the world a sensory question "
+                "(what is found, seen, heard, smelled at the resolved target). The "
+                "narrator answers in-world as inner perception — never as a list, never "
+                "as a meta answer. Anchor the response in the destination_context facts "
+                "above: name what is actually present, what is sensed, what can be done "
+                "there. Do not invent objects beyond destination_context. If the player "
+                "is not yet physically at the queried location, the perception is what "
+                "they can plausibly recall, glance toward, or attune to from their "
+                "current position; do not commit a movement they did not request."
             )
         elif capability == CAPABILITY_NARRATOR_CLARIFICATION:
             prompt_lines.append(
-                "Capability: clarification in narrator voice. Make the unclarity sensory: "
-                "a moment of hesitation, an unfocused gesture, a half-step that does not commit. "
+                "Capability: clarification in narrator voice. Render the unclarity as "
+                "sensory hesitation rather than as a question to the player. "
                 f"Reason: {outcome_reason}. "
-                "Do not list options to the player; let the world hold its breath."
+                "Do not enumerate options."
             )
         elif capability == CAPABILITY_NARRATOR_KANON_REFUSAL:
             prompt_lines.append(
-                "Capability: soft refusal. The action cannot be carried out in the playable world. "
+                "Capability: soft refusal. The action cannot be carried out in the "
+                "playable world. "
                 f"Reason: {outcome_reason}. "
-                "Do not lecture, do not say 'that is impossible'. Let the world resist physically: "
-                "the door does not yield, the hand will not close, the body refuses. "
-                "Return the player to actionable space with one concrete sensory anchor of the current situation."
+                "Render the refusal physically through the world's resistance, not as "
+                "narrator lecture. Return the player to actionable space with a "
+                "concrete sensory anchor of the current situation."
             )
         elif capability == CAPABILITY_ACTOR_SPEECH:
             prompt_lines.append(
-                "Capability: actor speech. Realize the player's spoken line as actor_line, "
-                "addressed to the situational target. The narrator's role is minimal here; "
-                "if you emit a narration_summary at all, keep it to one short physical beat "
-                "(a glance, a breath, the room around the words)."
+                "Capability: actor speech. Realize the player's spoken line as "
+                "actor_line, addressed to the situational target. Keep any narrator "
+                "block minimal — at most a single physical beat around the words."
             )
         else:
             prompt_lines.append(
@@ -6469,7 +6577,8 @@ class RuntimeTurnGraphExecutor:
             )
         prompt_lines.append(
             "Return JSON with keys: narration_summary (the visible narrator text, "
-            "three to six sentences, concrete and sensory), "
+            "four to six sentences, concrete and sensory, with the rest point inside "
+            "the destination or at the realized object effect), "
             "spoken_lines (empty unless actor_line), action_lines (empty unless actor_line), "
             "function_type=string."
         )
@@ -6478,6 +6587,30 @@ class RuntimeTurnGraphExecutor:
         update["realize_via_capabilities_used_capability"] = capability
         update["realize_via_capabilities_outcome"] = outcome
         update["task_type"] = state.get("task_type") or "narrative_formulation"
+
+        if outcome == "success" and capability in {
+            CAPABILITY_NARRATOR_LOCATION_TRANSITION,
+        }:
+            lct = state.get("local_context_transition") if isinstance(state.get("local_context_transition"), dict) else None
+            ncp = state.get("narrator_consequence_plan") if isinstance(state.get("narrator_consequence_plan"), dict) else None
+            current_plc = state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None
+            if lct and ncp:
+                try:
+                    uplc = build_updated_player_local_context(
+                        current_player_local_context=current_plc,
+                        local_context_transition=lct,
+                        narrator_consequence_plan=ncp,
+                        scene_affordance_model=sam,
+                    )
+                except Exception:
+                    uplc = None
+                if uplc:
+                    update["player_local_context"] = uplc
+                    update["environment_transition"] = {
+                        "contract": "environment_transition.v1",
+                        "candidate_state_available": True,
+                        "source": "director_realization_composer",
+                    }
         return update
 
     def _goc_resolve_canonical_content(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -8884,6 +9017,12 @@ class RuntimeTurnGraphExecutor:
         outcome = "ok"
         if adapter:
             generation["attempted"] = True
+            _realize_cap = str(state.get("realize_via_capabilities_used_capability") or "").strip()
+            _parser_variant = (
+                "thin"
+                if _realize_cap.startswith("narrator.") or _realize_cap.startswith("actor_line.")
+                else "full"
+            )
             invoke_kw: dict[str, Any] = {
                 "adapter": adapter,
                 "player_input": state["player_input"],
@@ -8894,6 +9033,7 @@ class RuntimeTurnGraphExecutor:
                 "dramatic_generation_packet": state.get("dramatic_generation_packet")
                 if isinstance(state.get("dramatic_generation_packet"), dict)
                 else None,
+                "parser_variant": _parser_variant,
             }
             if api_model:
                 invoke_kw["model_name"] = api_model
@@ -9193,6 +9333,13 @@ class RuntimeTurnGraphExecutor:
         retry_synthesis_status = ""
         if isinstance(retry_context_synthesis_bundle, dict):
             retry_synthesis_status = str(retry_context_synthesis_bundle.get("status") or "")
+        _retry_realize_cap = str(state.get("realize_via_capabilities_used_capability") or "").strip()
+        _retry_parser_variant = (
+            "thin"
+            if _retry_realize_cap.startswith("narrator.")
+            or _retry_realize_cap.startswith("actor_line.")
+            else "full"
+        )
         runtime_result = _invoke_runtime_adapter_with_langchain(
             adapter=adapter,
             player_input=state["player_input"],
@@ -9211,6 +9358,7 @@ class RuntimeTurnGraphExecutor:
             dramatic_generation_packet=state.get("dramatic_generation_packet")
             if isinstance(state.get("dramatic_generation_packet"), dict)
             else None,
+            parser_variant=_retry_parser_variant,
         )
         call = runtime_result.call
         prior_raw = str(generation.get("content") or generation.get("model_raw_text") or "").strip()

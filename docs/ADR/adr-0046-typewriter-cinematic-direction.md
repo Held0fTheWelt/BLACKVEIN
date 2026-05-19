@@ -6,6 +6,29 @@ Transform the player-shell typewriter from a constant-speed text reveal into a b
 
 `Accepted`
 
+## Implementation Status
+
+**Last reviewed:** 2026-05-19.
+
+| ADR bullet | Status | Evidence |
+|------------|--------|----------|
+| §1 Per-char `<span class="char">` model | **Done** | `frontend/static/play_typewriter_engine.js` |
+| §2 Live `play-cursor` + variants | **Done** | same; `style.css` `data-cursor-variant` |
+| §3 Punctuation pauses | **Done** (live mode) | `PUNCTUATION_PAUSE_MS`; off in `test_mode` |
+| §4 Micro-jitter (seeded PRNG) | **Done** (live mode) | `_mulberry32` / `_seedFromString` |
+| §5 `pause_before` / `pause_after` between slices | **Done** | `play_blocks_orchestrator.js` profile gaps |
+| §6 `TYPEWRITER_BEAT_PROFILES` map | **Done** | `DEFAULT_BEAT_PROFILES`; unknown → `default` |
+| §7 Beat-change decompression | **Partial** | `scene-block--beat-decompress` + profile gap; not a fixed 250 ms orchestrator hold |
+| §8 Composing / player-echo / typing pulse | **Done** | `frontend/static/play_cinematic.js` |
+| §9 Skip speedrun | **Done** | `is-speedrun` on `.play-shell` |
+| §9 `role_anchor` sweep | **Done (opt-in)** | CSS on `.scene-block--narrator-role-anchor` only when block has `narration_beat: "role_anchor"` |
+| §9 Matrix +12% / +8% while typing | **Partial** | CSS glow on `body.is-typing .matrix-layer__glow`; play route often has no matrix layer |
+| §10 `test_mode` determinism | **Done** | 37 Jest cases in `frontend/tests/test_typewriter_engine.js` |
+| §11 `prefers-reduced-motion` | **Done** | `style.css` media query |
+| §13 `boot` profile | **Done** | `play_runtime_bootstrap.js` |
+
+**Opening `narration_beat` semantics** (normative, not typewriter-specific): [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) §**narration_beat semantics**. Do **not** reintroduce `_annotate_goc_opening_narration_beats` or index-based `premise` / `scene_setup` / `role_anchor` on `scene_blocks`. Canonical narrator-path blocks use **mandatory beat ids** (e.g. `stick_strikes_face`); typewriter uses the `default` profile unless the id matches a named profile key.
+
 ## Date
 
 2026-05-17
@@ -26,18 +49,17 @@ This ADR contains no personal data. The typewriter operates on the **player-visi
 
 ## Context
 
-The current `play_typewriter_engine.js` ships a working but flat experience:
+**As of 2026-05-19** the player-shell typewriter is **no longer** a flat `textContent.substring` stream. `play_typewriter_engine.js` reveals per-character spans, drives a live `play-cursor`, and resolves tempo from `TYPEWRITER_BEAT_PROFILES` keyed by each block's `narration_beat` (unknown values → `default`). `play_blocks_orchestrator.js` applies profile-based gaps between slices; `play_cinematic.js` wires composing pulse, player-echo fade, and typing/stream surface classes.
 
-- **Constant tempo** (`characters_per_second: 44`) for every block → reads as a machine streaming, not a human directing.
-- **Dead config fields**: `pause_before_ms` (150) and `pause_after_ms` (650) are defined in the engine constructor but never consulted by `_onClockTick`. Between-block silence is therefore zero.
-- **Beat metadata is decorative only**: `BlockRenderer` writes `data-narration-beat="<beat>"` and the `role_anchor` value flips a CSS border colour to amber — no other beat affects timing, cursor shape, or atmosphere.
-- **No cursor in practice**: `.block-typewriter::after { content: '|'; animation: blink 1s infinite }` exists in `style.css` but the `block-typewriter` class is never set by any JavaScript path. The cursor is dead CSS.
-- **`textContent.substring()` rendering** prevents any per-character styling — no glow trail, no character-by-character reveal, no localised animation around the live position.
-- **Slice transitions are hard cuts**: `_onSliceDeliveryComplete` immediately starts the next block; no breath, no beat-change cue.
+**Historical problem (pre-implementation):** constant 44 cps, unused beat metadata, dead legacy `.block-typewriter::after` cursor CSS, and hard-cut slice transitions.
 
-The product goal — quoted from the player-frontend brief — is for the typewriter to be a **central, exciting, spectacular experience** that lets the player feel the action is **happening live, as if a human were directing it**. The beat system is the rail on which this cinematic direction should ride; today it is unused at runtime.
+**Historical opening bug (removed 2026-05):** `_annotate_goc_opening_narration_beats` forced `premise` / `scene_setup` / `role_anchor` onto `blocks[0..2].narration_beat`, which wrongly applied `scene-block--narrator-role-anchor` (`overflow: hidden`) to the third opening card and broke multi-line layout. That pass is **deleted**; guard: `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`. Full semantics: ADR-0034 §**narration_beat semantics**.
 
-This ADR commits to a refactor that activates the beat rail, replaces the substring renderer with a per-character span model, and layers in live-direction signals so the player perceives a director on the other end of the wire, not a stream.
+**Current opening behaviour:** GoC **narrator-path** sets `narration_beat` to each block's **canonical mandatory beat id** (`ai_stack/goc_narrator_path.py`). Dramatic emphasis uses `visual_emphasis` (e.g. `dramatic_moment`), not literary slot names on the field. The `role_anchor` typewriter/CSS sweep runs **only** when a block explicitly has `narration_beat: "role_anchor"`.
+
+**Remaining gaps vs this ADR:** beat-change timing is profile-driven, not a fixed 250 ms decompression; matrix “coupling” is a light CSS glow, often inert on `/play` where `#matrix-layer` is absent; dedicated Jest tests for render-shape / beat-profile dispatch called out below are not all present yet.
+
+The product goal remains: the typewriter should feel **live-directed** — punctuation breaths, beat-coded tempo, cursor presence, and composing/echo signals — not a uniform machine stream.
 
 ## Decision
 
@@ -53,7 +75,7 @@ The typewriter pipeline (`play_typewriter_engine.js`, `play_blocks_orchestrator.
 8. **Live-direction signals.** Between player-submit and the first scene block arriving, `play_shell.js` shows a `play-composing` indicator (three pulsing glyphs in mono, beat-coloured). The signal dissolves into the position of the first revealed char. Player-echo: the player's own most-recent input fades to 0.55 opacity while the engine is delivering. The story window border carries a 60-bpm heartbeat while a WebSocket narrator stream is open; the heartbeat goes matte when the stream closes.
 9. **Spektakel layer.**
    - **Skip** becomes a speed-run: remaining chars reveal at 8× current beat cps with the cursor flattened to a line and a chromatic-aberration tint; no instant `textContent` swap.
-   - **`role_anchor` opening**: card-border glow sweeps left→right (800 ms) before the first char is scheduled.
+   - **`role_anchor` sweep (opt-in):** When a block's `narration_beat` is **literally** `role_anchor` (author/model annotation, not index-forced opening tags), card-border glow sweeps left→right (800 ms) before the first char is scheduled. Canonical narrator-path openings use mandatory beat **ids** and `visual_emphasis` for dramatic moments — they do **not** get this sweep unless explicitly tagged.
    - **Matrix coupling**: while a typewriter slice is active the matrix-rain layer runs +12% speed and +8% density; otherwise it relaxes to baseline.
 10. **Determinism guarantee for tests.** When `TypewriterEngine` is constructed with `test_mode === true`, jitter, punctuation pauses, beat-change decompression, and matrix coupling are bypassed. The existing `getQueueState()` shape (`current_block_id`, `current_visible_chars`, `queue_length`, `queue[]`) is preserved. `clock.advanceBy()` continues to drive deterministic time. The existing test suite (`frontend/tests/test_typewriter_engine.js`) must remain green without modification.
 11. **Accessibility & reduced motion.** `prefers-reduced-motion: reduce` suppresses char-reveal animation, cursor breathing, sweeps, and matrix coupling — char-spans appear instantly and the cursor is static. The existing `accessibility_mode` toggle on `BlocksOrchestrator` continues to render every block in full immediately.
@@ -78,6 +100,7 @@ The typewriter pipeline (`play_typewriter_engine.js`, `play_blocks_orchestrator.
 **Follow-ups:**
 
 - Profile-tune the beat map after first playtests (the values in §6 are first-pass estimates).
+- **CSS:** `scene-block--narrator-role-anchor { overflow: hidden }` can clip multi-line typewriter text — if `role_anchor` styling is used, remove or relax overflow (ADR-0034 §**narration_beat semantics**).
 - Consider an opt-in audio layer (subtle tipping ticks, beat-tinted; default off) — explicitly out of scope for this ADR.
 - Consider an in-game "Director cadence" preset (slow/normal/fast) exposed in the play-controls bar, multiplying every beat's `cps` uniformly.
 
@@ -116,12 +139,12 @@ player-echo fades              cursor settle                 │
 
 How we **verify** this decision:
 
-- **Existing unit suite preserved**: `frontend/tests/test_typewriter_engine.js` (32 cases covering VirtualClock, single-active wiring, progressive rendering exact char counts, `skipBlock`, `revealAll`, `reset`, `setOnDeliveryComplete`, `getQueueState`) must run unchanged. The implementation guarantees this via `test_mode === true` disabling jitter/punctuation/decompression and via preserving the public method surface.
-- **Render-shape contract test (new)**: a unit test in `frontend/tests/test_typewriter_engine.js` (or a sibling file) asserts that after delivery completes, `blockEl.querySelectorAll('.char').length === text.length` and `blockEl.querySelector('.play-cursor') !== null`.
-- **Beat-profile dispatch test (new)**: given a block with `narration_beat: 'tension'`, the engine consults the tension profile (cps, cursor variant). Asserted by spying on the profile resolver or by inspecting `data-cursor-variant` on the rendered cursor.
-- **Runtime boot profile test (new)**: `frontend/tests/test_typewriter_engine.js` asserts the `boot` profile exists and that per-block `delivery.characters_per_second` controls startup-block pacing.
-- **Determinism replay test (new)**: in test mode, two consecutive `startDelivery(block)` calls with the same block id produce identical `scheduled_at` sequences (PRNG seeded by block id).
-- **Frontend pytest suite**: `cd frontend && python -m pytest tests/` must remain green (105 cases at time of writing).
+- **Unit suite (current):** `cd frontend && npm test -- --testPathPattern=test_typewriter_engine` — **37 passed** (2026-05-19). `test_mode === true` disables jitter/punctuation for determinism; public surface (`getQueueState`, `skipBlock`, `revealAll`, `setOnDeliveryComplete`) unchanged.
+- **Render-shape contract test (follow-up):** assert post-delivery `.char` count equals display text length and `.play-cursor` is present — not yet a dedicated case.
+- **Beat-profile dispatch test (follow-up):** block with `narration_beat: 'tension'` → tension `cps` / `data-cursor-variant` — not yet a dedicated case.
+- **Runtime boot profile test (follow-up):** `boot` in `DEFAULT_BEAT_PROFILES` + `play_runtime_bootstrap.js` — covered indirectly; no isolated Jest case yet.
+- **World-Engine opening guard:** `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`.
+- **Frontend pytest suite:** `cd frontend && python -m pytest tests/` must remain green when touching the shell.
 - **Manual smoke**: open `/play/<session_id>` in Chrome and Firefox with a real backend + world-engine; confirm composing pulse → first char dissolve → punctuation breaths → cursor variant per beat → settle → next slice. Repeat with `prefers-reduced-motion: reduce` set.
 
 **Failure modes that should trigger an ADR review:**
@@ -142,4 +165,7 @@ Gate and promotion-style tests must comply with **[ADR-0039](adr-0039-gate-tests
 - `frontend/static/play_runtime_bootstrap.js` — builds the shell-owned `system_boot` block consumed by the typewriter before Director-owned story blocks.
 - `frontend/static/style.css` §"Phase D: QA Canonical Turn Diagnostics Panel" neighbourhood — gains `.play-cursor`, `.char`, beat atmosphere classes, settle/sweep/speedrun keyframes.
 - `frontend/tests/test_typewriter_engine.js` — existing unit suite the determinism guarantee protects.
-- [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) §7 — display text and slice rules.
+- [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) §7 and §**narration_beat semantics** — display text, slice rules, opening field semantics.
+- `docs/technical/player-shell/narration_beat_and_opening_slots.md` — operator cheat sheet (literary slots vs shell field).
+- `ai_stack/goc_narrator_path.py`, `ai_stack/goc_opening_transition.py` — canonical opening content vs gm_narration slots.
+- `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`.

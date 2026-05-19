@@ -466,6 +466,48 @@ _RUNTIME_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=RuntimeTurnStructu
 _WRITERS_ROOM_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=WritersRoomStructuredOutput)
 
 
+class ThinPathRuntimeOutput(BaseModel):
+    """Slim output schema for thin-path player turns.
+
+    Used when the Director's realization_plan picks a single narrator.* or
+    actor_line.* capability. Avoids forcing the LLM to fill the full LDSS schema
+    (sensory_context_events, initiative_events, opening_event_coverage, etc.) for
+    mundane player actions like 'go to the kitchen'.
+
+    Downstream proposal_normalize accepts this shape because it treats unknown
+    fields as absent rather than as required. Schema version stays compatible
+    with RuntimeTurnStructuredOutput so legacy readers don't break.
+    """
+
+    schema_version: str = Field(default="runtime_actor_turn_v1")
+    narration_summary: str | list[str] = Field(
+        default="",
+        description=(
+            "The visible narrator prose for the player turn. Three to six sentences. "
+            "Concrete, physical, sensory. Three-act micro-arc: departure, transition, arrival. "
+            "Always in session_output_language. No lists, no abstractions, no second-person commands."
+        ),
+    )
+    spoken_lines: list[dict[str, Any] | str] = Field(
+        default_factory=list,
+        description=(
+            "Empty for narrator-only capabilities. For actor_line capability, one row per spoken beat "
+            "with speaker_id and text. Text wraps the spoken words in ASCII double quotes."
+        ),
+    )
+    action_lines: list[dict[str, Any] | str] = Field(
+        default_factory=list,
+        description="Empty for narrator-only capabilities. For actor_line capability, one row per physical beat with actor_id and text.",
+    )
+    function_type: str | None = Field(
+        default=None,
+        description="Short label of the realization function, e.g. 'narrator.location_transition.describe'.",
+    )
+
+
+_RUNTIME_OUTPUT_PARSER_THIN = PydanticOutputParser(pydantic_object=ThinPathRuntimeOutput)
+
+
 @dataclass
 class RuntimeInvocationResult:
     """``RuntimeInvocationResult`` groups related behaviour; callers should read members for contracts and threading assumptions.
@@ -490,6 +532,7 @@ def invoke_runtime_adapter_with_langchain(
     rewrite_instruction: str | None = None,
     model_name: str | None = None,
     dramatic_generation_packet: dict[str, Any] | None = None,
+    parser_variant: str = "full",
 ) -> RuntimeInvocationResult:
     """Describe what ``invoke_runtime_adapter_with_langchain`` does in one
     line (verb-led summary for this function).
@@ -508,7 +551,7 @@ def invoke_runtime_adapter_with_langchain(
         RuntimeInvocationResult:
             Returns a value of type ``RuntimeInvocationResult``; see the function body for structure, error paths, and sentinels.
     """
-    parser = _RUNTIME_OUTPUT_PARSER
+    parser = _RUNTIME_OUTPUT_PARSER_THIN if parser_variant == "thin" else _RUNTIME_OUTPUT_PARSER
     correction_block = ""
     if rewrite_instruction:
         fb = ", ".join(str(x) for x in (feedback_codes or []) if str(x).strip()) or "(none)"
@@ -561,7 +604,7 @@ def invoke_runtime_adapter_with_langchain(
     if not call.success:
         return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=None)
     parsed, parser_error, repair_log = _tolerant_parse(call.content, parser)
-    if parsed is not None:
+    if parsed is not None and isinstance(parsed, RuntimeTurnStructuredOutput):
         parsed = _normalize_runtime_structured_output(parsed)
     return RuntimeInvocationResult(
         call=call,

@@ -213,6 +213,12 @@ class RuntimeTurnState(TypedDict, total=False):
     player_local_context: dict[str, Any]
     local_context_transition: dict[str, Any]
     narrator_consequence_plan: dict[str, Any]
+    # Resolver -> Director -> Narrator thin path (RESOLVER_DIRECTOR_NARRATOR_THIN_PATH_PLAN).
+    kanon_break: bool
+    kanon_break_reason: str | None
+    realization_plan: dict[str, Any]
+    realize_via_capabilities_used_capability: str
+    realize_via_capabilities_outcome: str
     # ADR-0036: normative language for all model-visible turn text (host-injected).
     session_input_language: str
     session_output_language: str
