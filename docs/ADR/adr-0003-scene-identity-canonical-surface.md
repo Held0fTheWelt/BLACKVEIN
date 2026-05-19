@@ -48,6 +48,11 @@ Authored narrative modules are consumed by more than one component (content comp
 5. Do not add new runtime maps for player language, semantic moves, actor
    aliases, location aliases, or scene candidates. Those meanings must come
    from authored content IDs and AI semantic resolution.
+6. The compatibility resolver does **not** authorize phase-helper fallback.
+   Backend transitional helpers such as `app.runtime.next_situation` remain
+   strict over `ContentModule.scene_phases`: a `SessionState.current_scene_id`
+   that names only a `scene_graph.yaml` node is rejected instead of being
+   silently remapped to a phase id.
 
 ## Consequences
 - Positive: Fewer silent failures at seams; CI enforcement against mapping drift.
@@ -71,7 +76,7 @@ flowchart TD
 ## Testing
 
 - **CI:** `python tools/verify_goc_scene_identity_single_source.py` and `ai_stack/tests/test_goc_scene_identity.py` (including `test_sole_definition_of_guidance_phase_key_for_scene_id`).
-- **Failure mode:** duplicate scene-id -> guidance maps or ad hoc `if scene_id == ...` branches outside `goc_scene_identity.py`.
+- **Failure mode:** duplicate scene-id -> guidance maps, ad hoc `if scene_id == ...` branches outside `goc_scene_identity.py`, or tests that require transitional phase helpers to accept scene-graph node ids as backward-compatible phase aliases.
 - **Out of scope:** raw player text, actor names, locale words, or scene-topic
   keywords selecting semantic moves or scene candidates.
 

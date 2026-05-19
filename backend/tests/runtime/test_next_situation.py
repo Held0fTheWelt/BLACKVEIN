@@ -472,16 +472,17 @@ class TestConditionAwareNextSituation:
         assert result_both.situation_status == "transitioned"
         assert result_both.current_scene_id == "scene_2"
 
-    def test_backward_compatibility_unconditional_still_works(self, god_of_carnage_module, god_of_carnage_module_with_state):
-        """Unconditional transitions/endings still work without detected_triggers."""
+    def test_scene_graph_start_id_is_rejected_by_phase_situation_helper(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Scene graph node ids are not backward-compatible aliases for phase ids."""
         session = god_of_carnage_module_with_state
 
-        # Without detected_triggers parameter (backward compatible)
-        result = derive_next_situation(session, god_of_carnage_module)
+        assert session.current_scene_id == "prologue_park_edge"
+        assert session.current_scene_id not in god_of_carnage_module.scene_phases
 
-        # Should handle unconditional cases (empty trigger_conditions)
-        assert result.situation_status in ["continue", "transitioned", "ending_reached"]
-        assert result.current_scene_id is not None
+        with pytest.raises(ValueError, match="not in module"):
+            derive_next_situation(session, god_of_carnage_module)
 
 
 class TestLogSituationOutcome:
