@@ -141,15 +141,15 @@ Was *gelöscht* wird: `_route_after_resolve_player_action`, `_authoritative_acti
 
 **Eingriffe (verbindlich):**
 
-- [ ] **A-1** Resolver-Output um `kanon_break: bool` + `kanon_break_reason` erweitern. Datei: `ai_stack/player_action_resolution.py`. Definition strikt semantisch (kein Verb-Set, kein Raumset), gegen die Möglichkeit-/Moral-Achsen aus `NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md` §2.1.
-- [ ] **A-2** Neuer Modul `ai_stack/director_realization_composer.py` mit Funktion `compose_realization_plan(semantic_resolution_output, scene_context, session_languages) -> realization_plan.v1`. Innerhalb: semantische Auswahl (LLM-Call mit kleinem Director-Prompt, der Charakter/Druck/Possibility/kanon_break als Input bekommt). Keine Whitelist.
-- [ ] **A-3** Neuer Graph-Knoten `director_compose_realization` in `ai_stack/langgraph_runtime_executor.py`. Edge: `resolve_player_action → director_compose_realization` (statt `_route_after_resolve_player_action`).
-- [ ] **A-4** Neuer Graph-Knoten `realize_via_capabilities`. Konsumiert `realization_plan.v1`, ruft für PR-A genau eine Capability: `narrator.location_transition.describe` mit LLM-Realisierung in `session_output_language`.
-- [ ] **A-5** Edge `director_compose_realization → realize_via_capabilities → commit`.
-- [ ] **A-6** Lösche `_route_after_resolve_player_action` (`langgraph_runtime_executor.py:6374-6415`).
-- [ ] **A-7** Lösche `_authoritative_action_resolution_turn` (`langgraph_runtime_executor.py:6417-6440`).
-- [ ] **A-8** Lösche/Quarantäne `build_synthetic_generation_for_action_resolution` für `commit_action+allowed/allowed_offscreen/partial`. Falls für `needs_clarification`/`unknown_target` weiter gebraucht: behalten und klar einschränken.
-- [ ] **A-9** Tests anpassen (kein Whitelist-Recovery): `ai_stack/tests/test_runtime_authority_aspects.py:497-587` und `ai_stack/tests/test_langgraph_runtime.py:643-660`. Neue Tests gegen `realization_plan.v1`-Eigenschaften, nicht gegen String-Fixtures.
+- [x] **A-1** Resolver-Output um `kanon_break: bool` + `kanon_break_reason` erweitern.
+- [x] **A-2** `ai_stack/director_realization_composer.py` + `compose_realization_plan` → `realization_plan.v1` (PR-A deterministisch; LLM-Compose in PR-A.2/3).
+- [x] **A-3** Graph-Knoten `director_compose_realization`; Edge `resolve_player_action → director_compose_realization`.
+- [x] **A-4** Graph-Knoten `realize_via_capabilities`; LLM-Realisierung in `session_output_language`.
+- [x] **A-5** Edges `director_compose_realization → realize_via_capabilities → route_model → … → commit`.
+- [x] **A-6** `_route_after_resolve_player_action` gelöscht.
+- [x] **A-7** `_authoritative_action_resolution_turn` gelöscht.
+- [x] **A-8** `build_synthetic_generation_for_action_resolution` nicht mehr im Player-Turn-Graph.
+- [x] **A-9** Tests umgeschrieben (composer + thin-path graph invariants).
 - [x] **A-10** Live-Smoke gegen die fünf Eingaben oben über `docker-up.py`. Per CLAUDE.md "No Mock Tests for Integration Features".
 - [x] **A-11** Diagnose-Feld `realization_plan` in `narrative_systems.html` ergänzen (per NPC_INTERACTION-Plan §3.5).
 
@@ -298,16 +298,19 @@ Eröffnet nach Abschluss PR-A.3.
 
 | Komponente | Datei:Zeile |
 |---|---|
+| Normative ADR | `docs/ADR/adr-0062-director-realization-thin-path.md` |
+| Technical contract | `docs/technical/runtime/director_realization_thin_path_contract.md` |
 | Translate-Ingress | `ai_stack/langgraph_runtime_executor.py:405-438` |
 | Resolver (Player) | `ai_stack/player_action_resolution.py` |
-| Router (ZU LÖSCHEN) | `ai_stack/langgraph_runtime_executor.py:6374-6415` |
-| Short-Path-Knoten (ZU LÖSCHEN) | `ai_stack/langgraph_runtime_executor.py:6417-6440` |
-| Synth-Gen (EINGRENZEN) | `ai_stack/narrator_consequence_contracts.py` (Quelle `build_synthetic_generation_for_action_resolution`) |
-| Director (heute) | `ai_stack/scene_director_goc.py` |
+| Director composer | `ai_stack/director_realization_composer.py` |
+| Graph thin path | `ai_stack/langgraph_runtime_executor.py:4947-4991` (`director_compose_realization`, `realize_via_capabilities`) |
+| Thin-path state | `ai_stack/langgraph_runtime_state.py:216-220` |
+| Thin-path summary API | `world-engine/app/api/http.py` (`/thin-path-summary`), `manager.py:14164` |
+| LDSS scene director (nicht auf Player-Pfad) | `ai_stack/scene_director_goc.py` |
 | Validator dramatic_irony | `ai_stack/dramatic_irony_runtime.py:668-701` |
-| Manager / Story-Runtime | `world-engine/app/story_runtime/manager.py` |
-| Zwei grüne Karten | `world-engine/app/story_runtime/manager.py:7615-7671` |
-| Frontend Renderer | `frontend/static/play_typewriter_engine.js:216-450`, `frontend/tests/test_block_renderer.js:286-293` |
-| ADR Player-Shell | `docs/ADR/adr-0034-player-facing-narrative-shell-contract.md:32` |
-| ADR Session-Sprache | `docs/ADR/adr-0054-session-input-language-english-internal-resolution.md`, `adr-0055-semantic-player-input-translation-ingress.md` |
+| Karten-Fold | `world-engine/app/story_runtime/manager.py:7756-7845` |
+| UI Diagnose | `world-engine/app/web/templates/ui/narrative_systems.html`, `ui_narrative_systems.js` |
+| Live smoke | `tests/smoke/test_thin_path_pr_a_live_smoke.py` |
+| ADR Player-Shell | `docs/ADR/adr-0034-player-facing-narrative-shell-contract.md` |
+| ADR Session-Sprache | `docs/ADR/adr-0054-…`, `adr-0055-…` |
 | Anschluss-Plan | `NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md` (§3.4, §3.5) |
