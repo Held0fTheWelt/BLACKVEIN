@@ -328,7 +328,7 @@ Begründung: Sonst ziehen `diagnostics.html`, `runtime_ledger.html`, `narrative_
 
 | PR | Inhalt | Sub-Phasen | Tests | Diagnose-Erweiterungen |
 |----|--------|------------|-------|-------------------------|
-| **PR-A** | **Resolver-Vertrag schließen.** Resolver liefert zuverlässig `resolved_target_type: "location"` + `resolved_target_id` bei Bewegungs-Aktionen — semantisch durch LLM, *kein* Verb-Whitelist. | 1.d.0 | `test_resolver_movement_target_location_live.py` (paraphrasierte DE-Inputs aus verschiedenen Sprachregistern; Assertion auf Pfad-Eigenschaften, nicht Input-Strings) | `narrative_systems.html` |
+| **PR-A** | **Thin path (Resolver → Director → Narrator).** Router/Short-Path entfernt; `realization_plan.v1` + `realize_via_capabilities`; Bewegung/Perception/Klarung/Kanon-Break über named capabilities; LLM-Realisierung in `session_output_language`. | 1.d.0 (Resolver-Vertrag), PR-A | `ai_stack/tests/test_langgraph_runtime.py` (thin-path graph), `ai_stack/tests/test_runtime_authority_aspects.py` (composer), `tests/smoke/test_thin_path_pr_a_live_smoke.py` (opt-in live) | `narrative_systems.html` — Panel „Thin path“ via `thin-path-summary` API |
 | **PR-B** | **Live-Effekt-Propagation.** Narrator-Konsequenz bei `requires_model_realization: true` → sichtbarer narrator-Block im Stream; `canonical_path_effect: hold_current_step` propagiert durch graph_state und greift bei `_turn_holds_canonical_path_for_free_player_action`. | (b), (c) | `test_narrator_realization_mundane_inference_live.py`, `test_canonical_path_held_on_free_action_live.py` | `narrative_systems.html`, `runtime_status.html` |
 | **PR-C** | **Director-Pause-Modus.** Director-State `gathering_paused`, Vergleichsfunktion `compute_gathering_state`, Beat-Konsum-Gate im LDSS/NPC-Agency-Builder, Narrator-Reaktions-Hook für Pause-Übergang. | 1.d.1, 1.d.2, 1.d.3, 1.d.4 | `test_director_gathering_paused_state_live.py`, `test_director_gathering_paused_recovery_live.py` | `diagnostics.html`, `narrative_systems.html`, `runtime_ledger.html` |
 
@@ -336,7 +336,8 @@ Begründung: Sonst ziehen `diagnostics.html`, `runtime_ledger.html`, `narrative_
 
 **ADR-Schnitt:**
 
-- **ADR-0057** (canon-safe player freedom — heute Draft in `docs/ADR/adr-0057-canon-safe-player-freedom-and-affordance-inference.md`): **Akzeptanz vor PR-A-Merge**. Liefert den Vertragsboden für PR-A und PR-B.
+- **ADR-0057** (canon-safe player freedom — `docs/ADR/adr-0057-canon-safe-player-freedom-and-affordance-inference.md`): **Accepted**. Liefert den Vertragsboden für PR-A und PR-B.
+- **ADR-0062** (Director realization thin path — `docs/ADR/adr-0062-director-realization-thin-path.md`): **Accepted mit PR-A (2026-05-19)**. Ersetzt `authoritative_action_resolution`; dokumentiert `realization_plan.v1`, Capabilities, Diagnose-API, Live-Smoke.
 - **ADR-0061 (neu) — „Director-Pause-Modus bei Versammlungs-Unterbrechung":** **mit PR-C zu liefern**. Dokumentiert die `gathering_paused`-State-Achse, die `compute_gathering_state`-Vergleichsfunktion, das Beat-Konsum-Gate und den Narrator-Reaktions-Hook. Eigenständig — *kein* Vorgriff auf ADR-0058 (Phase 2). Phase 1 baut den Discriminator, Phase 2 baut die Pulse-Mechanik darüber.
 
 **Jeder PR ist self-contained verifizierbar:** PR-A grün = Resolver liefert was er soll; PR-B grün = Effekt-Propagation funktioniert; PR-C grün = Director-Pause läuft live. Nach PR-C ist Phase 1 abgeschlossen und Phase 2 (ADR-0058 / ADR-0059 / ADR-0060) darf beginnen.

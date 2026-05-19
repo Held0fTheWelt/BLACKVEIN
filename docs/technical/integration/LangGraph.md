@@ -16,35 +16,28 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 - **Graph wiring implementation:** `ai_stack/langgraph_runtime_executor.py` — class `RuntimeTurnGraphExecutor`, method `_build_graph`.
 - **Compiled graph:** a single `StateGraph` over `RuntimeTurnState` (typed dict fields for inputs, retrieval, routing, generation, diagnostics, seam outcomes).
 - **Conditional edge:** after `interpret_input`, `_route_after_interpret_input` routes `player_input_kind=meta` to `meta_control_turn`; all story-play input continues to `resolve_player_action`.
-- **Conditional edge:** after `resolve_player_action`, `_route_after_resolve_player_action` routes either to the full retrieval/model pipeline or the deterministic `authoritative_action_resolution` short path.
+- **Player-turn path (ADR-0062):** after `resolve_player_action`, every story-play turn follows the **Director realization thin path** — `director_compose_realization` → `realize_via_capabilities` → `route_model` → `invoke_model` → seams. The removed `authoritative_action_resolution` deterministic short path and `_route_after_resolve_player_action` router are no longer used.
+- **LDSS / dramatic pipeline nodes** (`retrieve_context`, `goc_resolve_canonical_content`, director assess/select, `derive_*`, `synthesize_context`, `assemble_model_context`) remain compiled in the graph for future re-entry but are **not** on the default player-turn edge list.
 - **Conditional edge:** after `invoke_model`, `_next_step_after_invoke` routes either to `fallback_model` or `proposal_normalize` depending on invocation success and adapter policy.
 
 **Node list (current graph shape):**
 
-1. `interpret_input` — interpreter output and task hint (`classification` vs `narrative_formulation`).
-2. `meta_control_turn` — deterministic non-story branch for Meta/OOC input; skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`, then goes directly to `package_output`.
-3. `resolve_player_action` — story/action interpretation and affordance framing for normal story-play input.
-4. `authoritative_action_resolution` — deterministic short path when action resolution can produce the bounded proposal without the full model pipeline.
-5. `retrieve_context` — builds a `RetrievalRequest` with `RetrievalDomain.RUNTIME` and profile `runtime_turn_support` (`ai_stack/rag.py`).
-6. `goc_resolve_canonical_content` — God of Carnage (GoC) slice YAML resolution path.
-7. `director_assess_scene` — scene assessment (director subgraph).
-8. `director_select_dramatic_parameters` — dramatic parameters.
-9. `derive_scene_energy` — bounded scene-energy target.
-10. `derive_pacing_rhythm` — bounded pacing-rhythm target.
-11. `derive_social_pressure` — bounded social-pressure target.
-12. `derive_improvisational_coherence` — bounded structured-acceptance target.
-13. `derive_information_disclosure` — bounded disclosure target.
-14. `derive_dramatic_irony` — bounded dramatic-irony target.
-15. `synthesize_context` — compact structured context synthesis before prompt assembly.
-16. `assemble_model_context` — final model-context packet assembly.
-17. `route_model` — selects adapter via `story_runtime_core` routing policy inside the graph (not the same executable stack as backend `execute_turn_with_ai`; see [llm-slm-role-stratification.md](../ai/llm-slm-role-stratification.md)).
-18. `invoke_model` — structured invocation via LangChain bridge when configured (`invoke_runtime_adapter_with_langchain`).
-19. `fallback_model` — optional recovery (often mock) when primary invocation fails.
-20. `proposal_normalize` — normalize model or deterministic proposal payload.
-21. `validate_seam` — GoC validation seam (`ai_stack/goc_turn_seams.py`).
-22. `commit_seam` — GoC commit seam.
-23. `render_visible` — visible bundle for the player-facing layer.
-24. `package_output` — final packaging; graph ends at `END`.
+1. `translate_player_input` — semantic translation ingress (ADR-0055).
+2. `interpret_input` — interpreter output and task hint (`classification` vs `narrative_formulation`).
+3. `meta_control_turn` — deterministic non-story branch for Meta/OOC input; skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`, then goes directly to `package_output`.
+4. `resolve_player_action` — story/action interpretation and affordance framing for normal story-play input.
+5. `director_compose_realization` — composes `realization_plan.v1` (`ai_stack/director_realization_composer.py`).
+6. `realize_via_capabilities` — builds narrator/actor prompt from selected capability; sets `model_prompt` for routing.
+7. `route_model` — selects adapter via `story_runtime_core` routing policy (thin path: immediately after `realize_via_capabilities`).
+8. `invoke_model` — structured invocation via LangChain bridge when configured (`invoke_runtime_adapter_with_langchain`).
+9. `fallback_model` — optional recovery when primary invocation fails.
+10. `proposal_normalize` — normalize model proposal payload.
+11. `validate_seam` — GoC validation seam (`ai_stack/goc_turn_seams.py`).
+12. `commit_seam` — GoC commit seam.
+13. `render_visible` — visible bundle for the player-facing layer.
+14. `package_output` — final packaging; graph ends at `END`.
+
+**LDSS / dramatic pipeline nodes (compiled, not on default player thin path):** `retrieve_context`, `goc_resolve_canonical_content`, `director_assess_scene`, `director_select_dramatic_parameters`, `derive_scene_energy`, `derive_pacing_rhythm`, `derive_social_pressure`, `derive_sensory_context`, `derive_improvisational_coherence`, `derive_information_disclosure`, `derive_dramatic_irony`, `derive_relationship_state`, `derive_meta_narrative_awareness`, `synthesize_context`, `assemble_model_context`.
 
 **Meta/OOC control markers:** `meta_control_turn` sets `generation_required=false`, `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, and `commit_not_applicable=true`. These are diagnostics and repro fields, not story truth.
 
@@ -74,43 +67,31 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 
 ```mermaid
 flowchart LR
+  T[translate_player_input]
   I[interpret_input]
   MC[meta_control_turn]
   RA[resolve_player_action]
-  AAR[authoritative_action_resolution]
-  R[retrieve_context]
-  G[goc_resolve_canonical_content]
-  D1[director_assess_scene]
-  D2[director_select_dramatic_parameters]
-  E[derive_scene_energy]
-  PR[derive_pacing_rhythm]
-  SP[derive_social_pressure]
-  SC[derive_sensory_context]
-  IC[derive_improvisational_coherence]
-  ID[derive_information_disclosure]
-  DI[derive_dramatic_irony]
-  RS[derive_relationship_state]
-  MNA[derive_meta_narrative_awareness]
-  SYN[synthesize_context]
-  AMC[assemble_model_context]
+  DC[director_compose_realization]
+  RV[realize_via_capabilities]
   RM[route_model]
   M[invoke_model]
   FB[fallback_model]
   PN[proposal_normalize]
   V[validate_seam]
   C[commit_seam]
-  RV[render_visible]
+  RVIS[render_visible]
   P[package_output]
+  T --> I
   I -->|meta_control| MC --> P
-  I -->|story_play| RA
-  RA -->|deterministic_short_path| AAR --> PN
-  RA -->|full_pipeline| R --> G --> D1 --> D2 --> E --> PR --> SP --> SC --> IC --> ID --> DI --> RS --> MNA --> SYN --> AMC --> RM --> M
+  I -->|story_play| RA --> DC --> RV --> RM --> M
   M -->|success_or_skip_fallback| PN
   M -->|needs_fallback| FB --> PN
-  PN --> V --> C --> RV --> P
+  PN --> V --> C --> RVIS --> P
 ```
 
-**What this clarifies:** Model invocation sits **between** routing and seams on the story-play path. Runtime aspects are derived before context synthesis and prompt assembly. The opt-in `meta_narrative_awareness` aspect lives on the story-play path after relationship-state derivation; v2 may use bounded relationship/memory signals for adaptive, direct fourth-wall, and selected-memory-ref awareness when policy and Story Runtime Experience opt in. It is separate from Meta/OOC control input. Fallback is an **explicit** branch, not a silent retry inside validation. Meta/OOC control input is also explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`.
+**What this clarifies:** Default player turns use the **thin path** (ADR-0062): Resolver output is composed by the Director, realized via named capabilities, then routed to a single model invocation before validation and commit. LDSS/dramatic-pipeline nodes remain in the codebase but are not on this edge list. Meta/OOC control input is explicit: it packages structured control diagnostics without story retrieval, model invocation, `validate_seam`, or `commit_seam`. Fallback is an **explicit** branch after `invoke_model`, not a silent retry inside validation.
+
+**Removed (2026-05-19):** `authoritative_action_resolution` and `_route_after_resolve_player_action` — see [ADR-0062](../../ADR/adr-0062-director-realization-thin-path.md).
 
 ---
 

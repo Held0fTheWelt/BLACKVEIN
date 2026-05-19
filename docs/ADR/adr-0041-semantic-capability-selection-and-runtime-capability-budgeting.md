@@ -65,7 +65,7 @@ ADR-0041 should be treated as **Controlled Runtime Capability Authority**, not a
 - **`partial_transfer_blocked`:** machine-readable reasons when readiness is false (registry gaps, execution gaps, local failures, dramatic fidelity flag).
 - **`actor_lane_forbidden_output`** is **not** uncovered for **opening_scene**, **normal_player_turn**, or **npc_conflict_turn** in bridge per-turn-class snapshots (mirror validators sit in those enforced sets).
 - **`opening_event_coverage_contract`**: missing opening coverage context (e.g. absent **`turn_input_class`**) → **`unavailable`**, not a silent “not applicable” pass.
-- **`authoritative_action_resolution_surface`** stays **`seam_owned`** in the bridge catalog.
+- **`authoritative_action_resolution_surface`** remains **`seam_owned`** in the bridge catalog for legacy compatibility; the player-turn graph no longer routes through `authoritative_action_resolution` (superseded by ADR-0062 thin-path capabilities such as `narrator.location_transition.describe`).
 - **`npc_conflict_turn`**: fixture dispatch must include non-empty **`proposed_state_effects`** (legacy alignment minimum), valid scene-energy contract inputs, and (for tests) **`voice_validation_mode=schema_only`** with **`voice_profiles=[]`** so voice consistency runs deterministically without missing-profile noise; end-to-end **`partial_transfer_ready`** is asserted in `ai_stack/tests/test_validation_authority_bridge.py`.
 - **`recommended_authority`** on the bridge remains **`seam_canonical`**; the scoped co-authority decision is copied separately and keeps `validation_outcome_changed=false`, `commit_gate_changed=false`, and `readiness_gate_changed=false`.
 

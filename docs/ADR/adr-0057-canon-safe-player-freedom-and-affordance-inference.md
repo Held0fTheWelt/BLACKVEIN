@@ -43,6 +43,11 @@ object-specific or verb-specific maps for this decision.
 - Plausible inferred details are narrator-realized and local to runtime state.
 - Object interactions that require semantic realization use the model path
   instead of a deterministic empty/template short path.
+- **ADR-0062 (2026-05-19):** mundane player movement and perception on the default
+  turn path use the **Director realization thin path** (`director_compose_realization`
+  → `realize_via_capabilities` → LLM in `session_output_language`). The removed
+  `authoritative_action_resolution` node must not echo English `description` fields
+  from affordance YAML. See [ADR-0062](adr-0062-director-realization-thin-path.md).
 - Free actions without a resolved AI semantic payload are represented as
   `semantic_resolution_required` with `needs_clarification` action policy.
   They must not be guessed into a generic `interact` verb by engine maps, and
