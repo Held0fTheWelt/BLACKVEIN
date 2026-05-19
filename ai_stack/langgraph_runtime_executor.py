@@ -4913,6 +4913,40 @@ def _destination_context_block(
     return "\n".join(lines)
 
 
+def _derive_named_characters_from_state(state: dict[str, Any]) -> list[str] | None:
+    """Derive current_step_named_characters from available graph state sources.
+
+    Resolution order:
+    1. canonical_path step data (present.named_characters) via canonical_step_id
+    2. actor_lane_context npc_actor_ids + human_actor_id
+    3. None (fail closed — caller must emit diagnostic blocker)
+    """
+    cp = state.get("canonical_path") if isinstance(state.get("canonical_path"), dict) else {}
+    step_id = state.get("canonical_step_id")
+    if cp and step_id:
+        steps = cp.get("steps") if isinstance(cp.get("steps"), dict) else {}
+        step_data = steps.get(str(step_id)) if isinstance(steps.get(str(step_id)), dict) else {}
+        present = step_data.get("present") if isinstance(step_data.get("present"), dict) else {}
+        nc = present.get("named_characters")
+        if isinstance(nc, list) and nc:
+            return [str(c).strip() for c in nc if str(c).strip()]
+
+    alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+    if alc:
+        ids: list[str] = []
+        human = str(alc.get("human_actor_id") or "").strip()
+        if human:
+            ids.append(human)
+        for npc_id in (alc.get("npc_actor_ids") or []):
+            nid = str(npc_id).strip()
+            if nid and nid not in ids:
+                ids.append(nid)
+        if ids:
+            return ids
+
+    return None
+
+
 @dataclass
 class RuntimeTurnGraphExecutor:
     """``RuntimeTurnGraphExecutor`` groups related behaviour; callers should read members for contracts and threading assumptions.
@@ -6323,6 +6357,7 @@ class RuntimeTurnGraphExecutor:
         # beat-consumption gate and diagnostic surfaces can read it.
         free_player_resolution = resolution.get("free_player_action_resolution")
         if isinstance(free_player_resolution, dict):
+            update["free_player_action_resolution"] = free_player_resolution
             presence_evidence = free_player_resolution.get("presence_breaks_gathering_evidence")
             if isinstance(presence_evidence, dict):
                 _pr_c_participation = presence_evidence.get("participation_relevance")
@@ -6332,9 +6367,15 @@ class RuntimeTurnGraphExecutor:
                 _pr_c_visibility = None
             _pr_c_target_location = free_player_resolution.get("target_location")
             _pr_c_named_chars = state.get("current_step_named_characters")
+            if not isinstance(_pr_c_named_chars, list):
+                _pr_c_named_chars = _derive_named_characters_from_state(state)
             if isinstance(_pr_c_named_chars, list):
                 _pr_c_scene_id = str(state.get("current_step_scene_id") or state.get("current_scene_id") or "").strip() or None
                 _pr_c_actor_locations = state.get("actor_locations") if isinstance(state.get("actor_locations"), dict) else {}
+                if not _pr_c_actor_locations:
+                    _env_state = state.get("environment_state") if isinstance(state.get("environment_state"), dict) else {}
+                    if isinstance(_env_state.get("actor_locations"), dict):
+                        _pr_c_actor_locations = dict(_env_state["actor_locations"])
                 if _pr_c_target_location and isinstance(_pr_c_actor_locations, dict):
                     player_actor_id = str(state.get("player_actor_id") or "player").strip()
                     _pr_c_actor_locations = dict(_pr_c_actor_locations)
@@ -6355,6 +6396,24 @@ class RuntimeTurnGraphExecutor:
                     previous_state=_pr_c_prev_state,
                 )
                 update["director_gathering_state"] = director_gathering
+                if not _pr_c_actor_locations:
+                    update["director_gathering_state"] = {
+                        "schema_version": "director_gathering_state.v1",
+                        "paused": False,
+                        "reason": "missing_actor_locations",
+                        "diagnostic_blocker": True,
+                        "missing_actor_ids": [],
+                        "presence_required_for_step": _pr_c_named_chars,
+                    }
+            else:
+                update["director_gathering_state"] = {
+                    "schema_version": "director_gathering_state.v1",
+                    "paused": False,
+                    "reason": "missing_named_characters",
+                    "diagnostic_blocker": True,
+                    "missing_actor_ids": [],
+                    "presence_required_for_step": [],
+                }
         if frame and aff and model:
             try:
                 sam = normalize_scene_affordance_model_for_contracts(model)

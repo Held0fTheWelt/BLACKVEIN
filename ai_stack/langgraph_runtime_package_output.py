@@ -121,6 +121,22 @@ def package_runtime_graph_output(
         gd["environment_state"] = state.get("environment_state")
     if isinstance(state.get("environment_transition"), dict):
         gd["environment_transition"] = state.get("environment_transition")
+    _phase1_diag: dict = {}
+    if isinstance(state.get("free_player_action_resolution"), dict):
+        _phase1_diag["free_player_action_resolution"] = state["free_player_action_resolution"]
+    if isinstance(state.get("canonical_path_hold_effect"), dict):
+        _phase1_diag["canonical_path_hold_effect"] = state["canonical_path_hold_effect"]
+    if isinstance(state.get("narrator_consequence_realization"), dict):
+        _phase1_diag["narrator_consequence_realization"] = state["narrator_consequence_realization"]
+    if isinstance(state.get("director_gathering_state"), dict):
+        _phase1_diag["director_gathering_state"] = state["director_gathering_state"]
+    _spr = state.get("scene_plan_record") if isinstance(state.get("scene_plan_record"), dict) else {}
+    if _spr.get("gathering_paused_beat_suppression"):
+        _phase1_diag["gathering_paused_beat_suppression"] = True
+    if isinstance(state.get("director_pause_transition_reaction"), dict):
+        _phase1_diag["director_pause_transition_reaction"] = state["director_pause_transition_reaction"]
+    if _phase1_diag:
+        gd["phase1_director_pause_diagnostics"] = _phase1_diag
     update["graph_diagnostics"] = gd
     update["dramatic_context_summary"] = dramatic_context_summary
     update["experiment_preview"] = experiment_preview

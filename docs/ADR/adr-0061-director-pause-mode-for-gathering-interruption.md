@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft
+Draft (Phase-1 Live Wiring: Partial — see §Implementation Status below)
 
 ## Date
 
@@ -142,6 +142,47 @@ Per [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md), all PR-C test
 - PIV artifact: [`docs/implementation_logs/pr_0_npc_interactivity_contracts_piv.md`](../implementation_logs/pr_0_npc_interactivity_contracts_piv.md).
 - Roadmap PIV index: [`docs/MVPs/npc_interactivity_piv_log.md`](../MVPs/npc_interactivity_piv_log.md).
 - Diagnostic envelope: `runtime_diagnostic_snapshot.v1` (stub introduced in PR-0; populated by PR-A/B/C).
+
+## Implementation Status (Phase-1 Live Wiring — 2026-05-19)
+
+### Implemented
+
+- `compute_gathering_state` — pure function, fully tested (39 tests green).
+- `should_suppress_mandatory_beat_consumption` — beat-consumption gate.
+- `gathering_pause_is_transition` — entry/exit transition detection.
+- PR-C wiring in `_resolve_player_action` node:
+  - `director_gathering_state.v1` computed from resolver evidence.
+  - Beat-consumption gate applied in scene director.
+  - `director_pause_transition_reaction` emitted on entry/exit.
+- Diagnostic exposure in `graph_diagnostics.phase1_director_pause_diagnostics`:
+  - `free_player_action_resolution`
+  - `canonical_path_hold_effect`
+  - `narrator_consequence_realization`
+  - `director_gathering_state`
+  - `gathering_paused_beat_suppression`
+  - `director_pause_transition_reaction`
+
+### Input Wiring (Phase-1 Live Readiness)
+
+| Input | Source | Live Status |
+|---|---|---|
+| `actor_locations` | `state["environment_state"]["actor_locations"]` (fallback wired) | **Available** — populated from `normalize_environment_state` at graph init and at `goc_resolve_canonical_content`. |
+| `current_step_named_characters` | 1. `canonical_path.steps[step_id].present.named_characters` 2. `actor_lane_context.npc_actor_ids + human_actor_id` | **Conditionally available** — requires `canonical_path` in state (loaded by `goc_resolve_canonical_content`) OR `actor_lane_context` (always present for player turns). |
+| `current_step_scene_id` | `state["current_step_scene_id"]` ← fallback → `state["current_scene_id"]` | **Available** — `current_scene_id` is always passed by world-engine manager. |
+
+### Diagnostic Blockers (fail-closed)
+
+When inputs are absent, the runtime emits:
+- `reason: "missing_actor_locations"` — if `actor_locations` cannot be resolved from any source.
+- `reason: "missing_named_characters"` — if neither `canonical_path` step data nor `actor_lane_context` provides actor IDs.
+
+Neither blocker fakes `paused=false` — they emit `diagnostic_blocker: true` to signal incompleteness.
+
+### Remaining for Accepted
+
+1. Live smoke session on real stack (requires Docker world-engine + backend).
+2. Verify `canonical_path` is available in state at `_resolve_player_action` time for the full-path (non-thin-path) execution.
+3. Confirm `narrative_systems.html` diagnostic page renders `phase1_director_pause_diagnostics`.
 
 ## Acceptance criteria for promotion to Accepted
 

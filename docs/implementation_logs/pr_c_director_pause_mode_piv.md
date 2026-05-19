@@ -1,6 +1,6 @@
 # PR-C — Director Pause Mode — PIV Artifact
 
-**Status:** Draft
+**Status:** Phase-1 Live Wiring Complete (2026-05-19)
 **Created:** 2026-05-19
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md) §3.4
 **ADR:** [`adr-0061-director-pause-mode-for-gathering-interruption.md`](../ADR/adr-0061-director-pause-mode-for-gathering-interruption.md)
@@ -123,7 +123,41 @@ No code path today suppresses mandatory-beat consumption when `named_characters`
 
 ---
 
-## 7. What PR-C Must NOT Touch
+## 7. Phase-1 Live Wiring Entry (2026-05-19)
+
+### Implemented
+
+| Component | File | Status |
+|---|---|---|
+| `actor_locations` fallback from `environment_state` | `ai_stack/langgraph_runtime_executor.py:6340-6343` | **Wired** |
+| `current_step_named_characters` derivation | `ai_stack/langgraph_runtime_executor.py:_derive_named_characters_from_state` | **Wired** |
+| `current_step_scene_id` fallback to `current_scene_id` | `ai_stack/langgraph_runtime_executor.py:6338` | **Already present** |
+| `free_player_action_resolution` top-level exposure | `ai_stack/langgraph_runtime_executor.py:6359` | **Wired** |
+| Diagnostic exposure in `graph_diagnostics` | `ai_stack/langgraph_runtime_package_output.py:120-137` | **Wired** |
+| Diagnostic blocker: `missing_actor_locations` | `ai_stack/langgraph_runtime_executor.py:6364-6372` | **Wired** |
+| Diagnostic blocker: `missing_named_characters` | `ai_stack/langgraph_runtime_executor.py:6373-6380` | **Wired** |
+
+### Test Evidence
+
+```
+python -m pytest ai_stack/tests/test_phase1_live_wiring.py -q      → 15 passed
+python -m pytest ai_stack/tests/test_pr_c_director_pause_mode.py -q → 39 passed
+python -m pytest ai_stack/tests/test_free_player_action_resolution_contract.py -q → 41 passed
+python -m pytest tests/test_pr_b_live_effect_propagation.py -q     → 13 passed
+python -m pytest tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py -q → 8 passed
+python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q → 18 passed
+world-engine/tests/test_mvp3_ldss_integration.py → environment-dependent (requires Docker stack)
+```
+
+### Remaining for Live-Smoke Green
+
+1. Run with real Docker stack active (world-engine + backend).
+2. Verify `canonical_path` loaded by `goc_resolve_canonical_content` is available at `_resolve_player_action` time — currently the thin-path executes BEFORE the full path loads canonical content (graph topology: `resolve_player_action` precedes `goc_resolve_canonical_content` in the LangGraph edge chain).
+3. For thin-path-only turns: `actor_lane_context` provides the named characters (always available for player turns).
+
+---
+
+## 8. What PR-C Must NOT Touch
 
 | Path | Reason |
 |---|---|
