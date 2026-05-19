@@ -790,6 +790,24 @@ def get_story_diagnostics_envelope(session_id: str, *, trace_id: str | None = No
     return payload
 
 
+def get_story_thin_path_summary(
+    session_id: str,
+    *,
+    limit: int = 20,
+    trace_id: str | None = None,
+) -> dict:
+    capped = max(1, int(limit))
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{session_id}/thin-path-summary?limit={capped}",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected thin-path-summary payload.")
+    return payload
+
+
 def list_story_sessions(*, trace_id: str | None = None) -> dict:
     payload = _request("GET", "/api/story/sessions", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict) or "items" not in payload:

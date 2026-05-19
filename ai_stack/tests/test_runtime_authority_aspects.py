@@ -494,97 +494,196 @@ def test_selected_capability_must_be_realized_or_marked_missing() -> None:
     assert record["status"] == "partial"
 
 
-def test_action_resolution_short_path_is_enabled_by_module_policy_not_module_id() -> None:
-    executor = object.__new__(RuntimeTurnGraphExecutor)
-    executor.action_resolution_short_path_enabled = True
-    state = {
-        "module_id": "example_module",
-        "player_action_frame": {
-            "player_input_kind": "movement_action",
+def test_movement_to_known_location_routes_to_narrator_location_transition() -> None:
+    """Thin-path invariant: a movement to a resolved location lands on the
+    narrator location_transition capability with outcome=success. Realization
+    runs through the LLM (model realization), not through a deterministic
+    synthetic short-path."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_NARRATOR_LOCATION_TRANSITION,
+        REALIZATION_OWNER_NARRATOR,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
+            "player_input_kind": "physical_action",
             "action_kind": "movement",
             "verb": "move_to",
+            "resolved_target_type": "location",
+            "resolved_target_id": "kitchen",
         },
-        "affordance_resolution": {
+        affordance_resolution={
             "affordance_status": "allowed",
             "action_commit_policy": "commit_action",
         },
-        "module_runtime_policy": {
-            "runtime_governance_policy": {
-                "action_resolution_short_path": {
-                    "enabled": True,
-                    "routing_basis": "semantic_action_frame_evidence",
-                }
-            }
-        },
-    }
+        kanon_break=False,
+        kanon_break_reason=None,
+        session_output_language="de",
+    )
 
-    assert executor._route_after_resolve_player_action(state) == "authoritative_action_resolution"
-    state["module_runtime_policy"]["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] = False
-    assert executor._route_after_resolve_player_action(state) == "full_pipeline"
+    assert plan["realization_owner"] == REALIZATION_OWNER_NARRATOR
+    assert plan["capabilities_selected"] == [CAPABILITY_NARRATOR_LOCATION_TRANSITION]
+    assert plan["outcome_disposition"]["outcome"] == "success"
 
 
-def test_inferred_plausible_action_uses_model_realization_not_short_path() -> None:
-    executor = object.__new__(RuntimeTurnGraphExecutor)
-    executor.action_resolution_short_path_enabled = True
-    state = {
-        "module_id": "example_module",
-        "player_action_frame": {
+def test_inferred_plausible_object_interaction_keeps_model_realization() -> None:
+    """Thin-path invariant: a plausible-inference object interaction is still
+    realized through the Director / model realization path. The composer does
+    not route it to a deterministic surface and does not refuse it."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_NARRATOR_KANON_REFUSAL,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
             "player_input_kind": "action",
             "action_kind": "object_interaction",
             "verb": "open",
+            "resolved_target_type": "object",
+            "resolved_target_id": "inferred_local_household_container",
             "target_resolution_source": "ai_semantic_resolution.plausible_inference",
             "access_status": "inferred_plausible",
-            "canonical_path_effect": "hold_current_step",
         },
-        "affordance_resolution": {
+        affordance_resolution={
             "affordance_status": "allowed",
             "action_commit_policy": "commit_action",
             "target_resolution_source": "ai_semantic_resolution.plausible_inference",
             "access_status": "inferred_plausible",
         },
-        "narrator_consequence_plan": {
-            "requires_model_realization": True,
-            "source": "ai_semantic_plausible_inference",
-        },
-        "module_runtime_policy": {
-            "runtime_governance_policy": {
-                "action_resolution_short_path": {
-                    "enabled": True,
-                    "routing_basis": "semantic_action_frame_evidence",
-                }
-            }
-        },
-    }
+        kanon_break=False,
+        kanon_break_reason=None,
+        session_output_language="de",
+    )
 
-    assert executor._route_after_resolve_player_action(state) == "full_pipeline"
+    assert plan["realization_owner"]  # owner is set, not empty
+    assert plan["capabilities_selected"]  # something is selected
+    assert plan["outcome_disposition"]["outcome"] != "fail"
+    assert CAPABILITY_NARRATOR_KANON_REFUSAL not in plan["capabilities_selected"]
 
 
-def test_needs_clarification_remains_authoritative_even_when_narrator_plan_is_empty() -> None:
-    executor = object.__new__(RuntimeTurnGraphExecutor)
-    executor.action_resolution_short_path_enabled = True
-    state = {
-        "module_id": "example_module",
-        "player_action_frame": {
-            "player_input_kind": "movement_action",
+def test_needs_clarification_routes_to_narrator_clarification() -> None:
+    """Thin-path invariant: when the resolver cannot identify a target,
+    the composer routes to a narrator clarification capability with
+    outcome=partial, instead of failing silently or refusing the turn."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_NARRATOR_CLARIFICATION,
+        REALIZATION_OWNER_NARRATOR,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
+            "player_input_kind": "physical_action",
             "action_kind": "movement",
             "verb": "move_to",
+            "resolved_target_type": None,
+            "resolved_target_id": None,
         },
-        "affordance_resolution": {
+        affordance_resolution={
             "affordance_status": "unknown_target",
             "action_commit_policy": "needs_clarification",
+            "reason": "target_not_in_catalog",
         },
-        "narrator_consequence_plan": {"requires_model_realization": True},
-        "module_runtime_policy": {
-            "runtime_governance_policy": {
-                "action_resolution_short_path": {
-                    "enabled": True,
-                    "routing_basis": "semantic_action_frame_evidence",
-                }
-            }
-        },
-    }
+        kanon_break=False,
+        kanon_break_reason=None,
+        session_output_language="de",
+    )
 
-    assert executor._route_after_resolve_player_action(state) == "authoritative_action_resolution"
+    assert plan["realization_owner"] == REALIZATION_OWNER_NARRATOR
+    assert plan["capabilities_selected"] == [CAPABILITY_NARRATOR_CLARIFICATION]
+    assert plan["outcome_disposition"]["outcome"] == "partial"
+
+
+def test_kanon_break_routes_to_refusal_with_outcome_fail() -> None:
+    """Thin-path invariant: an action that breaks canon (impossible /
+    irreversibly destructive) is routed to the narrator refusal capability
+    with outcome=fail. The refusal is realized through the narrator, not
+    suppressed or rerouted to an actor lane."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_NARRATOR_KANON_REFUSAL,
+        REALIZATION_OWNER_NARRATOR,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
+            "player_input_kind": "physical_action",
+            "action_kind": "movement",
+            "verb": "move_through",
+        },
+        affordance_resolution={
+            "affordance_status": "allowed",
+            "action_commit_policy": "commit_action",
+        },
+        kanon_break=True,
+        kanon_break_reason="walking_through_walls_not_possible",
+        session_output_language="de",
+    )
+
+    assert plan["realization_owner"] == REALIZATION_OWNER_NARRATOR
+    assert plan["capabilities_selected"] == [CAPABILITY_NARRATOR_KANON_REFUSAL]
+    assert plan["outcome_disposition"]["outcome"] == "fail"
+    assert "walking_through_walls" in plan["outcome_disposition"]["reason"]
+
+
+def test_perception_question_about_location_routes_to_narrator_perception() -> None:
+    """Thin-path invariant: a perception question over a known target lands
+    on the narrator perception capability — not on actor_line.speech.
+    The world answers in narrator voice, the player did not address an NPC."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_NARRATOR_PERCEPTION,
+        REALIZATION_OWNER_NARRATOR,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
+            "player_input_kind": "question",
+            "action_kind": "perception",
+            "resolved_target_type": "location",
+            "resolved_target_id": "kitchen",
+        },
+        affordance_resolution={
+            "affordance_status": "allowed",
+            "action_commit_policy": "commit_action",
+        },
+        kanon_break=False,
+        kanon_break_reason=None,
+        session_output_language="de",
+    )
+
+    assert plan["realization_owner"] == REALIZATION_OWNER_NARRATOR
+    assert plan["capabilities_selected"] == [CAPABILITY_NARRATOR_PERCEPTION]
+    assert plan["outcome_disposition"]["outcome"] == "success"
+
+
+def test_speech_act_to_npc_routes_to_actor_line() -> None:
+    """Thin-path invariant: a spoken line (commit_speech) lands on
+    actor_line.speech, not on a narrator capability."""
+    from ai_stack.director_realization_composer import (
+        CAPABILITY_ACTOR_SPEECH,
+        REALIZATION_OWNER_ACTOR_LINE,
+        compose_realization_plan,
+    )
+
+    plan = compose_realization_plan(
+        player_action_frame={
+            "player_input_kind": "speech",
+            "action_kind": "speech",
+        },
+        affordance_resolution={
+            "affordance_status": "allowed",
+            "action_commit_policy": "commit_speech",
+        },
+        kanon_break=False,
+        kanon_break_reason=None,
+        session_output_language="de",
+    )
+
+    assert plan["realization_owner"] == REALIZATION_OWNER_ACTOR_LINE
+    assert plan["capabilities_selected"] == [CAPABILITY_ACTOR_SPEECH]
 
 
 def test_pure_speech_selects_speech_and_direct_answer_without_narrator_requirement() -> None:

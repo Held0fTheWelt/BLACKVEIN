@@ -15,6 +15,7 @@ from app.services.game_service import (
     get_run_details,
     get_run_transcript,
     get_story_diagnostics,
+    get_story_thin_path_summary,
     get_story_state,
     list_runs,
     list_story_sessions,
@@ -176,6 +177,21 @@ def world_engine_console_story_diagnostics(session_id: str):
     try:
         data = get_story_diagnostics(session_id, trace_id=_trace())
     except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/world-engine/story/sessions/<session_id>/thin-path-summary", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_story_thin_path_summary(session_id: str):
+    limit = request.args.get("limit", 20)
+    try:
+        data = get_story_thin_path_summary(session_id, limit=int(limit), trace_id=_trace())
+    except (GameServiceError, ValueError) as exc:
+        if isinstance(exc, ValueError):
+            return jsonify({"error": "limit must be an integer"}), route_status_codes.bad_request
         return _gs_err(exc)
     return jsonify(data), route_status_codes.ok
 

@@ -1058,6 +1058,22 @@ def get_story_diagnostics(session_id: str, manager: StoryRuntimeManager = Depend
         raise HTTPException(status_code=404, detail="Story session not found") from exc
 
 
+@router.get(
+    "/story/sessions/{session_id}/thin-path-summary",
+    dependencies=[Depends(_require_internal_api_key)],
+)
+def get_story_thin_path_summary(
+    session_id: str,
+    limit: int = 20,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    """Per-turn Resolver → Director → Narrator evidence for narrative_systems UI."""
+    try:
+        return manager.get_thin_path_summary(session_id, limit=limit)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+
+
 @router.post("/story/sessions/{session_id}/branching/simulation-tree", dependencies=[Depends(_require_internal_api_key)])
 def build_story_branching_simulation_tree(
     session_id: str,

@@ -14161,6 +14161,66 @@ class StoryRuntimeManager:
             "updated_at": session.updated_at.isoformat(),
         }
 
+    def get_thin_path_summary(self, session_id: str, limit: int = 20) -> dict[str, Any]:
+        """Slim per-turn Resolver -> Director -> Narrator evidence for the
+        narrative_systems UI. Reads ``observability_path_summary`` off each
+        recent diagnostics event so the operator can see, per turn:
+
+        - the realization_plan (owner, capabilities, outcome)
+        - the capability that was actually invoked
+        - kanon_break decision
+        - whether a visible block was produced
+
+        Pulls only what the thin-path PR-A surfaces. LDSS-specific fields are
+        deliberately excluded; they remain in the full diagnostics endpoint.
+        """
+        session = self.get_session(session_id)
+        events = session.diagnostics[-max(1, int(limit)):]
+        rows: list[dict[str, Any]] = []
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            ps = (
+                event.get("observability_path_summary")
+                if isinstance(event.get("observability_path_summary"), dict)
+                else None
+            ) or {}
+            raw_input = str(event.get("raw_input") or "").strip()
+            block_count = 0
+            bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else None
+            if isinstance(bundle, dict):
+                blocks = bundle.get("scene_blocks") or []
+                if isinstance(blocks, list):
+                    block_count = sum(1 for b in blocks if isinstance(b, dict))
+            rows.append(
+                {
+                    "turn_number": event.get("turn_number"),
+                    "turn_kind": event.get("turn_kind"),
+                    "turn_status": event.get("turn_status"),
+                    "raw_player_input_preview": raw_input[:120],
+                    "realization_plan": ps.get("realization_plan"),
+                    "realize_via_capabilities_used_capability": ps.get(
+                        "realize_via_capabilities_used_capability"
+                    ),
+                    "realize_via_capabilities_outcome": ps.get("realize_via_capabilities_outcome"),
+                    "selected_capabilities": ps.get("selected_capabilities") or [],
+                    "kanon_break": ps.get("kanon_break"),
+                    "kanon_break_reason": ps.get("kanon_break_reason"),
+                    "director_path_mode": ps.get("director_path_mode"),
+                    "visible_scene_block_count": block_count,
+                    "nodes_executed": ps.get("nodes_executed") or [],
+                    "structured_output_keys": ps.get("structured_output_keys") or [],
+                    "usage_details": ps.get("usage_details"),
+                    "validation_status": ps.get("validation_status"),
+                }
+            )
+        return {
+            "schema_version": "thin_path_summary.v1",
+            "session_id": session.session_id,
+            "turn_counter": session.turn_counter,
+            "rows": rows,
+        }
+
     def get_diagnostics(self, session_id: str) -> dict[str, Any]:
         session = self.get_session(session_id)
         committed_state = {

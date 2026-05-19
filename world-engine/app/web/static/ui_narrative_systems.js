@@ -14,6 +14,28 @@
       .catch(function (err) {
         WorldEngineUI.setBanner("ui-page-banner", err.message || String(err), true);
       });
+
+    if (!sessionId) {
+      WorldEngineUI.renderJson("ui-narr-thin-path", {
+        note: "Select a session to load thin-path diagnostics.",
+      });
+      return;
+    }
+
+    WorldEngineUI.apiFetch(
+      "admin/world-engine/story/sessions/" +
+        encodeURIComponent(sessionId) +
+        "/thin-path-summary?limit=20"
+    )
+      .then(function (summary) {
+        WorldEngineUI.renderJson("ui-narr-thin-path", summary);
+      })
+      .catch(function (err) {
+        WorldEngineUI.renderJson("ui-narr-thin-path", {
+          error: err.message || String(err),
+        });
+        WorldEngineUI.setBanner("ui-page-banner", err.message || String(err), true);
+      });
   }
 
   document.addEventListener("DOMContentLoaded", function () {

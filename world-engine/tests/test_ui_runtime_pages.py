@@ -76,3 +76,11 @@ def test_favicon_is_linked_and_served(client):
     assert favicon_response.status_code == 200
     assert favicon_response.headers["content-type"].startswith("image/vnd.microsoft.icon")
     assert favicon_response.content.startswith(b"\x00\x00\x01\x00")
+
+
+def test_narrative_systems_page_includes_thin_path_panel(client, auth_backend_success):
+    _login(client, auth_backend_success)
+    response = client.get("/narrative-systems")
+    assert response.status_code == 200
+    assert "ui-narr-thin-path" in response.text
+    assert "realization_plan" in response.text
