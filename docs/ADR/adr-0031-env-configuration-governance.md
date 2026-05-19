@@ -158,6 +158,9 @@ The current correct Langfuse rule is:
 - `.env` may contain optional bootstrap credentials
 - backend settings are the operational source of truth
 - play-service and runtime behavior consume the resolved backend-published configuration
+- the Langfuse child-observation tree is governed by backend
+  `enabled_observation_trees` and administered through the Administration Tool
+  Observability Settings; connection-test traces remain flat health probes
 - automated backend connection tests must exercise `test_observability_connection()` / `verify_langfuse_runtime_connectivity()` against that backend-managed config, not legacy `code` fields, `observability_config_id` credential joins, or direct adapter-created Cloud traces
 
 This means a local operator can:

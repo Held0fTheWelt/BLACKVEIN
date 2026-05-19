@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 SESSION_LOOP_LOG_POLICY_VERSION = "session_loop_logging.v1"
 SESSION_LOOP_LOG_EVENT_VERSION = "session_loop_log_event.v1"
+DEFAULT_SESSION_LANGUAGE = "en"
 SESSION_LOOP_LOG_LEVELS = {
     "debug": logging.DEBUG,
     "info": logging.INFO,
@@ -632,7 +633,7 @@ def _scene_blocks_from_visible_bundle(bundle: dict[str, Any] | None) -> list[dic
 
 
 def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
-    lang = str(getattr(session, "session_output_language", "de") or "de").strip().lower()[:2] or "de"
+    lang = str(getattr(session, "session_output_language", DEFAULT_SESSION_LANGUAGE) or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2] or DEFAULT_SESSION_LANGUAGE
     if lang == "en":
         if reason == "graph_execution_exception":
             return "Fallback: the turn could not be generated because the runtime raised an exception. Try a simpler move from here."
@@ -1490,8 +1491,8 @@ class StorySession:
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     turn_counter: int = 0
     current_scene_id: str = ""
-    session_input_language: str = "de"
-    session_output_language: str = "de"
+    session_input_language: str = DEFAULT_SESSION_LANGUAGE
+    session_output_language: str = DEFAULT_SESSION_LANGUAGE
     history: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     narrative_threads: StoryNarrativeThreadSet = field(default_factory=StoryNarrativeThreadSet)
@@ -1574,8 +1575,8 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         updated_at=updated_at,
         turn_counter=int(data.get("turn_counter", 0)),
         current_scene_id=str(data.get("current_scene_id") or ""),
-        session_input_language=str(data.get("session_input_language") or data.get("session_output_language") or "de"),
-        session_output_language=str(data.get("session_output_language") or "de"),
+        session_input_language=str(data.get("session_input_language") or data.get("session_output_language") or DEFAULT_SESSION_LANGUAGE),
+        session_output_language=str(data.get("session_output_language") or DEFAULT_SESSION_LANGUAGE),
         history=list(data.get("history") or []),
         diagnostics=list(data.get("diagnostics") or []),
         narrative_threads=threads,
@@ -2646,7 +2647,7 @@ def _goc_player_attributed_visible_text(
 ) -> tuple[str, str]:
     """Return (speaker_label, full_visible_line) for a committed human player line."""
     raw = str(raw_input or "").strip()
-    lang = str(session_output_language or "de").strip().lower()[:2] or "de"
+    lang = str(session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2] or DEFAULT_SESSION_LANGUAGE
     name = _goc_shell_actor_firstname(human_actor_id)
     interp = interpreted_input if isinstance(interpreted_input, dict) else {}
     # Prefer fine-grained player_input_kind (set by classification rules) over coarse input_kind.
@@ -3207,8 +3208,8 @@ def _build_langfuse_path_summary(
         "selected_player_role": _spr or None,
         "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
         "player_role_display_name": goc_player_role_display_name(_spr or None),
-        "session_input_language": getattr(session, "session_input_language", None) or getattr(session, "session_output_language", None) or "de",
-        "session_output_language": getattr(session, "session_output_language", None) or "de",
+        "session_input_language": getattr(session, "session_input_language", None) or getattr(session, "session_output_language", None) or DEFAULT_SESSION_LANGUAGE,
+        "session_output_language": getattr(session, "session_output_language", None) or DEFAULT_SESSION_LANGUAGE,
         "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
         "route_model_called": "route_model" in nodes or bool(routing),
@@ -3337,9 +3338,27 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("canonical_path_hold_effect"), dict)
             else None
         ),
+        "free_player_action_resolution": (
+            graph_state.get("free_player_action_resolution")
+            if isinstance(graph_state.get("free_player_action_resolution"), dict)
+            else None
+        ),
         "narrator_consequence_realization": (
             graph_state.get("narrator_consequence_realization")
             if isinstance(graph_state.get("narrator_consequence_realization"), dict)
+            else None
+        ),
+        "director_gathering_state": (
+            graph_state.get("director_gathering_state")
+            if isinstance(graph_state.get("director_gathering_state"), dict)
+            else None
+        ),
+        "gathering_paused_beat_suppression": graph_state.get(
+            "gathering_paused_beat_suppression"
+        ),
+        "director_pause_transition_reaction": (
+            graph_state.get("director_pause_transition_reaction")
+            if isinstance(graph_state.get("director_pause_transition_reaction"), dict)
             else None
         ),
         "visible_block_emitted": bool(
@@ -7026,7 +7045,7 @@ def _live_scene_blocks_from_visible_bundle(
     structured_output: dict[str, Any] | None = None,
     runtime_projection: dict[str, Any] | None = None,
     graph_state: dict[str, Any] | None = None,
-    session_output_language: str = "de",
+    session_output_language: str = DEFAULT_SESSION_LANGUAGE,
     player_input: str | None = None,
     story_runtime_experience: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
@@ -7043,7 +7062,7 @@ def _live_scene_blocks_from_visible_bundle(
         if goc_transcript_policy_flags(_exp_eff)["map_action_lines_to_actor_line_lane"]
         else "actor_action"
     )
-    _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
+    _exp_lang = str(session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2] or DEFAULT_SESSION_LANGUAGE
     echo_strings: list[str] = []
     pi = str(player_input or "").strip()
     if pi:
@@ -7594,8 +7613,8 @@ def _player_input_scene_blocks_for_story_window(
     text = str(raw_input or "").strip()
     if not text:
         return []
-    lang = str(session_output_language or "de").strip().lower()
-    exp_lang = lang[:2] or "de"
+    lang = str(session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()
+    exp_lang = lang[:2] or DEFAULT_SESSION_LANGUAGE
     mid = (module_id or GOD_OF_CARNAGE_MODULE_ID).strip()
     root = _goc_content_modules_root()
     turn_token = str(turn_number).strip() if turn_number is not None else "0"
@@ -7842,7 +7861,7 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                             _pb["source"] = "narrator_realization_fold"
                             break
                 _mid_sw = str(session.module_id or GOD_OF_CARNAGE_MODULE_ID).strip() or GOD_OF_CARNAGE_MODULE_ID
-                _lang_sw = str(session.session_output_language or "de").strip().lower()[:2] or "de"
+                _lang_sw = str(session.session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2] or DEFAULT_SESSION_LANGUAGE
                 _second = resolve_string(
                     _mid_sw,
                     "player_shell.second_person",
@@ -7986,6 +8005,26 @@ def _prior_beat_from_session(session: "StorySession") -> BeatProgression | None:
             return BeatProgression.model_validate(beat_payload)
         except Exception:
             continue
+    return None
+
+
+def _prior_director_gathering_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest Phase-1 Director-Pause state from diagnostics."""
+    for event in reversed(session.diagnostics or []):
+        if not isinstance(event, dict):
+            continue
+        ps = event.get("observability_path_summary")
+        ps = ps if isinstance(ps, dict) else {}
+        state = ps.get("director_gathering_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+        graph = event.get("graph_diagnostics")
+        graph = graph if isinstance(graph, dict) else {}
+        phase1 = graph.get("phase1_director_pause_diagnostics")
+        phase1 = phase1 if isinstance(phase1, dict) else {}
+        state = phase1.get("director_gathering_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
     return None
 
 
@@ -8614,13 +8653,13 @@ def _player_shell_context_from_dramatic_context(
     if session is not None:
         proj = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
         role = str(proj.get("selected_player_role") or "").strip()
-        out["session_output_language"] = getattr(session, "session_output_language", None) or "de"
+        out["session_output_language"] = getattr(session, "session_output_language", None) or DEFAULT_SESSION_LANGUAGE
         if role:
             out["selected_player_role"] = role
         pdn = goc_player_role_display_name(role)
         if pdn:
             out["player_role_display_name"] = pdn
-        lang = str(out.get("session_output_language") or "de").strip().lower()[:2]
+        lang = str(out.get("session_output_language") or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2]
         mid = str(getattr(session, "module_id", None) or GOD_OF_CARNAGE_MODULE_ID).strip() or GOD_OF_CARNAGE_MODULE_ID
         root = _goc_content_modules_root()
         out["npc_responder_label"] = resolve_string(
@@ -8703,6 +8742,45 @@ def _resolve_canonical_path_for_session(session: "StorySession") -> Any | None:
         return None
 
 
+def _phase1_canonical_context_for_session(session: "StorySession") -> dict[str, Any]:
+    """Build graph context for Director-Pause from the current canonical step."""
+    step_id = str(getattr(session, "canonical_step_id", None) or "").strip()
+    if not step_id:
+        return {}
+    canonical_path = _resolve_canonical_path_for_session(session)
+    if canonical_path is None:
+        return {"canonical_step_id": step_id}
+    step = canonical_path.get_step(step_id)
+    if step is None:
+        return {"canonical_step_id": step_id}
+    present = step.present if isinstance(step.present, dict) else {}
+    named = [
+        str(actor_id).strip()
+        for actor_id in (present.get("named_characters") or [])
+        if str(actor_id).strip()
+    ]
+    loc_ref = step.location_ref if isinstance(step.location_ref, dict) else {}
+    live_scene = (
+        (session.environment_state or {}).get("current_room_id")
+        if isinstance(session.environment_state, dict)
+        else None
+    ) or getattr(session, "current_scene_id", None)
+    scene_id = str(live_scene or loc_ref.get("location_id") or "").strip() or None
+    return {
+        "canonical_step_id": step_id,
+        "current_step_named_characters": named,
+        "current_step_scene_id": scene_id,
+        "canonical_path": {
+            "steps": {
+                step_id: {
+                    "present": dict(present),
+                    "location_ref": dict(loc_ref),
+                }
+            }
+        },
+    }
+
+
 def _turn_holds_canonical_path_for_free_player_action(graph_state: dict[str, Any]) -> bool:
     frame = graph_state.get("player_action_frame") if isinstance(graph_state.get("player_action_frame"), dict) else {}
     if not frame:
@@ -8750,7 +8828,7 @@ def _build_ldss_scene_envelope(
         content_module_id=session.module_id,
         # STAGING-OPENING-LANGUAGE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
         # language so the deterministic fallback renders language-correct opening text.
-        session_output_language=getattr(session, "session_output_language", "de") or "de",
+        session_output_language=getattr(session, "session_output_language", DEFAULT_SESSION_LANGUAGE) or DEFAULT_SESSION_LANGUAGE,
         canonical_step_id=session.canonical_step_id,
         canonical_path=canonical_path,
     )
@@ -12087,7 +12165,7 @@ class StoryRuntimeManager:
         module_id: str,
         runtime_projection: dict[str, Any],
         session_input_language: str | None = None,
-        session_output_language: str = "de",
+        session_output_language: str = DEFAULT_SESSION_LANGUAGE,
         content_provenance: dict[str, Any] | None = None,
         session_id: str | None = None,
     ) -> StorySession:
@@ -12233,7 +12311,7 @@ class StoryRuntimeManager:
         module_id: str,
         runtime_projection: dict[str, Any],
         session_input_language: str | None = None,
-        session_output_language: str = "de",
+        session_output_language: str = DEFAULT_SESSION_LANGUAGE,
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
         session_id: str | None = None,
@@ -13434,6 +13512,8 @@ class StoryRuntimeManager:
             prior_narrative_momentum_state = _prior_narrative_momentum_state_from_session(session)
             prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
             prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
+            phase1_canonical_context = _phase1_canonical_context_for_session(session)
+            prior_director_gathering_state = _prior_director_gathering_state_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
                 module_id=session.module_id,
                 runtime_profile_id=_runtime_profile_id_from_projection(
@@ -13482,6 +13562,11 @@ class StoryRuntimeManager:
                 environment_state=session.environment_state
                 if isinstance(session.environment_state, dict)
                 else None,
+                canonical_step_id=phase1_canonical_context.get("canonical_step_id"),
+                canonical_path=phase1_canonical_context.get("canonical_path"),
+                current_step_scene_id=phase1_canonical_context.get("current_step_scene_id"),
+                current_step_named_characters=phase1_canonical_context.get("current_step_named_characters"),
+                prior_director_gathering_state=prior_director_gathering_state,
             )
         except Exception as exc:
             if not _is_recoverable_graph_execution_exception(exc):
@@ -14230,9 +14315,17 @@ class StoryRuntimeManager:
                     "kanon_break": ps.get("kanon_break"),
                     "kanon_break_reason": ps.get("kanon_break_reason"),
                     # PR-B: live effect propagation projection per turn.
+                    "free_player_action_resolution": ps.get("free_player_action_resolution"),
                     "canonical_path_hold_effect": ps.get("canonical_path_hold_effect"),
                     "narrator_consequence_realization": ps.get(
                         "narrator_consequence_realization"
+                    ),
+                    "director_gathering_state": ps.get("director_gathering_state"),
+                    "gathering_paused_beat_suppression": ps.get(
+                        "gathering_paused_beat_suppression"
+                    ),
+                    "director_pause_transition_reaction": ps.get(
+                        "director_pause_transition_reaction"
                     ),
                     "visible_block_emitted": bool(ps.get("visible_block_emitted")),
                     "director_path_mode": ps.get("director_path_mode"),

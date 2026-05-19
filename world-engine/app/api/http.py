@@ -463,7 +463,7 @@ class CreateStorySessionRequest(BaseModel):
     module_id: str
     runtime_projection: dict[str, Any]
     session_input_language: str | None = None
-    session_output_language: str = "de"
+    session_output_language: str = "en"
     user_id: str | None = None
     content_provenance: dict[str, Any] | None = None
     skip_graph_opening_on_create: bool = False

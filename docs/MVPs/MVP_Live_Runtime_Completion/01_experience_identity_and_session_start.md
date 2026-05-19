@@ -647,7 +647,7 @@ MVP 1 → MVP 2:
 ```text
 normalized runtime profile
 role selection
-role slug mapping
+role slug mapping from `characters/index.yaml` to `characters/definitions/*.yaml` runtime actor IDs
 visitor removed
 human_actor_id
 npc_actor_ids

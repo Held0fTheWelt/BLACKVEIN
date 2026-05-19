@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from conftest import captured_templates
 
 
@@ -36,10 +38,22 @@ def test_manage_observability_settings_contains_expected_mount_points(client):
     assert "manage-obs-trees-minimal" in html
     assert "manage-obs-trees-all" in html
     assert "manage-obs-trees-none" in html
+    assert "Langfuse trace tree policy" in html
     assert "Credential readiness vs proof" in html
     assert "local evidence only" in html
     assert "gov-tip" in html
     assert "Technical audit: full configuration JSON" in html
     assert "manage_observability_settings.js" in html
+    assert "20260519a" in html
     assert "http://langfuse-web:3000" in html
     assert "only when the backend runs on the host" in html
+
+
+def test_manage_observability_settings_js_uses_backend_observation_tree_catalog():
+    js_path = Path(__file__).resolve().parents[1] / "static" / "manage_observability_settings.js"
+    js = js_path.read_text(encoding="utf-8")
+
+    assert "currentConfig.observation_tree_catalog" in js
+    assert "renderObservationTreeCatalog" in js
+    assert "data-observation-tree-id" in js
+    assert "enabled_observation_trees: selectedObservationTrees()" in js

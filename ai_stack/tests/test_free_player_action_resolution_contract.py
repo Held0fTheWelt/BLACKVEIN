@@ -621,6 +621,51 @@ def test_presence_evidence_carries_participation_and_visibility_when_provided() 
     assert contract["presence_breaks_gathering"] is False
 
 
+@pytest.mark.parametrize(
+    "raw_text",
+    [
+        "I step out of the shared room for a moment.",
+        "I move into the adjoining corridor and let the talk continue behind me.",
+    ],
+)
+def test_live_style_movement_derives_participation_and_visibility_evidence(raw_text: str) -> None:
+    interpreted = _semantic_interpreted(
+        verb="move_to",
+        action_kind="movement",
+        target_query="hallway",
+        target_id="hallway",
+        target_type="location",
+    )
+    contract = _contract(_resolve(interpreted, raw_text=raw_text))
+    evidence = contract["presence_breaks_gathering_evidence"]
+    assert evidence["target_location"] == "hallway"
+    assert evidence["participation_relevance"] == "broken"
+    assert evidence["visibility_audibility"] is not None
+    assert contract["presence_breaks_gathering"] is False
+
+
+def test_live_style_local_object_action_derives_explicit_still_participating_evidence() -> None:
+    interpreted = _semantic_interpreted(
+        verb="touch",
+        action_kind="object_interaction",
+        target_query="small table item",
+        target_id=None,
+        target_type="object",
+        extra_semantic={
+            "inference_mode": "plausible_implied_object",
+            "canon_safety": "content_silent_mundane",
+            "canonical_risk": "low",
+        },
+    )
+    contract = _contract(
+        _resolve(interpreted, raw_text="I adjust a small thing beside me.")
+    )
+    evidence = contract["presence_breaks_gathering_evidence"]
+    assert evidence["target_location"] is not None
+    assert evidence["participation_relevance"] == "still_participating"
+    assert evidence["visibility_audibility"] is not None
+
+
 # ---------------------------------------------------------------------------
 # Meta short-circuit
 # ---------------------------------------------------------------------------

@@ -305,6 +305,11 @@ def _participation_relevance_from_semantic(semantic: dict[str, Any] | None) -> s
     """
     if not isinstance(semantic, dict):
         return None
+    evidence = semantic.get("presence_breaks_gathering_evidence")
+    if isinstance(evidence, dict):
+        text = _coerce_string(evidence.get("participation_relevance"))
+        if text is not None:
+            return text
     for key in (
         "participation_relevance",
         "gathering_participation_relevance",
@@ -321,6 +326,11 @@ def _visibility_audibility_from_semantic(semantic: dict[str, Any] | None) -> str
     """Pull a ``visibility_audibility`` evidence string when present."""
     if not isinstance(semantic, dict):
         return None
+    evidence = semantic.get("presence_breaks_gathering_evidence")
+    if isinstance(evidence, dict):
+        text = _coerce_string(evidence.get("visibility_audibility"))
+        if text is not None:
+            return text
     for key in (
         "visibility_audibility",
         "visibility",
@@ -443,7 +453,12 @@ def build_free_player_action_resolution(
     )
 
     presence_evidence: dict[str, Any] = {
-        "target_location": target_location,
+        "target_location": (
+            semantic.get("presence_breaks_gathering_evidence", {}).get("target_location")
+            if isinstance(semantic, dict)
+            and isinstance(semantic.get("presence_breaks_gathering_evidence"), dict)
+            else target_location
+        ),
         "participation_relevance": _participation_relevance_from_semantic(semantic),
         "visibility_audibility": _visibility_audibility_from_semantic(semantic),
     }

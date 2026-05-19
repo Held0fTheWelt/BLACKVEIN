@@ -35,6 +35,10 @@ class RuntimeTurnState(TypedDict, total=False):
     environment_model: dict[str, Any]
     environment_state: dict[str, Any]
     environment_transition: dict[str, Any]
+    canonical_step_id: str
+    canonical_path: dict[str, Any]
+    current_step_scene_id: str
+    current_step_named_characters: list[str]
     task_type: str
     routing: dict[str, Any]
     selected_provider: str
@@ -213,6 +217,12 @@ class RuntimeTurnState(TypedDict, total=False):
     player_local_context: dict[str, Any]
     local_context_transition: dict[str, Any]
     narrator_consequence_plan: dict[str, Any]
+    narrator_consequence_realization: dict[str, Any]
+    free_player_action_resolution: dict[str, Any]
+    canonical_path_hold_effect: dict[str, Any]
+    director_gathering_state: dict[str, Any]
+    director_pause_transition_reaction: dict[str, Any]
+    gathering_paused_beat_suppression: bool
     # Resolver -> Director -> Narrator thin path (RESOLVER_DIRECTOR_NARRATOR_THIN_PATH_PLAN).
     kanon_break: bool
     kanon_break_reason: str | None

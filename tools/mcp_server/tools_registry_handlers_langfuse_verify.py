@@ -2137,6 +2137,31 @@ def _langfuse_public_get_json(
         )
     except Exception as exc:
         return {"error": f"langfuse_http_request_failed:{exc}"}
+    if resp.status_code == 401:
+        # Repo-root .env may still contain stale/cloud Langfuse keys while the
+        # local Docker stack publishes its active local credentials through the
+        # backend internal endpoint. Verification tools are read-only, so retry
+        # once with backend-fetched credentials before reporting auth failure.
+        before = (public_key, secret_key, base_url)
+        try:
+            tracer._fetch_credentials_from_backend()
+        except Exception:
+            pass
+        public_key = str(getattr(tracer, "_public_key", "") or "").strip()
+        secret_key = str(getattr(tracer, "_secret_key", "") or "").strip()
+        base_url = str(getattr(tracer, "_base_url", "") or "").strip()
+        after = (public_key, secret_key, base_url)
+        if public_key and secret_key and base_url and after != before:
+            url = f"{base_url.rstrip('/')}{endpoint}"
+            try:
+                resp = requests.get(
+                    url,
+                    params=params or {},
+                    auth=(public_key, secret_key),
+                    timeout=12.0,
+                )
+            except Exception as exc:
+                return {"error": f"langfuse_http_request_failed:{exc}"}
     if resp.status_code != 200:
         return {"error": f"langfuse_http_{resp.status_code}", "body": resp.text[:400]}
     try:

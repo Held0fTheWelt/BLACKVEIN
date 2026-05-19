@@ -215,26 +215,16 @@
                         <div class="mui-subgroup">
                             <p class="mui-subgroup-title">Observation trees</p>
                             <div class="mui-field-grid">
-                                <label class="mui-field mui-field-full">
+                                <div class="mui-field mui-field-full">
                                     <span class="mui-field-label gov-inline-label">Langfuse trace tree
                                         <span class="gov-tip" tabindex="0">i
                                             <span class="gov-tip-pop">Empty keeps only the root trace. Minimal adds the compact path summary. Select all for the full child-observation tree.</span>
                                         </span>
                                     </span>
-                                    <select id="manage-obs-observation-trees" class="form-input" multiple size="9">
-                                        <option value="minimal">Minimal path</option>
-                                        <option value="graph_path">Graph phases</option>
-                                        <option value="model_io">Model I/O</option>
-                                        <option value="retrieval">Retrieval</option>
-                                        <option value="runtime_aspects">Runtime aspects</option>
-                                        <option value="scene_projection">Scene projection</option>
-                                        <option value="narrator">Narrator</option>
-                                        <option value="scores">Scores</option>
-                                        <option value="evidence">Evidence probes</option>
-                                    </select>
-                                    <span class="mui-field-hint">Selected trees are emitted as Langfuse child observations. Use Ctrl/Cmd or Shift for multiple selections.</span>
+                                    <div id="manage-obs-observation-trees" class="manage-obs-tree-list" role="group" aria-label="Langfuse trace tree policy"></div>
+                                    <span class="mui-field-hint">Selected trees are emitted as Langfuse child observations and score writes.</span>
                                     <span class="manage-obs-tree-summary" id="manage-obs-observation-trees-selected">Selected: —</span>
-                                </label>
+                                </div>
                             </div>
                             <div class="mui-deck-actions" style="justify-content:flex-start; margin-top:0.75rem;">
                                 <button type="button" class="btn btn-sm" id="manage-obs-trees-minimal">Minimal</button>
@@ -318,6 +308,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='manage_observability_settings.js', v='20260517d') }}"></script>
-<script src="{{ url_for('static', filename='manage_observability_settings_deck.js', v='20260517d') }}"></script>
+<script src="{{ url_for('static', filename='manage_observability_settings.js', v='20260519a') }}"></script>
+<script src="{{ url_for('static', filename='manage_observability_settings_deck.js', v='20260519a') }}"></script>
 {% endblock %}

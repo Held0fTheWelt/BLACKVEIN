@@ -25,6 +25,7 @@
   var captureRetrievalInput = null;
   var redactionModeInput = null;
   var observationTreesInput = null;
+  var observationTreeCatalog = [];
   var observationTreesSelectedText = null;
   var observationTreesMinimalBtn = null;
   var observationTreesAllBtn = null;
@@ -162,28 +163,148 @@
     return ["minimal"];
   }
 
+  var FALLBACK_OBSERVATION_TREE_CATALOG = [
+    {
+      id: "minimal",
+      label: "Minimal path",
+      description: "Root trace plus the compact path summary span.",
+    },
+    {
+      id: "graph_path",
+      label: "Graph phases",
+      description: "Intent, validation, commit and branch phase spans.",
+    },
+    {
+      id: "model_io",
+      label: "Model I/O",
+      description: "Model route/invoke detail and generation observations.",
+    },
+    {
+      id: "retrieval",
+      label: "Retrieval",
+      description: "RAG phase spans and retriever observations.",
+    },
+    {
+      id: "runtime_aspects",
+      label: "Runtime aspects",
+      description: "Aspect ledger spans for authority, pacing, memory, voice and validation.",
+    },
+    {
+      id: "scene_projection",
+      label: "Scene projection",
+      description: "Visible projection, LDSS fallback and scene-envelope spans.",
+    },
+    {
+      id: "narrator",
+      label: "Narrator",
+      description: "Narrator phase and NarrativeRuntimeAgent spans.",
+    },
+    {
+      id: "scores",
+      label: "Scores",
+      description: "Langfuse score writes for deterministic contract evidence.",
+    },
+    {
+      id: "evidence",
+      label: "Evidence probes",
+      description: "Nested local evidence spans such as ADR-0041 capability probes.",
+    },
+  ];
+
+  function normalizeObservationTreeCatalog(value) {
+    var rows = Array.isArray(value) ? value : FALLBACK_OBSERVATION_TREE_CATALOG;
+    var seen = {};
+    var out = [];
+    rows.forEach(function (item) {
+      if (!item || typeof item !== "object") return;
+      var id = String(item.id || "").trim();
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      out.push({
+        id: id,
+        label: String(item.label || id).trim(),
+        description: String(item.description || "").trim(),
+      });
+    });
+    return out.length ? out : FALLBACK_OBSERVATION_TREE_CATALOG.slice();
+  }
+
+  function observationTreeInputs() {
+    if (!observationTreesInput) return [];
+    return Array.prototype.slice.call(
+      observationTreesInput.querySelectorAll("input[data-observation-tree-id]")
+    );
+  }
+
+  function renderObservationTreeCatalog(catalog) {
+    if (!observationTreesInput) return;
+    observationTreeCatalog = normalizeObservationTreeCatalog(catalog);
+    observationTreesInput.textContent = "";
+    observationTreeCatalog.forEach(function (item) {
+      var option = document.createElement("label");
+      option.className = "manage-obs-tree-option";
+      option.dataset.treeId = item.id;
+
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = item.id;
+      checkbox.setAttribute("data-observation-tree-id", item.id);
+      checkbox.addEventListener("change", updateObservationTreesSelectionSummary);
+
+      var text = document.createElement("span");
+      text.className = "manage-obs-tree-option-text";
+
+      var title = document.createElement("strong");
+      title.textContent = item.label;
+
+      var description = document.createElement("small");
+      description.textContent = item.description || item.id;
+
+      text.appendChild(title);
+      text.appendChild(description);
+      option.appendChild(checkbox);
+      option.appendChild(text);
+      observationTreesInput.appendChild(option);
+    });
+  }
+
   function selectedObservationTrees() {
     if (!observationTreesInput) return defaultObservationTrees();
-    return Array.prototype.slice.call(observationTreesInput.options)
-      .filter(function (option) { return option.selected; })
-      .map(function (option) { return option.value; });
+    return observationTreeInputs()
+      .filter(function (input) { return input.checked; })
+      .map(function (input) { return input.value; });
   }
 
   function selectedObservationTreeLabels() {
     if (!observationTreesInput) return [];
-    return Array.prototype.slice.call(observationTreesInput.options)
-      .filter(function (option) { return option.selected; })
-      .map(function (option) { return option.textContent || option.value; });
+    var labelsById = {};
+    observationTreeCatalog.forEach(function (item) {
+      labelsById[item.id] = item.label || item.id;
+    });
+    return selectedObservationTrees().map(function (treeId) {
+      return labelsById[treeId] || treeId;
+    });
   }
 
   function updateObservationTreesSelectionSummary() {
     if (!observationTreesSelectedText) return;
     var labels = selectedObservationTreeLabels();
+    observationTreeInputs().forEach(function (input) {
+      var row = input.closest ? input.closest(".manage-obs-tree-option") : null;
+      classToggle(row, "is-selected", !!input.checked);
+    });
     if (!labels.length) {
-      observationTreesSelectedText.textContent = "Selected: none (root trace only)";
+      observationTreesSelectedText.textContent = "Selected: Root trace only (no child observations)";
       return;
     }
-    observationTreesSelectedText.textContent = "Selected: " + labels.join(", ");
+    if (observationTreeCatalog.length && labels.length === observationTreeCatalog.length) {
+      observationTreesSelectedText.textContent =
+        "Selected: Full tree (" + labels.length + "/" + observationTreeCatalog.length + ")";
+      return;
+    }
+    observationTreesSelectedText.textContent =
+      "Selected: " + labels.join(", ") +
+      (observationTreeCatalog.length ? " (" + labels.length + "/" + observationTreeCatalog.length + ")" : "");
   }
 
   function setSelectedObservationTrees(values) {
@@ -192,16 +313,20 @@
     (Array.isArray(values) ? values : defaultObservationTrees()).forEach(function (value) {
       selected[String(value)] = true;
     });
-    Array.prototype.slice.call(observationTreesInput.options).forEach(function (option) {
-      option.selected = !!selected[option.value];
+    observationTreeInputs().forEach(function (input) {
+      input.checked = !!selected[input.value];
     });
     updateObservationTreesSelectionSummary();
   }
 
   function allObservationTreeValues() {
-    if (!observationTreesInput) return defaultObservationTrees();
-    return Array.prototype.slice.call(observationTreesInput.options).map(function (option) {
-      return option.value;
+    if (observationTreeCatalog.length) {
+      return observationTreeCatalog.map(function (item) {
+        return item.id;
+      });
+    }
+    return FALLBACK_OBSERVATION_TREE_CATALOG.map(function (item) {
+      return item.id;
     });
   }
 
@@ -273,6 +398,7 @@
     captureOutputsInput.checked = currentConfig.capture_outputs !== false;
     captureRetrievalInput.checked = currentConfig.capture_retrieval === true;
     redactionModeInput.value = currentConfig.redaction_mode || "strict";
+    renderObservationTreeCatalog(currentConfig.observation_tree_catalog);
     setSelectedObservationTrees(currentConfig.enabled_observation_trees || defaultObservationTrees());
 
     if (currentConfig.credential_configured) {

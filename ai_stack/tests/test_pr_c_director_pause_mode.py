@@ -94,10 +94,12 @@ class TestComputeGatheringStatePaused:
             current_step_named_characters=["veronique", "michel", "annette", "alain"],
             current_step_scene_id="study",
             participation_relevance="broken",
+            subject_actor_id="annette",
             current_turn_number=7,
         )
         assert result["paused"] is True
         assert result["reason"] == PAUSE_REASON_PARTICIPATION_BROKEN
+        assert "annette" in result["missing_actor_ids"]
 
     def test_visibility_audibility_lost_causes_pause(self):
         result = compute_gathering_state(
@@ -105,10 +107,12 @@ class TestComputeGatheringStatePaused:
             current_step_named_characters=["veronique", "michel", "annette", "alain"],
             current_step_scene_id="study",
             visibility_audibility="not_audible",
+            subject_actor_id="annette",
             current_turn_number=9,
         )
         assert result["paused"] is True
         assert result["reason"] == PAUSE_REASON_VISIBILITY_LOST
+        assert "annette" in result["missing_actor_ids"]
 
     def test_missing_actor_ids_are_stable_and_sorted(self):
         result = compute_gathering_state(

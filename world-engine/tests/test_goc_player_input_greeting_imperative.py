@@ -37,13 +37,18 @@ def test_ich_begrüße_de_same_two_blocks() -> None:
 
 
 def test_direct_address_hallo_echo_and_attributed_outcome_two_blocks() -> None:
-    _, line = _goc_player_attributed_visible_text(
+    speaker, line = _goc_player_attributed_visible_text(
         raw_input="Hallo Veronique",
         human_actor_id="annette_reille",
         session_output_language="de",
         interpreted_input={"kind": "speech"},
     )
-    assert line == 'Annette sagt: „Hallo Veronique“'
+    assert speaker == "Annette"
+    assert line.startswith("Annette:")
+    assert "Hallo Veronique" in line
+    assert "sagt:" not in line
+    assert "„" not in line and "“" not in line
+
     blocks = _player_input_scene_blocks_for_story_window(
         session_id="sid",
         turn_number=1,
@@ -56,7 +61,11 @@ def test_direct_address_hallo_echo_and_attributed_outcome_two_blocks() -> None:
     assert blocks[0]["block_type"] == "player_input"
     assert blocks[0]["text"] == "Hallo Veronique"
     assert blocks[1]["block_type"] == "player_input_outcome"
-    assert blocks[1]["text"] == line
+    assert blocks[1]["speaker_label"] == "Annette"
+    assert blocks[1]["actor_id"] == "annette_reille"
+    assert blocks[1]["text"] == "Hallo Veronique"
+    assert not blocks[1]["text"].startswith("Annette:")
+    assert "sagt:" not in blocks[1]["text"]
 
 
 def test_greeting_imperative_en_two_blocks() -> None:

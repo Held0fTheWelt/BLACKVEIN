@@ -548,7 +548,7 @@ def create_story_session(
     module_id: str,
     runtime_projection: dict,
     session_input_language: str | None = None,
-    session_output_language: str = "de",
+    session_output_language: str = "en",
     user_id: str | None = None,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,

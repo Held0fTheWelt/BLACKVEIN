@@ -289,24 +289,46 @@ class TestTemplateIdBypassRejection:
 class TestStoryTruthBoundary:
 
     def test_goc_solo_runtime_projection_is_derived_from_canonical_content(self):
-        """Role IDs in god_of_carnage_solo template must all exist in characters/*.yaml (FIX-006)."""
+        """Role IDs in god_of_carnage_solo template must resolve through canonical character documents (FIX-006)."""
         import yaml
         from app.content.builtins import load_builtin_templates
+        from app.runtime.profiles import resolve_runtime_profile
+
+        module_root = REPO_ROOT / "content" / "modules" / "god_of_carnage"
         char_dir = REPO_ROOT / "content" / "modules" / "god_of_carnage" / "characters"
         assert char_dir.is_dir(), f"characters directory not found at {char_dir}"
-        canonical_ids = set()
-        for path in sorted(char_dir.glob("*.yaml")):
+
+        index_path = char_dir / "index.yaml"
+        assert index_path.is_file(), f"character index not found at {index_path}"
+        index_data = yaml.safe_load(index_path.read_text(encoding="utf-8")) or {}
+        documents = ((index_data.get("characters_index") or {}).get("documents") or {})
+        assert documents, "characters/index.yaml must list canonical character definition documents."
+
+        role_slug_to_actor_id: dict[str, str] = {}
+        for role_slug, rel_path in sorted(documents.items()):
+            path = module_root / str(rel_path)
             data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             doc = data.get("character_document") or data.get("character") or data
-            if isinstance(doc, dict):
-                canonical_ids.add(str(doc.get("id") or doc.get("canonical_id") or path.stem))
+            assert isinstance(doc, dict), f"{path} must contain a character document"
+            character_id = str(doc.get("id") or doc.get("canonical_id") or "").strip()
+            actor_id = str(doc.get("actor_id") or doc.get("runtime_actor_id") or "").strip()
+            assert character_id, f"{path} missing character_document.id"
+            assert actor_id, f"{path} missing character_document.actor_id/runtime_actor_id"
+            role_slug_to_actor_id[str(role_slug)] = actor_id
+            role_slug_to_actor_id[character_id] = actor_id
+
         templates = load_builtin_templates()
         goc_solo = templates["god_of_carnage_solo"]
+        profile = resolve_runtime_profile("god_of_carnage_solo")
+
         for role in goc_solo.roles:
-            assert role.id in canonical_ids, (
-                f"Role id {role.id!r} in god_of_carnage_solo template is not in canonical characters/*.yaml. "
-                f"Canonical ids: {sorted(canonical_ids)}"
+            assert role.id in role_slug_to_actor_id, (
+                f"Role id {role.id!r} in god_of_carnage_solo template is not in canonical "
+                f"characters/index.yaml -> characters/definitions/*.yaml. "
+                f"Canonical role slugs: {sorted(role_slug_to_actor_id)}"
             )
+            if role.can_join:
+                assert profile.role_slug_to_canonical_actor_id(role.id) == role_slug_to_actor_id[role.id]
 
 
 # ---------------------------------------------------------------------------
@@ -825,7 +847,7 @@ class TestSessionOutputLanguage:
         }
 
     def test_create_story_session_accepts_session_output_language_de(self, client, internal_api_key):
-        """POST /api/story/sessions with session_output_language=de must succeed (ADR-0036)."""
+        """POST /api/story/sessions accepts German output language without requiring live opening synthesis."""
         response = client.post(
             "/api/story/sessions",
             headers={"X-Play-Service-Key": internal_api_key},
@@ -833,9 +855,12 @@ class TestSessionOutputLanguage:
                 "module_id": "god_of_carnage",
                 "runtime_projection": self._projection(),
                 "session_output_language": "de",
+                "skip_graph_opening_on_create": True,
             },
         )
         assert response.status_code == 200
+        body = response.json()
+        assert body["opening_generation_status"] == "pending"
 
     def test_create_story_session_accepts_session_output_language_en(self, client, internal_api_key):
         """POST /api/story/sessions with session_output_language=en must succeed (ADR-0036)."""
@@ -851,16 +876,22 @@ class TestSessionOutputLanguage:
         assert response.status_code == 200
 
     def test_create_story_session_defaults_to_de_when_omitted(self, client, internal_api_key):
-        """POST /api/story/sessions without session_output_language defaults to de (ADR-0036)."""
+        """Legacy test name: omitted output language defaults to English, not German."""
         response = client.post(
             "/api/story/sessions",
             headers={"X-Play-Service-Key": internal_api_key},
             json={
                 "module_id": "god_of_carnage",
                 "runtime_projection": self._projection(),
+                "skip_graph_opening_on_create": True,
             },
         )
         assert response.status_code == 200
+        body = response.json()
+        session = client.app.state.story_manager.get_session(body["session_id"])
+        assert session.session_output_language == "en"
+        assert session.session_input_language == "en"
+        assert body["opening_generation_status"] == "pending"
 
     def _full_projection(self):
         proj = self._projection()
@@ -901,15 +932,16 @@ class TestSessionOutputLanguage:
         assert session.session_output_language == "en"
 
     def test_story_session_default_language_is_de(self):
-        """StorySession.session_output_language defaults to de when not specified (ADR-0036)."""
+        """Legacy test name: StorySession defaults to English when language is omitted."""
         from app.story_runtime import StoryRuntimeManager
         mgr = StoryRuntimeManager(session_store=None, adapters={})
         session = mgr.create_session(
             module_id="god_of_carnage",
             runtime_projection=self._full_projection(),
+            skip_graph_opening_on_create=True,
         )
-        assert session.session_output_language == "de"
-        assert session.session_input_language == "de"
+        assert session.session_output_language == "en"
+        assert session.session_input_language == "en"
 
     def test_opening_prompt_contains_german_directive_for_de(self):
         """_build_opening_prompt must include German language directive when session_output_language=de (ADR-0036)."""

@@ -611,7 +611,7 @@ def play_create():
     else:
         json_data = {"template_id": template_id, "trace_id": trace_id}
 
-    session_output_language = _request_value("session_output_language", "de").strip()
+    session_output_language = _request_value("session_output_language", "en").strip()
     json_data["session_output_language"] = session_output_language
     if _request_bool("skip_graph_opening_on_create"):
         json_data["skip_graph_opening_on_create"] = True

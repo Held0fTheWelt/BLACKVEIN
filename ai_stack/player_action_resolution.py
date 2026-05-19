@@ -344,6 +344,120 @@ def _canonical_path_effect_from_policy(
     return str(control.get("default_for_free_player_action") or "").strip() or None
 
 
+def _current_area_from_affordance_model(affordance_model: dict[str, Any]) -> str | None:
+    state = affordance_model.get("environment_state")
+    if isinstance(state, dict):
+        for key in ("current_room_id", "current_location_id", "current_area"):
+            value = str(state.get(key) or "").strip()
+            if value:
+                return value
+    value = str(affordance_model.get("current_area") or "").strip()
+    return value or None
+
+
+def _target_location_hint_from_row(row: dict[str, Any] | None) -> str | None:
+    if not isinstance(row, dict):
+        return None
+    for key in (
+        "placement_location_id",
+        "placement_room_id",
+        "room_id",
+        "location_id",
+        "current_room_id",
+    ):
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return None
+
+
+def _location_row_from_environment_model(
+    affordance_model: dict[str, Any],
+    location_id: str | None,
+) -> dict[str, Any]:
+    lid = str(location_id or "").strip()
+    env_model = affordance_model.get("environment_model")
+    env_model = env_model if isinstance(env_model, dict) else {}
+    locations = env_model.get("locations") if isinstance(env_model.get("locations"), dict) else {}
+    row = locations.get(lid)
+    return row if isinstance(row, dict) else {}
+
+
+def _visibility_audibility_evidence(
+    *,
+    affordance_model: dict[str, Any],
+    target_location: str | None,
+    current_area: str | None,
+) -> str:
+    target = str(target_location or "").strip()
+    current = str(current_area or "").strip()
+    if not target or not current:
+        return "visibility_audibility_unknown:location_context_unavailable"
+    if target == current:
+        return "still_visible"
+    target_row = _location_row_from_environment_model(affordance_model, target)
+    visibility = target_row.get("visibility_from_room") if isinstance(target_row, dict) else {}
+    visibility = visibility if isinstance(visibility, dict) else {}
+    can_perceive = {str(item).strip() for item in (visibility.get("can_directly_perceive_room_ids") or [])}
+    cannot_perceive = {str(item).strip() for item in (visibility.get("cannot_directly_perceive_room_ids") or [])}
+    if current in can_perceive:
+        return "still_audible"
+    if current in cannot_perceive:
+        return "not_audible"
+    if target_row:
+        return "visibility_audibility_unknown:topology_no_direct_classification"
+    return "visibility_audibility_unknown:target_location_not_in_topology"
+
+
+def _derive_presence_breaks_gathering_evidence(
+    *,
+    semantic: dict[str, Any],
+    affordance_model: dict[str, Any],
+    target_type: str | None,
+    target_location: str | None,
+    action_commit_policy: str,
+    affordance_status: str,
+) -> dict[str, Any]:
+    current_area = _current_area_from_affordance_model(affordance_model)
+    target = str(target_location or "").strip() or None
+    ttype = str(target_type or "").strip().lower()
+    policy = str(action_commit_policy or "").strip().lower()
+    status = str(affordance_status or "").strip().lower()
+
+    existing = semantic.get("presence_breaks_gathering_evidence")
+    evidence = dict(existing) if isinstance(existing, dict) else {}
+    for semantic_key, evidence_key in (
+        ("participation_relevance", "participation_relevance"),
+        ("gathering_participation_relevance", "participation_relevance"),
+        ("visibility_audibility", "visibility_audibility"),
+        ("gathering_visibility_audibility", "visibility_audibility"),
+    ):
+        if evidence.get(evidence_key) is None and semantic.get(semantic_key) is not None:
+            evidence[evidence_key] = semantic.get(semantic_key)
+    evidence.setdefault("target_location", target)
+
+    if "participation_relevance" not in evidence or evidence.get("participation_relevance") is None:
+        if policy != "commit_action" or status not in {"allowed", "allowed_offscreen", "partial"}:
+            evidence["participation_relevance"] = "not_applicable:not_committed_action"
+        elif ttype == "location" and target and current_area and target != current_area:
+            evidence["participation_relevance"] = "broken"
+        elif target and current_area and target == current_area:
+            evidence["participation_relevance"] = "still_participating"
+        elif ttype in {"object", "actor"} and current_area:
+            evidence["participation_relevance"] = "still_participating"
+        else:
+            evidence["participation_relevance"] = "participation_unknown:location_context_unavailable"
+
+    if "visibility_audibility" not in evidence or evidence.get("visibility_audibility") is None:
+        evidence["visibility_audibility"] = _visibility_audibility_evidence(
+            affordance_model=affordance_model,
+            target_location=target,
+            current_area=current_area,
+        )
+
+    return evidence
+
+
 def _normalize_grounded_target_role(
     *,
     player_input_kind: str,
@@ -804,6 +918,39 @@ def resolve_player_action(
 
     narrator_expected = bool(semantic.get("narrator_response_expected", interpreted_input.get("narrator_response_expected", True)))
     npc_expected = bool(semantic.get("npc_response_expected", interpreted_input.get("npc_response_expected", False)))
+    target_location_hint = (
+        _semantic_text(
+            semantic,
+            "target_location",
+            "containing_location_id",
+            "containing_location",
+            "actor_location_id",
+        )
+        or None
+    )
+    evidence_target_location = (
+        tid
+        if str(ttyp or "").strip().lower() == "location"
+        else target_location_hint
+        or _target_location_hint_from_row(row)
+        or (
+            _current_area_from_affordance_model(affordance_model)
+            if str(ttyp or "").strip().lower() in {"object", "actor"}
+            else None
+        )
+    )
+    semantic_for_contract = dict(semantic)
+    semantic_for_contract["presence_breaks_gathering_evidence"] = (
+        _derive_presence_breaks_gathering_evidence(
+            semantic=semantic_for_contract,
+            affordance_model=affordance_model,
+            target_type=ttyp,
+            target_location=evidence_target_location,
+            action_commit_policy=policy,
+            affordance_status=status,
+        )
+    )
+
     frame = _make_frame(
         raw_text=raw_text,
         pik=pik,
@@ -834,21 +981,11 @@ def resolve_player_action(
     )
     if not kanon_break:
         kanon_break_reason = None
-    target_location_hint = (
-        _semantic_text(
-            semantic,
-            "target_location",
-            "containing_location_id",
-            "containing_location",
-            "actor_location_id",
-        )
-        or None
-    )
     return _finalize_resolution_envelope(
         frame=frame,
         aff=aff,
         scene_affordance_model=affordance_model,
-        semantic_payload=semantic,
+        semantic_payload=semantic_for_contract,
         kanon_break=kanon_break,
         kanon_break_reason=kanon_break_reason,
         target_location_hint=target_location_hint,

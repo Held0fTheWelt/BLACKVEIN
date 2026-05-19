@@ -159,6 +159,9 @@ from ai_stack.narrator_consequence_realization_contracts import (
     build_narrator_consequence_realization,
 )
 from ai_stack.director_gathering_state_contracts import (
+    DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
+    DIAGNOSTIC_BLOCKER_MISSING_NAMED_CHARACTERS,
+    DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
     compute_gathering_state,
     gathering_pause_is_transition,
     should_suppress_mandatory_beat_consumption,
@@ -4947,6 +4950,58 @@ def _derive_named_characters_from_state(state: dict[str, Any]) -> list[str] | No
     return None
 
 
+def _derive_current_step_scene_id_from_state(state: dict[str, Any]) -> str | None:
+    for key in ("current_step_scene_id", "current_scene_id"):
+        value = str(state.get(key) or "").strip()
+        if value:
+            return value
+    cp = state.get("canonical_path") if isinstance(state.get("canonical_path"), dict) else {}
+    step_id = str(state.get("canonical_step_id") or "").strip()
+    steps = cp.get("steps") if isinstance(cp.get("steps"), dict) else {}
+    step_data = steps.get(step_id) if step_id and isinstance(steps.get(step_id), dict) else {}
+    loc = step_data.get("location_ref") if isinstance(step_data.get("location_ref"), dict) else {}
+    value = str(loc.get("location_id") or "").strip()
+    return value or None
+
+
+def _derive_director_subject_actor_id(
+    state: dict[str, Any],
+    frame: dict[str, Any] | None = None,
+) -> str | None:
+    frame = frame if isinstance(frame, dict) else {}
+    alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+    for value in (
+        frame.get("selected_actor_id"),
+        frame.get("actor_id"),
+        state.get("player_actor_id"),
+        alc.get("human_actor_id"),
+        alc.get("selected_player_role"),
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return None
+
+
+def _director_gathering_blocker(
+    *,
+    reason: str,
+    presence_required_for_step: list[str] | None = None,
+    evidence_status: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "schema_version": "director_gathering_state.v1",
+        "paused": False,
+        "reason": reason,
+        "diagnostic_blocker": True,
+        "missing_actor_ids": [],
+        "presence_required_for_step": list(presence_required_for_step or []),
+    }
+    if evidence_status:
+        out["evidence_status"] = dict(evidence_status)
+    return out
+
+
 @dataclass
 class RuntimeTurnGraphExecutor:
     """``RuntimeTurnGraphExecutor`` groups related behaviour; callers should read members for contracts and threading assumptions.
@@ -5114,6 +5169,11 @@ class RuntimeTurnGraphExecutor:
         story_runtime_experience: dict[str, Any] | None = None,
         validation_execution_mode: str | None = None,
         environment_state: dict[str, Any] | None = None,
+        canonical_step_id: str | None = None,
+        canonical_path: dict[str, Any] | None = None,
+        current_step_scene_id: str | None = None,
+        current_step_named_characters: list[str] | None = None,
+        prior_director_gathering_state: dict[str, Any] | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -5246,6 +5306,20 @@ class RuntimeTurnGraphExecutor:
         )
         if turn_number is not None:
             initial_state["turn_number"] = int(turn_number)
+        if canonical_step_id:
+            initial_state["canonical_step_id"] = str(canonical_step_id)
+        if canonical_path and isinstance(canonical_path, dict):
+            initial_state["canonical_path"] = dict(canonical_path)
+        if current_step_scene_id:
+            initial_state["current_step_scene_id"] = str(current_step_scene_id)
+        if current_step_named_characters:
+            initial_state["current_step_named_characters"] = [
+                str(actor_id).strip()
+                for actor_id in current_step_named_characters
+                if str(actor_id).strip()
+            ]
+        if prior_director_gathering_state and isinstance(prior_director_gathering_state, dict):
+            initial_state["_prior_director_gathering_state"] = dict(prior_director_gathering_state)
         if turn_input_class is not None:
             initial_state["turn_input_class"] = turn_input_class
         if force_experiment_preview is not None:
@@ -6351,6 +6425,9 @@ class RuntimeTurnGraphExecutor:
         # surface the dict when present.
         hold_effect = resolution.get("canonical_path_hold_effect")
         if isinstance(hold_effect, dict):
+            hold_effect = dict(hold_effect)
+            if not hold_effect.get("current_canonical_step_id") and state.get("canonical_step_id"):
+                hold_effect["current_canonical_step_id"] = str(state.get("canonical_step_id"))
             update["canonical_path_hold_effect"] = hold_effect
         # PR-C: compute director_gathering_state.v1 from resolver evidence
         # and actor topology. The state is lifted into graph state so the
@@ -6370,50 +6447,66 @@ class RuntimeTurnGraphExecutor:
             if not isinstance(_pr_c_named_chars, list):
                 _pr_c_named_chars = _derive_named_characters_from_state(state)
             if isinstance(_pr_c_named_chars, list):
-                _pr_c_scene_id = str(state.get("current_step_scene_id") or state.get("current_scene_id") or "").strip() or None
+                _pr_c_scene_id = _derive_current_step_scene_id_from_state(state)
                 _pr_c_actor_locations = state.get("actor_locations") if isinstance(state.get("actor_locations"), dict) else {}
                 if not _pr_c_actor_locations:
                     _env_state = state.get("environment_state") if isinstance(state.get("environment_state"), dict) else {}
                     if isinstance(_env_state.get("actor_locations"), dict):
                         _pr_c_actor_locations = dict(_env_state["actor_locations"])
+                _pr_c_subject_actor_id = _derive_director_subject_actor_id(state, frame)
                 if _pr_c_target_location and isinstance(_pr_c_actor_locations, dict):
-                    player_actor_id = str(state.get("player_actor_id") or "player").strip()
                     _pr_c_actor_locations = dict(_pr_c_actor_locations)
-                    _pr_c_actor_locations[player_actor_id] = _pr_c_target_location
-                _pr_c_prev_state = state.get("director_gathering_state") if isinstance(state.get("director_gathering_state"), dict) else None
+                    if _pr_c_subject_actor_id:
+                        _pr_c_actor_locations[_pr_c_subject_actor_id] = _pr_c_target_location
+                _pr_c_prev_state = (
+                    state.get("director_gathering_state")
+                    if isinstance(state.get("director_gathering_state"), dict)
+                    else state.get("_prior_director_gathering_state")
+                    if isinstance(state.get("_prior_director_gathering_state"), dict)
+                    else None
+                )
                 _pr_c_turn = state.get("turn_number")
                 try:
                     _pr_c_turn_int = int(_pr_c_turn) if _pr_c_turn is not None else None
                 except (TypeError, ValueError):
                     _pr_c_turn_int = None
+                _pr_c_evidence_required = bool(
+                    isinstance(presence_evidence, dict)
+                    or str(free_player_resolution.get("action_commit_policy") or "").strip() == "commit_action"
+                )
                 director_gathering = compute_gathering_state(
                     actor_locations=_pr_c_actor_locations,
                     current_step_named_characters=_pr_c_named_chars,
                     current_step_scene_id=_pr_c_scene_id,
                     participation_relevance=_pr_c_participation,
                     visibility_audibility=_pr_c_visibility,
+                    subject_actor_id=_pr_c_subject_actor_id,
+                    participation_evidence_required=_pr_c_evidence_required,
                     current_turn_number=_pr_c_turn_int,
                     previous_state=_pr_c_prev_state,
                 )
                 update["director_gathering_state"] = director_gathering
                 if not _pr_c_actor_locations:
-                    update["director_gathering_state"] = {
-                        "schema_version": "director_gathering_state.v1",
-                        "paused": False,
-                        "reason": "missing_actor_locations",
-                        "diagnostic_blocker": True,
-                        "missing_actor_ids": [],
-                        "presence_required_for_step": _pr_c_named_chars,
-                    }
+                    update["director_gathering_state"] = _director_gathering_blocker(
+                        reason=DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
+                        presence_required_for_step=_pr_c_named_chars,
+                    )
+                elif isinstance(presence_evidence, dict) and (
+                    _pr_c_participation is None or _pr_c_visibility is None
+                ):
+                    update["director_gathering_state"] = _director_gathering_blocker(
+                        reason=DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
+                        presence_required_for_step=_pr_c_named_chars,
+                        evidence_status={
+                            "participation_relevance_present": _pr_c_participation is not None,
+                            "visibility_audibility_present": _pr_c_visibility is not None,
+                        },
+                    )
             else:
-                update["director_gathering_state"] = {
-                    "schema_version": "director_gathering_state.v1",
-                    "paused": False,
-                    "reason": "missing_named_characters",
-                    "diagnostic_blocker": True,
-                    "missing_actor_ids": [],
-                    "presence_required_for_step": [],
-                }
+                update["director_gathering_state"] = _director_gathering_blocker(
+                    reason=DIAGNOSTIC_BLOCKER_MISSING_NAMED_CHARACTERS,
+                    presence_required_for_step=[],
+                )
         if frame and aff and model:
             try:
                 sam = normalize_scene_affordance_model_for_contracts(model)
@@ -7441,7 +7534,13 @@ class RuntimeTurnGraphExecutor:
             )
             selected_beat_id = deterministic_beat_id
             scene_plan_dict["gathering_paused_beat_suppression"] = True
+            update["gathering_paused_beat_suppression"] = True
         else:
+            scene_plan_dict["gathering_paused_beat_suppression"] = False
+            scene_plan_dict["gathering_paused_beat_suppression_reason"] = (
+                "director_gathering_not_paused"
+            )
+            update["gathering_paused_beat_suppression"] = False
             beat_candidates = phase_beat_candidates(
                 module_policy=state.get("module_runtime_policy")
                 if isinstance(state.get("module_runtime_policy"), dict)
@@ -10538,10 +10637,17 @@ class RuntimeTurnGraphExecutor:
                     validation_gated=validation_gated,
                 )
             )
-        except Exception:
-            # Defensive: realization projection failures must not block
-            # render. The thin-path summary tolerates the missing key.
-            pass
+        except Exception as exc:
+            # Defensive: realization projection failures must not block render,
+            # but the Phase-1 diagnostic contract must still be explicit.
+            update["narrator_consequence_realization"] = (
+                build_narrator_consequence_realization(
+                    narrator_consequence_plan=None,
+                    visible_scene_blocks=None,
+                    validation_gated=False,
+                )
+            )
+            update["narrator_consequence_realization"]["projection_error"] = str(exc)[:240]
         # PR-C: record narrator transition reaction metadata on pause entry.
         # On transition paused=false → true, optionally emit one content-led
         # narrator reaction block. If not emitted, record explicit reason.
@@ -10578,6 +10684,12 @@ class RuntimeTurnGraphExecutor:
                     "transition": "cleared",
                     "reaction_emitted": False,
                     "non_realization_reason": "return_transition_no_reaction_required",
+                }
+            elif isinstance(_pr_c_curr_gathering, dict):
+                update["director_pause_transition_reaction"] = {
+                    "transition": None,
+                    "reaction_emitted": False,
+                    "non_realization_reason": "no_pause_transition_this_turn",
                 }
         except Exception:
             pass

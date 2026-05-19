@@ -1298,13 +1298,63 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     line-height: 1.4;
 }
 
-#manage-obs-observation-trees option {
-    padding: 0.25rem 0.45rem;
+.manage-obs-tree-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.25rem;
 }
 
-#manage-obs-observation-trees option:checked {
-    background: rgba(148, 121, 239, 0.35);
+.manage-obs-tree-option {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem;
+    align-items: flex-start;
+    min-height: 4.2rem;
+    padding: 0.72rem 0.78rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(11, 17, 29, 0.52);
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.manage-obs-tree-option:hover,
+.manage-obs-tree-option:focus-within {
+    border-color: rgba(148, 121, 239, 0.7);
+    box-shadow: 0 0 0 1px rgba(148, 121, 239, 0.18);
+}
+
+.manage-obs-tree-option.is-selected {
+    border-color: rgba(93, 187, 135, 0.65);
+    background: rgba(93, 187, 135, 0.1);
+}
+
+.manage-obs-tree-option input {
+    margin-top: 0.18rem;
+}
+
+.manage-obs-tree-option-text {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.manage-obs-tree-option-text strong {
     color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.25;
+}
+
+.manage-obs-tree-option-text small {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+@media (max-width: 720px) {
+    .manage-obs-tree-list {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form-label,

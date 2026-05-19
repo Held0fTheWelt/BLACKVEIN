@@ -131,8 +131,24 @@ def package_runtime_graph_output(
     if isinstance(state.get("director_gathering_state"), dict):
         _phase1_diag["director_gathering_state"] = state["director_gathering_state"]
     _spr = state.get("scene_plan_record") if isinstance(state.get("scene_plan_record"), dict) else {}
-    if _spr.get("gathering_paused_beat_suppression"):
-        _phase1_diag["gathering_paused_beat_suppression"] = True
+    if "gathering_paused_beat_suppression" in state:
+        _phase1_diag["gathering_paused_beat_suppression"] = bool(
+            state.get("gathering_paused_beat_suppression")
+        )
+        if not state.get("gathering_paused_beat_suppression"):
+            _phase1_diag["gathering_paused_beat_suppression_reason"] = (
+                _spr.get("gathering_paused_beat_suppression_reason")
+                or "director_gathering_not_paused"
+            )
+    elif "gathering_paused_beat_suppression" in _spr:
+        _phase1_diag["gathering_paused_beat_suppression"] = bool(
+            _spr.get("gathering_paused_beat_suppression")
+        )
+        if not _spr.get("gathering_paused_beat_suppression"):
+            _phase1_diag["gathering_paused_beat_suppression_reason"] = (
+                _spr.get("gathering_paused_beat_suppression_reason")
+                or "director_gathering_not_paused"
+            )
     if isinstance(state.get("director_pause_transition_reaction"), dict):
         _phase1_diag["director_pause_transition_reaction"] = state["director_pause_transition_reaction"]
     if _phase1_diag:

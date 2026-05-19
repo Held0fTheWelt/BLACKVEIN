@@ -20,7 +20,7 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 
 3. **Runtime profile** (`world-engine/app/runtime/profiles.py`) resolves canonical actor IDs from the modular character content under `content/modules/god_of_carnage/characters/` at runtime via `_resolve_goc_content()`, not from hardcoded constants.
 
-4. **Role IDs** in the ExperienceTemplate must be a subset of character IDs in `characters/index.yaml` and `characters/definitions/*.yaml`. This is enforced by `test_goc_solo_runtime_projection_is_derived_from_canonical_content`.
+4. **Role IDs** in the ExperienceTemplate are character slugs (`annette`, `alain`, `veronique`, `michel`), not runtime actor IDs. They must resolve through `characters/index.yaml` to the canonical per-character documents in `characters/definitions/*.yaml`, where `actor_id` / `runtime_actor_id` defines the runtime actor identity. The joinable player role subset (`annette`, `alain`) must additionally resolve through the runtime profile's selectable-role mapping. This is enforced by `test_goc_solo_runtime_projection_is_derived_from_canonical_content`.
 
 5. **`god_of_carnage_solo` runtime module** cannot own characters, rooms, objects, canonical path steps, relationships, or endings as story truth. `assert_profile_contains_no_story_truth()` enforces this for profile dicts.
 
@@ -43,13 +43,13 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 - `content/modules/god_of_carnage/scene_graph.yaml` — runtime node index over canonical path/location IDs; not a story-truth replacement for `canonical_path/`
 - `content/modules/god_of_carnage/characters/index.yaml` and `characters/definitions/*.yaml` — canonical authority for character IDs
 - `world-engine/app/runtime/profiles.py` — `_resolve_goc_content()` reads canonical character content, produces content hash
-- `story_runtime_core/goc_solo_builtin_roles_rooms.py` — role IDs must match canonical character IDs
+- `story_runtime_core/goc_solo_builtin_roles_rooms.py` — role IDs must match canonical character slugs
 - `world-engine/tests/test_mvp1_experience_identity.py` — `TestStoryTruthBoundary` and `TestContentResolvedRoleMapping`
 
 ## Consequences
 
-- Any change to canonical character IDs in `characters/index.yaml` or `characters/definitions/*.yaml` must be reflected in the ExperienceTemplate role IDs
-- Test `test_goc_solo_runtime_projection_is_derived_from_canonical_content` will fail if they drift
+- Any change to canonical character slugs in `characters/index.yaml` or `characters/definitions/*.yaml` must be reflected in the ExperienceTemplate role IDs
+- Test `test_goc_solo_runtime_projection_is_derived_from_canonical_content` will fail if a template role no longer resolves through the character index to a canonical actor ID, or if a joinable player role is missing from the runtime profile's selectable-role mapping
 - The runtime profile produces a `content_hash` from canonical character content in `build_actor_ownership()`, enabling drift detection
 - MVP 2 can trust that `human_actor_id` and `npc_actor_ids` in the handoff trace back to canonical content
 - Foundation gates must verify the active content shape (`canonical_path/` plus `scene_graph.yaml`) and must not require legacy flat story files such as `scenes.yaml`, `transitions.yaml`, `triggers.yaml`, or `endings.yaml`.

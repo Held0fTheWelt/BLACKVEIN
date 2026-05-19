@@ -89,6 +89,28 @@ Direct trace creation against Langfuse Cloud belongs only in explicitly named
 live-cloud tests, and even those must use backend-stored credentials rather
 than environment-only or legacy model fields.
 
+### Langfuse observation tree policy
+
+The Langfuse root trace is still controlled by the backend `is_enabled`,
+credential, and `sample_rate` settings. The optional child-observation tree is
+controlled separately through `enabled_observation_trees` on the same
+backend-managed `observability_configs` row.
+
+Operators change this policy in Administration Tool → Observability Settings.
+The page reads `observation_tree_catalog` from
+`GET /api/v1/admin/observability/status`, renders the backend catalog, and saves
+the selected tree ids through `POST /api/v1/admin/observability/update`.
+
+- `[]` means root trace only.
+- `["minimal"]` is the default compact path summary.
+- Selecting all catalog entries restores the full Langfuse child-observation tree
+  including graph phases, model I/O, retrieval, runtime aspects, scene
+  projection, narrator spans, deterministic scores, and evidence probes.
+
+Connection-test traces named `world_of_shadows.connection_test` are health
+probes and remain intentionally flat; they are not evidence that session
+runtime trees were suppressed.
+
 ## Retrieval observability
 
 `retrieval` dict and `repro_metadata` include:
