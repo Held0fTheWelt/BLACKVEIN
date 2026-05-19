@@ -191,6 +191,11 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
+    # Phase 2 Pulse-MVP — Director consumes these as semantic capability inputs (ADR-0058/0059)
+    "ai_stack/director_pulse_contracts.py",
+    "ai_stack/director_pulse_shadow.py",
+    "ai_stack/npc_motivation_score_engine.py",
+    "ai_stack/block_stream_dual_mode.py",
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
@@ -232,6 +237,11 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
+    # Phase 2 Pulse-MVP — Director consumes narrative_momentum as semantic input (ADR-0058/0059)
+    "ai_stack/director_pulse_contracts.py",
+    "ai_stack/director_pulse_shadow.py",
+    "ai_stack/npc_motivation_score_engine.py",
+    "ai_stack/block_stream_dual_mode.py",
 }
 
 PACING_RHYTHM_CANONICAL_SURFACES = {
@@ -248,6 +258,9 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
+    # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
+    "ai_stack/director_pulse_contracts.py",
+    "ai_stack/director_pulse_shadow.py",
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {

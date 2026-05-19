@@ -150,6 +150,13 @@ def compute_gathering_state(
     missing_actor_ids: list[str] = []
     reasons: list[str] = []
 
+    # topology_confirmed_present: actors whose current location matches the
+    # gathering scene.  Topology is authoritative for Phase 1 — if an actor IS
+    # physically at the scene, resolver participation/visibility evidence cannot
+    # re-classify them as missing.  This prevents LLM resolver output about a
+    # prior departure ("participation_broken") from overriding a confirmed
+    # topological return on the same turn.
+    topology_confirmed_present: set[str] = set()
     for actor_id in named_characters:
         actor_loc = _coerce_string(locations.get(actor_id))
         if actor_loc is None or actor_loc != scene_id:
@@ -157,6 +164,8 @@ def compute_gathering_state(
                 missing_actor_ids.append(actor_id)
             if PAUSE_REASON_ACTOR_NOT_AT_SCENE not in reasons:
                 reasons.append(PAUSE_REASON_ACTOR_NOT_AT_SCENE)
+        else:
+            topology_confirmed_present.add(actor_id)
 
     participation_text = _coerce_string(participation_relevance)
     visibility_text = _coerce_string(visibility_audibility)
@@ -179,10 +188,17 @@ def compute_gathering_state(
         "disengaged",
         "absent",
     ):
-        if PAUSE_REASON_PARTICIPATION_BROKEN not in reasons:
-            reasons.append(PAUSE_REASON_PARTICIPATION_BROKEN)
-        if subject and subject not in missing_actor_ids:
+        # Topology authority: if the subject is physically at the gathering
+        # scene, resolver participation evidence cannot classify them as missing.
+        # Only add reason + subject when the subject is NOT topology-confirmed.
+        if subject and subject not in missing_actor_ids and subject not in topology_confirmed_present:
+            if PAUSE_REASON_PARTICIPATION_BROKEN not in reasons:
+                reasons.append(PAUSE_REASON_PARTICIPATION_BROKEN)
             missing_actor_ids.append(subject)
+        elif not subject:
+            # No subject specified: record reason without modifying missing list.
+            if PAUSE_REASON_PARTICIPATION_BROKEN not in reasons:
+                reasons.append(PAUSE_REASON_PARTICIPATION_BROKEN)
 
     if visibility_text and visibility_text.lower() in (
         "not_visible",
@@ -191,10 +207,14 @@ def compute_gathering_state(
         "out_of_sight",
         "inaudible",
     ):
-        if PAUSE_REASON_VISIBILITY_LOST not in reasons:
-            reasons.append(PAUSE_REASON_VISIBILITY_LOST)
-        if subject and subject not in missing_actor_ids:
+        # Same topology-authority rule for visibility.
+        if subject and subject not in missing_actor_ids and subject not in topology_confirmed_present:
+            if PAUSE_REASON_VISIBILITY_LOST not in reasons:
+                reasons.append(PAUSE_REASON_VISIBILITY_LOST)
             missing_actor_ids.append(subject)
+        elif not subject:
+            if PAUSE_REASON_VISIBILITY_LOST not in reasons:
+                reasons.append(PAUSE_REASON_VISIBILITY_LOST)
 
     missing_actor_ids.sort()
     paused = len(missing_actor_ids) > 0 or len(reasons) > 0

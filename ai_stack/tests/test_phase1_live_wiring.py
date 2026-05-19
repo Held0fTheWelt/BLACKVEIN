@@ -514,6 +514,166 @@ class TestCompleteActorLocationsForGathering:
         assert result["actor_locations"]["npc_x"] == "gathering_room"
         assert result["fallback_actor_ids"] == ["npc_x"]
 
+    def test_gathering_scene_id_derived_from_npc_locations_when_npcs_already_present(self):
+        """When NPCs are already in actor_locations (no fallback needed),
+        gathering_scene_id is the most common NPC location — not the potentially
+        coarse current_step_scene_id."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={
+                "human_a": "room_a",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+                "npc_z": "gathering_room",
+            },
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y", "npc_z"],
+            },
+            current_step_scene_id="coarse_scene_identifier",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["gathering_scene_id"] == "gathering_room"
+
+    def test_environment_current_room_id_used_as_npc_fallback_location(self):
+        """When NPCs are missing and environment_current_room_id is provided,
+        NPCs are filled at environment_current_room_id, not current_step_scene_id."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "living_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id="coarse_scene_identifier",
+            environment_current_room_id="living_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "living_room"
+        assert result["actor_locations"]["npc_y"] == "living_room"
+        assert result["gathering_scene_id"] == "living_room"
+
+    def test_live_runtime_scenario_coarse_scene_id_all_actors_at_same_room(self):
+        """Live-runtime scenario: current_step_scene_id is a coarse scene identifier
+        (e.g. 'scene_1') that does not match actor_location room values.
+        With environment_current_room_id = actual room, gathering_scene_id is
+        correctly set to room-level, and topology check yields paused=False
+        when all actors are co-present."""
+        # Simulate: env_state.actor_locations has all actors at "living_room",
+        # current_scene_id = "scene_1" (scene-level, won't match room IDs)
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={
+                "human_a": "living_room",
+                "npc_x": "living_room",
+                "npc_y": "living_room",
+            },
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id="scene_1",
+            environment_current_room_id="living_room",
+        )
+        assert completion["diagnostic_blocker"] is False
+        assert completion["gathering_scene_id"] == "living_room"
+        # No actor is missing; gathering_scene_id matches all locations.
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id=completion["gathering_scene_id"],
+            current_turn_number=1,
+        )
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_live_runtime_scenario_player_moves_out_pauses_gathering(self):
+        """Live-runtime scenario: player moves to a different room.
+        gathering_scene_id stays at the NPC room (gathering room),
+        human actor gets target_location → paused=True."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={
+                "human_a": "living_room",
+                "npc_x": "living_room",
+                "npc_y": "living_room",
+            },
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id="scene_1",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"target_location": "kitchen"},
+            environment_current_room_id="living_room",
+        )
+        assert completion["diagnostic_blocker"] is False
+        assert completion["gathering_scene_id"] == "living_room"
+        assert completion["actor_locations"]["human_a"] == "kitchen"
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id=completion["gathering_scene_id"],
+            current_turn_number=2,
+        )
+        assert result["paused"] is True
+        assert "human_a" in result["missing_actor_ids"]
+
+    def test_live_runtime_scenario_player_returns_clears_pause(self):
+        """Live-runtime scenario: player moves back to gathering room.
+        gathering_scene_id = NPC room; after target_location applied, all
+        actors co-present → paused=False."""
+        completion = complete_actor_locations_for_gathering(
+            actor_locations={
+                "human_a": "kitchen",
+                "npc_x": "living_room",
+                "npc_y": "living_room",
+            },
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id="scene_1",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"target_location": "living_room"},
+            environment_current_room_id="kitchen",
+        )
+        assert completion["diagnostic_blocker"] is False
+        assert completion["gathering_scene_id"] == "living_room"
+        assert completion["actor_locations"]["human_a"] == "living_room"
+        result = compute_gathering_state(
+            actor_locations=completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id=completion["gathering_scene_id"],
+            current_turn_number=5,
+        )
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_gathering_scene_id_falls_back_to_environment_current_room_id_when_no_npcs(self):
+        """When no NPC IDs exist (empty actor_lane_context), gathering_scene_id
+        falls back to environment_current_room_id."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "living_room"},
+            actor_lane_context={"human_actor_id": "human_a", "npc_actor_ids": []},
+            current_step_scene_id="scene_1",
+            environment_current_room_id="living_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["gathering_scene_id"] == "living_room"
+
+    def test_missing_scene_id_does_not_block_when_environment_current_room_id_provided(self):
+        """If current_step_scene_id is absent but environment_current_room_id is
+        available, NPCs can be filled and diagnostic_blocker stays False."""
+        result = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "living_room"},
+            actor_lane_context={
+                "human_actor_id": "human_a",
+                "npc_actor_ids": ["npc_x", "npc_y"],
+            },
+            current_step_scene_id=None,
+            environment_current_room_id="living_room",
+        )
+        assert result["diagnostic_blocker"] is False
+        assert result["actor_locations"]["npc_x"] == "living_room"
+        assert result["gathering_scene_id"] == "living_room"
+
 
 class TestDirectorPauseWithActorLaneFallback:
     """End-to-end Director-Pause scenarios using the actor_lane_context
@@ -647,6 +807,50 @@ class TestDirectorPauseWithActorLaneFallback:
             current_turn_number=5,
             previous_state=prev,
         )
+        assert result["paused"] is True
+        assert "human_a" in result["missing_actor_ids"]
+
+    def test_topology_presence_overrides_resolver_participation_broken(self):
+        """Topology authority rule: if an actor IS physically at the gathering
+        scene (topology-confirmed), resolver participation_broken must NOT
+        re-add them to missing_actor_ids.  This prevents LLM resolver output
+        about a prior departure from overriding a confirmed topological return."""
+        result = compute_gathering_state(
+            actor_locations={
+                "human_a": "gathering_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            },
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id="gathering_room",
+            # Resolver incorrectly reports participation broken (e.g. LLM assessed
+            # the prior move action, not the return):
+            participation_relevance="broken",
+            visibility_audibility="not_visible",
+            subject_actor_id="human_a",
+            current_turn_number=5,
+        )
+        # Topology says all actors are present → resolver cannot override.
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_topology_absent_actor_can_still_be_added_by_resolver(self):
+        """If topology already marks an actor absent, resolver participation
+        does NOT re-add them (they're already missing), but it can add a
+        different subject that topology missed."""
+        result = compute_gathering_state(
+            actor_locations={
+                "human_a": "other_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            },
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id="gathering_room",
+            participation_relevance="broken",
+            subject_actor_id="human_a",
+            current_turn_number=4,
+        )
+        # Topology already flagged human_a as absent — still paused.
         assert result["paused"] is True
         assert "human_a" in result["missing_actor_ids"]
 

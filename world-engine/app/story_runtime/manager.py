@@ -11656,6 +11656,23 @@ class StoryRuntimeManager:
                         ldss_span.end()
 
             if scene_turn_envelope:
+                # Phase 2 Stage B — Dual Mode Block Stream (ADR-0058).
+                # Augment envelope with parallel block_stream_events when the
+                # feature flag is on. Bundle path and all existing keys are
+                # preserved unchanged; augmentation is purely additive.
+                try:
+                    from ai_stack.block_stream_dual_mode import (
+                        augment_envelope_with_block_stream,
+                        is_dual_mode_enabled,
+                    )
+                    if is_dual_mode_enabled():
+                        scene_turn_envelope = augment_envelope_with_block_stream(
+                            scene_turn_envelope,
+                            npc_ids=list(scene_turn_envelope.get("npc_actor_ids") or []),
+                        )
+                except Exception:
+                    pass  # Dual-mode failure must never break the bundle path.
+
                 event["scene_turn_envelope"] = scene_turn_envelope
                 visible_scene_output = (
                     scene_turn_envelope.get("visible_scene_output")
