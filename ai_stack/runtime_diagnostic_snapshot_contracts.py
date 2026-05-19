@@ -70,7 +70,10 @@ class ResolverOutputPlaceholder:
 class DirectorGatheringStatePlaceholder:
     """Slot for the per-tick ``director_gathering_state.v1`` snapshot.
 
-    PR-C will populate fields; PR-0 only reserves the slot.
+    PR-C populates this from ``compute_gathering_state`` output.
+    Fields exposed: paused, missing_actor_ids, since_turn, step_id,
+    presence_required_for_step, reason, source,
+    beat_consumption_suppressed, transition_reaction_emitted.
     """
 
     contract_name: str = "director_gathering_state.v1"

@@ -158,6 +158,11 @@ from ai_stack.narrator_consequence_contracts import (
 from ai_stack.narrator_consequence_realization_contracts import (
     build_narrator_consequence_realization,
 )
+from ai_stack.director_gathering_state_contracts import (
+    compute_gathering_state,
+    gathering_pause_is_transition,
+    should_suppress_mandatory_beat_consumption,
+)
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -6313,6 +6318,43 @@ class RuntimeTurnGraphExecutor:
         hold_effect = resolution.get("canonical_path_hold_effect")
         if isinstance(hold_effect, dict):
             update["canonical_path_hold_effect"] = hold_effect
+        # PR-C: compute director_gathering_state.v1 from resolver evidence
+        # and actor topology. The state is lifted into graph state so the
+        # beat-consumption gate and diagnostic surfaces can read it.
+        free_player_resolution = resolution.get("free_player_action_resolution")
+        if isinstance(free_player_resolution, dict):
+            presence_evidence = free_player_resolution.get("presence_breaks_gathering_evidence")
+            if isinstance(presence_evidence, dict):
+                _pr_c_participation = presence_evidence.get("participation_relevance")
+                _pr_c_visibility = presence_evidence.get("visibility_audibility")
+            else:
+                _pr_c_participation = None
+                _pr_c_visibility = None
+            _pr_c_target_location = free_player_resolution.get("target_location")
+            _pr_c_named_chars = state.get("current_step_named_characters")
+            if isinstance(_pr_c_named_chars, list):
+                _pr_c_scene_id = str(state.get("current_step_scene_id") or state.get("current_scene_id") or "").strip() or None
+                _pr_c_actor_locations = state.get("actor_locations") if isinstance(state.get("actor_locations"), dict) else {}
+                if _pr_c_target_location and isinstance(_pr_c_actor_locations, dict):
+                    player_actor_id = str(state.get("player_actor_id") or "player").strip()
+                    _pr_c_actor_locations = dict(_pr_c_actor_locations)
+                    _pr_c_actor_locations[player_actor_id] = _pr_c_target_location
+                _pr_c_prev_state = state.get("director_gathering_state") if isinstance(state.get("director_gathering_state"), dict) else None
+                _pr_c_turn = state.get("turn_number")
+                try:
+                    _pr_c_turn_int = int(_pr_c_turn) if _pr_c_turn is not None else None
+                except (TypeError, ValueError):
+                    _pr_c_turn_int = None
+                director_gathering = compute_gathering_state(
+                    actor_locations=_pr_c_actor_locations,
+                    current_step_named_characters=_pr_c_named_chars,
+                    current_step_scene_id=_pr_c_scene_id,
+                    participation_relevance=_pr_c_participation,
+                    visibility_audibility=_pr_c_visibility,
+                    current_turn_number=_pr_c_turn_int,
+                    previous_state=_pr_c_prev_state,
+                )
+                update["director_gathering_state"] = director_gathering
         if frame and aff and model:
             try:
                 sam = normalize_scene_affordance_model_for_contracts(model)
@@ -7321,21 +7363,41 @@ class RuntimeTurnGraphExecutor:
                 expected_realization.append(NARRATOR_ACTION_CONSEQUENCE_DESCRIBE)
             if bool(interp_for_beat.get("npc_response_expected")) or responders:
                 expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
-        beat_candidates = phase_beat_candidates(
-            module_policy=state.get("module_runtime_policy")
-            if isinstance(state.get("module_runtime_policy"), dict)
-            else None,
-            phase_id=scene_id,
-            fallback_candidate_ids=[f"{scene_id}:{fn}" for fn in candidate_functions] or [deterministic_beat_id],
-            expected_visible_functions=expected_realization,
+        # PR-C: beat-consumption gate — suppress mandatory-beat consumption
+        # while director_gathering_state.paused is True. The player remains
+        # free, narrator local consequences are not blocked, but mandatory
+        # beats tied to the missing co-presence do not advance.
+        _pr_c_gathering = (
+            update.get("director_gathering_state")
+            or (state.get("director_gathering_state") if isinstance(state.get("director_gathering_state"), dict) else None)
         )
-        beat_selection = select_beat_candidate(
-            beat_candidates,
-            deterministic_fallback_id=deterministic_beat_id,
-            selection_source=str(resolution.get("selection_source") or "scene_director"),
-            selection_reason=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
-        )
-        selected_beat_id = beat_selection.selected_beat_id or deterministic_beat_id
+        _pr_c_beat_suppressed = should_suppress_mandatory_beat_consumption(_pr_c_gathering)
+        if _pr_c_beat_suppressed:
+            beat_candidates = []
+            beat_selection = select_beat_candidate(
+                [],
+                deterministic_fallback_id=deterministic_beat_id,
+                selection_source="director_gathering_paused_gate",
+                selection_reason="mandatory_beat_consumption_suppressed_while_gathering_paused",
+            )
+            selected_beat_id = deterministic_beat_id
+            scene_plan_dict["gathering_paused_beat_suppression"] = True
+        else:
+            beat_candidates = phase_beat_candidates(
+                module_policy=state.get("module_runtime_policy")
+                if isinstance(state.get("module_runtime_policy"), dict)
+                else None,
+                phase_id=scene_id,
+                fallback_candidate_ids=[f"{scene_id}:{fn}" for fn in candidate_functions] or [deterministic_beat_id],
+                expected_visible_functions=expected_realization,
+            )
+            beat_selection = select_beat_candidate(
+                beat_candidates,
+                deterministic_fallback_id=deterministic_beat_id,
+                selection_source=str(resolution.get("selection_source") or "scene_director"),
+                selection_reason=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
+            )
+            selected_beat_id = beat_selection.selected_beat_id or deterministic_beat_id
         scene_plan_dict.setdefault(
             "selection_source",
             str(resolution.get("selection_source") or "scene_director"),
@@ -10420,6 +10482,45 @@ class RuntimeTurnGraphExecutor:
         except Exception:
             # Defensive: realization projection failures must not block
             # render. The thin-path summary tolerates the missing key.
+            pass
+        # PR-C: record narrator transition reaction metadata on pause entry.
+        # On transition paused=false → true, optionally emit one content-led
+        # narrator reaction block. If not emitted, record explicit reason.
+        try:
+            _pr_c_curr_gathering = (
+                update.get("director_gathering_state")
+                or (state.get("director_gathering_state") if isinstance(state.get("director_gathering_state"), dict) else None)
+            )
+            _pr_c_prev_gathering = (
+                state.get("_prior_director_gathering_state")
+                if isinstance(state.get("_prior_director_gathering_state"), dict)
+                else None
+            )
+            _pr_c_transition = gathering_pause_is_transition(
+                previous_state=_pr_c_prev_gathering,
+                current_state=_pr_c_curr_gathering,
+            )
+            if _pr_c_transition == "entered":
+                ncr = update.get("narrator_consequence_realization")
+                if isinstance(ncr, dict) and ncr.get("visible_block_emitted"):
+                    update["director_pause_transition_reaction"] = {
+                        "transition": "entered",
+                        "reaction_emitted": True,
+                        "realized_via": "narrator_consequence_realization.v1",
+                    }
+                else:
+                    update["director_pause_transition_reaction"] = {
+                        "transition": "entered",
+                        "reaction_emitted": False,
+                        "non_realization_reason": "no_content_led_reaction_available_this_turn",
+                    }
+            elif _pr_c_transition == "cleared":
+                update["director_pause_transition_reaction"] = {
+                    "transition": "cleared",
+                    "reaction_emitted": False,
+                    "non_realization_reason": "return_transition_no_reaction_required",
+                }
+        except Exception:
             pass
         return update
 
