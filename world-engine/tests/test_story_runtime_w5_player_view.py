@@ -114,8 +114,8 @@ def _session(*, w5_latest: dict[str, Any] | None) -> StorySession:
         updated_at=datetime(2026, 5, 20, 12, 0, 5, tzinfo=timezone.utc),
         turn_counter=3,
         current_scene_id="opening",
-        environment_state={"current_room_id": "legacy_salon"},
-        runtime_world={"status": "initialized", "current_room_id": "legacy_salon"},
+        environment_state={"current_room_id": "fallback_salon"},
+        runtime_world={"status": "initialized", "current_room_id": "fallback_salon"},
         w5_latest_snapshot=w5_latest,
     )
 
@@ -147,7 +147,7 @@ def test_player_view_flag_disabled_leaves_state_without_w5_player_view(
     state = _state(_session(w5_latest=_snapshot()))
     assert "w5_player_view" not in state
     assert "w5_player_view" not in state["committed_state"]
-    assert state["runtime_world"]["current_room_id"] == "legacy_salon"
+    assert state["runtime_world"]["current_room_id"] == "fallback_salon"
 
 
 def test_player_view_flag_enabled_adds_w5_projection_and_derives_location(
@@ -171,7 +171,7 @@ def test_player_view_flag_enabled_adds_w5_projection_and_derives_location(
     assert state["committed_state"]["w5_player_view"]["where_summary"]["scene_location"]["value"] == "salon_w5"
 
 
-def test_player_view_malformed_snapshot_falls_back_to_legacy_current_room(
+def test_player_view_malformed_snapshot_falls_back_to_fallback_current_room(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
@@ -180,6 +180,6 @@ def test_player_view_malformed_snapshot_falls_back_to_legacy_current_room(
     assert state["w5_player_view"] is None
     diag = state["w5_player_view_diagnostics"]
     assert diag["w5_player_view_used"] is False
-    assert diag["w5_player_view_source"] == "legacy"
-    assert diag["current_room_source"] == "legacy_current_room"
-    assert diag["legacy_current_room_id"] == "legacy_salon"
+    assert diag["w5_player_view_source"] == "fallback"
+    assert diag["current_room_source"] == "fallback_current_room"
+    assert diag["fallback_current_room_id"] == "fallback_salon"

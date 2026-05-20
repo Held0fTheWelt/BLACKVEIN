@@ -68,7 +68,7 @@ def _bundle_with_turn() -> dict:
                             "character_plausibility_posture": "uncertain",
                             "continuity_support_posture": "weak",
                             "empty_fluency_risk": "moderate",
-                            "legacy_fallback_used": True,
+                            "structural_fallback_used": True,
                             "diagnostic_trace": [{"code": "gate_eval_complete", "detail": "ok"}],
                         },
                     },
@@ -131,7 +131,7 @@ def _bundle_with_two_turns() -> dict:
                     "character_plausibility_posture": "plausible",
                     "continuity_support_posture": "adequate",
                     "empty_fluency_risk": "low",
-                    "legacy_fallback_used": False,
+                    "structural_fallback_used": False,
                 },
             },
             "committed_result": {"commit_applied": True, "committed_effects": [{"id": "effect-1"}]},
@@ -203,7 +203,7 @@ def test_service_preserves_authority_fallback_provenance_and_rejection(monkeypat
 
     fallback = payload["fallback_projection"]["data"]
     assert fallback["fallback_path_taken"] is False
-    assert fallback["legacy_fallback_used"] is True
+    assert fallback["structural_fallback_used"] is True
 
     gate = payload["gate_projection"]
     assert gate["status"] == "supported"
@@ -212,7 +212,7 @@ def test_service_preserves_authority_fallback_provenance_and_rejection(monkeypat
     assert gdata["rejection_reasons"] == ["scene_function_mismatch"]
     assert gdata["effect_rationale_codes"] == ["scene_function_mismatch_signal"]
     assert gdata["empty_fluency_risk"] == "moderate"
-    assert gdata["legacy_compatibility_summary"]["dominant_rejection_category"] == "scene_mismatch"
+    assert gdata["score_summary"]["dominant_rejection_category"] == "scene_mismatch"
 
     dt = payload["decision_trace_projection"]["data"]
     assert "semantic_decision_flow" in dt
@@ -226,7 +226,7 @@ def test_service_preserves_authority_fallback_provenance_and_rejection(monkeypat
     fields = {entry["field"] for entry in entries}
     assert "commit_applied" in fields
     assert "execution_health" in fields
-    assert "legacy_fallback_used" in fields
+    assert "structural_fallback_used" in fields
     assert "effect_rationale_codes" in fields
     assert "dramatic_effect_diagnostic_trace" in fields
 

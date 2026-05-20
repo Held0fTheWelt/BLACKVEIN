@@ -1,7 +1,6 @@
 """Comprehensive pytest tests for mail_service.py (37 tests covering all patterns)."""
 import pytest
 from unittest.mock import patch, MagicMock, call
-from flask import url_for
 from app.services.mail_service import _activation_url, send_verification_email, send_password_reset_email
 from app.extensions import mail
 
@@ -26,35 +25,34 @@ class TestActivationUrl:
             assert url == "https://example.com/activate/test_token_456"
 
     def test_activation_url_with_empty_app_public_base_url(self, app, test_user):
-        """Test _activation_url falls back to url_for when APP_PUBLIC_BASE_URL is empty string."""
+        """Test _activation_url uses FRONTEND_URL when APP_PUBLIC_BASE_URL is empty string."""
         with app.app_context():
             app.config["APP_PUBLIC_BASE_URL"] = ""
+            app.config["FRONTEND_URL"] = "https://frontend.example.com"
             token = "test_token_789"
             with app.test_request_context():
                 url = _activation_url(token)
-                expected = url_for("web.activate", token=token, _external=True)
-                assert url == expected
+                assert url == "https://frontend.example.com/activate/test_token_789"
 
     def test_activation_url_with_none_app_public_base_url(self, app, test_user):
-        """Test _activation_url falls back to url_for when APP_PUBLIC_BASE_URL is None."""
+        """Test _activation_url uses FRONTEND_URL when APP_PUBLIC_BASE_URL is None."""
         with app.app_context():
             app.config["APP_PUBLIC_BASE_URL"] = None
+            app.config["FRONTEND_URL"] = "https://frontend.example.com"
             token = "test_token_fallback"
             with app.test_request_context():
                 url = _activation_url(token)
-                expected = url_for("web.activate", token=token, _external=True)
-                assert url == expected
+                assert url == "https://frontend.example.com/activate/test_token_fallback"
 
-    def test_activation_url_with_url_for_fallback(self, app, test_user):
-        """Test _activation_url returns correct url_for format when no base URL."""
+    def test_activation_url_with_path_fallback(self, app, test_user):
+        """Test _activation_url returns a path when no public base URL is configured."""
         with app.app_context():
             app.config.pop("APP_PUBLIC_BASE_URL", None)
+            app.config["FRONTEND_URL"] = ""
             token = "external_token"
             with app.test_request_context():
                 url = _activation_url(token)
-                assert "/activate/" in url
-                assert "external_token" in url
-                assert url.startswith("http")
+                assert url == "/activate/external_token"
 
 
 class TestSendVerificationEmailDevMode:
@@ -530,18 +528,19 @@ class TestSendPasswordResetEmailProduction:
                     result = send_password_reset_email(user, token)
                     assert result is True
 
-    def test_password_reset_email_with_url_for_in_request_context(self, app, test_user):
-        """Test send_password_reset_email uses url_for correctly in request context."""
+    def test_password_reset_email_uses_frontend_url_in_request_context(self, app, test_user):
+        """Test send_password_reset_email uses configured browser base in request context."""
         user, _ = test_user
         with app.app_context():
             app.config["TESTING"] = False
             app.config["MAIL_SERVER"] = "smtp.example.com"
             app.config["MAIL_USERNAME"] = "mailuser"
+            app.config["FRONTEND_URL"] = "https://frontend.example.com"
             token = "test_token_urlfor"
             with app.test_request_context():
                 with patch("app.services.mail_service.mail.send") as mock_send:
                     result = send_password_reset_email(user, token)
                     assert result is True
                     msg = mock_send.call_args[0][0]
-                    expected_url = url_for("web.reset_password", token=token, _external=True)
+                    expected_url = f"https://frontend.example.com/reset-password/{token}"
                     assert expected_url in msg.body

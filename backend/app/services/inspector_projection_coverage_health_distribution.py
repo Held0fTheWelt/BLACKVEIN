@@ -16,9 +16,9 @@ class _CoverageAccum:
     plaus_counter: Counter[str] = field(default_factory=Counter)
     continuity_counter: Counter[str] = field(default_factory=Counter)
     weak_signal_counter: Counter[str] = field(default_factory=Counter)
-    legacy_fallback_counter: Counter[str] = field(default_factory=Counter)
+    structural_fallback_counter: Counter[str] = field(default_factory=Counter)
     support_counter: Counter[str] = field(default_factory=Counter)
-    legacy_dominant_counter: Counter[str] = field(default_factory=Counter)
+    dominant_rejection_counter: Counter[str] = field(default_factory=Counter)
     unsupported_unavailable_counter: Counter[str] = field(default_factory=Counter)
     fallback_turns: int = 0
 
@@ -53,7 +53,7 @@ def _accumulate_row(acc: _CoverageAccum, idx: int, row: dict[str, Any], session_
 
     dom = gate.get("dominant_rejection_category")
     if dom:
-        acc.legacy_dominant_counter[str(dom)] += 1
+        acc.dominant_rejection_counter[str(dom)] += 1
 
     efr = gate.get("empty_fluency_risk")
     acc.fluency_counter[str(efr if efr is not None else "unavailable")] += 1
@@ -64,8 +64,8 @@ def _accumulate_row(acc: _CoverageAccum, idx: int, row: dict[str, Any], session_
     csp = gate.get("continuity_support_posture")
     acc.continuity_counter[str(csp if csp is not None else "unavailable")] += 1
 
-    lfu = gate.get("legacy_fallback_used")
-    acc.legacy_fallback_counter[str(lfu if lfu is not None else "unavailable")] += 1
+    lfu = gate.get("structural_fallback_used")
+    acc.structural_fallback_counter[str(lfu if lfu is not None else "unavailable")] += 1
 
     ws = validation.get("dramatic_effect_weak_signal")
     if ws is True:
@@ -125,10 +125,10 @@ def build_coverage_health_supported_inner(
             "empty_fluency_risk_distribution": dict(acc.fluency_counter),
             "character_plausibility_posture_distribution": dict(acc.plaus_counter),
             "continuity_support_posture_distribution": dict(acc.continuity_counter),
-            "legacy_fallback_used_distribution": dict(acc.legacy_fallback_counter),
+            "structural_fallback_used_distribution": dict(acc.structural_fallback_counter),
             "dramatic_effect_weak_signal_distribution": dict(acc.weak_signal_counter),
             "semantic_planner_support_level_distribution": dict(acc.support_counter),
-            "legacy_dominant_rejection_category_distribution": dict(acc.legacy_dominant_counter),
+            "dominant_rejection_category_distribution": dict(acc.dominant_rejection_counter),
             "unsupported_unavailable_frequency": dict(acc.unsupported_unavailable_counter),
         },
         "required_minimum_metrics_status": required_minimum_metrics_status,

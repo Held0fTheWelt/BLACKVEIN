@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, render_template
 
 
 def register_manage_entry_and_core_pages(app: Flask) -> None:
@@ -74,31 +74,11 @@ def register_manage_slogans_and_game_pages(app: Flask) -> None:
         return render_template("manage/game_operations.html")
 
 
-def register_manage_inspector_legacy_redirects(app: Flask) -> None:
+def register_manage_inspector_pages(app: Flask) -> None:
     @app.route("/manage/inspector-workbench")
     def manage_inspector_workbench():
         """Canonical unified Inspector Suite workbench."""
         return render_template("manage/inspector_workbench.html")
-
-    @app.route("/manage/ai-stack/governance")
-    def manage_ai_stack_governance():
-        """Legacy path redirected permanently to canonical Inspector workbench."""
-        return redirect(url_for("manage_inspector_workbench"), code=308)
-
-    @app.route("/manage/ai-stack-governance")
-    def manage_ai_stack_governance_alt():
-        """Legacy alias redirected permanently to canonical Inspector workbench."""
-        return redirect(url_for("manage_inspector_workbench"), code=308)
-
-    @app.route("/manage/inspector-suite")
-    def manage_inspector_suite():
-        """Legacy path redirected permanently to canonical Inspector workbench."""
-        return redirect(url_for("manage_inspector_workbench"), code=308)
-
-    @app.route("/manage/inspector-suite/turn")
-    def manage_inspector_suite_turn():
-        """Legacy alias redirected permanently to canonical Inspector workbench."""
-        return redirect(url_for("manage_inspector_workbench"), code=308)
 
 
 def register_manage_narrative_governance_pages(app: Flask) -> None:

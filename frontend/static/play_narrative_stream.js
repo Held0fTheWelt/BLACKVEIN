@@ -174,7 +174,7 @@
       }
     }
 
-    // Legacy: Also render directly (for compatibility with existing players without BlocksOrchestrator)
+    // Fallback: also render directly for players without BlocksOrchestrator
     const narratorHtml = getNarratorBlockHtml(event);
     if (!narratorHtml) return;
 

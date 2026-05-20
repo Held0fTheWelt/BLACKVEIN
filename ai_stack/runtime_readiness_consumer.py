@@ -1,6 +1,6 @@
-"""ADR-0041 runtime readiness consumer: single veto-only overlay on legacy readiness.
+"""ADR-0041 runtime readiness consumer: single veto-only overlay on base readiness.
 
-``run_validation_seam`` / legacy opening evaluation remains canonical for allow vs reject.
+``run_validation_seam`` / opening evaluation remains canonical for allow vs reject.
 ADR-0041 may only **reduce** readiness (allow → block) when all feature flags and a
 ``readiness_aggregation_decision`` are present. ADR-0041 must never upgrade a reject to allow.
 
@@ -73,14 +73,14 @@ def adr0041_readiness_consumer_upstream_prerequisites_met() -> tuple[bool, tuple
 
 def resolve_runtime_readiness_with_adr0041(
     *,
-    legacy_runtime_session_ready: bool,
-    legacy_can_execute: bool,
+    base_runtime_session_ready: bool,
+    base_can_execute: bool,
     opening_generation_status: str,
     runtime_intelligence_projection: dict[str, Any] | None,
     degradation_signals: list[Any] | None = None,
     retrieval_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Combine legacy session readiness with ADR-0041 aggregation (veto-only).
+    """Combine base session readiness with ADR-0041 aggregation (veto-only).
 
     Returns JSON-safe dict including ``runtime_ready`` and ``can_execute`` (final booleans),
     diagnostics fields, and safety flags.
@@ -125,18 +125,18 @@ def resolve_runtime_readiness_with_adr0041(
     retrieval_authority_level = str(retrieval_auth.get("authority_level") or "").strip().lower()
     retrieval_unverified = retrieval_authority_level in {"", "retrieved_unverified", "diagnostic_only"}
 
-    if legacy_runtime_session_ready and legacy_can_execute:
+    if base_runtime_session_ready and base_can_execute:
         base_readiness = "allow"
-    elif (not legacy_runtime_session_ready) and (not legacy_can_execute):
+    elif (not base_runtime_session_ready) and (not base_can_execute):
         base_readiness = "reject"
     else:
         base_readiness = "unknown"
 
     consumer_path_active = bool(consumer_on and upstream_ok and isinstance(agg, dict))
 
-    final_rs = bool(legacy_runtime_session_ready)
-    final_ce = bool(legacy_can_execute)
-    source = "legacy_readiness"
+    final_rs = bool(base_runtime_session_ready)
+    final_ce = bool(base_can_execute)
+    source = "base_readiness"
 
     if not consumer_path_active:
         if not consumer_on:
@@ -146,7 +146,7 @@ def resolve_runtime_readiness_with_adr0041(
         elif not isinstance(agg, dict):
             reason = "readiness_aggregation_decision_absent"
         else:
-            reason = "legacy_readiness_only"
+            reason = "base_readiness_only"
     else:
         source = "adr0041_scoped_consumer"
         aggregated = str(agg.get("aggregated_readiness") or "").strip()
@@ -161,8 +161,8 @@ def resolve_runtime_readiness_with_adr0041(
                     else "adr0041_veto_under_unknown_base_with_degradation"
                 )
             else:
-                final_rs = bool(legacy_runtime_session_ready)
-                final_ce = bool(legacy_can_execute)
+                final_rs = bool(base_runtime_session_ready)
+                final_ce = bool(base_can_execute)
                 reason = (
                     "unknown_base_no_upgrade_degraded"
                     if degradation_active
@@ -171,20 +171,20 @@ def resolve_runtime_readiness_with_adr0041(
         elif base_readiness == "reject":
             final_rs = False
             final_ce = False
-            reason = "legacy_reject_no_adr0041_upgrade"
+            reason = "base_reject_no_adr0041_upgrade"
         else:
-            final_rs = bool(legacy_runtime_session_ready) and aggregated != "block"
-            final_ce = bool(legacy_can_execute) and aggregated != "block"
+            final_rs = bool(base_runtime_session_ready) and aggregated != "block"
+            final_ce = bool(base_can_execute) and aggregated != "block"
             if aggregated == "block":
-                reason = "adr0041_veto_over_legacy_allow"
+                reason = "adr0041_veto_over_base_allow"
             elif degradation_blocking_signal:
                 final_rs = False
                 final_ce = False
-                reason = "adr0041_degradation_veto_over_legacy_allow"
+                reason = "adr0041_degradation_veto_over_base_allow"
             elif aggregated == "allow":
-                reason = "legacy_allow_adr0041_allow"
+                reason = "base_allow_adr0041_allow"
             else:
-                reason = "legacy_allow_adr0041_unchanged_or_other"
+                reason = "base_allow_adr0041_unchanged_or_other"
 
     return {
         "schema_version": RUNTIME_READINESS_CONSUMER_SCHEMA_VERSION,

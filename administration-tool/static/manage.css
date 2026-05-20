@@ -926,15 +926,6 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     font-size: 0.95rem;
 }
 
-.inspector-legacy-details {
-    margin-top: 0.75rem;
-    opacity: 0.92;
-}
-
-.inspector-legacy-block {
-    margin-top: 0.5rem;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -1800,9 +1791,7 @@ textarea:focus-visible {
     --side-group-head-pad-y: 0.55rem;
 }
 
-/* Neutralise the legacy sticky top header so its leftover rules cannot bleed
-   into the sidebar layout. The element is gone from base.html; this just
-   guards against any other template that may still extend the old shell. */
+/* Keep removed sticky top-header rules from affecting the sidebar layout. */
 .manage-shell ~ .manage-header,
 .manage-shell .manage-header { display: none; }
 
@@ -2937,8 +2926,8 @@ pre {
     }
 }
 
-/* Hide legacy banner placeholders that ManageUI has converted to toasts. */
-.mui-legacy-hidden { display: none !important; }
+/* Hide status placeholders that ManageUI has converted to toasts. */
+.mui-hidden { display: none !important; }
 
 /* Prompt Store ----------------------------------------------------------- */
 .manage-ps-filter-row {

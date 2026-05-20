@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.runtime.runtime_models import SessionState
-from app.runtime.scene_presenter import ConflictPanelOutput
+from app.runtime.scene_presenter_conflict_models import ConflictPanelOutput
 from app.runtime.scene_presenter_conflict_helpers import (
     build_recent_trend_signal,
     pressure_to_escalation_status,

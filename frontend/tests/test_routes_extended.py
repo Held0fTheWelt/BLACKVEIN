@@ -735,15 +735,15 @@ def test_routes_play_weak_but_legal_is_not_marked_degraded():
     assert normalized[0]["degraded_reasons"] == ["weak_signal_accepted"]
 
 
-def test_evict_legacy_large_session_keys_clears_stale_cookie_data(client):
+def test_evict_stale_large_session_keys_clears_stale_cookie_data(client):
     with client.application.test_request_context("/"):
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
             routes_play.session[k] = {"run-1": "x" * 10_000}
-        routes_play._evict_legacy_large_session_keys()
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+        routes_play._evict_stale_large_session_keys()
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
             assert k not in routes_play.session
         # idempotent on clean session
-        routes_play._evict_legacy_large_session_keys()
+        routes_play._evict_stale_large_session_keys()
 
 
 def test_display_helpers_uncovered_branches():
@@ -944,21 +944,21 @@ def _play_session_backend_stub(session_id="s1"):
     })
 
 
-def test_play_shell_evicts_legacy_large_keys_on_request(client, monkeypatch):
-    """GET /play/<id> must remove all three legacy large-payload keys from the session."""
+def test_play_shell_evicts_stale_large_keys_on_request(client, monkeypatch):
+    """GET /play/<id> must remove all three stale large-payload keys from the session."""
     monkeypatch.setattr("app.player_backend.request_backend",
                         lambda *a, **k: _play_session_backend_stub())
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
             sess[k] = {"run-1": "x" * 2000}
 
     r = client.get("/play/s1")
     assert r.status_code == 200
 
     with client.session_transaction() as sess:
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
-            assert k not in sess, f"Legacy key {k!r} was not evicted from session"
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
+            assert k not in sess, f"Stale key {k!r} was not evicted from session"
 
 
 def test_play_shell_cookie_value_below_browser_limit_after_eviction(client, monkeypatch):
@@ -969,7 +969,7 @@ def test_play_shell_cookie_value_below_browser_limit_after_eviction(client, monk
                         lambda *a, **k: _play_session_backend_stub())
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
             sess[k] = {"run-1": "x" * 2000}
 
     r = client.get("/play/s1")
@@ -992,7 +992,7 @@ def test_play_shell_cookie_value_below_browser_limit_after_eviction(client, monk
 
 
 def test_play_shell_fresh_session_holds_only_small_identifiers(client, monkeypatch):
-    """A fresh session on GET /play/<id> must not grow large: no legacy keys, access_token present."""
+    """A fresh session on GET /play/<id> must not grow large: no stale keys, access_token present."""
     monkeypatch.setattr("app.player_backend.request_backend",
                         lambda *a, **k: _play_session_backend_stub())
     with client.session_transaction() as sess:
@@ -1003,7 +1003,7 @@ def test_play_shell_fresh_session_holds_only_small_identifiers(client, monkeypat
 
     with client.session_transaction() as sess:
         assert "access_token" in sess
-        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+        for k in routes_play._STALE_LARGE_SESSION_KEYS:
             assert k not in sess, f"Fresh session must not contain {k!r}"
         # Only small-identifier keys permitted; backend_session_id now lives in per-run cookie only
         allowed = {"access_token", "current_user", "_flashes"}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import import_module
 from typing import Any, Callable
 
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter, generate_with_timeout
@@ -432,7 +433,7 @@ def run_preflight_signal_ranking_gate(
 ) -> PreflightSignalRankingGateOutcome:
     """Preflight → signal → optional ranking, synthesis gate, and final-path resolution."""
 
-    from app.runtime import runtime_ai_stages as ras
+    ras = import_module("app.runtime.runtime_ai_stages")
 
     traces: list[dict[str, Any]] = []
     packaging_notes: list[str] = []
@@ -669,11 +670,10 @@ def finalize_synthesis_staged_generation(
     base_needs_llm: bool,
 ) -> Any:
     """Synthesis routing + retry, packaging trace, rollup/summary/audit, ``StagedGenerationResult``."""
-    from app.runtime.runtime_ai_stages import (
-        StagedGenerationResult,
-        build_legacy_model_routing_rollup,
-        build_synthesis_routing_request,
-    )
+    ras = import_module("app.runtime.runtime_ai_stages")
+    StagedGenerationResult = ras.StagedGenerationResult
+    build_legacy_model_routing_rollup = ras.build_legacy_model_routing_rollup
+    build_synthesis_routing_request = ras.build_synthesis_routing_request
 
     synthesis_rr = build_synthesis_routing_request(session)
     synthesis_dec = route_model(synthesis_rr)
@@ -781,11 +781,10 @@ def finalize_slm_only_staged_generation(
     base_needs_llm: bool,
 ) -> Any:
     """Deterministic SLM-only payload, packaging trace, rollup/summary/audit, ``StagedGenerationResult``."""
-    from app.runtime.runtime_ai_stages import (
-        StagedGenerationResult,
-        build_legacy_model_routing_rollup,
-        build_slm_only_structured_payload,
-    )
+    ras = import_module("app.runtime.runtime_ai_stages")
+    StagedGenerationResult = ras.StagedGenerationResult
+    build_legacy_model_routing_rollup = ras.build_legacy_model_routing_rollup
+    build_slm_only_structured_payload = ras.build_slm_only_structured_payload
 
     assert signal_out is not None
     payload = build_slm_only_structured_payload(

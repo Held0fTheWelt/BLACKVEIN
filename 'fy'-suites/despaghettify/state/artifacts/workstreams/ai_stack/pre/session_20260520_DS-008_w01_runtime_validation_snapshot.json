@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-008",
+  "wave_id": "w01",
+  "session_date": "20260520",
+  "workstream": "ai_stack",
+  "target": "ai_stack/langgraph/langgraph_runtime_executor.py",
+  "baseline_scan_generated_at_utc": "2026-05-20T18:57:34Z",
+  "baseline_hotspots": [
+    {
+      "symbol": "_build_runtime_aspect_validation",
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "lines": 1569,
+      "nest_depth": 19,
+      "wave_scope": "primary"
+    },
+    {
+      "symbol": "_validate_seam",
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "lines": 500,
+      "nest_depth": 16,
+      "wave_scope": "next_wave"
+    },
+    {
+      "symbol": "_build_dramatic_generation_packet",
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "lines": 562,
+      "nest_depth": 2,
+      "wave_scope": "deferred"
+    }
+  ],
+  "planned_primary_paths": [
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_validation.py"
+  ],
+  "planned_gate_commands": [
+    "python -m compileall -q ai_stack/langgraph",
+    "pytest ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short",
+    "python tests/run_tests.py --suite ai_stack_narrative ai_stack_quality --quick"
+  ]
+}

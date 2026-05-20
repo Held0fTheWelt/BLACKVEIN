@@ -446,17 +446,15 @@ class TestAuthAPI:
         )
         assert resp.status_code in (200, 201, 400)
 
-    def test_web_login_post(self, app, client, test_user):
+    def test_web_login_path_removed(self, app, client, test_user):
         app.config["FRONTEND_URL"] = "https://frontend.example.com"
         resp = client.get("/login", follow_redirects=False)
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "https://frontend.example.com/login"
+        assert resp.status_code == 404
 
-    def test_web_register_page(self, app, client):
+    def test_web_register_path_removed(self, app, client):
         app.config["FRONTEND_URL"] = "https://frontend.example.com"
         resp = client.get("/register", follow_redirects=False)
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "https://frontend.example.com/register"
+        assert resp.status_code == 404
 
 
 # ======================= PERMISSIONS MODULE =======================

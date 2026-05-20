@@ -2,7 +2,7 @@
 {% from "info_sections.html" import docs_deep_link, route_limit_table with context %}
 {% block title %}Auth &amp; security{% endblock %}
 {% block heading %}Authentifizierung &amp; Sicherheit{% endblock %}
-{% block subheading %}JWT für die API, Browser-Grenzen für Legacy — und was das für Clients bedeutet.{% endblock %}
+{% block subheading %}JWT für die API, Browser-Grenzen für Session-Routen — und was das für Clients bedeutet.{% endblock %}
 {% block body %}
 <section class="info-section">
   <h2>Kernfunktionalität</h2>
@@ -48,7 +48,7 @@
     <tbody>
       <tr><td>JWT Access (Bearer)</td><td><code>/api/v1/*</code></td><td>API-Clients, modernes Frontend</td></tr>
       <tr><td>JWT Refresh + Widerruf</td><td><code>/api/v1/auth/refresh</code>, Blacklist</td><td>Alle JWT-Clients</td></tr>
-      <tr><td>Server-Session-Cookie</td><td>Legacy-Web-Routen (z.&nbsp;B. Logout)</td><td>Alte Browser-Flows</td></tr>
+      <tr><td>Server-Session-Cookie</td><td>Session-Web-Routen (z.&nbsp;B. Logout)</td><td>Browser-Flows</td></tr>
       <tr><td>CSRF</td><td>Global aktiv; <code>api_v1</code> exempt; Matrix in <code>docs/security/csrf-matrix.md</code></td><td>Cookie-Formulare vs. Bearer-JSON-API</td></tr>
       <tr><td>CORS</td><td><code>CORS_ORIGINS</code></td><td>Cross-Origin-SPAs</td></tr>
       <tr><td>Security-Header</td><td>CSP, X-Frame-Options, HSTS optional</td><td>Alle HTTP-Antworten</td></tr>

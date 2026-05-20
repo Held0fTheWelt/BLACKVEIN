@@ -1,6 +1,6 @@
 import logging
 
-from flask import current_app, url_for
+from flask import current_app
 from flask_mail import Message
 
 from app.extensions import mail
@@ -9,11 +9,19 @@ logger = logging.getLogger(__name__)
 
 
 def _activation_url(raw_token: str) -> str:
-    """Build activation URL from config base URL or request context."""
-    base = current_app.config.get("APP_PUBLIC_BASE_URL")
+    """Build activation URL from the configured public browser base."""
+    base = current_app.config.get("APP_PUBLIC_BASE_URL") or current_app.config.get("FRONTEND_URL")
     if base:
         return f"{base.rstrip('/')}/activate/{raw_token}"
-    return url_for("web.activate", token=raw_token, _external=True)
+    return f"/activate/{raw_token}"
+
+
+def _password_reset_url(raw_token: str) -> str:
+    """Build password-reset URL from the configured public browser base."""
+    base = current_app.config.get("APP_PUBLIC_BASE_URL") or current_app.config.get("FRONTEND_URL")
+    if base:
+        return f"{base.rstrip('/')}/reset-password/{raw_token}"
+    return f"/reset-password/{raw_token}"
 
 
 def send_verification_email(user, raw_token: str) -> bool:
@@ -60,7 +68,7 @@ def send_password_reset_email(user, raw_token: str) -> bool:
     logs the reset URL instead of sending (dev fallback).
     Returns True on success, False on failure.
     """
-    reset_url = url_for("web.reset_password", token=raw_token, _external=True)
+    reset_url = _password_reset_url(raw_token)
 
     if current_app.config.get("TESTING") or (
         current_app.config.get("MAIL_SERVER") == "localhost"

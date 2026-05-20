@@ -314,8 +314,8 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
             "planner_rationale_codes": path_summary.get("planner_rationale_codes")
             if isinstance(path_summary.get("planner_rationale_codes"), list)
             else [],
-            "legacy_keyword_scene_candidates_used": path_summary.get(
-                "legacy_keyword_scene_candidates_used"
+            "keyword_scene_candidates_used": path_summary.get(
+                "keyword_scene_candidates_used"
             ),
             "npc_narrated_player_action_violation": path_summary.get(
                 "npc_narrated_player_action_violation"

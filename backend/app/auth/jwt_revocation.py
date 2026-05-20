@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy import text
+
 if TYPE_CHECKING:
     from flask_jwt_extended import JWTManager
     from flask_sqlalchemy import SQLAlchemy
@@ -17,22 +19,25 @@ def register_jwt_revocation_handlers(jwt: JWTManager, db: SQLAlchemy) -> None:
         """Check if token is blacklisted or refresh token revoked."""
         jti = jwt_payload.get("jti")
         if jti:
-            from app.models.token_blacklist import TokenBlacklist
-            from app.models.refresh_token import RefreshToken
-
-            if TokenBlacklist.is_blacklisted(jti):
+            blacklisted = db.session.execute(
+                text("SELECT 1 FROM token_blacklist WHERE jti = :jti LIMIT 1"),
+                {"jti": jti},
+            ).first()
+            if blacklisted is not None:
                 return True
 
             token_type = jwt_payload.get("type")
             if token_type == "refresh":
                 user_id = jwt_payload.get("sub")
                 if user_id:
-                    token_obj = (
-                        db.session.query(RefreshToken)
-                        .filter(RefreshToken.jti == jti)
-                        .first()
+                    revoked = db.session.execute(
+                        text(
+                            "SELECT 1 FROM refresh_tokens "
+                            "WHERE jti = :jti AND revoked_at IS NOT NULL LIMIT 1"
+                        ),
+                        {"jti": jti},
                     )
-                    if token_obj and token_obj.revoked_at is not None:
+                    if revoked.first() is not None:
                         return True
 
         return False

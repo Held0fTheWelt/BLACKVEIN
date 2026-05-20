@@ -60,7 +60,7 @@ def test_fluent_empty_fluff_rejected_elevated_empty_fluency() -> None:
     )
     assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
     assert out.empty_fluency_risk == EmptyFluencyRisk.elevated
-    assert not out.legacy_fallback_used
+    assert not out.structural_fallback_used
     assert "generic_boilerplate" in " ".join(out.effect_rationale_codes) or "tags_unsatisfied" in out.effect_rationale_codes[0]
 
 
@@ -87,8 +87,8 @@ def test_surface_variant_escalation_stable_accepted() -> None:
     ob = evaluate_dramatic_effect_gate(_ctx(narr=b, scene_fn="escalate_conflict", sem=sem))
     assert oa.gate_result == DramaticEffectGateResult.accepted
     assert ob.gate_result == DramaticEffectGateResult.accepted
-    assert oa.legacy_fallback_used is False
-    assert ob.legacy_fallback_used is False
+    assert oa.structural_fallback_used is False
+    assert ob.structural_fallback_used is False
 
 
 def test_high_blame_social_band_counts_as_continuity_pressure() -> None:
@@ -141,7 +141,7 @@ def test_establish_pressure_opening_text_is_weak_signal_not_empty_fluency_reject
     assert out.empty_fluency_risk == EmptyFluencyRisk.moderate
 
 
-def test_legacy_fallback_meta_commentary() -> None:
+def test_structural_fallback_meta_commentary() -> None:
     out = evaluate_dramatic_effect_gate(
         _ctx(
             narr="In dramatic terms the scene symbolizes the conflict at the table with loud voices.",
@@ -158,13 +158,13 @@ def test_legacy_fallback_meta_commentary() -> None:
             },
         )
     )
-    assert out.legacy_fallback_used is True
+    assert out.structural_fallback_used is True
     assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
     assert any("dramatic_alignment" in r for r in out.rejection_reasons)
 
 
-def test_goc_golden_path_not_legacy_dominated() -> None:
-    """Typical strong escalation passes primary without legacy."""
+def test_goc_golden_path_not_structural_alignment_dominated() -> None:
+    """Typical strong escalation passes primary without structural fallback."""
     sem = {
         "move_type": "direct_accusation",
         "social_move_family": "attack",
@@ -183,7 +183,7 @@ def test_goc_golden_path_not_legacy_dominated() -> None:
         )
     )
     assert out.gate_result == DramaticEffectGateResult.accepted
-    assert out.legacy_fallback_used is False
+    assert out.structural_fallback_used is False
 
 
 def test_authority_commit_depends_on_validation_not_gate_outcome_alone() -> None:
@@ -500,8 +500,8 @@ def test_actor_lane_rejected_status_does_not_activate_weak_signal_bypass() -> No
     assert "actor_lanes_thin_prose_override" not in out.effect_rationale_codes
 
 
-def test_meta_commentary_with_approved_actor_lanes_still_legacy_rejected() -> None:
-    """Meta-commentary + approved actor lanes → legacy fires at line 60, bypass never reached."""
+def test_meta_commentary_with_approved_actor_lanes_still_structural_rejected() -> None:
+    """Meta-commentary plus approved actor lanes still triggers structural alignment rejection."""
     out = evaluate_dramatic_effect_gate(
         DramaticEffectEvaluationContext(
             module_id=GOC_MODULE_ID,
@@ -526,5 +526,5 @@ def test_meta_commentary_with_approved_actor_lanes_still_legacy_rejected() -> No
         )
     )
     assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
-    assert out.legacy_fallback_used is True
+    assert out.structural_fallback_used is True
     assert any("dramatic_alignment" in r for r in out.rejection_reasons)

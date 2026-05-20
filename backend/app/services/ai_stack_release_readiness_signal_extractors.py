@@ -59,7 +59,7 @@ def extract_improvement_readiness_signals(
         imp_backing_reason = "no improvement recommendation package found"
         imp_backing_posture = "no_package"
     elif imp_map is None:
-        imp_backing_reason = "latest package has no evidence_strength_map (legacy or incomplete)"
+        imp_backing_reason = "latest package has no evidence_strength_map (older or incomplete)"
         imp_backing_posture = "missing_strength_map"
     elif imp_retrieval_class == "none":
         imp_backing_reason = (

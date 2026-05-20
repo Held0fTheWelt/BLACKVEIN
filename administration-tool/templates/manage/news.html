@@ -42,7 +42,7 @@
                 </div>
             </div>
             <div id="manage-news-loading" class="manage-loading" hidden>{{ t.common_loading | default('Loading…') }}</div>
-            <div id="manage-news-error" class="form-error manage-state mui-legacy-hidden" role="alert" hidden></div>
+            <div id="manage-news-error" class="form-error manage-state mui-hidden" role="alert" hidden></div>
             <div id="manage-news-empty" class="manage-empty" hidden>No articles found.</div>
             <div class="manage-table-wrap" id="manage-news-table-wrap" hidden>
                 <table class="manage-table" id="manage-news-table">
@@ -151,8 +151,8 @@
                         </div>
                     </div>
                 </div>
-                <div id="manage-news-form-error" class="form-error mui-legacy-hidden" role="alert" hidden></div>
-                <div id="manage-news-form-success" class="form-success mui-legacy-hidden" hidden></div>
+                <div id="manage-news-form-error" class="form-error mui-hidden" role="alert" hidden></div>
+                <div id="manage-news-form-success" class="form-success mui-hidden" hidden></div>
                 <div class="manage-news-form-actions">
                     <button type="submit" class="btn btn-primary" id="manage-news-save">{{ t.manage_save | default('Save') }}</button>
                     <button type="button" class="btn btn-ghost" id="manage-news-submit-review-btn" hidden>Request review</button>

@@ -876,7 +876,7 @@ def _effective_retrieval_execution_mode(
     runtime_modes: dict[str, Any] | None = None,
     retrieval_settings: dict[str, Any] | None = None,
 ) -> str:
-    """Canonical retrieval mode: runtime bootstrap first, then legacy scope copy."""
+    """Canonical retrieval mode: runtime bootstrap first, then retrieval scope setting."""
     modes = runtime_modes if runtime_modes is not None else get_runtime_modes()
     scope = retrieval_settings if retrieval_settings is not None else read_scope_settings("retrieval")
     for candidate in (modes.get("retrieval_execution_mode"), scope.get("retrieval_execution_mode")):
@@ -907,7 +907,7 @@ def get_rag_operations_status() -> dict[str, Any]:
         runtime_modes=runtime_modes,
         retrieval_settings=retrieval_settings,
     )
-    scope_mode_legacy = str(retrieval_settings.get("retrieval_execution_mode") or "").strip() or None
+    scope_mode_setting = str(retrieval_settings.get("retrieval_execution_mode") or "").strip() or None
     operational_state = "healthy"
     if mode_effective == "disabled":
         operational_state = "configured_disabled"
@@ -970,9 +970,8 @@ def get_rag_operations_status() -> dict[str, Any]:
             "mode_effective": mode_effective,
             # mode_runtime kept as alias for backwards-compat with existing admin UI JS.
             "mode_runtime": mode_effective,
-            "mode_setting": scope_mode_legacy,
-            "mode_scope_legacy": scope_mode_legacy,
-            "mode_scope_drift": bool(scope_mode_legacy and scope_mode_legacy != mode_effective),
+            "mode_setting": scope_mode_setting,
+            "mode_scope_drift": bool(scope_mode_setting and scope_mode_setting != mode_effective),
             "retrieval_profile": retrieval_settings.get("retrieval_profile") or "runtime_turn_support",
             "retrieval_top_k": retrieval_settings.get("retrieval_top_k") or 4,
             "retrieval_min_score": retrieval_settings.get("retrieval_min_score"),
@@ -1015,8 +1014,7 @@ def get_rag_operations_status() -> dict[str, Any]:
         "comparison": {
             "retrieval_mode_runtime": mode_effective,
             "retrieval_mode_effective": mode_effective,
-            "retrieval_mode_setting": scope_mode_legacy,
-            "retrieval_mode_scope_legacy": scope_mode_legacy,
+            "retrieval_mode_setting": scope_mode_setting,
             "dense_index_attached": bool(getattr(retriever, "_embedding_index", None) is not None),
             "expected_healthy": {
                 "embedding_backend_available": True,

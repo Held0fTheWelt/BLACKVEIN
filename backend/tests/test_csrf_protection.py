@@ -1,4 +1,4 @@
-"""CSRF/API split verification after web deprecation."""
+"""CSRF/API split verification after backend web route removal."""
 
 from pathlib import Path
 
@@ -12,7 +12,7 @@ CSRF_MATRIX = REPO_ROOT / "docs" / "security" / "csrf-matrix.md"
 def test_csrf_matrix_documents_backend_cookie_and_api_boundaries():
     matrix = CSRF_MATRIX.read_text(encoding="utf-8")
 
-    assert "Backend legacy web routes" in matrix
+    assert "Backend web routes removed" in matrix
     assert "Backend JSON API `/api/v1/*`" in matrix
     assert "`/logout`" in matrix
     assert "`/api/v1/auth/register`" in matrix
@@ -41,11 +41,10 @@ def test_api_endpoints_remain_csrf_exempt(client):
         "/play/run-1/execute",
     ],
 )
-def test_cookie_flow_matrix_backend_web_posts_require_csrf_when_enabled(client_csrf, path):
+def test_removed_backend_web_posts_are_not_registered(client_csrf, path):
     response = client_csrf.post(path, data={"field": "value"}, follow_redirects=False)
 
-    assert response.status_code == 400
-    assert b"CSRF" in response.data
+    assert response.status_code == 404
 
 
 @pytest.mark.security
@@ -71,13 +70,12 @@ def test_cookie_flow_matrix_api_v1_mutation_stays_bearer_not_csrf(client_csrf):
     assert logout_response.status_code == 200
 
 
-def test_legacy_logout_still_post_only(client):
+def test_old_logout_route_removed(client):
     response = client.get("/logout")
-    assert response.status_code == 405
+    assert response.status_code == 404
 
 
-def test_legacy_logout_redirects_without_html_render(client, app):
+def test_old_logout_post_route_removed(client, app):
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     response = client.post("/logout", data={}, follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["Location"] == "https://frontend.example.com/"
+    assert response.status_code == 404

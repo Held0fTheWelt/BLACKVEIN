@@ -116,7 +116,7 @@ def _flag_row(name: str, enabled: bool, warnings: tuple[str, ...] | list[str]) -
 
 def _read_only_consumer_projection(
     *,
-    legacy: dict[str, Any],
+    opening_readiness: dict[str, Any],
     runtime_intelligence_projection: dict[str, Any],
     degradation_signals: list[Any],
 ) -> dict[str, Any]:
@@ -126,17 +126,17 @@ def _read_only_consumer_projection(
         else {}
     )
     aggregated_readiness = str(aggregation.get("aggregated_readiness") or "").strip() or "absent"
-    source = "legacy_opening_readiness"
+    source = "opening_readiness"
     reason = "read_only_admin_projection"
     if aggregated_readiness == "block":
-        source = "legacy_opening_readiness_with_adr0041_warning"
+        source = "opening_readiness_with_adr0041_warning"
         reason = "aggregation_would_veto_if_consumer_active"
     return {
         "schema_version": "runtime_readiness_consumer.admin_read_only.v1",
-        "runtime_ready": bool(legacy.get("runtime_session_ready")),
-        "can_execute": bool(legacy.get("can_execute")),
-        "ready_for_play": bool(legacy.get("can_execute")),
-        "opening_generation_status": legacy.get("opening_generation_status"),
+        "runtime_ready": bool(opening_readiness.get("runtime_session_ready")),
+        "can_execute": bool(opening_readiness.get("can_execute")),
+        "ready_for_play": bool(opening_readiness.get("can_execute")),
+        "opening_generation_status": opening_readiness.get("opening_generation_status"),
         "adr0041_aggregation": aggregated_readiness,
         "adr0041_veto_applied": bool(aggregation.get("adr0041_veto_applied")),
         "source": source,
@@ -160,7 +160,7 @@ def get_runtime_readiness_authority(*, session_id: str | None = None) -> dict[st
     latest_turn = ctx["latest_turn"]
     rip = ctx["runtime_intelligence_projection"]
     story_window = ctx["state"].get("story_window") if isinstance(ctx["state"].get("story_window"), dict) else {}
-    legacy = evaluate_session_opening_readiness(
+    opening_readiness = evaluate_session_opening_readiness(
         story_entries=list(story_window.get("entries") or []),
         visible_scene_output=latest_turn.get("visible_scene_output")
         if isinstance(latest_turn.get("visible_scene_output"), dict)
@@ -168,13 +168,13 @@ def get_runtime_readiness_authority(*, session_id: str | None = None) -> dict[st
         created=None,
     )
     overlay = _read_only_consumer_projection(
-        legacy=legacy,
+        opening_readiness=opening_readiness,
         runtime_intelligence_projection=rip,
         degradation_signals=ctx["degradation_signals"],
     )
     aggregation = rip.get("readiness_aggregation_decision") if isinstance(rip.get("readiness_aggregation_decision"), dict) else {}
     source_chain = [
-        {"source": "legacy_opening_readiness", "status": "present"},
+        {"source": "opening_readiness", "status": "present"},
         {"source": "validation_seam", "status": "read_only_projection"},
         {"source": "adr0041_readiness_aggregation_decision", "status": "present" if aggregation else "absent"},
         {"source": "adr0041_runtime_readiness_consumer", "status": "active" if overlay.get("consumer_path_active") else "inactive"},
@@ -182,12 +182,12 @@ def get_runtime_readiness_authority(*, session_id: str | None = None) -> dict[st
     return {
         "session_id": ctx["session_id"],
         "runtime_readiness_inventory": readiness,
-        "legacy_opening_readiness": legacy,
+        "opening_readiness": opening_readiness,
         "adr0041_runtime_readiness_consumer": overlay,
         "readiness_aggregation_decision": aggregation,
-        "runtime_session_ready": bool(legacy.get("runtime_session_ready")),
-        "can_execute": bool(legacy.get("can_execute")),
-        "ready_for_play": bool(legacy.get("can_execute")),
+        "runtime_session_ready": bool(opening_readiness.get("runtime_session_ready")),
+        "can_execute": bool(opening_readiness.get("can_execute")),
+        "ready_for_play": bool(opening_readiness.get("can_execute")),
         "degradation_signals": list(ctx["degradation_signals"]),
         "source_of_truth_chain": source_chain,
         "invariants": {
@@ -204,7 +204,7 @@ def get_adr0041_authority_state(*, session_id: str | None = None) -> dict[str, A
     story_window = ctx["state"].get("story_window") if isinstance(ctx["state"].get("story_window"), dict) else {}
     rip = ctx["runtime_intelligence_projection"]
     report = rip.get("validator_dispatch_report") if isinstance(rip.get("validator_dispatch_report"), dict) else {}
-    legacy = evaluate_session_opening_readiness(
+    opening_readiness = evaluate_session_opening_readiness(
         story_entries=list(story_window.get("entries") or []),
         visible_scene_output=ctx["latest_turn"].get("visible_scene_output")
         if isinstance(ctx["latest_turn"].get("visible_scene_output"), dict)
@@ -247,7 +247,7 @@ def get_adr0041_authority_state(*, session_id: str | None = None) -> dict[str, A
         if isinstance(rip.get("readiness_aggregation_decision"), dict)
         else None,
         "runtime_readiness_consumer": _read_only_consumer_projection(
-            legacy=legacy,
+            opening_readiness=opening_readiness,
             runtime_intelligence_projection=rip,
             degradation_signals=ctx["degradation_signals"],
         ),
@@ -280,7 +280,7 @@ def get_capability_matrix_status(*, session_id: str | None = None) -> dict[str, 
             {
                 "capability_name": capability,
                 "semantic_runtime_name": capability,
-                "legacy_pi_label": None,
+                "pi_label": None,
                 "adr_owner": "ADR-0041",
                 "maturity_status": "runtime_projection" if capability in selected else "local_helper",
                 "implementation_status": "implemented" if local_proof else "planned_or_observer",

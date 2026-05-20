@@ -10,6 +10,7 @@ from app.runtime.ai_adapter import AdapterResponse
 from app.runtime.ai_decision import ParsedAIDecision
 from app.runtime.ai_decision_logging import construct_ai_decision_log
 from app.runtime.ai_failure_recovery import AIFailureClass, RestorePolicy
+from app.runtime.ai_turn_recovery_state import activate_degraded_marker, store_decision_log
 from app.runtime.ai_turn_orchestration_logging import attachments_from_orchestration_bundle
 from app.runtime.ai_turn_shared_types import _AiTurnOrchestrationLogBundle
 from app.runtime.runtime_models import (
@@ -32,13 +33,12 @@ def try_restore_turn_after_generation_retry_exhausted(
     log_bundle: _AiTurnOrchestrationLogBundle,
 ) -> TurnExecutionResult | None:
     """Restore anwenden; bei Erfolg Turn-Ergebnis, bei ValueError oder Fehlschlag None."""
-    from app.runtime.ai_turn_recovery_paths import _activate_degraded_marker, store_decision_log
     from app.runtime.runtime_models import DegradedMarker
 
     try:
         restored_state = RestorePolicy.apply_restore(session.canonical_state, pre_execution_snapshot)
         session.canonical_state = restored_state
-        _activate_degraded_marker(session, DegradedMarker.RESTORE_USED)
+        activate_degraded_marker(session, DegradedMarker.RESTORE_USED)
 
         failure_class = AIFailureClass.RETRY_EXHAUSTED
         restore_metadata = RestorePolicy.get_restore_metadata(
@@ -104,11 +104,10 @@ async def run_safe_turn_after_generation_retry_exhausted(
     response: AdapterResponse,
     log_bundle: _AiTurnOrchestrationLogBundle,
 ) -> TurnExecutionResult:
-    from app.runtime.ai_turn_recovery_paths import _activate_degraded_marker, store_decision_log
     from app.runtime.runtime_models import DegradedMarker
 
     safe_turn_decision = MockDecision(detected_triggers=[], proposed_deltas=[])
-    _activate_degraded_marker(session, DegradedMarker.SAFE_TURN_USED)
+    activate_degraded_marker(session, DegradedMarker.SAFE_TURN_USED)
     turn_result = await execute_turn(
         session,
         current_turn,

@@ -145,14 +145,14 @@ def append_turn_baseline_provenance_entries(
     )
     append_provenance_entry(
         entries,
-        field="legacy_fallback_used",
-        value=dramatic.get("legacy_fallback_used"),
-        source_kind="legacy_fallback",
-        source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.legacy_fallback_used",
+        field="structural_fallback_used",
+        value=dramatic.get("structural_fallback_used"),
+        source_kind="structural_fallback",
+        source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.structural_fallback_used",
         derivation_rule="pass_through_if_supported_by_gate_outcome",
         code_path="ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py:run_validation_seam",
         influence_targets=["fallback_projection", "gate_projection"],
-        decision_effect="shows if legacy dramatic fallback affected gate posture",
+        decision_effect="shows if structural dramatic fallback affected gate posture",
     )
     append_provenance_entry(
         entries,

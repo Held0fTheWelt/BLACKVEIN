@@ -550,7 +550,7 @@ class TestSemanticRequiredSceneFallback:
         assert implied == {"establish_pressure": "situational_pressure"}
         assert resolution["selection_source"] == "semantic_move_required"
         assert resolution["semantic_move_required"] is True
-        assert resolution["legacy_keyword_scene_candidates_used"] is False
+        assert resolution["keyword_scene_candidates_used"] is False
 
     def test_containment_pacing_still_routes_to_scene_pivot_without_keyword_scan(self):
         from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_responder_and_function
@@ -1868,7 +1868,7 @@ def test_build_responder_and_function_marks_advisory_mode_for_perception() -> No
     assert resolution["selection_source"] == "advisory_npc_reaction_after_player_action"
     assert resolution["npc_response_policy"] == "optional_social_only"
     assert resolution["player_input_kind"] == "perception"
-    assert resolution["legacy_keyword_scene_candidates_used"] is False
+    assert resolution["keyword_scene_candidates_used"] is False
     assert responders and responders[0]["role"] == "advisory_reaction"
 
 
@@ -1899,5 +1899,5 @@ def test_build_responder_and_function_marks_semantic_move_required() -> None:
         pacing_mode="standard",
         semantic_move_record=None,
     )
-    assert resolution["legacy_keyword_scene_candidates_used"] is False
+    assert resolution["keyword_scene_candidates_used"] is False
     assert resolution["semantic_move_required"] is True

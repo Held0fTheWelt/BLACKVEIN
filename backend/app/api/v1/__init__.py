@@ -1,5 +1,6 @@
 from flask import Blueprint, request, g
 from flask_jwt_extended import get_jwt_identity
+from importlib import import_module
 import time
 import sys
 
@@ -121,42 +122,45 @@ def _register_api_v1_blueprint_routes() -> None:
     Submodules import ``api_v1_bp`` from this package; order here should not
     affect URL resolution unless two modules register the same path (avoided).
     """
-    from app.api.v1 import admin_routes  # noqa: F401
-    from app.api.v1 import area_routes  # noqa: F401
-    from app.api.v1 import auth_routes  # noqa: F401
-    from app.api.v1 import role_routes  # noqa: F401
-    from app.api.v1 import system_routes  # noqa: F401
-    from app.api.v1 import news_routes  # noqa: F401
-    from app.api.v1 import user_routes  # noqa: F401
-    from app.api.v1 import wiki_routes  # noqa: F401
-    from app.api.v1 import wiki_admin_routes  # noqa: F401
-    from app.api.v1 import slogan_routes  # noqa: F401
-    from app.api.v1 import site_routes  # noqa: F401
-    from app.api.v1 import data_routes  # noqa: F401
-    from app.api.v1 import forum_routes  # noqa: F401
-    from app.api.v1 import forum_routes_notifications  # noqa: F401
-    from app.api.v1 import forum_routes_tag_discovery  # noqa: F401
-    from app.api.v1 import analytics_routes  # noqa: F401
-    from app.api.v1 import game_routes  # noqa: F401
-    from app.api.v1 import game_admin_routes  # noqa: F401
-    from app.api.v1 import writers_room_routes  # noqa: F401
-    from app.api.v1 import improvement_routes  # noqa: F401
-    from app.api.v1 import ai_stack_governance_routes  # noqa: F401
-    from app.api.v1 import narrative_governance_routes  # noqa: F401
-    from app.api.v1 import system_diagnosis_routes  # noqa: F401
-    from app.api.v1 import play_service_control_routes  # noqa: F401
-    from app.api.v1 import world_engine_console_routes  # noqa: F401
-    from app.api.v1 import mcp_operations_routes  # noqa: F401
-    from app.api.v1 import operational_governance_routes  # noqa: F401
-    from app.api.v1 import observability_governance_routes  # noqa: F401
-    from app.api.v1 import governance_console_routes  # noqa: F401
-    from app.api.v1 import ai_engineer_suite_routes  # noqa: F401
-    from app.api.v1 import research_domain_governance_routes  # noqa: F401
-    from app.api.v1 import operator_diagnostics_routes  # noqa: F401
-    from app.api.v1 import play_qa_diagnostics_routes  # noqa: F401
-    from app.api.v1 import admin_settings_routes  # noqa: F401
-    from app.api.v1 import security_governance_routes  # noqa: F401
-    from app.api.v1 import prompt_store_routes  # noqa: F401
+    for module_name in (
+        "admin_routes",
+        "area_routes",
+        "auth_routes",
+        "role_routes",
+        "system_routes",
+        "news_routes",
+        "user_routes",
+        "wiki_routes",
+        "wiki_admin_routes",
+        "slogan_routes",
+        "site_routes",
+        "data_routes",
+        "forum_routes",
+        "forum_routes_notifications",
+        "forum_routes_tag_discovery",
+        "analytics_routes",
+        "game_routes",
+        "game_admin_routes",
+        "writers_room_routes",
+        "improvement_routes",
+        "ai_stack_governance_routes",
+        "narrative_governance_routes",
+        "system_diagnosis_routes",
+        "play_service_control_routes",
+        "world_engine_console_routes",
+        "mcp_operations_routes",
+        "operational_governance_routes",
+        "observability_governance_routes",
+        "governance_console_routes",
+        "ai_engineer_suite_routes",
+        "research_domain_governance_routes",
+        "operator_diagnostics_routes",
+        "play_qa_diagnostics_routes",
+        "admin_settings_routes",
+        "security_governance_routes",
+        "prompt_store_routes",
+    ):
+        import_module(f"app.api.v1.{module_name}")
 
 
 _register_api_v1_blueprint_routes()

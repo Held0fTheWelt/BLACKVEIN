@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "ds_id": "DS-007",
+  "slug": "backend_runtime_services",
+  "session_date": "20260520",
+  "completed_wave_ids": ["w01"],
+  "next_index": 2,
+  "sub_waves": [
+    {
+      "index": 1,
+      "id": "w01",
+      "goal": "Break avoidable backend/app static import-cycle back-edges in auth, API route loading, scene/relationship presenters, staged runtime helpers, and AI recovery helpers while preserving behavior.",
+      "primary_paths": [
+        "backend/app/extensions.py",
+        "backend/app/auth/jwt_revocation.py",
+        "backend/app/auth/feature_registry.py",
+        "backend/app/api/v1/__init__.py",
+        "backend/app/runtime/scene_presenter.py",
+        "backend/app/runtime/scene_presenter_conflict_helpers.py",
+        "backend/app/runtime/scene_presenter_conflict_sections.py",
+        "backend/app/runtime/relationship_context.py",
+        "backend/app/runtime/runtime_ai_stages_sections.py",
+        "backend/app/runtime/ai_turn_recovery_paths.py",
+        "backend/app/runtime/ai_turn_recovery_generation_failure_exhausted.py"
+      ],
+      "gate_commands": [
+        "PYTHONPATH=\"'fy'-suites\" python -m despaghettify.tools.hub_cli wave-plan-validate --file \"'fy'-suites/despaghettify/state/artifacts/workstreams/backend_runtime_services/pre/session_20260520_DS-007_wave_plan.json\" --check-primary-paths",
+        "PYTHONPATH=\"'fy'-suites\" python \"'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py\"",
+        "PYTHONPATH=\"'fy'-suites\" python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\"",
+        "PYTHONPATH=\"'fy'-suites\" python \"'fy'-suites/despaghettify/tools/spaghetti_ast_scan.py\""
+      ]
+    }
+  ]
+}

@@ -347,14 +347,17 @@ def test_continuity_pressure_reject_overridden_by_allowed_resolution(monkeypatch
 
     class _FakeGateOut:
         gate_result = _FakeGateResult()
-        legacy_fallback_used = False
+        structural_fallback_used = False
         rejection_reasons: list[str] = []
 
         @staticmethod
         def to_runtime_dict() -> dict:
             return {"gate_result": "rejected_continuity_pressure"}
 
-    monkeypatch.setattr("ai_stack.story_runtime.turn.god_of_carnage_turn_seams.evaluate_dramatic_effect_gate", lambda _ctx: _FakeGateOut())
+    monkeypatch.setattr(
+        "ai_stack.story_runtime.turn.god_of_carnage_turn_seams_validation.evaluate_dramatic_effect_gate",
+        lambda _ctx: _FakeGateOut(),
+    )
 
     result = run_validation_seam(
         module_id="god_of_carnage",

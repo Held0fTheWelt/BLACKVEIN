@@ -498,7 +498,7 @@ def test_missing_w5_snapshot_records_fallback_without_rejecting(monkeypatch) -> 
     )
     assert outcome["status"] == "approved"
     assert outcome["w5_validation"]["w5_validation_ran"] is False
-    assert outcome["w5_validation"]["w5_validation_source"] == "legacy_fallback"
+    assert outcome["w5_validation"]["w5_validation_source"] == "structural_fallback"
     assert outcome["w5_validation"]["w5_validation_fallback_reason"] == "missing_w5_latest_snapshot"
 
 
@@ -512,5 +512,5 @@ def test_malformed_w5_snapshot_records_fallback_without_rejecting(monkeypatch) -
     )
     assert outcome["status"] == "approved"
     assert outcome["w5_validation"]["w5_validation_ran"] is False
-    assert outcome["w5_validation"]["w5_validation_source"] == "legacy_fallback"
+    assert outcome["w5_validation"]["w5_validation_source"] == "structural_fallback"
     assert "snapshot_id" in outcome["w5_validation"]["w5_validation_fallback_reason"]

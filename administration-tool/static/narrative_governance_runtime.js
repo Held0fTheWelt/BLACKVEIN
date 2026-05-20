@@ -167,8 +167,7 @@
             "Frontend render contract",
             "frontend_render_contract_health",
             statusRow("Status", fc.status) +
-                metaRow("Scene blocks", fc.scene_block_count) +
-                metaRow("Legacy blob used", fc.legacy_blob_used)
+                metaRow("Scene blocks", fc.scene_block_count)
         );
 
         var dg = d.degradation_health || {};
@@ -421,7 +420,7 @@
         if (!errEl) return;
         errEl.hidden = false;
         errEl.style.display = "";
-        errEl.classList.remove("mui-legacy-hidden");
+        errEl.classList.remove("mui-hidden");
         errEl.textContent = msg || "Request failed";
     }
 

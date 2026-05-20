@@ -33,8 +33,8 @@ SOURCE = r'''\
             if isinstance(graph_state.get("narrative_momentum_validation"), dict)
             else {}
         ),
-        "legacy_keyword_scene_candidates_used": bool(
-            multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
+        "keyword_scene_candidates_used": bool(
+            multi_pressure_resolution.get("keyword_scene_candidates_used")
         ),
         "intent_surface_contract_pass": 1 if _intent_surface_contract_pass else 0,
         "player_input_attribution_pass": 1 if _player_input_attribution_pass else 0,

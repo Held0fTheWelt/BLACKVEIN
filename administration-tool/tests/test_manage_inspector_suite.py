@@ -35,7 +35,6 @@ def test_manage_inspector_workbench_contains_turn_inspector_mountpoints(client):
     assert "inspector-provenance-canonical" in html
     assert "inspector-provenance-raw-json" in html
     assert "inspector-gate-posture-grid" in html
-    assert "inspector-gate-legacy-block" in html
     assert "inspector-planner-structured" in html
     assert "inspector-mermaid-mode" in html
     assert "inspector-raw-json" in html
@@ -83,21 +82,20 @@ def test_comparison_renderer_includes_mandatory_structured_fields():
     assert "renderComparisonRowBlocks" in script
 
 
-def test_legacy_inspector_and_governance_paths_redirect_permanently(client):
-    legacy_paths = [
+def test_old_inspector_and_governance_paths_are_removed(client):
+    removed_paths = [
         "/manage/ai-stack/governance",
         "/manage/ai-stack-governance",
         "/manage/inspector-suite",
         "/manage/inspector-suite/turn",
     ]
-    for path in legacy_paths:
+    for path in removed_paths:
         response = client.get(path, follow_redirects=False)
-        assert response.status_code == 308
-        assert response.headers.get("Location") == CANONICAL_INSPECTOR_PATH
+        assert response.status_code == 404
 
 
 @pytest.mark.parametrize(
-    "legacy_path",
+    "removed_path",
     [
         "/manage/ai-stack/governance",
         "/manage/ai-stack-governance",
@@ -105,8 +103,8 @@ def test_legacy_inspector_and_governance_paths_redirect_permanently(client):
         "/manage/inspector-suite/turn",
     ],
 )
-def test_legacy_paths_follow_redirect_to_workbench(app, client, legacy_path):
+def test_removed_paths_do_not_render_workbench(app, client, removed_path):
     with captured_templates(app) as templates:
-        response = client.get(legacy_path, follow_redirects=True)
-    assert response.status_code == 200
-    assert templates[-1][0] == "manage/inspector_workbench.html"
+        response = client.get(removed_path, follow_redirects=True)
+    assert response.status_code == 404
+    assert not templates

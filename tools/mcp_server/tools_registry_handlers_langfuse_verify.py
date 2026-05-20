@@ -19,7 +19,7 @@ from ai_stack.langfuse.langfuse_evaluator_catalog import (
     JUDGE_TO_REPAIR_CARD as _JUDGE_TO_REPAIR_CARD,
     LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE,
     LANGFUSE_TURN_GENERATION_FILTER_BUNDLE,
-    LEGACY_JUDGE_ISSUE_TOKENS as _LEGACY_JUDGE_ISSUE_TOKENS,
+    JUDGE_ISSUE_ALIAS_TOKENS,
     LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
     MATRIX_JUDGE_COLUMN_KEYS as _MATRIX_JUDGE_COLUMN_KEYS,
     OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
@@ -142,7 +142,7 @@ def _judge_category_triggers_issue(judge_name: str, category: str | None) -> boo
     spec = _WOS_JUDGE_ISSUE_CATEGORIES.get(judge_name)
     if spec is not None:
         return low in spec
-    return low in _LEGACY_JUDGE_ISSUE_TOKENS
+    return low in JUDGE_ISSUE_ALIAS_TOKENS
 
 
 def _judge_score_coverage_gaps(*, is_opening: bool, judge_scores: dict[str, Any]) -> list[dict[str, Any]]:
@@ -2691,8 +2691,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "execution_tier": "live",
                     "canonical_player_flow": True,
                     "observation_filters": dict(OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
-                    "legacy_trace_names_for_search_only": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
-                        "legacy_trace_names_for_search_only"
+                    "alternate_trace_names_for_search": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
+                        "alternate_trace_names_for_search"
                     ],
                     "trace_metadata_when_available": dict(
                         LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE["metadata"]
@@ -2701,8 +2701,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 "opening_generation_categorical_evaluators": {
                     "judges": list(_judge_names_for_scope("opening_generation")),
                     "observation_filters": dict(OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
-                    "legacy_trace_names_for_search_only": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
-                        "legacy_trace_names_for_search_only"
+                    "alternate_trace_names_for_search": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
+                        "alternate_trace_names_for_search"
                     ],
                     "trace_metadata_when_available": dict(
                         LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE["metadata"]
@@ -2727,7 +2727,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "judges": list(_judge_names_for_scope("turn_generation")),
                     "observation_filters": dict(TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
                     "alternate_backend_root_trace_names": list(
-                        LANGFUSE_TURN_GENERATION_FILTER_BUNDLE.get("legacy_trace_names") or []
+                        LANGFUSE_TURN_GENERATION_FILTER_BUNDLE.get("alternate_trace_names") or []
                     ),
                     "trace_metadata_when_available": {
                         "trace_origin": "live_ui",

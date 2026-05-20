@@ -13,6 +13,8 @@ from app.runtime.ai_turn_orchestration_logging import (
 )
 from app.runtime.ai_turn_preview import build_preview_diagnostics_payload, set_preview_improvement_metric
 from app.runtime.ai_turn_shared_types import _AiTurnOrchestrationLogBundle
+from app.runtime.ai_turn_recovery_state import activate_degraded_marker as _activate_degraded_marker
+from app.runtime.ai_turn_recovery_state import store_decision_log
 from app.runtime.runtime_models import (
     AIDecisionLog,
     AIValidationOutcome,
@@ -25,21 +27,6 @@ from app.runtime.runtime_models import (
 from app.runtime.tool_loop import ToolLoopStopReason
 from app.runtime.turn_execution_types import TurnExecutionResult
 from app.runtime.turn_executor import execute_turn
-
-
-def store_decision_log(session: SessionState, log: AIDecisionLog) -> None:
-    if "ai_decision_logs" not in session.metadata:
-        session.metadata["ai_decision_logs"] = []
-    session.metadata["ai_decision_logs"].append(log)
-
-
-def _activate_degraded_marker(session: SessionState, marker: DegradedMarker) -> None:
-    if marker not in session.degraded_state.active_markers:
-        session.degraded_state.active_markers.add(marker)
-        session.degraded_state.marker_timestamps[marker] = datetime.now(timezone.utc)
-    if not session.degraded_state.is_degraded:
-        session.degraded_state.is_degraded = True
-        session.degraded_state.marker_timestamps[DegradedMarker.DEGRADED] = datetime.now(timezone.utc)
 
 
 def _create_error_decision_log(

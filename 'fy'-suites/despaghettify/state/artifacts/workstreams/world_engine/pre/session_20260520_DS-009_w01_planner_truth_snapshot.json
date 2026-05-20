@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-009",
+  "wave_id": "w01",
+  "session_date": "20260520",
+  "workstream": "world_engine",
+  "target": "world-engine/app/story_runtime/commit_models.py",
+  "baseline_scan_generated_at_utc": "2026-05-20T19:32:19Z",
+  "baseline_hotspots": [
+    {
+      "symbol": "_planner_truth_from_graph_state",
+      "path": "world-engine/app/story_runtime/commit_models.py",
+      "lines": 540,
+      "nest_depth": 6,
+      "wave_scope": "primary"
+    },
+    {
+      "symbol": "story_session_stream",
+      "path": "world-engine/app/api/story_ws.py",
+      "lines": 391,
+      "nest_depth": 8,
+      "wave_scope": "next_wave"
+    }
+  ],
+  "planned_primary_paths": [
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/planner_truth_projection.py"
+  ],
+  "planned_gate_commands": [
+    "python -m compileall -q world-engine/app/story_runtime",
+    "pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py world-engine/tests/test_validator_lane_truth.py world-engine/tests/test_story_runtime_narrative_commit.py -q --tb=short",
+    "python tests/run_tests.py --suite engine_runtime --quick"
+  ]
+}

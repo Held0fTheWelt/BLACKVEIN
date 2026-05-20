@@ -79,3 +79,24 @@ def test_report_command_writes_readable_markdown(tmp_path: Path, monkeypatch) ->
     assert "Gate status: **FAIL**" in text
     assert "## First Unregistered Findings" in text
     assert "## UI Residue Examples" in text
+
+
+def test_register_batch_can_approve_new_hits(tmp_path: Path, monkeypatch, capsys) -> None:
+    root = tmp_path / "repo"
+    suite = root / "'fy'-suites" / "delagecy"
+    suite.mkdir(parents=True)
+    (root / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (root / "one.py").write_text("# legacy one\n", encoding="utf-8")
+    (root / "two.py").write_text("# legacy two\n", encoding="utf-8")
+    monkeypatch.chdir(root)
+
+    scan_json = suite / "scan.json"
+    assert main(["scan", "--out", str(scan_json)]) == 0
+    assert main(["register-batch", "--scan-json", str(scan_json), "--approve"]) == 0
+
+    registry = json.loads((suite / "delagecy_registry.json").read_text(encoding="utf-8"))
+    assert [row["status"] for row in registry["findings"]] == [
+        "approved_for_removal",
+        "approved_for_removal",
+    ]
+    assert '"registered_count": 2' in capsys.readouterr().out

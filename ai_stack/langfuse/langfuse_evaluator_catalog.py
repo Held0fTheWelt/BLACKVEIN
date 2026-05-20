@@ -84,7 +84,7 @@ LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE: Final[dict[str, Any]] = {
         "opening_turn": True,
         "turn_number": 0,
     },
-    "legacy_trace_names_for_search_only": ["world-engine.session.create"],
+    "alternate_trace_names_for_search": ["world-engine.session.create"],
 }
 
 LANGFUSE_TURN_GENERATION_FILTER_BUNDLE: Final[dict[str, Any]] = {
@@ -99,7 +99,7 @@ LANGFUSE_TURN_GENERATION_FILTER_BUNDLE: Final[dict[str, Any]] = {
         "opening_turn": False,
     },
     "alternate_backend_root_trace_name": BACKEND_TURN_ROOT_TRACE_NAME,
-    "legacy_trace_names": [BACKEND_TURN_ROOT_TRACE_NAME],
+    "alternate_trace_names": [BACKEND_TURN_ROOT_TRACE_NAME],
 }
 
 TURN_JUDGE_OPTIONAL_METADATA_HINT: Final[str] = (
@@ -147,7 +147,7 @@ class LangfuseCategoricalEvaluatorSpec:
     neutral_categories: frozenset[str] = field(default_factory=frozenset)
     langfuse_observation_filters: dict[str, Any] = field(default_factory=dict)
     trace_metadata_filters: dict[str, Any] = field(default_factory=dict)
-    legacy_trace_names: tuple[str, ...] = ()
+    alternate_trace_names: tuple[str, ...] = ()
 
 
 def _opening_trace_meta() -> dict[str, Any]:
@@ -260,7 +260,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_opening_trace_meta(),
-        legacy_trace_names=("world-engine.session.create",),
+        alternate_trace_names=("world-engine.session.create",),
     ),
     "role_anchor_quality_judge": LangfuseCategoricalEvaluatorSpec(
         name="role_anchor_quality_judge",
@@ -299,7 +299,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_opening_trace_meta(),
-        legacy_trace_names=("world-engine.session.create",),
+        alternate_trace_names=("world-engine.session.create",),
     ),
     "theatrical_style_judge": LangfuseCategoricalEvaluatorSpec(
         name="theatrical_style_judge",
@@ -339,7 +339,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_opening_trace_meta(),
-        legacy_trace_names=("world-engine.session.create",),
+        alternate_trace_names=("world-engine.session.create",),
     ),
     "actor_lane_narrative_violation_judge": LangfuseCategoricalEvaluatorSpec(
         name="actor_lane_narrative_violation_judge",
@@ -379,7 +379,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_opening_trace_meta(),
-        legacy_trace_names=("world-engine.session.create",),
+        alternate_trace_names=("world-engine.session.create",),
     ),
     "rag_context_usefulness_judge": LangfuseCategoricalEvaluatorSpec(
         name="rag_context_usefulness_judge",
@@ -418,7 +418,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_opening_trace_meta(),
-        legacy_trace_names=("world-engine.session.create",),
+        alternate_trace_names=("world-engine.session.create",),
     ),
     "player_action_intent_judge": LangfuseCategoricalEvaluatorSpec(
         name="player_action_intent_judge",
@@ -459,7 +459,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "narrator_npc_boundary_judge": LangfuseCategoricalEvaluatorSpec(
         name="narrator_npc_boundary_judge",
@@ -499,7 +499,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "visible_card_cleanliness_judge": LangfuseCategoricalEvaluatorSpec(
         name="visible_card_cleanliness_judge",
@@ -538,7 +538,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "turn_relevance_judge": LangfuseCategoricalEvaluatorSpec(
         name="turn_relevance_judge",
@@ -577,7 +577,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "language_consistency_judge": LangfuseCategoricalEvaluatorSpec(
         name="language_consistency_judge",
@@ -615,7 +615,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "dramatic_pacing_judge": LangfuseCategoricalEvaluatorSpec(
         name="dramatic_pacing_judge",
@@ -654,7 +654,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "goc_tone_fidelity_judge": LangfuseCategoricalEvaluatorSpec(
         name="goc_tone_fidelity_judge",
@@ -694,7 +694,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "player_action_resolution_judge": LangfuseCategoricalEvaluatorSpec(
         name="player_action_resolution_judge",
@@ -786,7 +786,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "blocked_action_playability_judge": LangfuseCategoricalEvaluatorSpec(
         name="blocked_action_playability_judge",
@@ -826,7 +826,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "affordance_plausibility_judge": LangfuseCategoricalEvaluatorSpec(
         name="affordance_plausibility_judge",
@@ -866,7 +866,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "npc_reaction_appropriateness_judge": LangfuseCategoricalEvaluatorSpec(
         name="npc_reaction_appropriateness_judge",
@@ -912,7 +912,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset(),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "runtime_aspect_integrity_judge": LangfuseCategoricalEvaluatorSpec(
         name="runtime_aspect_integrity_judge",
@@ -961,7 +961,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "narrator_authority_judge": LangfuseCategoricalEvaluatorSpec(
         name="narrator_authority_judge",
@@ -1009,7 +1009,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "npc_authority_violation_judge": LangfuseCategoricalEvaluatorSpec(
         name="npc_authority_violation_judge",
@@ -1057,7 +1057,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "dramatic_capability_realization_judge": LangfuseCategoricalEvaluatorSpec(
         name="dramatic_capability_realization_judge",
@@ -1105,7 +1105,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "beat_realization_judge": LangfuseCategoricalEvaluatorSpec(
         name="beat_realization_judge",
@@ -1152,7 +1152,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "recoverable_outcome_quality_judge": LangfuseCategoricalEvaluatorSpec(
         name="recoverable_outcome_quality_judge",
@@ -1201,7 +1201,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "visible_origin_consistency_judge": LangfuseCategoricalEvaluatorSpec(
         name="visible_origin_consistency_judge",
@@ -1250,7 +1250,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "relationship_pressure_judge": LangfuseCategoricalEvaluatorSpec(
         name="relationship_pressure_judge",
@@ -1299,7 +1299,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
     "player_turn_playability_judge": LangfuseCategoricalEvaluatorSpec(
         name="player_turn_playability_judge",
@@ -1347,7 +1347,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         neutral_categories=frozenset({"not_applicable", "insufficient_evidence"}),
         langfuse_observation_filters=TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
         trace_metadata_filters=_turn_trace_meta(),
-        legacy_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
+        alternate_trace_names=(BACKEND_TURN_ROOT_TRACE_NAME,),
     ),
 }
 
@@ -1368,7 +1368,7 @@ MATRIX_JUDGE_COLUMN_KEYS: dict[str, str] = {s.name: s.matrix_column_key for s in
 
 JUDGE_DISPLAY_SHORT: dict[str, str] = {s.name: s.display_short for s in ORDERED_CATEGORICAL_EVALUATORS}
 
-LEGACY_JUDGE_ISSUE_TOKENS: frozenset[str] = frozenset().union(
+JUDGE_ISSUE_ALIAS_TOKENS: frozenset[str] = frozenset().union(
     *WOS_JUDGE_ISSUE_CATEGORIES.values(),
     frozenset(
         {
@@ -1408,13 +1408,13 @@ def judge_names_for_scope(scope: EvaluatorScope) -> tuple[str, ...]:
 
 
 def normalize_judge_category_label(judge_name: str, category: str | None) -> str | None:
-    """Map legacy/stale categorical labels to current rubric tokens (lowercase)."""
+    """Map alias/stale categorical labels to current rubric tokens (lowercase)."""
     if not category:
         return None
     c = str(category).strip().lower()
     if not c:
         return None
-    legacy_maps: dict[str, dict[str, str]] = {
+    category_alias_maps: dict[str, dict[str, str]] = {
         "opening_experience_judge": {"strong": "excellent"},
         "theatrical_style_judge": {
             "alive_style": "theatrical",
@@ -1435,7 +1435,7 @@ def normalize_judge_category_label(judge_name: str, category: str | None) -> str
         "npc_reaction_appropriateness_judge": {"appropriate": "appropriate_reaction"},
         "blocked_action_playability_judge": {"clear_block": "playable_block"},
     }
-    return legacy_maps.get(judge_name, {}).get(c, c)
+    return category_alias_maps.get(judge_name, {}).get(c, c)
 
 
 def category_severity(judge_name: str, category: str | None) -> CategorySeverity:
@@ -1548,7 +1548,7 @@ def evaluator_spec_to_public_dict(
         "canonical_definition_source": LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
         "langfuse_observation_filters": dict(spec.langfuse_observation_filters),
         "trace_metadata_filters": dict(spec.trace_metadata_filters),
-        "legacy_trace_names": list(spec.legacy_trace_names),
+        "alternate_trace_names": list(spec.alternate_trace_names),
         "langfuse_filter_group": spec.scope,
         "recommended_adapter_exclusions_if_metadata_negation_supported": list(LLM_JUDGE_ADAPTER_EXCLUSION_HINTS),
         "adapter_exclusion_operator_note": LLM_JUDGE_ADAPTER_EXCLUSION_NOTE,
@@ -1581,7 +1581,7 @@ def build_langfuse_sync_preview_payload(name: str) -> dict[str, Any] | None:
         "score_reasoning_prompt": spec.score_reasoning_prompt,
         "category_selection_prompt": spec.category_selection_prompt,
         "observation_filters": dict(spec.langfuse_observation_filters),
-        "legacy_trace_names": list(spec.legacy_trace_names),
+        "alternate_trace_names": list(spec.alternate_trace_names),
         "trace_metadata_filters": dict(spec.trace_metadata_filters),
         "langfuse_filter_group": spec.scope,
         "recommended_adapter_exclusions_if_metadata_negation_supported": list(LLM_JUDGE_ADAPTER_EXCLUSION_HINTS),

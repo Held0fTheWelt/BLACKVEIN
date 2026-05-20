@@ -13,6 +13,7 @@ RelationshipAxisContext is distinct from:
 
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -192,13 +193,10 @@ def derive_relationship_axis_context(history: SessionHistory) -> RelationshipAxi
     if not history.entries:
         return RelationshipAxisContext()
 
-    from app.runtime.relationship_context_derive import (
-        build_relationship_axis_context_from_maps,
-        collect_axis_maps_from_history,
-    )
+    derive = import_module("app.runtime.relationship_context_derive")
 
-    axis_involvement, axis_triggers, axis_path_valence, axis_path_hits = collect_axis_maps_from_history(history)
-    return build_relationship_axis_context_from_maps(
+    axis_involvement, axis_triggers, axis_path_valence, axis_path_hits = derive.collect_axis_maps_from_history(history)
+    return derive.build_relationship_axis_context_from_maps(
         history,
         axis_involvement,
         axis_triggers,

@@ -53,7 +53,7 @@ def build_planner_projection_section(
         "npc_response_expected": canonical_record.get("npc_response_expected"),
         "scene_director_selection_source": canonical_record.get("scene_director_selection_source"),
         "planner_rationale_codes": canonical_record.get("planner_rationale_codes"),
-        "legacy_keyword_scene_candidates_used": canonical_record.get("legacy_keyword_scene_candidates_used"),
+        "keyword_scene_candidates_used": canonical_record.get("keyword_scene_candidates_used"),
         "npc_narrated_player_action_violation": canonical_record.get(
             "npc_narrated_player_action_violation"
         ),
@@ -165,7 +165,7 @@ def assemble_filled_inspector_sections(
                     "continuity_support_posture": gate_data.get("continuity_support_posture"),
                     "continues_or_changes_pressure": gate_data.get("continues_or_changes_pressure"),
                     "supports_scene_function": gate_data.get("supports_scene_function"),
-                    "legacy_fallback_used": gate_data.get("legacy_fallback_used"),
+                    "structural_fallback_used": gate_data.get("structural_fallback_used"),
                     "semantic_planner_support_level": posture.get("semantic_planner_support_level")
                     if posture
                     else None,

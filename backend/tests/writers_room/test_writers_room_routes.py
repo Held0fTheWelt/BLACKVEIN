@@ -231,9 +231,6 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     assert gt.get("artifact_class") == "analysis_artifact"
     lp = data.get("langchain_retriever_preview") or {}
     assert lp.get("artifact_class") == "analysis_artifact"
-    leg = (data.get("legacy_paths") or [{}])[0]
-    assert leg.get("artifact_class") == "analysis_artifact"
-    assert leg.get("body")
 
 
 def test_writers_room_patch_candidates_have_preview_summary_and_confidence(client, auth_headers):

@@ -1008,10 +1008,10 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
             if isinstance(state.get("scene_plan_record"), dict)
             else None
         ),
-        "legacy_keyword_scene_candidates_used": (
+        "keyword_scene_candidates_used": (
             bool(
                 (((state.get("scene_assessment") or {}).get("multi_pressure_resolution") or {}).get(
-                    "legacy_keyword_scene_candidates_used"
+                    "keyword_scene_candidates_used"
                 ))
             )
             if isinstance(state.get("scene_assessment"), dict)

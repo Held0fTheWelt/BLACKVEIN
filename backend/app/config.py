@@ -109,7 +109,7 @@ class Config:
     # Require email verification before login (default: True in production, False in dev/testing)
     REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN = env_bool("REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN", True)
 
-    # Compatibility redirect target for legacy /web routes.
+    # Frontend service target for public/browser routes.
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip() or None
 
     # Optional: administration-tool base URL for operator links (e.g. backend /backend home page).
@@ -142,12 +142,7 @@ class Config:
         )
     )
 
-    # Prefer PLAY_SERVICE_SHARED_SECRET; PLAY_SERVICE_SECRET is deprecated but supported for migration.
-    PLAY_SERVICE_SHARED_SECRET = (
-        os.environ.get("PLAY_SERVICE_SHARED_SECRET")
-        or os.environ.get("PLAY_SERVICE_SECRET")
-        or ""
-    ).strip() or None
+    PLAY_SERVICE_SHARED_SECRET = os.environ.get("PLAY_SERVICE_SHARED_SECRET", "").strip() or None
     PLAY_SERVICE_INTERNAL_API_KEY = os.environ.get("PLAY_SERVICE_INTERNAL_API_KEY", "").strip() or None
     INTERNAL_RUNTIME_CONFIG_TOKEN = os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip() or None
     BOOTSTRAP_RECOVERY_TOKEN = os.environ.get("BOOTSTRAP_RECOVERY_TOKEN", "").strip() or None

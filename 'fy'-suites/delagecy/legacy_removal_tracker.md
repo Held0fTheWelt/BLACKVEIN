@@ -14,7 +14,7 @@ Manual edits are allowed for notes, but the source of truth is
 | `removal_in_progress` | Implementation is active. |
 | `removed` | Removal was verified. |
 | `blocked` | Do not remove until the blocker is discussed. |
-| `retained` | Explicitly retained compatibility surface. |
+| `retained` | Explicitly retained active canonical behavior; not a legacy compatibility surface. |
 
 ## Findings
 

@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "ds_id": "DS-008",
+  "slug": "ai_stack",
+  "session_date": "20260520",
+  "completed_wave_ids": [
+    "w01",
+    "w02"
+  ],
+  "next_index": 3,
+  "sub_waves": [
+    {
+      "index": 1,
+      "id": "w01",
+      "goal": "Extract the LangGraph runtime aspect validation orchestration into a focused module while preserving the existing executor export and validation contract.",
+      "primary_paths": [
+        "ai_stack/langgraph/langgraph_runtime_executor.py",
+        "ai_stack/langgraph/langgraph_runtime_validation.py"
+      ],
+      "gate_commands": [
+        "python -m compileall -q ai_stack/langgraph",
+        "pytest ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short",
+        "python tests/run_tests.py --suite ai_stack_narrative ai_stack_quality --quick"
+      ]
+    },
+    {
+      "index": 2,
+      "id": "w02",
+      "goal": "Thin the validation seam retry/context surface around the extracted validation module without changing graph node behavior.",
+      "primary_paths": [
+        "ai_stack/langgraph/langgraph_runtime_executor.py"
+      ],
+      "gate_commands": [
+        "python -m compileall -q ai_stack/langgraph",
+        "pytest ai_stack/tests/test_langgraph_runtime.py ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short",
+        "python tests/run_tests.py --suite ai_stack_graph ai_stack_narrative ai_stack_quality --quick",
+        "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\""
+      ]
+    }
+  ]
+}

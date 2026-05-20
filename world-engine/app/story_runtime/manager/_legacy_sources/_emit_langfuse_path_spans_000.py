@@ -84,8 +84,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
-                "legacy_keyword_scene_candidates_used": path_summary.get(
-                    "legacy_keyword_scene_candidates_used"
+                "keyword_scene_candidates_used": path_summary.get(
+                    "keyword_scene_candidates_used"
                 ),
                 "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
                 "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
@@ -123,8 +123,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "subtext_policy_rule_id": path_summary.get("subtext_policy_rule_id"),
                 "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
                 "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
-                "legacy_keyword_scene_candidates_used": path_summary.get(
-                    "legacy_keyword_scene_candidates_used"
+                "keyword_scene_candidates_used": path_summary.get(
+                    "keyword_scene_candidates_used"
                 ),
             },
         ),

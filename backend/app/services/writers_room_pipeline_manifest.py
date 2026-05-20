@@ -62,8 +62,6 @@ def _writers_room_artifact_manifest(package: dict[str, Any]) -> list[dict[str, s
     if isinstance(cb, dict):
         for c in cb.get("comments") or []:
             _append_manifest_entry(manifest, c if isinstance(c, dict) else None)
-    for notice in package.get("legacy_paths") or []:
-        _append_manifest_entry(manifest, notice if isinstance(notice, dict) else None)
     goa = package.get("governance_outcome_artifact")
     if isinstance(goa, dict):
         _append_manifest_entry(manifest, goa)

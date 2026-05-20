@@ -54,7 +54,7 @@ def test_category_severity_buckets():
     assert category_severity("player_turn_playability_judge", "unplayable") == "failure"
 
 
-def test_legacy_category_normalization_maps_stale_labels():
+def test_category_normalization_maps_stale_labels():
     assert normalize_judge_category_label("theatrical_style_judge", "alive_style") == "theatrical"
     assert normalize_judge_category_label("rag_context_usefulness_judge", "weak_use") == "unused"
     assert normalize_judge_category_label("narrator_npc_boundary_judge", "healthy_boundary") == "clean_boundary"
@@ -77,7 +77,7 @@ def test_player_action_resolution_judge_catalog_entry():
     assert spec.langfuse_observation_filters["Name"] == ["story.model.generation"]
     assert spec.trace_metadata_filters.get("opening_turn") is False
     assert spec.langfuse_observation_filters["Trace Name"] == [WORLD_ENGINE_TURN_TRACE_NAME]
-    assert spec.legacy_trace_names == (BACKEND_TURN_ROOT_TRACE_NAME,)
+    assert spec.alternate_trace_names == (BACKEND_TURN_ROOT_TRACE_NAME,)
 
 
 def test_opening_judge_langfuse_filters_match_opening_trace():
@@ -87,7 +87,7 @@ def test_opening_judge_langfuse_filters_match_opening_trace():
     assert spec.langfuse_observation_filters["Name"] == ["story.model.generation"]
     assert spec.trace_metadata_filters["opening_turn"] is True
     assert spec.trace_metadata_filters["turn_number"] == 0
-    assert spec.legacy_trace_names == ("world-engine.session.create",)
+    assert spec.alternate_trace_names == ("world-engine.session.create",)
 
 
 def test_player_action_resolution_judge_in_order_and_maps():

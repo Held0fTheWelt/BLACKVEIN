@@ -190,6 +190,20 @@ class TestRequireWebLogin:
 
         assert callable(decorated)
 
+    def test_missing_session_redirects_to_frontend_login(self, app):
+        """Decorator must not depend on removed backend web auth endpoints."""
+        app.config["FRONTEND_URL"] = "https://frontend.example"
+
+        @require_web_login
+        def my_view():
+            return "result"
+
+        with app.test_request_context("/protected"):
+            response = my_view()
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "https://frontend.example/login"
+
 
 class TestRequireWebAdmin:
     """Tests for require_web_admin decorator."""
@@ -213,3 +227,17 @@ class TestRequireWebAdmin:
         decorated = require_web_admin(admin_view)
 
         assert callable(decorated)
+
+    def test_missing_session_redirects_to_frontend_login(self, app):
+        """Decorator must not depend on removed backend web auth endpoints."""
+        app.config["FRONTEND_URL"] = "https://frontend.example"
+
+        @require_web_admin
+        def admin_view():
+            return "admin result"
+
+        with app.test_request_context("/admin-only"):
+            response = admin_view()
+
+        assert response.status_code == 302
+        assert response.headers["Location"] == "https://frontend.example/login"

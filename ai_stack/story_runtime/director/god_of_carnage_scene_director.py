@@ -862,7 +862,7 @@ def build_responder_and_function(
         ),
         "heuristic_trace": heuristic_trace[:16],
         "selection_source": selection_source,
-        "legacy_keyword_scene_candidates_used": False,
+        "keyword_scene_candidates_used": False,
         "semantic_move_required": selection_source == "semantic_move_required",
         "semantic_move_contract_valid": selection_source != "invalid_semantic_move",
         "player_input_kind": player_input_kind or None,

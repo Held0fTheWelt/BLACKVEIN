@@ -4,7 +4,7 @@
  * Public API on window.ManageUI:
  *   toast(kind, message, opts?)       — bottom-right sticky notification
  *   jsonViewer(target, data?, opts?)  — copy/wrap toolbar over a <pre>
- *   bindStatusElement(el)             — legacy banners fire toasts on text change
+ *   bindStatusElement(el)             — status banners fire toasts on text change
  *   bindRail(railEl)                  — mirror a hidden <select> into a clickable list
  *   bindDeck(deckEl)                  — section nav: clicking rail item shows matching inspector card
  *   bindDirtyForm(formEl, onSave, onDiscard) — track unsaved changes, expose count
@@ -109,7 +109,7 @@
   };
 
   // ---------------------------------------------------------------------------
-  // Status-element auto-binding (legacy banners -> toasts)
+  // Status-element auto-binding (status banners -> toasts)
   // ---------------------------------------------------------------------------
   function detectStatusKind(el) {
     if (el.dataset && el.dataset.toastKind) return el.dataset.toastKind;

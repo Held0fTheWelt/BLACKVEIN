@@ -27,8 +27,8 @@
     if (w5FrontendPlayerViewEnabled(snapshot)) {
       const roomId = w5PlayerViewLocation(snapshot);
       if (roomId) {
-        const legacyRoom = snapshot.current_room || null;
-        if (legacyRoom && legacyRoom.id === roomId) return legacyRoom;
+        const currentRoom = snapshot.current_room || null;
+        if (currentRoom && currentRoom.id === roomId) return currentRoom;
         return { id: roomId, name: roomId, description: "" };
       }
     }

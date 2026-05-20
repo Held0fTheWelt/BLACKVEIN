@@ -206,7 +206,7 @@ def test_wiki_get_read_oserror_returns_500(client, moderator_headers, tmp_path, 
 
 
 def test_wiki_get_markdown_failure_sets_html_none(client, moderator_headers, tmp_path, monkeypatch):
-    """Exception during markdown in legacy wiki_get leaves html None."""
+    """Exception during markdown rendering in wiki_get leaves html None."""
     from app.api.v1 import wiki_routes
 
     wiki_file = tmp_path / "wiki.md"

@@ -110,7 +110,7 @@ def _feature_minimum_tier(feature_id: str) -> int:
 
 
 def _area_allows(user: User | None, feature_id: str) -> bool:
-    """Same semantics as legacy ``user_can_access_feature`` area tail."""
+    """Apply area scoping after tier and override checks."""
     if not user:
         return False
     feature_areas = get_feature_area_ids(feature_id)
@@ -232,6 +232,6 @@ def resolve_feature_access(user: User | None, feature_id: str) -> tuple[bool, di
 
 
 def user_can_access_feature_resolved(user: User | None, feature_id: str) -> bool:
-    """Boolean convenience matching legacy ``user_can_access_feature`` call shape."""
+    """Boolean convenience wrapper around the detailed access resolver."""
     allowed, _ = resolve_feature_access(user, feature_id)
     return allowed

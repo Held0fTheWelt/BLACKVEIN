@@ -8,7 +8,7 @@
  *   - Tags rail option entries with status badges (ok / warn / off) inferred
  *     from the existing label format ("ON · …  · health:ok · eligible").
  *   - Renders Test / Save outcomes as inline result chips next to the button
- *     (in addition to the toast that fires from the legacy banner).
+ *     (in addition to the toast that fires from the status banner).
  *   - Hijacks the banner text-content so that ALSO surfacing as inline result
  *     stays tied to the action that triggered it.
  *

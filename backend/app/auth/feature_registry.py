@@ -2,6 +2,7 @@
 Central registry of feature/view identifiers and area-based access evaluation.
 Use these identifiers for feature_areas mapping and permission checks.
 """
+from importlib import import_module
 from app.extensions import db
 from app.models import Area, FeatureArea, User
 
@@ -61,25 +62,6 @@ FEATURE_IDS = [
     FEATURE_DASHBOARD_SETTINGS,
     FEATURE_DASHBOARD_USER_SETTINGS,
 ]
-
-# Legacy tuple view derived from ``app.auth.feature_access_resolver.FEATURE_ACCESS_RULES`` (import lazily).
-def feature_required_roles_legacy(feature_id: str) -> tuple[str, ...]:
-    """Approximate previous FEATURE_REQUIRED_ROLES tuples for migration notes and tooling."""
-    from app.auth.feature_access_resolver import (
-        ACCESS_TIER_ADMIN,
-        ACCESS_TIER_MODERATOR,
-        ACCESS_TIER_AUTHENTICATED,
-        FEATURE_ACCESS_RULES,
-    )
-
-    meta = FEATURE_ACCESS_RULES.get(feature_id) or {}
-    tier = int(meta.get("min_tier", ACCESS_TIER_ADMIN))
-    if tier >= ACCESS_TIER_ADMIN:
-        return (User.ROLE_ADMIN,)
-    if tier >= ACCESS_TIER_MODERATOR:
-        return (User.ROLE_MODERATOR, User.ROLE_ADMIN)
-    return ()  # authenticated-only (e.g. dashboard user settings)
-
 
 def is_valid_feature_id(feature_id: str) -> bool:
     """Return True if feature_id is a known feature."""
@@ -147,6 +129,5 @@ def user_can_access_feature(user: User | None, feature_id: str) -> bool:
     Delegates to ``app.auth.feature_access_resolver`` so backend routes, ``/auth/me``,
     and the same tier + area rules stay aligned. See ``resolve_feature_access`` for diagnostics.
     """
-    from app.auth.feature_access_resolver import user_can_access_feature_resolved
-
-    return user_can_access_feature_resolved(user, feature_id)
+    resolver = import_module("app.auth.feature_access_resolver")
+    return resolver.user_can_access_feature_resolved(user, feature_id)

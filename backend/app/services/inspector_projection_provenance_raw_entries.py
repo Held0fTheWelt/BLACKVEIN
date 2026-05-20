@@ -72,10 +72,10 @@ def build_provenance_entries(*, last: dict[str, Any], bundle: dict[str, Any]) ->
             "source_ref": "world_engine_diagnostics.diagnostics[-1].validation_outcome.dramatic_effect_gate_outcome.diagnostic_trace",
         },
         {
-            "field": "legacy_fallback_used",
-            "value": gate.get("legacy_fallback_used"),
+            "field": "structural_fallback_used",
+            "value": gate.get("structural_fallback_used"),
             "source_kind": "runtime_derived",
-            "source_ref": "world_engine_diagnostics.diagnostics[-1].validation_outcome.dramatic_effect_gate_outcome.legacy_fallback_used",
+            "source_ref": "world_engine_diagnostics.diagnostics[-1].validation_outcome.dramatic_effect_gate_outcome.structural_fallback_used",
         },
         {
             "field": "semantic_planner_support_level",

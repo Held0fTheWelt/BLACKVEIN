@@ -1,15 +1,13 @@
-"""Legacy play UI compatibility tests."""
+"""Removed backend play UI route tests."""
 
 
-def test_play_start_redirects_to_frontend(client, app):
+def test_play_start_route_removed(client, app):
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     response = client.get("/play", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["Location"] == "https://frontend.example.com/play"
+    assert response.status_code == 404
 
 
-def test_play_execute_post_redirects_to_frontend_shell(client, app):
+def test_play_execute_route_removed(client, app):
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     response = client.post("/play/session-123/execute", data={"operator_input": "look"}, follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["Location"] == "https://frontend.example.com/play/session-123"
+    assert response.status_code == 404

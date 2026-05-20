@@ -94,14 +94,10 @@
     var comparison = state.status.comparison || {};
     var expected = comparison.expected_healthy || {};
     var effectiveMode = retrieval.mode_effective || retrieval.mode_runtime || "?";
-    var scopeLegacy = retrieval.mode_scope_legacy || retrieval.mode_setting || "";
-    var driftNote = retrieval.mode_scope_drift && scopeLegacy
-      ? " (legacy scope copy was " + scopeLegacy + " — ignored)"
-      : "";
     fillLines("manage-rag-status-lines", [
       "Operational state: " + (state.status.operational_state || "unknown"),
       "Corpus chunks: " + (corpus.chunk_count || 0) + " | sources: " + (corpus.source_count || 0),
-      "Retrieval mode (effective): " + effectiveMode + driftNote,
+      "Retrieval mode (effective): " + effectiveMode,
       "Retrieval profile: " + (retrieval.retrieval_profile || "runtime_turn_support"),
       "Embedding backend: " + (emb.available ? "available" : "unavailable") + " (" + (emb.primary_reason_code || "n/a") + ")",
       "Dense index: " + (dense.present_on_retriever ? "attached" : "not attached") + " | validity: " + (dense.artifact_validity || "unknown"),
@@ -109,7 +105,6 @@
     ], "No RAG status data.");
     fillLines("manage-rag-comparison-lines", [
       "Effective mode vs expected healthy mode-not-disabled: " + (comparison.retrieval_mode_effective || comparison.retrieval_mode_runtime || "?") + " / " + (expected.retrieval_mode_not_disabled ? "yes" : "n/a"),
-      "Legacy scope mode (if any): " + (comparison.retrieval_mode_scope_legacy || comparison.retrieval_mode_setting || "none"),
       "Dense index attached (active/expected): " + (comparison.dense_index_attached ? "yes" : "no") + " / " + (expected.dense_index_attached ? "yes" : "n/a"),
       "Embedding backend expected healthy: " + (expected.embedding_backend_available ? "available" : "n/a")
     ], "No comparison data.");

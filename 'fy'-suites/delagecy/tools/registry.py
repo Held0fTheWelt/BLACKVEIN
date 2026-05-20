@@ -25,6 +25,8 @@ def empty_registry() -> dict[str, Any]:
             "approval_required_before_removal": True,
             "ui_residue_must_be_removed": True,
             "problems_require_user_discussion": True,
+            "legacy_is_not_active_compatibility": True,
+            "active_behavior_must_be_preserved": True,
         },
         "findings": [],
     }
@@ -149,6 +151,8 @@ def tracker_markdown(data: dict[str, Any]) -> str:
         "- New findings must be registered and reported before removal.",
         "- Removal requires explicit approval.",
         "- UI residue must be removed with the code path.",
+        "- Legacy is not active compatibility.",
+        "- Active, required behavior is preserved and canonicalized; it is not deleted as legacy.",
         "- Ambiguity or breakage risk must be discussed before continuing.",
         "",
         "## Findings",

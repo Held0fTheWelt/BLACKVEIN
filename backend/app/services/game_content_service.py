@@ -275,8 +275,8 @@ def _attach_canonical_compilation(payload: dict) -> dict:
     return result
 
 
-def _ensure_legacy_template_schema_compatibility() -> None:
-    """Patch legacy SQLite tables created before migration 040."""
+def _ensure_template_schema_columns() -> None:
+    """Patch SQLite template tables created before migration 040."""
     bind = db.session.get_bind()
     if bind is None or bind.dialect.name != "sqlite":
         return
@@ -317,7 +317,7 @@ def _ensure_legacy_template_schema_compatibility() -> None:
 
 
 def ensure_default_game_content_seeded() -> None:
-    _ensure_legacy_template_schema_compatibility()
+    _ensure_template_schema_columns()
     existing = db.session.execute(select(GameExperienceTemplate.id).limit(1)).scalar_one_or_none()
     if existing is not None:
         return

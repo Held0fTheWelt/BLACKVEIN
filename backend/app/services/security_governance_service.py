@@ -666,7 +666,7 @@ def _csrf_matrix_rows() -> list[dict[str, str]]:
         {
             "flow": "backend_web",
             "credential": "backend session cookie",
-            "mutation": "legacy web POST routes",
+            "mutation": "browser form POST routes",
             "policy": "Flask-WTF CSRF when WTF_CSRF_ENABLED=True",
             "test": "backend/tests/test_csrf_protection.py",
         },

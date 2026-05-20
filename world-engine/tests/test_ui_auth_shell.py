@@ -46,7 +46,7 @@ def test_successful_login_grants_access_and_renders_shell(client, auth_backend_s
     assert "Runtime Dashboard" in dashboard.text
     assert "Runs / Sessions" in dashboard.text
     assert "Health" in dashboard.text
-    assert "Legacy Simulator" in dashboard.text
+    assert "Runtime Simulator" in dashboard.text
 
 
 def test_login_backend_calls_do_not_run_on_event_loop(client, monkeypatch):

@@ -1,0 +1,47 @@
+{
+  "ds_id": "DS-006",
+  "sub_wave": "w01",
+  "kind": "post_scope_comparison",
+  "scan_roots_after": [
+    "backend/app",
+    "world-engine/app",
+    "ai_stack",
+    "story_runtime_core",
+    "tools/mcp_server",
+    "administration-tool"
+  ],
+  "before": {
+    "total_functions": 20859,
+    "total_python_files": 1893,
+    "long_functions_gt_50": 1365,
+    "long_functions_gt_100": 379,
+    "nesting_ge_6": 58,
+    "m7_anteil": 6.5004
+  },
+  "after": {
+    "generated_at_utc": "2026-05-20T18:45:15Z",
+    "total_functions": 10676,
+    "total_python_files": 1148,
+    "long_functions_gt_50": 858,
+    "long_functions_gt_100": 236,
+    "nesting_ge_6": 27,
+    "m7_anteil": 5.7013,
+    "m7_ref": 4.24,
+    "trigger_policy_fires": true,
+    "vendored_site_packages_leader_present": false
+  },
+  "gates": [
+    {
+      "command": "wave-plan-validate --check-primary-paths",
+      "exit_code": 0
+    },
+    {
+      "command": "check --with-metrics",
+      "exit_code": 0
+    },
+    {
+      "command": "spaghetti_ast_scan.py",
+      "exit_code": 0
+    }
+  ]
+}

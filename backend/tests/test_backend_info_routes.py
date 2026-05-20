@@ -194,7 +194,7 @@ def test_security_features_page_explains_csrf_matrix_regression_gate(client):
     assert b"docs/security/csrf-matrix.md" in r.data
     assert b"ADR-0050" in r.data
     assert "Backend-, Frontend-, Frontend-API-Client- und Proxy-Regressionstests".encode() in r.data
-    assert b"Backend Legacy Web Routes" in r.data
+    assert b"Backend Web Routes" in r.data
     assert b"Frontend Same-Origin API Proxy" in r.data
     assert b"/api/v1/&lt;path&gt;" in r.data
     assert b"administration-tool/tests/test_proxy_contract.py" in r.data
@@ -265,17 +265,15 @@ def test_api_explorer_page_has_search_shell(client):
     assert b"tag:Auth" in r.data
 
 
-def test_legacy_web_routes_still_redirect_or_410_not_html_shell(client, app):
-    """Legacy paths must not become canonical HTML hosts; they redirect or 410."""
+def test_old_web_routes_removed_not_html_shell(client, app):
+    """Old web paths must not become canonical HTML hosts."""
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     for path in ("/login", "/dashboard", "/play", "/game-menu"):
         r = client.get(path, follow_redirects=False)
-        assert r.status_code == 302
-        assert r.headers["Location"].startswith("https://frontend.example.com")
+        assert r.status_code == 404
     app.config["FRONTEND_URL"] = None
     r = client.get("/login", follow_redirects=False)
-    assert r.status_code == 410
-    assert r.is_json
+    assert r.status_code == 404
 
 
 def test_api_health_unaffected_next_to_backend_namespace(client):

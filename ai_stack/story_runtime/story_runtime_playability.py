@@ -626,7 +626,7 @@ def degrade_validation_outcome(
     geo = dict(geo)
     geo["gate_result"] = reason
     geo["rejection_reasons"] = []
-    geo["legacy_fallback_used"] = bool(geo.get("legacy_fallback_used"))
+    geo["structural_fallback_used"] = bool(geo.get("structural_fallback_used"))
     geo["empty_fluency_risk"] = "managed"
     base["dramatic_effect_gate_outcome"] = geo
     return base

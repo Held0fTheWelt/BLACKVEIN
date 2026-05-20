@@ -1,7 +1,7 @@
 """Tests for suggested forum threads linked to news/wiki discussions.
 
-Replaces a legacy module that imported removed models (Forum, Thread, etc.) and
-specified non-existent routes. These tests exercise real service behavior:
+Replaces an obsolete module that imported removed models (Forum, Thread, etc.)
+and specified non-existent routes. These tests exercise real service behavior:
 `get_suggested_threads_for_article` and exclusion of the primary discussion thread.
 """
 

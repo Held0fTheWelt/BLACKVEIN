@@ -1,4 +1,4 @@
-"""ADR-0041 runtime readiness consumer (veto-only overlay on legacy readiness)."""
+"""ADR-0041 runtime readiness consumer (veto-only overlay on base readiness)."""
 
 from __future__ import annotations
 
@@ -46,15 +46,15 @@ def test_default_final_readiness_unchanged_without_consumer_flag(monkeypatch: py
     monkeypatch.delenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, raising=False)
     rip = {"readiness_aggregation_decision": _agg(aggregated="block", veto=True)}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
     )
     assert r["runtime_ready"] is True
     assert r["can_execute"] is True
-    assert r["source"] == "legacy_readiness"
+    assert r["source"] == "base_readiness"
     assert r["consumer_enabled"] is False
     assert r["validation_outcome_changed"] is False
     assert r["commit_gate_changed"] is False
@@ -67,11 +67,11 @@ def test_invalid_consumer_flag_fail_closed() -> None:
     assert "runtime readiness consumer disabled" in warnings[0].lower()
 
 
-def test_no_aggregation_decision_legacy_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_aggregation_decision_base_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection={"validator_dispatch_report": {}},
         degradation_signals=[],
@@ -81,57 +81,57 @@ def test_no_aggregation_decision_legacy_unchanged(monkeypatch: pytest.MonkeyPatc
     assert r["reason"] == "readiness_aggregation_decision_absent"
 
 
-def test_allow_plus_legacy_allow(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_allow_plus_base_allow(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
     )
     assert r["runtime_ready"] is True
     assert r["can_execute"] is True
-    assert r["reason"] == "legacy_allow_adr0041_allow"
+    assert r["reason"] == "base_allow_adr0041_allow"
 
 
-def test_block_plus_legacy_allow_veto(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_plus_base_allow_veto(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="block", veto=True)}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
     )
     assert r["runtime_ready"] is False
     assert r["can_execute"] is False
-    assert r["reason"] == "adr0041_veto_over_legacy_allow"
+    assert r["reason"] == "adr0041_veto_over_base_allow"
 
 
-def test_allow_plus_legacy_reject_no_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_allow_plus_base_reject_no_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=False,
-        legacy_can_execute=False,
+        base_runtime_session_ready=False,
+        base_can_execute=False,
         opening_generation_status="blocked_missing_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
     )
     assert r["runtime_ready"] is False
     assert r["can_execute"] is False
-    assert r["reason"] == "legacy_reject_no_adr0041_upgrade"
+    assert r["reason"] == "base_reject_no_adr0041_upgrade"
 
 
-def test_block_plus_legacy_reject(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_block_plus_base_reject(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="block", veto=True)}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=False,
-        legacy_can_execute=False,
+        base_runtime_session_ready=False,
+        base_can_execute=False,
         opening_generation_status="blocked_missing_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
@@ -144,8 +144,8 @@ def test_unknown_base_does_not_become_allow_on_adr_allow(monkeypatch: pytest.Mon
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=False,
+        base_runtime_session_ready=True,
+        base_can_execute=False,
         opening_generation_status="mixed",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
@@ -161,8 +161,8 @@ def test_upstream_not_met_no_veto(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, raising=False)
     rip = {"readiness_aggregation_decision": _agg(aggregated="block")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
@@ -209,8 +209,8 @@ def test_resolve_includes_mutating_consumer_anchor(monkeypatch: pytest.MonkeyPat
     monkeypatch.setenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, "true")
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
@@ -223,8 +223,8 @@ def test_retrieval_authority_is_reported_but_not_used_as_readiness_truth(monkeyp
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=[],
@@ -236,18 +236,18 @@ def test_retrieval_authority_is_reported_but_not_used_as_readiness_truth(monkeyp
     assert r["retrieval_authority_level"] == "retrieved_unverified"
 
 
-def test_blocking_degradation_signal_vetoes_legacy_allow(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_blocking_degradation_signal_vetoes_base_allow(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_full_adr0041_readiness_stack(monkeypatch)
     rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
     r = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=True,
-        legacy_can_execute=True,
+        base_runtime_session_ready=True,
+        base_can_execute=True,
         opening_generation_status="ready_with_opening",
         runtime_intelligence_projection=rip,
         degradation_signals=["fallback", "diagnostic_only_marker"],
     )
     assert r["runtime_ready"] is False
     assert r["can_execute"] is False
-    assert r["reason"] == "adr0041_degradation_veto_over_legacy_allow"
+    assert r["reason"] == "adr0041_degradation_veto_over_base_allow"
     assert r["degradation_blocking_signal"] is True
     assert "fallback" in r["degradation_blockers"]

@@ -900,7 +900,7 @@ def build_validation_co_authority_decision(
         "dramatic_effect_mirror_fidelity": dramatic_fidelity,
         "dramatic_effect_mirror_fidelity_sufficient": dramatic_fidelity != "partial_defaults",
         "legacy_canonical_authority": CO_AUTHORITY_LEGACY_SEAM,
-        "legacy_fallback_authority": CO_AUTHORITY_LEGACY_SEAM,
+        "structural_fallback_authority": CO_AUTHORITY_LEGACY_SEAM,
         "canonical_commitment_seam": CO_AUTHORITY_COMMITMENT_SEAM,
         "authority_limits": [
             "does_not_block_commit",

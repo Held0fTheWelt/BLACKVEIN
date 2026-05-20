@@ -35,18 +35,16 @@ def _goc_solo_run_payload(run_id: str, *, selected_player_role: str = "annette")
     }
 
 
-def test_game_menu_compat_returns_410_without_frontend_url(client, app):
+def test_game_menu_route_removed_without_frontend_url(client, app):
     app.config["FRONTEND_URL"] = None
     response = client.get("/game-menu")
-    assert response.status_code == 410
-    assert response.get_json()["error"] == "Legacy UI route disabled."
+    assert response.status_code == 404
 
 
-def test_game_menu_compat_redirects_when_frontend_url_set(client, app):
+def test_game_menu_route_removed_when_frontend_url_set(client, app):
     app.config["FRONTEND_URL"] = "https://frontend.example.com"
     response = client.get("/game-menu", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["Location"] == "https://frontend.example.com/game-menu"
+    assert response.status_code == 404
 
 
 

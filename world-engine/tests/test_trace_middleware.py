@@ -3943,7 +3943,7 @@ def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch
         "subtext_contract_pass": 1,
         "scene_director_selection_source": "intent_surface",
         "planner_rationale_codes": ["player_action_requires_spatial_consequence"],
-        "legacy_keyword_scene_candidates_used": False,
+        "keyword_scene_candidates_used": False,
         "npc_narrated_player_action_violation": False,
         "intent_surface_contract_pass": 1,
         "player_input_attribution_pass": 1,
@@ -3989,7 +3989,7 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
             "subtext_policy_rule_id": "probe_inquiry",
             "scene_director_selection_source": "semantic_move",
             "planner_rationale_codes": ["player_perception_requires_environmental_feedback"],
-            "legacy_keyword_scene_candidates_used": False,
+            "keyword_scene_candidates_used": False,
             "npc_narrated_player_action_violation": False,
             "player_input_attribution_pass": 1,
         }
@@ -4045,7 +4045,7 @@ def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
             "subtext_policy_rule_id": "establish_situational_pressure",
             "scene_director_selection_source": "semantic_move",
             "planner_rationale_codes": [],
-            "legacy_keyword_scene_candidates_used": False,
+            "keyword_scene_candidates_used": False,
             "npc_narrated_player_action_violation": False,
             "player_input_attribution_pass": 1,
         }
@@ -4086,7 +4086,7 @@ def test_langfuse_scores_reject_guarded_action_probe_alignment(monkeypatch):
             "semantic_move_kind": forbidden_move,
             "scene_director_selection_source": "semantic_move",
             "planner_rationale_codes": [],
-            "legacy_keyword_scene_candidates_used": False,
+            "keyword_scene_candidates_used": False,
             "npc_narrated_player_action_violation": False,
             "player_input_attribution_pass": 1,
         }

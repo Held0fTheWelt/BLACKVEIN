@@ -16,7 +16,7 @@ from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_branch
     outcome_weak_signal_accepted,
     pressure_continuation_signal,
     try_boilerplate_without_tags,
-    try_legacy_alignment,
+    try_structural_alignment,
     try_off_scope_containment_mismatch,
     try_prior_blame_continuity_pressure,
     try_repair_scene_character_conflict,
@@ -41,7 +41,7 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
 
     text = ctx.proposed_narrative.strip()
 
-    # Actor-lane fluency override BEFORE legacy alignment check.
+    # Actor-lane fluency override before structural alignment checks.
     # If lanes are approved and non-empty, don't reject on prose emptiness or ultra-short prose.
     _actor = ctx.actor_lane_summary or {}
     thin_prose_override = False
@@ -57,8 +57,8 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
             thin_prose_override = True
         ctx = ctx.model_copy(update={"proposed_narrative": text})
 
-    if (legacy := try_legacy_alignment(ctx)) is not None:
-        return legacy
+    if (structural_outcome := try_structural_alignment(ctx)) is not None:
+        return structural_outcome
 
     low = text.lower()
     trace: list[DramaticEffectTraceItem] = []

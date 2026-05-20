@@ -26,7 +26,7 @@
     // Initialize MVP5 modules (BlockRenderer, BlocksOrchestrator, TypewriterEngine, PlayControls)
     if (typeof window.BlockRenderer === "undefined" || typeof window.BlocksOrchestrator === "undefined" ||
         typeof window.TypewriterEngine === "undefined" || typeof window.PlayControls === "undefined") {
-      console.warn("[MVP5] One or more MVP5 modules are not loaded. Falling back to legacy rendering.");
+      console.warn("[MVP5] One or more MVP5 modules are not loaded. Falling back to direct rendering.");
       return false;
     }
 

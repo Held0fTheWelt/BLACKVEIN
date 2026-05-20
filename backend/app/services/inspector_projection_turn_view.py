@@ -96,7 +96,7 @@ def extract_turn_view(row: dict[str, Any], idx: int, *, module_id: Any) -> dict[
         "continuity_support_posture": gate.get("continuity_support_posture"),
         "continues_or_changes_pressure": gate.get("continues_or_changes_pressure"),
         "supports_scene_function": gate.get("supports_scene_function"),
-        "legacy_fallback_used": gate.get("legacy_fallback_used"),
+        "structural_fallback_used": gate.get("structural_fallback_used"),
         "effect_rationale_codes": list(gate["effect_rationale_codes"])
         if isinstance(gate.get("effect_rationale_codes"), list)
         else None,

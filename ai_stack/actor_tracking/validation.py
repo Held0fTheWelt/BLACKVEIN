@@ -428,7 +428,7 @@ def w5_validation_fallback(reason: str) -> dict[str, Any]:
         "w5_validation_failed": False,
         "w5_validation_failure_codes": [],
         "w5_snapshot_id": None,
-        "w5_validation_source": "legacy_fallback",
+        "w5_validation_source": "structural_fallback",
         "w5_validation_fallback_reason": reason,
         "failures": [],
         "warnings": [],

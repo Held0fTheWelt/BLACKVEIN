@@ -82,8 +82,8 @@ SOURCE = r'''\
         "subtext_evidence_codes": path_summary.get("subtext_evidence_codes"),
         "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
         "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
-        "legacy_keyword_scene_candidates_used": path_summary.get(
-            "legacy_keyword_scene_candidates_used"
+        "keyword_scene_candidates_used": path_summary.get(
+            "keyword_scene_candidates_used"
         ),
         "npc_narrated_player_action_violation": path_summary.get(
             "npc_narrated_player_action_violation"

@@ -106,7 +106,11 @@ def render_scan_report(
     ]
     approved_ui = [
         row for row in findings
-        if row.get("status") == "approved_for_removal" and row.get("kind") == "ui"
+        if (
+            row.get("status") == "approved_for_removal"
+            and row.get("kind") == "ui"
+            and row.get("fingerprint") in active_fps
+        )
     ]
     discussion_required = [
         row for row in findings
@@ -148,7 +152,8 @@ def render_scan_report(
         "2. Removal requires explicit approval.",
         "3. Code, routes, tests, docs, data, and UI residue are removed together.",
         "4. Integrity risks, ownership conflicts, or ambiguous removals must be discussed before work continues.",
-        "5. A finding is only marked removed after a clean scan and targeted verification.",
+        "5. Legacy is not active compatibility; required active behavior must be preserved and canonicalized, not deleted.",
+        "6. A finding is only marked removed after a clean scan and targeted verification.",
         "",
         "## Counts By Surface",
         "",

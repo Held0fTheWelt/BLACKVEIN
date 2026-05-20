@@ -83,7 +83,7 @@ def test_fetch_operator_defaults_returns_empty_on_bad_json(monkeypatch):
 
 
 @pytest.mark.unit
-def test_fetch_operator_defaults_accepts_legacy_site_settings_keys(monkeypatch):
+def test_fetch_operator_defaults_accepts_default_site_settings_keys(monkeypatch):
     from urllib.request import Request
 
     admin_app = _load_admin_app_module()
@@ -98,13 +98,13 @@ def test_fetch_operator_defaults_accepts_legacy_site_settings_keys(monkeypatch):
         def read(self):
             return json.dumps(
                 {
-                    "default_content_module_id": "legacy_mod",
-                    "default_experience_template_id": "legacy_tpl",
+                    "content_module_id": "default_mod",
+                    "default_runtime_template_id": "default_tpl",
                 }
             ).encode("utf-8")
 
     monkeypatch.setattr(admin_app, "urlopen", lambda req, timeout=0: _Resp())
     admin_app.reset_operator_defaults_remote_cache()
     mod, tpl = admin_app._fetch_operator_defaults_from_backend_public_settings("https://api.example.com")
-    assert mod == "legacy_mod"
-    assert tpl == "legacy_tpl"
+    assert mod == "default_mod"
+    assert tpl == "default_tpl"

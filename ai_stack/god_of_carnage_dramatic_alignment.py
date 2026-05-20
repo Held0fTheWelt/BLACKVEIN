@@ -183,15 +183,15 @@ def _silence_blocks_forced_speech(silence_brevity_decision: dict[str, Any] | Non
     return bool(decision.get("blocks_forced_speech"))
 
 
-def dramatic_alignment_legacy_fallback_only(
+def dramatic_alignment_structural_fallback_only(
     *,
     selected_scene_function: str,
     pacing_mode: str,
     silence_brevity_decision: dict[str, Any] | None,
     proposed_narrative: str,
 ) -> str | None:
-    """Bounded legacy seam: length thresholds, withhold beat,
-    meta-commentary bans only.
+    """Bounded structural alignment seam: length thresholds, withhold beat,
+    and meta-commentary bans only.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -238,50 +238,3 @@ def dramatic_alignment_legacy_fallback_only(
 
     return None
 
-
-def dramatic_alignment_violation(
-    *,
-    selected_scene_function: str,
-    pacing_mode: str,
-    silence_brevity_decision: dict[str, Any] | None,
-    proposed_narrative: str,
-) -> str | None:
-    """Deprecated full surface path: legacy structural + token/boilerplate
-    checks.
-    
-    Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-    
-    Args:
-        selected_scene_function: ``selected_scene_function`` (str); meaning follows the type and call sites.
-        pacing_mode: ``pacing_mode`` (str); meaning follows the type and call sites.
-        silence_brevity_decision: ``silence_brevity_decision`` (dict[str, Any] | None); meaning follows the type and call sites.
-        proposed_narrative: ``proposed_narrative`` (str); meaning follows the type and call sites.
-    
-    Returns:
-        str | None:
-            Returns a value of type ``str | None``; see the function body for structure, error paths, and sentinels.
-    """
-    text = proposed_narrative.strip()
-    low = text.lower()
-    legacy = dramatic_alignment_legacy_fallback_only(
-        selected_scene_function=selected_scene_function,
-        pacing_mode=pacing_mode,
-        silence_brevity_decision=silence_brevity_decision,
-        proposed_narrative=proposed_narrative,
-    )
-    if legacy:
-        return legacy
-
-    high_stakes = {"escalate_conflict", "redirect_blame", "reveal_surface"}
-    if selected_scene_function in high_stakes and len(text) >= _MIN_CHARS_HIGH_STAKES:
-        tokens = _FUNCTION_SUBSTRING_TOKENS.get(selected_scene_function, ())
-        if tokens and not any(t in low for t in tokens):
-            return "dramatic_alignment_no_function_support"
-
-        for phrase in _GENERIC_BOILERPLATE_PHRASES:
-            if phrase in low:
-                if tokens and any(t in low for t in tokens):
-                    continue
-                return "dramatic_alignment_generic_boilerplate"
-
-    return None

@@ -107,8 +107,8 @@ function w5PlayerViewLocation(snapshot) {
 function roomFromW5PlayerView(snapshot) {
   const roomId = w5PlayerViewLocation(snapshot);
   if (!roomId) return null;
-  const legacyRoom = snapshot.current_room || null;
-  if (legacyRoom && legacyRoom.id === roomId) return legacyRoom;
+  const currentRoom = snapshot.current_room || null;
+  if (currentRoom && currentRoom.id === roomId) return currentRoom;
   const rooms = snapshot.rooms || null;
   if (Array.isArray(rooms)) {
     const found = rooms.find(room => room && room.id === roomId);

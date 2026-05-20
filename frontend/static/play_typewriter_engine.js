@@ -1,7 +1,7 @@
 /**
  * TypewriterEngine — Cinematic per-character delivery (ADR-0046)
  *
- * Replaces the legacy substring writer with a per-char span model:
+ * Replaces the old substring writer with a per-char span model:
  *   - each character of the visible string is appended as <span class="char">.
  *   - a single <span class="play-cursor"> sits after the last revealed char.
  *   - schedule_at[k] is precomputed per char, mixing base interval + jitter
@@ -423,7 +423,7 @@ class TypewriterEngine {
 
   _renderBlock() {
     // No-op: rendering is push-based via _appendChars. Kept for backward
-    // compatibility with any external caller that might invoke it.
+    // external caller support that might invoke it.
   }
 
   getQueueState() {

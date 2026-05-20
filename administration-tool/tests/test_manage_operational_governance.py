@@ -23,7 +23,7 @@ def test_manage_operational_governance_template(app, client):
 
 
 def test_manage_base_includes_ai_runtime_governance_nav_only(client):
-    """Single canonical nav entry; legacy /manage/operational-governance URLs remain registered."""
+    """Single canonical nav entry; old /manage/operational-governance URLs remain registered."""
     response = client.get("/manage")
     html = response.get_data(as_text=True)
     assert "manage-nav-ai-runtime-governance" in html

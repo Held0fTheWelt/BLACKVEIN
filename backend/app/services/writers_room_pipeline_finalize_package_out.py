@@ -1,4 +1,4 @@
-"""Writers Room finalize stage — LangChain preview, legacy notice, persisted workflow package dict."""
+"""Writers Room finalize stage: LangChain preview and persisted workflow package dict."""
 
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ from app.contracts.writers_room_artifact_class import (
 from app.services.writers_room_pipeline_manifest import _workflow_stage_ids
 
 
-def build_langchain_preview_and_legacy_notices(
+def build_langchain_preview(
     *,
     module_id: str,
     langchain_documents: list[Any],
     langchain_preview_paths: list[str],
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Return langchain_retriever_preview payload and legacy_paths single notice."""
+) -> dict[str, Any]:
+    """Return the langchain_retriever_preview payload."""
     lc_preview: dict[str, Any] = {
         "document_count": len(langchain_documents),
         "sources": [doc.metadata.get("source_path") for doc in langchain_documents],
@@ -34,18 +34,7 @@ def build_langchain_preview_and_legacy_notices(
             approval_state="pending_review",
         )
     )
-    legacy_notice = {
-        **build_writers_room_artifact_record(
-            artifact_id="notice_legacy_oracle_route",
-            artifact_class=WritersRoomArtifactClass.analysis_artifact,
-            source_module_id=module_id,
-            evidence_refs=[],
-            proposal_scope="deprecation_policy_notice",
-            approval_state="not_applicable",
-        ),
-        "body": "Legacy direct chat is deprecated and no longer canonical.",
-    }
-    return lc_preview, legacy_notice
+    return lc_preview
 
 
 def build_finalize_package_out(
@@ -70,7 +59,6 @@ def build_finalize_package_out(
     operator_audit_wr: dict[str, Any],
     gov_truth: dict[str, Any],
     lc_preview: dict[str, Any],
-    legacy_notice: dict[str, Any],
 ) -> dict[str, Any]:
     """Assemble package_out before writers_room_artifact_manifest attachment."""
     workflow_manifest = {
@@ -99,7 +87,6 @@ def build_finalize_package_out(
         "patch_candidates": patch_candidates,
         "variant_candidates": variant_candidates,
         "outputs_are_recommendations_only": True,
-        "legacy_paths": [legacy_notice],
         "capability_audit": capability_audit_rows,
         "operator_audit": operator_audit_wr,
         "governance_truth": gov_truth,

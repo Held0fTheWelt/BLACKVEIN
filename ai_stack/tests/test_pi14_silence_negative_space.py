@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from ai_stack.god_of_carnage_dramatic_alignment import (
     _COMMENTARY_META_PHRASES,
     _FUNCTION_SUBSTRING_TOKENS,
-    dramatic_alignment_legacy_fallback_only,
+    dramatic_alignment_structural_fallback_only,
 )
 from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID, SILENCE_BREVITY_MODES
 from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_pacing_and_silence
@@ -141,7 +141,7 @@ def test_alignment_uses_negative_space_contract_even_when_mode_brief() -> None:
         )
     )
 
-    result = dramatic_alignment_legacy_fallback_only(
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="compressed",
         silence_brevity_decision=decision,

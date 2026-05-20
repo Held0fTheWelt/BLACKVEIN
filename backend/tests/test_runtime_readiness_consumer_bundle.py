@@ -84,7 +84,7 @@ def _turn_with_rip(*, aggregated: str) -> dict:
     }
 
 
-def test_bundle_readiness_default_matches_legacy_without_consumer(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bundle_readiness_default_matches_base_without_consumer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, raising=False)
     bundle = _player_session_bundle(
         run_id="r-consumer-off",
@@ -161,5 +161,5 @@ def test_bundle_blocks_ready_state_when_turn_is_degraded(monkeypatch: pytest.Mon
     assert bundle["runtime_session_ready"] is False
     assert bundle["can_execute"] is False
     diag = bundle["governance"]["adr0041_runtime_readiness_consumer"]
-    assert diag["reason"] == "adr0041_degradation_veto_over_legacy_allow"
+    assert diag["reason"] == "adr0041_degradation_veto_over_base_allow"
     assert diag["degradation_blocking_signal"] is True

@@ -45,9 +45,6 @@ def _public_site_settings():
         # Canonical operator defaults (align with backend vocabulary).
         "content_module_id": mod,
         "default_runtime_template_id": tpl,
-        # Legacy keys (same values) — keep for older clients.
-        "default_content_module_id": mod,
-        "default_experience_template_id": tpl,
     }
 
 
@@ -130,14 +127,14 @@ def site_settings_put():
             en = parsed if parsed is not None else True
         _upsert_site_setting("slogan_rotation_enabled", "true" if en else "false")
 
-    if "content_module_id" in data or "default_content_module_id" in data:
-        raw_mid = data.get("content_module_id", data.get("default_content_module_id"))
+    if "content_module_id" in data:
+        raw_mid = data.get("content_module_id")
         mid = _coerce_operator_identifier(raw_mid)
         if mid:
             _upsert_site_setting("default_content_module_id", mid)
 
-    if "default_runtime_template_id" in data or "default_experience_template_id" in data:
-        raw_tid = data.get("default_runtime_template_id", data.get("default_experience_template_id"))
+    if "default_runtime_template_id" in data:
+        raw_tid = data.get("default_runtime_template_id")
         tid = _coerce_operator_identifier(raw_tid)
         if tid:
             _upsert_site_setting("default_experience_template_id", tid)

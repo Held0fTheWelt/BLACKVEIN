@@ -12,7 +12,7 @@ Security governance settings are policy and release evidence. They do not direct
 
 | Flow family | Credential sent by browser | Mutating methods | CSRF stance | Regression coverage |
 | --- | --- | --- | --- | --- |
-| Backend legacy web routes | Backend `session` cookie | `POST` | Protected by global Flask-WTF CSRF when `WTF_CSRF_ENABLED=True`; `api_v1` is exempt. | `backend/tests/test_csrf_protection.py` |
+| Backend web routes removed | n/a | n/a | Former backend browser mutation routes are no longer registered; `api_v1` remains exempt. | `backend/tests/test_csrf_protection.py` |
 | Backend JSON API `/api/v1/*` | Bearer token in `Authorization` header | `POST`, `PUT`, `PATCH`, `DELETE` | CSRF-exempt by design; do not rely on browser cookies for API auth. | `backend/tests/test_csrf_protection.py` |
 | Frontend player forms | Frontend `session` cookie stores server-side tokens | `POST` | Same-origin forms, `SESSION_COOKIE_SAMESITE=Lax`, `HttpOnly`; no upstream cookies are sent. | `frontend/tests/test_csrf_matrix.py`, `frontend/tests/test_api_client.py` |
 | Frontend same-origin API proxy `/api/v1/<path>` | Frontend `session` cookie only to look up server-side token | `POST`, `PUT`, `PATCH`, `DELETE` | Server forwards Bearer token to backend and omits inbound cookies. | `frontend/tests/test_csrf_matrix.py`, `frontend/tests/test_api_client.py` |
@@ -22,9 +22,8 @@ Security governance settings are policy and release evidence. They do not direct
 
 | Surface | Route or pattern | Methods | Mutation | Cookie relevance | Required CSRF behavior |
 | --- | --- | --- | --- | --- | --- |
-| Backend web compatibility | `/logout` | `POST` | Clears legacy backend session and redirects. | Uses backend `session` cookie. | Requires valid Flask-WTF CSRF token when CSRF is enabled. |
-| Backend web compatibility | `/login`, `/register`, `/resend-verification`, `/forgot-password`, `/reset-password/<token>` | `POST` | Compatibility redirect to frontend; no backend account mutation happens in these web handlers. | Browser may send backend `session` cookie. | Covered by global web CSRF when CSRF is enabled. |
-| Backend web compatibility | `/play/start`, `/play/<session_id>/execute` | `POST` | Compatibility redirect to frontend play routes. | Browser may send backend `session` cookie. | Covered by global web CSRF when CSRF is enabled. |
+| Backend web routes removed | `/logout`, `/login`, `/register`, `/resend-verification`, `/forgot-password`, `/reset-password/<token>` | n/a | Routes are not registered on the backend web blueprint. | n/a | Must return 404. |
+| Backend web routes removed | `/play/start`, `/play/<session_id>/execute` | n/a | Routes are not registered on the backend web blueprint. | n/a | Must return 404. |
 | Backend API | `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/refresh`, and other `/api/v1/*` JSON mutations | `POST`, `PUT`, `PATCH`, `DELETE` | Account, content, forum, game, and governance mutations. | API auth is Bearer-token based; no browser cookie should authenticate the API. | Remains CSRF-exempt; requires route auth, role checks, and/or public endpoint policy. |
 | Frontend auth forms | `/login`, `/logout`, `/register`, `/resend-verification`, `/forgot-password`, `/reset-password/<token>` | `POST` | Mutates frontend Flask session and/or calls backend API with Bearer token. | Uses frontend `session` cookie. | SameSite=Lax + same-origin form action; backend call uses Bearer, not inbound cookies. |
 | Frontend play forms/API | `/play/start`, `/play/<session_id>/execute` | `POST` | Creates or advances a play run via backend API. | Uses frontend `session` cookie for the access token; per-run `wos_backend_session_<run_id>` cookie is `SameSite=Strict` and `HttpOnly`. | SameSite=Lax/Strict cookies; backend call uses Bearer, not inbound cookies. |
@@ -33,7 +32,7 @@ Security governance settings are policy and release evidence. They do not direct
 
 ## Test Expectations
 
-- Backend CSRF-enabled tests must reject mutating legacy web posts without a token.
+- Backend CSRF-enabled tests must prove removed backend web posts are not registered.
 - Backend API tests must prove `/api/v1/*` remains callable without CSRF tokens when endpoint auth requirements are otherwise satisfied.
 - Frontend tests must pin session cookie flags and prove server-side backend calls send Bearer headers without copying inbound cookies.
 - Admin proxy tests must prove mutating proxy calls strip browser cookies and preserve only approved headers.

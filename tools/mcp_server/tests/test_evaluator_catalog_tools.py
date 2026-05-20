@@ -43,7 +43,7 @@ def test_evaluators_catalog_omits_prompts_by_default():
     assert first.get("prompt") is None
     assert "langfuse_filter_templates" in out
     assert out["langfuse_filter_templates"]["opening_generation"]["trace_name"] == "world-engine.session.create"
-    assert out["langfuse_filter_templates"]["turn_generation"]["legacy_trace_names"] == ["backend.turn.execute"]
+    assert out["langfuse_filter_templates"]["turn_generation"]["alternate_trace_names"] == ["backend.turn.execute"]
 
 
 def test_evaluators_get_full_player_action_resolution():
@@ -68,7 +68,7 @@ def test_evaluators_langfuse_sync_preview_shape():
     assert prev["allow_multiple_matches"] is False
     assert prev["prompt"] and prev["score_reasoning_prompt"] and prev["category_selection_prompt"]
     assert "observation_filters" in prev and "trace_metadata_filters" in prev
-    assert "legacy_trace_names" in prev
+    assert "alternate_trace_names" in prev
     assert prev["qualitative_only"] is True
     assert prev["runtime_gate"] is False
     assert prev["replaces_deterministic_gates"] is False

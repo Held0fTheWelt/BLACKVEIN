@@ -12,7 +12,7 @@ from ai_stack.contracts.dramatic_effect_contract import (
     EmptyFluencyRisk,
 )
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_tags import scene_function_tags_satisfied, tag_active
-from ai_stack.god_of_carnage_dramatic_alignment import _GENERIC_BOILERPLATE_PHRASES, dramatic_alignment_legacy_fallback_only
+from ai_stack.god_of_carnage_dramatic_alignment import _GENERIC_BOILERPLATE_PHRASES, dramatic_alignment_structural_fallback_only
 from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 
 
@@ -39,7 +39,7 @@ def outcome_not_goc(ctx: DramaticEffectEvaluationContext) -> DramaticEffectGateO
     return None
 
 
-def outcome_from_legacy(reason: str) -> DramaticEffectGateOutcome:
+def outcome_from_structural_alignment(reason: str) -> DramaticEffectGateOutcome:
     """Legacy structural/meta failures map to empty-fluency style hard
     reject for gate_result.
     
@@ -60,16 +60,16 @@ def outcome_from_legacy(reason: str) -> DramaticEffectGateOutcome:
         character_plausibility_posture=CharacterPlausibilityPosture.uncertain,
         continuity_support_posture=ContinuitySupportPosture.none,
         empty_fluency_risk=EmptyFluencyRisk.elevated,
-        effect_rationale_codes=["legacy_structural_or_meta", reason],
-        legacy_fallback_used=True,
+        effect_rationale_codes=["structural_or_meta_alignment", reason],
+        structural_fallback_used=True,
         diagnostic_trace=[
-            DramaticEffectTraceItem(code="legacy_fallback", detail=reason),
+            DramaticEffectTraceItem(code="structural_fallback", detail=reason),
         ],
     )
 
 
-def try_legacy_alignment(ctx: DramaticEffectEvaluationContext) -> DramaticEffectGateOutcome | None:
-    """``try_legacy_alignment`` — see implementation for behaviour and contracts.
+def try_structural_alignment(ctx: DramaticEffectEvaluationContext) -> DramaticEffectGateOutcome | None:
+    """``try_structural_alignment`` — see implementation for behaviour and contracts.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -80,14 +80,14 @@ def try_legacy_alignment(ctx: DramaticEffectEvaluationContext) -> DramaticEffect
         DramaticEffectGateOutcome | None:
             Returns a value of type ``DramaticEffectGateOutcome | None``; see the function body for structure, error paths, and sentinels.
     """
-    legacy_reason = dramatic_alignment_legacy_fallback_only(
+    structural_reason = dramatic_alignment_structural_fallback_only(
         selected_scene_function=ctx.selected_scene_function,
         pacing_mode=ctx.pacing_mode,
         silence_brevity_decision=ctx.silence_brevity_decision or None,
         proposed_narrative=ctx.proposed_narrative,
     )
-    if legacy_reason:
-        return outcome_from_legacy(legacy_reason)
+    if structural_reason:
+        return outcome_from_structural_alignment(structural_reason)
     return None
 
 
@@ -115,7 +115,7 @@ def try_off_scope_containment_mismatch(
             supports_scene_function=False,
             empty_fluency_risk=EmptyFluencyRisk.moderate,
             effect_rationale_codes=["move_type_off_scope_vs_scene_function", f"scene_function:{sf}"],
-            legacy_fallback_used=False,
+            structural_fallback_used=False,
             diagnostic_trace=[DramaticEffectTraceItem(code="move_type_mismatch", detail=sem.move_type)],
         )
     return None
@@ -157,7 +157,7 @@ def try_prior_blame_continuity_pressure(
                 continuity_support_posture=ContinuitySupportPosture.weak,
                 empty_fluency_risk=EmptyFluencyRisk.moderate,
                 effect_rationale_codes=["prior_blame_pressure_unaddressed"],
-                legacy_fallback_used=False,
+                structural_fallback_used=False,
                 diagnostic_trace=[
                     DramaticEffectTraceItem(code="continuity_blame_carry", detail="prior_blame_pressure"),
                 ],
@@ -193,7 +193,7 @@ def try_repair_scene_character_conflict(
                 supports_scene_function=False,
                 character_plausibility_posture=CharacterPlausibilityPosture.implausible,
                 effect_rationale_codes=["repair_scene_attack_only_de_escalate_character"],
-                legacy_fallback_used=False,
+                structural_fallback_used=False,
                 diagnostic_trace=[
                     DramaticEffectTraceItem(code="character_mind_conflict", detail=mind.tactical_posture),
                 ],
@@ -224,7 +224,7 @@ def try_boilerplate_without_tags(*, low: str, sf: str, tags_ok: bool) -> Dramati
             supports_scene_function=False,
             empty_fluency_risk=EmptyFluencyRisk.elevated,
             effect_rationale_codes=["generic_boilerplate_without_scene_tags"],
-            legacy_fallback_used=False,
+            structural_fallback_used=False,
             diagnostic_trace=[DramaticEffectTraceItem(code="empty_fluency", detail="boilerplate")],
         )
     return None
@@ -250,7 +250,7 @@ def outcome_tags_unsatisfied(*, low: str, sf: str) -> DramaticEffectGateOutcome:
         supports_scene_function=False,
         empty_fluency_risk=EmptyFluencyRisk.elevated,
         effect_rationale_codes=["scene_function_tags_unsatisfied", f"scene_function:{sf}"],
-        legacy_fallback_used=False,
+        structural_fallback_used=False,
         diagnostic_trace=[DramaticEffectTraceItem(code="tags_unsatisfied", detail=sf)],
     )
 
@@ -288,7 +288,7 @@ def outcome_weak_signal_accepted(
         continuity_support_posture=cont_posture,
         empty_fluency_risk=EmptyFluencyRisk.moderate,
         effect_rationale_codes=effect_codes,
-        legacy_fallback_used=False,
+        structural_fallback_used=False,
         diagnostic_trace=[DramaticEffectTraceItem(code="weak_signal", detail="short_but_tagged")],
     )
 
@@ -327,7 +327,7 @@ def outcome_primary_accepted(
         continuity_support_posture=cont_posture,
         empty_fluency_risk=EmptyFluencyRisk.low,
         effect_rationale_codes=effect_codes,
-        legacy_fallback_used=False,
+        structural_fallback_used=False,
         diagnostic_trace=trace,
     )
 

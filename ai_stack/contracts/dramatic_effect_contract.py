@@ -93,7 +93,7 @@ class DramaticEffectGateOutcome(BaseModel):
     continuity_support_posture: ContinuitySupportPosture = ContinuitySupportPosture.weak
     empty_fluency_risk: EmptyFluencyRisk = EmptyFluencyRisk.moderate
     effect_rationale_codes: list[str] = Field(default_factory=list)
-    legacy_fallback_used: bool = False
+    structural_fallback_used: bool = False
     diagnostic_trace: list[DramaticEffectTraceItem] = Field(default_factory=list)
 
     def to_runtime_dict(self) -> dict[str, Any]:

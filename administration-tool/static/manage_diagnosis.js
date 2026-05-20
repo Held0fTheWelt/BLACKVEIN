@@ -281,7 +281,7 @@
     if (!errEl) return;
     errEl.hidden = false;
     errEl.style.display = "";
-    errEl.classList.remove("mui-legacy-hidden");
+    errEl.classList.remove("mui-hidden");
     errEl.textContent = msg || "Request failed";
   }
 

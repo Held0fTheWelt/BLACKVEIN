@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-008",
+  "wave_id": "w01",
+  "session_date": "20260520",
+  "workstream": "ai_stack",
+  "pre": {
+    "primary_symbol": "_build_runtime_aspect_validation",
+    "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "lines": 1569,
+    "nest_depth": 19,
+    "total_functions": 10677,
+    "count_over_50_lines": 858,
+    "count_over_100_lines": 236,
+    "count_nesting_ge_6": 27
+  },
+  "post": {
+    "primary_symbol": "_build_runtime_aspect_validation",
+    "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "wrapper_preserved": true,
+    "extracted_module": "ai_stack/langgraph/langgraph_runtime_validation.py",
+    "largest_extracted_module_function": {
+      "symbol": "_initial_context",
+      "source_lines": 50
+    },
+    "total_functions": 10723,
+    "count_over_50_lines": 857,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 26,
+    "top_longest_contains_primary_symbol": false,
+    "top_nesting_contains_primary_symbol": false
+  },
+  "gates": [
+    {
+      "command": "python -m compileall -q ai_stack/langgraph",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli wave-plan-validate --file \"'fy'-suites/despaghettify/state/artifacts/workstreams/ai_stack/pre/session_20260520_DS-008_wave_plan.json\" --check-primary-paths",
+      "status": "passed"
+    },
+    {
+      "command": "pytest ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short",
+      "status": "passed",
+      "summary": "41 passed"
+    },
+    {
+      "command": "python tests/run_tests.py --suite ai_stack_narrative ai_stack_quality --quick",
+      "status": "passed",
+      "summary": "ai_stack_narrative 880 passed; ai_stack_quality 502 passed, 1 skipped"
+    }
+  ],
+  "remaining": [
+    {
+      "symbol": "_validate_seam",
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "lines": 500,
+      "nest_depth": 16,
+      "next_wave": "w02"
+    }
+  ]
+}

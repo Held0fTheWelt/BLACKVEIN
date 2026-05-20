@@ -1308,7 +1308,7 @@ body.dashboard {
     .config-fields { grid-template-columns: 1fr; }
 }
 
-/* ── Legacy templates (slim markup) ───────────────── */
+/* ── Slim templates (slim markup) ───────────────── */
 .site-header {
     display: flex;
     align-items: center;
@@ -2323,7 +2323,7 @@ body.play-active.is-typing .matrix-layer__glow {
     .play-composing__dot { animation: none; opacity: 1; }
 }
 
-/* Legacy cursor classes — kept for any external CSS reference. The active
+/* Cursor classes — kept for any external CSS reference. The active
    cursor lives on `.play-cursor` now. */
 .block-typewriter {
     position: relative;
@@ -2437,7 +2437,7 @@ body.wos-shell .site-header .nav button[type="submit"]:hover {
 }
 
 /* The main column floats above the matrix and keeps a comfortable reading width.
-   Applies both to the legacy .container (still used by a few overrides) and to
+   Applies both to the .container (still used by a few overrides) and to
    the new .fr-main inside the sidebar shell. */
 body.wos-shell .container,
 body.wos-shell .fr-main {
@@ -2926,7 +2926,7 @@ body.dashboard.wos-shell .dash-sidebar {
    Activated by body.wos-shell (default). Home keeps its own bespoke layout;
    dashboard and play-shell are embedded in this shell.
 
-   Hides the legacy `.site-header` whenever the new shell is on, since the
+   Hides the removed `.site-header` whenever the new shell is on, since the
    sidebar replaces the horizontal nav completely.
    ───────────────────────────────────────────────────────────────────────────── */
 

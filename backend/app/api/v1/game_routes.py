@@ -498,7 +498,7 @@ def _player_shell_state_view(
         if isinstance(w5_player_view, dict):
             view["w5_player_view"] = w5_player_view
         view["current_room_id"] = current_room_id
-        view["current_room_source"] = w5_player_diag.get("current_room_source") or "legacy_current_room"
+        view["current_room_source"] = w5_player_diag.get("current_room_source") or "fallback_current_room"
         feature_flags = state.get("feature_flags") if isinstance(state.get("feature_flags"), dict) else {}
         view["feature_flags"] = {
             "W5_AST_FRONTEND_PLAYER_VIEW_ENABLED": bool(
@@ -628,8 +628,8 @@ def _player_session_bundle(
     rip = runtime_intelligence_projection_from_turn_aspect_ledger(latest_turn)
     deg = degradation_signals_from_latest_turn(latest_turn)
     readiness_overlay = resolve_runtime_readiness_with_adr0041(
-        legacy_runtime_session_ready=bool(opening_readiness["runtime_session_ready"]),
-        legacy_can_execute=bool(opening_readiness["can_execute"]),
+        base_runtime_session_ready=bool(opening_readiness["runtime_session_ready"]),
+        base_can_execute=bool(opening_readiness["can_execute"]),
         opening_generation_status=str(opening_readiness.get("opening_generation_status") or ""),
         runtime_intelligence_projection=rip,
         degradation_signals=deg,

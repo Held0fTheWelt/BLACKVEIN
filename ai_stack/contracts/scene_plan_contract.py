@@ -97,7 +97,7 @@ class ScenePlanRecord(BaseModel):
     semantic_scene_planner_version: str = ""
     selection_source: str = Field(
         default="semantic_pipeline_v1",
-        description="semantic_pipeline_v1 | legacy_fallback — compatibility trace only for legacy.",
+        description="semantic_pipeline_v1 | structural_fallback — compatibility trace only for legacy.",
     )
 
     @field_validator("expected_transition_pattern")

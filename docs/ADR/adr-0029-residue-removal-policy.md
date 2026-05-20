@@ -39,7 +39,8 @@ An audit pass (Task 4 — Residue Removal Report) applied operational criteria t
 - Legacy removal governance is executed through the `delagecy` fy-suite:
   - Newly found legacy surfaces must be entered in `delagecy_registry.json` and reported before removal begins.
   - Removal requires an explicit approval record; agents must not silently decide ambiguous removals.
-  - UI, route, test, docs, diagnostics, compatibility aliases, and hidden compatibility blocks are residue until removed or explicitly retained.
+  - Legacy is not active compatibility: if the current system still requires the behavior, preserve it and canonicalize the name or contract instead of deleting it.
+  - UI, route, test, docs, diagnostics, compatibility aliases, and hidden compatibility blocks are residue until removed or reclassified as active canonical behavior with evidence.
   - If a removal risks system integrity or reveals conflicting ownership, pause and discuss rather than self-resolving the conflict.
 
 ## Consequences

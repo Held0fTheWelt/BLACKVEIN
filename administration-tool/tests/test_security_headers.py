@@ -105,7 +105,7 @@ class TestContentSecurityPolicyContract:
 
     @pytest.mark.parametrize("route,_", ROUTES_TO_TEST[:3])
     def test_csp_script_src_configured(self, client, route, _):
-        """script-src must be present and configured. May allow unsafe-inline for legacy support."""
+        """script-src must be present and configured. May allow unsafe-inline for current templates."""
         response = client.get(route)
         csp = response.headers["Content-Security-Policy"]
         assert "script-src" in csp, f"script-src directive missing on {route}"
@@ -205,7 +205,7 @@ class TestCSPDirectiveSyntax:
         assert len(directives) > 1, "CSP should have multiple directives"
 
     def test_csp_script_src_may_allow_unsafe_inline_but_not_unsafe_eval(self, client):
-        """script-src may allow unsafe-inline for legacy support, but never unsafe-eval."""
+        """script-src may allow unsafe-inline for current templates, but never unsafe-eval."""
         response = client.get("/")
         csp = response.headers["Content-Security-Policy"]
         # Extract script-src directive

@@ -436,7 +436,7 @@ class TestLangfuseAdapterIntegration:
         assert adapter1 is not adapter2
 
     def test_langfuse_connection(self, db_session, app, monkeypatch):
-        """Connection test uses governed backend Langfuse data, not legacy Cloud/env fields."""
+        """Connection test uses governed backend Langfuse data, not direct Cloud/env fields."""
         from app.services.observability_governance_service import get_observability_config
 
         config = ObservabilityConfig(

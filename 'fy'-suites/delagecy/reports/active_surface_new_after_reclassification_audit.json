@@ -1,0 +1,557 @@
+{
+  "hits": [
+    {
+      "fingerprint": "79c8129b72ca9b53",
+      "kind": "code",
+      "line": 67,
+      "path": "backend/app/auth/feature_registry.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy tuple view derived from ``app.auth.feature_access_resolver.FEATURE_ACCESS_RULES`` (import lazily)."
+    },
+    {
+      "fingerprint": "aebf77720a999229",
+      "kind": "code",
+      "line": 68,
+      "path": "backend/app/auth/feature_registry.py",
+      "pattern": "_legacy\\b",
+      "text": "def feature_required_roles_legacy(feature_id: str) -> tuple[str, ...]:"
+    },
+    {
+      "fingerprint": "c841daf12381dcea",
+      "kind": "code",
+      "line": 29,
+      "path": "backend/app/runtime/runtime_ai_stages_sections.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Attach runtime stage metadata to an adapter request (same contract as legacy orchestrator).\"\"\""
+    },
+    {
+      "fingerprint": "ecbd03215b8cc8c6",
+      "kind": "code",
+      "line": 193,
+      "path": "ai_stack/god_of_carnage_dramatic_alignment.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Bounded legacy seam: length thresholds, withhold beat,"
+    },
+    {
+      "fingerprint": "4d1c74d32c1a54fb",
+      "kind": "code",
+      "line": 249,
+      "path": "ai_stack/god_of_carnage_dramatic_alignment.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Deprecated full surface path: legacy structural + token/boilerplate"
+    },
+    {
+      "fingerprint": "867711d1e880c33f",
+      "kind": "code",
+      "line": 266,
+      "path": "ai_stack/god_of_carnage_dramatic_alignment.py",
+      "pattern": "\\blegacy\\b",
+      "text": "legacy = dramatic_alignment_legacy_fallback_only("
+    },
+    {
+      "fingerprint": "8da110bf068ad38b",
+      "kind": "code",
+      "line": 272,
+      "path": "ai_stack/god_of_carnage_dramatic_alignment.py",
+      "pattern": "\\blegacy\\b",
+      "text": "if legacy:"
+    },
+    {
+      "fingerprint": "beb20a026755f6f0",
+      "kind": "code",
+      "line": 273,
+      "path": "ai_stack/god_of_carnage_dramatic_alignment.py",
+      "pattern": "\\blegacy\\b",
+      "text": "return legacy"
+    },
+    {
+      "fingerprint": "98cd517c98fa5232",
+      "kind": "code",
+      "line": 75,
+      "path": "ai_stack/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute opening prose.\"\"\""
+    },
+    {
+      "fingerprint": "daeeb2e479e03bcb",
+      "kind": "code",
+      "line": 80,
+      "path": "ai_stack/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute room prose.\"\"\""
+    },
+    {
+      "fingerprint": "f8afa93c6c34b82d",
+      "kind": "code",
+      "line": 90,
+      "path": "ai_stack/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute role-anchor prose.\"\"\""
+    },
+    {
+      "fingerprint": "4c085209375e8e3c",
+      "kind": "code",
+      "line": 95,
+      "path": "ai_stack/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute NPC dialogue.\"\"\""
+    },
+    {
+      "fingerprint": "6f3cd31f673e8b8a",
+      "kind": "code",
+      "line": 424,
+      "path": "ai_stack/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: no deterministic NPC-line replacement is allowed.\"\"\""
+    },
+    {
+      "fingerprint": "cc64e84bc54c547d",
+      "kind": "code",
+      "line": 16,
+      "path": "ai_stack/god_of_carnage_scene_identity.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Runtime / slice scene identifiers \u2192 legacy-compatible phase guidance keys."
+    },
+    {
+      "fingerprint": "bc538fdc4eb44dda",
+      "kind": "code",
+      "line": 165,
+      "path": "ai_stack/god_of_carnage_souffleuse.py",
+      "pattern": "\\blegacy_",
+      "text": "stance = {\"legacy_stance_summary\": _clean(raw)}"
+    },
+    {
+      "fingerprint": "164ba990cf565a78",
+      "kind": "code",
+      "line": 186,
+      "path": "ai_stack/god_of_carnage_souffleuse.py",
+      "pattern": "\\blegacy_",
+      "text": "return {\"legacy_guidance_summary\": _clean(raw)}"
+    },
+    {
+      "fingerprint": "97f8bf4762ef0d59",
+      "kind": "code",
+      "line": 266,
+      "path": "ai_stack/god_of_carnage_yaml_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Project phase_beat_policy into the legacy scene-guidance shape."
+    },
+    {
+      "fingerprint": "98c9daa5c6f4af96",
+      "kind": "code",
+      "line": 330,
+      "path": "ai_stack/god_of_carnage_yaml_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Project phase_beat_policy phases into the legacy scene_phases shape.\"\"\""
+    },
+    {
+      "fingerprint": "dd6a0cfb3a8e1690",
+      "kind": "code",
+      "line": 773,
+      "path": "ai_stack/runtime_aspect_ledger.py",
+      "pattern": "\\blegacy\\b",
+      "text": "When disabled, final session readiness fields must match legacy/seam evaluation"
+    },
+    {
+      "fingerprint": "b36d9aa981fa3390",
+      "kind": "code",
+      "line": 16,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "diff against the legacy ``transition_from_previous`` block."
+    },
+    {
+      "fingerprint": "3cd29cf8df4426d5",
+      "kind": "code",
+      "line": 659,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "against the prior persisted snapshot \u2014 same semantics as the legacy"
+    },
+    {
+      "fingerprint": "dfb1f3b4f58ff69a",
+      "kind": "code",
+      "line": 747,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "summary and a compatibility ``derived_actor_locations`` map. Raw persisted"
+    },
+    {
+      "fingerprint": "866886a5f230b17d",
+      "kind": "code",
+      "line": 431,
+      "path": "ai_stack/actor_tracking/validation.py",
+      "pattern": "\\blegacy_",
+      "text": "\"w5_validation_source\": \"legacy_fallback\","
+    },
+    {
+      "fingerprint": "62090d2659350d59",
+      "kind": "code",
+      "line": 96,
+      "path": "ai_stack/contracts/dramatic_effect_contract.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_fallback_used: bool = False"
+    },
+    {
+      "fingerprint": "389343775c55ffd4",
+      "kind": "code",
+      "line": 4,
+      "path": "ai_stack/contracts/genre_awareness_contracts.py",
+      "pattern": "\\blegacy\\b",
+      "text": "evidence. It does not judge generated prose and it never uses legacy Pi labels"
+    },
+    {
+      "fingerprint": "1375b2f15b961e53",
+      "kind": "code",
+      "line": 316,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = coerce_dict_rows(raw_plan.get(\"npc_initiatives\"))"
+    },
+    {
+      "fingerprint": "9e394b0165a39d50",
+      "kind": "code",
+      "line": 317,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "if not legacy_rows:"
+    },
+    {
+      "fingerprint": "a02c95a333b8ade0",
+      "kind": "code",
+      "line": 318,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = coerce_dict_rows(raw_plan.get(\"initiatives\"))"
+    },
+    {
+      "fingerprint": "bf05d3cea7bbb834",
+      "kind": "code",
+      "line": 320,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "raw_row_actor_ids = dedupe_strings([row.get(\"actor_id\") for row in legacy_rows])"
+    },
+    {
+      "fingerprint": "9a604ad6309fe9b9",
+      "kind": "code",
+      "line": 373,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "for row in legacy_rows"
+    },
+    {
+      "fingerprint": "5bdf3320ac5c6e2e",
+      "kind": "code",
+      "line": 154,
+      "path": "ai_stack/contracts/relationship_state_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Validation result over schema bounds and structured event compatibility.\"\"\""
+    },
+    {
+      "fingerprint": "e88b37cea3010e0c",
+      "kind": "code",
+      "line": 45,
+      "path": "ai_stack/contracts/scene_plan_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "description=\"Compatibility alias for pressure-oriented target data; advisory until validation/commit.\","
+    },
+    {
+      "fingerprint": "03180362a42e0c61",
+      "kind": "code",
+      "line": 100,
+      "path": "ai_stack/contracts/scene_plan_contract.py",
+      "pattern": "\\blegacy\\b",
+      "text": "description=\"semantic_pipeline_v1 | legacy_fallback \u2014 compatibility trace only for legacy.\","
+    },
+    {
+      "fingerprint": "ad24ed5afc9784f2",
+      "kind": "code",
+      "line": 238,
+      "path": "ai_stack/contracts/silence_negative_space_contract.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Normalize legacy silence payloads into the silence-negative-space contract.\"\"\""
+    },
+    {
+      "fingerprint": "6043cc981112a7f9",
+      "kind": "code",
+      "line": 865,
+      "path": "ai_stack/story_runtime/director/god_of_carnage_scene_director.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_keyword_scene_candidates_used\": False,"
+    },
+    {
+      "fingerprint": "0dabd98b5cdc04db",
+      "kind": "code",
+      "line": 80,
+      "path": "ai_stack/story_runtime/semantic_planner/god_of_carnage_roadmap_semantic_surface.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# --- routing_labels \u2014 primary route reason codes (``RouteReasonCode``, including legacy) ---"
+    },
+    {
+      "fingerprint": "288a9e74b88d05dd",
+      "kind": "code",
+      "line": 504,
+      "path": "ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Graph tests without actor_lane_context keep the legacy staging line on non-opening turns."
+    },
+    {
+      "fingerprint": "37ab41bd6661e411",
+      "kind": "code",
+      "line": 1011,
+      "path": "ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_keyword_scene_candidates_used\": ("
+    },
+    {
+      "fingerprint": "2858fdab8716ae24",
+      "kind": "code",
+      "line": 1014,
+      "path": "ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_keyword_scene_candidates_used\""
+    },
+    {
+      "fingerprint": "a20891bd73a4e99e",
+      "kind": "code",
+      "line": 358,
+      "path": "ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py",
+      "pattern": "\\blegacy_",
+      "text": "if gate_out.legacy_fallback_used and gate_out.rejection_reasons:"
+    },
+    {
+      "fingerprint": "2abab118d2390e73",
+      "kind": "code",
+      "line": 1,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Actor-survival telemetry: canonical vitality telemetry + compatibility surfaces."
+    },
+    {
+      "fingerprint": "ca40c2ebae0aa609",
+      "kind": "code",
+      "line": 638,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Build canonical vitality telemetry plus compatibility views."
+    },
+    {
+      "fingerprint": "6f5fe108a438e95d",
+      "kind": "code",
+      "line": 656,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Compatibility surface for existing consumers/tests."
+    },
+    {
+      "fingerprint": "864cd6f19505cc72",
+      "kind": "test",
+      "line": 242,
+      "path": "ai_stack/tests/test_god_of_carnage_dramatic_alignment.py",
+      "pattern": "_legacy\\b",
+      "text": "def test_dramatic_alignment_violation_delegates_to_legacy() -> None:"
+    },
+    {
+      "fingerprint": "bdce40490d174e9c",
+      "kind": "test",
+      "line": 553,
+      "path": "ai_stack/tests/test_god_of_carnage_scene_director_extended.py",
+      "pattern": "\\blegacy_",
+      "text": "assert resolution[\"legacy_keyword_scene_candidates_used\"] is False"
+    },
+    {
+      "fingerprint": "4ca7263ee6e02489",
+      "kind": "test",
+      "line": 1871,
+      "path": "ai_stack/tests/test_god_of_carnage_scene_director_extended.py",
+      "pattern": "\\blegacy_",
+      "text": "assert resolution[\"legacy_keyword_scene_candidates_used\"] is False"
+    },
+    {
+      "fingerprint": "2e7d48afbca8cd6f",
+      "kind": "test",
+      "line": 1902,
+      "path": "ai_stack/tests/test_god_of_carnage_scene_director_extended.py",
+      "pattern": "\\blegacy_",
+      "text": "assert resolution[\"legacy_keyword_scene_candidates_used\"] is False"
+    },
+    {
+      "fingerprint": "4556eeb24ae2eb68",
+      "kind": "test",
+      "line": 309,
+      "path": "ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert \"point\" not in step, f\"{step_path.name} still uses legacy descriptive point block\""
+    },
+    {
+      "fingerprint": "c5c61e52308ee551",
+      "kind": "test",
+      "line": 13,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- ``where_summary.location_changed`` mirrors the legacy"
+    },
+    {
+      "fingerprint": "cc36da8a0cc102de",
+      "kind": "test",
+      "line": 733,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# the legacy transition flag that prev != current => location_changed True."
+    },
+    {
+      "fingerprint": "1930fcc4815ab723",
+      "kind": "test",
+      "line": 736,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_transition_location_changed = True"
+    },
+    {
+      "fingerprint": "acbf287381d87eba",
+      "kind": "test",
+      "line": 738,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy_",
+      "text": "assert proj.where_summary[\"location_changed\"] == legacy_transition_location_changed"
+    },
+    {
+      "fingerprint": "e93cb7887211ead8",
+      "kind": "test",
+      "line": 501,
+      "path": "ai_stack/tests/test_w5_actor_tracking_validation.py",
+      "pattern": "\\blegacy_",
+      "text": "assert outcome[\"w5_validation\"][\"w5_validation_source\"] == \"legacy_fallback\""
+    },
+    {
+      "fingerprint": "0eb839738f881ba1",
+      "kind": "test",
+      "line": 515,
+      "path": "ai_stack/tests/test_w5_actor_tracking_validation.py",
+      "pattern": "\\blegacy_",
+      "text": "assert outcome[\"w5_validation\"][\"w5_validation_source\"] == \"legacy_fallback\""
+    },
+    {
+      "fingerprint": "6dff2fdf0e40b19a",
+      "kind": "code",
+      "line": 23,
+      "path": "tools/mcp_server/call_tool_result.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Extract inner tool dict from ``CallToolResult``; support legacy bare dict.\"\"\""
+    },
+    {
+      "fingerprint": "b8d9d52df2617ae1",
+      "kind": "docs",
+      "line": 255,
+      "path": "tools/mcp_server/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy `permission` is compatibility metadata only; policy enforcement is class/profile-based"
+    },
+    {
+      "fingerprint": "b3f0c9d15644b919",
+      "kind": "code",
+      "line": 52,
+      "path": "tools/mcp_server/tools_registry.py",
+      "pattern": "_legacy\\b",
+      "text": "\"\"\"Tool metadata: canonical strand + handler (permission_legacy for older clients).\"\"\""
+    },
+    {
+      "fingerprint": "5cda3e086688ae6e",
+      "kind": "code",
+      "line": 69,
+      "path": "tools/mcp_server/tools_registry.py",
+      "pattern": "_legacy\\b",
+      "text": "self.permission = descriptor.permission_legacy"
+    },
+    {
+      "fingerprint": "9fcf015e889ecfb9",
+      "kind": "code",
+      "line": 128,
+      "path": "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Map legacy evaluator labels to current rubric tokens (case-insensitive).\"\"\""
+    },
+    {
+      "fingerprint": "3ed8196b133d1e8f",
+      "kind": "test",
+      "line": 41,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert health_tool.descriptor.permission_legacy == \"read\""
+    },
+    {
+      "fingerprint": "e6fc18e8fdbfc1c9",
+      "kind": "test",
+      "line": 46,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert session_get.descriptor.permission_legacy == \"read\""
+    },
+    {
+      "fingerprint": "519c041a561cb2a4",
+      "kind": "test",
+      "line": 52,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert session_create.descriptor.permission_legacy == \"write\""
+    },
+    {
+      "fingerprint": "a84455a95b511e53",
+      "kind": "test",
+      "line": 43,
+      "path": "tools/mcp_server/tests/test_tools_registry_aliases.py",
+      "pattern": "_legacy\\b",
+      "text": "permission_legacy=\"read\","
+    },
+    {
+      "fingerprint": "345dd5fcd3f0fa7a",
+      "kind": "docs",
+      "line": 10,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `ai_stack/god_of_carnage_scene_identity.py` is the sole legacy-compatible definition"
+    },
+    {
+      "fingerprint": "96753d755c1c0701",
+      "kind": "docs",
+      "line": 43,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\blegacy\\b",
+      "text": "2. **Single owned compatibility resolver:** [`ai_stack/god_of_carnage_scene_identity.py`](../../ai_stack/god_of_carnage_scene_identity.py) is the only place that defines legacy runtime `scene_id` -> phase-policy guidance keys and guidance-p"
+    },
+    {
+      "fingerprint": "4c0fcb50f2ec2ef6",
+      "kind": "docs",
+      "line": 71,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "M[god_of_carnage_scene_identity.py \u2014 compatibility resolver]"
+    },
+    {
+      "fingerprint": "00712a6a578a67b9",
+      "kind": "docs",
+      "line": 42,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy is not active compatibility: if the current system still requires the behavior, preserve it and canonicalize the name or contract instead of deleting it."
+    },
+    {
+      "fingerprint": "a67128586e62c048",
+      "kind": "docs",
+      "line": 43,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- UI, route, test, docs, diagnostics, compatibility aliases, and hidden compatibility blocks are residue until removed or reclassified as active canonical behavior with evidence."
+    },
+    {
+      "fingerprint": "d46df9e91aa27aa1",
+      "kind": "docs",
+      "line": 205,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` no longer imports legacy keyword scene"
+    }
+  ],
+  "unregistered_count": 69
+}

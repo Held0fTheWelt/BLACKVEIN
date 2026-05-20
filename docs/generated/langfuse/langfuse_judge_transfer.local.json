@@ -82,7 +82,7 @@
         "opening_turn": true,
         "turn_number": 0
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "world-engine.session.create"
       ],
       "langfuse_filter_group": "opening_generation",
@@ -212,7 +212,7 @@
         "opening_turn": true,
         "turn_number": 0
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "world-engine.session.create"
       ],
       "langfuse_filter_group": "opening_generation",
@@ -341,7 +341,7 @@
         "opening_turn": true,
         "turn_number": 0
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "world-engine.session.create"
       ],
       "langfuse_filter_group": "opening_generation",
@@ -468,7 +468,7 @@
         "opening_turn": true,
         "turn_number": 0
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "world-engine.session.create"
       ],
       "langfuse_filter_group": "opening_generation",
@@ -596,7 +596,7 @@
         "opening_turn": true,
         "turn_number": 0
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "world-engine.session.create"
       ],
       "langfuse_filter_group": "opening_generation",
@@ -725,7 +725,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -854,7 +854,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -982,7 +982,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1109,7 +1109,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1237,7 +1237,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1364,7 +1364,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1492,7 +1492,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1630,7 +1630,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1758,7 +1758,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -1886,7 +1886,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2015,7 +2015,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2147,7 +2147,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2282,7 +2282,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2417,7 +2417,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2551,7 +2551,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2685,7 +2685,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2819,7 +2819,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -2954,7 +2954,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -3088,7 +3088,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",
@@ -3222,7 +3222,7 @@
         "canonical_player_flow": true,
         "opening_turn": false
       },
-      "legacy_trace_names": [
+      "alternate_trace_names": [
         "backend.turn.execute"
       ],
       "langfuse_filter_group": "turn_generation",

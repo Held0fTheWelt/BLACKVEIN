@@ -17,7 +17,7 @@ import secrets  # Import the secrets module
 # BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "http://127.0.0.1:5000").rstrip("/") # LOCALHOST
 BACKEND_API_URL = os.environ.get("BACKEND_API_URL", "https://held0fthewelt.pythonanywhere.com").rstrip("/")
 # Optional overrides for operator UI (narrative governance, world-engine console, game content editor).
-# Prefer backend site_settings keys default_content_module_id / default_experience_template_id (database).
+# Prefer backend site_settings keys content_module_id / default_runtime_template_id.
 # Env ADMIN_DEFAULT_* overrides DB for deployments that need a fixed operator default without changing site_settings.
 SUPPORTED_LANGUAGES = ["de", "en"]
 DEFAULT_LANGUAGE = "de"
@@ -119,13 +119,9 @@ def _fetch_operator_defaults_from_backend_public_settings(backend_base: str) -> 
         return "", ""
     if not isinstance(data, dict):
         return "", ""
-    mod = str(
-        data.get("content_module_id") or data.get("default_content_module_id") or ""
-    ).strip()
+    mod = str(data.get("content_module_id") or "").strip()
     tpl = str(
-        data.get("default_runtime_template_id")
-        or data.get("default_experience_template_id")
-        or ""
+        data.get("default_runtime_template_id") or ""
     ).strip()
     return mod, tpl
 
@@ -146,7 +142,7 @@ def _cached_operator_defaults_from_backend(backend_base: str) -> tuple[str, str]
 def inject_config():
     """Expose backend URL, frontend config, current language, and UI translations to all templates.
 
-    This is defined at module level for backward compatibility and can be used
+    This is defined at module level for module-level reuse and can be used
     both as a context processor and as a standalone function.
     """
     from flask import current_app
@@ -334,7 +330,7 @@ def create_app(test_config=None):
 
 
 # Create global app instance for module-level access and WSGI servers.
-# This global app export is provided for WSGI server compatibility (e.g., gunicorn, uWSGI).
+# This global app export is provided for WSGI server support (e.g., gunicorn, uWSGI).
 # For testing and new code, prefer the create_app() factory function above for better
 # testability, determinism, and control over app configuration. The factory function allows
 # creating multiple isolated app instances with custom configurations without module reloading.

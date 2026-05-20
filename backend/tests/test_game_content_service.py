@@ -100,7 +100,7 @@ class TestGameContentService:
             assert "canonical_compilation" in (rows[0].payload_json or {})
             assert rows[0].content_lifecycle == CONTENT_LIFECYCLE_PUBLISHED
 
-    def test_seed_recovers_legacy_table_without_governance_columns(self, app):
+    def test_seed_recovers_template_table_without_governance_columns(self, app):
         with app.app_context():
             db.session.execute(text("DROP TABLE IF EXISTS game_experience_templates"))
             db.session.execute(

@@ -355,7 +355,7 @@ def _dramatic_gate_outcome(
                 player_action_frame=player_action_frame,
                 affordance_resolution=affordance_resolution,
             )
-        if gate_out.legacy_fallback_used and gate_out.rejection_reasons:
+        if gate_out.structural_fallback_used and gate_out.rejection_reasons:
             reason = gate_out.rejection_reasons[0]
         else:
             reason = validation_reason_for_outcome(gate_out) or "dramatic_effect_reject_unknown"

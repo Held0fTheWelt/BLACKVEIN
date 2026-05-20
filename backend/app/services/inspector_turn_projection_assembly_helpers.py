@@ -236,8 +236,8 @@ def build_decision_trace_data(
             "scene_director_selection_source"
         ),
         "planner_rationale_codes": observability_path_summary.get("planner_rationale_codes"),
-        "legacy_keyword_scene_candidates_used": observability_path_summary.get(
-            "legacy_keyword_scene_candidates_used"
+        "keyword_scene_candidates_used": observability_path_summary.get(
+            "keyword_scene_candidates_used"
         ),
         "npc_narrated_player_action_violation": observability_path_summary.get(
             "npc_narrated_player_action_violation"
@@ -337,10 +337,10 @@ def build_validation_projection_data(
         "scene_director_selection_source": canonical_record.get("scene_director_selection_source")
         or path_summary.get("scene_director_selection_source"),
         "planner_rationale_codes": planner_rationale,
-        "legacy_keyword_scene_candidates_used": (
-            canonical_record.get("legacy_keyword_scene_candidates_used")
-            if canonical_record.get("legacy_keyword_scene_candidates_used") is not None
-            else path_summary.get("legacy_keyword_scene_candidates_used")
+        "keyword_scene_candidates_used": (
+            canonical_record.get("keyword_scene_candidates_used")
+            if canonical_record.get("keyword_scene_candidates_used") is not None
+            else path_summary.get("keyword_scene_candidates_used")
         ),
         "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
         "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
@@ -417,9 +417,9 @@ def build_fallback_projection_data(
         "routing_fallback_chain": routing.get("fallback_chain"),
         "routing_fallback_stage_reached": routing.get("fallback_stage_reached"),
         "model_fallback_used": generation.get("fallback_used"),
-        "legacy_fallback_used": gate_outcome.get("legacy_fallback_used"),
-        "legacy_fallback_reason": (
-            gate_outcome.get("legacy_fallback_reason") or gate_outcome.get("legacy_fallback_rationale")
+        "structural_fallback_used": gate_outcome.get("structural_fallback_used"),
+        "structural_fallback_reason": (
+            gate_outcome.get("structural_fallback_reason") or gate_outcome.get("structural_fallback_rationale")
         ),
     }
 

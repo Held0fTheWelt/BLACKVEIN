@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "ds_id": "DS-006",
+  "slug": "repo_governance_rollout",
+  "session_date": "20260520",
+  "completed_wave_ids": ["w01"],
+  "next_index": 2,
+  "sub_waves": [
+    {
+      "index": 1,
+      "id": "w01",
+      "goal": "Align despaghettify scan scope with the fixed product-code roots from spaghetti-check-task and prove vendored/generated environment trees no longer drive the latest metrics.",
+      "primary_paths": [
+        "fy-manifest.yaml",
+        "'fy'-suites/despaghettify/despaghettification_implementation_input.md",
+        "'fy'-suites/despaghettify/reports/latest_check_with_metrics.json"
+      ],
+      "gate_commands": [
+        "PYTHONPATH=\"'fy'-suites\" python -m despaghettify.tools.hub_cli wave-plan-validate --file \"'fy'-suites/despaghettify/state/artifacts/workstreams/repo_governance_rollout/pre/session_20260520_DS-006_wave_plan.json\" --check-primary-paths",
+        "PYTHONPATH=\"'fy'-suites\" python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\"",
+        "PYTHONPATH=\"'fy'-suites\" python \"'fy'-suites/despaghettify/tools/spaghetti_ast_scan.py\""
+      ]
+    }
+  ]
+}

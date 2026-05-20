@@ -191,9 +191,9 @@
     <thead><tr><th>Flow</th><th>Credential</th><th>Mutationen</th><th>Schutzentscheidung</th><th>Testbeleg</th></tr></thead>
     <tbody>
       <tr>
-        <td>Backend Legacy Web Routes</td>
+        <td>Backend Web Routes</td>
         <td>Backend <code>session</code>-Cookie</td>
-        <td><code>POST /logout</code>, Legacy-Redirect-POSTs</td>
+        <td><code>POST /logout</code>, Redirect-POSTs</td>
         <td>Globaler Flask-WTF-CSRF-Schutz greift, sobald <code>WTF_CSRF_ENABLED=True</code> ist.</td>
         <td><code>backend/tests/test_csrf_protection.py</code></td>
       </tr>

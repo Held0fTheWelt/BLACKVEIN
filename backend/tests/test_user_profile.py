@@ -517,7 +517,7 @@ def _api_perf_budget_ms() -> int:
         return int(raw)
     if os.environ.get("CI", "").lower() in ("1", "true", "yes"):
         return 5000
-    # Local dev / Windows laptops: slightly higher than legacy 1500ms to reduce flakes unrelated
+    # Local dev / Windows laptops: slightly higher than the old 1500ms to reduce flakes unrelated
     # to correctness (e.g. cold SQLite, HF governance probes); override via WOS_API_PERF_BUDGET_MS.
     return 2500
 

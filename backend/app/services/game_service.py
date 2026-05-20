@@ -101,7 +101,7 @@ def _parse_run_details_v1(payload: object, *, requested_run_id: str) -> dict:
 
 
 def _parse_terminate_v1(payload: object, *, requested_run_id: str) -> dict:
-    """Validate terminate envelope V1 (no legacy status-only success)."""
+    """Validate terminate envelope V1 (status-only success is not accepted)."""
     if not isinstance(payload, dict):
         raise _unexpected("terminate")
     if payload.get("terminated") is not True:

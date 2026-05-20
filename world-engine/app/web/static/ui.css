@@ -875,7 +875,7 @@ a { color: var(--primary-hover); }
 .ui-banner-ok::before { background: var(--success); }
 
 /* -----------------------------------------------------------------------------
-   Embed (legacy simulator iframes) — match card chrome.
+   Embed (runtime simulator iframes) — match card chrome.
    ----------------------------------------------------------------------------- */
 
 .ui-embed-card { padding: 0.65rem; }

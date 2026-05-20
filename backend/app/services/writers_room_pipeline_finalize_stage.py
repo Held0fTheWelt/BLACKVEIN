@@ -8,7 +8,7 @@ from app.runtime.model_routing_contracts import AdapterModelSpec
 from app.services.writers_room_pipeline_finalize_audits import build_finalize_audits_and_governance_truth
 from app.services.writers_room_pipeline_finalize_package_out import (
     build_finalize_package_out,
-    build_langchain_preview_and_legacy_notices,
+    build_langchain_preview,
 )
 from app.services.writers_room_pipeline_manifest import _writers_room_artifact_manifest
 
@@ -47,7 +47,7 @@ def run_writers_room_finalize_stage(
         evidence_tag=evidence_tag,
         evidence_paths=evidence_paths,
     )
-    lc_preview, legacy_notice = build_langchain_preview_and_legacy_notices(
+    lc_preview = build_langchain_preview(
         module_id=module_id,
         langchain_documents=langchain_documents,
         langchain_preview_paths=langchain_preview_paths,
@@ -73,7 +73,6 @@ def run_writers_room_finalize_stage(
         operator_audit_wr=operator_audit_wr,
         gov_truth=gov_truth,
         lc_preview=lc_preview,
-        legacy_notice=legacy_notice,
     )
     package_out["writers_room_artifact_manifest"] = _writers_room_artifact_manifest(package_out)
     return package_out

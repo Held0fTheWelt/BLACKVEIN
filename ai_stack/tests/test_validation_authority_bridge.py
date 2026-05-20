@@ -451,7 +451,7 @@ def test_scoped_co_authority_decision_when_flagged_and_partial_transfer_ready(mo
     assert {row["concern_id"] for row in decision["concern_decisions"]} == set(decision["scope"])
     assert decision["readiness_preview"]["status"] == "ready_for_scoped_co_authority"
     assert decision["validation_preview"]["status"] == "ready_for_validation_co_authority"
-    assert decision["legacy_fallback_authority"] == "run_validation_seam"
+    assert decision["structural_fallback_authority"] == "run_validation_seam"
     assert decision["dramatic_effect_mirror_fidelity_sufficient"] is True
     assert decision["affects_commit"] is False
     assert decision["affects_readiness"] is False

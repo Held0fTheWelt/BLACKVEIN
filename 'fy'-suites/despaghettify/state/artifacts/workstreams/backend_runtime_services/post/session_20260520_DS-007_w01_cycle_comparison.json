@@ -1,0 +1,45 @@
+{
+  "ds_id": "DS-007",
+  "sub_wave": "w01",
+  "kind": "post_cycle_comparison",
+  "before": {
+    "c1_files_in_cycles": 22,
+    "c1_import_graph_files": 393,
+    "c1_files_in_import_cycles_pct": 5.598
+  },
+  "after": {
+    "generated_at_utc": "2026-05-20T18:57:34Z",
+    "c1_files_in_cycles": 6,
+    "c1_import_graph_files": 395,
+    "c1_files_in_import_cycles_pct": 1.519,
+    "c1_bar_pct": 2,
+    "c1_trigger_fires": false
+  },
+  "remaining_cycle_components": [
+    "backend/app/runtime/narrative_threads.py + narrative_threads_update_from_commit*",
+    "backend/app/services/game_service.py + governance_runtime_service.py"
+  ],
+  "gates": [
+    {
+      "command": "wave-plan-validate --check-primary-paths",
+      "exit_code": 0
+    },
+    {
+      "command": "ds005_runtime_import_check.py",
+      "exit_code": 0
+    },
+    {
+      "command": "check --with-metrics",
+      "exit_code": 0
+    },
+    {
+      "command": "spaghetti_ast_scan.py",
+      "exit_code": 0
+    },
+    {
+      "command": "pytest backend/tests/test_feature_access_resolver.py backend/tests/runtime/test_scene_presenter.py backend/tests/runtime/test_relationship_context.py backend/tests/runtime/test_runtime_ai_stages_contracts.py -q --tb=short",
+      "exit_code": 0,
+      "summary": "73 passed"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-008",
+  "wave_id": "w02",
+  "session_date": "20260520",
+  "workstream": "ai_stack",
+  "pre": {
+    "primary_symbol": "_validate_seam",
+    "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "source_lines_after_w01": 500,
+    "nest_depth_after_w01": 16
+  },
+  "post": {
+    "primary_symbol": "_validate_seam",
+    "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "source_lines": 231,
+    "extracted_helpers": [
+      "run_runtime_validation_seam",
+      "build_validation_retry_feedback",
+      "build_retry_attempt_record_update",
+      "copy_validation_eval_to_update"
+    ],
+    "formal_scan_generated_at_utc": "2026-05-20T19:32:19Z",
+    "total_functions": 10731,
+    "total_python_files": 1151,
+    "count_over_50_lines": 857,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 25,
+    "top_longest_contains_primary_symbol": false,
+    "top_nesting_contains_primary_symbol": false
+  },
+  "gates": [
+    {
+      "command": "python -m compileall -q ai_stack/langgraph",
+      "status": "passed"
+    },
+    {
+      "command": "pytest ai_stack/tests/test_langgraph_runtime.py ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short",
+      "status": "passed",
+      "summary": "51 passed"
+    },
+    {
+      "command": "python tests/run_tests.py --suite ai_stack_graph ai_stack_narrative ai_stack_quality --quick",
+      "status": "passed",
+      "summary": "ai_stack_graph 260 passed; ai_stack_narrative 880 passed; ai_stack_quality 502 passed, 1 skipped"
+    },
+    {
+      "command": "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\"",
+      "status": "passed",
+      "report_generated_at_utc": "2026-05-20T19:32:19Z"
+    }
+  ],
+  "residual_follow_up": [
+    "ai_stack/langgraph/langgraph_runtime_executor.py:_build_dramatic_generation_packet",
+    "ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context",
+    "ai_stack/langgraph/langgraph_runtime_executor.py:_interpret_input",
+    "ai_stack/langgraph/langgraph_runtime_executor.py:_resolve_player_action"
+  ]
+}

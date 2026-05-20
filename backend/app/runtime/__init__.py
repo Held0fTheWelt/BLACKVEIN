@@ -7,7 +7,7 @@ This package mixes three kinds of code (see ``docs/technical/architecture/backen
 2. **Deprecated transitional** — In-process ``SessionState`` turn pipeline, in-memory
    session registry, and ``RuntimeManager``/``RuntimeEngine`` (tests and operator
    tooling only). **Not** equivalent to the World Engine live runtime.
-3. **Removed legacy** — Former ``app.api.http`` FastAPI shadow play API and
+3. **Removed components** — Former ``app.api.http`` FastAPI shadow play API and
    ``w2_models`` shim (deleted in Block 2).
 
 **Authoritative live runs** execute in the **World Engine** play service; the Flask

@@ -1,4 +1,4 @@
-"""Central feature access resolver: tier rules, parity with legacy expectations, /auth/me alignment."""
+"""Central feature access resolver: tier rules, prior expectations, /auth/me alignment."""
 
 from __future__ import annotations
 

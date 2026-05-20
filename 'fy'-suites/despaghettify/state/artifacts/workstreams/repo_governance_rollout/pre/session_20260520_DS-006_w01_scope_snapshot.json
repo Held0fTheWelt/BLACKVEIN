@@ -1,0 +1,31 @@
+{
+  "ds_id": "DS-006",
+  "sub_wave": "w01",
+  "kind": "pre_scope_snapshot",
+  "scan_roots_before": [
+    "backend",
+    "world-engine",
+    "ai_stack",
+    "story_runtime_core",
+    "frontend",
+    "writers-room"
+  ],
+  "intended_scan_roots": [
+    "backend/app",
+    "world-engine/app",
+    "ai_stack",
+    "story_runtime_core",
+    "tools/mcp_server",
+    "administration-tool"
+  ],
+  "latest_metrics_before": {
+    "generated_at_utc": "2026-05-20T17:54:46Z",
+    "m7_anteil": 6.5004,
+    "m7_ref": 4.24,
+    "total_functions": 20859,
+    "long_functions_gt_50": 1365,
+    "long_functions_gt_100": 379,
+    "nesting_ge_6": 58,
+    "vendored_leader_present": true
+  }
+}

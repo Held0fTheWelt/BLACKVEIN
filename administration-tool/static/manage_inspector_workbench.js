@@ -313,7 +313,6 @@
 
   function renderGatePanels(gateSection) {
     var gdata = extractData(gateSection) || {};
-    var legacy = gdata.legacy_compatibility_summary;
 
     renderKeyValueGrid(
       "inspector-gate-outcome-grid",
@@ -323,7 +322,6 @@
         gate_result: gdata.gate_result,
         rejection_reasons: gdata.rejection_reasons,
         effect_rationale_codes: gdata.effect_rationale_codes,
-        legacy_fallback_used: gdata.legacy_fallback_used,
       },
       "No gate projection loaded."
     );
@@ -348,15 +346,6 @@
       );
     } else {
       renderKeyValueGrid("inspector-gate-posture-grid", posture, "No gate posture loaded.");
-    }
-
-    var leg = byId("inspector-gate-legacy-block");
-    if (leg) {
-      if (legacy && typeof legacy === "object" && Object.keys(legacy).length) {
-        leg.innerHTML = kvGridInnerHtml(legacy);
-      } else {
-        leg.innerHTML = '<p class="manage-empty">No legacy compatibility fields.</p>';
-      }
     }
   }
 
@@ -484,7 +473,6 @@
       "Continuity support posture distribution",
       dist.continuity_support_posture_distribution
     );
-    html += renderDistributionBlock("Legacy fallback used distribution", dist.legacy_fallback_used_distribution);
     html += renderDistributionBlock(
       "Dramatic effect weak signal distribution",
       dist.dramatic_effect_weak_signal_distribution
@@ -492,10 +480,6 @@
     html += renderDistributionBlock(
       "Semantic planner support level distribution",
       dist.semantic_planner_support_level_distribution
-    );
-    html += renderDistributionBlock(
-      "Legacy dominant rejection category distribution",
-      dist.legacy_dominant_rejection_category_distribution
     );
     html += renderDistributionBlock(
       "Unsupported / unavailable frequency",
@@ -597,7 +581,6 @@
         { key: "continuity_support_posture", label: "Continuity support" },
         { key: "continues_or_changes_pressure", label: "Continues/changes pressure" },
         { key: "supports_scene_function", label: "Supports scene fn" },
-        { key: "legacy_fallback_used", label: "Legacy fallback" },
         { key: "accepted_weak_signal", label: "Weak-signal accept" },
         { key: "dramatic_effect_weak_signal", label: "Weak signal (validation)" },
         { key: "validation_status", label: "Validation" },
@@ -721,8 +704,6 @@
         { key: "character_plausibility_posture_to", label: "Plaus. (to)" },
         { key: "continuity_support_posture_from", label: "Continuity (from)" },
         { key: "continuity_support_posture_to", label: "Continuity (to)" },
-        { key: "legacy_fallback_used_from", label: "Legacy fb (from)" },
-        { key: "legacy_fallback_used_to", label: "Legacy fb (to)" },
         { key: "semantic_move_type_from", label: "Move (from)" },
         { key: "semantic_move_type_to", label: "Move (to)" },
         { key: "scene_risk_band_from", label: "Risk (from)" },

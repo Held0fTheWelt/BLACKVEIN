@@ -71,7 +71,7 @@ def test_build_validation_projection_data_includes_observability_contract_flags(
         "semantic_move_alignment_pass": 1,
         "npc_action_narration_boundary_pass": 1,
         "planner_rationale_codes": ["player_perception_requires_environmental_feedback"],
-        "legacy_keyword_scene_candidates_used": False,
+        "keyword_scene_candidates_used": False,
     }
     out = build_validation_projection_data(validation, canonical, path_summary)
     assert out["semantic_move_kind"] == "observe"
@@ -82,7 +82,7 @@ def test_build_validation_projection_data_includes_observability_contract_flags(
     assert out["subtext_sincerity_band"] == rule["sincerity_band"]
     assert out["subtext_policy_rule_id"] == "probe_inquiry"
     assert out["planner_rationale_codes"] == ["player_perception_requires_environmental_feedback"]
-    assert out["legacy_keyword_scene_candidates_used"] is False
+    assert out["keyword_scene_candidates_used"] is False
     assert out["intent_surface_contract_pass"] == 1
     assert out["subtext_contract_pass"] == 1
     assert out["player_input_attribution_pass"] == 1

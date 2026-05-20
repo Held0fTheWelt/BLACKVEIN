@@ -25,6 +25,7 @@ def _print_help() -> None:
         "  scan            Scan for legacy surfaces.\n"
         "  new             Print unregistered scan hits.\n"
         "  register        Register one scan hit as reported.\n"
+        "  register-batch  Register all unregistered scan hits.\n"
         "  approve         Mark a finding approved for removal.\n"
         "  mark-removed    Mark an approved finding removed after verification.\n"
         "  check           Gate: no unregistered hits and no removed residue.\n"
@@ -69,6 +70,34 @@ def cmd_register(args: argparse.Namespace) -> int:
     row = register_hit(registry, hit, title=args.title, reported_to=args.reported_to or "")
     save_registry(path, registry)
     print(json.dumps(row, indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_register_batch(args: argparse.Namespace) -> int:
+    root = repo_root(start=Path.cwd())
+    path = registry_path(root)
+    registry = load_registry(path)
+    payload = _load_scan(Path(args.scan_json))
+    known = registered_fingerprints(registry)
+    registered: list[dict[str, object]] = []
+    approved: list[str] = []
+    for hit in payload.get("hits", []):
+        if not isinstance(hit, dict) or hit.get("fingerprint") in known:
+            continue
+        title = "{prefix}: {kind} {path}:{line}".format(
+            prefix=args.title_prefix,
+            kind=hit.get("kind") or "unknown",
+            path=hit.get("path") or "",
+            line=hit.get("line") or "",
+        )
+        row = register_hit(registry, hit, title=title, reported_to=args.reported_to or "")
+        known.add(str(row.get("fingerprint") or ""))
+        registered.append(row)
+        if args.approve:
+            approve(registry, str(row["id"]), approved_by=args.approved_by, note=args.note)
+            approved.append(str(row["id"]))
+    save_registry(path, registry)
+    print(json.dumps({"registered_count": len(registered), "approved_count": len(approved)}, indent=2, sort_keys=True))
     return 0
 
 
@@ -184,6 +213,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_reg.add_argument("--fingerprint", required=True)
     p_reg.add_argument("--title", required=True)
     p_reg.add_argument("--reported-to", default="")
+    p_reg_batch = sub.add_parser("register-batch")
+    p_reg_batch.add_argument("--scan-json", required=True)
+    p_reg_batch.add_argument("--title-prefix", default="Legacy removal candidate")
+    p_reg_batch.add_argument("--reported-to", default="")
+    p_reg_batch.add_argument("--approve", action="store_true")
+    p_reg_batch.add_argument("--approved-by", default="user-request")
+    p_reg_batch.add_argument("--note", default="Approved by explicit removal request.")
     p_ap = sub.add_parser("approve")
     p_ap.add_argument("--id", required=True)
     p_ap.add_argument("--approved-by", required=True)

@@ -7,6 +7,7 @@ It does **not** delete code. It gives the repo a repeatable path for:
 - scanning for legacy surfaces in code, docs, tests, routes, and UI files;
 - registering every newly found legacy item before removal work starts;
 - recording the required discussion / approval state;
+- separating true legacy residue from active canonical behavior with outdated names;
 - verifying that removed items no longer remain in code or UI surfaces;
 - exporting a human-readable tracker for reviews and ADR updates.
 
@@ -28,6 +29,11 @@ into the readable working document for review: summary, gate status, scope
 warnings, top hit files, first unregistered findings, UI residue examples, and
 the required removal rules.
 
+The current execution plan lives at
+`reports/legacy_removal_execution_plan.md`. It sequences removal into guarded
+waves so legacy residue is removed completely without breaking active runtime,
+UI, API, docs, or tests.
+
 After editable install, use `delagecy ...`.
 
 ## Hard rules
@@ -36,7 +42,8 @@ After editable install, use `delagecy ...`.
 2. Removal requires an explicit approval entry in the registry.
 3. Problems, ambiguity, ownership conflicts, or integrity risk must be discussed with the user; the tool records blockers but does not auto-resolve them.
 4. A removal is not done until code, docs, tests, routes, and UI surfaces are clean.
-5. Redirects, compatibility aliases, hidden UI blocks, diagnostics fields, and tests count as residue unless explicitly retained.
+5. Legacy is not active compatibility. If a surface is still required by the current system, preserve the behavior and canonicalize the name/contract instead of deleting it.
+6. Redirects, compatibility aliases, hidden UI blocks, diagnostics fields, and tests count as residue unless they are reclassified as active canonical behavior with explicit evidence.
 
 The active policy ADR is `docs/ADR/adr-0029-residue-removal-policy.md`; `delagecy` is the executable register and gate for that policy.
 

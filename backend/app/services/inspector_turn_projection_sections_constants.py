@@ -8,7 +8,7 @@ COMPARISON_RESERVED_FIELDS: tuple[str, ...] = (
     "coverage_heatmap",
 )
 
-LEGACY_GATE_SUMMARY_KEYS: frozenset[str] = frozenset(
+GATE_SCORE_SUMMARY_KEYS: frozenset[str] = frozenset(
     {
         "dominant_rejection_category",
         "scene_function_mismatch_score",

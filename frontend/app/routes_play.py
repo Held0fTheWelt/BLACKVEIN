@@ -22,10 +22,10 @@ from .auth import require_login
 from .frontend_blueprint import frontend_bp
 
 # Session keys that must be removed from the Flask session cookie.
-# Includes the three orphaned audit-logger keys (removed) and play_shell_backend_sessions,
-# which accumulated one unbounded entry per play session created and blows the 4KB limit.
+# Includes the three orphaned audit-logger keys and play_shell_backend_sessions,
+# which accumulated one unbounded entry per play session and blows the 4KB limit.
 # The per-run response cookie (wos_backend_session_{run_id}) is the canonical store instead.
-_LEGACY_LARGE_SESSION_KEYS = (
+_STALE_LARGE_SESSION_KEYS = (
     "play_shell_runtime_views",
     "play_shell_turn_logs",
     "play_shell_operator_payloads",
@@ -498,10 +498,10 @@ def play_template_to_content_module_id(template_id: str) -> str:
     return _PLAY_TEMPLATE_TO_CONTENT_MODULE_ID.get(tid, tid)
 
 
-def _evict_legacy_large_session_keys() -> None:
+def _evict_stale_large_session_keys() -> None:
     """Pop oversized audit keys left by the old session-storage layer from existing cookies."""
     changed = False
-    for k in _LEGACY_LARGE_SESSION_KEYS:
+    for k in _STALE_LARGE_SESSION_KEYS:
         if k in session:
             session.pop(k)
             changed = True
@@ -677,7 +677,7 @@ def play_create():
 @frontend_bp.route("/play/<session_id>")
 @require_login
 def play_shell(session_id: str):
-    _evict_legacy_large_session_keys()
+    _evict_stale_large_session_keys()
     cookie_key = f"wos_backend_session_{session_id}"
 
     response = player_backend.request_backend("GET", f"/api/v1/game/player-sessions/{session_id}")
@@ -768,7 +768,7 @@ def play_opening(session_id: str):
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "Opening generation returned an invalid response."}), 502
 
-    _evict_legacy_large_session_keys()
+    _evict_stale_large_session_keys()
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
     raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
     story_entries = _normalize_story_entries_for_shell(
@@ -813,7 +813,7 @@ def play_execute(session_id: str):
         flash(err, "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     assert payload is not None
-    _evict_legacy_large_session_keys()
+    _evict_stale_large_session_keys()
 
     interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}

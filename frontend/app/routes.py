@@ -272,7 +272,7 @@ def game_menu():
 
 @frontend_bp.route("/api/v1/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_proxy(subpath: str):
-    """Compatibility proxy so frontend static assets can call /api/v1/* on same origin."""
+    """Same-origin proxy so frontend static assets can call /api/v1/*."""
     path = f"/api/v1/{subpath}"
     payload = request.get_json(silent=True)
     response = player_backend.request_backend(

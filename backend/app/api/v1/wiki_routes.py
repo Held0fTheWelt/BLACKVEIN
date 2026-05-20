@@ -1,4 +1,4 @@
-"""Wiki API: public page by slug; legacy file GET/PUT; wiki-admin in wiki_admin_routes."""
+"""Wiki API: public page by slug; markdown file GET/PUT; wiki-admin in wiki_admin_routes."""
 from pathlib import Path
 
 import markdown

@@ -31,7 +31,7 @@ def _as_string_list(value: Any) -> list[str]:
 
 
 def _derive_scene_phases_from_phase_beat_policy(policy: dict[str, Any]) -> dict[str, Any]:
-    """Compatibility projection from phase_beat_policy into legacy scene_phases."""
+    """Project phase_beat_policy into scene_phases for runtime consumers."""
     phases = policy.get("phases") if isinstance(policy, dict) else None
     if not isinstance(phases, dict):
         return {}
@@ -400,7 +400,7 @@ class ModuleFileLoader:
         #   relationships.yaml:
         #     relationship_axes:
         #       axis_1: {...}
-        #   legacy phase file:
+        #   phase file:
         #     scene_phases:
         #       phase_1: {...}
         #

@@ -129,9 +129,9 @@ def test_silence_mode_missing_mode_key() -> None:
     assert result == "normal"
 
 
-def test_dramatic_alignment_legacy_fallback_withhold_or_evade_too_short() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_withhold_or_evade_too_short() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
         silence_brevity_decision={"mode": "withheld"},
@@ -140,9 +140,9 @@ def test_dramatic_alignment_legacy_fallback_withhold_or_evade_too_short() -> Non
     assert result == "dramatic_alignment_withhold_requires_min_beat"
 
 
-def test_dramatic_alignment_legacy_fallback_withhold_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_withhold_valid() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
         silence_brevity_decision={"mode": "withheld"},
@@ -151,9 +151,9 @@ def test_dramatic_alignment_legacy_fallback_withhold_valid() -> None:
     assert result is None
 
 
-def test_dramatic_alignment_legacy_fallback_withhold_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_withhold_meta_commentary() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
         silence_brevity_decision={"mode": "withheld"},
@@ -162,9 +162,9 @@ def test_dramatic_alignment_legacy_fallback_withhold_meta_commentary() -> None:
     assert result == "dramatic_alignment_meta_commentary"
 
 
-def test_dramatic_alignment_legacy_fallback_thin_insufficient_mass() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_thin_insufficient_mass() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="thin_edge",
         silence_brevity_decision=None,
@@ -173,9 +173,9 @@ def test_dramatic_alignment_legacy_fallback_thin_insufficient_mass() -> None:
     assert result == "dramatic_alignment_insufficient_mass_thin_or_silence"
 
 
-def test_dramatic_alignment_legacy_fallback_brief_mode_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_brief_mode_valid() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
         silence_brevity_decision={"mode": "brief"},
@@ -184,9 +184,9 @@ def test_dramatic_alignment_legacy_fallback_brief_mode_valid() -> None:
     assert result is None
 
 
-def test_dramatic_alignment_legacy_fallback_non_high_stakes_short() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_non_high_stakes_short() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -195,9 +195,9 @@ def test_dramatic_alignment_legacy_fallback_non_high_stakes_short() -> None:
     assert result == "dramatic_alignment_narrative_too_short"
 
 
-def test_dramatic_alignment_legacy_fallback_non_high_stakes_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_non_high_stakes_valid() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -206,9 +206,9 @@ def test_dramatic_alignment_legacy_fallback_non_high_stakes_valid() -> None:
     assert result is None
 
 
-def test_dramatic_alignment_legacy_fallback_high_stakes_insufficient_mass() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_high_stakes_insufficient_mass() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -217,9 +217,9 @@ def test_dramatic_alignment_legacy_fallback_high_stakes_insufficient_mass() -> N
     assert result == "dramatic_alignment_insufficient_mass"
 
 
-def test_dramatic_alignment_legacy_fallback_high_stakes_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_high_stakes_meta_commentary() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -228,9 +228,9 @@ def test_dramatic_alignment_legacy_fallback_high_stakes_meta_commentary() -> Non
     assert result == "dramatic_alignment_meta_commentary"
 
 
-def test_dramatic_alignment_legacy_fallback_high_stakes_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
-    result = dramatic_alignment_legacy_fallback_only(
+def test_dramatic_alignment_structural_fallback_high_stakes_valid() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -239,55 +239,10 @@ def test_dramatic_alignment_legacy_fallback_high_stakes_valid() -> None:
     assert result is None
 
 
-def test_dramatic_alignment_violation_delegates_to_legacy() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_violation
-    result = dramatic_alignment_violation(
-        selected_scene_function="withhold_or_evade",
-        pacing_mode="normal",
-        silence_brevity_decision={"mode": "withheld"},
-        proposed_narrative="x"
-    )
-    assert result == "dramatic_alignment_withhold_requires_min_beat"
-
-
-def test_dramatic_alignment_violation_no_function_support() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_violation
-    result = dramatic_alignment_violation(
-        selected_scene_function="escalate_conflict",
-        pacing_mode="normal",
-        silence_brevity_decision=None,
-        proposed_narrative="This is a reasonably long narrative that talks about things happening in the scene."
-    )
-    assert result == "dramatic_alignment_no_function_support"
-
-
-def test_dramatic_alignment_violation_with_function_support() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_violation
-    result = dramatic_alignment_violation(
-        selected_scene_function="escalate_conflict",
-        pacing_mode="normal",
-        silence_brevity_decision=None,
-        proposed_narrative="They shout and rage furiously against each other in the scene."
-    )
-    assert result is None
-
-
-def test_dramatic_alignment_violation_with_tokens_no_boilerplate() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_violation
-    # escalate_conflict WITH conflict tokens and boilerplate - should pass since tokens present
-    result = dramatic_alignment_violation(
-        selected_scene_function="escalate_conflict",
-        pacing_mode="normal",
-        silence_brevity_decision=None,
-        proposed_narrative="The tension in the air grows as they shout angrily at each other."
-    )
-    assert result is None  # Passes because function tokens override boilerplate check
-
-
-def test_dramatic_alignment_legacy_fallback_non_high_stakes_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_legacy_fallback_only
+def test_dramatic_alignment_structural_fallback_non_high_stakes_meta_commentary() -> None:
+    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     # Test non-high-stakes function with meta-commentary
-    result = dramatic_alignment_legacy_fallback_only(
+    result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
         silence_brevity_decision=None,
@@ -295,15 +250,3 @@ def test_dramatic_alignment_legacy_fallback_non_high_stakes_meta_commentary() ->
     )
     assert result == "dramatic_alignment_meta_commentary"
 
-
-def test_dramatic_alignment_violation_multiple_boilerplate_phrases() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_violation
-    # Test scenario with function tokens matching - multiple boilerplate phrases are skipped
-    result = dramatic_alignment_violation(
-        selected_scene_function="reveal_surface",
-        pacing_mode="normal",
-        silence_brevity_decision=None,
-        proposed_narrative="The tension in the air builds as everyone feels the moment hangs heavy and they finally reveal the truth."
-    )
-    # Should pass because we have the reveal token
-    assert result is None

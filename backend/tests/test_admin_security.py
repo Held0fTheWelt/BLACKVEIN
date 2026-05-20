@@ -387,15 +387,15 @@ class TestSiteSettingsAPI:
             "/api/v1/site/settings",
             headers=admin_headers,
             json={
-                "default_content_module_id": "other_mod",
-                "default_experience_template_id": "other_tpl",
+                "content_module_id": "other_mod",
+                "default_runtime_template_id": "other_tpl",
             },
             content_type="application/json",
         )
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body["default_content_module_id"] == "other_mod"
-        assert body["default_experience_template_id"] == "other_tpl"
+        assert body["content_module_id"] == "other_mod"
+        assert body["default_runtime_template_id"] == "other_tpl"
 
     def test_dashboard_site_settings_put_accepts_canonical_operator_field_names(self, app, client, admin_headers):
         resp = client.put(
@@ -411,26 +411,24 @@ class TestSiteSettingsAPI:
         body = resp.get_json()
         assert body["content_module_id"] == "canon_mod"
         assert body["default_runtime_template_id"] == "canon_tpl"
-        assert body["default_content_module_id"] == "canon_mod"
-        assert body["default_experience_template_id"] == "canon_tpl"
 
     def test_dashboard_site_settings_put_ignores_invalid_operator_ids(self, app, client, admin_headers):
         r0 = client.put(
             "/api/v1/site/settings",
             headers=admin_headers,
-            json={"default_content_module_id": "stable_mod"},
+            json={"content_module_id": "stable_mod"},
             content_type="application/json",
         )
         assert r0.status_code == 200
         resp = client.put(
             "/api/v1/site/settings",
             headers=admin_headers,
-            json={"default_content_module_id": "bad id spaces"},
+            json={"content_module_id": "bad id spaces"},
             content_type="application/json",
         )
         assert resp.status_code == 200
         body = resp.get_json()
-        assert body["default_content_module_id"] == "stable_mod"
+        assert body["content_module_id"] == "stable_mod"
 
 
 # ======================= DATA EXPORT/IMPORT TESTS =======================

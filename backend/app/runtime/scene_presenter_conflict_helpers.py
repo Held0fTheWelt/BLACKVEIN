@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.runtime_models import SessionState
-from app.runtime.scene_presenter import ConflictTrendSignal
+from app.runtime.scene_presenter_conflict_models import ConflictTrendSignal
 
 
 def resolve_conflict_pressure(session_state: SessionState) -> Any:
