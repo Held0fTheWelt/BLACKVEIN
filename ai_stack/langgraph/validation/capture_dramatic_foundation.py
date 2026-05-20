@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .contracts import _RuntimeAspectBuild
 from .dependencies import *
-from .state_access import _record_validation
+from .state_access import _record_validation, _state_dict
 
 def _capture_scene_energy(ctx: _RuntimeAspectBuild) -> None:
     target = _state_dict(ctx, "scene_energy_target")

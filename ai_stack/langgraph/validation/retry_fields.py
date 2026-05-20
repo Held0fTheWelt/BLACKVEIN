@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 _RETRY_FAILURE_FIELDS = (
-    ("authority_failure", "runtime_aspect_failure_before_retry"),
+    ("runtime_aspect_failure", "runtime_aspect_failure_before_retry"),
     ("capability_failure", "capability_failure_before_retry"),
     ("scene_energy_failure", "scene_energy_failure_before_retry"),
     ("pacing_rhythm_failure", "pacing_rhythm_failure_before_retry"),
@@ -34,6 +34,7 @@ _ATTEMPT_RECORD_FEEDBACK_KEYS = (
 )
 
 _RETRY_TRIGGER_SOURCES = (
+    ("runtime_aspect_failure", "runtime_aspect"),
     ("authority_failure", "runtime_aspect"),
     ("capability_failure", "capability"),
     ("scene_energy_failure", "scene_energy"),

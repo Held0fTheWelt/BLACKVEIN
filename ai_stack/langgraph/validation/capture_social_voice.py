@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .contracts import _RuntimeAspectBuild
 from .dependencies import *
-from .state_access import _record_validation
+from .state_access import _record_validation, _state_dict
 
 def _capture_social_pressure(ctx: _RuntimeAspectBuild) -> None:
     state_record = _state_dict(ctx, "social_pressure_state")

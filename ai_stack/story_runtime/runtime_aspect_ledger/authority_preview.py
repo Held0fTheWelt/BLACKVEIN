@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from ai_stack.capabilities.capability_selector import validate_semantic_capability_name
 from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     ValidatorRegistry,

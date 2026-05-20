@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .contracts import _RuntimeAspectBuild
 from .dependencies import *
-from .state_access import _record_validation, _state_dict_or_empty
+from .state_access import _record_validation, _state_dict, _state_dict_or_empty
 
 def _capture_meta_narrative(ctx: _RuntimeAspectBuild) -> None:
     target = _state_dict(ctx, "meta_narrative_awareness_target")

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from .contracts import _RuntimeAspectBuild
 from .dependencies import *
-from .capability_status import _capability_selection_aspect_record
+from .capability_status import _capability_selection_aspect_record, _capability_status_bits
+from .state_access import _state_dict, _state_dict_or_empty
 
 def _capture_capability_selection(ctx: _RuntimeAspectBuild) -> None:
     selection = build_capability_selection_record(
