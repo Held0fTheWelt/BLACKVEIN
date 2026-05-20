@@ -32,7 +32,7 @@ import re
 
 import pytest
 
-from ai_stack.canonical_path_hold_effect_contracts import (
+from ai_stack.canonical_path.canonical_path_hold_effect_contracts import (
     EFFECT_KIND_HOLD_CURRENT_STEP,
     HOLD_EFFECT_SOURCES,
     SCHEMA_VERSION as HOLD_EFFECT_SCHEMA_VERSION,
@@ -377,7 +377,7 @@ def test_thin_path_summary_row_does_not_expose_mutation_fields() -> None:
 
 
 PR_B_TOUCHED_FILES = (
-    "ai_stack/canonical_path_hold_effect_contracts.py",
+    "ai_stack/canonical_path/canonical_path_hold_effect_contracts.py",
     "ai_stack/narrator/narrator_consequence_realization_contracts.py",
     "ai_stack/player_action_resolution.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
@@ -424,7 +424,10 @@ def test_pr_b_new_modules_have_no_active_pi_runtime_keys() -> None:
         re.IGNORECASE,
     )
     new_modules = (
-        REPO_ROOT / "ai_stack" / "canonical_path_hold_effect_contracts.py",
+        REPO_ROOT
+        / "ai_stack"
+        / "canonical_path"
+        / "canonical_path_hold_effect_contracts.py",
         REPO_ROOT
         / "ai_stack"
         / "narrator"

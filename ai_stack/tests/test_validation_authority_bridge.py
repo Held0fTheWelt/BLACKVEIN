@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import ai_stack.capability_validator_dispatch as capability_validator_dispatch
+import ai_stack.capabilities.capability_validator_dispatch as capability_validator_dispatch
 import ai_stack.runtime_aspect_ledger as runtime_aspect_ledger
-from ai_stack.capability_validator_dispatch import ValidatorDispatchMode
+from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
 from ai_stack.goc_seam_mirror_validator_adapters import (
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     adapter_dramatic_effect_gate_mirror_contract,
@@ -25,7 +25,7 @@ from ai_stack.runtime_aspect_ledger import (
     initialize_runtime_aspect_ledger,
     normalize_runtime_aspect_ledger,
 )
-from ai_stack.capability_validator_registry import get_turn_class_enforced_validators
+from ai_stack.capabilities.capability_validator_registry import get_turn_class_enforced_validators
 from ai_stack.tests.test_capability_validator_registry import (
     _npc_dispatch_context,
     _opening_dispatch_context,

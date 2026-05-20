@@ -21,8 +21,9 @@ the engine.
 1. Content modules must not ship locale lookup directories, phrase-rule files,
    verb maps, action maps, actor-name text matchers, or duplicate language
    description databases.
-2. `story_runtime_core.language_adapter` exposes a content-derived semantic
-   catalog and an AI resolution contract.
+2. `ai_stack.language_io.language_adapter` exposes a content-derived semantic
+   catalog and an AI resolution contract. `story_runtime_core.language_adapter`
+   remains a compatibility import only.
 3. Player input is labeled with `session_input_language`. Player-visible output
    is governed separately by `session_output_language`.
 4. The AI normalizes player input into the module's declared authoring language

@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     CAP_ACTION_RESOLUTION,
     CAP_BROAD_NLU_LISTENING,
     CAP_CALLBACK_WEB,

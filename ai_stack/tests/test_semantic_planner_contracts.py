@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.character_mind_contract import CharacterMindRecord, FieldProvenance
+from ai_stack.npc_agency.character.character_mind_contract import CharacterMindRecord, FieldProvenance
 from ai_stack.scene_plan_contract import ScenePlanRecord
 from ai_stack.semantic_move_contract import (
     InterpretationTraceItem,

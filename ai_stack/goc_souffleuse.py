@@ -17,6 +17,7 @@ from ai_stack.goc_yaml_authority import (
     goc_character_key_for_actor_id,
     load_goc_canonical_path_yaml,
     load_goc_character_documents_yaml,
+    load_goc_character_voice_yaml,
     load_goc_locations_yaml,
 )
 from ai_stack.prompt_store import render_prompt
@@ -38,6 +39,18 @@ def _clean(value: Any) -> str:
 def _lang(value: str | None) -> str:
     code = _clean(value).lower()[:2]
     return code or "de"
+
+
+def _full_character_voice_profile(character_key: str) -> dict[str, Any]:
+    """Full ``character_voice_*.yaml`` document for composition (Sub-Plan 4 PR-4B)."""
+    key = _clean(character_key)
+    if not key:
+        return {}
+    voices = load_goc_character_voice_yaml()
+    if not isinstance(voices, dict):
+        return {}
+    profile = voices.get(key)
+    return dict(profile) if isinstance(profile, dict) else {}
 
 
 def _indexed_steps() -> dict[str, dict[str, Any]]:
@@ -456,6 +469,7 @@ def build_goc_opening_souffleuse_projection(
                 "character_public_identity": _clean(character_doc.get("public_identity")),
                 "character_baseline_attitude": _clean(character_doc.get("baseline_attitude")),
                 "character_voice": character_doc.get("voice") if isinstance(character_doc.get("voice"), dict) else {},
+                "character_voice_profile": _full_character_voice_profile(character_key),
                 "character_player_agency_policy": _clean(character_opening_canon.get("player_agency_policy")),
                 "character_situational_stance": _structured_stance(character_doc),
                 "character_souffleuse_guidance": character_souffleuse_guidance,

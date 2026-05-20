@@ -197,7 +197,7 @@ naming-drift error.
 
 This pairing is already encoded in:
 
-- `ai_stack/langfuse_evaluator_catalog.py` —
+- `ai_stack/langfuse/langfuse_evaluator_catalog.py` —
   `WORLD_ENGINE_TURN_TRACE_NAME` and `BACKEND_TURN_ROOT_TRACE_NAME`;
   `LANGFUSE_TURN_GENERATION_FILTER_BUNDLE.alternate_backend_root_trace_name`.
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` —
@@ -219,7 +219,7 @@ If code evolves to use different trace names, observation names, or
 environment semantics, the tool must report the exact evidence (file path,
 line, and current value) before changing its assumptions. The Quality Lab
 catalog must derive the canonical trace-name set from
-`ai_stack/langfuse_evaluator_catalog.py`, not from a literal list.
+`ai_stack/langfuse/langfuse_evaluator_catalog.py`, not from a literal list.
 
 ### MCP wire-form name rewrite
 
@@ -508,7 +508,7 @@ re-bootstrapping it:
 
 | Existing surface | Reused by Quality Lab |
 |------------------|-----------------------|
-| `ai_stack/langfuse_evaluator_catalog.py` — `WOS_CATEGORICAL_JUDGES_ORDER`, `get_categorical_evaluator_spec()`, `OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, `TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, filter bundles | Source of canonical judge names, trace-name constants, and Langfuse filter templates |
+| `ai_stack/langfuse/langfuse_evaluator_catalog.py` — `WOS_CATEGORICAL_JUDGES_ORDER`, `get_categorical_evaluator_spec()`, `OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, `TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, filter bundles | Source of canonical judge names, trace-name constants, and Langfuse filter templates |
 | `tools/mcp_server/tools_registry_handlers_evaluators.py` — `wos.evaluators.catalog`, `wos.evaluators.get` (pure catalog reads) | Quality Lab does not duplicate; instead `wos.quality_lab.review_judgments` calls into the same catalog |
 | `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — `fetch_langfuse_trace`, `fetch_langfuse_trace_scores`, `build_opening_quality_context`, `_build_llm_judge_interpretation`, `_judge_score_coverage_gaps`, `_evaluator_column_metadata`, `normalized_wos_evidence` | Quality Lab composes: `review_trace` consumes `fetch_langfuse_trace` output and shared extraction helpers; `review_judgments` consumes `fetch_langfuse_trace_scores` output and adds semantic interpretation |
 | `docs/llm-as-a-judge/` (per-judge `.md` directory + index) | Canonical evaluator definitions; CSV is legacy |
@@ -1086,7 +1086,7 @@ Add tests for:
 - trace-name set validation **including** the `backend.turn.execute` +
   `world-engine.turn.execute` distributed-trace pairing — the test must
   derive the expected names from
-  `ai_stack/langfuse_evaluator_catalog.py`, never from a literal list
+  `ai_stack/langfuse/langfuse_evaluator_catalog.py`, never from a literal list
 - `docs/llm-as-a-judge/` ↔ code **drift detection** (mandatory): a test
   asserts that the set of evaluator names in
   `WOS_CATEGORICAL_JUDGES_ORDER` matches the set of per-evaluator `.md`
@@ -1187,7 +1187,7 @@ The ADR is satisfied when:
 - Existing older judges remain supported.
 - Newer judges are not ignored or collapsed into generic story-quality
   summaries.
-- Trace-name handling derives from `ai_stack/langfuse_evaluator_catalog.py`
+- Trace-name handling derives from `ai_stack/langfuse/langfuse_evaluator_catalog.py`
   and treats `backend.turn.execute` / `world-engine.turn.execute` as a
   paired distributed turn trace, not as competing canonical names.
 

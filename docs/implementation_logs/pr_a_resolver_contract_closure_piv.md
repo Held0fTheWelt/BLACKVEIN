@@ -118,7 +118,7 @@ PR-A's discipline is **reuse, do not rebuild**.
 Hard constraints. PR-A's diff stays inside this guardrail; tests above enforce the negatives.
 
 - **`ai_stack/narrator/narrator_consequence_contracts.py`** — owned by PR-B (`narrator_consequence_realization.v1`).
-- **`ai_stack/canonical_path_resolver.py`** — owned by canonical-path loading; unchanged.
+- **`ai_stack/canonical_path/canonical_path_resolver.py`** — owned by canonical-path loading; unchanged.
 - **`ai_stack/director/scene_director_goc.py`** — owned by PR-C (Director composition and `gathering_paused` gate).
 - **`ai_stack/langgraph/langgraph_runtime_executor.py`** lines around `_resolve_player_action` (no executor logic change; the contract rides inside the frame), `_build_npc_agency_plan_projection`, and the `canonical_path_control` block (PR-B / PR-C own those).
 - **`ai_stack/live_dramatic_scene_simulator.py`** — LDSS and mandatory-beat consumption stay unchanged.

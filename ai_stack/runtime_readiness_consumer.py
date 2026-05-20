@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     resolve_validator_dispatch_mode,
 )

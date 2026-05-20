@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import re
 
-from ai_stack.capability_selector import validate_semantic_capability_name
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_selector import validate_semantic_capability_name
+from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     build_validator_dispatch_report,
 )
-from ai_stack.capability_validator_plan import JUDGE_VALIDATORS, build_validator_execution_plan
+from ai_stack.capabilities.capability_validator_plan import JUDGE_VALIDATORS, build_validator_execution_plan
 from pathlib import Path
 
-from ai_stack.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
-from ai_stack.capability_validator_plan import build_validator_execution_plan
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
+from ai_stack.capabilities.capability_validator_plan import build_validator_execution_plan
+from ai_stack.capabilities.capability_validator_registry import (
     NORMAL_PLAYER_TURN_CAPABILITY_PLAN_VALIDATOR_IDS,
     OPENING_SCENE_CAPABILITY_PLAN_VALIDATOR_IDS,
     PLANNED_ALL_DISPATCH_IDS,

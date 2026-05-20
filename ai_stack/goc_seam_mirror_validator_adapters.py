@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.capability_validator_plan import ValidatorPlanEntry
+from ai_stack.capabilities.capability_validator_plan import ValidatorPlanEntry
 from ai_stack.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
 from ai_stack.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
@@ -49,13 +49,13 @@ SEAM_MIRROR_VALIDATOR_IDS: tuple[str, ...] = (
 
 
 def _normalize(validator_id: str, raw: dict[str, Any] | None, *, blocking: bool = True) -> dict[str, Any]:
-    from ai_stack.capability_validator_registry import normalize_validator_dispatch_result
+    from ai_stack.capabilities.capability_validator_registry import normalize_validator_dispatch_result
 
     return normalize_validator_dispatch_result(validator_id, raw, blocking=blocking)
 
 
 def _unavailable(validator_id: str, *, reason: str, blocking: bool = True) -> dict[str, Any]:
-    from ai_stack.capability_validator_registry import unavailable_validator_result
+    from ai_stack.capabilities.capability_validator_registry import unavailable_validator_result
 
     return unavailable_validator_result(validator_id, reason=reason, blocking=blocking)
 

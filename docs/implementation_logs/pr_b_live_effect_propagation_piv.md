@@ -121,7 +121,7 @@ PR-B's discipline is **reuse, do not rebuild**.
 Hard constraints. PR-B's diff stays inside this guardrail; tests enforce the negatives.
 
 - **`ai_stack/free_player_action_resolution_contracts.py`** — owned by PR-A; PR-B reads its dict, never re-defines the schema or enums.
-- **`ai_stack/canonical_path_resolver.py`** — canonical-path bundle loader; unchanged.
+- **`ai_stack/canonical_path/canonical_path_resolver.py`** — canonical-path bundle loader; unchanged.
 - **`ai_stack/director/scene_director_goc.py`** — owned by PR-C (Director composition, `compute_gathering_state`, `presence_breaks_gathering`); PR-B leaves this file untouched.
 - **`ai_stack/live_dramatic_scene_simulator.py`** — LDSS and mandatory-beat consumption stay unchanged.
 - **`ai_stack/runtime_aspect_ledger.py`** — `ASPECT_KEYS` unchanged; no Director-Pause / Pulse aspect row added.
@@ -142,7 +142,7 @@ Hard constraints. PR-B's diff stays inside this guardrail; tests enforce the neg
 
 | Path | Action | Reason |
 |---|---|---|
-| `ai_stack/canonical_path_hold_effect_contracts.py` | **add** | Closed-enum constants + builder for `canonical_path_hold_effect.v1`. Reads `free_player_action_resolution.v1` fields; never reads raw input strings. |
+| `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py` | **add** | Closed-enum constants + builder for `canonical_path_hold_effect.v1`. Reads `free_player_action_resolution.v1` fields; never reads raw input strings. |
 | `ai_stack/narrator/narrator_consequence_realization_contracts.py` | **add** | Closed-enum constants + builder for `narrator_consequence_realization.v1`. Projects the existing `narrator_consequence_plan` and the rendered `visible_output_bundle.scene_blocks` into the closed shape, with explicit `non_realization_reason` when no block is emitted. |
 | `ai_stack/player_action_resolution.py` | **modify** | Extend `_finalize_resolution_envelope` to derive and attach `canonical_path_hold_effect` at the envelope root and inside the frame. No other behaviour change. |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | **modify** | In `_resolve_player_action`, lift `canonical_path_hold_effect` from the resolver envelope into `update["canonical_path_hold_effect"]`. In `_package_output` (or a dedicated post-render step), build `narrator_consequence_realization` from `narrator_consequence_plan` + `visible_output_bundle.scene_blocks` and set `update["narrator_consequence_realization"]`. |
@@ -179,7 +179,7 @@ PR-B must satisfy, against repository HEAD after the commit:
 
 1. `docs/implementation_logs/pr_b_live_effect_propagation_piv.md` (this file) exists with every required section.
 2. `docs/MVPs/npc_interactivity_piv_log.md` lists PR-B with `Status: Draft` and a link to this PIV.
-3. `ai_stack/canonical_path_hold_effect_contracts.py` exists, exports closed-enum constants, and defines a builder that takes the `free_player_action_resolution.v1` dict (plus optional current canonical step id) and returns the hold-effect dict or `None`.
+3. `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py` exists, exports closed-enum constants, and defines a builder that takes the `free_player_action_resolution.v1` dict (plus optional current canonical step id) and returns the hold-effect dict or `None`.
 4. `ai_stack/narrator/narrator_consequence_realization_contracts.py` exists, exports closed-enum constants, and defines a builder that takes the `narrator_consequence_plan` and the rendered `visible_output_bundle.scene_blocks` and returns the realization dict (always — with `non_realization_reason` populated when no block is emitted).
 5. `ai_stack/player_action_resolution.py` `_finalize_resolution_envelope` emits the hold-effect dict on every return path where the resolver classified a successful mundane / free action commit; emits `None` otherwise. PR-A's tests still pass.
 6. `ai_stack/langgraph/langgraph_runtime_executor.py` lifts the hold-effect dict into `graph_state["canonical_path_hold_effect"]` from the resolver envelope, and lifts the realization dict into `graph_state["narrator_consequence_realization"]` after `_render_visible`.

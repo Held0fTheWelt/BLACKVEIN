@@ -47,7 +47,7 @@ from ai_stack.free_player_action_resolution_contracts import (
     SCHEMA_VERSION,
 )
 from ai_stack.player_action_resolution import resolve_player_action
-from story_runtime_core.language_adapter import clear_language_adapter_caches
+from ai_stack.language_io.language_adapter import clear_language_adapter_caches
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

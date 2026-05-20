@@ -87,7 +87,33 @@ class _OutputModuleAdapter(BaseModelAdapter):
         return ModelCallResult(content=json.dumps(payload), success=True, metadata={"adapter": self.adapter_name})
 
 
+class _FailingOutputModuleAdapter(BaseModelAdapter):
+    adapter_name = "test_timeout_output_module"
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
+        return ModelCallResult(
+            content="",
+            success=False,
+            metadata={"adapter": self.adapter_name, "error": "The read operation timed out"},
+        )
+
+
 def _install_output_module(manager: StoryRuntimeManager) -> None:
+    _install_output_module_adapter(manager, _OutputModuleAdapter())
+
+
+def _install_failing_output_module(manager: StoryRuntimeManager) -> None:
+    _install_output_module_adapter(manager, _FailingOutputModuleAdapter())
+
+
+def _install_output_module_adapter(manager: StoryRuntimeManager, adapter: BaseModelAdapter) -> None:
     registry = ModelRegistry()
     registry.register(
         ModelSpec(
@@ -104,7 +130,7 @@ def _install_output_module(manager: StoryRuntimeManager) -> None:
     )
     manager.registry = registry
     manager.routing = RoutingPolicy(registry)
-    manager.adapters = {"test_output": _OutputModuleAdapter()}
+    manager.adapters = {"test_output": adapter}
 
 
 def _governed_config() -> dict[str, Any]:
@@ -298,6 +324,40 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     ]
     assert souffleuse_realization["status"] == "realized"
     assert souffleuse_realization["session_output_language"] == "de"
+
+
+def test_goc_opening_de_survives_output_module_timeout_with_diagnostics() -> None:
+    manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
+    _install_failing_output_module(manager)
+    manager.turn_graph = _ExplodingTurnGraph()  # type: ignore[assignment]
+    manager._build_opening_prompt = _explode_opening_prompt  # type: ignore[method-assign]
+
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        session_output_language="de",
+        trace_id="0123456789abcdef0123456789abcdef",
+    )
+
+    opening = session.diagnostics[-1]
+    assert opening["turn_kind"] == "opening"
+    assert opening["visible_output_bundle"]["scene_blocks"]
+    assert opening["model_route"]["generation"]["success"] is True
+    assert opening["model_route"]["generation"]["fallback_used"] is True
+
+    gov = opening["runtime_governance_surface"]
+    assert gov["quality_class"] == "degraded"
+    assert "fallback_used" in gov["degradation_signals"]
+
+    realization = gov["narrator_path"]["output_realization"]
+    assert realization["status"] == "fallback_output_module_failed"
+    assert realization["fallback_reason"] == "The read operation timed out"
+    assert realization["output_language_mismatch"] is True
+    assert realization["failed_attempts"][0]["error"] == "The read operation timed out"
+
+    souffleuse_realization = gov["narrator_path"]["souffleuse_output_realization"]
+    assert souffleuse_realization["status"] == "fallback_output_module_failed"
+    assert souffleuse_realization["fallback_reason"] == "The read operation timed out"
 
 
 def test_goc_scripted_continuation_after_statement_keeps_alain_speech_authority() -> None:

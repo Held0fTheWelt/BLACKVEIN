@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.langfuse_evaluator_catalog import WOS_CATEGORICAL_JUDGES_ORDER
+from ai_stack.langfuse.langfuse_evaluator_catalog import WOS_CATEGORICAL_JUDGES_ORDER
 from ai_stack.quality_lab.evaluator_catalog import (
     category_severity_bucket,
     evaluator_view,

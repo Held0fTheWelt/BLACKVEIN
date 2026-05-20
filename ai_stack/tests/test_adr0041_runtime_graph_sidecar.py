@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from ai_stack.capability_validator_dispatch import ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode
-from ai_stack.capability_validator_plan import JUDGE_VALIDATORS
+from ai_stack.capabilities.capability_validator_dispatch import ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode
+from ai_stack.capabilities.capability_validator_plan import JUDGE_VALIDATORS
 from ai_stack.runtime_aspect_ledger import (
     ADR0041_DRIFT_ADR_STRICTER,
     ADR0041_DRIFT_ALIGNED,
@@ -22,7 +22,7 @@ from ai_stack.runtime_aspect_ledger import (
     initialize_runtime_aspect_ledger,
     normalize_runtime_aspect_ledger,
 )
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_registry import (
     TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
     TURN_CLASS_NPC_CONFLICT_TURN,
     TURN_CLASS_NORMAL_PLAYER_TURN,

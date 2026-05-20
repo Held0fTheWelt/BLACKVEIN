@@ -1190,7 +1190,7 @@ def get_orchestration_status(*, trace_id: str | None = None) -> dict[str, Any]:
     bridge_error: str | None = None
     parser_schema_health = {"runtime_structured_output": True, "writers_room_structured_output": True}
     try:
-        from ai_stack.langchain_integration import RuntimeTurnStructuredOutput, WritersRoomStructuredOutput
+        from ai_stack.langchain import RuntimeTurnStructuredOutput, WritersRoomStructuredOutput
 
         RuntimeTurnStructuredOutput.model_validate_json('{"narrative_response":"ok"}')
         WritersRoomStructuredOutput.model_validate_json('{"review_notes":"ok","recommendations":[]}')

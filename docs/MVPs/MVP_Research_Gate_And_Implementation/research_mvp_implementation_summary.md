@@ -34,7 +34,7 @@ This implementation realizes the bounded Research-and-Canon-Improvement MVP defi
   - canon relevance hint is derived deterministically from exploration content, not hardcoded.
 
 ## MCP/capability integration
-- `ai_stack/capabilities.py`
+- `ai_stack/capabilities/capabilities.py`
   - added read-only tools:
     - `wos.research.source.inspect`
     - `wos.research.aspect.extract`

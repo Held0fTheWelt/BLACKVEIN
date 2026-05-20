@@ -1,5 +1,5 @@
 """Drift tests between ``docs/llm-as-a-judge/`` (canonical evaluator definitions)
-and ``ai_stack/langfuse_evaluator_catalog`` (code mirror).
+and ``ai_stack/langfuse/langfuse_evaluator_catalog`` (code mirror).
 
 Per ADR-0040 the per-evaluator markdown files in ``docs/llm-as-a-judge/``
 are the canonical source of truth for the WoS LLM-as-a-Judge evaluators.
@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     WOS_CATEGORICAL_JUDGES_ORDER,
     get_categorical_evaluator_spec,
 )
@@ -55,7 +55,7 @@ def test_directory_names_match_catalog_order():
     only_in_code = sorted(code_names - dir_names)
     assert not only_in_dir and not only_in_code, (
         "Drift between docs/llm-as-a-judge/ and "
-        "ai_stack/langfuse_evaluator_catalog.WOS_CATEGORICAL_JUDGES_ORDER:\n"
+        "ai_stack/langfuse/langfuse_evaluator_catalog.WOS_CATEGORICAL_JUDGES_ORDER:\n"
         f"  only in directory: {only_in_dir}\n"
         f"  only in code:      {only_in_code}\n"
         "Resolve by adding / removing both sides together."

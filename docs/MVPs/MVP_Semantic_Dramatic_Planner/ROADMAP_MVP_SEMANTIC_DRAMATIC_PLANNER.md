@@ -733,7 +733,7 @@ This phase is explicitly post-MVP.
 Recommended new modules:
 
 - `ai_stack/semantic_move_contract.py`
-- `ai_stack/character_mind_contract.py`
+- `ai_stack/npc_agency/character/character_mind_contract.py`
 - `ai_stack/social_state_contract.py`
 - `ai_stack/scene_plan_contract.py`
 - `ai_stack/semantic_scene_planner.py`

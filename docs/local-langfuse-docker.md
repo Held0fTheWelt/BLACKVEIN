@@ -189,7 +189,7 @@ World-engine path summaries also expose `runtime_quality`, selected capabilities
 
 ## Evaluator And Judge Bootstrap
 
-The repo's canonical evaluator catalog is `ai_stack/langfuse_evaluator_catalog.py`; the human-maintained rubric source is `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`. The MCP evaluator handlers are read-only and provide a `wos.evaluators.langfuse_sync_preview` payload; they do not write evaluator definitions or provider keys to Langfuse.
+The repo's canonical evaluator catalog is `ai_stack/langfuse/langfuse_evaluator_catalog.py`; the human-maintained rubric source is `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`. The MCP evaluator handlers are read-only and provide a `wos.evaluators.langfuse_sync_preview` payload; they do not write evaluator definitions or provider keys to Langfuse.
 
 Export the local transfer bundle:
 

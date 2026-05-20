@@ -4,8 +4,8 @@ import re
 
 import pytest
 
-from ai_stack.capability_selector import validate_semantic_capability_name
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_selector import validate_semantic_capability_name
+from ai_stack.capabilities.capability_validator_registry import (
     CANONICAL_OBSERVER_DIAGNOSTIC_IDS,
     KNOWN_TURN_CLASSES,
     TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,

@@ -2,7 +2,7 @@
 
 Per ADR-0039: aspect names, expected metadata fields, and trace-name
 constants are derived from canonical sources (the trace_interpreter
-module's own catalog and ``ai_stack.langfuse_evaluator_catalog``) — never
+module's own catalog and ``ai_stack.langfuse.langfuse_evaluator_catalog``) — never
 from hardcoded literals in this file.
 """
 
@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,

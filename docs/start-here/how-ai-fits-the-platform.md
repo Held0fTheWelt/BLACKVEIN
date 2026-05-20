@@ -24,7 +24,7 @@ For God of Carnage, `ai_stack/langgraph/langgraph_runtime.py` defines `RuntimeTu
 
 ### LangChain
 
-`ai_stack/langchain_integration/` bridges **adapter invocation** for structured outputs and related flows (including Writers Room paths). It supports the graph but does not replace validation/commit rules.
+`ai_stack/langchain/` bridges **adapter invocation** for structured outputs and related flows (including Writers Room paths). It supports the graph but does not replace validation/commit rules.
 
 ### Proposal vs commit
 

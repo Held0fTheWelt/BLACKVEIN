@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ai_stack.langgraph.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
-from story_runtime_core.language_adapter import resolve_content_modules_root
+from ai_stack.language_io.language_adapter import resolve_content_modules_root
 
 MODULE = "god_of_carnage"
 _LANG = "de"

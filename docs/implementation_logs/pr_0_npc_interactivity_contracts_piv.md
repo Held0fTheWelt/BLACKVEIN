@@ -89,7 +89,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 
 - `ai_stack/player_action_resolution.py` — no change. Resolver behavior is unchanged.
 - `ai_stack/narrator/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
-- `ai_stack/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
+- `ai_stack/canonical_path/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
 - `ai_stack/director/scene_director_goc.py` — no change. Director / responder selection is unchanged.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — no change. Graph nodes, routing, and `canonical_path_control` block are unchanged.
 - `ai_stack/live_dramatic_scene_simulator.py` — no change. LDSS / mandatory-beat consumption is unchanged.

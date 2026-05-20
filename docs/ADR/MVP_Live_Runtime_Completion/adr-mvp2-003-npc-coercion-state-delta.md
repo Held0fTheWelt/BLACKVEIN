@@ -25,7 +25,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 
 4. NPC-to-NPC coercive actions are not restricted by this rule (human actor boundary only).
 
-5. The live LangGraph validation path mirrors the same structured coercion taxonomy through `ai_stack.dramatic_capability_contracts.NPC_COERCIVE_ACTION_TYPES`. When a structured NPC action targets the human actor and uses a coercive action/coercion type, `RuntimeAspectLedger.npc_authority` records `npc_action_controls_human_actor`, `RuntimeAspectLedger.capability_selection` records `npc.force_player_speech.forbidden`, and final validation rejects before commit.
+5. The live LangGraph validation path mirrors the same structured coercion taxonomy through `ai_stack.capabilities.dramatic_capability_contracts.NPC_COERCIVE_ACTION_TYPES`. When a structured NPC action targets the human actor and uses a coercive action/coercion type, `RuntimeAspectLedger.npc_authority` records `npc_action_controls_human_actor`, `RuntimeAspectLedger.capability_selection` records `npc.force_player_speech.forbidden`, and final validation rejects before commit.
 
 6. `npc_action_controls_human_actor` is recoverable for self-correction feedback, but it is not eligible for degraded commit. The model may retry with corrected actor boundaries; the bad turn must not become committed story truth.
 
@@ -49,7 +49,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 - `world-engine/app/runtime/actor_lane.py` — `validate_npc_action_coercion()`, `_COERCIVE_ACTION_TYPES`, `_ALLOWED_PRESSURE_VERBS`
 - `world-engine/app/runtime/state_delta.py` — `validate_state_delta()`, `validate_state_deltas()`, `build_default_goc_boundary()`
 - `ai_stack/goc_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
-- `ai_stack/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
+- `ai_stack/capabilities/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — live authority-aspect and commit-seam wiring
 - `ai_stack/story_runtime_playability.py` — retry/degraded-commit policy for coercion failures
 

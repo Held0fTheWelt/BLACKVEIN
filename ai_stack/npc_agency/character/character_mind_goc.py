@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.character_mind_contract import CharacterMindRecord, FieldProvenance
+from ai_stack.npc_agency.character.character_mind_contract import CharacterMindRecord, FieldProvenance
 from ai_stack.goc_scene_identity import guidance_phase_key_for_scene_id
 
 

@@ -1,4 +1,4 @@
-"""Quality Lab evaluator catalog — wraps ``ai_stack.langfuse_evaluator_catalog``
+"""Quality Lab evaluator catalog — wraps ``ai_stack.langfuse.langfuse_evaluator_catalog``
 with severity buckets and repair areas loaded from ``docs/llm-as-a-judge/``.
 
 Per ADR-0040 the per-evaluator ``.md`` files are canonical. This module
@@ -16,7 +16,7 @@ from typing import Any
 
 import yaml
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     LangfuseCategoricalEvaluatorSpec,
     WOS_CATEGORICAL_JUDGES_ORDER,
     get_categorical_evaluator_spec,

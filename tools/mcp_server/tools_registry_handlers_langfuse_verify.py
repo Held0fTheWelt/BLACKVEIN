@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 import requests
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     JUDGE_DISPLAY_SHORT as _JUDGE_DISPLAY_SHORT,
     JUDGE_TO_REPAIR_CARD as _JUDGE_TO_REPAIR_CARD,
@@ -33,7 +33,7 @@ from ai_stack.langfuse_evaluator_catalog import (
     judge_names_for_scope as _judge_names_for_scope,
     normalize_judge_category_label as _normalize_judge_category_label,
 )
-from ai_stack.langfuse_evidence import (
+from ai_stack.langfuse.langfuse_evidence import (
     ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
     ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
     ADR0041_LANGFUSE_SCORE_READINESS_AGG,

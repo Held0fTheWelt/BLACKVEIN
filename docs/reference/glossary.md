@@ -95,7 +95,7 @@ memory reference ids all permit it. It still may not disclose prompts, tools,
 models, runtime machinery, private player data, or invented memories.
 
 **LangChain**  
-Adapter invocation bridge for structured runtime output under `ai_stack/langchain_integration/`.
+Adapter invocation bridge for structured runtime output under `ai_stack/langchain/`.
 
 **MCP (Model Context Protocol)**  
 Tooling surface for operators/developers (`tools/mcp_server/`). MCP tools observe or trigger **allowed** operations; they are not a substitute for runtime authority. See `docs/dev/tooling/mcp-server-developer-guide.md`.

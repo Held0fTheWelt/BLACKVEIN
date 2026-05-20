@@ -13,7 +13,7 @@ import os
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     CapabilitySelectionResult,
     LastTurnQuality,
     TurnKind,
@@ -22,18 +22,18 @@ from ai_stack.capability_selector import (
     select_capabilities,
     validate_semantic_capability_name,
 )
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     ValidatorRegistry,
     build_validator_dispatch_report,
     resolve_validator_dispatch_mode,
 )
-from ai_stack.capability_validator_plan import (
+from ai_stack.capabilities.capability_validator_plan import (
     ValidatorExecutionPlan,
     build_validator_execution_plan,
     prepend_goc_seam_mirror_plan_entries,
 )
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_registry import (
     VALIDATOR_REGISTRY_INVENTORY,
     TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
     TURN_CLASS_NPC_CONFLICT_TURN,

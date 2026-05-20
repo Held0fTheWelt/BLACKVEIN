@@ -26,13 +26,13 @@ from ai_stack.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
-from ai_stack.canonical_path_hold_effect_contracts import (
+from ai_stack.canonical_path.canonical_path_hold_effect_contracts import (
     build_canonical_path_hold_effect,
 )
 from ai_stack.free_player_action_resolution_contracts import (
     build_free_player_action_resolution,
 )
-from story_runtime_core.language_adapter import build_interaction_surface, resolve_content_modules_root
+from ai_stack.language_io.language_adapter import build_interaction_surface, resolve_content_modules_root
 from story_runtime_core.player_input_intent_contract import (
     is_mixed_player_input_kind,
     is_non_story_control_player_input_kind,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft (Phase-1 Live Wiring: Partial — see §Implementation Status below)
+Accepted (Phase-1 PR-C wiring + PR-D operator aggregation and hold-path audit, 2026-05-20)
 
 ## Date
 

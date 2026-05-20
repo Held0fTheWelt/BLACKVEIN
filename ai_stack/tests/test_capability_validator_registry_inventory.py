@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ai_stack.capability_validator_plan import (
+from ai_stack.capabilities.capability_validator_plan import (
     JUDGE_VALIDATORS,
     LOCAL_VALIDATORS,
     OBSERVER_DIAGNOSTICS,
 )
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_registry import (
     PLANNED_ALL_DISPATCH_IDS,
     STATUS_JUDGE_ONLY,
     STATUS_OBSERVER_ONLY,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 import pytest
 
-from ai_stack.capabilities_registry_research_canon_handlers import (
+from ai_stack.capabilities.capabilities_registry_research_canon_handlers import (
     research_source_inspect_handler,
     research_aspect_extract_handler,
     research_claim_list_handler,

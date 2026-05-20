@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.capability_validator_dispatch import ValidatorDispatchMode
-from ai_stack.capability_validator_plan import JUDGE_VALIDATORS
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
+from ai_stack.capabilities.capability_validator_plan import JUDGE_VALIDATORS
+from ai_stack.capabilities.capability_validator_registry import (
     build_default_semantic_validator_registry,
     build_npc_conflict_enforced_semantic_validator_registry,
     build_opening_enforced_semantic_validator_registry,

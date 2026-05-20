@@ -16,7 +16,7 @@ import yaml
 from ai_stack.authority_contracts import default_authority_policy
 from ai_stack.callback_web_contracts import normalize_callback_web_policy
 from ai_stack.consequence_cascade_contracts import normalize_consequence_cascade_policy
-from ai_stack.dramatic_capability_contracts import default_capability_policy
+from ai_stack.capabilities.dramatic_capability_contracts import default_capability_policy
 from ai_stack.dramatic_irony_contracts import normalize_dramatic_irony_policy
 from ai_stack.expectation_variation_contracts import normalize_expectation_variation_policy
 from ai_stack.genre_awareness_contracts import normalize_genre_awareness_policy
@@ -41,7 +41,7 @@ from ai_stack.symbolic_object_resonance_contracts import (
 )
 from ai_stack.temporal_control_contracts import normalize_temporal_control_policy
 from ai_stack.tonal_consistency_contracts import normalize_tonal_consistency_policy
-from story_runtime_core.language_adapter import build_interaction_surface
+from ai_stack.language_io.language_adapter import build_interaction_surface
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"

@@ -189,7 +189,7 @@ flowchart TB
 
 #### What this means in the actual system
 
-- Primary area: `ai_stack/langchain_integration/` — e.g. `invoke_runtime_adapter_with_langchain` used from the LangGraph **`invoke_model`** node (`docs/technical/integration/LangChain.md`, `ai_stack/langgraph/langgraph_runtime.py`).
+- Primary area: `ai_stack/langchain/` — e.g. `invoke_runtime_adapter_with_langchain` used from the LangGraph **`invoke_model`** node (`docs/technical/integration/LangChain.md`, `ai_stack/langgraph/langgraph_runtime.py`).
 - Writers’ Room uses parallel helpers (`invoke_writers_room_adapter_with_langchain`) from **backend** services (`backend/app/services/writers_room_service.py`).
 
 #### Why it matters
@@ -246,7 +246,7 @@ flowchart TB
   N3 --> B
 ```
 
-**Seams:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langchain_integration/bridges.py`.
+**Seams:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langchain/bridges.py`.
 
 **What to notice:** **LangChain** is **nested inside** a **single node**; the **graph** owns **before and after**.
 
@@ -541,6 +541,6 @@ Not a claim that every future feature stays in this exact shape—check **contra
 
 ## Conclusion
 
-In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain_integration/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager.py`). The **player** sees **one experience** built from that whole chain.
+In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager.py`). The **player** sees **one experience** built from that whole chain.
 
 **Read next:** [How AI fits the platform](../start-here/how-ai-fits-the-platform.md) · [AI stack overview (technical)](../technical/ai/ai-stack-overview.md) · [Connected system reference](../ai/ai_system_in_world_of_shadows.md)

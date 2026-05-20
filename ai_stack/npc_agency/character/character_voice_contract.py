@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from ai_stack.character_mind_contract import FieldProvenance
+from ai_stack.npc_agency.character.character_mind_contract import FieldProvenance
 
 VoiceValidationMode = Literal["schema_only", "schema_plus_semantic", "strict_rule_engine"]
 VoiceValidationStatus = Literal["approved", "rejected", "not_applicable"]

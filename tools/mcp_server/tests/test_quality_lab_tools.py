@@ -1,7 +1,7 @@
 """Tests for ``wos.quality_lab.*`` MCP handlers (ADR-0040 Phases 1-5).
 
 Expected judge names, categories, aspect names, and trace names are
-derived from canonical catalogs (`ai_stack.langfuse_evaluator_catalog`,
+derived from canonical catalogs (`ai_stack.langfuse.langfuse_evaluator_catalog`,
 `ai_stack.quality_lab.trace_interpreter`, Quality Lab constants) per ADR-0039 — no hardcoded
 literals in this file.
 """
@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,

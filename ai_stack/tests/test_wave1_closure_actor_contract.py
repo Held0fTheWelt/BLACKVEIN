@@ -18,7 +18,7 @@ import pytest
 from pydantic import BaseModel
 
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
-from ai_stack.langchain_integration.bridges import RuntimeTurnStructuredOutput
+from ai_stack.langchain.bridges import RuntimeTurnStructuredOutput
 from ai_stack.goc_turn_seams import run_visible_render
 from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
 

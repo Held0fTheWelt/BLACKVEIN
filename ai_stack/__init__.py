@@ -4,7 +4,7 @@ invariants for maintainers.
 """
 from .version import AI_STACK_MILESTONE, AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 
-from .langchain_reviver_compat import ensure_langchain_reviver_explicit_core
+from .langchain.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
 
 ensure_langchain_reviver_explicit_core()
 
@@ -141,7 +141,7 @@ __all__.append("LANGGRAPH_RUNTIME_EXPORT_AVAILABLE")
 __all__.append("LANGGRAPH_RUNTIME_EXPORT_ERROR")
 
 try:
-    from .langchain_integration import (
+    from .langchain import (
         LangChainRetrieverBridge,
         RuntimeInvocationResult,
         RuntimeTurnStructuredOutput,

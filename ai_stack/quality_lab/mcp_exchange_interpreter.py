@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,

@@ -53,6 +53,9 @@ def test_goc_souffleuse_uses_content_cue_and_prompt_store_for_opening_orientatio
     assert block["source_facts"]["character_situational_stance"]["stance_atoms"]
     assert block["source_facts"]["future_knowledge_policy"] == "infer_baseline_stance_only_no_future_event_disclosure"
     assert block["source_facts"]["character_name"] == "Annette Reille"
+    voice_profile = block["source_facts"].get("character_voice_profile")
+    assert isinstance(voice_profile, dict)
+    assert voice_profile.get("speech_patterns") or voice_profile.get("opening_voice")
     assert block["source_facts"]["character_role"]
     assert block["source_facts"]["character_professional_identity"] == "Investment broker"
     assert block["source_facts"]["character_partner"]["name"] == "Alain Reille"

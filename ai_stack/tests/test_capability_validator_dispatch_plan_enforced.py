@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
+from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     build_validator_dispatch_report,
 )
-from ai_stack.capability_validator_plan import ValidatorPlanEntry, build_validator_execution_plan
+from ai_stack.capabilities.capability_validator_plan import ValidatorPlanEntry, build_validator_execution_plan
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_VALIDATION,

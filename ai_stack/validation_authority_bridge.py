@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_registry import (
     KNOWN_TURN_CLASSES,
     TURN_CLASS_ENFORCED_VALIDATORS,
     TURN_CLASS_OPENING_SCENE,

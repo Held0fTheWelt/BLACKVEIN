@@ -6,7 +6,7 @@ import pytest
 
 from ai_stack.goc_turn_seams import run_validation_seam
 from ai_stack.player_action_resolution import resolve_player_action
-from story_runtime_core.language_adapter import clear_language_adapter_caches
+from ai_stack.language_io.language_adapter import clear_language_adapter_caches
 from story_runtime_core.player_input_intent_contract import default_commit_flags_for_player_input_kind
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     CAP_ACTION_RESOLUTION,
     CAP_BROAD_NLU_LISTENING,
     CAP_CALLBACK_WEB,
@@ -26,7 +26,7 @@ from ai_stack.capability_selector import (
     select_capabilities,
     validate_semantic_capability_name,
 )
-from ai_stack.capability_validator_plan import (
+from ai_stack.capabilities.capability_validator_plan import (
     JUDGE_VALIDATORS,
     VALIDATOR_PLAN_REASON,
     ValidatorPlanMode,

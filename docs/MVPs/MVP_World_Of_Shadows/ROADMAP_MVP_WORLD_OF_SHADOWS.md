@@ -72,7 +72,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `ai_stack/semantic_move_interpretation_goc.py`
   - `ai_stack/dramatic_effect/dramatic_effect_gate.py`
   - `ai_stack/social_state_goc.py`
-  - `ai_stack/character_mind_goc.py`
+  - `ai_stack/npc_agency/character/character_mind_goc.py`
 - **Backend / frontend / administration-tool / world-engine service separation**
 - **Existing test and report discipline**, including slice, runtime, MCP, and acceptance-oriented artifacts
 

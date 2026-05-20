@@ -1,6 +1,6 @@
 """Tests for canonical Langfuse categorical evaluator catalog (docs/llm-as-a-judge mirror)."""
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     GATE_OVERRIDE_WARNING,
     JUDGE_TO_REPAIR_CARD,
@@ -128,7 +128,7 @@ def test_canonical_doc_path_constant_points_at_csv_table():
 
 
 def test_local_langfuse_judge_transfer_bundle_retargets_filters_to_local():
-    from ai_stack.langfuse_evaluator_transfer import (
+    from ai_stack.langfuse.langfuse_evaluator_transfer import (
         TRANSFER_BUNDLE_SCHEMA_VERSION,
         build_local_langfuse_judge_transfer_bundle,
     )
@@ -154,7 +154,7 @@ def test_local_langfuse_judge_transfer_bundle_retargets_filters_to_local():
 
 
 def test_local_langfuse_judge_transfer_markdown_lists_judges():
-    from ai_stack.langfuse_evaluator_transfer import (
+    from ai_stack.langfuse.langfuse_evaluator_transfer import (
         build_local_langfuse_judge_transfer_bundle,
         render_local_langfuse_judge_transfer_markdown,
     )

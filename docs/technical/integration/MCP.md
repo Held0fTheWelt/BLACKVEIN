@@ -48,7 +48,7 @@ Operators get **repeatable** access patterns; security reviews can reason about 
 
 ### Neighbors
 
-- **Capabilities:** `ai_stack/capabilities.py` defines governed operations **inside** backend/graph processes; MCP mirrors catalog rows via `capability_records_for_mcp()` and tool `wos.capabilities.catalog`.
+- **Capabilities:** `ai_stack/capabilities/capabilities.py` defines governed operations **inside** backend/graph processes; MCP mirrors catalog rows via `capability_records_for_mcp()` and tool `wos.capabilities.catalog`.
 - **Backend:** Session snapshot, diagnostics, logs, health, guarded turn execution—HTTP authority.
 - **World-engine:** Reachable **through** backend proxies, not by MCP talking directly to the engine socket in the current design.
 - **Research:** `wos-ai` tools call `ai_stack/langgraph/research_langgraph.py` and `ResearchStore` on disk.
@@ -133,7 +133,7 @@ flowchart LR
 
 ## Capability layer relationship (still valid, narrower than the whole MCP)
 
-`ai_stack/capabilities.py` registers **named capabilities** with:
+`ai_stack/capabilities/capabilities.py` registers **named capabilities** with:
 
 - JSON schemas, allowed **modes** (`runtime`, `writers_room`, `improvement`, `admin`)
 - **Kind** (`retrieval` vs `action`)
@@ -192,4 +192,4 @@ flowchart TB
 
 - [MVP_SUITE_MAP.md](../../mcp/MVP_SUITE_MAP.md)
 - [MCP scope baseline](../../mcp/00_M0_scope.md) — foundational safety posture (read vs write expectations)
-- [capabilities.py](../../../ai_stack/capabilities.py) — in-repo capability definitions
+- [capabilities.py](../../../ai_stack/capabilities/capabilities.py) — in-repo capability definitions

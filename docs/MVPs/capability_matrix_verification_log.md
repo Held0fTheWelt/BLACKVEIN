@@ -68,7 +68,7 @@ Latest local verification for the first deterministic selector core:
 
 Scope: local unit/governance verification only. `live_or_staging_evidence=false`.
 
-Evidence summary: `ai_stack/capability_selector.py` implements ADR-0041 local semantic selection, budget caps, activation modes, and RuntimeAspectLedger-compatible local evidence projection. It is not wired into world-engine prompt assembly, selected validator execution, judge execution, Langfuse/MCP live proof, or Capability Matrix promotion.
+Evidence summary: `ai_stack/capabilities/capability_selector.py` implements ADR-0041 local semantic selection, budget caps, activation modes, and RuntimeAspectLedger-compatible local evidence projection. It is not wired into world-engine prompt assembly, selected validator execution, judge execution, Langfuse/MCP live proof, or Capability Matrix promotion.
 
 ADR-0039 discipline: selector code uses semantic capability names only; focused tests assert legacy Pi-style selector keys are rejected and that projection evidence is local-only, not implementation or live/staging proof.
 
@@ -76,7 +76,7 @@ Legacy quarantine (2026-05-15): `ai_stack/legacy_actor_lane_hydration.py` is doc
 
 ADR-0041 plan-enforced dispatch (2026-05-15): local tests only (`test_capability_validator_dispatch_plan_enforced.py`, `test_capability_validator_dispatch_feature_flag.py`); `default_mode=dry_run`; `live_or_staging_evidence=false`; production projection unchanged unless `ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced` is explicitly set.
 
-ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_validator_registry_inventory.md`, `ai_stack/capability_validator_registry.py`; default registry empty; `live_or_staging_evidence=false`; no Capability Matrix promotion.
+ADR-0041 validator registry inventory (2026-05-15): `docs/MVPs/capability_validator_registry_inventory.md`, `ai_stack/capabilities/capability_validator_registry.py`; default registry empty; `live_or_staging_evidence=false`; no Capability Matrix promotion.
 
 ADR-0041 world-engine harness (2026-05-15): `build_adr0041_validator_dispatch_harness_report`; tests under `world-engine/tests/`; run pytest from `world-engine/` so `app` resolves; `live_or_staging_evidence=false`; default ledger projection unchanged (`dry_run`).
 
@@ -369,7 +369,7 @@ The tests assert structure, provenance, authority boundaries, diagnostics, and g
 
 Latest local verification recorded for the bounded runtime voice-consistency work:
 
-- `python -m py_compile ai_stack/character_voice_contract.py ai_stack/character_voice_goc.py ai_stack/character_voice_semantic_classifier.py ai_stack/character_voice_validation.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py ai_stack/story_runtime_playability.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
+- `python -m py_compile ai_stack/npc_agency/character/character_voice_contract.py ai_stack/npc_agency/character/character_voice_goc.py ai_stack/npc_agency/character/character_voice_semantic_classifier.py ai_stack/npc_agency/character/character_voice_validation.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py ai_stack/story_runtime_playability.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
 - `python -m pytest ai_stack/tests/test_character_voice_runtime_enforcement.py -q` → 10 passed.
 - `python -m pytest ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_story_runtime_playability.py -q` → 21 passed.
 - `python -m pytest ai_stack/tests/test_langgraph_runtime.py ai_stack/tests/test_semantic_planner_graph_authority.py ai_stack/tests/test_semantic_planner_golden_cases.py -q` → 26 passed.
@@ -548,7 +548,7 @@ Latest local verification recorded for bounded Meta/OOC input handling:
 
 - Git SHA at verification time: `7aee14eb` on `master` (dirty worktree).
 - Environment scope: local py_compile/pytest/docs check; no live-provider or staging claim.
-- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py story_runtime_core/language_adapter.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph/langgraph_runtime_executor.py` -> passed.
+- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py ai_stack/language_io/language_adapter.py story_runtime_core/language_adapter.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph/langgraph_runtime_executor.py` -> passed.
 - `PYTHONPATH=. pytest story_runtime_core/tests/test_input_interpreter.py ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_langgraph_runtime.py -q -s` -> 38 passed.
 - `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only.
 
@@ -643,7 +643,7 @@ Known limitations at that snapshot: no real provider traces; no fresh staging La
 - Date: 2026-05-15
 - Git SHA at verification time: `1f46b6a8` (dirty worktree; local implementation and adjacent governance fixes not committed at run time)
 - Scope: **local pytest/static-gate evidence only** — no live-provider, staging, or live Langfuse claim.
-- `python -m py_compile ai_stack/sensory_context_contracts.py ai_stack/sensory_context_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/story_runtime_playability.py ai_stack/langchain_integration/bridges.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tests/gates/test_table_b_anti_hardcoding_gate.py tools/mcp_server/tests/test_langfuse_verify_tools.py` -> passed
+- `python -m py_compile ai_stack/sensory_context_contracts.py ai_stack/sensory_context_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/story_runtime_playability.py ai_stack/langchain/bridges.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tests/gates/test_table_b_anti_hardcoding_gate.py tools/mcp_server/tests/test_langfuse_verify_tools.py` -> passed
 - `python -m pytest ai_stack/tests/test_sensory_context_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_goc_structured_setting_knowledge.py ai_stack/tests/test_narrator_consequence_contract.py -q` -> 53 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -k "runtime_aspect" -q` -> 4 passed, 27 deselected
 - `python -m pytest tests/test_capability_matrix_documentation_readiness.py -q` -> 4 passed
@@ -785,7 +785,7 @@ promotion remain future work.
 - `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py::test_runtime_projection_exposes_tonal_consistency_aspect ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields tools/mcp_server/tests/test_langfuse_verify_tools.py::test_runtime_aspect_matrix_recommends_tonal_consistency_repair -q --tb=short` -> 31 passed
 - `python -m pytest ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 77 passed
 - `python -m pytest tests/gates/test_adr_0039_pi_scope.py tests/gates/test_adr0039_pi_scope.py tests/gates/test_table_b_anti_hardcoding_gate.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 25 passed
-- `git diff --check -- ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capability_selector.py ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tools/mcp_server/tests/test_langfuse_verify_tools.py content/modules/god_of_carnage/module.yaml docs/technical/runtime/tonal_consistency_contract.md docs/MVPs/capability_matrix_status_and_adr_relations.md` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+- `git diff --check -- ai_stack/tonal_consistency_contracts.py ai_stack/tonal_consistency_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/capabilities/capability_selector.py ai_stack/tests/test_tonal_consistency_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tools/mcp_server/tests/test_langfuse_verify_tools.py content/modules/god_of_carnage/module.yaml docs/technical/runtime/tonal_consistency_contract.md docs/MVPs/capability_matrix_status_and_adr_relations.md` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
 
 Evidence summary: Π35 is now represented as the generic
 `tonal_consistency` runtime contract surface. GoC policy declares a bounded

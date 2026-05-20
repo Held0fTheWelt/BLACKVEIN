@@ -129,7 +129,7 @@ These behaviors, if visible in game output, prove the system is working:
 
 **Where to see it:** `graph_diagnostics` / runtime package sections expose `character_voice_profiles`; validation records `voice_consistency_validation` and the `turn_aspect_ledger.voice_consistency` aspect. Policy-declared forbidden voice markers reject through `runtime_voice_consistency_v1`.
 
-**Code path:** `ai_stack/character_voice_goc.py` builds profiles, `ai_stack/langgraph/langgraph_runtime_executor.py` adds them to the packet/context and runtime aspect validation, and `ai_stack/character_voice_validation.py` enforces machine-readable policy markers. `dialogue_examples` are authoring examples only, not ADR-0039-safe pass/fail oracles.
+**Code path:** `ai_stack/npc_agency/character/character_voice_goc.py` builds profiles, `ai_stack/langgraph/langgraph_runtime_executor.py` adds them to the packet/context and runtime aspect validation, and `ai_stack/npc_agency/character/character_voice_validation.py` enforces machine-readable policy markers. `dialogue_examples` are authoring examples only, not ADR-0039-safe pass/fail oracles.
 
 ### Marker 4: Responder Set Determinism
 **Proof:** Player confronts Vanya. Annette responds (primary target). Mediator adds context (secondary). Other guest says nothing.

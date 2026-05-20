@@ -6,7 +6,7 @@ trace names are imported from canonical Quality Lab/runtime constants.
 
 from __future__ import annotations
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
 )

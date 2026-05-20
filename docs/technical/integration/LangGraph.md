@@ -57,7 +57,7 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 
 - **LangChain:** prompt templates and parsers **inside** `invoke_model` ([LangChain.md](LangChain.md)).
 - **RAG:** `retrieve_context` node on the story-play path only; governance and domains live in `ai_stack/rag/__init__.py` ([RAG.md](../ai/RAG.md)).
-- **Capabilities:** separate governed operations invoked from backend or tooling, not a replacement for this graph ([capabilities.py](../../../ai_stack/capabilities.py)).
+- **Capabilities:** separate governed operations invoked from backend or tooling, not a replacement for this graph ([capabilities.py](../../../ai_stack/capabilities/capabilities.py)).
 
 ---
 
@@ -97,7 +97,7 @@ flowchart LR
 
 ## Diagram: LangGraph vs LangChain in this repository
 
-*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py` (graph), `ai_stack/langchain_integration/bridges.py` (invoke and retriever bridges).
+*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py` (graph), `ai_stack/langchain/bridges.py` (invoke and retriever bridges).
 
 ```mermaid
 flowchart TB
@@ -105,7 +105,7 @@ flowchart TB
     N1[ordered_nodes_and_edges]
     N2[validate_seam_commit_seam]
   end
-  subgraph LC[LangChain_integration]
+  subgraph LC[LangChain]
     P[ChatPromptTemplate_Pydantic parsers]
     RB[RetrieverBridge_Writers_Room]
   end

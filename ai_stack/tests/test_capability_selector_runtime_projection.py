@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     CAP_ACTION_RESOLUTION,
     CAP_CALLBACK_WEB,
     CAP_CONSEQUENCE_CASCADE,

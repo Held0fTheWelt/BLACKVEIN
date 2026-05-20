@@ -52,19 +52,25 @@ all = [
 
 [tool.setuptools]
 # Flat tree under this directory is imported as ``ai_stack.*`` (repo adds parent to PYTHONPATH).
-# Without ``package-dir``, setuptools auto-discovers ``langchain_integration`` and ``narrative``
+# Without ``package-dir``, setuptools auto-discovers ``langchain`` and ``narrative``
 # as separate top-level packages and editable installs fail.
 package-dir = {"ai_stack" = "."}
 packages = [
     "ai_stack",
+    "ai_stack.capabilities",
     "ai_stack.rag",
     "ai_stack.langgraph",
     "ai_stack.npc_agency",
+    "ai_stack.npc_agency.character",
     "ai_stack.director",
+    "ai_stack.director.capabilities_manager",
     "ai_stack.actor_situation",
+    "ai_stack.language_io",
     "ai_stack.narrator",
     "ai_stack.dramatic_effect",
-    "ai_stack.langchain_integration",
+    "ai_stack.canonical_path",
+    "ai_stack.langchain",
+    "ai_stack.langfuse",
     "ai_stack.narrative",
     "ai_stack.narrative.research",
 ]

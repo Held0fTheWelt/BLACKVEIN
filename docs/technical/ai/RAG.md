@@ -32,8 +32,8 @@ Without explicit **domains** and **governance lanes**, draft notes and evaluatio
 
 - **LangGraph:** `retrieve_context` node uses `RetrievalDomain.RUNTIME` and profile `runtime_turn_support`.
 - **Context synthesis:** the `synthesize_context` graph node consumes retrieval output plus director/runtime state and emits a `ContextSynthesisBundle` for non-authoritative prompt support and diagnostics.
-- **LangChain:** Writers’ Room retriever bridge uses `RetrievalDomain.WRITERS_ROOM` / `writers_review` (`ai_stack/langchain_integration/bridges.py`).
-- **Capabilities:** `wos.context_pack.build` accepts a payload `domain` (defaults to `runtime`) when assembling packs (`ai_stack/capabilities.py`).
+- **LangChain:** Writers’ Room retriever bridge uses `RetrievalDomain.WRITERS_ROOM` / `writers_review` (`ai_stack/langchain/bridges.py`).
+- **Capabilities:** `wos.context_pack.build` accepts a payload `domain` (defaults to `runtime`) when assembling packs (`ai_stack/capabilities/capabilities.py`).
 - **Research store:** persisted research artifacts (`.wos/research/`) are a **different** subsystem from the RAG corpus; research **retrieval domain** in RAG is defined for consistent policy when callers use `RetrievalDomain.RESEARCH`.
 
 ## Runtime integration governance (ADR-0044 / ADR-0045)
@@ -173,7 +173,7 @@ Content-class boosts, canonical priority, module match, scene hints — applied 
 | Domain (enum) | Default profile | Typical callers (examples) |
 |---------------|-----------------|-----------------------------|
 | `runtime` | `runtime_turn_support` | `RuntimeTurnGraphExecutor._retrieve_context` (`ai_stack/langgraph/langgraph_runtime.py`) |
-| `writers_room` | `writers_review` | `LangChainRetrieverBridge.get_writers_room_documents` (`ai_stack/langchain_integration/bridges.py`) |
+| `writers_room` | `writers_review` | `LangChainRetrieverBridge.get_writers_room_documents` (`ai_stack/langchain/bridges.py`) |
 | `improvement` | `improvement_eval` | Improvement and eval scenarios; capability-driven packs when domain set |
 | `research` | `research_eval` | Defined end-to-end in `rag.py` for research-mode retrieval consistency; use when constructing `RetrievalRequest(domain=...)` for research tooling |
 
@@ -221,7 +221,7 @@ Outputs expose `source_evidence_lane`, `source_visibility_class`, `policy_note`,
 ## Active wiring (verified call sites)
 
 - **World-engine turn path:** `build_runtime_retriever(...)` / graph `retrieve_context` with `RetrievalDomain.RUNTIME` (`ai_stack/langgraph/langgraph_runtime.py`).
-- **Writers’ Room:** `wos.context_pack.build` in `writers_room` mode; retriever bridge shares semantics (`ai_stack/capabilities.py`, `bridges.py`).
+- **Writers’ Room:** `wos.context_pack.build` in `writers_room` mode; retriever bridge shares semantics (`ai_stack/capabilities/capabilities.py`, `bridges.py`).
 - **Improvement:** uses `RetrievalDomain.IMPROVEMENT` in tests and eval harnesses (`ai_stack/tests/test_rag.py`, `ai_stack/tests/retrieval_eval_scenarios.py`); improvement HTTP flows compose context via capabilities as described in [improvement_loop_in_world_of_shadows.md](improvement_loop_in_world_of_shadows.md).
 
 ---

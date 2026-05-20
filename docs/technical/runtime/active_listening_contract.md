@@ -58,6 +58,6 @@ Primary implementation anchors:
 - `ai_stack/active_listening_contracts.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
-- `ai_stack/capability_selector.py`
-- `ai_stack/capability_validator_plan.py`
-- `ai_stack/capability_validator_registry.py`
+- `ai_stack/capabilities/capability_selector.py`
+- `ai_stack/capabilities/capability_validator_plan.py`
+- `ai_stack/capabilities/capability_validator_registry.py`

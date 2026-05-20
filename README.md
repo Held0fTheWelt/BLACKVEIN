@@ -123,8 +123,8 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 
 - **RAG**: corpus ingestion and context packs (`ai_stack/rag/__init__.py`); used on the runtime turn path for grounded prompts.
 - **LangGraph**: `RuntimeTurnGraphExecutor` orchestrates interpret → retrieve → GoC resolve → director → model → normalize → validate → commit → render → package.
-- **LangChain**: adapter invocation bridge for structured runtime output (`ai_stack/langchain_integration/`).
-- **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md) and `ai_stack/capabilities.py`.
+- **LangChain**: adapter invocation bridge for structured runtime output (`ai_stack/langchain/`).
+- **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md) and `ai_stack/capabilities/capabilities.py`.
 - **Player input**: structured interpretation contract in `story_runtime_core` — [docs/technical/runtime/player_input_interpretation_contract.md](docs/technical/runtime/player_input_interpretation_contract.md).
 
 Model routing (registry, adapters, timeouts) is configured in the world-engine startup path; local runs typically use **mock** or providers configured in backend AI Runtime Governance.
@@ -143,7 +143,7 @@ The **canonical** Writers-Room workflow is implemented on the **backend** (JWT, 
 | --- | --- |
 | HTTP API (create review, get review, decision, revision) | `backend/app/api/v1/writers_room_routes.py` — under `/api/v1/writers-room/...` |
 | Workflow orchestration (retrieval, LangGraph seed, proposals, review bundle) | `backend/app/services/writers_room_service.py` |
-| LangGraph seed + LangChain Writers-Room invocation | `ai_stack/langgraph/langgraph_runtime.py` (`build_seed_writers_room_graph`), `ai_stack/langchain_integration/` (`invoke_writers_room_adapter_with_langchain`, …) |
+| LangGraph seed + LangChain Writers-Room invocation | `ai_stack/langgraph/langgraph_runtime.py` (`build_seed_writers_room_graph`), `ai_stack/langchain/` (`invoke_writers_room_adapter_with_langchain`, …) |
 | Standalone browser UI (uses `BACKEND_API_URL` / `BACKEND_BASE_URL` + JWT) | `writers-room/app.py` and `writers-room/app/` |
 | Architecture (stages, HITL, shared stack) | [docs/technical/content/writers-room-and-publishing-flow.md](docs/technical/content/writers-room-and-publishing-flow.md) |
 | Governance / operator surfaces | `administration-tool` canonical Inspector Suite workbench: `/manage/inspector-workbench` (`templates/manage/inspector_workbench.html`, `static/manage_inspector_workbench.js`); read-only admin APIs under `/api/v1/admin/ai-stack/...` (see `backend/app/api/v1/ai_stack_governance_routes.py`) |

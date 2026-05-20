@@ -203,7 +203,7 @@
       "domain": "ai_stack",
       "tags": ["writers-room", "review"],
       "description": "System instruction for structured writers-room review output.",
-      "source_path": "ai_stack/langchain_integration/bridges.py",
+      "source_path": "ai_stack/langchain/bridges.py",
       "source_symbol": "_WRITERS_ROOM_PROMPT_TEMPLATE.system",
       "variables": [],
       "template_lines": [
@@ -219,7 +219,7 @@
       "domain": "ai_stack",
       "tags": ["writers-room", "review"],
       "description": "Human message template for module review focus, retrieved evidence, and format instructions.",
-      "source_path": "ai_stack/langchain_integration/bridges.py",
+      "source_path": "ai_stack/langchain/bridges.py",
       "source_symbol": "_WRITERS_ROOM_PROMPT_TEMPLATE.human",
       "variables": ["module_id", "focus", "retrieval_context", "format_instructions"],
       "template_lines": [

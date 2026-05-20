@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.character_mind_contract import FieldProvenance
-from ai_stack.character_mind_goc import resolve_runtime_actor_id
-from ai_stack.character_voice_contract import CharacterVoiceProfileRecord
+from ai_stack.npc_agency.character.character_mind_contract import FieldProvenance
+from ai_stack.npc_agency.character.character_mind_goc import resolve_runtime_actor_id
+from ai_stack.npc_agency.character.character_voice_contract import CharacterVoiceProfileRecord
 from ai_stack.goc_scene_identity import (
     GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY,
     guidance_phase_key_for_scene_id,

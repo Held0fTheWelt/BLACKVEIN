@@ -86,7 +86,7 @@ AI helps interpret input, retrieve relevant text, propose narrative structure, r
 
 ### Technical precision
 
-- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities.py`), **research pipeline** (`ai_stack/langgraph/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
+- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities/capabilities.py`), **research pipeline** (`ai_stack/langgraph/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
 - **`story_runtime_core`:** Shared adapters, registry patterns used by world-engine and backend paths.
 - **`world-engine`:** Authoritative host for live `StorySession` lifecycle, turn execution, diagnostics, and bounded narrative commit after the graph returns (`world-engine/app/story_runtime/manager.py`).
 - **`backend`:** Policy, auth, Writers’ Room, improvement HTTP surfaces, proxy to play—**not** a parallel authoritative runtime for the canonical play path.
@@ -185,7 +185,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 **Plain:** Named, mode-gated operations (context packs, transcripts, review bundles, research explore) run **inside** backend or graph code with schemas and audit semantics—not as ad-hoc string APIs.
 
-**Technical:** `ai_stack/capabilities.py` defines capabilities such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build`, and the research/canon tools (`wos.research.explore`, …) with `CapabilityKind`, per-capability **allowed_modes** (for example `runtime` / `writers_room` / `improvement` / `admin` for core narrative workflows, and `research` / `admin` / `improvement` for the research surface), plus denial/audit behavior.
+**Technical:** `ai_stack/capabilities/capabilities.py` defines capabilities such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build`, and the research/canon tools (`wos.research.explore`, …) with `CapabilityKind`, per-capability **allowed_modes** (for example `runtime` / `writers_room` / `improvement` / `admin` for core narrative workflows, and `research` / `admin` / `improvement` for the research surface), plus denial/audit behavior.
 
 **Why WoS:** Same vocabulary for “what is allowed in which mode” across runtime, Writers’ Room, improvement, and MCP catalog mirroring.
 
@@ -400,7 +400,7 @@ flowchart TB
   subgraph asDetail [ai_stack_internals]
     RAG[rag.py]
     LG[langgraph_runtime]
-    LC[langchain_integration]
+    LC[langchain]
     CAP[capabilities.py]
     RES[research_subsystem]
   end

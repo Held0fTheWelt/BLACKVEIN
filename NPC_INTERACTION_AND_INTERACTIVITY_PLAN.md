@@ -19,14 +19,31 @@
 
 ---
 
+## 1.0 Roadmap truth snapshot (2026-05-20) — ersetzt veraltete Annahmen in §1.7
+
+**Autoritative Ausführungsplanung:** Master-Roadmap (Cursor-Plan `npc_interactivity_roadmap`) + [`docs/MVPs/npc_interactivity_piv_log.md`](docs/MVPs/npc_interactivity_piv_log.md) + [`docs/MVPs/phase_2_director_pulse_status.md`](docs/MVPs/phase_2_director_pulse_status.md).
+
+| Alte Annahme (2026-05-19) | Repo-Wahrheit (2026-05-20) |
+|---------------------------|----------------------------|
+| Phase-1 ~50 %, `gathering_paused` fehlt | PR-0..C + ADR-0062 thin path; `compute_gathering_state` + Beat-Gate shipped |
+| Phase-2 Pulse fehlt komplett | ADR-0058 Stages A–M shipped; `diagnostics.director_pulse` |
+| Einheitlicher Snapshot nur als Stub | Aggregator `GET .../runtime-diagnostic-snapshot` (PR-D) + thin-path + pulse |
+| NPC-/Souffleuse voll offen | Motivation-Engine + off-stage scaffold shipped; Symmetrie-Brücke + Voice-Profil + UI-Panel inkrementell |
+
+**Noch offen (genuine gaps):** PR-B2 plausible-object capability (optional); live tick Souffleuse-Komponist; model-graded Souffleuse-Gate; WS `FollowUpSemanticProvider` voll verdrahtet.
+
+---
+
 ## 1. Bestehende Architektur — verifizierter Stand (gekürzt)
+
+> **Hinweis:** Einige Pfade unten wurden reorganisiert (`canonical_path/`, `narrator/`, `director/`). PIV-Logs und ADRs sind die aktuellen Anker. §1.7 „Pulse fehlt“ ist **veraltet** — siehe §1.0.
 
 Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 
 ### 1.1 Canonical Path
 
 - Source of truth: `content/modules/god_of_carnage/canonical_path/001…038*.yaml`
-- Resolver: `ai_stack/canonical_path_resolver.py:104-205`
+- Resolver: `ai_stack/canonical_path/canonical_path_resolver.py:104-205`
 - 38 Steps, `opening_001_parc_montsouris_edge` … `opening_038_handoff_or_terminal` (`ai_stack/tests/test_canonical_path_resolver.py:54-65`)
 - Steps 001–003: `narrator_only_prologue`; 004: `narrator_perception_transition`; 005: `scripted_mandatory_dialog` (**Veronique liest** — gewollter Testpunkt); 006: `scripted_with_player_window`.
 
@@ -69,10 +86,11 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 - Ruhepunkt: `_check_ruhepunkt_signal` (`manager.py:8777+`) — heute „remaining NPC initiatives == 0"
 - Eingabe-Puffer: `manager.queue_player_input(session_id, …)`
 
-### 1.7 Was es heute *nicht* gibt
+### 1.7 Was es heute *nicht* gibt (teilweise veraltet — siehe §1.0)
 
-- **Engine-Pulse / Tick-System:** NPCs handeln im aktuellen Code ausschließlich innerhalb eines `run_ldss`-getriebenen Player-Turns. Es existiert kein autonomer Takt, der NPCs unabhängig vom Spieler-Input bewegt. → für Phase 2 ist das ein neuer Subsystem-Entwurf.
-- **Block-Streaming pro Tick:** Heute werden alle Blöcke eines Turns als Bündel produziert, dann gestreamt. Der Pulse-Vorschlag in Phase 2 erfordert Block-Emit pro Tick, damit der Spieler jederzeit reinschneiden kann.
+- ~~**Engine-Pulse / Tick-System:**~~ **Shipped (ADR-0058):** Director-getriebene Ticks, Shadow/Dual/Primary-Stufen; siehe `phase_2_director_pulse_status.md`.
+- ~~**Block-Streaming pro Tick:**~~ **Shipped:** `block_stream_event.v1` + Dual-Mode; Bundle-Fallback bleibt.
+- **Noch offen:** Live Director-komponierte Souffleuse nach Opening; dedizierte plausible-object-Thin-Path-Capability (ADR-0062 PR-B2 optional).
 
 ---
 
@@ -548,7 +566,7 @@ Die Souffleuse spricht **immer im Wortschatz und Register des aktuell gespielten
 8. `content/modules/god_of_carnage/module.yaml`
 9. `content/modules/god_of_carnage/knowledge/player_freedom_policy.yaml`
 10. `content/modules/god_of_carnage/canonical_path/004_*.yaml`, `005_*.yaml`, `006_*.yaml`
-11. `ai_stack/canonical_path_resolver.py`, `ai_stack/narrator/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/narrator/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
+11. `ai_stack/canonical_path/canonical_path_resolver.py`, `ai_stack/narrator/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/narrator/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
 12. `world-engine/app/story_runtime/manager.py` (heiße Zonen: 7123–7172, 8703–8731, 9777–9817, 10370–10440)
 13. `frontend/static/play_typewriter_engine.js`
 14. **`docs/MVPs/capability_matrix_status_and_adr_relations.md`** (Capability-Matrix Table B — Quelle für die vom Director arrangierbaren Capabilities; insbesondere Π1, Π7, Π8, Π11, Π14, Π16, Π18, Π19, Π22, Π23, Π27, Π31)

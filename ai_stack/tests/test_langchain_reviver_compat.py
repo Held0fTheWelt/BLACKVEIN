@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import warnings
 
-from ai_stack.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
+from ai_stack.langchain.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
 
 
 def test_reviver_default_emits_no_allowed_objects_pending_warning() -> None:

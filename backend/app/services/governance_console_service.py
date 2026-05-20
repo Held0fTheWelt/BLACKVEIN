@@ -9,8 +9,8 @@ import os
 from typing import Any
 
 from ai_stack.capabilities import capability_catalog
-from ai_stack.capability_validator_dispatch import resolve_validator_dispatch_mode
-from ai_stack.capability_validator_registry import (
+from ai_stack.capabilities.capability_validator_dispatch import resolve_validator_dispatch_mode
+from ai_stack.capabilities.capability_validator_registry import (
     TURN_CLASS_ENFORCED_VALIDATORS,
     VALIDATOR_REGISTRY_INVENTORY,
     build_available_semantic_validator_registry,

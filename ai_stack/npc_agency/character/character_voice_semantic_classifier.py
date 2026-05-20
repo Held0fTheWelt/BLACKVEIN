@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Any
 
-from ai_stack.character_voice_contract import (
+from ai_stack.npc_agency.character.character_voice_contract import (
     CharacterVoiceProfileRecord,
     VoiceSemanticLineClassification,
     VoiceValidationMode,

@@ -446,7 +446,7 @@ class TestExecutorRetrievalConfigWiring:
 
     def test_capability_context_pack_handler_filters_min_score_before_context_text(self) -> None:
         """Capability retrieval path applies the same min-score contract as the direct path."""
-        from ai_stack.capabilities_registry_context_writers_handlers import build_context_pack_handler
+        from ai_stack.capabilities.capabilities_registry_context_writers_handlers import build_context_pack_handler
         from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
         from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
         from ai_stack.rag.rag_types import RetrievalDomain, RetrievalStatus

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_selector import ActiveActor, TurnKind, TurnSituation, select_capabilities
+from ai_stack.capabilities.capability_validator_dispatch import (
     ADR0041_VALIDATOR_DISPATCH_MODE_ENV,
     DEFAULT_VALIDATOR_DISPATCH_MODE,
     ValidatorDispatchMode,
     build_validator_dispatch_report,
     resolve_validator_dispatch_mode,
 )
-from ai_stack.capability_validator_plan import build_validator_execution_plan
+from ai_stack.capabilities.capability_validator_plan import build_validator_execution_plan
 
 
 def _opening_plan():

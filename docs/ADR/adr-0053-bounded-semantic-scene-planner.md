@@ -18,7 +18,7 @@ graph truth.
 - The planner consumes the expanded GoC content surfaces: `canonical_path`, `scene_graph`, `locations`, `objects`, `content_access_policy`, `opening_quote_anchors`, and `direction/beat_library`.
 - The dramatic generation packet exposes the enriched `scene_plan` as model-visible bounded direction, including speech and capability-manager decisions.
 - The runtime capability aspect records the director-selected capability-manager plan so validation can see what the director intended to execute.
-- `ai_stack/director/director_capability_manager.py` audits the selected dramatic capabilities as individual bounded dispatch paths. Each selected capability must have one terminal path, pass cycle detection, stay within the path-depth limit, and enter the runtime as an audited dispatch queue rather than a recursive tree walk.
+- `ai_stack/director/capabilities_manager/director_capability_manager.py` audits the selected dramatic capabilities as individual bounded dispatch paths. Each selected capability must have one terminal path, pass cycle detection, stay within the path-depth limit, and enter the runtime as an audited dispatch queue rather than a recursive tree walk.
 - Validation and commit seams remain authoritative; planner output is advisory until validation/commit whenever the legacy planner path is used.
 - Scene-function and responder selection no longer use legacy keyword scene candidates or raw actor-name matching. Missing semantic move input degrades through `semantic_move_required`.
 
@@ -262,7 +262,7 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 - [MVP Semantic Dramatic Planner roadmap](../MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md)
 - [Canonical GoC turn contract](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - `ai_stack/semantic_scene_planner.py`
-- `ai_stack/director/director_capability_manager.py`
+- `ai_stack/director/capabilities_manager/director_capability_manager.py`
 - `ai_stack/scene_plan_contract.py`
 - `ai_stack/goc_yaml_authority.py`
 - `ai_stack/director/scene_director_goc.py`

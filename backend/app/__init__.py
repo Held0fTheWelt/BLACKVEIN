@@ -10,7 +10,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
 
 try:
-    from ai_stack.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
+    from ai_stack.langchain.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
 
     ensure_langchain_reviver_explicit_core()
 except ImportError:

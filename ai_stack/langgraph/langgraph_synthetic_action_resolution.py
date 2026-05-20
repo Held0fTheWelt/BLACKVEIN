@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from story_runtime_core.language_adapter import resolve_string
+from ai_stack.language_io.language_adapter import resolve_string
 
 from ai_stack.runtime_turn_contracts import ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION
 from ai_stack.narrator.narrator_consequence_contracts import (

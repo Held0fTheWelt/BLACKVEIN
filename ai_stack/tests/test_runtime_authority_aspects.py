@@ -13,13 +13,13 @@ from ai_stack.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_SCHEMA_VERSION,
 )
 from ai_stack.narrative_momentum_engine import derive_narrative_momentum
-from ai_stack.dramatic_capability_contracts import (
+from ai_stack.capabilities.dramatic_capability_contracts import (
     NPC_COERCIVE_ACTION_TYPES,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
     NPC_FORCE_PLAYER_SPEECH_FORBIDDEN,
 )
 from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
-from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
+from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,

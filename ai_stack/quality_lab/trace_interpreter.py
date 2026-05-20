@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
@@ -46,7 +46,7 @@ EXPECTED_LIVE_METADATA_FIELDS: tuple[str, ...] = (
 )
 
 # Trace-name → trace-kind mapping. Names come from canonical catalog
-# constants in ``ai_stack.langfuse_evaluator_catalog`` so renames stay in
+# constants in ``ai_stack.langfuse.langfuse_evaluator_catalog`` so renames stay in
 # one place.
 OPENING_TRACE_NAMES: frozenset[str] = frozenset({WORLD_ENGINE_OPENING_TRACE_NAME})
 TURN_TRACE_NAMES: frozenset[str] = frozenset(

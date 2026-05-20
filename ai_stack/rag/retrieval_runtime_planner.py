@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     derive_turn_situation_from_runtime_context,
     select_capabilities,
 )

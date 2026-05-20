@@ -239,7 +239,7 @@ def interpret_judgments(
                     "ai_action": (
                         "Open Langfuse and attach the expected categorical "
                         "evaluators using the filter bundle from "
-                        "ai_stack/langfuse_evaluator_catalog.py."
+                        "ai_stack/langfuse/langfuse_evaluator_catalog.py."
                     ),
                     "tradeoff": "Requires Langfuse access; not a runtime fix.",
                     "recommended": True,
@@ -260,7 +260,7 @@ def interpret_judgments(
             ],
             evidence_refs=[
                 {"type": "adr", "ref": "docs/ADR/adr-0040-quality-lab-mcp-runtime-diagnostics.md"},
-                {"type": "file", "ref": "ai_stack/langfuse_evaluator_catalog.py"},
+                {"type": "file", "ref": "ai_stack/langfuse/langfuse_evaluator_catalog.py"},
             ],
         )
 

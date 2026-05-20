@@ -970,7 +970,7 @@ def test_fetch_langfuse_trace_gate_scores_in_normalized_evidence():
 
 
 def _trace_with_adr0041_langfuse_evidence(trace_id: str = "lf-adr0041-1") -> dict:
-    from ai_stack.langfuse_evidence import (
+    from ai_stack.langfuse.langfuse_evidence import (
         ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
         ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
         ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
@@ -1019,7 +1019,7 @@ def _trace_with_adr0041_langfuse_evidence(trace_id: str = "lf-adr0041-1") -> dic
 def test_fetch_langfuse_trace_includes_adr0041_normalized_evidence():
     registry = _registry()
     tool = registry.get("fetch_langfuse_trace")
-    from ai_stack.langfuse_evidence import (
+    from ai_stack.langfuse.langfuse_evidence import (
         ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
         ADR0041_LANGFUSE_SCORE_READINESS_AGG,
         ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,

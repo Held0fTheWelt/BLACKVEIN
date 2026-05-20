@@ -219,7 +219,7 @@ def append_character_mind_provenance_entry(
         source_kind="runtime_derived",
         source_ref="operator_canonical_turn_record.character_mind_records[].provenance",
         derivation_rule="aggregate_field_provenance_per_character_mind_record",
-        code_path="ai_stack/character_mind_contract.py",
+        code_path="ai_stack/npc_agency/character/character_mind_contract.py",
         influence_targets=["planner_state_projection", "provenance_projection"],
         decision_effect="shows authored vs fallback provenance for tactical identity fields",
     )

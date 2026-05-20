@@ -174,9 +174,9 @@ TONAL_CONSISTENCY_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
 )
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
-    "ai_stack/capability_selector.py",
-    "ai_stack/capability_validator_dispatch.py",
-    "ai_stack/capability_validator_plan.py",
+    "ai_stack/capabilities/capability_selector.py",
+    "ai_stack/capabilities/capability_validator_dispatch.py",
+    "ai_stack/capabilities/capability_validator_plan.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_package_output_dramatic_review.py",
     "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
@@ -203,9 +203,9 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
-    "ai_stack/capability_selector.py",
-    "ai_stack/capability_validator_dispatch.py",
-    "ai_stack/capability_validator_plan.py",
+    "ai_stack/capabilities/capability_selector.py",
+    "ai_stack/capabilities/capability_validator_dispatch.py",
+    "ai_stack/capabilities/capability_validator_plan.py",
     "ai_stack/information_disclosure_contracts.py",
     "ai_stack/information_disclosure_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
@@ -276,10 +276,10 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
-    "ai_stack/capability_selector.py",
-    "ai_stack/capability_validator_dispatch.py",
-    "ai_stack/capability_validator_plan.py",
-    "ai_stack/langchain_integration/bridges.py",
+    "ai_stack/capabilities/capability_selector.py",
+    "ai_stack/capabilities/capability_validator_dispatch.py",
+    "ai_stack/capabilities/capability_validator_plan.py",
+    "ai_stack/langchain/bridges.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
@@ -293,9 +293,9 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
 }
 
 CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
-    "ai_stack/capability_selector.py",
-    "ai_stack/capability_validator_dispatch.py",
-    "ai_stack/capability_validator_plan.py",
+    "ai_stack/capabilities/capability_selector.py",
+    "ai_stack/capabilities/capability_validator_dispatch.py",
+    "ai_stack/capabilities/capability_validator_plan.py",
     "ai_stack/consequence_cascade_contracts.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
@@ -358,7 +358,7 @@ SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
 }
 
 GENRE_AWARENESS_CANONICAL_SURFACES = {
-    "ai_stack/capability_selector.py",
+    "ai_stack/capabilities/capability_selector.py",
     "ai_stack/genre_awareness_contracts.py",
     "ai_stack/genre_awareness_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
@@ -398,7 +398,7 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     ),
     "ai_stack/canonical_prompt_catalog.py": "Legacy prompt catalog embeds GoC host/guest footing.",
     "ai_stack/diagnostics_envelope.py": "Legacy diagnostics defaults still use the GoC live profile.",
-    "ai_stack/langchain_integration/bridges.py": "Schema descriptions include GoC-flavored examples.",
+    "ai_stack/langchain/bridges.py": "Schema descriptions include GoC-flavored examples.",
     "ai_stack/live_dramatic_scene_simulator.py": "LDSS fallback/opening data is still GoC-specific.",
     "ai_stack/narrative_runtime_agent.py": "Narrator validation examples still mention GoC actors.",
     "ai_stack/narrator/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",

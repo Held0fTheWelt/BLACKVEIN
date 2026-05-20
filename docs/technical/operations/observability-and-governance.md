@@ -32,7 +32,7 @@ This document is the canonical reference for **cross-stack observability**, **au
 
 ## LLM-as-a-Judge vs deterministic gates
 
-- Rubric source of truth: `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`, mirrored structurally in `ai_stack/langfuse_evaluator_catalog.py` for MCP and CI.
+- Rubric source of truth: `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`, mirrored structurally in `ai_stack/langfuse/langfuse_evaluator_catalog.py` for MCP and CI.
 - Categorical judges are **qualitative-only**; they must not override ADR-0033 commit semantics, actor-lane gates, mock/fallback gates, or contract scores surfaced as numeric gates on traces.
 - MCP Langfuse helpers attach **interpretation** (`llm_judge_interpretation`, severity bands, suggested repair areas) and flag **missing judge rows** as evaluator-coverage gaps—not runtime failures.
 - Preferred Langfuse attachment context for live judges: `Observation Type = GENERATION`, `Observation Name = story.model.generation`, environment supplied by the runtime (`staging`, `live`, or the configured deployment value), trace name `world-engine.session.create` (opening) or `world-engine.turn.execute` (interactive turns), with `backend.turn.execute` still valid as the backend root on the same distributed trace when scores were recorded there.

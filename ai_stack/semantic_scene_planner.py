@@ -10,11 +10,11 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from ai_stack.director.director_capability_manager import (
+from ai_stack.director.capabilities_manager.director_capability_manager import (
     DIRECTOR_CAPABILITY_MANAGER_PLAN_SCHEMA_VERSION,
     audit_director_capability_paths,
 )
-from ai_stack.dramatic_capability_contracts import (
+from ai_stack.capabilities.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_SOCIAL_REACTION_OPTIONAL,

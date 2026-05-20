@@ -154,6 +154,7 @@ surfaces:
   - surface_id: story_runtime_core_input_interpretation
     primary_files:
       - story_runtime_core/input_interpreter.py
+      - ai_stack/language_io/language_adapter.py
       - story_runtime_core/language_adapter.py
       - story_runtime_core/models.py
     symbols:

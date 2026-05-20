@@ -5,7 +5,7 @@ Last updated: 2026-05-15
 Local governance inventory only. `proof_level=local_only`, `live_or_staging_evidence=false`.
 This document does not promote Capability Matrix status or claim live/staging proof.
 
-Canonical machine-readable rows: `ai_stack/capability_validator_registry.py::VALIDATOR_REGISTRY_INVENTORY`.
+Canonical machine-readable rows: `ai_stack/capabilities/capability_validator_registry.py::VALIDATOR_REGISTRY_INVENTORY`.
 
 ## Summary
 
@@ -83,7 +83,7 @@ All IDs matching `{semantic_capability}_judge` from `capability_validator_plan.J
 ## Turn-class coverage (local-only)
 
 Canonical enforced validator IDs per turn class: `TURN_CLASS_ENFORCED_VALIDATORS` and
-`get_turn_class_enforced_validators()` in `ai_stack/capability_validator_registry.py`.
+`get_turn_class_enforced_validators()` in `ai_stack/capabilities/capability_validator_registry.py`.
 Coverage vs an opt-in registry map: `get_registry_coverage_for_turn_class()` /
 `assert_turn_class_registry_coverage()` (no validator execution; no production dispatch).
 

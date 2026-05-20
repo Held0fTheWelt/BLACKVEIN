@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from ai_stack.player_action_resolution import resolve_player_action
-from story_runtime_core.language_adapter import clear_language_adapter_caches
+from ai_stack.language_io.language_adapter import clear_language_adapter_caches
 
 
 @pytest.fixture(autouse=True)

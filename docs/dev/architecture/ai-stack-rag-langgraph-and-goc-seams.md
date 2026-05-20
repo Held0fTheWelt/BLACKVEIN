@@ -14,8 +14,8 @@
 | Turn graph executor | `ai_stack/langgraph/langgraph_runtime.py` |
 | GoC (God of Carnage) YAML / seams | `ai_stack/goc_yaml_authority.py`, `goc_turn_seams.py`, `scene_director_goc.py` |
 | RAG | `ai_stack/rag/__init__.py` |
-| LangChain bridge | `ai_stack/langchain_integration/` |
-| Capabilities | `ai_stack/capabilities.py` |
+| LangChain bridge | `ai_stack/langchain/` |
+| Capabilities | `ai_stack/capabilities/capabilities.py` |
 | Research / canon improvement | `ai_stack/langgraph/research_langgraph.py`, `research_store.py`, `canon_improvement_engine.py` |
 | MCP operator server | `tools/mcp_server/server.py`, `ai_stack/mcp_canonical_surface.py` |
 

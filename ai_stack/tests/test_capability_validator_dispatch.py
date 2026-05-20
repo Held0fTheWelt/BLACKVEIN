@@ -2,21 +2,21 @@ from __future__ import annotations
 
 import re
 
-from ai_stack.capability_selector import (
+from ai_stack.capabilities.capability_selector import (
     ActiveActor,
     TurnKind,
     TurnSituation,
     select_capabilities,
     validate_semantic_capability_name,
 )
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_validator_dispatch import (
     DEFAULT_VALIDATOR_DISPATCH_MODE,
     DISPATCH_REPORT_REASON,
     ValidatorDispatchAction,
     ValidatorDispatchMode,
     build_validator_dispatch_report,
 )
-from ai_stack.capability_validator_plan import build_validator_execution_plan
+from ai_stack.capabilities.capability_validator_plan import build_validator_execution_plan
 
 
 def _opening_plan():

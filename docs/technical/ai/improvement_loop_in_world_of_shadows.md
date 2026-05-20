@@ -10,7 +10,7 @@ World of Shadows has **two complementary loops** that both support **governance 
 
 **Purpose:** Compare **baseline** vs **candidate** module variants under isolated execution, compute metrics, and persist **recommendation packages** for human governance.
 
-**Anchors:** `backend/app/api/v1/improvement_routes.py`, improvement services under `backend/app/services/` (variants, experiments, evaluation), capability invocations such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build` from `ai_stack/capabilities.py`.
+**Anchors:** `backend/app/api/v1/improvement_routes.py`, improvement services under `backend/app/services/` (variants, experiments, evaluation), capability invocations such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build` from `ai_stack/capabilities/capabilities.py`.
 
 ### Canonical workflow (API-shaped)
 

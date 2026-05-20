@@ -16,7 +16,7 @@ Build a **retrieval plan** from:
 | Input | Source (examples) |
 | ----- | ------------------- |
 | Turn class | LangGraph / turn situation records |
-| Selected capabilities | `ai_stack/capability_selector.py` output when present |
+| Selected capabilities | `ai_stack/capabilities/capability_selector.py` output when present |
 | Active actor / lane | Actor lane hydration, turn state |
 | Beat phase | Planner truth / beat signals from committed path |
 | Authority scope | `runtime_generation` vs `operator_diagnostic` vs writers/improvement domains |
@@ -44,9 +44,9 @@ The plan selects: **profile**, **max chunks**, **allowed lanes** (content module
 
 ## Implementation anchors (code)
 
-- Retrieval and packs: `ai_stack/rag/__init__.py`, `ai_stack/rag/rag_context_retriever.py`, `ai_stack/rag/rag_context_pack_assembler.py`, `ai_stack/capabilities_registry_context_writers_handlers.py` (`wos.context_pack.build`).
+- Retrieval and packs: `ai_stack/rag/__init__.py`, `ai_stack/rag/rag_context_retriever.py`, `ai_stack/rag/rag_context_pack_assembler.py`, `ai_stack/capabilities/capabilities_registry_context_writers_handlers.py` (`wos.context_pack.build`).
 - Runtime graph: `ai_stack/langgraph/langgraph_runtime_executor.py` (`_retrieve_context`, `run_validation_seam`, `run_commit_seam`).
-- ADR-0041: `ai_stack/capability_selector.py`, `ai_stack/capability_validator_registry.py`, `ai_stack/validation_authority_bridge.py`, `ai_stack/runtime_readiness_consumer.py`.
+- ADR-0041: `ai_stack/capabilities/capability_selector.py`, `ai_stack/capabilities/capability_validator_registry.py`, `ai_stack/validation_authority_bridge.py`, `ai_stack/runtime_readiness_consumer.py`.
 - Session truth: `world-engine/app/story_runtime/manager.py`, `world-engine/app/story_runtime/commit_models.py`.
 - Player bundle: `backend/app/api/v1/game_routes.py` (`_player_session_bundle`).
 - Play shell: `frontend/static/play_shell.js` (display backend fields; no readiness inference from text).

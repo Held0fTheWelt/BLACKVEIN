@@ -32,7 +32,7 @@ import re
 
 import pytest
 
-from ai_stack.canonical_path_hold_effect_contracts import (
+from ai_stack.canonical_path.canonical_path_hold_effect_contracts import (
     EFFECT_KIND_HOLD_CURRENT_STEP,
     EFFECT_KINDS,
     HOLD_EFFECT_SOURCES,
@@ -292,7 +292,7 @@ def test_hold_effect_derives_from_contract_fields_not_input_strings() -> None:
 
 
 _CONTRACT_MODULE_PATH = (
-    REPO_ROOT / "ai_stack" / "canonical_path_hold_effect_contracts.py"
+    REPO_ROOT / "ai_stack" / "canonical_path" / "canonical_path_hold_effect_contracts.py"
 )
 
 _ACTIVE_PI_TOKEN_RE = re.compile(

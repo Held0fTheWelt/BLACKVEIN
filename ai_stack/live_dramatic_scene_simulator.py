@@ -188,7 +188,7 @@ class LDSSInput:
     # Canonical path consumption (Phase 5): when set, the LDSS renders deterministic
     # scene blocks from the canonical step instead of returning a degraded notice.
     canonical_step_id: str | None = None
-    canonical_path: Any | None = None  # ai_stack.canonical_path_resolver.CanonicalPath
+    canonical_path: Any | None = None  # ai_stack.canonical_path.canonical_path_resolver.CanonicalPath
 
     @property
     def human_actor_id(self) -> str:

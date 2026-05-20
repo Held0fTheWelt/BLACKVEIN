@@ -5,13 +5,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ai_stack.character_voice_contract import (
+from ai_stack.npc_agency.character.character_voice_contract import (
     CharacterVoiceProfileRecord,
     VoiceConsistencyValidationResult,
     VoiceDriftFinding,
     VoiceValidationMode,
 )
-from ai_stack.character_voice_semantic_classifier import (
+from ai_stack.npc_agency.character.character_voice_semantic_classifier import (
     SEMANTIC_CLASSIFICATION_POLICY_SOURCE,
     classify_voice_semantic_lines,
     semantic_policy_enabled,

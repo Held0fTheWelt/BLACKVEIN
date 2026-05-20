@@ -351,7 +351,7 @@ PR_A_B_C_FORBIDDEN_RUNTIME_SYMBOLS = (
 RUNTIME_FILES_UNTOUCHED_BY_PR_0 = (
     "ai_stack/player_action_resolution.py",
     "ai_stack/narrator/narrator_consequence_contracts.py",
-    "ai_stack/canonical_path_resolver.py",
+    "ai_stack/canonical_path/canonical_path_resolver.py",
     "ai_stack/director/scene_director_goc.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/live_dramatic_scene_simulator.py",

@@ -351,7 +351,7 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 
 **Dramatic turn projection.** `build_roadmap_dramatic_turn_record` copies from `retrieval.retrieval_governance_summary` into `retrieval_record` without re-classifying hits: `authored_truth_refs`, `derived_artifact_refs`, `retrieval_governance_result` (the full summary), and `retrieval_visibility_class` (= `dominant_visibility_class`). `retrieval_lane` continues to reflect the retrieval profile / route fields on `retrieval`.
 
-**Trace and admin evidence.** `build_retrieval_trace` in `ai_stack/capabilities.py` **passthrough-embeds** the same `retrieval_governance_summary` dict under the key `retrieval_governance_summary` (no second derivation from `sources`). Backend session evidence aggregates that trace for **control-plane and diagnostic** use only — not semantic authority.
+**Trace and admin evidence.** `build_retrieval_trace` in `ai_stack/capabilities/capabilities.py` **passthrough-embeds** the same `retrieval_governance_summary` dict under the key `retrieval_governance_summary` (no second derivation from `sources`). Backend session evidence aggregates that trace for **control-plane and diagnostic** use only — not semantic authority.
 
 ---
 

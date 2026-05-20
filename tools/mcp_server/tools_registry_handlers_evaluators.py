@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ai_stack.langfuse_evaluator_catalog import (
+from ai_stack.langfuse.langfuse_evaluator_catalog import (
     ORDERED_CATEGORICAL_EVALUATORS,
     all_categorical_evaluator_specs,
     build_langfuse_sync_preview_payload,

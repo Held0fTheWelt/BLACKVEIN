@@ -20,7 +20,7 @@ from story_runtime_core.director_surface_hints import (
     load_module_director_surface_hints,
     select_director_surface_hints,
 )
-from story_runtime_core.language_adapter import build_interaction_surface
+from ai_stack.language_io.language_adapter import build_interaction_surface
 
 try:
     import yaml

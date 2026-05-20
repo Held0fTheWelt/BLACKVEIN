@@ -24,7 +24,7 @@ from ai_stack.narrator.narrator_consequence_contracts import (
 from ai_stack.langgraph.langgraph_synthetic_action_resolution import (
     build_synthetic_generation_for_action_resolution,
 )
-from story_runtime_core.language_adapter import (
+from ai_stack.language_io.language_adapter import (
     clear_language_adapter_caches,
     resolve_string,
     resolve_content_modules_root,

@@ -177,8 +177,9 @@ wordlists. Such input is marked for AI semantic resolution.
 
 Implemented as of 2026-05-17:
 
-- `story_runtime_core/language_adapter.py` exposes the input/output/internal
-  language contract and instructs English normalization before grounding.
+- `ai_stack/language_io/language_adapter.py` exposes the input/output/internal
+  language contract. `story_runtime_core/language_adapter.py` is a compatibility
+  import while downstream callers migrate.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` carries `session_input_language`
   through runtime state and semantic interpretation.
 - `ai_stack/action_resolution_contracts.py` and

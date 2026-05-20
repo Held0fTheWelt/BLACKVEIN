@@ -122,7 +122,7 @@ Evidence:
 - `RuntimeTurnGraphExecutor` defines the graph nodes from input interpretation through retrieval, model invocation, validation, commit, render, and package output, in `ai_stack/langgraph/langgraph_runtime_executor.py`, lines 999-1038.
 - The graph invokes the compiled LangGraph with `self._graph.invoke(initial_state)`, in `ai_stack/langgraph/langgraph_runtime_executor.py`, line 1156.
 - The model invocation uses `invoke_runtime_adapter_with_langchain` only if a provider adapter is registered, in `ai_stack/langgraph/langgraph_runtime_executor.py`, lines 1885-1920; otherwise it records `adapter_not_registered:<provider>` and does not call LangChain, in lines 1950-1958.
-- The LangChain bridge calls `adapter.generate(...)` and parses the structured output, in `ai_stack/langchain_integration/bridges.py`, lines 241-323.
+- The LangChain bridge calls `adapter.generate(...)` and parses the structured output, in `ai_stack/langchain/bridges.py`, lines 241-323.
 
 ---
 
@@ -272,7 +272,7 @@ No live profile-path evidence shows `visitor` being mapped as a story actor. The
 | Actor context passed | Manager passes `_extract_actor_lane_context(session)` | `world-engine/app/story_runtime/manager.py` 2364 | `broken-if-projection-missing-actor-fields` |
 | Graph runs | Graph node chain includes interpret, retrieve, route, invoke, validate, commit, render, package | `ai_stack/langgraph/langgraph_runtime_executor.py` 999-1038 | `implemented-by-source` |
 | Model adapter called | Only if provider adapter is registered | `ai_stack/langgraph/langgraph_runtime_executor.py` 1885-1920 | `provider-unproven` |
-| LangChain bridge called | Bridge calls adapter and parser | `ai_stack/langchain_integration/bridges.py` 241-323 | `implemented-if-adapter-registered` |
+| LangChain bridge called | Bridge calls adapter and parser | `ai_stack/langchain/bridges.py` 241-323 | `implemented-if-adapter-registered` |
 | Adapter missing | Records `adapter_not_registered` and does not call LangChain | `ai_stack/langgraph/langgraph_runtime_executor.py` 1950-1958 | `fallback/degraded-risk` |
 | Validation | Actor lane context passed into `run_validation_seam` only if present | `ai_stack/langgraph/langgraph_runtime_executor.py` 2297-2309 | `partial` |
 | Commit/render | Commit and visible render nodes exist | `ai_stack/langgraph/langgraph_runtime_executor.py` 2404-2514 | `implemented-by-source` |
@@ -610,7 +610,7 @@ The required searches were run under `/mnt/data/repo_frontend`. The highest-sign
 - `world-engine/app/runtime/profiles.py`
 - `world-engine/app/story_runtime/manager.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/langchain_integration/bridges.py`
+- `ai_stack/langchain/bridges.py`
 - `ai_stack/live_dramatic_scene_simulator.py`
 - `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py`
 - `frontend/tests/test_routes_extended.py`

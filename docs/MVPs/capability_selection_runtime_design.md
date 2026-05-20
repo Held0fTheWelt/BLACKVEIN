@@ -30,7 +30,7 @@ See `docs/MVPs/adr0039_runtime_surface_governance_inventory.md` surface `adminis
 ## Implementation Status
 
 The first local deterministic selector core now exists in
-`ai_stack/capability_selector.py`, with focused tests in
+`ai_stack/capabilities/capability_selector.py`, with focused tests in
 `ai_stack/tests/test_capability_selector.py`.
 
 2026-05-15 selector correction (historical Π34 context): explicit player-turn
@@ -69,7 +69,7 @@ budget-disallowed judge IDs to `judges_disallowed`. The projection always emits
 
 The dry-run validator dispatch layer now exposes
 `runtime_intelligence_projection.validator_dispatch_report` from
-`ai_stack/capability_validator_dispatch.py`. Default mode is `dry_run`: it
+`ai_stack/capabilities/capability_validator_dispatch.py`. Default mode is `dry_run`: it
 reports `validators_would_run`, `diagnostics_would_run`, `validators_would_skip`,
 and `judges_would_be_disallowed` without executing validators or changing commit
 or readiness gates. `actually_executed` remains empty and
@@ -92,7 +92,7 @@ produce `readiness_preview` and `validation_preview`, but it keeps
 
 A semantic validator registry inventory now exists in
 `docs/MVPs/capability_validator_registry_inventory.md` with code-backed rows in
-`ai_stack/capability_validator_registry.py`. `build_default_semantic_validator_registry()`
+`ai_stack/capabilities/capability_validator_registry.py`. `build_default_semantic_validator_registry()`
 returns an empty map; `build_available_semantic_validator_registry()` exposes thin
 adapters only for inventory rows marked `safe_for_local_plan_enforced`.
 `build_player_turn_enforced_semantic_validator_registry()` covers the normal
@@ -102,7 +102,7 @@ conflict-turn enforced set the same way.
 
 Turn-class coverage (drift guard, no runtime wiring): `TURN_CLASS_ENFORCED_VALIDATORS`,
 `get_turn_class_enforced_validators`, `get_registry_coverage_for_turn_class`, and
-`assert_turn_class_registry_coverage` in `ai_stack/capability_validator_registry.py`
+`assert_turn_class_registry_coverage` in `ai_stack/capabilities/capability_validator_registry.py`
 with tests in `ai_stack/tests/test_capability_validator_turn_class_coverage.py`.
 For each of `opening_scene`, `normal_player_turn`, and `npc_conflict_turn`, local-only
 registry builders are expected to register every enforced validator ID; observer

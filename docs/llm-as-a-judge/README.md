@@ -75,7 +75,7 @@ Body sections (markdown headings, all required):
 A test in `ai_stack/tests/test_quality_lab_evaluator_catalog.py` asserts:
 
 1. The set of `.md` files in this directory **equals** the set of names in
-   `ai_stack/langfuse_evaluator_catalog.WOS_CATEGORICAL_JUDGES_ORDER`.
+   `ai_stack/langfuse/langfuse_evaluator_catalog.WOS_CATEGORICAL_JUDGES_ORDER`.
 2. For each file, its frontmatter `categories` matches the categories
    exposed by `get_categorical_evaluator_spec(name)`.
 
@@ -101,7 +101,7 @@ edit evaluator prompts, categories, or Langfuse configuration.
 
 - **Add / remove an evaluator** → add or remove the `.md` file here, then
   update `WOS_CATEGORICAL_JUDGES_ORDER` and the evaluator spec in
-  `ai_stack/langfuse_evaluator_catalog.py`.
+  `ai_stack/langfuse/langfuse_evaluator_catalog.py`.
 - **Change a prompt** → edit the `.md` file only. Code does not store the
   prompt text.
 - **Add / change a category** → edit the `.md` file AND update the spec
@@ -117,6 +117,6 @@ edit evaluator prompts, categories, or Langfuse configuration.
   evaluation as promotion gate (not "string-matched theatre")
 - [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) —
   no hardcoded oracles in gate tests
-- `ai_stack/langfuse_evaluator_catalog.py` — code mirror
+- `ai_stack/langfuse/langfuse_evaluator_catalog.py` — code mirror
 - `tools/mcp_server/tools_registry_handlers_evaluators.py` —
   `wos.evaluators.catalog` and `wos.evaluators.get` MCP surface

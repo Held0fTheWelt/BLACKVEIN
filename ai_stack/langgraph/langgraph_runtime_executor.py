@@ -79,7 +79,7 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     RAW_FALLBACK_BYPASS_NOTE,
 )
-from ai_stack.capability_validator_dispatch import (
+from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     resolve_validator_dispatch_mode,
 )
@@ -124,8 +124,8 @@ from ai_stack.dramatic_irony_runtime import (
     validate_dramatic_irony_realization,
 )
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
-from ai_stack.director.director_capability_manager import executable_capabilities_from_manager_plan
-from ai_stack.dramatic_capability_contracts import (
+from ai_stack.director.capabilities_manager.director_capability_manager import executable_capabilities_from_manager_plan
+from ai_stack.capabilities.dramatic_capability_contracts import (
     AI_CONTROLLED_HUMAN_ACTOR_REASON,
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
@@ -171,7 +171,7 @@ from ai_stack.actor_situation import (
     build_w5_projection_for_director,
     build_w5_projection_for_npc,
 )
-from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
+from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
 from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
@@ -268,9 +268,9 @@ from ai_stack.symbolic_object_resonance_engine import (
     validate_symbolic_object_resonance_realization,
 )
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
-from ai_stack.character_mind_goc import build_character_mind_records_for_goc
-from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
-from ai_stack.character_voice_validation import validate_voice_consistency
+from ai_stack.npc_agency.character.character_mind_goc import build_character_mind_records_for_goc
+from ai_stack.npc_agency.character.character_voice_goc import build_character_voice_profiles_for_goc
+from ai_stack.npc_agency.character.character_voice_validation import validate_voice_consistency
 from ai_stack.director.scene_director_goc import (
     build_pacing_and_silence,
     build_responder_and_function,
@@ -314,7 +314,7 @@ from ai_stack.director.director_realization_composer import (
     REALIZATION_PLAN_SCHEMA_VERSION,
     compose_realization_plan,
 )
-from story_runtime_core.language_adapter import (
+from ai_stack.language_io.language_adapter import (
     build_interaction_surface,
     default_player_intent_commit_flags,
     load_session_language_model_directive,
@@ -3915,7 +3915,7 @@ def _invoke_runtime_adapter_with_langchain(**kwargs: Any) -> Any:
     succeed in slim images or CI slices that ship LangGraph but omit optional
     ``langchain_core`` / ``langchain`` extras.
     """
-    from ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
+    from ai_stack.langchain import invoke_runtime_adapter_with_langchain
 
     return invoke_runtime_adapter_with_langchain(**kwargs)
 
