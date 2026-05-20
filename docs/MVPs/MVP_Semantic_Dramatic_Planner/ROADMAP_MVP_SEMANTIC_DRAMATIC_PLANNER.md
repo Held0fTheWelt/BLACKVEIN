@@ -737,7 +737,7 @@ Recommended new modules:
 - `ai_stack/social_state_contract.py`
 - `ai_stack/scene_plan_contract.py`
 - `ai_stack/semantic_scene_planner.py`
-- `ai_stack/dramatic_effect_gate.py`
+- `ai_stack/dramatic_effect/dramatic_effect_gate.py`
 
 Recommended migration posture:
 

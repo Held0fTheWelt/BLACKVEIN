@@ -97,7 +97,7 @@ No code path today suppresses mandatory-beat consumption when `named_characters`
 | `ai_stack/free_player_action_resolution_contracts.py:460` — `presence_breaks_gathering: False` | ✓ |
 | `ai_stack/canonical_path_hold_effect_contracts.py:48` — SCHEMA_VERSION | ✓ |
 | `ai_stack/canonical_path_hold_effect_contracts.py:78–90` — UNTIL_CONDITIONS including `presence_restored` | ✓ |
-| `ai_stack/narrator_consequence_realization_contracts.py:181–269` — builder | ✓ |
+| `ai_stack/narrator/narrator_consequence_realization_contracts.py:181–269` — builder | ✓ |
 | `ai_stack/runtime_diagnostic_snapshot_contracts.py:70–77` — DirectorGatheringStatePlaceholder | ✓ |
 | `ai_stack/runtime_diagnostic_snapshot_contracts.py:136` — envelope slot | ✓ |
 | `ai_stack/director/scene_director_goc.py:655–741` — `_build_responder_set` | ✓ |

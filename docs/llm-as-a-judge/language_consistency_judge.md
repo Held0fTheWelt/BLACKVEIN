@@ -61,8 +61,8 @@ Pay attention to:
 - mixed German/English/French inside one card
 - internal prompt language leaking into visible text
 - whether the output language matches metadata if available
-- whether internal English normalization or semantic grounding labels leaked
-  into player-visible prose
+- whether internal module-language normalization or semantic grounding labels
+  leaked into player-visible prose
 
 Rubric:
 

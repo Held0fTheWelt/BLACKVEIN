@@ -243,7 +243,7 @@ from ai_stack.goc_opening_transition import (
     polish_first_opening_actor_block,
     role_display_name as _role_display_name,
 )
-from ai_stack.goc_narrator_path import (
+from ai_stack.narrator.goc_narrator_path import (
     NARRATOR_PATH_ADAPTER,
     NARRATOR_PATH_INVOCATION_MODE,
     build_goc_narrator_path_opening,

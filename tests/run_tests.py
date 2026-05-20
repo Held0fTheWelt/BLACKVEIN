@@ -82,6 +82,36 @@ FRONTEND_APP_ROOT = str(FRONTEND_DIR / "app")
 WORLD_ENGINE_APP_ROOT = str(WORLD_ENGINE_DIR / "app")
 AI_STACK_ROOT = str(PROJECT_ROOT / "ai_stack")
 
+BACKEND_BLOCK_SUITES: tuple[str, ...] = (
+    "backend_runtime",
+    "backend_observability",
+    "backend_services",
+    "backend_content",
+    "backend_routes_core",
+    "backend_mcp",
+    "backend_play",
+    "backend_rest",
+)
+ENGINE_BLOCK_SUITES: tuple[str, ...] = (
+    "engine_foundation",
+    "engine_http_ws",
+    "engine_runtime",
+    "engine_opening_contracts",
+    "engine_persistence",
+    "engine_observability",
+)
+AI_STACK_BLOCK_SUITES: tuple[str, ...] = (
+    "ai_stack_graph",
+    "ai_stack_goc",
+    "ai_stack_capabilities",
+    "ai_stack_narrative",
+    "ai_stack_retrieval_research",
+    "ai_stack_quality",
+)
+BACKEND_SUITE_FAMILY: tuple[str, ...] = ("backend", *BACKEND_BLOCK_SUITES, "writers_room", "improvement")
+ENGINE_SUITE_FAMILY: tuple[str, ...] = ("engine", *ENGINE_BLOCK_SUITES)
+AI_STACK_SUITE_FAMILY: tuple[str, ...] = ("ai_stack", *AI_STACK_BLOCK_SUITES)
+
 # Human-readable titles for each component (English)
 SUITE_DISPLAY_NAMES: dict[str, str] = {
     "backend": "Backend (Flask API and services)",
@@ -116,7 +146,24 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "backend_content": "Backend content (GoC / WoS canon / templates)",
     "backend_routes_core": "Backend HTTP routes (routes/, web/, api/)",
     "backend_mcp": "Backend MCP server tests",
+    "backend_play": "Backend play/session and world-engine bridge contracts",
     "backend_rest": "Backend remainder (top-level + uncategorized tests/)",
+    # World-engine focused blocks. These are iteration lanes; ``engine`` remains the
+    # full-suite gate with coverage.
+    "engine_foundation": "World engine foundation/config/security contracts",
+    "engine_http_ws": "World engine HTTP and WebSocket API",
+    "engine_runtime": "World engine story runtime internals",
+    "engine_opening_contracts": "World engine opening and actor-lane contracts",
+    "engine_persistence": "World engine persistence and branching",
+    "engine_observability": "World engine observability and diagnostics",
+    # AI stack focused blocks. These run from repo root to avoid top-level ``langgraph``
+    # shadowing by the local ``ai_stack/langgraph`` package directory.
+    "ai_stack_graph": "AI stack LangGraph and thin-path graph contracts",
+    "ai_stack_goc": "AI stack God of Carnage contract bundle",
+    "ai_stack_capabilities": "AI stack capabilities and validation",
+    "ai_stack_narrative": "AI stack narrative/player-facing runtime engines",
+    "ai_stack_retrieval_research": "AI stack retrieval and research lanes",
+    "ai_stack_quality": "AI stack quality, observability, and MCP surfaces",
 }
 
 # CLI --scope value -> pytest ``-m`` marker name (must exist in that component's pytest.ini)
@@ -159,21 +206,9 @@ def marker_filter_for_suite(suite_name: str, scope: str) -> str | None:
     cfg = SUITE_CONFIGS.get(suite_name)
     if not cfg or cfg.kind != "pytest" or not cfg.supports_scope:
         return None
-    if suite_name in ("backend", "writers_room", "improvement"):
+    if suite_name in BACKEND_SUITE_FAMILY:
         return marker
-    # Backend sub-suites (Stage 1 split) share backend/pytest.ini and therefore
-    # honor the same marker set as ``backend``.
-    if suite_name in (
-        "backend_runtime",
-        "backend_observability",
-        "backend_services",
-        "backend_content",
-        "backend_routes_core",
-        "backend_mcp",
-        "backend_rest",
-    ):
-        return marker
-    if suite_name in ("administration", "engine"):
+    if suite_name == "administration" or suite_name in ENGINE_SUITE_FAMILY:
         if scope == "e2e":
             return None
         return marker
@@ -195,9 +230,7 @@ def domain_marker_for_suite(suite_name: str, domain: str) -> str | None:
     cfg = SUITE_CONFIGS.get(suite_name)
     if not cfg or cfg.kind != "pytest":
         return None
-    if suite_name == "backend" or suite_name.startswith("backend_"):
-        return marker
-    if suite_name in ("writers_room", "improvement"):
+    if suite_name in BACKEND_SUITE_FAMILY:
         return marker
     return None
 

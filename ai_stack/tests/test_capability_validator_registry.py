@@ -27,7 +27,7 @@ from ai_stack.capability_validator_registry import (
 )
 from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
 from ai_stack.environment_state_contracts import evaluate_environment_state_contract
-from ai_stack.narrator_authority_validation import evaluate_narrator_authority_contract
+from ai_stack.narrator.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.player_turn_validator_evaluation import (
     evaluate_action_resolution_contract,
     evaluate_player_intent_contract,

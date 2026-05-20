@@ -32,7 +32,7 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 
 ### 1.2 Narrator-Pfad / Opening (Turn 0)
 
-- Aufbau: `ai_stack/goc_narrator_path.py:417-499`
+- Aufbau: `ai_stack/narrator/goc_narrator_path.py:417-499`
 - Manager-Projektion: `world-engine/app/story_runtime/manager.py:10370+` setzt `director_path_mode="narrator_path"` und `narrator_path.canonical_step_ids` (Mehrzahl). Turn 0 läuft an LDSS vorbei (`manager.py:7152, 7159, 7393, 7400` — Selektor an `turn_number==0`).
 - **Bewusst so gewollt.** Diese Stelle nicht „reparieren".
 
@@ -58,7 +58,7 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 - Modul-Schalter: `content/modules/god_of_carnage/module.yaml:183-188` `runtime_intelligence.player_freedom`
 - Runtime-Aufnahme: `ai_stack/module_runtime_policy.py:327-417`
 - Resolution: `ai_stack/player_action_resolution.py` (modifiziert) — `ai_semantic_resolution.plausible_inference` mit `canon_safety`, `canonical_risk`
-- Narrator-Konsequenz (mundan-inferiert): `ai_stack/narrator_consequence_contracts.py` (modifiziert) — `source: ai_semantic_plausible_inference`, `requires_model_realization: True`
+- Narrator-Konsequenz (mundan-inferiert): `ai_stack/narrator/narrator_consequence_contracts.py` (modifiziert) — `source: ai_semantic_plausible_inference`, `requires_model_realization: True`
 - Canonical-Anker: `ai_stack/langgraph/langgraph_runtime_executor.py:4681-4718` Block `canonical_path_control` (Vertrag: committed player movement/perception/wait/object-interaction darf den Pfad **nicht** vorrücken)
 - Hold-Mechanik: `manager.py:8703-8717` `_turn_holds_canonical_path_for_free_player_action()`
 
@@ -175,7 +175,7 @@ Spielsession lokal hochfahren (`docker-up.py`), Session-Sprache DE, Spielfigur A
 **Beobachtungspunkte im Code:**
 
 - Resolution: `ai_stack/player_action_resolution.py` — `resolve_player_action()` Rückgabe inspizieren (Langfuse-Trace, oder lokal stdout instrumentieren)
-- Narrator-Konsequenz: `ai_stack/narrator_consequence_contracts.py` — `source`-Feld und `requires_model_realization` im commit-Frame
+- Narrator-Konsequenz: `ai_stack/narrator/narrator_consequence_contracts.py` — `source`-Feld und `requires_model_realization` im commit-Frame
 - Hold-Wirkung: `manager.py:8703-8717` — `_turn_holds_canonical_path_for_free_player_action(graph_state)` muss `True` zurückgeben → Pointer rückt nicht.
 
 **Akzeptanz Phase 1:** Alle sechs Smoke-Inputs erzeugen sichtbares, kanon-sicheres Verhalten *und* der Canonical-Pointer bleibt auf 005.
@@ -186,7 +186,7 @@ Frage: Wenn `ai_semantic_resolution.plausible_inference` einen mundanen `commit_
 
 **Was zu verifizieren ist (semantische Suche, dann Live-Smoke):**
 
-1. Wer im Graph konsumiert `narrator_consequence_packet` mit `source: ai_semantic_plausible_inference`? (Anker: `ai_stack/narrator_consequence_contracts.py` Konsumenten suchen.)
+1. Wer im Graph konsumiert `narrator_consequence_packet` mit `source: ai_semantic_plausible_inference`? (Anker: `ai_stack/narrator/narrator_consequence_contracts.py` Konsumenten suchen.)
 2. Wird der Block dann auch in den committed `blocks`-Vertrag geschrieben — oder fällt er irgendwo wegen fehlendem `actor_response_present` aus dem Vertrag?
 3. Existieren Validator-/Judge-Gates, die hier *fälschlich* greifen, weil sie Actor-Sprache erwarten?
 
@@ -548,7 +548,7 @@ Die Souffleuse spricht **immer im Wortschatz und Register des aktuell gespielten
 8. `content/modules/god_of_carnage/module.yaml`
 9. `content/modules/god_of_carnage/knowledge/player_freedom_policy.yaml`
 10. `content/modules/god_of_carnage/canonical_path/004_*.yaml`, `005_*.yaml`, `006_*.yaml`
-11. `ai_stack/canonical_path_resolver.py`, `ai_stack/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
+11. `ai_stack/canonical_path_resolver.py`, `ai_stack/narrator/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/narrator/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
 12. `world-engine/app/story_runtime/manager.py` (heiße Zonen: 7123–7172, 8703–8731, 9777–9817, 10370–10440)
 13. `frontend/static/play_typewriter_engine.js`
 14. **`docs/MVPs/capability_matrix_status_and_adr_relations.md`** (Capability-Matrix Table B — Quelle für die vom Director arrangierbaren Capabilities; insbesondere Π1, Π7, Π8, Π11, Π14, Π16, Π18, Π19, Π22, Π23, Π27, Π31)

@@ -150,13 +150,13 @@ from ai_stack.environment_state_contracts import (
     build_environment_render_context,
     normalize_environment_state,
 )
-from ai_stack.narrator_consequence_contracts import (
+from ai_stack.narrator.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
     build_updated_player_local_context,
     normalize_scene_affordance_model_for_contracts,
 )
-from ai_stack.narrator_consequence_realization_contracts import (
+from ai_stack.narrator.narrator_consequence_realization_contracts import (
     build_narrator_consequence_realization,
 )
 from ai_stack.director.director_gathering_state_contracts import (
@@ -283,7 +283,7 @@ from ai_stack.semantic_move_contract import SemanticMoveRecord
 from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
 from ai_stack.social_state_contract import SocialStateRecord
 from ai_stack.social_state_goc import build_social_state_record, social_state_fingerprint
-from ai_stack.dramatic_effect_gate import build_evaluation_context_from_runtime_state
+from ai_stack.dramatic_effect.dramatic_effect_gate import build_evaluation_context_from_runtime_state
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_turn_seams import (
     build_diagnostics_refs,
@@ -10415,6 +10415,7 @@ class RuntimeTurnGraphExecutor:
                 current_scene_id=state.get("current_scene_id")
                 if isinstance(state.get("current_scene_id"), str)
                 else None,
+                w5_latest_snapshot=state.get("w5_latest_snapshot"),
             )
 
         validation_eval = _build_runtime_aspect_validation(

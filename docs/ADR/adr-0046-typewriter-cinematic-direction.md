@@ -55,7 +55,7 @@ This ADR contains no personal data. The typewriter operates on the **player-visi
 
 **Historical opening bug (removed 2026-05):** `_annotate_goc_opening_narration_beats` forced `premise` / `scene_setup` / `role_anchor` onto `blocks[0..2].narration_beat`, which wrongly applied `scene-block--narrator-role-anchor` (`overflow: hidden`) to the third opening card and broke multi-line layout. That pass is **deleted**; guard: `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`. Full semantics: ADR-0034 §**narration_beat semantics**.
 
-**Current opening behaviour:** GoC **narrator-path** sets `narration_beat` to each block's **canonical mandatory beat id** (`ai_stack/goc_narrator_path.py`). Dramatic emphasis uses `visual_emphasis` (e.g. `dramatic_moment`), not literary slot names on the field. The `role_anchor` typewriter/CSS sweep runs **only** when a block explicitly has `narration_beat: "role_anchor"`.
+**Current opening behaviour:** GoC **narrator-path** sets `narration_beat` to each block's **canonical mandatory beat id** (`ai_stack/narrator/goc_narrator_path.py`). Dramatic emphasis uses `visual_emphasis` (e.g. `dramatic_moment`), not literary slot names on the field. The `role_anchor` typewriter/CSS sweep runs **only** when a block explicitly has `narration_beat: "role_anchor"`.
 
 **Remaining gaps vs this ADR:** beat-change timing is profile-driven, not a fixed 250 ms decompression; matrix “coupling” is a light CSS glow, often inert on `/play` where `#matrix-layer` is absent; dedicated Jest tests for render-shape / beat-profile dispatch called out below are not all present yet.
 
@@ -167,5 +167,5 @@ Gate and promotion-style tests must comply with **[ADR-0039](adr-0039-gate-tests
 - `frontend/tests/test_typewriter_engine.js` — existing unit suite the determinism guarantee protects.
 - [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) §7 and §**narration_beat semantics** — display text, slice rules, opening field semantics.
 - `docs/technical/player-shell/narration_beat_and_opening_slots.md` — operator cheat sheet (literary slots vs shell field).
-- `ai_stack/goc_narrator_path.py`, `ai_stack/goc_opening_transition.py` — canonical opening content vs gm_narration slots.
+- `ai_stack/narrator/goc_narrator_path.py`, `ai_stack/goc_opening_transition.py` — canonical opening content vs gm_narration slots.
 - `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`.

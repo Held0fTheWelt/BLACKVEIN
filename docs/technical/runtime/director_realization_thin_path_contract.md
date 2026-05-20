@@ -89,6 +89,21 @@ Schema: `thin_path_summary.v1` from `StoryRuntimeManager.get_thin_path_summary`.
 
 When `realize_via_capabilities_used_capability` starts with `narrator.` and the turn has no NPC lines, narrator realization text is copied into the `player_input_outcome` block and redundant `narrator` scene blocks are dropped for that turn.
 
+### Narrated actor speech
+
+`realization_owner = narrator+actor_line` does not require two visible cards.
+When prose framing and actor speech form one literary unit, the visible block may
+be:
+
+- `block_type: narrator`
+- `composition_kind: narrated_actor_speech`
+- `embedded_speech_spans[]` carrying the actor `actor_id`, `speech_text`, and
+  speech act
+
+The narrator owns the prose frame; the actor owns the embedded direct speech.
+Downstream responder detection and voice/speaker diagnostics must inspect
+`embedded_speech_spans[]` as well as ordinary `actor_line` blocks.
+
 ## Verification
 
 ```bash

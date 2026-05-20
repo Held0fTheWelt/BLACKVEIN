@@ -1,7 +1,7 @@
 # Phase 2 — Director Pulse, Block-Stream-Bus & Live Cut-In: Status
 
 **Status:** Phase 2 runtime/player-experience chain — **complete**.
-Documentation last refreshed 2026-05-20 (post Stage-M finalization).
+Documentation last refreshed 2026-05-20 (post Stage-M finalization and narrated-speech boundary update).
 **Last verified:** 2026-05-20
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md)
 **Primary governance:** [ADR-0058](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md), [ADR-0059](../ADR/adr-0059-semantic-npc-motivation-score.md), [ADR-0060](../ADR/adr-0060-souffleuse-inner-voice-composition.md)
@@ -189,6 +189,12 @@ Player Turn                                  ← REST or WS `start_turn`
         safety_gate_decisions per closed-enum gate, voice_profile metadata)
   ↓ silence path: stream_idle + post_cut_in_follow_up_event.silence_reason
 ```
+
+Visible follow-up or autonomous blocks may be ordinary `actor_line` blocks or a
+single `narrator` block with `composition_kind="narrated_actor_speech"` and
+`embedded_speech_spans[]`. The latter is still one stream event; its embedded
+span supplies speaker authority for diagnostics and prevents NPC speech from
+being misattributed to the player.
 
 Server diagnostics that prove the chain on the WS transport:
 

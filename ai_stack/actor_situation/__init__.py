@@ -40,11 +40,18 @@ from ai_stack.actor_situation.projection import (
     build_w5_projection_for_narrator,
     build_w5_projection_for_npc,
 )
+from ai_stack.actor_situation.validation import (
+    W5_VALIDATION_SCHEMA_VERSION,
+    validate_w5_actor_situation,
+    w5_ast_validation_enabled,
+    w5_validation_fallback,
+)
 
 __all__ = [
     "W5_FACT_SCHEMA_VERSION",
     "W5_PROJECTION_SCHEMA_VERSION",
     "W5_SNAPSHOT_SCHEMA_VERSION",
+    "W5_VALIDATION_SCHEMA_VERSION",
     "W5ActionState",
     "W5ActorSituation",
     "W5ActorType",
@@ -65,5 +72,8 @@ __all__ = [
     "build_w5_projection_for_narrator",
     "build_w5_projection_for_npc",
     "extract_w5_snapshot_from_committed_event",
+    "validate_w5_actor_situation",
+    "w5_ast_validation_enabled",
+    "w5_validation_fallback",
     "why_truth_level_is_admitted",
 ]

@@ -16,7 +16,7 @@ from __future__ import annotations
 import pytest
 
 from ai_stack.goc_yaml_authority import load_goc_scene_affordances_block
-from ai_stack.narrator_consequence_contracts import (
+from ai_stack.narrator.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
     build_updated_player_local_context,

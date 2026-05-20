@@ -125,12 +125,22 @@ ADR-0061 cross-reference: Phase 3A changes only the actor-location input source 
 
 Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readiness semantics, `validation_outcome`, Canonical Path semantics, and ADR-0061 Director/Gathering pause behavior are unchanged.
 
-### Phase 3C — Director / validation follow-through (planned)
+### Phase 4A — W5 validation checks (complete)
 
-- Migrate `validation_outcome` evidence to cite W5 facts where it currently cites raw environment fields.
-- Maintain dual-read until equivalence is proven.
+- [x] Add `ai_stack/actor_situation/validation.py`.
+- [x] Register W5 validation in the canonical `run_validation_seam(...)` behind `W5_AST_VALIDATION_ENABLED`.
+- [x] Actor Lane and existing hard safety checks remain more authoritative: W5 validation is reached only after those checks have not rejected the turn, and Actor Lane rejection reasons are not converted or masked.
+- [x] W5 validation is detection / commit-gating only; it does not rewrite proposed blocks, mutate committed output, or mutate committed events.
+- [x] Legacy validation remains fallback. Missing or malformed W5 snapshots record a compact fallback diagnostic and do not fail a turn in Phase 4A.
+- [x] INFERRED Why conflicts do not hard-block; they remain warnings / pending Director evidence unless a future ADR configures otherwise.
+- [x] Diagnostics include compact failure codes, warnings, snapshot id, source, fallback reason, and source/truth fact references without exposing raw W5 ledgers.
 
-### Phase 4 — Frontend / admin / observability projections (planned)
+### Phase 4B — Admin / diagnostics visibility (planned)
+
+- Surface W5 validation diagnostics in operator/admin views without exposing raw ledgers.
+- Add richer diagnostics projections once the Phase 4A commit-gating semantics remain stable.
+
+### Phase 4C — Frontend / player-shell projections (planned)
 
 - Build `player_shell`, `admin`, and `diagnostics` projections with source/truth attribution metadata (no huge raw ledgers in player/admin views).
 - Remove direct reads of `environment_state.actor_locations` from frontend / admin surfaces.

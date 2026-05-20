@@ -70,7 +70,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
 - **Scene direction and dramatic parameter logic** in:
   - `ai_stack/director/scene_director_goc.py`
   - `ai_stack/semantic_move_interpretation_goc.py`
-  - `ai_stack/dramatic_effect_gate.py`
+  - `ai_stack/dramatic_effect/dramatic_effect_gate.py`
   - `ai_stack/social_state_goc.py`
   - `ai_stack/character_mind_goc.py`
 - **Backend / frontend / administration-tool / world-engine service separation**

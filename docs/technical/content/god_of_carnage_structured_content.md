@@ -113,8 +113,10 @@ ledger fields; they must not hardcode God of Carnage literals.
 
 The module is not responsible for translating player input. Runtime receives
 `session_input_language`, asks the AI semantic adapter to normalize the raw
-input to internal English, and grounds that normalized meaning against the
-English-authored content catalog.
+input to the module authoring language when required, and grounds that meaning
+against the authored content catalog. For God of Carnage v1 the module language
+is English, so German input requires normalization; English input is a no-op
+language boundary with `translation_required=false`.
 
 The module must not add:
 
@@ -127,7 +129,7 @@ The module must not add:
 
 When a player names an actor, object, or room in any supported input language,
 the expected contract is an AI semantic payload with a canonical content ID or
-groundable English query. The engine does not scan the raw phrase to decide the
+groundable module-language query. The engine does not scan the raw phrase to decide the
 target.
 
 ## Environment state / Pi15

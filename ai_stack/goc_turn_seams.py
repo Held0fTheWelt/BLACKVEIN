@@ -9,8 +9,8 @@ import json
 import re
 from typing import Any
 
-from ai_stack.dramatic_effect_contract import DramaticEffectEvaluationContext
-from ai_stack.dramatic_effect_gate import evaluate_dramatic_effect_gate, validation_reason_for_outcome
+from ai_stack.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
+from ai_stack.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate, validation_reason_for_outcome
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_field_initialization_envelope import (
     SETTER_SURFACE_RUNTIME_HOST_SESSION,
@@ -37,6 +37,11 @@ from ai_stack.goc_knowledge_runtime_gates import (
     text_from_generation_and_effects,
 )
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from ai_stack.actor_situation.validation import (
+    validate_w5_actor_situation,
+    w5_ast_validation_enabled,
+    w5_validation_fallback,
+)
 
 def _goc_structured_rows_filtered_for_human_lane(
     rows: Any,
@@ -422,6 +427,57 @@ def _check_npc_spoken_action_lane_blob_cap(
     return None
 
 
+def _apply_w5_validation_to_outcome(
+    *,
+    outcome: dict[str, Any],
+    w5_latest_snapshot: Any,
+    generation: dict[str, Any],
+    proposed_state_effects: list[dict[str, Any]],
+    player_action_frame: dict[str, Any] | None,
+    affordance_resolution: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not w5_ast_validation_enabled():
+        return outcome
+
+    try:
+        diagnostic = validate_w5_actor_situation(
+            snapshot=w5_latest_snapshot,
+            generation=generation if isinstance(generation, dict) else {},
+            proposed_state_effects=proposed_state_effects,
+            player_action_frame=player_action_frame if isinstance(player_action_frame, dict) else None,
+            affordance_resolution=affordance_resolution if isinstance(affordance_resolution, dict) else None,
+        )
+    except Exception as exc:
+        text = str(exc).strip() or type(exc).__name__
+        diagnostic = w5_validation_fallback(text)
+
+    enriched = dict(outcome)
+    enriched["w5_validation"] = {
+        "w5_validation_enabled": True,
+        "w5_validation_ran": diagnostic.get("status") != "fallback",
+        "w5_validation_failed": bool(diagnostic.get("w5_validation_failed")),
+        "w5_validation_failure_codes": list(
+            diagnostic.get("w5_validation_failure_codes") or []
+        ),
+        "w5_snapshot_id": diagnostic.get("w5_snapshot_id"),
+        "w5_validation_source": diagnostic.get("w5_validation_source"),
+        "w5_validation_fallback_reason": diagnostic.get("w5_validation_fallback_reason"),
+        "w5_validation_warnings": list(diagnostic.get("warnings") or []),
+        "failures": list(diagnostic.get("failures") or []),
+    }
+    if (
+        enriched.get("status") == "approved"
+        and diagnostic.get("w5_validation_failed")
+        and diagnostic.get("w5_validation_failure_codes")
+    ):
+        reason = str(diagnostic["w5_validation_failure_codes"][0])
+        enriched["status"] = "rejected"
+        enriched["reason"] = reason
+        enriched["error_code"] = reason
+        enriched["failure_class"] = "w5_actor_situation_validation"
+    return enriched
+
+
 def run_validation_seam(
     *,
     module_id: str,
@@ -440,6 +496,7 @@ def run_validation_seam(
     turn_input_class: str | None = None,
     scene_plan_record: dict[str, Any] | None = None,
     current_scene_id: str | None = None,
+    w5_latest_snapshot: Any = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text
     (CANONICAL_TURN_CONTRACT_GOC.md §2.1).
@@ -654,7 +711,8 @@ def run_validation_seam(
         aff_status = str(aff.get("affordance_status") or "").strip().lower()
         commit_policy = str(aff.get("action_commit_policy") or "").strip().lower()
         if gr == "rejected_continuity_pressure" and aff_status in {"allowed", "allowed_offscreen", "partial"}:
-            return {
+            return _apply_w5_validation_to_outcome(
+                outcome={
                 **base,
                 "status": "approved",
                 "reason": "action_resolution_continuity_supported",
@@ -664,7 +722,13 @@ def run_validation_seam(
                     "affordance_status": aff_status,
                     "action_commit_policy": commit_policy,
                 },
-            }
+                },
+                w5_latest_snapshot=w5_latest_snapshot,
+                generation=generation if isinstance(generation, dict) else {},
+                proposed_state_effects=proposed_state_effects,
+                player_action_frame=player_action_frame if isinstance(player_action_frame, dict) else None,
+                affordance_resolution=affordance_resolution if isinstance(affordance_resolution, dict) else None,
+            )
         if gate_out.legacy_fallback_used and gate_out.rejection_reasons:
             reason = gate_out.rejection_reasons[0]
         else:
@@ -677,21 +741,35 @@ def run_validation_seam(
         }
 
     if gr == "accepted_with_weak_signal":
-        return {
+        return _apply_w5_validation_to_outcome(
+            outcome={
             **base,
             "status": "approved",
             "reason": "goc_default_validator_pass",
             "dramatic_quality_gate": "effect_gate_weak_signal",
             "dramatic_effect_weak_signal": True,
-        }
+            },
+            w5_latest_snapshot=w5_latest_snapshot,
+            generation=generation if isinstance(generation, dict) else {},
+            proposed_state_effects=proposed_state_effects,
+            player_action_frame=player_action_frame if isinstance(player_action_frame, dict) else None,
+            affordance_resolution=affordance_resolution if isinstance(affordance_resolution, dict) else None,
+        )
 
-    return {
+    return _apply_w5_validation_to_outcome(
+        outcome={
         **base,
         "status": "approved",
         "reason": "goc_default_validator_pass",
         "dramatic_quality_gate": "effect_gate_pass",
         "dramatic_effect_weak_signal": False,
-    }
+        },
+        w5_latest_snapshot=w5_latest_snapshot,
+        generation=generation if isinstance(generation, dict) else {},
+        proposed_state_effects=proposed_state_effects,
+        player_action_frame=player_action_frame if isinstance(player_action_frame, dict) else None,
+        affordance_resolution=affordance_resolution if isinstance(affordance_resolution, dict) else None,
+    )
 
 
 def run_commit_seam(

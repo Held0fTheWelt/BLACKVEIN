@@ -10,8 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.capability_validator_plan import ValidatorPlanEntry
-from ai_stack.dramatic_effect_contract import DramaticEffectEvaluationContext
-from ai_stack.dramatic_effect_gate import evaluate_dramatic_effect_gate
+from ai_stack.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
+from ai_stack.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_frozen_vocab import (
     GOC_MODULE_ID,

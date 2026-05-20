@@ -62,6 +62,8 @@ packages = [
     "ai_stack.npc_agency",
     "ai_stack.director",
     "ai_stack.actor_situation",
+    "ai_stack.narrator",
+    "ai_stack.dramatic_effect",
     "ai_stack.langchain_integration",
     "ai_stack.narrative",
     "ai_stack.narrative.research",

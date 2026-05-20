@@ -23058,8 +23058,8 @@ ai_stack/canon_improvement_engine.py	6617	1776718615133270300
 ai_stack/capabilities.py	37666	1776718615132744400
 ai_stack/character_mind_contract.py	1925	1776718615110338100
 ai_stack/character_mind_goc.py	6182	1776709078930436500
-ai_stack/dramatic_effect_contract.py	8689	1776718615111489300
-ai_stack/dramatic_effect_gate.py	4980	1776709078937436500
+ai_stack/dramatic_effect/dramatic_effect_contract.py	8689	1776718615111489300
+ai_stack/dramatic_effect/dramatic_effect_gate.py	4980	1776709078937436500
 ai_stack/fastembed_compat.py	5068	1776773798000000000
 ai_stack/goc_dramatic_alignment.py	8730	1776709078952147800
 ai_stack/goc_field_initialization_envelope.py	3832	1776709078955663600
@@ -25418,8 +25418,8 @@ repo/ai_stack/canon_improvement_engine.py	4160	1776711780000000000
 repo/ai_stack/capabilities.py	45733	1776711780000000000
 repo/ai_stack/character_mind_contract.py	1449	1776711780000000000
 repo/ai_stack/character_mind_goc.py	4662	1776711780000000000
-repo/ai_stack/dramatic_effect_contract.py	5335	1776711780000000000
-repo/ai_stack/dramatic_effect_gate.py	14128	1776711780000000000
+repo/ai_stack/dramatic_effect/dramatic_effect_contract.py	5335	1776711780000000000
+repo/ai_stack/dramatic_effect/dramatic_effect_gate.py	14128	1776711780000000000
 repo/ai_stack/goc_dramatic_alignment.py	6874	1776711780000000000
 repo/ai_stack/goc_field_initialization_envelope.py	2823	1776711780000000000
 repo/ai_stack/goc_frozen_vocab.py	5075	1776711780000000000

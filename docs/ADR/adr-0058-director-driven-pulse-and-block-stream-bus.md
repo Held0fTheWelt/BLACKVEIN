@@ -153,6 +153,13 @@ One record when the player's input interrupts an in-flight block. Required field
 Cut-in semantics are determined by **block type only**. No actor ID, room, verb,
 or step-mode switch may influence cut-in kind.
 
+A narrator block may still contain direct actor speech when it carries
+`composition_kind="narrated_actor_speech"` and
+`embedded_speech_spans[]`. The cut kind follows the visible block type
+(`narrator` → `skip_to_end`); speaker authority follows the embedded span
+actor IDs. Implementations must not split such a prose unit into a second
+`actor_line` merely to make cut-in semantics easier.
+
 ### 7. Capability composition per tick
 
 The Director composes semantic capability inputs per tick. `composition_inputs`

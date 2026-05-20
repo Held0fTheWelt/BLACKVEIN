@@ -401,7 +401,7 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     "ai_stack/langchain_integration/bridges.py": "Schema descriptions include GoC-flavored examples.",
     "ai_stack/live_dramatic_scene_simulator.py": "LDSS fallback/opening data is still GoC-specific.",
     "ai_stack/narrative_runtime_agent.py": "Narrator validation examples still mention GoC actors.",
-    "ai_stack/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",
+    "ai_stack/narrator/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",
     "ai_stack/opening_shape_normalizer.py": "Opening-shape compatibility shim still names GoC.",
     "ai_stack/research_fixtures.py": "Research fixture data is intentionally GoC-specific.",
     "ai_stack/visible_narrative_contract.py": "Visible sanitizer still has GoC actor fallback tokens.",

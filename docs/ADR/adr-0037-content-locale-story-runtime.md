@@ -25,18 +25,21 @@ the engine.
    catalog and an AI resolution contract.
 3. Player input is labeled with `session_input_language`. Player-visible output
    is governed separately by `session_output_language`.
-4. The AI normalizes player input into English for internal grounding against
-   English-authored content, then produces visible narration in the requested
-   output language.
+4. The AI normalizes player input into the module's declared authoring language
+   for internal grounding when the player language differs. If player language
+   and module language already match, the language pipeline is a no-op diagnostic
+   boundary, not a translation call. Visible narration is produced in the
+   requested output language.
 5. Thin deterministic interpreters may recognize structural control surfaces
    such as empty input, punctuation-only input, slash commands, meta control,
    and quoted speech previews. They must not decide natural-language actions,
    target actors, scene functions, or social moves through word lists.
 6. Output-language support is owned by the story output module. Deterministic
    source paths, narrator-path openings, and Souffleuse guidance may produce
-   English source blocks, but they must not satisfy German output by reading
-   localized content fields, per-language prompt prose, or code-level German
-   strings.
+   module-language source blocks, but they must not satisfy another output
+   language by reading localized content fields, per-language prompt prose, or
+   code-level translated strings. If source language and output language match,
+   output realization is skipped and recorded as not required.
 7. Tests may use tiny language-specific stubs to prove that the output module
    was invoked. They must not encode production story prose as the expected
    answer.

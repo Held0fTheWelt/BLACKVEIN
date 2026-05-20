@@ -6,7 +6,7 @@ Accepted
 
 ## Implementation Status
 
-**Last reviewed:** 2026-05-19. **Core shell contract implemented; some test tiers pending.**
+**Last reviewed:** 2026-05-20. **Core shell contract implemented; some test tiers pending.**
 
 **Implemented:**
 - `frontend/static/play_block_display_text.js`: shared `blockDisplayTextForShell(block)` — `player_display_text != null ? player_display_text : text` (same rule for renderer, orchestrator fill, and typewriter duration/DOM).
@@ -27,6 +27,7 @@ Accepted
 - **No duplicate lane rows:** `_prune_actor_actions_subsumed_by_prior_actor_lines` drops an `actor_action` when its visible text (length-gated, normalized) is already contained in an **earlier** `actor_line` in the same turn (typical `spoken_lines` + `action_lines` echo).
 - **Finalize hook:** Split + prune run inside `_finalize_visible_blocks_with_goc_actor_split` immediately before / after `ai_stack.visible_narrative_contract.finalize_visible_scene_blocks` (both the pre-built `scene_blocks` path and the bundle-built path). Effective experience flags are passed from governed `story_runtime_experience` (see `ai_stack/story_runtime_experience.py`).
 - **Regie lane mapping (policy):** When `goc_map_action_lines_to_actor_line_lane` is true, structured `action_lines` rows project as `actor_line` blocks (same shell lane as speech) so staging does not force a second colour lane; default remains `actor_action` for distinct stage-direction chrome.
+- **Narrated actor speech (single-card embedded dialogue):** A visible `narrator` block may carry `composition_kind: "narrated_actor_speech"` and `embedded_speech_spans[]`. This is the required shape when prose and direct NPC speech are inseparable in natural narration, e.g. a sentence that frames an actor's gesture and contains the spoken words. The visible card stays one narrator/prose block; speaker authority is preserved in the embedded span (`actor_id`, `speaker_label`, `speech_text`, `speech_act`, canonical beat IDs). The narrator may frame or follow the speech, but must not summarize a scripted `npc_speak` beat instead of carrying the direct speech text.
 - **Structured row diagnostics:** If a single `spoken_lines` dict row’s text contains multiple roster speaker prefixes, `ai_stack/goc_turn_seams.run_visible_render` adds marker `goc_multi_speaker_merged_into_single_spoken_line_row` (soft signal for operators / quality gates; projection still splits at commit when the jam appears in projected `actor_line` text).
 - **PLAYER-SHELL-NARRATIVE-CARD-01:** HTTP `visible_scene_output.blocks` are **player-facing narrative cards** built by `ai_stack/player_narrative_cards.build_player_facing_narrative_cards` from semantic `scene_blocks` (semantic `block_type` preserved; `card_style` / `visible_lane` / `player_display_text` added). Adjacent same-actor `actor_action` folds into the prior `actor_line` card; subsumed duplicates are dropped from the shell list; diagnostics live under `player_shell_narrative_card_diagnostics`.
 - **Human-bound player transcript (GoC live):** `_player_input_scene_blocks_for_story_window` **always** emits **two** blocks when `human_actor_id` is set: `player_input` (verbatim typing) then `player_input_outcome` (diegetic attributed line). Direct speech and unresolved greeting-like inputs use neutral script attribution, not localized phrase templates such as `Annette sagt: ...`; semantic greeting realization belongs to the governed runtime/model path, not to a hardcoded shell rewrite. Scene blocks carry attribution in `speaker_label` / `actor_id`, so their `text` may be the cleaned utterance without a duplicate `Annette:` prefix. The shell renders each as its own card (see §4b).
@@ -61,12 +62,14 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 4. **Dramaturgical block types:** The contract assumes distinct block kinds (e.g. narrator, actor line, stage direction) when the API provides `block_type` / structure. The shell must preserve typographic and semantic distinction **when the bundle supplies it** — no collapsing lanes into an undifferentiated blob.
 
+4a. **Narrator/actor speech composition boundary:** Visible lane separation is not the same as authorship separation. When a line is authored as narrated direct speech, the runtime SHALL keep it as one visible `narrator` card with `composition_kind="narrated_actor_speech"` and one or more `embedded_speech_spans`. Consumers must treat those spans as actor speech evidence for responder detection, voice validation, and authority diagnostics. They must not split the visible prose into a separate narrator card plus a separate actor card unless the source content is structurally separate. They must not reassign embedded speech to the human player because the card's visible `block_type` is `narrator`.
+
 4b. **Extended player-facing block kinds (shell must render faithfully):**
    - **`player_input_outcome`:** Second card in the **always-two** human-bound player pair: echo (`player_input`) then diegetic shell line (`player_input_outcome`). The semantic block carries `speaker_label` / `actor_id` for attribution and cleaned `text` for the utterance (e.g. label `Annette`, text `Hallo Veronique`), not a localized `says`/`sagt` template and not a hardcoded greeting rewrite. Same cumulative rules as other blocks; **distinct** CSS lane from `player_input` (darker green bar / panel — presentation only).
    - **`narration_beat` (optional on `narrator` blocks):** Typewriter profile key and optional CSS accent. **Must reflect authored or operational metadata on that block** — see §**narration_beat semantics**. Unknown values fall back to the typewriter `default` profile; consumers must not treat unknown keys as errors.
    - **`visual_emphasis` (optional):** Separate from `narration_beat` — e.g. `dramatic_moment` drives card chrome via `scene-block--visual-emphasis-*`, not the legacy opening index hack.
 
-4c. **NPC lane cardinality (engine projection):** For God of Carnage live projection, **distinct NPC speakers must appear as separate `actor_line` blocks** when the model merged them into one visible string. The World-Engine normalizes before finalize (see Implementation Status). **One jammed string → N blocks** (N emerges from content); **redundant `actor_action` tail already present in a prior `actor_line` → dropped**. This is **structural** truthfulness of the transcript, not a substitute for model-side dramaturgy.
+4c. **NPC lane cardinality (engine projection):** For God of Carnage live projection, **distinct NPC speakers must appear as separate `actor_line` blocks** when the model merged them into one visible string. The World-Engine normalizes before finalize (see Implementation Status). **One jammed string → N blocks** (N emerges from content); **redundant `actor_action` tail already present in a prior `actor_line` → dropped**. This is **structural** truthfulness of the transcript, not a substitute for model-side dramaturgy. This rule does **not** override §4a: embedded direct speech inside a prose sentence is not a jammed speaker-prefix row and should remain a single narrated-speech card with structured spans.
 
 5. **Single-active typewriter:** Exactly **one** block uses the typewriter at a time. On HTTP `loadTurn`, the shell delivers blocks sequentially according to **`typewriter_slice_start_index`** (see §7). On streamed `appendNarratorBlock`, any in-progress queue is **finalized** (`revealAll`) before starting delivery for the new block (each appended stream chunk is one block — it animates as the active slice). `TypewriterEngine` registers **one** `VirtualClock` tick handler for its lifetime (no duplicate `onTick` listeners per block).
 
@@ -88,7 +91,7 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 | Source | Valid `narration_beat` values | Consumer behaviour |
 |--------|------------------------------|-------------------|
-| **Canonical narrator path** (`ai_stack/goc_narrator_path.py`) | Mandatory beat **id** from YAML (e.g. `park_edge_establishing_image`, `stick_strikes_face`) | Typewriter `default` profile unless id matches a named profile; **no** `scene-block--narrator-role-anchor` unless value is literally `role_anchor` |
+| **Canonical narrator path** (`ai_stack/narrator/goc_narrator_path.py`) | Mandatory beat **id** from YAML (e.g. `park_edge_establishing_image`, `stick_strikes_face`) | Typewriter `default` profile unless id matches a named profile; **no** `scene-block--narrator-role-anchor` unless value is literally `role_anchor` |
 | **Runtime bootstrap** (`play_runtime_bootstrap.js`) | `boot` | `boot` typewriter profile; operational UI only |
 | **Explicit dramaturgic annotation** (rare; author/model) | `role_anchor`, `tension`, `dialogue`, `action`, `reflection` | Matching profile in `TYPEWRITER_BEAT_PROFILES`; `role_anchor` adds `scene-block--narrator-role-anchor` (sweep CSS — must not clip multi-line text; see ADR-0046 follow-up) |
 | **Dramatic emphasis** | Use `visual_emphasis.kind` (e.g. `dramatic_moment`), **not** `narration_beat` | `scene-block--visual-emphasis-dramatic-moment` |
@@ -124,6 +127,11 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 - Without engine-side block typing and stable `scene_blocks` IDs, the shell cannot deliver theater-grade layout; UI work alone will not satisfy this ADR.
 - **Split heuristics** build speaker-prefix alternation from the **runtime NPC roster** (`runtime_projection.npc_actor_ids`, canonical ids, alias expansion) plus display tokens; a static GoC display-name tuple remains a **fallback** only for colon-stutter dedupe when block context is missing. Novel modules/languages need their own roster/vocab, not silent extension of GoC literals in the engine core.
 - **Prune rule** uses substring containment on normalized text; very short actions are kept; long duplicated stage tails are removed. False positives are unlikely but possible if an unrelated short clause repeats.
+- **Embedded speech readers** must read both old `actor_line` blocks and new
+  `narrator` + `embedded_speech_spans` blocks when checking whether an NPC
+  visibly responded. Treating only `actor_line` as speech can create false
+  "narrator-only" diagnostics and can wrongly make a later forced response look
+  like it belongs to the player.
 
 ## Diagrams
 
@@ -159,6 +167,7 @@ flowchart LR
 - World-Engine: `tests/test_trace_middleware.py` (`test_world_engine_turn_execute_langfuse_correlates_player_input_hash`; ADR-0033 §13.6).
 - Frontend: Jest — `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; `typewriter_slice_start_index` sequential delivery when present; **deferred slice DOM mount** + `revealAll` / accessibility mount missing blocks; legacy last-block fallback when absent), `frontend/tests/test_runtime_bootstrap.js` (DOS boot block construction, no duplicate boot injection, explicit opt-out modes). Run via `npm test` in `frontend/`, orchestrated after pytest by `python tests/run_tests.py --suite frontend` or `--mvp5`.
 - World-Engine: `world-engine/tests/test_goc_multi_speaker_actor_line_split.py`, `world-engine/tests/test_goc_player_input_greeting_imperative.py` (split / prune / two-card player transcript).
+- World-Engine: `world-engine/tests/test_goc_narrator_path_opening.py` (narrated actor speech carries embedded speaker spans; Alain's post-statement `bewaffnet?` challenge remains Alain-owned, not player-owned).
 - World-Engine: `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags` (no legacy opening UI beat names on `scene_blocks[].narration_beat`).
 
 CI environments that run shell gates must install frontend npm devDependencies so Jest can execute.
@@ -171,7 +180,7 @@ CI environments that run shell gates must install frontend npm devDependencies s
 - [TEST_SUITE_CONTRACT](../testing/TEST_SUITE_CONTRACT.md)
 - `backend/app/api/v1/game_routes.py`
 - `world-engine/app/story_runtime/manager.py` (`_finalize_visible_blocks_with_goc_actor_split`, `_player_input_scene_blocks_for_story_window`, `_maybe_split_goc_opening_into_two_movements` — **not** `_annotate_goc_opening_narration_beats`, removed 2026-05)
-- `ai_stack/goc_opening_transition.py`, `ai_stack/goc_narrator_path.py` (literary opening strings vs canonical `narration_beat` on blocks)
+- `ai_stack/goc_opening_transition.py`, `ai_stack/narrator/goc_narrator_path.py` (literary opening strings vs canonical `narration_beat` on blocks)
 - `docs/technical/player-shell/narration_beat_and_opening_slots.md` (operator cheat sheet)
 - `ai_stack/npc_agency/goc_npc_transcript_projection.py`, `ai_stack/story_runtime_experience.py`, `ai_stack/goc_turn_seams.py` (`run_visible_render` diagnostics)
 - `frontend/static/play_shell.js`

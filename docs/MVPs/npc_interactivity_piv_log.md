@@ -2,7 +2,7 @@
 
 **Status:** Living document
 **Created:** 2026-05-19
-**Last refreshed:** 2026-05-20 (Phase 2 documentation pass — ADR-0058/0059/0060 aligned with implemented Stages A–M)
+**Last refreshed:** 2026-05-20 (roadmap plan revision — Phase-1 partial closure; Phase-2 shipped)
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md)
 **Reviewer rule:** False or invented `file:line` references in any linked PIV artifact are reject-worthy. Every claim about runtime structure must trace to a verified source location at the time the PIV was written.
 
@@ -20,10 +20,11 @@ The roadmap defines Phase 1 (free player action + Director-Pause) and Phase 2 (D
 
 | Phase | PR | Theme | Status | PIV artifact |
 |-------|----|-------|--------|--------------|
-| 1 | **PR-0** | Runtime contracts + PIV baseline + diagnostic snapshot envelope | **Draft (this commit)** | [`pr_0_npc_interactivity_contracts_piv.md`](../implementation_logs/pr_0_npc_interactivity_contracts_piv.md) |
-| 1 | **PR-A** | Resolver-Contract closure (`free_player_action_resolution.v1`, `resolved_target_type: "location"` for movement) | **Draft (this commit)** | [`pr_a_resolver_contract_closure_piv.md`](../implementation_logs/pr_a_resolver_contract_closure_piv.md) |
-| 1 | **PR-B** | Live-effect propagation (`narrator_consequence_realization.v1`, `canonical_path_hold_effect.v1`) | **Draft (this commit)** | [`pr_b_live_effect_propagation_piv.md`](../implementation_logs/pr_b_live_effect_propagation_piv.md) |
-| 1 | **PR-C** | Director-Pause mode (`director_gathering_state.v1`, `compute_gathering_state`, beat-consumption gate, narrator reaction hook) | **Draft** | [`pr_c_director_pause_mode_piv.md`](../implementation_logs/pr_c_director_pause_mode_piv.md) |
+| 1 | **PR-0** | Runtime contracts + PIV baseline + snapshot envelope (Python stub only; HTTP route open) | **Partial** | [`pr_0_npc_interactivity_contracts_piv.md`](../implementation_logs/pr_0_npc_interactivity_contracts_piv.md) |
+| 1 | **PR-A** | Resolver contract closure (`target_location`, `presence_breaks_gathering` + evidence) | **Merged (code)** | [`pr_a_resolver_contract_closure_piv.md`](../implementation_logs/pr_a_resolver_contract_closure_piv.md) |
+| 1 | **PR-B** | Live-effect propagation (hold + narrator realization contracts on graph state) | **Partial** — UI + primary-path hold audit open | [`pr_b_live_effect_propagation_piv.md`](../implementation_logs/pr_b_live_effect_propagation_piv.md) |
+| 1 | **PR-C** | Director-Pause (`compute_gathering_state`, beat gate, transition reaction) | **Partial** — ADR-0061 still Draft | [`pr_c_director_pause_mode_piv.md`](../implementation_logs/pr_c_director_pause_mode_piv.md) |
+| 1 | **PR-D** | Phase-1 closure: snapshot HTTP route, operator UI, ADR-0061 Accept, live smoke | **Pending** | *(create `pr_d_phase1_closure_piv.md` when opened)* |
 | 2 | ADR-0058 / Pulse-MVP | Director-driven tick + Block-Stream-Bus (Stages A–M + Completion Pass) | **Shipped** — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
 | 2 | ADR-0059 | Motivation-Score (per-NPC, principled-deterministic; Stage-F three-tier source classification) | **Shipped** — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
 | 2 | ADR-0060 | Souffleuse inner-voice composition + Stage M NPC follow-up dispatcher | **Shipped** (Souffleuse contract surface + Stage M template/semantic dispatcher with closed-enum safety gates) — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md). Live Director-composed Souffleuse pressure-escalation blocks and production semantic-provider wiring remain Future Work (§5.2). | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |

@@ -179,7 +179,7 @@ def append_dramatic_gate_provenance_entries(
             source_kind="runtime_derived",
             source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.effect_rationale_codes",
             derivation_rule="pass_through_if_supported_by_gate_outcome",
-            code_path="ai_stack/dramatic_effect_gate.py",
+            code_path="ai_stack/dramatic_effect/dramatic_effect_gate.py",
             influence_targets=["gate_projection", "provenance_projection"],
             decision_effect="bounded rationale codes attached to dramatic-effect evaluation",
         )
@@ -200,7 +200,7 @@ def append_dramatic_gate_provenance_entries(
                 source_kind="runtime_derived",
                 source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.diagnostic_trace",
                 derivation_rule="pass_through_if_supported_by_gate_outcome",
-                code_path="ai_stack/dramatic_effect_contract.py",
+                code_path="ai_stack/dramatic_effect/dramatic_effect_contract.py",
                 influence_targets=["gate_projection", "provenance_projection"],
                 decision_effect="bounded diagnostic trace steps for operators",
             )

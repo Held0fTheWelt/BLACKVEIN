@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from ai_stack.dramatic_effect_contract import SemanticPlannerSupportLevel
+from ai_stack.dramatic_effect.dramatic_effect_contract import SemanticPlannerSupportLevel
 from app.services.inspector_turn_projection_sections_semantic import (
     build_semantic_decision_flow,
     support_posture,

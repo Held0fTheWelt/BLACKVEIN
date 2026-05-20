@@ -10,8 +10,8 @@ Accepted
 
 ## Context
 
-ADR-0054 defines `session_input_language`, internal English normalization, and
-the rule that player-visible output remains governed by
+ADR-0054 defines `session_input_language`, internal module-language
+normalization, and the rule that player-visible output remains governed by
 `session_output_language`.
 
 That language contract is not sufficient by itself if the runtime still lets raw
@@ -19,7 +19,9 @@ player text flow into interpretation, retrieval, action resolution, scene
 direction, or model prompt construction before semantic translation has run.
 For example, German input such as `Gehe ins Bad` cannot reliably ground against
 English-authored locations if retrieval and action resolution see only the raw
-German text first.
+German text first. The inverse is also true for future non-English modules: if
+the player already types in the module language, there is no language translation
+work to do.
 
 The runtime also must avoid the tempting shortcut: a hardcoded map from German
 verbs or phrases to English runtime actions. That shortcut would make every new
@@ -38,6 +40,11 @@ Opening/system turns may mark translation as skipped because they are not real
 player-input evidence lanes. Player turns may not bypass the translation ingress
 just because the raw text appears simple.
 
+When `session_input_language` equals the module/internal resolution language, the
+ingress node still records the contract boundary but SHALL mark
+`translation_required=false` and SHALL NOT invoke a language-translation pipeline
+just to restate the same text.
+
 ### D2 - The translation ingress produces bounded semantic evidence
 
 `translate_player_input` SHALL create an `input_translation` record containing:
@@ -45,10 +52,13 @@ just because the raw text appears simple.
 - the language adapter contract,
 - `session_input_language`,
 - `session_output_language`,
-- `internal_resolution_language = "en"`,
+- `module_authoring_language`,
+- `internal_resolution_language` (declared module language; `en` for GoC v1),
+- `translation_required`,
 - the hash of raw player text,
 - adapter status and parser diagnostics,
-- optional `normalized_english_text`,
+- optional normalized internal-language text (legacy
+  `normalized_english_text` remains valid for English-authored modules),
 - optional bounded `semantic_action`,
 - optional bounded `semantic_move`.
 
@@ -77,16 +87,18 @@ reason fields come from the semantic payload. When `semantic_move` is present,
 scene-director semantic move interpretation reads that bounded payload rather
 than raw phrases.
 
-### D5 - Retrieval and prompts prefer normalized English evidence
+### D5 - Retrieval and prompts prefer normalized internal-language evidence
 
-Runtime retrieval SHALL prefer `normalized_english_text` when building a query
-against English-authored content. Raw player text remains attached for audit,
-visible echo, and continuity context, but it is not the primary grounding string
-when normalized English evidence exists.
+Runtime retrieval SHALL prefer normalized internal-language text when building a
+query against module-authored content. Raw player text remains attached for
+audit, visible echo, and continuity context. If no translation was required
+because the player language already equals the module language, raw player text
+is valid grounding evidence and should not be wrapped in an artificial
+translation result.
 
-Model prompts may include both the original input and the normalized English
-input, clearly separated, so generation can preserve player-facing language
-while content grounding remains stable.
+Model prompts may include both the original input and normalized internal-language
+input when both exist, clearly separated, so generation can preserve
+player-facing language while content grounding remains stable.
 
 ### D6 - Backend previews are non-authoritative
 
@@ -101,12 +113,13 @@ The authoritative result remains the World-Engine turn graph output.
 
 ### Positive
 
-- German and English player input follow the same architecture without
-  language-specific action maps.
-- Action resolution can ground against English-authored locations, objects, and
-  affordances through AI semantic payloads.
-- Retrieval no longer accidentally searches English content using only German
-  raw input.
+- Player input languages follow the same architecture without language-specific
+  action maps, and matching player/module language does not pay a translation
+  cost.
+- Action resolution can ground against module-authored locations, objects, and
+  affordances through semantic payloads when translation is required.
+- Retrieval no longer accidentally searches module content using only a
+  different-language raw input.
 - Diagnostics can show whether semantic translation resolved, failed, or fell
   back to contract-only handling.
 - The old deterministic preview stays thin and structural.
@@ -133,9 +146,10 @@ Implemented on 2026-05-18:
   configured adapter, parses bounded JSON payloads, and writes
   `input_translation`.
 - `interpret_input` consumes `input_translation`, `semantic_action`,
-  `semantic_move`, and `normalized_english_text` before action resolution.
-- Runtime retrieval prefers `normalized_english_text` and keeps raw player input
-  as audit/context evidence.
+  `semantic_move`, and normalized internal-language evidence before action
+  resolution.
+- Runtime retrieval prefers normalized internal-language evidence when present
+  and keeps raw player input as audit/context evidence.
 - `ai_stack/langgraph/langgraph_runtime_state.py` carries `input_translation` and
   `semantic_resolution_contract`.
 - `backend/app/api/v1/session_routes.py` exposes a non-authoritative
@@ -159,6 +173,12 @@ The broader anti-hardcoding gate was also run and exposed unrelated existing
 literal-debt findings outside this ADR's translation ingress path. Those findings
 are not accepted as a bypass for this decision.
 
+Refreshed on 2026-05-20:
+
+- The no-op language boundary is normative: when player language and module
+  language match, the graph ingress may emit diagnostics but must not require
+  translation or output realization.
+
 ## Related ADRs
 
 - [ADR-0025](adr-0025-canonical-authored-content-model.md) - canonical authored
@@ -176,9 +196,12 @@ are not accepted as a bypass for this decision.
 flowchart LR
   P["Raw player input\nsession_input_language"] --> T["translate_player_input\nsemantic ingress"]
   T --> C["Language adapter contract\ncontent catalog + policy"]
-  C --> A["AI semantic normalization\ninternal English"]
-  A --> S["semantic_action / semantic_move\nbounded payloads"]
+  C --> A{"Input language ==\nmodule language?"}
+  A -->|"yes"| N["No translation\ntranslation_required=false"]
+  A -->|"no"| M["AI semantic normalization\ninternal module language"]
+  N --> S["semantic_action / semantic_move\nbounded payloads"]
+  M --> S
   S --> I["interpret_input\nruntime intent surface"]
-  I --> R["Retrieval + action resolution\nprefer normalized English"]
+  I --> R["Retrieval + action resolution\nprefer module-language evidence"]
   R --> O["Visible output\nsession_output_language"]
 ```

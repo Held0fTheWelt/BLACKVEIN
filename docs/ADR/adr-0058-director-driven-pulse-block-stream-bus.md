@@ -107,6 +107,15 @@ Server → client:
 5. On `block_cut`, server emits the event and ends the current stream;
    the input is queued for the next turn (never lost).
 
+**Narrated actor speech in stream events:** A `block_stream_event.v1` may carry a
+`block_payload` whose visible `block_type` is `narrator` and whose
+`composition_kind` is `narrated_actor_speech`. This is still one streamed block.
+Direct NPC speech inside it is represented by
+`block_payload.embedded_speech_spans[]`, not by splitting the visible block into a
+second `actor_line`. Cut-kind remains block-type driven (`narrator` →
+`skip_to_end`), while speaker authority / actor-response diagnostics read the
+embedded span actor IDs.
+
 **Pacing:** `PHASE2_WS_BLOCK_PACING_SECONDS` (default `0`) controls the
 gap between `block_started` and `block_completed`. Set non-zero in
 operator/test environments to make cut-in physically possible against a
@@ -829,6 +838,11 @@ handles.
   forged when the deterministic template path was taken.
 - Composition never advances the canonical path, consumes a
   mandatory beat, or mutates committed events / `validation_outcome`.
+- If a follow-up response is composed as narrated actor speech, the visible event
+  remains a single future `block_stream_event.v1`; direct speech attribution must
+  be carried in `embedded_speech_spans[]`. The composition layer may not turn
+  narrator framing into a summary that erases the actor's spoken line, and may not
+  reassign that speech to the player.
 
 **Future work explicitly outside Phase 2 scope:** no production semantic
 provider is registered on the WS endpoint in Phase 2; the dispatcher

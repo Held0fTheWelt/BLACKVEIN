@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from ai_stack.dramatic_effect_contract import (
+from ai_stack.dramatic_effect.dramatic_effect_contract import (
     ContinuitySupportPosture,
     DramaticEffectEvaluationContext,
     DramaticEffectGateResult,
     EmptyFluencyRisk,
 )
-from ai_stack.dramatic_effect_gate import evaluate_dramatic_effect_gate
-from ai_stack.dramatic_effect_gate_evaluate_branch_outcomes import (
+from ai_stack.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate
+from ai_stack.dramatic_effect.dramatic_effect_gate_evaluate_branch_outcomes import (
     continuity_posture_for_social,
 )
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID

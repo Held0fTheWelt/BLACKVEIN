@@ -40,6 +40,19 @@ Accepted
   English authoring language. German is an explicit player-visible output choice,
   not the implicit runtime default.
 
+**Updated (as of 2026-05-20):**
+- Output realization is conditional, not ceremonial. If the resolved
+  `session_output_language` equals the source/module authoring language for a
+  visible source block, the runtime must project the source text directly and
+  report `translation_required=false` / `requires_output_realization=false`.
+- The same rule is language-agnostic. German is only one target language; future
+  modules may declare a different authoring language, and the no-pipeline case is
+  "player/module language match", not specifically `en`.
+- Narrated direct speech remains one player-visible prose block when prose and
+  actor speech are inseparable; the actor's language and speaker authority are
+  carried structurally by the block and its embedded speech span, not by duplicating
+  localized story prose in code.
+
 **Not yet implemented:**
 - `ai_stack/langgraph/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
 - See ADR-0036 Follow-ups section for full list.
@@ -57,7 +70,8 @@ Accepted
 - Grill-me session completed (2026-05-07) — full design tree walked, all branches resolved
 - Integration approach confirmed: per-session language selection, User-attribute in Langfuse, parameter to `create_story_session()`
 - Backend persistence via `GameSaveSlot.metadata["session_output_language"]` confirmed
-- Default language (`de`) established
+- Default language is resolved from the module authoring language when known
+  (`en` for GoC v1); `de` remains an explicit player-visible choice
 - Error codes defined: `invalid_output_language`, `unsupported_language`
 
 ## Intellectual property rights
@@ -94,11 +108,18 @@ This ADR contains no personal data. Implementers must follow repository privacy 
   `session_output_language`. Runtime code and module content SHALL NOT satisfy
   German output by storing German replacement prose beside English source
   blocks.
+- **No-op realization:** When source/module authoring language and
+  `session_output_language` already match, no output-language pipeline is
+  required. The runtime records the no-op decision (`translation_required=false`)
+  and must not call an output realization adapter merely to restate text in the
+  same language.
 
 ### D2 — Launch-time selection (UX)
 
 - At **game start** (same step as template selection and **Play As**), the player SHALL choose **`session_output_language`** explicitly.
-- **Default value (v1):** `en`, matching the canonical English authoring language. If the player does not choose, backend defaults to `en`.
+- **Default value (v1):** the module authoring language when known; for GoC v1
+  that resolves to `en`. If the player does not choose and no module language is
+  declared, backend defaults to `en`.
 - Browser language MAY inform the UI default (suggested pre-selection), but does not override explicit backend default of `en`.
 - The launcher MUST persist the chosen/resolved language tag on the session so it is not lost on resume.
 
@@ -156,6 +177,9 @@ The chosen language MUST flow through the canonical play path so all generation 
   blocks remain authored/grounded in their declared authoring language
   (`en` for GoC v1). Per-language story prose fields are not the mechanism for
   player-visible language support.
+- If the session output language equals the declared authoring language, those
+  source blocks do not require output realization. If it differs, the output
+  module realizes the text into the requested language and records provenance.
 - Locale-specific UI labels are allowed outside the story runtime contract; they
   must not be used as story facts or narrative prose sources.
 

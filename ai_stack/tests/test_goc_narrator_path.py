@@ -1,5 +1,5 @@
-from ai_stack import goc_narrator_path
-from ai_stack.goc_narrator_path import NARRATOR_PATH_ADAPTER, NARRATOR_PATH_INVOCATION_MODE
+from ai_stack.narrator import goc_narrator_path
+from ai_stack.narrator.goc_narrator_path import NARRATOR_PATH_ADAPTER, NARRATOR_PATH_INVOCATION_MODE
 
 
 def test_goc_narrator_path_opening_is_speech_free_and_canonical() -> None:

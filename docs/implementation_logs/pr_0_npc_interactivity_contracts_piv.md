@@ -80,7 +80,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 
 - `ai_stack/player_action_resolution.py:502` — PR-A adds the contract fields enumerated in `free_player_action_resolution.v1`.
 - `ai_stack/langgraph/langgraph_runtime_executor.py:4703` — PR-B extends the `canonical_path_control` block with `canonical_path_hold_effect.v1` fields.
-- `ai_stack/narrator_consequence_contracts.py` — PR-B adds `narrator_consequence_realization.v1` realization-evidence fields.
+- `ai_stack/narrator/narrator_consequence_contracts.py` — PR-B adds `narrator_consequence_realization.v1` realization-evidence fields.
 - `ai_stack/director/scene_director_goc.py:655` / `ai_stack/langgraph/langgraph_runtime_executor.py:3996` — PR-C introduces the `gathering_paused` gate around mandatory-beat consumption.
 - `world-engine/app/story_runtime/manager.py:8683-8687` — PR-B uses this read site as its acceptance probe (no signature change).
 - `world-engine/app/web/templates/ui/narrative_systems.html` and the `thin-path-summary` operator endpoint — PR-A/B/C extend the existing surface with the snapshot fields PR-0 envelopes. No new page family.
@@ -88,7 +88,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 ## 8. What must not be touched in PR-0
 
 - `ai_stack/player_action_resolution.py` — no change. Resolver behavior is unchanged.
-- `ai_stack/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
+- `ai_stack/narrator/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
 - `ai_stack/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
 - `ai_stack/director/scene_director_goc.py` — no change. Director / responder selection is unchanged.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — no change. Graph nodes, routing, and `canonical_path_control` block are unchanged.
@@ -98,7 +98,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 - `world-engine/app/web/templates/ui/**` — no change. No diagnostic UI page is introduced.
 - `world-engine/app/api/**` — no change. No operator endpoint is added.
 - `ai_stack/runtime_aspect_ledger.py` — no change. `ASPECT_KEYS` is unchanged; no Director-Pause aspect row is added.
-- `ai_stack/goc_narrator_path.py` — no change. Narrator path (Turn 0) is unchanged.
+- `ai_stack/narrator/goc_narrator_path.py` — no change. Narrator path (Turn 0) is unchanged.
 - `ai_stack/goc_souffleuse.py` — no change. Souffleuse production is unchanged.
 - `frontend/static/play_typewriter_engine.js` — no change. Block streaming and cut-in semantics are unchanged.
 - Any schema/database migration — none introduced.

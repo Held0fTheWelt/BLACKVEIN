@@ -117,13 +117,13 @@ PR-A's discipline is **reuse, do not rebuild**.
 
 Hard constraints. PR-A's diff stays inside this guardrail; tests above enforce the negatives.
 
-- **`ai_stack/narrator_consequence_contracts.py`** — owned by PR-B (`narrator_consequence_realization.v1`).
+- **`ai_stack/narrator/narrator_consequence_contracts.py`** — owned by PR-B (`narrator_consequence_realization.v1`).
 - **`ai_stack/canonical_path_resolver.py`** — owned by canonical-path loading; unchanged.
 - **`ai_stack/director/scene_director_goc.py`** — owned by PR-C (Director composition and `gathering_paused` gate).
 - **`ai_stack/langgraph/langgraph_runtime_executor.py`** lines around `_resolve_player_action` (no executor logic change; the contract rides inside the frame), `_build_npc_agency_plan_projection`, and the `canonical_path_control` block (PR-B / PR-C own those).
 - **`ai_stack/live_dramatic_scene_simulator.py`** — LDSS and mandatory-beat consumption stay unchanged.
 - **`ai_stack/runtime_aspect_ledger.py`** — `ASPECT_KEYS` unchanged; no Director-Pause aspect row added.
-- **`ai_stack/goc_narrator_path.py`** — Turn 0 narrator path unchanged.
+- **`ai_stack/narrator/goc_narrator_path.py`** — Turn 0 narrator path unchanged.
 - **`ai_stack/goc_souffleuse.py`** — Souffleuse path unchanged.
 - **`ai_stack/runtime_diagnostic_snapshot_contracts.py`** — PR-0 stub stays uncoupled from production; PR-A does **not** import it from `ai_stack/player_action_resolution.py` or any other production module (enforced by `tests/test_npc_interactivity_piv_baseline.py::test_runtime_diagnostic_snapshot_stub_is_not_imported_by_production_code`).
 - **`world-engine/app/story_runtime/manager.py`** — `_turn_holds_canonical_path_for_free_player_action`, `_build_langfuse_path_summary`, `get_thin_path_summary`, commit / readiness, all unchanged. PR-A does not modify the manager.

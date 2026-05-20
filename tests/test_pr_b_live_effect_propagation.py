@@ -43,7 +43,7 @@ from ai_stack.free_player_action_resolution_contracts import (
     AFFORDANCE_STATUS_ALLOWED,
     AFFORDANCE_STATUS_UNKNOWN_TARGET,
 )
-from ai_stack.narrator_consequence_realization_contracts import (
+from ai_stack.narrator.narrator_consequence_realization_contracts import (
     BLOCK_TYPE_NARRATOR,
     NON_REALIZATION_REASON_NO_NARRATOR_BLOCK_IN_BUNDLE,
     SCHEMA_VERSION as REALIZATION_SCHEMA_VERSION,
@@ -378,7 +378,7 @@ def test_thin_path_summary_row_does_not_expose_mutation_fields() -> None:
 
 PR_B_TOUCHED_FILES = (
     "ai_stack/canonical_path_hold_effect_contracts.py",
-    "ai_stack/narrator_consequence_realization_contracts.py",
+    "ai_stack/narrator/narrator_consequence_realization_contracts.py",
     "ai_stack/player_action_resolution.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "world-engine/app/story_runtime/manager.py",
@@ -427,6 +427,7 @@ def test_pr_b_new_modules_have_no_active_pi_runtime_keys() -> None:
         REPO_ROOT / "ai_stack" / "canonical_path_hold_effect_contracts.py",
         REPO_ROOT
         / "ai_stack"
+        / "narrator"
         / "narrator_consequence_realization_contracts.py",
     )
     for path in new_modules:

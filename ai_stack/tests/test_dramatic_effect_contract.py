@@ -7,7 +7,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ai_stack.dramatic_effect_contract import (
+from ai_stack.dramatic_effect.dramatic_effect_contract import (
     DramaticEffectEvaluationContext,
     DramaticEffectGateOutcome,
     DramaticEffectGateResult,

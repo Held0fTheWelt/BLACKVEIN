@@ -10,7 +10,7 @@ recognized special mode within the same interpretation system.
 
 The deterministic interpreter is a thin structural preview only. Authoritative
 natural-language meaning is resolved by the AI semantic adapter using
-`session_input_language`, internal English normalization, and the
+`session_input_language`, module-language normalization when required, and the
 content-derived semantic catalog.
 
 In the canonical LangGraph turn path, raw player text enters
@@ -18,8 +18,10 @@ In the canonical LangGraph turn path, raw player text enters
 semantic language-adapter contract, asks the configured model for bounded
 `semantic_action` / `semantic_move` payloads when available, and records
 `input_translation` diagnostics. Later graph nodes consume the normalized
-English evidence instead of re-grounding German or other session input directly
-against English-authored content. This ordering rule is captured in
+module-language evidence instead of re-grounding different-language session input
+directly against authored content. If player and module language already match,
+the node records `translation_required=false` and raw text remains valid
+grounding evidence. This ordering rule is captured in
 [ADR-0055](../../ADR/adr-0055-semantic-player-input-translation-ingress.md).
 
 ## Input
@@ -238,8 +240,9 @@ Natural language input is treated as the default story-play path end-to-end:
    whose first node is `translate_player_input`; only after that does
    `interpret_input` build the runtime intent surface.
 5. Retrieval, action resolution, scene direction, model prompt shaping, and
-   diagnostics use `normalized_english_text` and bounded semantic payloads when
-   present, while preserving the original player input for visible echo and
-   audit evidence.
+   diagnostics use normalized module-language evidence and bounded semantic
+   payloads when present, while preserving the original player input for visible
+   echo and audit evidence. Legacy `normalized_english_text` remains the field
+   name for English-authored modules.
 
 Slash-command input remains supported (`/look`, `/inspect`, `!` forms), but it is handled as an explicit command specialization within the same turn execution pipeline.

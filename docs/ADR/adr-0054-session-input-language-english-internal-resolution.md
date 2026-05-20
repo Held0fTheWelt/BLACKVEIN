@@ -1,4 +1,4 @@
-# ADR-0054: Session Input Language and English Internal Resolution
+# ADR-0054: Session Input Language and Module-Language Internal Resolution
 
 ## Status
 
@@ -10,9 +10,11 @@ Accepted
 
 ## Context
 
-The canonical story content is authored in English. Locations, objects,
-characters, action affordances, and semantic IDs are therefore most reliable
-when the runtime grounds player intent against English-authored content.
+The current GoC canonical story content is authored in English. Locations,
+objects, characters, action affordances, and semantic IDs are therefore most
+reliable when the runtime grounds player intent against that module's authored
+language. Future modules may declare a different authoring language; the
+contract is module-language-first, not English-special by product law.
 
 Player-visible play, however, happens in the selected session language. A German
 session receives German narration, and the player naturally enters German text.
@@ -45,30 +47,41 @@ core runtime contract.
 
 Before action resolution grounds player intent against authored content, the AI
 semantic resolution step SHALL translate or normalize the raw player input into
-English.
+the module's internal resolution language.
+
+If `session_input_language` already equals the module/internal resolution
+language, the runtime SHALL NOT force a language translation pipeline. It may
+still create the structural `input_translation` diagnostic record, but it must
+record the no-op state (`translation_required=false`) and preserve raw player
+text as the grounding text unless another semantic adapter is explicitly needed
+for non-language classification.
 
 The language adapter contract SHALL expose:
 
 - `raw_player_text`
 - `session_input_language`
 - `session_output_language`
-- `internal_resolution_language = "en"`
-- `translate_input_to_internal_english_before_grounding = true`
-- `ground_against_english_authored_content = true`
+- `module_authoring_language`
+- `internal_resolution_language` (the declared module language; `en` for GoC v1)
+- `translation_required = session_input_language != internal_resolution_language`
+- `translate_input_to_internal_language_before_grounding = translation_required`
+- `ground_against_module_authored_content = true`
 
-The expected AI semantic output includes `normalized_english_text`, English
-semantic labels such as `action_kind` and `verb`, and English `target_query` /
-`source_query` spans where IDs are not already resolved.
+When translation is required, the expected AI semantic output includes
+`normalized_internal_text` (legacy field name `normalized_english_text` may
+remain for GoC/English compatibility), semantic labels such as `action_kind` and
+`verb`, and target/source query spans in the module language where IDs are not
+already resolved.
 
 ### D3 - Keep player-visible output in `session_output_language`
 
-The English normalization is an internal grounding step only. Player-visible
+The module-language normalization is an internal grounding step only. Player-visible
 narration, narrator responses, NPC lines, clarification requests, and recoverable
 turn messages remain governed by `session_output_language`.
 
 The runtime must preserve the original player input for echo, attribution, and
-diagnostics, while separately carrying `normalized_english_text` for internal
-resolution evidence.
+diagnostics, while separately carrying normalized internal-language text when a
+translation/normalization step actually ran.
 
 This does not authorize localized content duplicates. If a source block is
 canonical or deterministic English, the output module realizes it into
@@ -86,16 +99,18 @@ The canonical player session path SHALL carry both language values:
 3. Backend forwards `session_input_language` to World-Engine
    `create_story_session`.
 4. World-Engine stores it on `StorySession.session_input_language`.
-5. Opening and player turns pass it into the LangGraph runtime state.
+5. Opening and player turns pass it into the LangGraph runtime state, together
+   with the module/internal resolution language.
 6. LangGraph starts player-turn processing at `translate_player_input`, which
    creates the language adapter contract before `interpret_input` or retrieval
-   can process the request. The ordering invariant is normative in
-   [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md).
+   can process the request. When player and module language match, this node is a
+   no-op language boundary plus diagnostics, not a translation call. The ordering
+   invariant is normative in [ADR-0055](adr-0055-semantic-player-input-translation-ingress.md).
 7. `interpret_input`, retrieval, semantic move interpretation, and player action
    resolution consume the resulting `input_translation` / semantic payloads.
 8. Player action resolution preserves `session_input_language`,
-   `session_output_language`, `internal_resolution_language`, and
-   `normalized_english_text` on the player action frame.
+   `session_output_language`, `internal_resolution_language`, and normalized
+   internal-language evidence on the player action frame.
 
 ### D5 - No hardcoded language maps
 
@@ -138,12 +153,13 @@ wordlists. Such input is marked for AI semantic resolution.
 
 ### Positive
 
-- German input can be resolved against English-authored objects, locations, and
-  affordances without duplicating content.
+- Player input can be resolved against module-authored objects, locations, and
+  affordances without duplicating content or forcing translation when the
+  languages already match.
 - `session_output_language` remains a pure player-visible output contract.
 - The adapter has a clear responsibility boundary: expose the content-derived
   semantic surface and resolution contract without owning language lookup data.
-- Tests and diagnostics can distinguish raw player text from internal English
+- Tests and diagnostics can distinguish raw player text from internal-language
   grounding evidence.
 - GoC scene direction no longer changes behavior because a raw phrase happens
   to match an English keyword fixture.
@@ -153,9 +169,9 @@ wordlists. Such input is marked for AI semantic resolution.
 - The model can still mistranslate or over-normalize player intent. The
   mitigation is to require resolved content IDs and confidence/reason fields in
   the semantic output.
-- If a module contains non-English authored content in the future, it must either
-  declare that explicitly or introduce a new ADR for module-authored content
-  language.
+- If a module contains non-English authored content, it must declare that
+  authoring language explicitly so the no-translation and translation-required
+  branches remain auditable.
 
 ## Implementation Evidence
 
@@ -180,7 +196,8 @@ Updated on 2026-05-18:
 - `ai_stack/langgraph/langgraph_runtime_executor.py` now enters player turns through
   `translate_player_input` before `interpret_input`; successful semantic model
   output is attached as `semantic_action` / `semantic_move`, and retrieval
-  prefers `normalized_english_text`.
+  prefers normalized internal-language evidence (`normalized_english_text` for
+  English-authored compatibility paths).
 - `ai_stack/semantic_move_interpretation_goc.py` reads bounded AI semantic move
   payloads and runtime silence signals only; phrase synsets and priority-rule
   stacks were removed.
@@ -208,6 +225,14 @@ Updated on 2026-05-18 for the output boundary:
 - Souffleuse source guidance carries the current human actor and
   character-specific source facts so Annette, Alain, and other playable roles do
   not collapse into a generic translated hint.
+
+Updated on 2026-05-20 for the module-language no-op boundary:
+
+- Player/module language match is a no-translation path. The runtime may still
+  record a structured ingress/output-realization diagnostic, but it must not run a
+  language input-output pipeline merely because the node exists in the graph.
+- German remains an example of a non-module-language target for GoC v1, not a
+  hardcoded special case.
 
 ## Acceptance Evidence
 
@@ -242,9 +267,12 @@ Targeted verification completed on 2026-05-17 and refreshed on 2026-05-18:
 flowchart LR
   P["Player input\nsession_input_language"] --> T["LangGraph ingress\ntranslate_player_input"]
   T --> A["Language Adapter\nsemantic contract"]
-  A --> N["AI normalization\ninternal_resolution_language = en"]
-  N --> G["Ground against\nEnglish-authored content catalog"]
+  A --> Q{"Input language ==\nmodule language?"}
+  Q -->|"yes"| N["No translation\ntranslation_required=false"]
+  Q -->|"no"| M["AI normalization\ninternal module language"]
+  N --> G["Ground against\nmodule-authored content catalog"]
+  M --> G
   G --> S["Semantic payloads\ncontent IDs + bounded labels"]
-  S --> F["Runtime frames\nnormalized_english_text + diagnostics"]
+  S --> F["Runtime frames\nnormalized internal text + diagnostics"]
   F --> O["Visible response\nsession_output_language"]
 ```

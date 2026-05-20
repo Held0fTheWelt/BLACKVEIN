@@ -149,7 +149,7 @@ Invariants:
 
 ### Contract 4 — `narrator_consequence_realization.v1`
 
-Carried alongside `narrator_consequence_packet` in graph_state (the consumer surface lives in `ai_stack/narrator_consequence_contracts.py`).
+Carried alongside `narrator_consequence_packet` in graph_state (the consumer surface lives in `ai_stack/narrator/narrator_consequence_contracts.py`).
 
 Required fields:
 
