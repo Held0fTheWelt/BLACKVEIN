@@ -188,7 +188,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/narrative/scene_energy_engine.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "backend/app/services/inspector_turn_projection_sections_assembly_filled.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes these as semantic capability inputs (ADR-0058/0059)
@@ -212,7 +212,7 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Stage M — Follow-up composition enforces information_disclosure
     # gate on generated NPC reply text (ADR-0058 §Stage M).
@@ -228,7 +228,7 @@ EXPECTATION_VARIATION_CANONICAL_SURFACES = {
     "ai_stack/contracts/narrative_momentum_contracts.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -241,7 +241,7 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/narrative/narrative_momentum_engine.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes narrative_momentum as semantic input (ADR-0058/0059)
@@ -263,7 +263,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/narrative/pacing_rhythm_engine.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
@@ -287,7 +287,7 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/contracts/sensory_context_contracts.py",
     "ai_stack/story_runtime/narrative/sensory_context_engine.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -303,7 +303,7 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "story_runtime_core/consequences/__init__.py",
     "story_runtime_core/consequences/consequence_cascade.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/api/http.py",
     "world-engine/app/config.py",
     "world-engine/app/main.py",
@@ -319,7 +319,7 @@ TEMPORAL_CONTROL_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "ai_stack/contracts/temporal_control_contracts.py",
     "ai_stack/story_runtime/narrative/temporal_control_engine.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -331,7 +331,7 @@ IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
 }
 
@@ -352,7 +352,7 @@ SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/contracts/symbolic_object_resonance_contracts.py",
     "ai_stack/story_runtime/narrative/symbolic_object_resonance_engine.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -366,7 +366,7 @@ GENRE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -382,7 +382,7 @@ TONAL_CONSISTENCY_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/narrative/tonal_consistency_classifier.py",
     "ai_stack/contracts/tonal_consistency_contracts.py",
     "ai_stack/story_runtime/narrative/tonal_consistency_engine.py",
-    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
 }
 

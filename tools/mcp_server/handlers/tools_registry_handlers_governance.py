@@ -11,7 +11,7 @@ from ai_stack.mcp.mcp_canonical_surface import (
 )
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.errors import JsonRpcError
-from tools.mcp_server.tools_registry_handlers_protocol import RegistryListToolNames
+from tools.mcp_server.handlers.tools_registry_handlers_protocol import RegistryListToolNames
 
 
 def build_governance_mcp_handlers(

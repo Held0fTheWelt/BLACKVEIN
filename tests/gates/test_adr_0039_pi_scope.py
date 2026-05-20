@@ -177,7 +177,7 @@ def test_verification_log_labels_local_absolute_paths_as_local_only() -> None:
 
 
 def test_mcp_projection_verification_declares_local_only_evidence_scope() -> None:
-    source = (REPO_ROOT / "tools/mcp_server/tools_registry_handlers_langfuse_verify.py").read_text(
+    source = (REPO_ROOT / "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py").read_text(
         encoding="utf-8"
     )
 

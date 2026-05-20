@@ -6,19 +6,19 @@ from typing import Any, Callable
 
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.fs_tools import FileSystemTools
-from tools.mcp_server.tools_registry_handlers_backend_session import (
+from tools.mcp_server.handlers.tools_registry_handlers_backend_session import (
     build_backend_session_mcp_handlers,
 )
-from tools.mcp_server.tools_registry_handlers_deferred import deferred_stub_handler_factory
-from tools.mcp_server.tools_registry_handlers_filesystem import build_filesystem_mcp_handlers
-from tools.mcp_server.tools_registry_handlers_governance import build_governance_mcp_handlers
-from tools.mcp_server.tools_registry_handlers_protocol import RegistryListToolNames
-from tools.mcp_server.tools_registry_handlers_research import build_research_mcp_handlers
-from tools.mcp_server.tools_registry_handlers_evaluators import build_evaluators_mcp_handlers
-from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+from tools.mcp_server.handlers.tools_registry_handlers_deferred import deferred_stub_handler_factory
+from tools.mcp_server.handlers.tools_registry_handlers_filesystem import build_filesystem_mcp_handlers
+from tools.mcp_server.handlers.tools_registry_handlers_governance import build_governance_mcp_handlers
+from tools.mcp_server.handlers.tools_registry_handlers_protocol import RegistryListToolNames
+from tools.mcp_server.handlers.tools_registry_handlers_research import build_research_mcp_handlers
+from tools.mcp_server.handlers.tools_registry_handlers_evaluators import build_evaluators_mcp_handlers
+from tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify import (
     build_langfuse_verify_mcp_handlers,
 )
-from tools.mcp_server.tools_registry_handlers_quality_lab import (
+from tools.mcp_server.handlers.tools_registry_handlers_quality_lab import (
     build_quality_lab_mcp_handlers,
 )
 

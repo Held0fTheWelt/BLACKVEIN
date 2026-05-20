@@ -34,7 +34,13 @@ from .feature_flags import (
     resolve_adr0041_scoped_readiness_enforcement_enabled,
 )
 from .projection_helpers import _first_text, _record_block, _record_nested_value, _record_reasons
-from .records import RuntimeAspectLedger, _json_safe, empty_aspect_record, make_aspect_record, stable_ledger_json
+from .records import (
+    RuntimeAspectLedger,
+    _json_safe,
+    empty_aspect_record,
+    make_aspect_record,
+    stable_ledger_json as _stable_ledger_json,
+)
 from . import authority_preview as _authority_preview
 from . import normalization as _normalization
 from . import runtime_intelligence_projection as _runtime_intelligence_projection
@@ -78,6 +84,11 @@ def set_aspect_record(*args: Any, **kwargs: Any) -> dict[str, Any]:
 def get_aspect_record(ledger: dict[str, Any], aspect_key: str) -> dict[str, Any]:
     """Return one normalized aspect record by key."""
     return _normalization.get_aspect_record(ledger, aspect_key)
+
+
+def stable_ledger_json(ledger: dict[str, Any]) -> str:
+    """Serialize a normalized ledger using the package-level projection hook."""
+    return _stable_ledger_json(ledger, normalizer=normalize_runtime_aspect_ledger)
 
 
 def aspect_score_metadata(ledger: dict[str, Any] | None) -> dict[str, Any]:

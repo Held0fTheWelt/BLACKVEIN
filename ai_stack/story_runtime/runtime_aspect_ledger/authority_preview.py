@@ -20,6 +20,12 @@ from ai_stack.capabilities.capability_validator_plan import (
     prepend_goc_seam_mirror_plan_entries,
 )
 from ai_stack.capabilities.capability_validator_registry import (
+    TURN_CLASS_DEGRADED_OR_FALLBACK_TURN,
+    TURN_CLASS_NPC_CONFLICT_TURN,
+    TURN_CLASS_NORMAL_PLAYER_TURN,
+    TURN_CLASS_OPENING_SCENE,
+    TURN_CLASS_RECOVERY_TURN,
+    TURN_CLASS_SYSTEM_TRANSITION,
     build_degraded_or_fallback_enforced_semantic_validator_registry,
     build_npc_conflict_enforced_semantic_validator_registry,
     build_opening_enforced_semantic_validator_registry,
@@ -207,6 +213,7 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     capability_context: dict[str, Any],
     graph_bundle: dict[str, Any],
     dispatch_mode_warnings: tuple[str, ...],
+    registry_for_turn_class: Callable[[str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Plan-enforced dispatch report for runtime_intelligence (graph runtime path only)."""
     selection_for_sidecar, sidecar_deriv_warnings = _select_semantic_capabilities_from_runtime_context(

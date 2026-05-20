@@ -118,5 +118,5 @@ edit evaluator prompts, categories, or Langfuse configuration.
 - [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) —
   no hardcoded oracles in gate tests
 - `ai_stack/langfuse/langfuse_evaluator_catalog.py` — code mirror
-- `tools/mcp_server/tools_registry_handlers_evaluators.py` —
+- `tools/mcp_server/handlers/tools_registry_handlers_evaluators.py` —
   `wos.evaluators.catalog` and `wos.evaluators.get` MCP surface

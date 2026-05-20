@@ -120,7 +120,7 @@ Forbidden primary oracles:
 - `ai_stack/story_runtime/story_runtime_playability.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager/`
-- `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
+- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py`
 
 ## Verification Anchors
 

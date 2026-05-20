@@ -21,6 +21,7 @@ from .constants import (
     TURN_ASPECT_LEDGER_SCHEMA_VERSION,
 )
 
+@dataclass(frozen=True)
 class RuntimeAspectLedger:
     """JSON-safe canonical per-turn runtime intelligence envelope."""
 
@@ -104,9 +105,16 @@ def empty_aspect_record(*, applicable: bool = True, source: str = "runtime") -> 
         status="missing" if applicable else "not_applicable",
         source=source,
     )
-def stable_ledger_json(ledger: dict[str, Any]) -> str:
+def stable_ledger_json(
+    ledger: dict[str, Any],
+    *,
+    normalizer: Any | None = None,
+) -> str:
+    if normalizer is None:
+        from .normalization import normalize_runtime_aspect_ledger as normalizer
+
     return json.dumps(
-        normalize_runtime_aspect_ledger(ledger),
+        normalizer(ledger),
         ensure_ascii=True,
         separators=(",", ":"),
         sort_keys=True,

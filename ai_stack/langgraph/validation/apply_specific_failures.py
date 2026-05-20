@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .contracts import _RuntimeAspectBuild
 from .dependencies import *
+from .outcome_status import _outcome_is_approved
 
 def _apply_capability_failure(ctx: _RuntimeAspectBuild) -> bool:
     failure = ctx.failures.get("capability_failure")

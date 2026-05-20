@@ -27,7 +27,7 @@ from ai_stack.quality_lab.limit_inventory import mcp_tool_rate_limit_metadata
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.config import Config
 from tools.mcp_server.fs_tools import FileSystemTools
-from tools.mcp_server.tools_registry_handlers import build_default_mcp_tool_handlers
+from tools.mcp_server.handlers.tools_registry_handlers import build_default_mcp_tool_handlers
 from tools.mcp_server.tools_registry_metadata import (
     MCP_DEFAULT_TOOL_DESCRIPTIONS,
     MCP_DEFAULT_TOOL_INPUT_SCHEMAS,

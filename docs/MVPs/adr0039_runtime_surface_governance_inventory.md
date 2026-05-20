@@ -261,7 +261,7 @@ surfaces:
 
   - surface_id: observability_mcp_langfuse_projection
     primary_files:
-      - tools/mcp_server/tools_registry_handlers_langfuse_verify.py
+      - tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py
     symbols: []
     runtime_role: MCP and verification payloads; local-only evidence unless explicitly marked otherwise
     authority_level: diagnostic

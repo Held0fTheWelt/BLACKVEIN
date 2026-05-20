@@ -42,8 +42,8 @@ _LANGFUSE_VERIFY_TOOL_NAMES: frozenset[str] = frozenset(
 
 def _langfuse_verify_handlers():
     """Load MCP-parity Langfuse verify handlers (repo root must be on sys.path)."""
-    from tools.mcp_server.tools_registry_handlers_evaluators import build_evaluators_mcp_handlers
-    from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+    from tools.mcp_server.handlers.tools_registry_handlers_evaluators import build_evaluators_mcp_handlers
+    from tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify import (
         build_langfuse_verify_mcp_handlers,
     )
 

@@ -128,5 +128,5 @@ Review this ADR if a service reintroduces direct provider-key environment fallba
 - `backend/app/services/governance/governance_runtime_service.py`
 - `story_runtime_core/adapters.py`
 - `story_runtime_core/langfuse_tracing_environment.py`
-- `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
+- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py`
 - `world-engine/app/api/http.py`

@@ -39,13 +39,13 @@ def test_provider_credential_governance_doc_links_to_code_evidence() -> None:
         "docker-compose.yml",
         ".env.example",
         "docker-up.py",
-        "backend/app/services/governed_provider_adapter_service.py",
-        "backend/app/services/writers_room_pipeline_workflow.py",
-        "backend/app/services/improvement_task2a_routing.py",
+        "backend/app/services/governance/governed_provider_adapter_service.py",
+        "backend/app/services/writers_room/writers_room_pipeline_workflow.py",
+        "backend/app/services/improvement/improvement_task2a_routing.py",
         "story_runtime_core/adapters.py",
         "story_runtime_core/langfuse_tracing_environment.py",
         "world-engine/app/api/http.py",
-        "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+        "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py",
     ):
         assert evidence in text
 

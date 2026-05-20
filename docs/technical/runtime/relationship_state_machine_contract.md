@@ -140,5 +140,5 @@ Forbidden primary oracles:
 - `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager/`
-- `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
+- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py`
 - `content/modules/god_of_carnage/module.yaml`

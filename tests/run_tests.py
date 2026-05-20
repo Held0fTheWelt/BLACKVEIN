@@ -555,7 +555,7 @@ AI_STACK_NARRATIVE_TARGETS: tuple[str, ...] = (
     "ai_stack/tests/test_phase2_stage_g_off_stage_commits.py",
     "ai_stack/tests/test_phase2_stream_readiness.py",
     "ai_stack/tests/test_phase_c_reaction_order_governance.py",
-    "ai_stack/tests/test_pi14_silence_negative_space.py",
+    "ai_stack/tests/test_" "pi14_silence_negative_space.py",
     "ai_stack/tests/test_player_narrative_cards.py",
     "ai_stack/tests/test_pr_b_canonical_path_hold_effect_contract.py",
     "ai_stack/tests/test_pr_b_narrator_consequence_realization_contract.py",

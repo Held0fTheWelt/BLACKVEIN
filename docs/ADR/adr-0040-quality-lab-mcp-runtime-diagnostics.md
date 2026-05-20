@@ -200,7 +200,7 @@ This pairing is already encoded in:
 - `ai_stack/langfuse/langfuse_evaluator_catalog.py` —
   `WORLD_ENGINE_TURN_TRACE_NAME` and `BACKEND_TURN_ROOT_TRACE_NAME`;
   `LANGFUSE_TURN_GENERATION_FILTER_BUNDLE.alternate_backend_root_trace_name`.
-- `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` —
+- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py` —
   documents the pairing in the `distributed_trace_note` field.
 - `tools/mcp_server/tests/test_langfuse_verify_tools.py` —
   default `trace_names == ("backend.turn.execute",
@@ -509,8 +509,8 @@ re-bootstrapping it:
 | Existing surface | Reused by Quality Lab |
 |------------------|-----------------------|
 | `ai_stack/langfuse/langfuse_evaluator_catalog.py` — `WOS_CATEGORICAL_JUDGES_ORDER`, `get_categorical_evaluator_spec()`, `OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, `TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, filter bundles | Source of canonical judge names, trace-name constants, and Langfuse filter templates |
-| `tools/mcp_server/tools_registry_handlers_evaluators.py` — `wos.evaluators.catalog`, `wos.evaluators.get` (pure catalog reads) | Quality Lab does not duplicate; instead `wos.quality_lab.review_judgments` calls into the same catalog |
-| `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — `fetch_langfuse_trace`, `fetch_langfuse_trace_scores`, `build_opening_quality_context`, `_build_llm_judge_interpretation`, `_judge_score_coverage_gaps`, `_evaluator_column_metadata`, `normalized_wos_evidence` | Quality Lab composes: `review_trace` consumes `fetch_langfuse_trace` output and shared extraction helpers; `review_judgments` consumes `fetch_langfuse_trace_scores` output and adds semantic interpretation |
+| `tools/mcp_server/handlers/tools_registry_handlers_evaluators.py` — `wos.evaluators.catalog`, `wos.evaluators.get` (pure catalog reads) | Quality Lab does not duplicate; instead `wos.quality_lab.review_judgments` calls into the same catalog |
+| `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py` — `fetch_langfuse_trace`, `fetch_langfuse_trace_scores`, `build_opening_quality_context`, `_build_llm_judge_interpretation`, `_judge_score_coverage_gaps`, `_evaluator_column_metadata`, `normalized_wos_evidence` | Quality Lab composes: `review_trace` consumes `fetch_langfuse_trace` output and shared extraction helpers; `review_judgments` consumes `fetch_langfuse_trace_scores` output and adds semantic interpretation |
 | `docs/llm-as-a-judge/` (per-judge `.md` directory + index) | Canonical evaluator definitions; CSV is legacy |
 
 ### Compose-and-extend, do not replace
@@ -544,12 +544,12 @@ Implemented modules:
 
 MCP handlers live in:
 
-- `tools/mcp_server/tools_registry_handlers_quality_lab.py`
+- `tools/mcp_server/handlers/tools_registry_handlers_quality_lab.py`
 
 Register tools through the existing MCP registry and canonical surface:
 
 - `tools/mcp_server/tools_registry.py`
-- `tools/mcp_server/tools_registry_handlers.py`
+- `tools/mcp_server/handlers/tools_registry_handlers.py`
 - `tools/mcp_server/tools_registry_metadata.py`
 - `ai_stack/mcp/mcp_canonical_surface.py`
 

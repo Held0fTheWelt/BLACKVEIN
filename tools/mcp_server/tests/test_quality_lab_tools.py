@@ -42,7 +42,7 @@ from ai_stack.quality_lab.trace_interpreter import (
     ASPECT_NAMES,
     EXPECTED_LIVE_METADATA_FIELDS,
 )
-from tools.mcp_server.tools_registry_handlers_quality_lab import (
+from tools.mcp_server.handlers.tools_registry_handlers_quality_lab import (
     build_quality_lab_mcp_handlers,
 )
 

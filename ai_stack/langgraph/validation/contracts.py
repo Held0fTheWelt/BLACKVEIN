@@ -6,6 +6,7 @@ from .dependencies import Any, Callable, dataclass, field
 
 ValidationHook = Callable[..., Any]
 
+@dataclass(frozen=True)
 class RuntimeAspectValidationHooks:
     actor_lane_validation: ValidationHook
     build_authority_aspect_records: ValidationHook
@@ -22,6 +23,7 @@ class RuntimeAspectValidationHooks:
     information_disclosure_aspect_record: ValidationHook
     npc_agency_plan_from_state: ValidationHook
     npc_agency_aspect_record: ValidationHook
+@dataclass
 class _RuntimeAspectBuild:
     state: Any
     generation: dict[str, Any]

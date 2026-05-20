@@ -1,0 +1,83 @@
+"""Field maps for validation retry diagnostics."""
+
+from __future__ import annotations
+
+_RETRY_FAILURE_FIELDS = (
+    ("authority_failure", "runtime_aspect_failure_before_retry"),
+    ("capability_failure", "capability_failure_before_retry"),
+    ("scene_energy_failure", "scene_energy_failure_before_retry"),
+    ("pacing_rhythm_failure", "pacing_rhythm_failure_before_retry"),
+    ("temporal_control_failure", "temporal_control_failure_before_retry"),
+    ("improvisational_coherence_failure", "improvisational_coherence_failure_before_retry"),
+    ("social_pressure_failure", "social_pressure_failure_before_retry"),
+    ("tonal_consistency_failure", "tonal_consistency_failure_before_retry"),
+    ("relationship_state_failure", "relationship_state_failure_before_retry"),
+    ("genre_awareness_failure", "genre_awareness_failure_before_retry"),
+    ("symbolic_object_resonance_failure", "symbolic_object_resonance_failure_before_retry"),
+    ("sensory_context_failure", "sensory_context_failure_before_retry"),
+    ("information_disclosure_failure", "information_disclosure_failure_before_retry"),
+    ("dramatic_irony_failure", "dramatic_irony_failure_before_retry"),
+    ("expectation_variation_failure", "expectation_variation_failure_before_retry"),
+    ("narrative_momentum_failure", "narrative_momentum_failure_before_retry"),
+    ("meta_narrative_awareness_failure", "meta_narrative_awareness_failure_before_retry"),
+    ("npc_agency_failure", "npc_agency_failure_before_retry"),
+)
+
+_ATTEMPT_RECORD_FEEDBACK_KEYS = (
+    "codes",
+    "attempt_index",
+    "trigger_source",
+    "validation_status_before_retry",
+    "failure_reason_before_retry",
+    "actor_lane_status_before_retry",
+    *[feedback_key for _, feedback_key in _RETRY_FAILURE_FIELDS],
+)
+
+_RETRY_TRIGGER_SOURCES = (
+    ("authority_failure", "runtime_aspect"),
+    ("capability_failure", "capability"),
+    ("scene_energy_failure", "scene_energy"),
+    ("pacing_rhythm_failure", "pacing_rhythm"),
+    ("temporal_control_failure", "temporal_control"),
+    ("improvisational_coherence_failure", "improvisational_coherence"),
+    ("social_pressure_failure", "social_pressure"),
+    ("tonal_consistency_failure", "tonal_consistency"),
+    ("relationship_state_failure", "relationship_state"),
+    ("genre_awareness_failure", "genre_awareness"),
+    ("symbolic_object_resonance_failure", "symbolic_object_resonance"),
+    ("sensory_context_failure", "sensory_context"),
+    ("information_disclosure_failure", "information_disclosure"),
+    ("dramatic_irony_failure", "dramatic_irony"),
+    ("expectation_variation_failure", "expectation_variation"),
+    ("narrative_momentum_failure", "narrative_momentum"),
+    ("meta_narrative_awareness_failure", "meta_narrative_awareness"),
+    ("npc_agency_failure", "npc_agency"),
+)
+
+_VALIDATION_EVAL_UPDATE_KEYS = (
+    "actor_lane_validation",
+    "turn_aspect_ledger",
+    "narrator_authority",
+    "npc_authority",
+    "capability_selection",
+    "voice_consistency_validation",
+    "scene_energy_validation",
+    "pacing_rhythm_validation",
+    "temporal_control_validation",
+    "improvisational_coherence_validation",
+    "social_pressure_validation",
+    "tonal_consistency_validation",
+    "relationship_state_validation",
+    "genre_awareness_validation",
+    "symbolic_object_resonance_validation",
+    "sensory_context_validation",
+    "information_disclosure_validation",
+    "dramatic_irony_validation",
+    "expectation_variation_validation",
+    "narrative_momentum_validation",
+    "meta_narrative_awareness_validation",
+    "npc_initiative_validation",
+    "authority_failure",
+    "capability_failure",
+    *[outcome_key for outcome_key, _ in _RETRY_FAILURE_FIELDS if outcome_key != "authority_failure"],
+)
