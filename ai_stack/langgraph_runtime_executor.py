@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -166,6 +167,7 @@ from ai_stack.director_gathering_state_contracts import (
     gathering_pause_is_transition,
     should_suppress_mandatory_beat_consumption,
 )
+from ai_stack.w5_actor_situation import build_w5_projection_for_director
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -5121,6 +5123,118 @@ def complete_actor_locations_for_gathering(
     }
 
 
+def w5_ast_director_projection_enabled() -> bool:
+    """Fail-closed Phase 3A flag for W5 Director/Gathering input."""
+
+    raw = (os.environ.get("W5_AST_DIRECTOR_PROJECTION_ENABLED") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _w5_director_projection_failure_reason(exc: Exception) -> str:
+    text = str(exc).strip()
+    if text:
+        return text
+    return type(exc).__name__
+
+
+def complete_actor_locations_for_gathering_with_optional_w5_projection(
+    *,
+    actor_locations: dict[str, Any] | None,
+    actor_lane_context: dict[str, Any] | None,
+    current_step_scene_id: str | None,
+    selected_human_actor_id: str | None = None,
+    free_player_action_resolution: dict[str, Any] | None = None,
+    environment_current_room_id: str | None = None,
+    w5_latest_snapshot: dict[str, Any] | None = None,
+    w5_director_projection_enabled: bool | None = None,
+) -> dict[str, Any]:
+    """Resolve Director/Gathering actor locations with W5 Phase 3A fallback.
+
+    When disabled, this returns the exact legacy completion payload. When
+    enabled, it builds a typed W5 Director projection, uses its
+    ``derived_actor_locations`` map as the input substrate, then runs the
+    existing completion helper so current-turn target movement and NPC fallback
+    semantics stay unchanged.
+    """
+
+    legacy_completion = complete_actor_locations_for_gathering(
+        actor_locations=actor_locations,
+        actor_lane_context=actor_lane_context,
+        current_step_scene_id=current_step_scene_id,
+        selected_human_actor_id=selected_human_actor_id,
+        free_player_action_resolution=free_player_action_resolution,
+        environment_current_room_id=environment_current_room_id,
+    )
+    enabled = (
+        w5_ast_director_projection_enabled()
+        if w5_director_projection_enabled is None
+        else bool(w5_director_projection_enabled)
+    )
+    if not enabled:
+        return {
+            "location_completion": legacy_completion,
+            "diagnostics": {},
+            "w5_projection": None,
+        }
+
+    diagnostics: dict[str, Any] = {
+        "w5_director_projection_used": False,
+        "w5_director_projection_failed": None,
+        "w5_snapshot_id": None,
+        "derived_actor_locations_source": "legacy",
+        "gathering_pause_source": "legacy",
+    }
+    try:
+        if not isinstance(w5_latest_snapshot, dict):
+            raise ValueError("missing_w5_latest_snapshot")
+        projection = build_w5_projection_for_director(w5_latest_snapshot)
+        projection_payload = projection.to_dict()
+        where_summary = (
+            projection.where_summary if isinstance(projection.where_summary, dict) else {}
+        )
+        raw_locations = where_summary.get("derived_actor_locations")
+        if not isinstance(raw_locations, dict) or not raw_locations:
+            raise ValueError("w5_projection_missing_actor_locations")
+        w5_actor_locations = {
+            str(actor_id): str(location_id)
+            for actor_id, location_id in raw_locations.items()
+            if str(actor_id).strip() and str(location_id or "").strip()
+        }
+        if not w5_actor_locations:
+            raise ValueError("w5_projection_missing_actor_locations")
+
+        completion = complete_actor_locations_for_gathering(
+            actor_locations=w5_actor_locations,
+            actor_lane_context=actor_lane_context,
+            current_step_scene_id=current_step_scene_id,
+            selected_human_actor_id=selected_human_actor_id,
+            free_player_action_resolution=free_player_action_resolution,
+            environment_current_room_id=environment_current_room_id,
+        )
+        completion = dict(completion)
+        completion["source"] = "w5_projection_with_actor_lane_fallback"
+        diagnostics.update(
+            {
+                "w5_director_projection_used": True,
+                "w5_snapshot_id": where_summary.get("w5_snapshot_id"),
+                "derived_actor_locations_source": "w5_projection",
+                "gathering_pause_source": "w5_projection",
+            }
+        )
+        return {
+            "location_completion": completion,
+            "diagnostics": diagnostics,
+            "w5_projection": projection_payload,
+        }
+    except Exception as exc:
+        diagnostics["w5_director_projection_failed"] = _w5_director_projection_failure_reason(exc)
+        return {
+            "location_completion": legacy_completion,
+            "diagnostics": diagnostics,
+            "w5_projection": None,
+        }
+
+
 def _director_gathering_blocker(
     *,
     reason: str,
@@ -5312,6 +5426,7 @@ class RuntimeTurnGraphExecutor:
         current_step_scene_id: str | None = None,
         current_step_named_characters: list[str] | None = None,
         prior_director_gathering_state: dict[str, Any] | None = None,
+        w5_latest_snapshot: dict[str, Any] | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -5458,6 +5573,8 @@ class RuntimeTurnGraphExecutor:
             ]
         if prior_director_gathering_state and isinstance(prior_director_gathering_state, dict):
             initial_state["_prior_director_gathering_state"] = dict(prior_director_gathering_state)
+        if w5_latest_snapshot and isinstance(w5_latest_snapshot, dict):
+            initial_state["w5_latest_snapshot"] = dict(w5_latest_snapshot)
         if turn_input_class is not None:
             initial_state["turn_input_class"] = turn_input_class
         if force_experiment_preview is not None:

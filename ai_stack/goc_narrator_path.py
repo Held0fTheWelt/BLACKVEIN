@@ -583,6 +583,7 @@ def _npc_speak_block(
     forbidden_drift = npc_speak.get("forbidden_drift") or []
 
     source_facts = _beat_source_facts(step, beat)
+    perception = _perception_lines(beat)
     source_facts["npc_speak"] = {
         "actor": actor_id,
         "intent": intent,
@@ -591,6 +592,7 @@ def _npc_speak_block(
         "minimum_visible": minimum_visible,
         "forbidden_drift": forbidden_drift if isinstance(forbidden_drift, list) else [forbidden_drift],
         "quote_anchor": quote_anchor,
+        "narrator_perception": perception,
     }
 
     return {
@@ -619,6 +621,7 @@ def _npc_speak_block(
             "quote_anchor_id": str(quote_anchor.get("id") or "").strip(),
             "quote_anchor_excerpt": str(quote_anchor.get("excerpt") or "").strip(),
             "quote_anchor_use_as": str(quote_anchor.get("use_as") or "").strip(),
+            "narrator_perception": perception,
         },
     }
 
@@ -718,7 +721,7 @@ def build_goc_scripted_continuation(
                 source_refs.extend(str(ref) for ref in blk.get("source_refs") or [])
                 block_idx += 1
 
-            perception = _perception_lines(beat)
+            perception = [] if npc_speak else _perception_lines(beat)
             if perception:
                 text = sanitize_gm_narration_beat_line(" ".join(perception))
                 if text:

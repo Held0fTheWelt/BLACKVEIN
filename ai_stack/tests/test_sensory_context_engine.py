@@ -78,6 +78,7 @@ def test_sensory_context_derives_layers_from_authored_sources() -> None:
         ref.startswith("locations/")
         or ref.startswith("objects/")
         or ref.startswith("narrator_sensory_palette.")
+        or ref.startswith("scene_affordances.")
         for ref in source_refs
     )
 

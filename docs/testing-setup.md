@@ -165,11 +165,17 @@ python -m pytest tests/improvement/ -q --tb=short --no-cov
 python -m pytest tests/experience_scoring_cli/ -q --tb=short
 ```
 
-**Automated scenario bundle** aligned with roadmap §6.9 (from repository root, with `story_runtime_core` + `ai_stack[test]` installed and `PYTHONPATH` set to the repo root as for the ai_stack suite):
+**Automated runtime graph bundle** (from repository root, with `story_runtime_core` + `ai_stack[test]` installed and `PYTHONPATH` set to the repo root as for the ai_stack suite):
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py ai_stack/tests/test_goc_multi_turn_experience_quality.py ai_stack/tests/test_goc_mvp_breadth_playability_regression.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
+python -m pytest ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_semantic_planner_graph_authority.py ai_stack/tests/test_semantic_scene_planner.py -q --tb=short
 ```
+
+The older Phase-2/3/4/5 GoC LangGraph scenario files were retired on
+2026-05-20. They asserted the pre-ADR-0062 semantic planner graph path
+(`selected_scene_function`, `semantic_move_record`, `scene_plan_record`, and
+retrieval governance on ordinary player turns) and are no longer a valid
+default-runtime oracle.
 
 **G10 audit-plan backend trio** (requires backend dependencies — same failure mode as the baseline audit if you only installed ai_stack into `.venv`):
 
@@ -219,13 +225,7 @@ python -m pytest ai_stack/tests -q --tb=short
 
 After a correct install, `import ai_stack; assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE` should be **True**, and `RuntimeTurnGraphExecutor` appears in `ai_stack.__all__`.
 
-**Roadmap S4 (misinterpretation / correction)** — canonical chain in `ai_stack/goc_s4_misinterpretation_scenario.py`; pytest node is collected by the full ai_stack suite:
-
-```bash
-python -m pytest ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py -q --tb=short
-```
-
-**G9 Level-A capture with partial-run metadata:** the same script can still emit all scenario JSON files (S1–S6). For bundles whose audit purpose is **S4 closure only**, pass `--evidence-run-scope s4_closure_partial` so `run_metadata.json` carries `evidence_run_scope` / `evidence_run_note` and is not mistaken for a full six-scenario G9 matrix or threshold run:
+**G9 Level-A capture with partial-run metadata:** the evidence script can still emit scenario JSON files (S1–S6). For bundles whose audit purpose is **S4 closure only**, pass `--evidence-run-scope s4_closure_partial` so `run_metadata.json` carries `evidence_run_scope` / `evidence_run_note` and is not mistaken for a full six-scenario G9 matrix or threshold run:
 
 ```bash
 python scripts/g9_level_a_evidence_capture.py tests/reports/evidence/<audit_run_id> --audit-run-id <audit_run_id> --evidence-run-scope s4_closure_partial
@@ -233,27 +233,17 @@ python scripts/g9_level_a_evidence_capture.py tests/reports/evidence/<audit_run_
 
 See `docs/audit/gate_G9_experience_acceptance_baseline.md` (`g9_s4_closure_20260409`).
 
-**G9 Level-A S5-targeted partial capture:** writes only S5 scenario JSON, `run_metadata.json`, and `pytest_s5_anchor.txt` (script runs the S5 pytest node). Not a full six-scenario matrix.
+**G9 Level-A S5-targeted partial capture:** writes only S5 scenario JSON, `run_metadata.json`, and metadata for the targeted partial run. Not a full six-scenario matrix.
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained -q --tb=short
 python scripts/g9_level_a_evidence_capture.py tests/reports/evidence/<audit_run_id> --audit-run-id <audit_run_id> --evidence-run-scope s5_targeted_partial
 ```
 
-Example bundle: `tests/reports/evidence/g9_s5_targeted_20260409/`. The S5 node is collected whenever `python -m pytest ai_stack/tests` runs (same as CI `ai-stack-tests.yml`).
+Example bundle: `tests/reports/evidence/g9_s5_targeted_20260409/`.
 
-**G9 Level-A full six-scenario rerun (pytest + capture + threshold helper):** from repo root with `PYTHONPATH` set to the repository root and `story_runtime_core` + `ai_stack[test]` installed, run the six fixed nodes in one session (log path is an example — use a new `audit_run_id` folder per run):
+**G9 Level-A full six-scenario rerun (capture + threshold helper):** from repo root with `PYTHONPATH` set to the repository root and `story_runtime_core` + `ai_stack[test]` installed, use a new `audit_run_id` folder per run:
 
 ```bash
-python -m pytest \
-  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_standard_escalation_non_preview \
-  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_thin_edge_silence_non_preview \
-  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_multi_pressure_non_preview \
-  ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py::test_roadmap_s4_misinterpretation_correction_chain \
-  ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained \
-  ai_stack/tests/test_goc_retrieval_heavy_scenario.py::test_roadmap_scenario_retrieval_heavy_governance_visible \
-  -v 2>&1 | tee tests/reports/evidence/<audit_run_id>/pytest_g9_roadmap_bundle.txt
-
 python scripts/g9_level_a_evidence_capture.py tests/reports/evidence/<audit_run_id> --audit-run-id <audit_run_id>
 # After filling g9_experience_score_matrix.json in that directory:
 python scripts/g9_threshold_validator.py tests/reports/evidence/<audit_run_id>/g9_experience_score_matrix.json
@@ -281,7 +271,7 @@ python -m pytest tests/test_goc_semantic_parity.py tests/runtime/test_model_rout
 **G5 / G6 (retrieval governance summary + admin semantic boundary):** from repo root with `story_runtime_core` and `ai_stack[test]` installed as for the ai_stack suite above,
 
 ```bash
-python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
+python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py -q --tb=short
 ```
 
 From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
@@ -290,7 +280,7 @@ From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
 python -m pytest tests/test_goc_admin_semantic_boundary.py tests/test_goc_evidence_retrieval_governance.py -q --tb=short --no-cov
 ```
 
-**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so new modules such as `test_goc_roadmap_s4_misinterpretation_correction.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/experience_scoring_cli/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
+**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so current modules such as `test_goc_runtime_graph_seams_and_diagnostics.py` and `test_semantic_planner_graph_authority.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/experience_scoring_cli/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
 
 The root **`setup-test-environment.sh`** / **`setup-test-environment.bat`** scripts also install **`story_runtime_core`** and **`ai_stack[test]`** in editable mode after backend dependencies.
 
@@ -652,4 +642,3 @@ If smoke and backend suites pass, the environment is valid for those scopes. If 
 **Fixture:** Pytest fixture; a reusable test setup (e.g., `app`, `test_user`, `auth_headers`). Defined in conftest.py.
 
 **Profile:** A named test configuration (e.g., testing_isolated, testing_bootstrap_on). Determines what config class is used and what fixtures are available.
-

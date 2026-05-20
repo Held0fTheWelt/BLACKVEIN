@@ -260,8 +260,8 @@ class TestWave1RenderGuardedDowngrade:
 
         # Actor lane text is rendered as strings even when validation rejects the lanes
         # The render_downgrade field documents that validation rejected the lanes
-        assert bundle["spoken_lines"] == ["actor1: Hello"], "spoken_lines text should be rendered for player visibility"
-        assert bundle["action_lines"] == ["actor1: gestures"], "action_lines text should be rendered for player visibility"
+        assert bundle["spoken_lines"] == ["Actor1: Hello"], "spoken_lines text should be rendered for player visibility"
+        assert bundle["action_lines"] == ["Actor1: gestures"], "action_lines text should be rendered for player visibility"
         assert bundle.get("render_downgrade"), "render_downgrade should document the validation rejection"
 
 

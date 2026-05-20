@@ -180,9 +180,19 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     assert len(souffleuse_blocks) == 1
     expected_types = {"narrator", "souffleuse"}
     continuation = opening.get("scripted_continuation")
-    if continuation and continuation.get("scene_block_count", 0) > 0:
-        expected_types.add("actor_line")
     assert {block["block_type"] for block in blocks} == expected_types
+    assert not any(str(block.get("text") or "").startswith("[") for block in blocks)
+    embedded_speech_blocks = [
+        block
+        for block in blocks
+        if block.get("composition_kind") == "narrated_actor_speech"
+    ]
+    if continuation and continuation.get("scene_block_count", 0) > 0:
+        assert embedded_speech_blocks
+        first_span = embedded_speech_blocks[0]["embedded_speech_spans"][0]
+        assert first_span["actor_id"] == "veronique_vallon"
+        assert first_span["speech_act"] == "name_the_format_briefly_before_reading"
+        assert '"' in embedded_speech_blocks[0]["text"]
     assert narrator_blocks[0]["canonical_mandatory_beat_id"] == "park_edge_establishing_image"
     assert "Winter afternoon" in narrator_blocks[0]["text"]
     assert any("home office" in block["text"] for block in narrator_blocks)

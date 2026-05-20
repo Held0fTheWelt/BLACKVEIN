@@ -443,6 +443,184 @@ def _compose_souffleuse_visible_source_text(block: dict[str, Any]) -> str:
     return raw_text
 
 
+def _required_fact_map(required_facts: Any) -> dict[str, Any]:
+    facts: dict[str, Any] = {}
+    rows = required_facts if isinstance(required_facts, list) else [required_facts]
+    for row in rows:
+        if isinstance(row, dict):
+            for key, value in row.items():
+                facts[str(key).strip()] = value
+            continue
+        text = str(row or "").strip()
+        if not text:
+            continue
+        if ":" in text:
+            key, value = text.split(":", 1)
+            facts[key.strip()] = value.strip().strip("\"'")
+        else:
+            facts[text] = True
+    return facts
+
+
+def _scripted_quote(text: str, *, language: str) -> str:
+    body = str(text or "").strip()
+    if not body:
+        return ""
+    if str(language or "").strip().lower()[:2] == "de":
+        return f"„{body}“"
+    return f"\"{body}\""
+
+
+def _speech_token(value: Any, *, language: str) -> str:
+    raw = str(value or "").strip()
+    low = raw.lower()
+    lang = str(language or "").strip().lower()[:2]
+    if lang == "de":
+        replacements = {
+            "armed": "bewaffnet",
+            "carrying": "trug",
+            "was carrying a stick": "trug einen Stock",
+            "with it": "damit",
+            "was carrying": "trug",
+            "swelling_and_bruise_upper_lip": "Schwellung und Bluterguss an der Oberlippe",
+            "two_broken_incisors": "zwei gebrochene Schneidezähne",
+            "nerve_injury_right_incisor": "eine Nervenverletzung am rechten Schneidezahn",
+        }
+    else:
+        replacements = {
+            "swelling_and_bruise_upper_lip": "swelling and bruising of the upper lip",
+            "two_broken_incisors": "two broken incisors",
+            "nerve_injury_right_incisor": "nerve damage to the right incisor",
+        }
+    if low in replacements:
+        return replacements[low]
+    if "_" in raw:
+        return raw.replace("_", " ")
+    return raw
+
+
+def _actor_first_name(actor_ref: str) -> str:
+    ident = goc_actor_identity(actor_ref)
+    return (
+        str(ident.get("first_name") or "").strip()
+        or str(ident.get("name") or "").strip().split(" ", 1)[0]
+        or str(actor_ref or "").strip().replace("_", " ").title()
+    )
+
+
+def _scripted_npc_speech_text(
+    *,
+    actor_ref: str,
+    intent: str,
+    required_facts: Any,
+    quote_excerpt: str,
+    language: str,
+) -> str:
+    lang = str(language or "").strip().lower()[:2] or "en"
+    facts = _required_fact_map(required_facts)
+    intent_l = str(intent or "").strip().lower()
+    quote = _speech_token(quote_excerpt, language=lang)
+    if "single_word_question" in intent_l and quote:
+        return f"{quote.rstrip('?')}?"
+    if "accept_word" in intent_l:
+        chosen = _speech_token(facts.get("chosen_word_token") or quote or "carrying", language=lang)
+        return f"{chosen}, ja." if lang == "de" else f"{chosen}, yes."
+    if "echo_the_chosen" in intent_l:
+        phrase = _speech_token(facts.get("echoed_phrase_token") or quote or "was carrying a stick", language=lang)
+        return f"{phrase}." if lang == "en" else f"{phrase}."
+    if "typing" in intent_l or "read_back_the_corrected" in intent_l:
+        word = _speech_token(facts.get("confirmed_word_token") or quote or "carrying", language=lang)
+        return f"{word}."
+    if "offer_alternatives" in intent_l or "offer_compromise" in intent_l:
+        proposals = facts.get("propose_alternatives")
+        if not isinstance(proposals, list):
+            proposals = ["with it", "was carrying", "was carrying a stick"]
+        rendered = [_speech_token(item, language=lang) for item in proposals[:3]]
+        if lang == "de":
+            armed = _speech_token("armed", language=lang)
+            return f"{armed} ... Michel, was könnten wir sagen? {' Oder '.join(rendered)}?"
+        return f"Armed ... Michel, what could we say? {' Or '.join(rendered)}?"
+    if "read_aloud_first_half" in intent_l:
+        date = _speech_token(facts.get("date_token") or "January 11, 2:30 p.m.", language=lang)
+        location = _speech_token(facts.get("location_token") or "Parc Mont Sourire", language=lang)
+        aggressor = _speech_token(facts.get("aggressor_id") or "Ferdinand", language=lang).title()
+        victim = _speech_token(facts.get("victim_id") or "Bruno", language=lang).title()
+        carried_word = _speech_token(facts.get("aggressor_carried_word") or "armed", language=lang)
+        action = _speech_token(facts.get("struck_action") or "struck him in the face", language=lang)
+        if lang == "de":
+            action_de = "schlug ihm ins Gesicht" if action == "struck him in the face" else action
+            return f"Am {date} war {aggressor} im {location} mit einem Stock {carried_word} und {action_de}: {victim}."
+        return f"On {date}, in {location}, {aggressor} was {carried_word} with a stick and {action}: {victim}."
+    if "read_aloud_second_half" in intent_l or "injury_clinical" in intent_l:
+        injuries = [
+            _speech_token(facts.get("injury_token_1") or "swelling_and_bruise_upper_lip", language=lang),
+            _speech_token(facts.get("injury_token_2") or "two_broken_incisors", language=lang),
+            _speech_token(facts.get("injury_token_3") or "nerve_injury_right_incisor", language=lang),
+        ]
+        if lang == "de":
+            return f"{injuries[0]}, {injuries[1]} und {injuries[2]}."
+        return f"{injuries[0]}, {injuries[1]}, and {injuries[2]}."
+    if "name_the_format" in intent_l:
+        if lang == "de":
+            return "Ihre Erklärung wird getrennt sein; das hier ist unsere."
+        return "Your statement will be separate; this is ours."
+    if quote:
+        return quote
+    return str(intent or "").replace("_", " ").strip().capitalize() + "."
+
+
+def _scripted_narration_frame(
+    *,
+    actor_ref: str,
+    intent: str,
+    perception: Any,
+    language: str,
+) -> str:
+    rows = perception if isinstance(perception, list) else [perception]
+    first_perception = next((str(row).strip() for row in rows if str(row or "").strip()), "")
+    actor_name = _actor_first_name(actor_ref)
+    lang = str(language or "").strip().lower()[:2]
+    intent_l = str(intent or "").strip().lower()
+    if lang == "de":
+        if "read_aloud" in intent_l:
+            return f"{actor_name} las mit fester Stimme vom Bildschirm:"
+        if "single_word_question" in intent_l:
+            return f"{actor_name} hob knapp den Blick:"
+        if "offer" in intent_l:
+            return f"{actor_name} hielt inne und sah zu Michel:"
+        if "accept" in intent_l:
+            return f"{actor_name} gab knapp zurück:"
+        if "echo" in intent_l:
+            return f"{actor_name} nickte freundlich:"
+        if "typing" in intent_l or "read_back" in intent_l:
+            return f"{actor_name} tippte die Korrektur ein und murmelte:"
+        if "name_the_format" in intent_l:
+            return f"{actor_name} wandte sich kurz zu Annette und Alain:"
+        return f"{actor_name} sagte:"
+    if first_perception:
+        return first_perception.rstrip(".") + ":"
+    return f"{actor_name} said:"
+
+
+def _embedded_speech_span(
+    *,
+    actor_ref: str,
+    speech_text: str,
+    intent: str,
+    block: dict[str, Any],
+) -> dict[str, Any]:
+    actor_id = _resolve_goc_runtime_actor_id(actor_ref)
+    return {
+        "actor_id": actor_id,
+        "speaker_label": _actor_first_name(actor_ref),
+        "speech_text": speech_text,
+        "speech_act": str(intent or "").strip(),
+        "canonical_step_id": str(block.get("canonical_step_id") or "").strip(),
+        "canonical_mandatory_beat_id": str(block.get("canonical_mandatory_beat_id") or "").strip(),
+        "source": "npc_speak_directive",
+    }
+
+
 SUPPORTED_LIVE_STORY_MODULE_IDS = (GOD_OF_CARNAGE_MODULE_ID,)
 
 
@@ -7120,6 +7298,14 @@ def _actor_response_visible_in_scene_blocks(blocks: list[dict[str, Any]]) -> boo
         bt = str(block.get("block_type") or block.get("type") or "").strip()
         if bt in {"actor_line", "actor_action"}:
             return True
+        spans = block.get("embedded_speech_spans")
+        if isinstance(spans, list) and any(
+            isinstance(span, dict)
+            and str(span.get("actor_id") or "").strip()
+            and str(span.get("speech_text") or "").strip()
+            for span in spans
+        ):
+            return True
     return False
 
 
@@ -12562,6 +12748,7 @@ class StoryRuntimeManager:
         forbidden_drift = directive.get("forbidden_drift") or []
         quote_excerpt = str(directive.get("quote_anchor_excerpt") or "").strip()
         quote_use_as = str(directive.get("quote_anchor_use_as") or "").strip()
+        narrator_perception = directive.get("narrator_perception")
 
         target_language = (
             str(session.session_output_language or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2]
@@ -12616,36 +12803,66 @@ class StoryRuntimeManager:
 
         prompt_text = "\n".join(prompt_lines)
 
+        fallback_speech = _scripted_npc_speech_text(
+            actor_ref=actor_id,
+            intent=intent,
+            required_facts=required_facts,
+            quote_excerpt=quote_excerpt,
+            language=target_language,
+        )
+        fallback_status = "deterministic_scripted_speech"
+        speech_text = fallback_speech
+
         model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
-        if adapter is None:
-            realized_block = dict(block)
-            realized_block["requires_llm_realization"] = False
-            realized_block["realization_status"] = "fallback_no_adapter"
-            return realized_block
-
-        try:
-            result = adapter.generate(
-                prompt_text,
-                timeout_seconds=timeout_seconds or 20.0,
-                model_name=api_model,
-            )
-        except Exception:
-            realized_block = dict(block)
-            realized_block["requires_llm_realization"] = False
-            realized_block["realization_status"] = "fallback_adapter_error"
-            return realized_block
-
-        realized_block = dict(block)
-        if result.success and str(result.content or "").strip():
-            realized_block["text"] = str(result.content).strip()
-            realized_block["realization_status"] = "realized"
+        if adapter is not None:
+            try:
+                result = adapter.generate(
+                    prompt_text,
+                    timeout_seconds=timeout_seconds or 20.0,
+                    model_name=api_model,
+                )
+                generated = str(result.content or "").strip() if result.success else ""
+                if generated and not generated.startswith("["):
+                    speech_text = generated.strip().strip("\"“”„")
+                    fallback_status = "realized"
+                else:
+                    fallback_status = "fallback_generation_failed"
+            except Exception:
+                fallback_status = "fallback_adapter_error"
         else:
-            realized_block["realization_status"] = "fallback_generation_failed"
+            fallback_status = "fallback_no_adapter"
+
+        frame = _scripted_narration_frame(
+            actor_ref=actor_id,
+            intent=intent,
+            perception=narrator_perception,
+            language=target_language,
+        )
+        quoted = _scripted_quote(speech_text, language=target_language)
+        visible_text = f"{frame} {quoted}".strip()
+        realized_block = dict(block)
+        realized_block["block_type"] = "narrator"
+        realized_block["composition_kind"] = "narrated_actor_speech"
+        realized_block["text"] = visible_text
+        realized_block["speaker_label"] = "Narrator"
+        realized_block["actor_id"] = None
+        realized_block["target_actor_id"] = _resolve_goc_runtime_actor_id(actor_id) or None
+        realized_block["embedded_speech_spans"] = [
+            _embedded_speech_span(
+                actor_ref=actor_id,
+                speech_text=speech_text,
+                intent=intent,
+                block=block,
+            )
+        ]
+        realized_block["realization_status"] = fallback_status
         realized_block["requires_llm_realization"] = False
         realized_block["realization_metadata"] = {
             "provider": provider,
             "model": api_model,
-            "adapter": str(getattr(adapter, "adapter_id", model_id) or ""),
+            "adapter": str(getattr(adapter, "adapter_id", model_id) or "") if adapter is not None else None,
+            "fallback_speech_used": speech_text == fallback_speech,
+            "speech_composition": "narrator_with_embedded_actor_speech",
         }
         return realized_block
 
@@ -14307,10 +14524,13 @@ class StoryRuntimeManager:
                 else None,
                 canonical_step_id=phase1_canonical_context.get("canonical_step_id"),
                 canonical_path=phase1_canonical_context.get("canonical_path"),
-                current_step_scene_id=phase1_canonical_context.get("current_step_scene_id"),
-                current_step_named_characters=phase1_canonical_context.get("current_step_named_characters"),
-                prior_director_gathering_state=prior_director_gathering_state,
-            )
+                    current_step_scene_id=phase1_canonical_context.get("current_step_scene_id"),
+                    current_step_named_characters=phase1_canonical_context.get("current_step_named_characters"),
+                    prior_director_gathering_state=prior_director_gathering_state,
+                    w5_latest_snapshot=session.w5_latest_snapshot
+                    if isinstance(session.w5_latest_snapshot, dict)
+                    else None,
+                )
         except Exception as exc:
             if not _is_recoverable_graph_execution_exception(exc):
                 session.turn_counter -= 1

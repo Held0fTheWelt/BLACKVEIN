@@ -4,7 +4,8 @@ Validates that ``build_goc_scripted_continuation`` correctly:
 - Iterates through scripted steps after the opening
 - Detects player_status boundaries and stops at the first player window
 - Extracts npc_speak directives and produces actor_line blocks
-- Renders narrator_perception_only lines as narrator blocks
+- Embeds narrator_perception_only lines into npc_speak source facts when
+  speech and narration are one composed moment
 - Advances through beats in order
 """
 
@@ -51,21 +52,23 @@ def test_scripted_continuation_produces_npc_speak_blocks() -> None:
         assert directive.get("actor") == "veronique"
         assert directive.get("intent")
         assert directive.get("paraphrase_policy")
+        assert directive.get("narrator_perception")
 
 
-def test_scripted_continuation_produces_narrator_blocks() -> None:
+def test_scripted_continuation_embeds_perception_in_npc_speak_blocks() -> None:
     result = build_goc_scripted_continuation(
         after_step_id="opening_004_den_arrival_positioning",
         session_output_language="en",
     )
-    narrator_blocks = [
+    speech_blocks = [
         b for b in result["scene_blocks"]
-        if b.get("block_type") == "narrator"
+        if b.get("block_type") == "actor_line"
     ]
-    assert len(narrator_blocks) >= 1
-    for block in narrator_blocks:
-        assert block.get("text")
-        assert block.get("source") == "narrator_path_scripted_perception"
+    assert speech_blocks
+    for block in speech_blocks:
+        directive = block.get("npc_speak_directive") or {}
+        assert directive.get("narrator_perception")
+        assert block.get("source_facts", {}).get("npc_speak", {}).get("narrator_perception")
 
 
 def test_scripted_continuation_realized_beat_ids() -> None:

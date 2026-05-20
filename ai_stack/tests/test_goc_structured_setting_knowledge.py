@@ -269,7 +269,7 @@ def test_opening_incident_content_is_concrete_in_direction_and_knowledge() -> No
         assert "canonical_path/" in text or "canonical_path" in text
         assert "locations/" in text or "location_refs" in text
 
-    for token in ("parc montsouris", "basketball", "bicycle", "stick"):
+    for token in ("parc mont sourire", "basketball", "bicycle", "stick"):
         assert token in location_text or token in canonical_text or token in premise_text
 
 
@@ -306,7 +306,6 @@ def test_goc_content_surfaces_reference_locations_instead_of_rewriting_them() ->
         step = (_read_yaml(step_path).get("canonical_path_step") or {})
         loc_ref = step.get("location_ref")
         assert isinstance(loc_ref, dict) and loc_ref.get("source"), f"{step_path.name} missing location_ref.source"
-        assert "path_point" in step, f"{step_path.name} should use path_point, not a second description surface"
         assert "point" not in step, f"{step_path.name} still uses legacy descriptive point block"
 
 

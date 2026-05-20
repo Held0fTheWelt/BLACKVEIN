@@ -19,6 +19,12 @@ if str(WORLD_ENGINE_ROOT) not in sys.path:
 class TestW31ResponderSetStrengthening:
     """Tests for preferred_reaction_order, secondary nomination, and multi-actor render markers."""
 
+    @staticmethod
+    def _yaml_slice() -> dict[str, Any]:
+        from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
+
+        return load_goc_yaml_slice_bundle()
+
     def test_secondary_responder_has_preferred_reaction_order_sequence(self):
         """Verify secondary responder in dict has preferred_reaction_order=1."""
         from ai_stack.scene_director_goc import _build_responder_set
@@ -26,6 +32,7 @@ class TestW31ResponderSetStrengthening:
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
             primary_reason="test_primary",
+            yaml_slice=self._yaml_slice(),
             scene_fn="escalate_conflict",  # High pressure
             pacing_mode="standard",
             prior_classes=[],
@@ -47,6 +54,7 @@ class TestW31ResponderSetStrengthening:
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
             primary_reason="test_primary",
+            yaml_slice=self._yaml_slice(),
             scene_fn="escalate_conflict",
             pacing_mode="standard",
             prior_classes=[],
@@ -68,6 +76,7 @@ class TestW31ResponderSetStrengthening:
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
             primary_reason="test",
+            yaml_slice=self._yaml_slice(),
             scene_fn="probe_motive",  # Not high pressure
             pacing_mode="standard",
             prior_classes=[],
@@ -87,6 +96,7 @@ class TestW31ResponderSetStrengthening:
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
             primary_reason="test",
+            yaml_slice=self._yaml_slice(),
             scene_fn="escalate_conflict",
             pacing_mode="standard",
             prior_classes=[],

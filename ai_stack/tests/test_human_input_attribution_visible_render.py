@@ -61,7 +61,7 @@ def test_run_visible_render_filters_human_lane_structured_rows() -> None:
         },
     )
     spoken = bundle.get("spoken_lines") or []
-    assert any("veronique" in str(line).lower() for line in spoken)
+    assert any("das reicht" in str(line).lower() for line in spoken)
     assert not any("annette" in str(line).lower() and "warum" in str(line).lower() for line in spoken)
     rs = bundle.get("render_support") or {}
     hf = rs.get("human_lane_structured_filters") or {}

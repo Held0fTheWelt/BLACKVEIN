@@ -36,6 +36,7 @@ from ai_stack.w5_actor_situation.extractor import (
     extract_w5_snapshot_from_committed_event,
 )
 from ai_stack.w5_actor_situation.projection import (
+    build_w5_projection_for_director,
     build_w5_projection_for_narrator,
 )
 
@@ -59,6 +60,7 @@ __all__ = [
     "W5TruthLevel",
     "W5ValidationFailureCode",
     "W5VisibilityScope",
+    "build_w5_projection_for_director",
     "build_w5_projection_for_narrator",
     "extract_w5_snapshot_from_committed_event",
     "why_truth_level_is_admitted",

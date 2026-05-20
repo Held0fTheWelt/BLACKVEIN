@@ -141,6 +141,7 @@ def test_local_langfuse_judge_transfer_bundle_retargets_filters_to_local():
         "evidence_scope": "local_langfuse",
         "proof_level": "local_only",
         "live_or_staging_evidence": False,
+        "local_only": True,
     }
     assert bundle["judge_count"] == len(WOS_CATEGORICAL_JUDGES_ORDER)
     first = bundle["judges"][0]

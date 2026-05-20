@@ -21,7 +21,6 @@ from ai_stack.goc_turn_seams import build_operator_canonical_turn_record, strip_
 from ai_stack.goc_yaml_authority import cached_goc_yaml_title, detect_builtin_yaml_title_conflict
 from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.scene_director_goc import goc_scene_assessment_has_minimal_fields
 
 HOST_OK = {"template_id": "god_of_carnage_solo", "title": "God of Carnage"}
 
@@ -122,7 +121,7 @@ def test_build_operator_canonical_turn_record_shape(tmp_path: Path) -> None:
     assert isinstance(rec["graph_diagnostics_summary"].get("nodes_executed"), list)
 
 
-def test_non_preview_productive_path_rejects_when_required_runtime_events_missing(tmp_path: Path) -> None:
+def test_thin_path_rejects_when_required_narrator_projection_missing(tmp_path: Path) -> None:
     graph = _executor(tmp_path)
     result = graph.run(
         session_id="s-closure-preview",
@@ -134,8 +133,12 @@ def test_non_preview_productive_path_rejects_when_required_runtime_events_missin
     )
     vo = result.get("validation_outcome") or {}
     assert vo.get("status") == "rejected"
-    assert vo.get("validator_lane") == "narrative_momentum_validation_v1"
-    assert vo.get("reason") == "narrative_momentum_event_missing"
+    assert vo.get("validator_lane") == "runtime_aspect_ledger_authority_v1"
+    assert vo.get("reason") == "narrator_required_missing"
+    capability_failure = vo.get("capability_failure") or {}
+    assert "narrator.action_consequence.describe" in (
+        capability_failure.get("missing_required_capabilities") or []
+    )
     assert result.get("experiment_preview") is True
 
 
@@ -163,7 +166,7 @@ def test_validation_reject_records_failure_marker_and_preview(tmp_path: Path) ->
     assert vrm.get("closure_impacting") is False
 
 
-def test_goc_scene_assessment_minimal_schema_on_resolved_yaml_path(tmp_path: Path) -> None:
+def test_thin_path_dramatic_context_minimal_schema_on_goc_path(tmp_path: Path) -> None:
     graph = _executor(tmp_path)
     result = graph.run(
         session_id="s-closure-sa",
@@ -173,10 +176,12 @@ def test_goc_scene_assessment_minimal_schema_on_resolved_yaml_path(tmp_path: Pat
         trace_id="trace-closure-sa",
         host_experience_template=HOST_OK,
     )
-    sa = result.get("scene_assessment")
-    assert goc_scene_assessment_has_minimal_fields(sa if isinstance(sa, dict) else None)
-    assert isinstance(sa, dict)
-    assert str(sa.get("scene_core", "")).startswith("goc_scene:")
+    assert result.get("scene_assessment") is None
+    context = result.get("dramatic_context_summary") or {}
+    assert context.get("contract") == "bounded_dramatic_context.v1"
+    assert context.get("module_id") == GOC_MODULE_ID
+    assert context.get("module_scope", {}).get("requested_module_supported") is True
+    assert "scene_assessment" in context
 
 
 def test_strip_director_overwrites_all_immutable_fields() -> None:

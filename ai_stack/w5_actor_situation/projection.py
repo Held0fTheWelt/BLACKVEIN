@@ -1,4 +1,4 @@
-"""W5 Actor Situation Tracker — typed projection builders (Phase 2).
+"""W5 Actor Situation Tracker — typed projection builders (Phase 2/3A).
 
 This module is the single legal place where consumers obtain a typed,
 prompt-ready ``W5Projection`` derived from a ``W5Snapshot``. Raw persisted
@@ -19,7 +19,7 @@ Phase 2 scope (ADR-0063 + ``docs/MVPs/w5_actor_situation_migration.md``):
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from ai_stack.w5_actor_situation.models import (
@@ -37,6 +37,7 @@ from ai_stack.w5_actor_situation.models import (
 
 
 _WHERE_PROMOTED_KEYS = ("scene_location",)
+_DIRECTOR_WHERE_KEYS = ("scene_location", "visibility_audibility")
 
 
 def _coerce_snapshot(snapshot: W5Snapshot | Mapping[str, Any] | None) -> W5Snapshot | None:
@@ -96,6 +97,18 @@ def _record_attribution(
 ) -> None:
     source_attribution[path] = fact.source.value
     truth_attribution[path] = fact.truth_level.value
+
+
+def _record_structural_attribution(
+    *,
+    source_attribution: dict[str, str],
+    truth_attribution: dict[str, str],
+    path: str,
+    source: str = "w5_snapshot",
+    truth: str = "observed",
+) -> None:
+    source_attribution[path] = source
+    truth_attribution[path] = truth
 
 
 def _actor_candidates(
@@ -289,6 +302,118 @@ def _why_summary(
     return summary
 
 
+def _prefixed_dimension_summary(
+    *,
+    prefix: str,
+    builder: Callable[..., dict[str, Any]],
+    situation: W5ActorSituation,
+    source_attribution: dict[str, str],
+    truth_attribution: dict[str, str],
+) -> dict[str, Any]:
+    local_sources: dict[str, str] = {}
+    local_truths: dict[str, str] = {}
+    summary = builder(
+        situation,
+        source_attribution=local_sources,
+        truth_attribution=local_truths,
+    )
+    for path, value in local_sources.items():
+        source_attribution[f"{prefix}.{path}"] = value
+    for path, value in local_truths.items():
+        truth_attribution[f"{prefix}.{path}"] = value
+    return summary
+
+
+def _director_where_actor_summary(
+    situation: W5ActorSituation,
+    *,
+    source_attribution: dict[str, str],
+    truth_attribution: dict[str, str],
+) -> tuple[dict[str, Any], str | None]:
+    active = _active_facts(situation.where)
+    actor_path = f"where_summary.actors.{situation.actor_id}"
+    summary: dict[str, Any] = {
+        "actor_id": situation.actor_id,
+        "where": {},
+        "freshness_status": situation.freshness_status.value,
+        "last_confirmed_turn": int(situation.last_confirmed_turn),
+        "fact_status": {},
+    }
+    _record_structural_attribution(
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+        path=f"{actor_path}.freshness_status",
+    )
+    _record_structural_attribution(
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+        path=f"{actor_path}.last_confirmed_turn",
+    )
+
+    scene_location: str | None = None
+    for key in _DIRECTOR_WHERE_KEYS:
+        fact = _pick_strongest(active, key)
+        if fact is None:
+            continue
+        summary["where"][key] = fact.value
+        summary["fact_status"][key] = fact.status.value
+        if key == "scene_location" and isinstance(fact.value, str) and fact.value.strip():
+            scene_location = fact.value.strip()
+        _record_attribution(
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+            path=f"{actor_path}.where.{key}",
+            fact=fact,
+        )
+        _record_attribution(
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+            path=f"{actor_path}.fact_status.{key}",
+            fact=fact,
+        )
+    return summary, scene_location
+
+
+def _empty_projection(target_consumer: W5ProjectionConsumer) -> W5Projection:
+    if target_consumer is W5ProjectionConsumer.DIRECTOR:
+        return W5Projection(
+            schema_version=W5_PROJECTION_SCHEMA_VERSION,
+            target_consumer=W5ProjectionConsumer.DIRECTOR,
+            actor_id=None,
+            who_summary={"actors": {}, "actor_ids": []},
+            where_summary={
+                "actors": {},
+                "derived_actor_locations": {},
+                "w5_snapshot_id": None,
+            },
+            what_summary={"actors": {}},
+            how_summary={"actors": {}},
+            why_summary={"actors": {}},
+            source_attribution={
+                "where_summary.derived_actor_locations": "derived_from_where_facts",
+            },
+            truth_attribution={
+                "where_summary.derived_actor_locations": "observed",
+            },
+        )
+    return W5Projection(
+        schema_version=W5_PROJECTION_SCHEMA_VERSION,
+        target_consumer=W5ProjectionConsumer.NARRATOR,
+        actor_id=None,
+        who_summary={},
+        where_summary={"location_changed": False},
+        what_summary={},
+        how_summary={},
+        why_summary={},
+        source_attribution={
+            "where_summary.location_changed": "derived_from_where_facts",
+        },
+        truth_attribution={
+            "where_summary.location_changed": "observed",
+        },
+    )
+
+
 def build_w5_projection_for_narrator(
     snapshot: W5Snapshot | Mapping[str, Any] | None,
     *,
@@ -319,21 +444,18 @@ def build_w5_projection_for_narrator(
     typed_previous = _coerce_snapshot(previous_snapshot)
 
     if typed_snapshot is None or not typed_snapshot.actors:
+        empty = _empty_projection(W5ProjectionConsumer.NARRATOR)
         return W5Projection(
-            schema_version=W5_PROJECTION_SCHEMA_VERSION,
-            target_consumer=W5ProjectionConsumer.NARRATOR,
+            schema_version=empty.schema_version,
+            target_consumer=empty.target_consumer,
             actor_id=actor_id,
-            who_summary={},
-            where_summary={"location_changed": False},
-            what_summary={},
-            how_summary={},
-            why_summary={},
-            source_attribution={
-                "where_summary.location_changed": "derived_from_where_facts",
-            },
-            truth_attribution={
-                "where_summary.location_changed": "observed",
-            },
+            who_summary=empty.who_summary,
+            where_summary=empty.where_summary,
+            what_summary=empty.what_summary,
+            how_summary=empty.how_summary,
+            why_summary=empty.why_summary,
+            source_attribution=empty.source_attribution,
+            truth_attribution=empty.truth_attribution,
         )
 
     chosen_actor_id = _select_actor_id(
@@ -390,4 +512,105 @@ def build_w5_projection_for_narrator(
     )
 
 
-__all__ = ["build_w5_projection_for_narrator"]
+def build_w5_projection_for_director(
+    snapshot: W5Snapshot | Mapping[str, Any] | None,
+) -> W5Projection:
+    """Build the Director/Gathering W5 projection.
+
+    Phase 3A keeps ADR-0061 pause semantics anchored in
+    ``compute_gathering_state``. This projection only replaces the upstream
+    actor-location input source: it exposes a compact per-actor ``where``
+    summary and a compatibility ``derived_actor_locations`` map. Raw persisted
+    W5 dicts are coerced through ``W5Snapshot.from_dict`` before any field is
+    read.
+    """
+
+    typed_snapshot = _coerce_snapshot(snapshot)
+    if typed_snapshot is None or not typed_snapshot.actors:
+        return _empty_projection(W5ProjectionConsumer.DIRECTOR)
+
+    source_attribution: dict[str, str] = {}
+    truth_attribution: dict[str, str] = {}
+    who_actors: dict[str, Any] = {}
+    where_actors: dict[str, Any] = {}
+    what_actors: dict[str, Any] = {}
+    how_actors: dict[str, Any] = {}
+    why_actors: dict[str, Any] = {}
+    derived_actor_locations: dict[str, str] = {}
+
+    for actor_id in sorted(typed_snapshot.actors.keys()):
+        situation = typed_snapshot.actors[actor_id]
+        who_actors[actor_id] = _prefixed_dimension_summary(
+            prefix=f"who_summary.actors.{actor_id}",
+            builder=_who_summary,
+            situation=situation,
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+        )
+        where_summary, scene_location = _director_where_actor_summary(
+            situation,
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+        )
+        where_actors[actor_id] = where_summary
+        if scene_location is not None:
+            derived_actor_locations[actor_id] = scene_location
+            _record_structural_attribution(
+                source_attribution=source_attribution,
+                truth_attribution=truth_attribution,
+                path=f"where_summary.derived_actor_locations.{actor_id}",
+                source="derived_from_where_facts",
+            )
+        what_actors[actor_id] = _prefixed_dimension_summary(
+            prefix=f"what_summary.actors.{actor_id}",
+            builder=_what_summary,
+            situation=situation,
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+        )
+        how_actors[actor_id] = _prefixed_dimension_summary(
+            prefix=f"how_summary.actors.{actor_id}",
+            builder=_how_summary,
+            situation=situation,
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+        )
+        why_actors[actor_id] = _prefixed_dimension_summary(
+            prefix=f"why_summary.actors.{actor_id}",
+            builder=_why_summary,
+            situation=situation,
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+        )
+
+    _record_structural_attribution(
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+        path="where_summary.w5_snapshot_id",
+    )
+
+    return W5Projection(
+        schema_version=W5_PROJECTION_SCHEMA_VERSION,
+        target_consumer=W5ProjectionConsumer.DIRECTOR,
+        actor_id=None,
+        who_summary={
+            "actors": who_actors,
+            "actor_ids": sorted(typed_snapshot.actors.keys()),
+        },
+        where_summary={
+            "actors": where_actors,
+            "derived_actor_locations": derived_actor_locations,
+            "w5_snapshot_id": typed_snapshot.snapshot_id,
+        },
+        what_summary={"actors": what_actors},
+        how_summary={"actors": how_actors},
+        why_summary={"actors": why_actors},
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+
+
+__all__ = [
+    "build_w5_projection_for_director",
+    "build_w5_projection_for_narrator",
+]
