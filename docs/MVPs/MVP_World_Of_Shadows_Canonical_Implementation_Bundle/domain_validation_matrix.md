@@ -1,5 +1,7 @@
 # domain_validation_matrix
 
+> **Historical record (2026-04-21).** Current repo interpreter standard is **Python 3.14** — see [ADR-0064](../../ADR/adr-0064-python-314-unified-interpreter-standard.md). Rows below may reference older **3.10** failures from migration validation; do not treat them as today's merge bar.
+
 Commands below are **recorded** for the touched destination domains. Run them from the **repository root** after `setup-test-environment.*` (or equivalent per-suite installs); see [`tests/TESTING.md`](../../../tests/TESTING.md) and [`tests/run_tests.py`](../../../tests/run_tests.py).
 
 | destination domain | migrated source inputs | affected destination paths | required validation commands | expected evidence type | resulting status |

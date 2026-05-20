@@ -32,6 +32,19 @@ Orientation for **developers** working across World of Shadows services. For pla
 - **Two “world-engine” paths:** canonical play service code lives in **root** `world-engine/`. A nested `backend/world-engine/` tree has been flagged as **confusing** in audit baselines—verify before editing or documenting paths.
 - **Gitignored evidence:** `tests/reports/` is largely ignored; do not cite it as clone-guaranteed in user/admin docs.
 
+## Python runtime standard
+
+**Canonical interpreter:** **Python 3.14.x** on host, CI, Dev Container, and all first-party Compose images. Record: [ADR-0064](../ADR/adr-0064-python-314-unified-interpreter-standard.md).
+
+| Surface | Pin |
+|---------|-----|
+| Host / IDE | `.python-version` → `3.14` |
+| Packaging | `requires-python = ">=3.14,<3.15"` in repo `pyproject.toml` files |
+| CI | `python-version: '3.14'` in `.github/workflows/` |
+| Docker | `python:3.14-slim` / `python:3.14-bookworm` in service Dockerfiles |
+
+Use **`py -3.14 -m venv .venv`** (or pyenv) before `pip install`. After changing Dockerfiles, **`python docker-up.py build`**. Do not treat Python 3.10–3.13 as the merge bar.
+
 ## Monorepo Python bootstrap (import hygiene)
 
 - Run **pytest from each service root** (`backend/`, `world-engine/`) so the top-level `app` package resolves to that service only. Avoid a single shell `PYTHONPATH` that mixes `backend/` and `world-engine/` when importing `app`.

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import configparser
+import textwrap
 from pathlib import Path
 
 
@@ -92,6 +93,9 @@ def _legacy_method_tree(manager_path: Path, method_name: str) -> ast.Module:
     if not chunks:
         raise AssertionError(f"Legacy source chunks for {method_name} not found in {legacy_dir}")
     source = "".join(_literal_source_from_chunk(path) for path in chunks)
+    source = textwrap.dedent(source.lstrip("\\\n"))
+    if source.startswith("    def "):
+        source = "\n".join(line[4:] if line.startswith("    ") else line for line in source.splitlines())
     return ast.parse(source)
 
 

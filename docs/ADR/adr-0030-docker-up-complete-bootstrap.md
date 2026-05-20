@@ -16,6 +16,7 @@ Accepted
 - Production Redis hardening for Compose is automated through `docker-up.py init-production-redis` and `docker-compose.redis-production.yml`.
 - Exit-code contract (0–6) is in force.
 - Test coverage: `tests/test_docker_up_complete_bootstrap.py`.
+- First-party Compose service images use **Python 3.14** per [ADR-0064](adr-0064-python-314-unified-interpreter-standard.md) (`backend`, `play-service`, `frontend`, `administration-tool` Dockerfiles).
 
 ## Date
 
@@ -33,6 +34,7 @@ This ADR documents local bootstrap behavior. Do not commit live secrets or opera
 
 - [ADR-0031](adr-0031-env-configuration-governance.md) - Environment and secrets governance
 - [ADR-0032](adr-0032-mvp4-live-runtime-setup-requirements.md) - MVP4 live runtime requirements
+- [ADR-0064](adr-0064-python-314-unified-interpreter-standard.md) - Unified Python 3.14 images for Compose services
 
 ## Context
 

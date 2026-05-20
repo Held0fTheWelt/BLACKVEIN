@@ -9,7 +9,7 @@ Produce an evidence-backed backlog of missing or empty module/class/function doc
 ## Preconditions
 
 - Repository root as current working directory (or pass `--repo-root` explicitly).
-- Python 3.10+ available.
+- Python 3.14.x available (repo standard).
 
 ## Procedure
 

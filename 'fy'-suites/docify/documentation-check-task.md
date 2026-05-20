@@ -13,7 +13,7 @@ This is the **analysis** counterpart to [`documentation-solve-task.md`](document
 ## Preconditions
 
 - Repository root as current working directory (or pass explicit `--repo-root` flags).
-- Python 3.10+ available.
+- Python 3.14.x available (repo standard).
 - `git` on `PATH` when using drift against a revision range (skip `drift` when using a manual
   `--paths-file`).
 

@@ -35,7 +35,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 1: Backend Fast Tests
 - **Name**: Backend Fast Tests (Unit Tests)
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: `cd backend && pytest tests/ -m "not slow" -v --tb=short`
 - **Expected Tests**: 1,900+
 - **Duration**: 20-30 seconds
@@ -47,7 +47,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 2: Backend Coverage Tests
 - **Name**: Backend Coverage Tests (85% Gate)
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: Coverage-enabled full test suite with `--cov-fail-under=85`
 - **Expected Tests**: 1,950+
 - **Duration**: 40-60 seconds
@@ -74,7 +74,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 1: Admin Fast Tests
 - **Name**: Admin Fast Tests (Unit Tests)
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: `cd administration-tool && pytest tests/ -m "not slow" -v --tb=short`
 - **Expected Tests**: 1,000+
 - **Duration**: 10-15 seconds
@@ -86,7 +86,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 2: Admin Full Tests
 - **Name**: Admin Full Tests
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: `cd administration-tool && pytest tests/ -v --tb=short`
 - **Expected Tests**: 1,039
 - **Duration**: 15-20 seconds
@@ -110,7 +110,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 1: Engine Fast Tests
 - **Name**: Engine Fast Tests (No Slow/WebSocket)
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: `cd world-engine && pytest tests/ -m "not slow and not websocket" -v --tb=short`
 - **Expected Tests**: 683+
 - **Duration**: ~10 seconds
@@ -122,7 +122,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 #### Job 2: Engine Full Tests
 - **Name**: Engine Full Tests (All Tests)
 - **Runs On**: ubuntu-latest
-- **Python**: 3.10
+- **Python**: 3.14
 - **Command**: `cd world-engine && pytest tests/ -v --tb=short`
 - **Expected Tests**: 788
 - **Duration**: ~12 seconds
@@ -193,7 +193,7 @@ The CI/CD pipeline consists of five separate workflows designed to provide fast 
 
 #### Job 1: Full Suite
 - **Name**: Full Test Suite (All Suites)
-- **Python**: 3.10
+- **Python**: 3.14
 - **Runs**: Only on push to main/master or manual trigger
 - **Steps**:
   1. Run full backend suite with 85% coverage enforcement

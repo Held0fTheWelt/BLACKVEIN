@@ -5,11 +5,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "backend"))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "ai_stack"))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "tools"))
 
 from app.mcp_client.client import MCPClient
-from mcp_canonical_surface import CanonicalMCPSurface
+from ai_stack.mcp.mcp_canonical_surface import CanonicalMCPSurface
 from mcp_server.operating_profile import OperatingProfile, check_tool_access
 
 

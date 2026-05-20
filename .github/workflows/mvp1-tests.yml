@@ -51,7 +51,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             world-engine/requirements.txt
@@ -82,7 +82,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             backend/requirements.txt
@@ -110,7 +110,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: frontend/requirements-dev.txt
 
@@ -136,7 +136,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Verify canonical runner exists (tests/run_tests.py)
         run: |

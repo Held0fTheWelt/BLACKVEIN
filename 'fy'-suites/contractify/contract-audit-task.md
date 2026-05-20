@@ -11,7 +11,7 @@ This is the **analysis** counterpart to [`contract-solve-task.md`](contract-solv
 ## Preconditions
 
 - Repository root as current working directory.
-- Python 3.10+.
+- Python 3.14.x (see repo [ADR-0064](../../docs/ADR/adr-0064-python-314-unified-interpreter-standard.md)).
 - Optional: `pip install -e .` so the `contractify` console script resolves.
 
 ## Procedure

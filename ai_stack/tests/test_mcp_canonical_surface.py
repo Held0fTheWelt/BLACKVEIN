@@ -1,10 +1,5 @@
 import pytest
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from mcp_canonical_surface import CanonicalMCPSurface
+from ai_stack.mcp.mcp_canonical_surface import CanonicalMCPSurface
 
 
 class TestCanonicalMCPSurface:

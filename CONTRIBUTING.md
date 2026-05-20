@@ -2,6 +2,8 @@
 
 Full workflow, layout, and conventions: **[docs/dev/contributing.md](docs/dev/contributing.md)**.
 
+**Python:** **3.14.x** only — [ADR-0064](docs/ADR/adr-0064-python-314-unified-interpreter-standard.md), `.python-version`.
+
 ## Language (repository)
 
 Single source of truth: **[`docs/dev/contributing.md`](docs/dev/contributing.md#repository-language)** — heading **Repository language**. Do not maintain a parallel policy copy here or in **`AGENTS.md`**.

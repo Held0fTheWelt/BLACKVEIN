@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - name: Install pytest only
         run: |
           python -m pip install --upgrade pip
@@ -71,7 +71,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: tools/mcp_server/pyproject.toml
       - name: Install dependencies
@@ -132,7 +132,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -156,7 +156,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -180,7 +180,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -206,7 +206,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -234,7 +234,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - uses: actions/checkout@v4

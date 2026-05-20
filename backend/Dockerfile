@@ -3,11 +3,15 @@
 FROM python:3.14-slim AS builder
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
+# fastembed → py-rust-stemmers: no py3.14 wheel yet; compile from source (needs cc).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --upgrade pip
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app

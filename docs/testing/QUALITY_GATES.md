@@ -332,7 +332,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.14'
       - run: pip install -r backend/requirements-dev.txt
       - run: python run_tests.py --suite all --quick
       - name: Upload test reports
@@ -349,7 +349,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.14'
       - run: pip install -r backend/requirements-dev.txt
       - run: pytest -m security -v
 
@@ -360,7 +360,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.14'
       - run: pip install -r backend/requirements-dev.txt
       - run: pytest -m contract -v
 
@@ -371,7 +371,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.14'
       - run: pip install -r backend/requirements-dev.txt
       - run: cd backend && python -m pytest tests/ \
           --cov=app --cov-report=xml --cov-fail-under=85
@@ -388,7 +388,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.14'
       - run: pip install -r backend/requirements-dev.txt
       - run: python run_tests.py --suite all --coverage
 ```

@@ -1,14 +1,23 @@
-FROM python:3.14-slim
+# Multi-stage: builder compiles Rust-backed wheels; runtime stays slim.
+# IMPORTANT: build context must be repository root.
+FROM python:3.14-slim AS builder
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+# fastembed → py-rust-stemmers: no py3.14 wheel yet; compile from source (needs cc).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --upgrade pip
+COPY world-engine/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
+FROM python:3.14-slim AS runtime
+WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
-
-WORKDIR /app
-
-# IMPORTANT: build context must be repository root.
-COPY world-engine/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY world-engine/app ./app
 

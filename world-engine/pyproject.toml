@@ -2,7 +2,7 @@
 name = "world-of-shadows-engine"
 version = "1.0.0"
 description = "World engine for World of Shadows game platform"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.115.0,<1",
     "fastembed>=0.3.0,<1",

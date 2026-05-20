@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **ADR-0064 — unified Python 3.14 standard:** `.python-version`, all service Dockerfiles, CI workflows, Dev Container, and `requires-python = ">=3.14,<3.15"`; docs updated ([`docs/ADR/adr-0064-python-314-unified-interpreter-standard.md`](docs/ADR/adr-0064-python-314-unified-interpreter-standard.md), [`docs/dev/contributing.md`](docs/dev/contributing.md)).
+
 - **Modular runtime intelligence documentation:** updated the capability matrix, runtime-authority references, observability/MCP notes, GoC structured-content reference, and ADR-0033 to document `RuntimeAspectLedger`, `ModuleRuntimePolicy.runtime_governance_policy`, visible-origin projection gates, session-local hierarchical memory, and read-only MCP/Quality Lab evidence boundaries.
 
 ---

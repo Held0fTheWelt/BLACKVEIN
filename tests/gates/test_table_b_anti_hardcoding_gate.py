@@ -190,7 +190,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "backend/app/services/inspector_turn_projection_sections_assembly_filled.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes these as semantic capability inputs (ADR-0058/0059)
     "ai_stack/director/director_pulse_contracts.py",
     "ai_stack/director/director_pulse_shadow.py",
@@ -213,7 +213,7 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
     # Phase 2 Stage M — Follow-up composition enforces information_disclosure
     # gate on generated NPC reply text (ADR-0058 §Stage M).
     "ai_stack/ws_session_loop.py",
@@ -230,7 +230,7 @@ EXPECTATION_VARIATION_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
@@ -243,7 +243,7 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes narrative_momentum as semantic input (ADR-0058/0059)
     "ai_stack/director/director_pulse_contracts.py",
     "ai_stack/director/director_pulse_shadow.py",
@@ -265,7 +265,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
     "ai_stack/director/director_pulse_contracts.py",
     "ai_stack/director/director_pulse_shadow.py",
@@ -289,7 +289,7 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
@@ -308,7 +308,7 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "world-engine/app/config.py",
     "world-engine/app/main.py",
     "world-engine/app/story_runtime/consequence_cascade_store.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 TEMPORAL_CONTROL_CANONICAL_SURFACES = {
@@ -321,7 +321,7 @@ TEMPORAL_CONTROL_CANONICAL_SURFACES = {
     "ai_stack/temporal_control_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
@@ -332,7 +332,7 @@ IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
@@ -354,7 +354,7 @@ SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
     "ai_stack/symbolic_object_resonance_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 GENRE_AWARENESS_CANONICAL_SURFACES = {
@@ -368,7 +368,7 @@ GENRE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 TONAL_CONSISTENCY_CANONICAL_SURFACES = {
@@ -383,7 +383,7 @@ TONAL_CONSISTENCY_CANONICAL_SURFACES = {
     "ai_stack/tonal_consistency_contracts.py",
     "ai_stack/tonal_consistency_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/",
 }
 
 
@@ -442,6 +442,11 @@ def _repo_rel(path: Path) -> str:
 def _known_module_literal_debt_reason(rel: str) -> str | None:
     if rel in KNOWN_MODULE_LITERAL_DEBT:
         return KNOWN_MODULE_LITERAL_DEBT[rel]
+    if rel.startswith("world-engine/app/story_runtime/manager/"):
+        return (
+            "Package-based StoryRuntimeManager compatibility surface; generic Table B "
+            "code must remain isolated to reviewed manager modules."
+        )
     filename = Path(rel).name
     if rel.startswith("ai_stack/goc_") or rel.startswith("ai_stack/semantic_planner/goc_") or (
         rel.startswith("ai_stack/") and filename.endswith("_goc.py")
@@ -450,6 +455,10 @@ def _known_module_literal_debt_reason(rel: str) -> str | None:
     if rel.startswith("story_runtime_core/goc_solo_"):
         return "GoC-specific built-in compatibility module."
     return None
+
+
+def _is_reviewed_surface(rel: str, reviewed: set[str]) -> bool:
+    return rel in reviewed or any(surface.endswith("/") and rel.startswith(surface) for surface in reviewed)
 
 
 def _iter_source_files() -> Iterable[Path]:
@@ -506,7 +515,7 @@ def test_scene_energy_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in SCENE_ENERGY_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, SCENE_ENERGY_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (SCENE_ENERGY_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -524,7 +533,7 @@ def test_information_disclosure_runtime_aspect_is_limited_to_canonical_surfaces(
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in INFORMATION_DISCLOSURE_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, INFORMATION_DISCLOSURE_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (INFORMATION_DISCLOSURE_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -542,7 +551,7 @@ def test_expectation_variation_runtime_aspect_is_limited_to_canonical_surfaces()
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in EXPECTATION_VARIATION_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, EXPECTATION_VARIATION_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (EXPECTATION_VARIATION_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -560,7 +569,7 @@ def test_narrative_momentum_runtime_aspect_is_limited_to_canonical_surfaces() ->
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in NARRATIVE_MOMENTUM_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, NARRATIVE_MOMENTUM_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (NARRATIVE_MOMENTUM_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -578,7 +587,7 @@ def test_pacing_rhythm_runtime_aspect_is_limited_to_canonical_surfaces() -> None
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in PACING_RHYTHM_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, PACING_RHYTHM_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (PACING_RHYTHM_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -596,7 +605,7 @@ def test_sensory_context_runtime_aspect_is_limited_to_canonical_surfaces() -> No
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in SENSORY_CONTEXT_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, SENSORY_CONTEXT_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (SENSORY_CONTEXT_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -614,7 +623,7 @@ def test_consequence_cascade_runtime_aspect_is_limited_to_canonical_surfaces() -
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in CONSEQUENCE_CASCADE_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, CONSEQUENCE_CASCADE_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (CONSEQUENCE_CASCADE_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -632,7 +641,7 @@ def test_temporal_control_runtime_aspect_is_limited_to_canonical_surfaces() -> N
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in TEMPORAL_CONTROL_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, TEMPORAL_CONTROL_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (TEMPORAL_CONTROL_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -650,7 +659,7 @@ def test_improvisational_coherence_runtime_aspect_is_limited_to_canonical_surfac
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (IMPROVISATIONAL_COHERENCE_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -668,7 +677,7 @@ def test_meta_narrative_awareness_runtime_aspect_is_limited_to_canonical_surface
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in META_NARRATIVE_AWARENESS_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, META_NARRATIVE_AWARENESS_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -686,7 +695,7 @@ def test_symbolic_object_resonance_runtime_aspect_is_limited_to_canonical_surfac
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (SYMBOLIC_OBJECT_RESONANCE_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -704,7 +713,7 @@ def test_genre_awareness_runtime_aspect_is_limited_to_canonical_surfaces() -> No
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in GENRE_AWARENESS_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, GENRE_AWARENESS_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (GENRE_AWARENESS_RUNTIME_ASPECT_PATTERN,))
         if hits:
@@ -722,7 +731,7 @@ def test_tonal_consistency_runtime_aspect_is_limited_to_canonical_surfaces() -> 
     violations: list[str] = []
     for path in _iter_source_files():
         rel = _repo_rel(path)
-        if rel in TONAL_CONSISTENCY_CANONICAL_SURFACES:
+        if _is_reviewed_surface(rel, TONAL_CONSISTENCY_CANONICAL_SURFACES):
             continue
         hits = _matches(path, (TONAL_CONSISTENCY_RUNTIME_ASPECT_PATTERN,))
         if hits:

@@ -9,7 +9,7 @@ Use the **second Docify CLI** in one of two ways: **PEP 8 block comments** (`#` 
 ## Preconditions
 
 - Repository root as current working directory (or pass `--repo-root`).
-- Python 3.10+ (`ast.unparse` for condition snippets in dry-run output).
+- Python 3.14.x (`ast.unparse` for condition snippets in dry-run output).
 
 ## Procedure
 

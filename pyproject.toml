@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "world-of-shadows-hub"
 version = "0.0.0"
 description = "Optional editable package: World of Shadows monorepo hub CLIs (Despaghettify, Postmanify, Contractify, …)."
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 # Autonomous agents and sandboxes typically run only ``pip install -e .`` here. The hub
 # therefore carries the same pinned closure as ``backend/requirements.txt`` plus the
 # pytest stack from ``backend/requirements-dev.txt`` and async helpers from

@@ -4,7 +4,7 @@ Guide for testing the World-Engine with the PythonAnywhere remote backend.
 
 ## Prerequisites
 
-- Python 3.8+
+- Python **3.14.x** (see [docs/ADR/adr-0064-python-314-unified-interpreter-standard.md](docs/ADR/adr-0064-python-314-unified-interpreter-standard.md) and `.python-version`)
 - Git
 - Virtual environment (`venv`)
 - Access to PythonAnywhere backend at `https://held0fthewelt.pythonanywhere.com`

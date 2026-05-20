@@ -114,7 +114,7 @@ def internal_observability_initialize():
 
 **Prerequisites:**
 - ✓ Docker installed (docker compose v2 or docker-compose)
-- ✓ Python 3.10+ on host
+- ✓ Python **3.14.x** on host (see [docs/ADR/adr-0064-python-314-unified-interpreter-standard.md](docs/ADR/adr-0064-python-314-unified-interpreter-standard.md))
 - ✓ Repository cloned to local path
 
 **Step 1: Initialize environment**

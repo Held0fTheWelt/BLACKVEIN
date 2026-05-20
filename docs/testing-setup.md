@@ -4,16 +4,16 @@ This document explains how to install test dependencies, run tests, understand t
 
 ## Environment parity (CI, Dev Container, local)
 
-**Why results can differ:** A laptop may use Python **3.14** (or another non-3.13 interpreter) while CI and the default Dev Container pin **3.13**. Pip/setuptools versions also differ unless pinned. That alone can change editable-install and test outcomes.
+**Why results can differ:** A laptop may use Python **3.13** or another interpreter while CI and the default Dev Container pin **3.14**. Pip/setuptools versions also differ unless pinned. That alone can change editable-install and test outcomes.
 
-**What we treat as the merge bar:** GitHub Actions workflows under `.github/workflows/` run on **ubuntu-latest** with **`python-version: '3.13'`**. Match that via repo root **`.python-version`** (pyenv) or the Dev Container image.
+**What we treat as the merge bar:** GitHub Actions workflows under `.github/workflows/` run on **ubuntu-latest** with **`python-version: '3.14'`**. Match that via repo root **`.python-version`** (pyenv) or the Dev Container image.
 
 **Aligned local / container installs** — use **one** of these so dependency sets match the documented path:
 
 1. **Repository root** — `./setup-test-environment.sh` or `setup-test-environment.bat`  
    Installs `backend/requirements-test.txt`, then **editable** `story_runtime_core`, then **editable** `ai_stack[test]`. Fails the script if an editable install errors (no silent success).
 2. **Dev Container** — `.devcontainer/devcontainer.json`  
-   Uses the same **Python 3.13** image and runs the same pip sequence as (1), then adds `world-engine/requirements-dev.txt` so **world-engine** tests work in-container. `PYTHONPATH` includes the repo root (and `world-engine` for engine imports).
+   Uses the same **Python 3.14** image and runs the same pip sequence as (1), then adds `world-engine/requirements-dev.txt` so **world-engine** tests work in-container. `PYTHONPATH` includes the repo root (and `world-engine` for engine imports).
 3. **Manual / CI-style** — For `ai_stack` tests only, mirror `.github/workflows/ai-stack-tests.yml`:  
    `pip install -e ./story_runtime_core` and `pip install -e "./ai_stack[test]"` with `PYTHONPATH` set to the repository root.
 4. **Minimal CI-parity one-shot** — `scripts/install-ai-stack-test-env.sh` or `scripts/install-ai-stack-test-env.ps1` / `.bat` (same pip lines as the workflow). **Docker:** `docker build -f docker/Dockerfile.ai-stack-test -t wos-ai-stack-test .` then `docker run --rm wos-ai-stack-test`.
@@ -515,7 +515,7 @@ Includes (among others):
 - `pytest-cov>=4.0,<6` — coverage measurement
 - `pytest-timeout>=2.1` — timeout enforcement
 - `anyio` — explicit async primitives for consistent clean installs
-- `exceptiongroup` — Python 3.10 compatibility for pytest/async (environment marker)
+- `exceptiongroup` — listed in root `pyproject.toml` for older interpreters; **not installed on Python 3.14** (stdlib covers the use case)
 
 **Does NOT include** dev-only tools like formatters, linters, type checkers.
 
