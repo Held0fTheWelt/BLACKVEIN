@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from ai_stack.semantic_embedding import embedding_backend_probe
+from ai_stack.rag.semantic_embedding import embedding_backend_probe
 
 
 def embedding_backend_ready() -> bool:

@@ -810,11 +810,14 @@ class TestDirectorPauseWithActorLaneFallback:
         assert result["paused"] is True
         assert "human_a" in result["missing_actor_ids"]
 
-    def test_topology_presence_overrides_resolver_participation_broken(self):
-        """Topology authority rule: if an actor IS physically at the gathering
-        scene (topology-confirmed), resolver participation_broken must NOT
-        re-add them to missing_actor_ids.  This prevents LLM resolver output
-        about a prior departure from overriding a confirmed topological return."""
+    def test_same_room_resolver_participation_break_pauses(self):
+        """Same-room participation/visibility loss is a real pause condition.
+
+        ADR-0061 defines topology, participation relevance, and visibility /
+        audibility as peer inputs. A current resolver break signal therefore
+        pauses even when actor_locations still place the actor in the gathering
+        room.
+        """
         result = compute_gathering_state(
             actor_locations={
                 "human_a": "gathering_room",
@@ -823,16 +826,15 @@ class TestDirectorPauseWithActorLaneFallback:
             },
             current_step_named_characters=["human_a", "npc_x", "npc_y"],
             current_step_scene_id="gathering_room",
-            # Resolver incorrectly reports participation broken (e.g. LLM assessed
-            # the prior move action, not the return):
             participation_relevance="broken",
             visibility_audibility="not_visible",
             subject_actor_id="human_a",
             current_turn_number=5,
         )
-        # Topology says all actors are present → resolver cannot override.
-        assert result["paused"] is False
-        assert result["missing_actor_ids"] == []
+        assert result["paused"] is True
+        assert result["reason"] == "participation_relevance_broken"
+        assert result["source"] == "free_player_action_resolution.v1"
+        assert result["missing_actor_ids"] == ["human_a"]
 
     def test_topology_absent_actor_can_still_be_added_by_resolver(self):
         """If topology already marks an actor absent, resolver participation

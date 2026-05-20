@@ -23,7 +23,7 @@ from ai_stack.rag import (
     RetrievalStatus,
     build_runtime_retriever,
 )
-from ai_stack.rag_ingestion import _detect_content_class
+from ai_stack.rag.rag_ingestion import _detect_content_class
 from ai_stack.tests.embedding_markers import requires_embeddings
 from ai_stack.tests.retrieval_eval_scenarios import (
     RETRIEVAL_EVAL_SCENARIOS,
@@ -412,7 +412,7 @@ def test_persistent_rag_store_retries_transient_replace_lock(
         real_replace(source, destination)
 
     monkeypatch.setattr(os, "replace", flaky_replace)
-    monkeypatch.setattr("ai_stack.rag_persistent_store.time.sleep", lambda _delay: None)
+    monkeypatch.setattr("ai_stack.rag.rag_persistent_store.time.sleep", lambda _delay: None)
 
     store.save(corpus)
 
@@ -441,7 +441,7 @@ def test_persistent_rag_store_preserves_existing_cache_when_replace_remains_lock
         raise PermissionError(errno.EACCES, "simulated persistent lock")
 
     monkeypatch.setattr(os, "replace", locked_replace)
-    monkeypatch.setattr("ai_stack.rag_persistent_store.time.sleep", lambda _delay: None)
+    monkeypatch.setattr("ai_stack.rag.rag_persistent_store.time.sleep", lambda _delay: None)
 
     store.save(updated)
 
@@ -731,7 +731,7 @@ def test_sparse_when_query_encode_fails(tmp_path: Path, monkeypatch: pytest.Monk
     retriever, _, _ = build_runtime_retriever(tmp_path)
 
     def boom(_q: str):
-        from ai_stack.semantic_embedding import EncodeOutcome
+        from ai_stack.rag.semantic_embedding import EncodeOutcome
 
         return EncodeOutcome(None, ("embedding_runtime_error",))
 

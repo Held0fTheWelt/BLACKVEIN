@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.rag_context_pack_build import assemble_context_pack
+from ai_stack.rag.rag_context_pack_build import assemble_context_pack
 
 
 class ContextPackAssembler:

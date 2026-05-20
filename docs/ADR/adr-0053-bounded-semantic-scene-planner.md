@@ -6,18 +6,30 @@ Accepted
 
 ## Implementation Status
 
-Implemented and tested for the God of Carnage runtime path.
+Implemented and tested as a bounded GoC planner component. Since ADR-0062, the
+default player-turn LangGraph route uses the Director realization thin path;
+semantic scene planner records are no longer emitted as default player-turn
+graph truth.
 
 - `ai_stack/semantic_scene_planner.py` builds bounded short-horizon scene-plan enrichment.
 - `ScenePlanRecord` now carries `narrative_scene_function`, `scene_target`, `target_obligations`, `actor_directives`, `dramatic_beats`, `handover_policy`, `content_frame`, `speech_policy`, `quote_moment_policy`, `dialogue_plan`, `capability_manager_plan`, `continuity_obligation`, `expected_transition_pattern`, and `semantic_scene_planner_version`.
 - `pressure_target` remains as a compatibility alias for pressure-specific target data; the broader concept is now `scene_target`.
-- `RuntimeTurnGraphExecutor._director_select_dramatic_parameters` calls the planner after AI semantic move, social state, responder, character-mind, and pacing decisions are available.
+- The legacy `director_select_dramatic_parameters` path can call the planner after AI semantic move, social state, responder, character-mind, and pacing decisions are available. The ADR-0062 thin path does not visit that node for ordinary player turns.
 - The planner consumes the expanded GoC content surfaces: `canonical_path`, `scene_graph`, `locations`, `objects`, `content_access_policy`, `opening_quote_anchors`, and `direction/beat_library`.
 - The dramatic generation packet exposes the enriched `scene_plan` as model-visible bounded direction, including speech and capability-manager decisions.
 - The runtime capability aspect records the director-selected capability-manager plan so validation can see what the director intended to execute.
 - `ai_stack/director_capability_manager.py` audits the selected dramatic capabilities as individual bounded dispatch paths. Each selected capability must have one terminal path, pass cycle detection, stay within the path-depth limit, and enter the runtime as an audited dispatch queue rather than a recursive tree walk.
-- Validation and commit seams remain authoritative; planner output is advisory until validation/commit.
+- Validation and commit seams remain authoritative; planner output is advisory until validation/commit whenever the legacy planner path is used.
 - Scene-function and responder selection no longer use legacy keyword scene candidates or raw actor-name matching. Missing semantic move input degrades through `semantic_move_required`.
+
+### Test-suite status
+
+The old graph-level semantic planner golden cases were retired on 2026-05-20.
+They asserted `semantic_move_record`, `scene_plan_record`, and
+`selected_scene_function` on the default runtime graph, which is now an obsolete
+expectation under ADR-0062. Current coverage is split between direct planner /
+contract tests and graph-authority tests that assert the thin path keeps legacy
+planner fields out of committed truth.
 
 ## Date
 
@@ -257,4 +269,4 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 - `ai_stack/langgraph_runtime_executor.py`
 - `ai_stack/tests/test_semantic_scene_planner.py`
 - `ai_stack/tests/test_goc_structured_setting_knowledge.py`
-- `ai_stack/tests/test_semantic_planner_golden_cases.py`
+- `ai_stack/tests/test_semantic_planner_graph_authority.py`

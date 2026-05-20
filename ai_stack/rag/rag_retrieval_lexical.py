@@ -9,7 +9,7 @@ import math
 import re
 from typing import Protocol
 
-from ai_stack.rag_constants import (
+from ai_stack.rag.rag_constants import (
     HYBRID_DENSE_WEAK_THRESHOLD,
     HYBRID_DENSE_WEIGHT,
     HYBRID_SPARSE_STRONG_THRESHOLD,
@@ -19,7 +19,7 @@ from ai_stack.rag_constants import (
     RERANK_AGREEMENT_BONUS_CAP,
     RERANK_AGREEMENT_MIN_SIGNAL,
 )
-from ai_stack.rag_types import ContentClass, RetrievalDomain
+from ai_stack.rag.rag_types import ContentClass, RetrievalDomain
 
 PROFILE_VERSIONS = {
     "runtime_turn_support": "runtime_profile_v3_source_policy",

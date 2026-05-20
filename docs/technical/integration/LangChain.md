@@ -8,7 +8,7 @@
 
 ## Plain language
 
-When the system needs a model to return **JSON-shaped** narrative or review data, LangChain helpers build the chat prompt and parse the response into typed structures. When Writers’ Room needs **documents** from the corpus, a retriever bridge asks `ai_stack/rag.py` with the **writers’** retrieval domain, not the live-turn profile.
+When the system needs a model to return **JSON-shaped** narrative or review data, LangChain helpers build the chat prompt and parse the response into typed structures. When Writers’ Room needs **documents** from the corpus, a retriever bridge asks `ai_stack/rag/__init__.py` with the **writers’** retrieval domain, not the live-turn profile.
 
 ## Technical precision
 

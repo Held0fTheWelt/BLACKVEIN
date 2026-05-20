@@ -6,7 +6,7 @@ Retrieval trace summary lines and profile governance tags appended to
 from __future__ import annotations
 
 from ai_stack.capabilities import build_retrieval_trace
-from ai_stack.rag_retrieval_dtos import RetrievalResult
+from ai_stack.rag.rag_retrieval_dtos import RetrievalResult
 
 
 def append_trace_and_governance_footer(

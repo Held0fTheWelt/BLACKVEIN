@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.rag_retrieval_dtos import ContextPack, RetrievalResult
+from ai_stack.rag.rag_retrieval_dtos import ContextPack, RetrievalResult
 
 
 def pack_index_trace_tuple(result: RetrievalResult) -> tuple[str, str, str]:

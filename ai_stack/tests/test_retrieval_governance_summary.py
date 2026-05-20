@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.retrieval_governance_summary import (
+from ai_stack.rag.retrieval_governance_summary import (
     attach_retrieval_governance_summary,
     dominant_visibility_class_from_counts,
     summarize_retrieval_governance_from_hit_rows,

@@ -4,8 +4,8 @@ import pytest
 
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
-from ai_stack.rag_types import RetrievalStatus
+from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
+from ai_stack.rag.rag_types import RetrievalStatus
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,

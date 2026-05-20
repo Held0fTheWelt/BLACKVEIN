@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ai_stack.rag_retrieval_dtos import (
+from ai_stack.rag.rag_retrieval_dtos import (
     RuntimeRetrievalConfig,
     retrieval_config_from_governed,
 )
@@ -144,8 +144,8 @@ class TestContextRetrieverLastObserved:
         retriever, _, _ = build_runtime_retriever(tmp_path)
         assert retriever.last_retrieval_route == ""  # unset before first call
 
-        from ai_stack.rag_retrieval_dtos import RetrievalRequest
-        from ai_stack.rag_types import RetrievalDomain
+        from ai_stack.rag.rag_retrieval_dtos import RetrievalRequest
+        from ai_stack.rag.rag_types import RetrievalDomain
 
         retriever.retrieve(
             RetrievalRequest(
@@ -160,7 +160,7 @@ class TestContextRetrieverLastObserved:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setenv("WOS_RAG_DISABLE_EMBEDDINGS", "1")
-        from ai_stack.semantic_embedding import clear_embedding_model_singleton
+        from ai_stack.rag.semantic_embedding import clear_embedding_model_singleton
         clear_embedding_model_singleton()
 
         from ai_stack.rag import build_runtime_retriever
@@ -169,8 +169,8 @@ class TestContextRetrieverLastObserved:
         (tmp_path / "content" / "mod.md").write_text("test content", encoding="utf-8")
         retriever, _, _ = build_runtime_retriever(tmp_path)
 
-        from ai_stack.rag_retrieval_dtos import RetrievalRequest
-        from ai_stack.rag_types import RetrievalDomain
+        from ai_stack.rag.rag_retrieval_dtos import RetrievalRequest
+        from ai_stack.rag.rag_types import RetrievalDomain
 
         retriever.retrieve(
             RetrievalRequest(
@@ -193,9 +193,9 @@ class TestExecutorRetrievalConfigWiring:
     def _make_minimal_executor(self, retrieval_config: RuntimeRetrievalConfig):
         """Build the minimum executor needed to call _retrieve_context."""
         from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
-        from ai_stack.rag_context_retriever import ContextRetriever
-        from ai_stack.rag_context_pack_assembler import ContextPackAssembler
-        from ai_stack.rag_corpus import InMemoryRetrievalCorpus
+        from ai_stack.rag.rag_context_retriever import ContextRetriever
+        from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
+        from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
 
         corpus = InMemoryRetrievalCorpus(chunks=[], built_at="2026-01-01T00:00:00Z", source_count=0)
         retriever = ContextRetriever(corpus)
@@ -376,9 +376,9 @@ class TestExecutorRetrievalConfigWiring:
     def test_min_score_filters_sources(self, tmp_path: Path) -> None:
         """Sources below min_score threshold are removed before context assembly."""
         from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
-        from ai_stack.rag_context_retriever import ContextRetriever
-        from ai_stack.rag_corpus import InMemoryRetrievalCorpus
-        from ai_stack.rag_context_pack_assembler import ContextPackAssembler
+        from ai_stack.rag.rag_context_retriever import ContextRetriever
+        from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
+        from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
 
         rc = RuntimeRetrievalConfig(retrieval_min_score=0.5)
 
@@ -386,8 +386,8 @@ class TestExecutorRetrievalConfigWiring:
         retriever = ContextRetriever(corpus)
         assembler = ContextPackAssembler()
 
-        from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalResult, RetrievalRequest
-        from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
+        from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalResult, RetrievalRequest
+        from ai_stack.rag.rag_types import RetrievalDomain, RetrievalStatus
 
         retrieval_result = RetrievalResult(
             request=RetrievalRequest(
@@ -447,9 +447,9 @@ class TestExecutorRetrievalConfigWiring:
     def test_capability_context_pack_handler_filters_min_score_before_context_text(self) -> None:
         """Capability retrieval path applies the same min-score contract as the direct path."""
         from ai_stack.capabilities_registry_context_writers_handlers import build_context_pack_handler
-        from ai_stack.rag_context_pack_assembler import ContextPackAssembler
-        from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
-        from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
+        from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
+        from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
+        from ai_stack.rag.rag_types import RetrievalDomain, RetrievalStatus
 
         class FakeRetriever:
             def retrieve(self, request: RetrievalRequest) -> RetrievalResult:

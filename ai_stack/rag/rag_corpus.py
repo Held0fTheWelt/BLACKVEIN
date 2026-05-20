@@ -8,8 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from ai_stack.rag_constants import INDEX_VERSION
-from ai_stack.rag_types import ContentClass
+from ai_stack.rag.rag_constants import INDEX_VERSION
+from ai_stack.rag.rag_types import ContentClass
 
 
 @dataclass(slots=True)

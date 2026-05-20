@@ -121,7 +121,7 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 
 ## AI stack (high level)
 
-- **RAG**: corpus ingestion and context packs (`ai_stack/rag.py`); used on the runtime turn path for grounded prompts.
+- **RAG**: corpus ingestion and context packs (`ai_stack/rag/__init__.py`); used on the runtime turn path for grounded prompts.
 - **LangGraph**: `RuntimeTurnGraphExecutor` orchestrates interpret → retrieve → GoC resolve → director → model → normalize → validate → commit → render → package.
 - **LangChain**: adapter invocation bridge for structured runtime output (`ai_stack/langchain_integration/`).
 - **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md) and `ai_stack/capabilities.py`.

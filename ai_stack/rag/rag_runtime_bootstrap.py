@@ -7,12 +7,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.rag_context_pack_assembler import ContextPackAssembler
-from ai_stack.rag_context_retriever import ContextRetriever
-from ai_stack.rag_corpus import InMemoryRetrievalCorpus
-from ai_stack.rag_embedding_index import _ensure_corpus_embedding_index
-from ai_stack.rag_ingestion import RagIngestionPipeline
-from ai_stack.rag_persistent_store import PersistentRagStore
+from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
+from ai_stack.rag.rag_context_retriever import ContextRetriever
+from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
+from ai_stack.rag.rag_embedding_index import _ensure_corpus_embedding_index
+from ai_stack.rag.rag_ingestion import RagIngestionPipeline
+from ai_stack.rag.rag_persistent_store import PersistentRagStore
 
 
 def build_runtime_retriever(repo_root: Path) -> tuple[ContextRetriever, ContextPackAssembler, InMemoryRetrievalCorpus]:

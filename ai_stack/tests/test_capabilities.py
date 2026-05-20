@@ -107,7 +107,7 @@ def test_build_retrieval_trace_compact_governance_hints() -> None:
 
 
 def test_build_retrieval_trace_passthrough_retrieval_governance_summary() -> None:
-    from ai_stack.retrieval_governance_summary import summarize_retrieval_governance_from_hit_rows
+    from ai_stack.rag.retrieval_governance_summary import summarize_retrieval_governance_from_hit_rows
 
     sources = [
         {

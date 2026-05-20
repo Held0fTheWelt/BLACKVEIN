@@ -18,8 +18,8 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack.prompt_store import get_prompt_definition
-from ai_stack.rag_retrieval_dtos import RetrievalRequest
-from ai_stack.rag_types import RetrievalDomain
+from ai_stack.rag.rag_retrieval_dtos import RetrievalRequest
+from ai_stack.rag.rag_types import RetrievalDomain
 
 
 def _adapter_generate_kwargs(adapter: BaseModelAdapter, kwargs: dict[str, Any]) -> dict[str, Any]:

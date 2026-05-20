@@ -12,11 +12,11 @@
 
 ## Technical precision
 
-- **Implementation:** `ai_stack/rag.py` — `ContextRetriever`, `ContextPackAssembler`, `RetrievalRequest`, `CorpusChunk`, governance enums.
+- **Implementation:** `ai_stack/rag/__init__.py` — `ContextRetriever`, `ContextPackAssembler`, `RetrievalRequest`, `CorpusChunk`, governance enums.
 - **Persistence:** JSON corpus `.wos/rag/runtime_corpus.json` (`PersistentRagStore`); optional dense index `.wos/rag/runtime_embeddings.npz` + `runtime_embeddings.meta.json` (see below).
-- **Turn-level governance visibility:** `ai_stack/retrieval_governance_summary.py` — aggregates lane/visibility histograms from hit rows for diagnostics **without** changing ranking (consumes `retrieval["sources"]` rows from the graph).
+- **Turn-level governance visibility:** `ai_stack/rag/retrieval_governance_summary.py` — aggregates lane/visibility histograms from hit rows for diagnostics **without** changing ranking (consumes `retrieval["sources"]` rows from the graph).
 
-**Anchors:** `ai_stack/rag.py`, `ai_stack/retrieval_governance_summary.py`, `ai_stack/langgraph_runtime.py` (`_retrieve_context`).
+**Anchors:** `ai_stack/rag/__init__.py`, `ai_stack/rag/retrieval_governance_summary.py`, `ai_stack/langgraph_runtime.py` (`_retrieve_context`).
 
 ## Why this matters in World of Shadows
 
@@ -90,7 +90,7 @@ Tests for this layer assert contract shape, provenance, diagnostic fields, and f
 
 ## Diagram: truth and retrieval boundaries
 
-*Anchored in:* `governance_view_for_chunk` and `DOMAIN_CONTENT_ACCESS` in `ai_stack/rag.py`; session authority in `world-engine/app/story_runtime/manager.py`.
+*Anchored in:* `governance_view_for_chunk` and `DOMAIN_CONTENT_ACCESS` in `ai_stack/rag/__init__.py`; session authority in `world-engine/app/story_runtime/manager.py`.
 
 ```mermaid
 flowchart TB
@@ -125,7 +125,7 @@ flowchart TB
 - **Startup:** tries cache load; rebuild when **source fingerprint** changes (selected paths: size + mtime).
 - **Corpus metadata:** `index_version`, `corpus_fingerprint`, per-chunk `source_version` / `source_hash`, profile markers.
 
-**Ingestion sources** (policy in `ai_stack/rag.py`):
+**Ingestion sources** (policy in `ai_stack/rag/__init__.py`):
 
 - `content/**/*` — `.md`, `.json`, `.yml`, `.yaml`
 - `docs/technical/**/*.md`
@@ -158,17 +158,17 @@ Canonicalized tokens, concept expansion, IDF-weighted sparse vectors, cosine sim
 | `WOS_RAG_EMBEDDING_CACHE_DIR` | Cache dir for `TextEmbedding` (reproducible CI) |
 | `HF_HOME`, `HUGGINGFACE_HUB_CACHE` | May affect hub download layout |
 
-Probe without side effects: `ai_stack.semantic_embedding.embedding_backend_probe()`.
+Probe without side effects: `ai_stack.rag.semantic_embedding.embedding_backend_probe()`.
 
 ### Profile boosts
 
-Content-class boosts, canonical priority, module match, scene hints — applied on top of hybrid or sparse base scoring (`PROFILE_CONTENT_BOOSTS`, `PROFILE_CANONICAL_WEIGHT` in `ai_stack/rag.py`).
+Content-class boosts, canonical priority, module match, scene hints — applied on top of hybrid or sparse base scoring (`PROFILE_CONTENT_BOOSTS`, `PROFILE_CANONICAL_WEIGHT` in `ai_stack/rag/__init__.py`).
 
 ---
 
 ## Retrieval domains and default profiles
 
-`RetrievalDomain` selects **which content classes may enter the candidate pool at all** (`DOMAIN_CONTENT_ACCESS` in `ai_stack/rag.py`). Each domain maps to a default **profile** string that tunes hybrid weights, boosts, and governance notes (`DOMAIN_DEFAULT_PROFILE`).
+`RetrievalDomain` selects **which content classes may enter the candidate pool at all** (`DOMAIN_CONTENT_ACCESS` in `ai_stack/rag/__init__.py`). Each domain maps to a default **profile** string that tunes hybrid weights, boosts, and governance notes (`DOMAIN_DEFAULT_PROFILE`).
 
 | Domain (enum) | Default profile | Typical callers (examples) |
 |---------------|-----------------|-----------------------------|
@@ -183,7 +183,7 @@ Content-class boosts, canonical priority, module match, scene hints — applied 
 
 ## Diagram: domain → content access → profile
 
-*Anchored in:* `DOMAIN_CONTENT_ACCESS`, `DOMAIN_DEFAULT_PROFILE` in `ai_stack/rag.py`.
+*Anchored in:* `DOMAIN_CONTENT_ACCESS`, `DOMAIN_DEFAULT_PROFILE` in `ai_stack/rag/__init__.py`.
 
 ```mermaid
 flowchart LR
@@ -206,7 +206,7 @@ A **governance layer** maps each chunk to:
 - **Evidence lane:** `canonical`, `supporting`, `draft_working`, `internal_review`, `evaluative` — from `ContentClass`, `canonical_priority`, and repo-relative `source_path` (for example `content/published/` vs `content/modules/`).
 - **Visibility class:** `runtime_safe`, `writers_working`, `improvement_diagnostic`.
 
-**Policy version string:** `RETRIEVAL_POLICY_VERSION` in `ai_stack/rag.py` is currently `task3_source_governance_v1`. That value is an **opaque, committed identifier** for traces and bundles (so operators can tell which policy semantics produced a pack). It is **not** an operational checklist label for day-to-day reading—behavior is defined by the Python functions (`governance_view_for_chunk`, rerank gates).
+**Policy version string:** `RETRIEVAL_POLICY_VERSION` in `ai_stack/rag/__init__.py` is currently `task3_source_governance_v1`. That value is an **opaque, committed identifier** for traces and bundles (so operators can tell which policy semantics produced a pack). It is **not** an operational checklist label for day-to-day reading—behavior is defined by the Python functions (`governance_view_for_chunk`, rerank gates).
 
 **Runtime profile (`runtime_turn_support`):** hard gate drops same-module **draft_working** authored chunks from the rerank pool when a **published canonical** authored chunk (`canonical_priority >= 4`) for that `module_id` is already present.
 
@@ -236,7 +236,7 @@ Outputs expose `source_evidence_lane`, `source_visibility_class`, `policy_note`,
 
 ## Legacy verification and archived material
 
-Embedding hardening notes and older evaluation write-ups live under `docs/archive/rag-task-legacy/` with cross-references in consolidation docs. **Canonical behavior** is always `ai_stack/rag.py` plus the call sites above.
+Embedding hardening notes and older evaluation write-ups live under `docs/archive/rag-task-legacy/` with cross-references in consolidation docs. **Canonical behavior** is always `ai_stack/rag/__init__.py` plus the call sites above.
 
 ---
 

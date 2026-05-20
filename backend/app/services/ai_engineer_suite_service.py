@@ -16,7 +16,7 @@ from ai_stack import (
     RetrievalRequest,
     build_runtime_retriever,
 )
-from ai_stack.semantic_embedding import embedding_backend_probe
+from ai_stack.rag.semantic_embedding import embedding_backend_probe
 from app.governance.errors import governance_error
 from app.services.game_service import GameServiceError, get_story_diagnostics, list_story_sessions
 from app.services.governance_runtime_service import (

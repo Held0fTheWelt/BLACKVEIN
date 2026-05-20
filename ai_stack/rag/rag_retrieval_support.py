@@ -9,25 +9,25 @@ import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from ai_stack.rag_constants import DOMAIN_CONTENT_ACCESS, RETRIEVAL_PIPELINE_VERSION
-from ai_stack.rag_governance import governance_view_for_chunk
-from ai_stack.rag_retrieval_hybrid_encoding import _RetrievalHybridEncodingState
-from ai_stack.rag_retrieval_lexical import (
+from ai_stack.rag.rag_constants import DOMAIN_CONTENT_ACCESS, RETRIEVAL_PIPELINE_VERSION
+from ai_stack.rag.rag_governance import governance_view_for_chunk
+from ai_stack.rag.rag_retrieval_hybrid_encoding import _RetrievalHybridEncodingState
+from ai_stack.rag.rag_retrieval_lexical import (
     DOMAIN_DEFAULT_PROFILE,
     PROFILE_CANONICAL_WEIGHT,
     PROFILE_CONTENT_BOOSTS,
     _build_semantic_terms,
     _profile_hybrid_weights,
 )
-from ai_stack.rag_retrieval_policy_pool import (
+from ai_stack.rag.rag_retrieval_policy_pool import (
     _apply_hard_policy_pool_filter,
     _policy_soft_adjustments,
     _pool_has_published_canonical_for_module,
     _pool_has_strong_authored_for_module,
     _pool_size,
 )
-from ai_stack.rag_retrieval_dtos import RetrievalResult
-from ai_stack.rag_types import RetrievalDegradationMode, RetrievalDomain, RetrievalStatus
+from ai_stack.rag.rag_retrieval_dtos import RetrievalResult
+from ai_stack.rag.rag_types import RetrievalDegradationMode, RetrievalDomain, RetrievalStatus
 
 
 class _CorpusPrefixLike(Protocol):
@@ -221,7 +221,7 @@ def _rerank_retrieval_candidate_pool(
             Returns a value of type ``list[tuple[float, _RerankCandidateLike,
             list[str]]]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.rag_retrieval_rerank_adjustments import compute_rerank_adjustments as _rerank_adjustments
+    from ai_stack.rag.rag_retrieval_rerank_adjustments import compute_rerank_adjustments as _rerank_adjustments
 
     reranked: list[tuple[float, _RerankCandidateLike, list[str]]] = []
     for cand in pool:

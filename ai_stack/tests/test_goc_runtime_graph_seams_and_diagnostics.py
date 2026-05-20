@@ -16,7 +16,6 @@ pytest.importorskip(
 )
 from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.goc_field_initialization_envelope import is_goc_uninitialized_field_envelope
 from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS, TASK_TYPES
 from ai_stack.goc_turn_seams import (
     build_operator_canonical_turn_record,
@@ -26,6 +25,7 @@ from ai_stack.goc_turn_seams import (
 from ai_stack.goc_yaml_authority import (
     cached_goc_yaml_title,
     clear_goc_yaml_slice_cache,
+    detect_builtin_yaml_title_conflict,
     load_goc_canonical_module_yaml,
     load_goc_yaml_slice_bundle,
 )
@@ -83,7 +83,7 @@ def _clear_goc_title_cache() -> None:
     clear_goc_yaml_slice_cache()
 
 
-def test_goc_non_preview_path_turn_integrity_and_diagnostics(tmp_path: Path) -> None:
+def test_goc_thin_path_turn_integrity_and_diagnostics(tmp_path: Path) -> None:
     graph = _executor(tmp_path)
     result = graph.run(
         session_id="s-goc-1",
@@ -100,19 +100,31 @@ def test_goc_non_preview_path_turn_integrity_and_diagnostics(tmp_path: Path) -> 
     assert result["graph_diagnostics"]["graph_version"] == RUNTIME_TURN_GRAPH_VERSION
     nodes = result["graph_diagnostics"]["nodes_executed"]
     for required in (
-        "goc_resolve_canonical_content",
-        "director_assess_scene",
-        "director_select_dramatic_parameters",
+        "resolve_player_action",
+        "director_compose_realization",
+        "realize_via_capabilities",
+        "route_model",
+        "invoke_model",
         "proposal_normalize",
         "validate_seam",
         "commit_seam",
         "render_visible",
+        "package_output",
     ):
         assert required in nodes
+    for obsolete in (
+        "goc_resolve_canonical_content",
+        "director_assess_scene",
+        "director_select_dramatic_parameters",
+        "synthesize_context",
+        "assemble_model_context",
+    ):
+        assert obsolete not in nodes
 
     repro = result["graph_diagnostics"].get("repro_metadata") or {}
-    assert repro.get("repro_complete") is True
-    assert repro_metadata_complete(repro) is True
+    assert repro.get("repro_complete") is False
+    assert repro_metadata_complete(repro) is False
+    assert repro.get("retrieval_domain") is None
 
     assert isinstance(result.get("experiment_preview"), bool)
     assert (result.get("validation_outcome") or {}).get("status") in ("approved", "rejected")
@@ -127,7 +139,12 @@ def test_goc_non_preview_path_turn_integrity_and_diagnostics(tmp_path: Path) -> 
 
     yaml_mod = load_goc_canonical_module_yaml()
     assert yaml_mod.get("module_id") == "god_of_carnage"
-    assert result["scene_assessment"].get("canonical_setting")
+    context = result.get("dramatic_context_summary") or {}
+    assert context.get("contract") == "bounded_dramatic_context.v1"
+    assert context.get("module_scope", {}).get("requested_module_supported") is True
+    plan = result.get("realization_plan") or {}
+    assert plan.get("schema_version") == "realization_plan.v1"
+    assert result.get("realize_via_capabilities_used_capability")
 
     assert result.get("task_type") in TASK_TYPES
     routing = result.get("routing") or {}
@@ -138,20 +155,9 @@ def test_goc_non_preview_path_turn_integrity_and_diagnostics(tmp_path: Path) -> 
     assert routing.get("fallback_stage_reached") == "primary_only"
 
     op = build_operator_canonical_turn_record(result)
-    dtr = op.get("dramatic_turn_record") or {}
-    retrieval = result.get("retrieval") or {}
-    gov = retrieval.get("retrieval_governance_summary")
-    assert isinstance(gov, dict)
-    rr = dtr.get("retrieval_record") or {}
-    assert rr.get("authored_truth_refs") == gov.get("authored_truth_refs")
-    assert rr.get("derived_artifact_refs") == gov.get("derived_artifact_refs")
-    assert rr.get("retrieval_governance_result") == gov
-    assert rr.get("retrieval_visibility_class") == gov.get("dominant_visibility_class")
-    assert dtr.get("turn_basis")
-    assert dtr.get("routing_record")
-    tn = dtr["turn_basis"]["turn_number"]
-    assert is_goc_uninitialized_field_envelope(tn), "turn_number must use goc_uninitialized_field_envelope_v1 when not host-supplied"
-    assert dtr["turn_basis"]["turn_id"] == "trace-goc-phase1"
+    assert op["turn_metadata"]["turn_id"] == "trace-goc-phase1"
+    assert op["turn_metadata"]["turn_number"] is None
+    assert result.get("retrieval") is None
 
 
 def test_turn_number_when_host_supplied_is_scalar_not_envelope(tmp_path: Path) -> None:
@@ -169,24 +175,19 @@ def test_turn_number_when_host_supplied_is_scalar_not_envelope(tmp_path: Path) -
             "title": "God of Carnage",
         },
     )
-    dtr = build_operator_canonical_turn_record(result)["dramatic_turn_record"]
-    assert dtr["turn_basis"]["turn_number"] == 3
-    assert dtr["turn_basis"]["turn_id"] == "explicit-turn-id"
+    metadata = build_operator_canonical_turn_record(result)["turn_metadata"]
+    assert metadata["turn_number"] == 3
+    assert metadata["turn_id"] == "explicit-turn-id"
 
 
-def test_builtin_title_mismatch_marks_scope_breach_and_forces_preview(tmp_path: Path) -> None:
-    graph = _executor(tmp_path)
-    result = graph.run(
-        session_id="s-goc-2",
-        module_id="god_of_carnage",
-        current_scene_id="living_room",
-        player_input="Hello",
-        trace_id="trace-goc-conflict",
-        host_experience_template={"template_id": "god_of_carnage_solo", "title": "Wrong Title XYZ"},
+def test_builtin_title_mismatch_is_detected_by_yaml_authority() -> None:
+    marker = detect_builtin_yaml_title_conflict(
+        host_template_id="god_of_carnage_solo",
+        host_template_title="Wrong Title XYZ",
     )
-    markers = result.get("failure_markers") or []
-    assert any(m.get("failure_class") == "scope_breach" for m in markers if isinstance(m, dict))
-    assert result.get("experiment_preview") is True
+    assert marker is not None
+    assert marker.get("failure_class") == "scope_breach"
+    assert marker.get("note") == "builtins_yaml_title_mismatch"
 
 
 def test_model_structured_output_cannot_overwrite_director_fields() -> None:

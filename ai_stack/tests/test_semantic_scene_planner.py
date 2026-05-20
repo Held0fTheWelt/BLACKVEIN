@@ -179,8 +179,8 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
                 }
             ]
         },
-        locations={"places": [{"id": "longstreet_den", "inventory_object_ids": ["laptop_on_desk"]}]},
-        objects={"object_documents": {"laptop_on_desk": {"id": "laptop_on_desk"}}},
+        locations={"places": [{"id": "longstreet_den", "inventory_object_ids": ["study_laptop"]}]},
+        objects={"object_documents": {"study_laptop": {"id": "study_laptop"}}},
         content_access_policy={"blocked_entities": [], "gated_entities": []},
         character_documents={
             "veronique": {"actor_id": "veronique_vallon"},
@@ -215,7 +215,7 @@ def test_scene_planner_builds_content_guided_dialogue_and_capability_gate() -> N
     )
 
     assert enrichment["content_frame"]["canonical_path_step_id"] == step_id
-    assert enrichment["content_frame"]["object_focus_ids"] == ["laptop_on_desk"]
+    assert enrichment["content_frame"]["object_focus_ids"] == ["study_laptop"]
     assert enrichment["speech_policy"]["speech_required"] is True
     assert enrichment["speech_policy"]["speech_function"] == "object_to_word_armed_with_a_single_word_question"
     assert enrichment["quote_moment_policy"]["mode"] == "moment_locked"

@@ -304,7 +304,7 @@ Sometimes the system needs to **look things up**: prior scenes, docs, notes, pub
 
 ### What this means in the actual system
 
-`ai_stack/rag.py` builds **context packs** from configured repository paths, with **domains** and **governance lanes** so draft or internal material does not pretend to be published canon at runtime (`docs/technical/ai/RAG.md`). Diagnostics can summarize retrieval governance without changing ranking (`ai_stack/retrieval_governance_summary.py`).
+`ai_stack/rag/__init__.py` builds **context packs** from configured repository paths, with **domains** and **governance lanes** so draft or internal material does not pretend to be published canon at runtime (`docs/technical/ai/RAG.md`). Diagnostics can summarize retrieval governance without changing ranking (`ai_stack/rag/retrieval_governance_summary.py`).
 
 ### Why this matters
 

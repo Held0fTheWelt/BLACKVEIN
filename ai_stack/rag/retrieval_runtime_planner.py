@@ -9,7 +9,7 @@ from ai_stack.capability_selector import (
     derive_turn_situation_from_runtime_context,
     select_capabilities,
 )
-from ai_stack.rag_retrieval_dtos import RuntimeRetrievalConfig
+from ai_stack.rag.rag_retrieval_dtos import RuntimeRetrievalConfig
 
 
 RETRIEVAL_PLAN_SCHEMA_VERSION = "runtime_retrieval_plan.v1"

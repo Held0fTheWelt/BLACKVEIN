@@ -14,10 +14,10 @@ proof lanes when the external model artifact is unavailable.
 This module is never imported automatically in production.  It does not affect live retrieval
 behavior unless a test or CI entrypoint explicitly substitutes it via::
 
-    import sys, ai_stack.fastembed_compat as _compat
+    import sys, ai_stack.rag.fastembed_compat as _compat
     sys.modules["fastembed"] = _compat
 
-Without that explicit substitution, ``ai_stack.semantic_embedding`` imports the real
+Without that explicit substitution, ``ai_stack.rag.semantic_embedding`` imports the real
 ``fastembed`` package (from ``requirements.txt``).  If ``fastembed`` is unavailable,
 ``embedding_backend_probe()`` returns ``available=False`` and the retriever falls back to
 ``retrieval_route=sparse_fallback`` — this module plays no role in that degraded path either.
@@ -26,9 +26,9 @@ To use this compat backend in a test conftest::
 
     @pytest.fixture(autouse=True)
     def use_compat_embeddings(monkeypatch):
-        import ai_stack.fastembed_compat as compat
+        import ai_stack.rag.fastembed_compat as compat
         monkeypatch.setitem(sys.modules, "fastembed", compat)
-        from ai_stack.semantic_embedding import clear_embedding_model_singleton
+        from ai_stack.rag.semantic_embedding import clear_embedding_model_singleton
         clear_embedding_model_singleton()
         yield
         clear_embedding_model_singleton()

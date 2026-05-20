@@ -39,9 +39,6 @@ def _must_exist(rel: str) -> Path:
         "ai_stack/tests/test_scene_direction_subdecision_matrix.py",
         "ai_stack/tests/test_goc_field_initialization_envelope.py",
         "ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py",
-        "ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py",
-        "ai_stack/tests/test_goc_multi_turn_experience_quality.py",
-        "ai_stack/tests/test_goc_mvp_breadth_playability_regression.py",
         "ai_stack/tests/test_goc_closure_residuals.py",
         "ai_stack/tests/test_langgraph_runtime.py",
         # MCP closure report command targets
@@ -54,7 +51,6 @@ def _must_exist(rel: str) -> Path:
         "ai_stack/tests/test_semantic_move_interpretation_goc.py",
         "ai_stack/tests/test_dramatic_effect_gate.py",
         "ai_stack/tests/test_semantic_planner_graph_authority.py",
-        "ai_stack/tests/test_semantic_planner_golden_cases.py",
         # G9 validator CLI pytest + fixtures (repo_evidence_index)
         "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
         "tests/experience_scoring_cli/fixtures/g9_matrix_all_4_5.json",

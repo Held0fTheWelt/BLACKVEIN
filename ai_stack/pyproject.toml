@@ -57,6 +57,7 @@ all = [
 package-dir = {"ai_stack" = "."}
 packages = [
     "ai_stack",
+    "ai_stack.rag",
     "ai_stack.langchain_integration",
     "ai_stack.narrative",
     "ai_stack.narrative.research",

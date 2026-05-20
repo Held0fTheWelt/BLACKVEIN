@@ -9,17 +9,17 @@ from typing import Any
 
 import numpy as np
 
-from ai_stack.rag_embedding_index import CorpusEmbeddingIndex
-from ai_stack.rag_governance import governance_view_for_chunk
-from ai_stack.rag_retrieval_hybrid_encoding import _resolve_retrieval_hybrid_encoding_state
-from ai_stack.rag_retrieval_lexical import _cosine_similarity, _hybrid_core_initial
-from ai_stack.rag_retrieval_policy_pool import (
+from ai_stack.rag.rag_embedding_index import CorpusEmbeddingIndex
+from ai_stack.rag.rag_governance import governance_view_for_chunk
+from ai_stack.rag.rag_retrieval_hybrid_encoding import _resolve_retrieval_hybrid_encoding_state
+from ai_stack.rag.rag_retrieval_lexical import _cosine_similarity, _hybrid_core_initial
+from ai_stack.rag.rag_retrieval_policy_pool import (
     _dedup_select,
     _hit_policy_note,
     _pack_role_for_hit,
     _profile_policy_influence,
 )
-from ai_stack.rag_retrieval_support import (
+from ai_stack.rag.rag_retrieval_support import (
     _RetrievalEncodeScorePoolPhase,
     _append_dedup_suppression_quality_notes,
     _build_retrieval_prefix_notes,
@@ -31,19 +31,19 @@ from ai_stack.rag_retrieval_support import (
     _retrieval_result_ok_with_hits,
     _sorted_candidates_to_hard_filtered_pool,
 )
-from ai_stack.rag_constants import (
+from ai_stack.rag.rag_constants import (
     DOMAIN_CONTENT_ACCESS,
     HYBRID_CORE_SCALE,
     INITIAL_MODULE_MATCH_BOOST,
     INITIAL_SCENE_HINT_BOOST,
     RETRIEVAL_POLICY_VERSION,
 )
-from ai_stack.rag_types import RetrievalDomainError
-from ai_stack.semantic_embedding import EMBEDDING_INDEX_VERSION
-from ai_stack.retrieval_runtime_planner import build_retrieval_authority_metadata
+from ai_stack.rag.rag_types import RetrievalDomainError
+from ai_stack.rag.semantic_embedding import EMBEDDING_INDEX_VERSION
+from ai_stack.rag.retrieval_runtime_planner import build_retrieval_authority_metadata
 
-from ai_stack.rag_corpus import InMemoryRetrievalCorpus, _ScoredCandidate
-from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
+from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus, _ScoredCandidate
+from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
 
 
 class ContextRetriever:

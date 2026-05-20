@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ai_stack.rag_types import (
+from ai_stack.rag.rag_types import (
     ContentClass,
     SourceEvidenceLane,
     SourceGovernanceView,

@@ -5,11 +5,11 @@ Profil-spezifische Rerank-Deltas (DS-045) — flache Helfer für
 
 from __future__ import annotations
 
-from ai_stack.rag_constants import RERANK_MODULE_MATCH_EXTRA
-from ai_stack.rag_corpus import _ScoredCandidate
-from ai_stack.rag_retrieval_dtos import RetrievalRequest
-from ai_stack.rag_types import ContentClass
-from ai_stack.rag_retrieval_lexical import (
+from ai_stack.rag.rag_constants import RERANK_MODULE_MATCH_EXTRA
+from ai_stack.rag.rag_corpus import _ScoredCandidate
+from ai_stack.rag.rag_retrieval_dtos import RetrievalRequest
+from ai_stack.rag.rag_types import ContentClass
+from ai_stack.rag.rag_retrieval_lexical import (
     DOMAIN_DEFAULT_PROFILE,
     _char_trigram_jaccard,
     _rerank_agreement_bonus,

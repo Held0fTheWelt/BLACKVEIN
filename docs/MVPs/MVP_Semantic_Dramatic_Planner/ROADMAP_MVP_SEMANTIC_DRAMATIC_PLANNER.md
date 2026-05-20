@@ -752,8 +752,8 @@ Recommended tests (**current repository**, as of this roadmap revision — prefe
 - `ai_stack/tests/test_social_state_goc.py` — social-state contract usage on the GoC path
 - `ai_stack/tests/test_semantic_move_interpretation_goc.py` — semantic move interpretation integration
 - `ai_stack/tests/test_dramatic_effect_gate.py` — dramatic-effect gate contracts
-- `ai_stack/tests/test_semantic_planner_graph_authority.py` — single-graph authority / operator payload checks
-- `ai_stack/tests/test_semantic_planner_golden_cases.py` — deterministic golden cases (fixture-backed)
+- `ai_stack/tests/test_semantic_planner_graph_authority.py` — ADR-0062 graph authority checks proving legacy planner fields are not default committed truth
+- `ai_stack/tests/test_semantic_scene_planner.py` — deterministic planner enrichment cases (fixture-backed)
 - broader GoC / LangGraph regression: [README.md](../../README.md) and [docs/testing-setup.md](../testing-setup.md)
 
 ---

@@ -5,7 +5,7 @@ RAG layer: version strings, tuning weights, and domain access map
 
 from __future__ import annotations
 
-from ai_stack.rag_types import ContentClass, RetrievalDomain
+from ai_stack.rag.rag_types import ContentClass, RetrievalDomain
 
 DOMAIN_CONTENT_ACCESS: dict[RetrievalDomain, set[ContentClass]] = {
     RetrievalDomain.RUNTIME: {

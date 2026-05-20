@@ -5,10 +5,10 @@ Ordered hits, snippet trim, and ``compact_context`` body lines +
 
 from __future__ import annotations
 
-from ai_stack.rag_constants import RETRIEVAL_PIPELINE_VERSION, RETRIEVAL_POLICY_VERSION
-from ai_stack.rag_context_pack_section_titles import section_title_for_pack_role
-from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalResult
-from ai_stack.rag_retrieval_policy_pool import _pack_sort_key
+from ai_stack.rag.rag_constants import RETRIEVAL_PIPELINE_VERSION, RETRIEVAL_POLICY_VERSION
+from ai_stack.rag.rag_context_pack_section_titles import section_title_for_pack_role
+from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalResult
+from ai_stack.rag.rag_retrieval_policy_pool import _pack_sort_key
 
 SNIPPET_HARD_MAX = 320
 

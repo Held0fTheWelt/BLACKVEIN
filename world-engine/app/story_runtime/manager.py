@@ -108,7 +108,7 @@ from ai_stack import (
     create_default_capability_registry,
 )
 from ai_stack.prompt_store import configure_prompt_bundle, render_prompt
-from ai_stack.rag_retrieval_dtos import retrieval_config_from_governed
+from ai_stack.rag.rag_retrieval_dtos import retrieval_config_from_governed
 from ai_stack.runtime_quality_semantics import canonical_quality_class
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,

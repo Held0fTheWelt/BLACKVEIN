@@ -56,7 +56,7 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 ## Neighbors
 
 - **LangChain:** prompt templates and parsers **inside** `invoke_model` ([LangChain.md](LangChain.md)).
-- **RAG:** `retrieve_context` node on the story-play path only; governance and domains live in `ai_stack/rag.py` ([RAG.md](../ai/RAG.md)).
+- **RAG:** `retrieve_context` node on the story-play path only; governance and domains live in `ai_stack/rag/__init__.py` ([RAG.md](../ai/RAG.md)).
 - **Capabilities:** separate governed operations invoked from backend or tooling, not a replacement for this graph ([capabilities.py](../../../ai_stack/capabilities.py)).
 
 ---

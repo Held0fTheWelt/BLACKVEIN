@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
+from ai_stack.rag.rag_types import RetrievalDomain, RetrievalStatus
 
 
 @dataclass(slots=True)

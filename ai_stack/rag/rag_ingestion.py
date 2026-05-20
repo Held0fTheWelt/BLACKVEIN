@@ -10,19 +10,19 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_stack.rag_constants import INDEX_VERSION
-from ai_stack.rag_retrieval_lexical import (
+from ai_stack.rag.rag_constants import INDEX_VERSION
+from ai_stack.rag.rag_retrieval_lexical import (
     PROFILE_VERSIONS,
     _apply_sparse_vector_weights,
     _build_semantic_terms,
 )
-from ai_stack.rag_compiler_seed_ingestion import (
+from ai_stack.rag.rag_compiler_seed_ingestion import (
     fingerprint_compiler_seed_chunks,
     load_compiler_seed_chunks,
     module_tree_source_prefix,
 )
-from ai_stack.rag_types import ContentClass
-from ai_stack.rag_corpus import CorpusChunk, InMemoryRetrievalCorpus
+from ai_stack.rag.rag_types import ContentClass
+from ai_stack.rag.rag_corpus import CorpusChunk, InMemoryRetrievalCorpus
 
 _MODULE_PATH = re.compile(r"(?i)^content/modules/([^/]+)/")
 _PUBLISHED_MODULE_PATH = re.compile(r"(?i)^content/published/([^/]+)/")

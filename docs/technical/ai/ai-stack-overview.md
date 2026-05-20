@@ -20,7 +20,7 @@ The **AI stack** is not only “the turn graph.” It includes:
 |-------|----------|------|
 | Turn graph | `ai_stack/langgraph_runtime.py` | `RuntimeTurnGraphExecutor` — interpret → retrieve → resolve → director → model → validate/commit → render → package |
 | GoC YAML / seams | `ai_stack/goc_yaml_authority.py`, `goc_turn_seams.py`, `scene_director_goc.py` | Canonical slice wiring, validate/commit/render |
-| RAG | `ai_stack/rag.py` | Ingestion, ranking, domains (`runtime`, `writers_room`, `improvement`, `research`), governance lanes — [RAG.md](RAG.md) |
+| RAG | `ai_stack/rag/__init__.py` | Ingestion, ranking, domains (`runtime`, `writers_room`, `improvement`, `research`), governance lanes — [RAG.md](RAG.md) |
 | LangChain bridge | `ai_stack/langchain_integration/` | Prompt templates, structured parsers, retriever bridge — [LangChain.md](../integration/LangChain.md) |
 | Capabilities | `ai_stack/capabilities.py` | Context pack, transcript, review bundle, research explore — mode gates, audit |
 | Research store / pipeline | `ai_stack/research_store.py`, `research_langgraph.py`, `research_exploration.py`, `research_validation.py`, `canon_improvement_engine.py` | Bounded exploration, claims, review bundles, non-publish canon proposals |

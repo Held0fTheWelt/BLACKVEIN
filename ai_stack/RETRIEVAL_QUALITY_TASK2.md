@@ -1,6 +1,6 @@
 # Retrieval quality upgrade (Task 2)
 
-This note describes the **Task 2** changes to the World of Shadows retrieval layer (`ai_stack/rag.py`): hybrid v2 calibration, deterministic reranking, near-duplicate suppression, and profile-aware context packing. **Task 1** lifecycle fields (`retrieval_route`, `degradation_mode`, dense index actions, artifact validity, embedding reason codes, etc.) are unchanged in meaning; Task 2 only appends compact **quality** notes and does not fold lifecycle state into scores.
+This note describes the **Task 2** changes to the World of Shadows retrieval layer (`ai_stack/rag/__init__.py`): hybrid v2 calibration, deterministic reranking, near-duplicate suppression, and profile-aware context packing. **Task 1** lifecycle fields (`retrieval_route`, `degradation_mode`, dense index actions, artifact validity, embedding reason codes, etc.) are unchanged in meaning; Task 2 only appends compact **quality** notes and does not fold lifecycle state into scores.
 
 ## Version marker
 

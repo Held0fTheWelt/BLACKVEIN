@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.semantic_embedding import (
+from ai_stack.rag.semantic_embedding import (
     EMBEDDING_MODEL_ID,
     clear_embedding_model_singleton,
     embedding_backend_probe,

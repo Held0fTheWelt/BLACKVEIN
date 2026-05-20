@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.semantic_embedding import (
+from ai_stack.rag.semantic_embedding import (
     EMBEDDING_MODEL_ID,
     embedding_backend_probe,
     embedding_cache_dir_identity_for_meta,
@@ -43,14 +43,14 @@ from ai_stack.semantic_embedding import (
     encode_texts_detailed,
 )
 
-from ai_stack.rag_constants import (
+from ai_stack.rag.rag_constants import (
     DENSE_INDEX_META_SCHEMA,
     INDEX_VERSION,
     RERANK_MODULE_MATCH_EXTRA,
     RETRIEVAL_PIPELINE_VERSION,
     RETRIEVAL_POLICY_VERSION,
 )
-from ai_stack.rag_types import (
+from ai_stack.rag.rag_types import (
     ContentClass,
     RetrievalDegradationMode,
     RetrievalDomain,
@@ -60,16 +60,16 @@ from ai_stack.rag_types import (
     SourceGovernanceView,
     SourceVisibilityClass,
 )
-from ai_stack.rag_corpus import CorpusChunk, InMemoryRetrievalCorpus, _ScoredCandidate
-from ai_stack.rag_ingestion import RagIngestionPipeline
-from ai_stack.rag_embedding_index import (
+from ai_stack.rag.rag_corpus import CorpusChunk, InMemoryRetrievalCorpus, _ScoredCandidate
+from ai_stack.rag.rag_ingestion import RagIngestionPipeline
+from ai_stack.rag.rag_embedding_index import (
     DenseIndexLoadResult,
     _ensure_corpus_embedding_index,
     _load_corpus_embedding_index,
     _save_corpus_embedding_index,
 )
-from ai_stack.rag_retrieval_dtos import ContextPack, RetrievalHit, RetrievalRequest, RetrievalResult
-from ai_stack.rag_retrieval_lexical import (
+from ai_stack.rag.rag_retrieval_dtos import ContextPack, RetrievalHit, RetrievalRequest, RetrievalResult
+from ai_stack.rag.rag_retrieval_lexical import (
     SEMANTIC_CANON,
     SEMANTIC_EXPANSIONS,
     _char_trigram_jaccard,
@@ -78,12 +78,12 @@ from ai_stack.rag_retrieval_lexical import (
     _raw_tokens,
     _rerank_agreement_bonus,
 )
-from ai_stack.rag_context_pack_assembler import ContextPackAssembler
-from ai_stack.rag_governance import governance_view_for_chunk
-from ai_stack.rag_persistent_store import PersistentRagStore
+from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
+from ai_stack.rag.rag_governance import governance_view_for_chunk
+from ai_stack.rag.rag_persistent_store import PersistentRagStore
 
 
-from ai_stack.rag_context_retriever import ContextRetriever
+from ai_stack.rag.rag_context_retriever import ContextRetriever
 
 
 def build_runtime_retriever(repo_root: Path) -> tuple[ContextRetriever, ContextPackAssembler, InMemoryRetrievalCorpus]:
@@ -100,6 +100,6 @@ def build_runtime_retriever(repo_root: Path) -> tuple[ContextRetriever, ContextP
             Returns a value of type ``tuple[ContextRetriever,
             ContextPackAssembler, InMemoryRetriev...``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.rag_runtime_bootstrap import build_runtime_retriever as _build_runtime_retriever
+    from ai_stack.rag.rag_runtime_bootstrap import build_runtime_retriever as _build_runtime_retriever
 
     return _build_runtime_retriever(repo_root)

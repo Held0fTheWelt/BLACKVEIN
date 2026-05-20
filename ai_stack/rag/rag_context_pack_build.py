@@ -5,16 +5,16 @@ optional submodules).
 
 from __future__ import annotations
 
-from ai_stack.rag_constants import RETRIEVAL_PIPELINE_VERSION, RETRIEVAL_POLICY_VERSION
-from ai_stack.rag_context_pack_compact_body import build_compact_lines_and_sources, hits_ordered_for_profile
-from ai_stack.rag_context_pack_result_tail import (
+from ai_stack.rag.rag_constants import RETRIEVAL_PIPELINE_VERSION, RETRIEVAL_POLICY_VERSION
+from ai_stack.rag.rag_context_pack_compact_body import build_compact_lines_and_sources, hits_ordered_for_profile
+from ai_stack.rag.rag_context_pack_result_tail import (
     context_pack_tail_fields,
     empty_context_pack,
     pack_index_trace_tuple,
 )
-from ai_stack.rag_context_pack_trace_footer import append_trace_and_governance_footer
-from ai_stack.rag_retrieval_dtos import ContextPack, RetrievalResult
-from ai_stack.rag_retrieval_lexical import DOMAIN_DEFAULT_PROFILE
+from ai_stack.rag.rag_context_pack_trace_footer import append_trace_and_governance_footer
+from ai_stack.rag.rag_retrieval_dtos import ContextPack, RetrievalResult
+from ai_stack.rag.rag_retrieval_lexical import DOMAIN_DEFAULT_PROFILE
 
 
 def _resolved_profile(result: RetrievalResult) -> str:

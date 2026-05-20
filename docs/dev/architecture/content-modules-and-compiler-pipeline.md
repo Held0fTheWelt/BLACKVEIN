@@ -24,7 +24,7 @@ How **canonical YAML modules** become **runtime**, **retrieval**, and **review**
 The canonical model defines three compiled projections:
 
 1. **`runtime_projection`** — consumed by world-engine story runtime loading paths.
-2. **`retrieval_corpus_seed`** — feeds RAG / indexing approaches (see `ai_stack/rag.py`).
+2. **`retrieval_corpus_seed`** — feeds RAG / indexing approaches (see `ai_stack/rag/__init__.py`).
 3. **`review_export_seed`** — governance and review surfaces.
 
 ## GoC binding

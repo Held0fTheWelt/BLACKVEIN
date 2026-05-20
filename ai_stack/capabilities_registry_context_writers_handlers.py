@@ -31,9 +31,9 @@ def build_context_pack_handler(
             Any]]``; see the function body for structure, error paths, and sentinels.
     """
     def context_pack_handler(payload: dict[str, Any]) -> dict[str, Any]:
-        from ai_stack.rag_constants import RETRIEVAL_POLICY_VERSION
-        from ai_stack.rag_retrieval_dtos import RetrievalRequest, filter_retrieval_result_by_min_score
-        from ai_stack.rag_types import RetrievalDomain
+        from ai_stack.rag.rag_constants import RETRIEVAL_POLICY_VERSION
+        from ai_stack.rag.rag_retrieval_dtos import RetrievalRequest, filter_retrieval_result_by_min_score
+        from ai_stack.rag.rag_types import RetrievalDomain
 
         domain = RetrievalDomain(payload.get("domain", RetrievalDomain.RUNTIME.value))
         request = RetrievalRequest(

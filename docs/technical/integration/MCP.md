@@ -123,7 +123,7 @@ flowchart LR
 
 ### Research tools vs RAG
 
-**Research** MCP tools (`wos-ai` suite) read and write the **research JSON store** under `.wos/research/` via `ResearchStore` (`ai_stack/research_store.py`). **RAG** uses a **separate** on-disk corpus under `.wos/rag/` (`ai_stack/rag.py`). Both can inform models; neither is live session authority. When future callers retrieve for research-shaped work, `RetrievalDomain.RESEARCH` / profile `research_eval` is defined in `rag.py` ([RAG.md](../ai/RAG.md)).
+**Research** MCP tools (`wos-ai` suite) read and write the **research JSON store** under `.wos/research/` via `ResearchStore` (`ai_stack/research_store.py`). **RAG** uses a **separate** on-disk corpus under `.wos/rag/` (`ai_stack/rag/__init__.py`). Both can inform models; neither is live session authority. When future callers retrieve for research-shaped work, `RetrievalDomain.RESEARCH` / profile `research_eval` is defined in `ai_stack/rag/__init__.py` ([RAG.md](../ai/RAG.md)).
 
 **Operating profile:** `WOS_MCP_OPERATING_PROFILE` (`healthy`, `review_safe`, `test_isolated`, `degraded`) gates **write-capable** tools (`McpToolClass.write_capable`) in `server.py` via `operating_profile_allows_write_capable`.
 

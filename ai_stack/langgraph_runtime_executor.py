@@ -35,23 +35,23 @@ from ai_stack.story_runtime_playability import (
     degrade_validation_outcome,
 )
 from ai_stack.rag import ContextPackAssembler, ContextRetriever
-from ai_stack.rag_retrieval_dtos import (
+from ai_stack.rag.rag_retrieval_dtos import (
     RetrievalRequest,
     RuntimeRetrievalConfig,
     filter_retrieval_result_by_min_score,
 )
-from ai_stack.rag_types import RetrievalDomain
-from ai_stack.retrieval_context_bundles import (
+from ai_stack.rag.rag_types import RetrievalDomain
+from ai_stack.rag.retrieval_context_bundles import (
     build_narrator_context_bundle,
     build_npc_context_bundle,
 )
-from ai_stack.retrieval_runtime_planner import (
+from ai_stack.rag.retrieval_runtime_planner import (
     apply_authority_boundary_guard,
     build_retrieval_authority_metadata,
     build_runtime_retrieval_plan,
 )
 from ai_stack.runtime_memory_indexes import build_runtime_memory_indexes_from_state
-from ai_stack.retrieval_governance_summary import attach_retrieval_governance_summary
+from ai_stack.rag.retrieval_governance_summary import attach_retrieval_governance_summary
 from ai_stack.context_synthesis_engine import (
     build_context_synthesis_bundle,
     build_context_synthesis_error_bundle,

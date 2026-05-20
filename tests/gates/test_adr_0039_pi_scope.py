@@ -63,7 +63,6 @@ ADR0039_PI_TEST_SCOPE = {
     "ai_stack/tests/test_capability_selector.py": "ADR-0041 selector tests assert legacy Pi-style keys are rejected while semantic capability names drive selection.",
     "ai_stack/tests/test_pi14_silence_negative_space.py": "Π14 contract tests assert schema versions, reason codes, vocabularies, and routing flags.",
     "ai_stack/tests/test_relationship_state_machine.py": "Π27 relationship-state assertions cover schema constants, policy-derived axes, ledger projection, and structured transition fields.",
-    "ai_stack/tests/test_semantic_planner_golden_cases.py": "Π14 director-path regression asserts semantic runtime fields and contract constants.",
     "ai_stack/tests/test_wave3_multi_actor_vitality.py": "Pi19/Pi7 wave assertions assert bounded subtext and simulation contract surfaces.",
     "tests/gates/test_table_b_anti_hardcoding_gate.py": "Legacy Pi control ids are scanned as forbidden production control-flow vocabulary.",
     "tools/mcp_server/tests/test_langfuse_verify_tools.py": "Π12 fixture metadata is verified through RuntimeAspectLedger/MCP matrix extraction fields.",

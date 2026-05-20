@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ai_stack.rag_retrieval_dtos import RuntimeRetrievalConfig
-from ai_stack.retrieval_runtime_planner import (
+from ai_stack.rag.rag_retrieval_dtos import RuntimeRetrievalConfig
+from ai_stack.rag.retrieval_runtime_planner import (
     apply_authority_boundary_guard,
     build_retrieval_authority_metadata,
     build_runtime_retrieval_plan,

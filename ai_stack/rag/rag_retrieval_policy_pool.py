@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ai_stack.rag_constants import (
+from ai_stack.rag.rag_constants import (
     DUP_IMPROVEMENT_RELAXATION,
     DUP_SAME_SOURCE_JACCARD_DROP,
     DUP_TRIGRAM_JACCARD_DROP,
@@ -15,9 +15,9 @@ from ai_stack.rag_constants import (
     RERANK_POOL_FACTOR,
     RERANK_POOL_MIN,
 )
-from ai_stack.rag_governance import governance_view_for_chunk
-from ai_stack.rag_retrieval_lexical import _char_trigram_jaccard
-from ai_stack.rag_types import ContentClass, SourceEvidenceLane, SourceGovernanceView
+from ai_stack.rag.rag_governance import governance_view_for_chunk
+from ai_stack.rag.rag_retrieval_lexical import _char_trigram_jaccard
+from ai_stack.rag.rag_types import ContentClass, SourceEvidenceLane, SourceGovernanceView
 
 
 class _PolicyChunkLike(Protocol):

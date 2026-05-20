@@ -15,7 +15,7 @@
 ## Three projections
 
 1. **`runtime_projection`** — consumed by world-engine story runtime loading.
-2. **`retrieval_corpus_seed`** — feeds RAG ingestion (`ai_stack/rag.py`).
+2. **`retrieval_corpus_seed`** — feeds RAG ingestion (`ai_stack/rag/__init__.py`).
 3. **`review_export_seed`** — governance and review surfaces.
 
 Conceptual model (authored shapes and invariants): [`canonical_authored_content_model.md`](canonical_authored_content_model.md) (same folder).

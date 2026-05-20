@@ -15,9 +15,9 @@ from typing import Protocol
 
 import numpy as np
 
-from ai_stack.rag_constants import DENSE_INDEX_META_SCHEMA, INDEX_VERSION
-from ai_stack.rag_types import RetrievalDegradationMode
-from ai_stack.semantic_embedding import (
+from ai_stack.rag.rag_constants import DENSE_INDEX_META_SCHEMA, INDEX_VERSION
+from ai_stack.rag.rag_types import RetrievalDegradationMode
+from ai_stack.rag.semantic_embedding import (
     EMBEDDING_INDEX_VERSION,
     EMBEDDING_MODEL_ID,
     embedding_backend_probe,

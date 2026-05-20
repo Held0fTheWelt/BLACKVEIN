@@ -12,9 +12,9 @@ import hashlib
 import sys
 from pathlib import Path
 
-from ai_stack.rag_corpus import CorpusChunk
-from ai_stack.rag_retrieval_lexical import _build_semantic_terms
-from ai_stack.rag_types import ContentClass
+from ai_stack.rag.rag_corpus import CorpusChunk
+from ai_stack.rag.rag_retrieval_lexical import _build_semantic_terms
+from ai_stack.rag.rag_types import ContentClass
 
 _COMPILED_CHUNK_PREFIX = "compiled:"
 _COMPILED_SOURCE_VERSION_PREFIX = "compiled_seed:"

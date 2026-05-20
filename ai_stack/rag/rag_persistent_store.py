@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ai_stack.rag_constants import INDEX_VERSION
+from ai_stack.rag.rag_constants import INDEX_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class PersistentRagStore:
             return None
         if str(payload.get("corpus_fingerprint", "")) != expected_fingerprint:
             return None
-        from ai_stack.rag_corpus import InMemoryRetrievalCorpus
+        from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
 
         corpus = InMemoryRetrievalCorpus.from_dict(payload)
         corpus.storage_path = str(self.storage_path)

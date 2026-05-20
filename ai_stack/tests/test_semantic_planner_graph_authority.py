@@ -1,4 +1,4 @@
-"""Authority boundaries: single graph path, planner state non-sovereign."""
+"""Authority boundaries: single graph path, legacy planner state non-sovereign."""
 
 from __future__ import annotations
 
@@ -58,9 +58,22 @@ def test_single_runtime_graph_executes_validation_and_commit_seams(tmp_path: Pat
         trace_id="t-auth",
     )
     nodes = (result.get("graph_diagnostics") or {}).get("nodes_executed") or result.get("nodes_executed") or []
-    assert "validate_seam" in nodes
-    assert "commit_seam" in nodes
-    assert "director_assess_scene" in nodes
+    assert nodes == [
+        "translate_player_input",
+        "interpret_input",
+        "resolve_player_action",
+        "director_compose_realization",
+        "realize_via_capabilities",
+        "route_model",
+        "invoke_model",
+        "proposal_normalize",
+        "validate_seam",
+        "commit_seam",
+        "render_visible",
+        "package_output",
+    ]
+    assert "director_assess_scene" not in nodes
+    assert "director_select_dramatic_parameters" not in nodes
 
 
 def test_runtime_graph_path_has_no_repeated_nodes(tmp_path: Path) -> None:
@@ -82,7 +95,7 @@ def test_runtime_graph_path_has_no_repeated_nodes(tmp_path: Path) -> None:
     assert nodes[-1] == "package_output"
 
 
-def test_planner_records_are_projection_not_committed_truth(tmp_path: Path) -> None:
+def test_legacy_planner_records_are_not_default_thin_path_truth(tmp_path: Path) -> None:
     g = _graph(tmp_path)
     result = g.run(
         session_id="s-auth2",
@@ -91,16 +104,14 @@ def test_planner_records_are_projection_not_committed_truth(tmp_path: Path) -> N
         player_input="I apologize for the interruption.",
         trace_id="t-auth2",
     )
-    spr = result.get("scene_plan_record")
-    assert isinstance(spr, dict)
-    assert spr.get("selected_scene_function")
-    assert result.get("committed_result") is not None or True
+    assert result.get("semantic_move_record") is None
+    assert result.get("scene_plan_record") is None
+    assert (result.get("realization_plan") or {}).get("schema_version") == "realization_plan.v1"
     op = build_operator_canonical_turn_record(result)
-    assert "scene_plan_record" in op
-    assert op["scene_plan_record"] == spr
+    assert op.get("scene_plan_record") is None
 
 
-def test_graph_diagnostics_planner_projection_present(tmp_path: Path) -> None:
+def test_graph_diagnostics_records_thin_path_realization_projection(tmp_path: Path) -> None:
     g = _graph(tmp_path)
     result = g.run(
         session_id="s-auth3",
@@ -111,8 +122,11 @@ def test_graph_diagnostics_planner_projection_present(tmp_path: Path) -> None:
     )
     gd = result.get("graph_diagnostics") or {}
     proj = gd.get("planner_state_projection") or {}
-    assert proj.get("semantic_move_record")
-    assert proj.get("semantic_move_record") == result.get("semantic_move_record")
+    assert proj.get("semantic_move_record") is None
+    assert result.get("semantic_move_record") is None
+    plan = result.get("realization_plan") or {}
+    assert plan.get("schema_version") == "realization_plan.v1"
+    assert plan.get("capabilities_selected")
 
 
 def test_package_output_preserves_bounded_dramatic_context(tmp_path: Path) -> None:
@@ -129,13 +143,14 @@ def test_package_output_preserves_bounded_dramatic_context(tmp_path: Path) -> No
 
     assert context["contract"] == "bounded_dramatic_context.v1"
     assert gd_context == context
-    assert context["selected_scene_function"]
     assert context["module_scope"]["runtime_scope"] == "module_specific"
     assert context["module_scope"]["requested_module_supported"] is True
-    assert context["responder"]["responder_id"]
+    assert "selected_scene_function" in context
+    assert "responder" in context
     assert "scene_assessment" in context
     assert "social_state" in context
     assert "dramatic_outcome" in context
+    assert (result.get("realization_plan") or {}).get("schema_version") == "realization_plan.v1"
 
 
 def test_opening_langgraph_validation_outcome_untouched_when_co_authority_normalize_runs(
@@ -215,5 +230,6 @@ def test_engine_opening_prompt_is_not_interpreted_as_player_move(tmp_path: Path)
     assert interp.get("engine_opening_prompt_redacted") is True
 
     semantic = result.get("semantic_move_record") or {}
-    assert semantic.get("move_type") != "escalation_threat"
-    assert result.get("selected_scene_function") == "establish_pressure"
+    assert semantic.get("move_type") is None
+    assert result.get("selected_scene_function") is None
+    assert (result.get("realization_plan") or {}).get("schema_version") == "realization_plan.v1"
