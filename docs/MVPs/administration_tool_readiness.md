@@ -55,8 +55,8 @@ tests/reports/evidence/admin_readiness_runtime_readiness.json
 backend/app/services/ai_stack_release_readiness_area_rows_list.py
 backend/app/services/ai_stack_release_readiness_report_sections.py
 backend/app/services/ai_stack_release_readiness_signal_extractors.py
-backend/app/services/ai_stack_evidence_service.py
-backend/app/services/system_diagnosis_service.py
+backend/app/services/ai_stack/ai_stack_evidence_service.py
+backend/app/services/system/system_diagnosis_service.py
 ```
 
 ## Umsetzung
@@ -115,7 +115,7 @@ Nicht in der UI nachbauen.
 ## Betroffene Datei
 
 ```text
-backend/app/services/system_diagnosis_service.py
+backend/app/services/system/system_diagnosis_service.py
 ```
 
 ## Umsetzung
@@ -280,8 +280,8 @@ Das reicht nicht. `details` muss sichtbar werden.
 ## Betroffene Dateien
 
 ```text
-backend/app/services/system_diagnosis_service.py
-backend/app/services/governance_runtime_service.py
+backend/app/services/system/system_diagnosis_service.py
+backend/app/services/governance/governance_runtime_service.py
 backend/app/api/v1/operational_governance_routes.py
 world-engine/app/api/http.py
 world-engine/app/story_runtime/manager.py
@@ -372,7 +372,7 @@ administration-tool/templates/manage/ai_stack_release_readiness.html
 ```text
 backend/app/services/ai_stack_release_readiness_report_sections.py
 backend/app/services/ai_stack_release_readiness_area_rows_list.py
-backend/app/services/system_diagnosis_service.py
+backend/app/services/system/system_diagnosis_service.py
 ```
 
 ## Betroffene Consumer

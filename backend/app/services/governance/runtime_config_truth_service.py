@@ -6,7 +6,7 @@ from typing import Any
 
 from flask import current_app
 from app.extensions import db
-from app.models.governance_core import BootstrapConfig
+from app.models.backend.governance_core import BootstrapConfig
 from app.services.governance.governance_runtime_service import get_runtime_modes, build_resolved_runtime_config
 
 

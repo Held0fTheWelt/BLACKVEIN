@@ -124,8 +124,8 @@ Review this ADR if a service reintroduces direct provider-key environment fallba
 - `docker-compose.yml`
 - `.env.example`
 - `docker-up.py`
-- `backend/app/services/governed_provider_adapter_service.py`
-- `backend/app/services/governance_runtime_service.py`
+- `backend/app/services/governance/governed_provider_adapter_service.py`
+- `backend/app/services/governance/governance_runtime_service.py`
 - `story_runtime_core/adapters.py`
 - `story_runtime_core/langfuse_tracing_environment.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`

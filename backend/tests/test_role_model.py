@@ -1,8 +1,8 @@
-"""Coverage for app.models.role (to_dict, get_role_by_name)."""
+"""Coverage for app.models.backend.role (to_dict, get_role_by_name)."""
 import pytest
 from app.extensions import db
 from app.models import Role
-from app.models.role import get_role_by_name
+from app.models.backend.role import get_role_by_name
 
 
 @pytest.fixture

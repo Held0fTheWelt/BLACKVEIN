@@ -1,77 +1,107 @@
-"""Runtime executor assembled from small logical source segments."""
+"""Runtime executor assembled from named source segments.
+
+This module is the transitional loader for the DS-010 runtime-executor split.
+The physical files are kept below 200 lines and grouped by responsibility so
+the next pass can promote each group into ordinary Python helper modules.
+"""
 from __future__ import annotations
 
 from importlib import import_module
 import linecache
 
-_PARTS = [
-    'runtime_executor_imports_01',
-    'runtime_executor_imports_02',
-    'semantic_input_translation_01',
-    'actor_lane_reconciliation_01',
-    'actor_lane_reconciliation_02',
-    'actor_lane_reconciliation_03',
-    'authority_aspects_01',
-    'authority_aspects_02',
-    'runtime_aspect_records_voice_scene_01',
-    'runtime_aspect_records_voice_scene_02',
-    'runtime_aspect_records_social_npc_01',
-    'runtime_aspect_records_social_npc_02',
-    'runtime_aspect_records_social_npc_03',
-    'retrieval_continuity_01',
-    'retrieval_continuity_02',
-    'retrieval_continuity_03',
-    'reaction_order_and_npc_projection_01',
-    'reaction_order_and_npc_projection_02',
-    'dramatic_packet_context_01',
-    'dramatic_generation_packet_01',
-    'dramatic_generation_packet_02',
-    'dramatic_generation_packet_03',
-    'dramatic_generation_packet_04',
-    'director_context_and_locations_01',
-    'director_context_and_locations_02',
-    'director_context_and_locations_03',
-    'runtime_executor_graph_01',
-    'runtime_executor_run_01',
-    'runtime_executor_run_02',
-    'runtime_executor_translation_01',
-    'runtime_executor_translation_02',
-    'runtime_executor_translation_03',
-    'runtime_executor_translation_04',
-    'runtime_executor_context_action_01',
-    'runtime_executor_context_action_02',
-    'runtime_executor_context_action_03',
-    'runtime_executor_context_action_04',
-    'runtime_executor_context_action_05',
-    'runtime_executor_director_01',
-    'runtime_executor_director_02',
-    'runtime_executor_director_03',
-    'runtime_executor_director_04',
-    'runtime_executor_director_05',
-    'runtime_executor_director_06',
-    'runtime_executor_aspect_derivation_01',
-    'runtime_executor_aspect_derivation_02',
-    'runtime_executor_aspect_derivation_03',
-    'runtime_executor_aspect_derivation_04',
-    'runtime_executor_aspect_derivation_05',
-    'runtime_executor_aspect_derivation_06',
-    'runtime_executor_model_context_01',
-    'runtime_executor_model_context_02',
-    'runtime_executor_model_context_03',
-    'runtime_executor_model_context_04',
-    'runtime_executor_model_pipeline_01',
-    'runtime_executor_model_pipeline_02',
-    'runtime_executor_model_pipeline_03',
-    'runtime_executor_model_pipeline_04',
-    'runtime_executor_commit_render_01',
-    'runtime_executor_commit_render_02',
-    'runtime_executor_commit_render_03',
-    'runtime_executor_commit_render_04',
-]
+_GROUPS = {
+    "imports": (
+        "executor_imports_core",
+        "executor_imports_narrative",
+    ),
+    "input_and_actor_lanes": (
+        "semantic_input_translation",
+        "actor_lane_scope",
+        "actor_lane_structured_lines",
+        "actor_lane_scene_function",
+    ),
+    "runtime_aspect_records": (
+        "authority_aspect_records",
+        "authority_voice_profiles",
+        "runtime_dispatch_and_voice_aspects",
+        "scene_energy_pacing_aspects",
+        "social_pressure_aspect_records",
+        "information_disclosure_aspect_records",
+        "npc_agency_aspect_records",
+    ),
+    "retrieval_and_projection": (
+        "retrieval_actor_keys",
+        "retrieval_continuity_query",
+        "retrieval_adapter_invocation",
+        "reaction_order_governance",
+        "npc_agency_projection",
+        "relationship_dynamics_context",
+    ),
+    "dramatic_packet": (
+        "dramatic_generation_packet_opening",
+        "dramatic_generation_packet_context",
+        "dramatic_generation_packet_authority",
+        "dramatic_generation_packet_payload",
+    ),
+    "director_context": (
+        "director_routing_requirements",
+        "director_location_completion",
+        "director_w5_location_projection",
+    ),
+    "executor_shell": (
+        "executor_graph_build",
+        "executor_run_prepare",
+        "executor_run_finish",
+    ),
+    "executor_input_and_action": (
+        "executor_translation_adapter",
+        "executor_input_interpretation_start",
+        "executor_input_interpretation_semantics",
+        "executor_input_interpretation_finish",
+        "executor_meta_control",
+        "executor_retrieval_context",
+        "executor_action_resolution_start",
+        "executor_action_resolution_commit",
+        "executor_realization_capabilities",
+    ),
+    "executor_director": (
+        "executor_goc_canonical_content",
+        "executor_scene_assessment",
+        "executor_director_selection_opening",
+        "executor_director_selection_context",
+        "executor_director_selection_parameters",
+        "executor_director_selection_finish",
+    ),
+    "executor_aspect_derivation": (
+        "executor_scene_energy_temporal_derivation",
+        "executor_social_tonal_relationship_derivation",
+        "executor_symbolic_meta_genre_derivation",
+        "executor_sensory_improv_info_derivation",
+        "executor_irony_expectation_momentum_derivation",
+        "executor_context_synthesis_derivation",
+    ),
+    "executor_model_pipeline": (
+        "executor_model_context_prompt",
+        "executor_model_context_retrieval",
+        "executor_model_context_validation",
+        "executor_model_context_payload",
+        "executor_model_routing_invocation",
+        "executor_model_fallback",
+        "executor_generation_self_correction",
+        "executor_generation_normalization",
+    ),
+    "executor_commit_render": (
+        "executor_validation_commit",
+        "executor_commit_render_start",
+        "executor_visible_render",
+        "executor_package_output",
+    ),
+}
 
 _source_lines: list[str] = []
-for _part in _PARTS:
-    _source_lines.extend(import_module(f"{__package__}.{_part}").SOURCE_LINES)
+for _parts in _GROUPS.values():
+    for _part in _parts:
+        _source_lines.extend(import_module(f"{__package__}.{_part}").SOURCE_LINES)
 
 _source = "".join(_source_lines)
 linecache.cache["ai_stack/langgraph/langgraph_runtime_executor.py"] = (
@@ -82,4 +112,4 @@ linecache.cache["ai_stack/langgraph/langgraph_runtime_executor.py"] = (
 )
 exec(compile(_source, "ai_stack/langgraph/langgraph_runtime_executor.py", "exec"), globals())
 
-del import_module, linecache, _part, _source, _source_lines
+del import_module, linecache, _part, _parts, _source, _source_lines

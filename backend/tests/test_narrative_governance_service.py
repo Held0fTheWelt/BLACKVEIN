@@ -15,7 +15,7 @@ from app.models import (
     NarrativeRevisionConflict,
     SiteSetting,
 )
-from app.models.narrative_contracts import DraftPatchBundle
+from app.models.world_engine.narrative_contracts import DraftPatchBundle
 from app.services.governance import narrative_governance_service as governance_service
 from app.services.governance.narrative_governance_service import (
     NarrativeGovernanceError,

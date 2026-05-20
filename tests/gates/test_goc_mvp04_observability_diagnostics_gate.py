@@ -909,7 +909,7 @@ def test_mvp04_phase_b_narrator_block_span_instrumentation():
     # Build test input
     agent_input = NarrativeRuntimeAgentInput(
         runtime_state={"current_scene_id": "phase_1"},
-        npc_agency_plan={"initiatives": [{"actor_id": _SECONDARY_HUMAN_ID, "resolved": False}]},
+        npc_agency_plan={"npc_initiatives": [{"actor_id": _SECONDARY_HUMAN_ID, "resolved": False}]},
         dramatic_signature={"primary_tension": "unresolved"},
         narrative_threads=[{"thread_id": "family_conflict"}],
         session_id="test_session",

@@ -93,7 +93,7 @@ MVP 2 consumes:
 ## Files to Inspect First
 
 - `backend/app/api/v1/game_routes.py` — session/bootstrap/create-run route; fallback search: `rg "create.*run|bootstrap|session" backend/app -n`.
-- `backend/app/services/game_service.py` — backend-to-world-engine request packaging; fallback search: `rg "world.*engine|play-service|CreateRun" backend/app -n`.
+- `backend/app/services/game/game_service.py` — backend-to-world-engine request packaging; fallback search: `rg "world.*engine|play-service|CreateRun" backend/app -n`.
 - `backend/app/services/content*` or `backend/app/modules*` — canonical module loader/compiler; fallback search: `rg "god_of_carnage|content_module_id|module_id" backend world-engine -n`.
 - `world-engine/app/api/http.py` — `CreateRunRequest`, `CreateRunResponse`, turn response model.
 - `world-engine/app/runtime/manager.py` — `create_run()`, `_bootstrap_instance()`, runtime profile/session bootstrap.
@@ -677,7 +677,7 @@ Inspect first:
 
 ```text
 backend/app/api/v1/game_routes.py
-backend/app/services/game_service.py
+backend/app/services/game/game_service.py
 world-engine/app/api/http.py
 world-engine/app/runtime/manager.py
 world-engine/app/runtime/models.py

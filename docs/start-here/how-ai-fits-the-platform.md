@@ -14,7 +14,7 @@ Think of it as: **AI suggests** → **runtime decides** → **players see** vali
 
 ### Retrieval (RAG)
 
-`ai_stack/rag.py` builds **context packs** for prompts using repository paths and module semantics (including distinctions such as `content/modules/` vs `content/published/`). Retrieval feeds the turn graph’s `retrieve_context` stage. Domains (runtime, Writers’ Room, improvement, research) and governance lanes are documented in [RAG.md](../technical/ai/RAG.md). Older RAG milestone notes are archived under `docs/archive/rag-task-legacy/`.
+`ai_stack/rag/__init__.py` builds **context packs** for prompts using repository paths and module semantics (including distinctions such as `content/modules/` vs `content/published/`). Retrieval feeds the turn graph’s `retrieve_context` stage. Domains (runtime, Writers’ Room, improvement, research) and governance lanes are documented in [RAG.md](../technical/ai/RAG.md). Older RAG milestone notes are archived under `docs/archive/rag-task-legacy/`.
 
 ### Orchestration (LangGraph, GoC slice)
 

@@ -19,7 +19,7 @@ from story_runtime_core.adapters import (
     OpenAIChatAdapter,
 )
 
-from app.models.governance_core import AIProviderConfig
+from app.models.backend.governance_core import AIProviderConfig
 
 logger = logging.getLogger(__name__)
 

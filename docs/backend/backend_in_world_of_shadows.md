@@ -24,7 +24,7 @@ The backend is **Better Tomorrow’s primary HTTP API**: it owns user accounts, 
 
 **Why this matters:** Confusing “API host” with “runtime host” breaks operational mental models (where transcripts live, which process enforces run identity, what restarts wipe). This document keeps those distinctions explicit.
 
-**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`.
+**Anchors:** `backend/app/services/game/game_service.py`, `backend/app/api/v1/game_routes.py`.
 
 ---
 
@@ -276,7 +276,7 @@ The backend **asks** the World Engine to run the game; it does **not** silently 
 
 ### Technical precision
 
-- **HTTP client:** `backend/app/services/game_service.py` uses `httpx` against `PLAY_SERVICE_INTERNAL_URL` / public URL with shared-secret signing (details in file). Responses are validated for **nested-run V1** consistency (`canonical_runtime_contract.md`).
+- **HTTP client:** `backend/app/services/game/game_service.py` uses `httpx` against `PLAY_SERVICE_INTERNAL_URL` / public URL with shared-secret signing (details in file). Responses are validated for **nested-run V1** consistency (`canonical_runtime_contract.md`).
 - **Classification:** `docs/technical/architecture/backend-runtime-classification.md` states authoritative live play runs in World Engine; in-process `RuntimeManager` / W2 paths are **deprecated transitional**.
 - **Player-session routes:** Turn execution on `/game/player-sessions/<run_id>/turns` resolves the stored World-Engine story-session id and proxies to `execute_story_turn_in_engine` (`game_routes.py`); audit via `log_world_engine_bridge` (`observability/audit_log.py`).
 - **Play service control:** Admin routes persist **desired posture** and apply/test—**application-level**, not container orchestration (`play_service_control_routes.py`, `play_service_control_service.py`).
@@ -309,7 +309,7 @@ sequenceDiagram
   B-->>C: JSON response + warnings if applicable
 ```
 
-**Anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`, `docs/technical/architecture/canonical_runtime_contract.md`.
+**Anchors:** `backend/app/services/game/game_service.py`, `backend/app/api/v1/game_routes.py`, `docs/technical/architecture/canonical_runtime_contract.md`.
 
 ---
 
@@ -321,7 +321,7 @@ Staff share one API, but **permissions** shrink or expand the menu per person.
 
 ### Technical precision
 
-- **Roles:** `User.ROLE_MODERATOR`, `ROLE_ADMIN`, `ROLE_QA` (`backend/app/models/user.py`); allowed role names enumerated in `permissions.py` (`ALLOWED_ROLES`).
+- **Roles:** `User.ROLE_MODERATOR`, `ROLE_ADMIN`, `ROLE_QA` (`backend/app/models/backend/user.py`); allowed role names enumerated in `permissions.py` (`ALLOWED_ROLES`).
 - **Moderator vs admin:** Many content routes use `require_jwt_moderator_or_admin` + `require_feature(FEATURE_MANAGE_*)` (`wiki_admin_routes.py`, `forum` admin paths, `ai_stack_governance_routes.py`, `mcp_operations_routes.py`). Stricter financial/sensitive areas use **`require_jwt_admin`** only (e.g. `play_service_control_routes.py`, some `admin_routes.py`).
 - **Feature areas:** `user_can_access_feature` implements global vs area-scoped access (`feature_registry.py`). Users with **no** area rows bypass area filter (documented legacy behavior in docstring—**know this for deployments**).
 - **QA:** Role exists in model and permission vocabulary; specific QA-only route modules should be verified per feature—**inference:** QA workflows often piggyback **JWT test users** and **service-token** session reads in CI (`backend/tests/`).
@@ -412,7 +412,7 @@ flowchart LR
   SV --> GS["game_service (engine diagnostics)"]
 ```
 
-**Anchors:** `backend/app/api/v1/ai_stack_governance_routes.py`, `backend/app/api/v1/improvement_routes.py`, `backend/app/services/ai_stack_evidence_service.py`.
+**Anchors:** `backend/app/api/v1/ai_stack_governance_routes.py`, `backend/app/api/v1/improvement_routes.py`, `backend/app/services/ai_stack/ai_stack_evidence_service.py`.
 
 ---
 
@@ -434,7 +434,7 @@ MCP is an **automation client**. The backend remains the **persistence and polic
 
 ### Connections
 
-Model `mcp_ops_telemetry` (see `backend/app/models/mcp_ops_telemetry.py`) backs storage—**anchor** for DB schema readers.
+Model `mcp_ops_telemetry` (see `backend/app/models/backend/mcp_ops_telemetry.py`) backs storage—**anchor** for DB schema readers.
 
 ### Not owned here
 
@@ -452,7 +452,7 @@ flowchart LR
   COCK --> DB
 ```
 
-**Anchors:** `backend/app/api/v1/mcp_operations_routes.py`, `backend/app/api/v1/ai_stack_governance_routes.py`, `backend/app/models/mcp_ops_telemetry.py`.
+**Anchors:** `backend/app/api/v1/mcp_operations_routes.py`, `backend/app/api/v1/ai_stack_governance_routes.py`, `backend/app/models/backend/mcp_ops_telemetry.py`.
 
 ---
 
@@ -525,7 +525,7 @@ flowchart TB
   MCP["MCP / CI"] --> BE
 ```
 
-**Anchors:** `backend/app/config.py`, `backend/app/__init__.py` (CSP connect-src), `backend/app/services/game_service.py`.
+**Anchors:** `backend/app/config.py`, `backend/app/__init__.py` (CSP connect-src), `backend/app/services/game/game_service.py`.
 
 ---
 
@@ -597,7 +597,7 @@ The Better Tomorrow backend is **one Flask monolith** that **organizes access**:
 | Permissions | `backend/app/auth/permissions.py` |
 | Features | `backend/app/auth/feature_registry.py` |
 | Service token | `backend/app/api/v1/auth.py` |
-| Engine client | `backend/app/services/game_service.py` |
+| Engine client | `backend/app/services/game/game_service.py` |
 | MCP ops | `backend/app/api/v1/mcp_operations_routes.py` |
 | AI governance | `backend/app/api/v1/ai_stack_governance_routes.py` |
 | Improvement | `backend/app/api/v1/improvement_routes.py` |

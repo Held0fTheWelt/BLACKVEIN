@@ -46,4 +46,4 @@ This document describes the **layered research architecture** implemented for Wo
 - MCP Operations: `/manage/mcp-operations`  
 - Improvement / experiment APIs: existing improvement routes and on-disk `backend/var/improvement/` store  
 
-Keep this document aligned with `backend/app/services/research_domain_governance_service.py` — that module is the source of truth for aggregated fields.
+Keep this document aligned with `backend/app/services/governance/research_domain_governance_service.py` — that module is the source of truth for aggregated fields.

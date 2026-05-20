@@ -452,7 +452,7 @@ Endpoint:
 
 ### New backend service
 Create:
-- `backend/app/services/system_diagnosis_service.py`
+- `backend/app/services/system/system_diagnosis_service.py`
 
 Responsibilities:
 - run grouped checks

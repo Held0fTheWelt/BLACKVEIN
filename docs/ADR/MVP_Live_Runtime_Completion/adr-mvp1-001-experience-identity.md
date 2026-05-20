@@ -24,7 +24,7 @@ The God of Carnage solo experience had no formal separation between its content 
 - `world-engine/app/runtime/profiles.py` — new runtime profile resolver (MVP1-P01)
 - `world-engine/app/api/http.py` — CreateRunRequest extended with runtime_profile_id, selected_player_role
 - `world-engine/app/runtime/manager.py` — _bootstrap_instance extended with preferred_role_id
-- `backend/app/services/game_service.py` — create_run extended with runtime_profile_id, selected_player_role
+- `backend/app/services/game/game_service.py` — create_run extended with runtime_profile_id, selected_player_role
 - `backend/app/api/v1/game_routes.py` — game_create_run and game_player_session_create extended
 
 ## Consequences

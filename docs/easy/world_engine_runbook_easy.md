@@ -123,7 +123,7 @@ The player uses the public app. That app talks to the **backend** first. The bac
 
 ### What this means in the actual system
 
-The end-to-end “free text turn” path is documented as going **through Flask** before the internal play call—see `docs/technical/runtime/a1_free_input_primary_runtime_path.md`. The backend’s `game_service` module (`backend/app/services/game_service.py`) is the integration seam that speaks HTTP to the world-engine.
+The end-to-end “free text turn” path is documented as going **through Flask** before the internal play call—see `docs/technical/runtime/a1_free_input_primary_runtime_path.md`. The backend’s `game_service` module (`backend/app/services/game/game_service.py`) is the integration seam that speaks HTTP to the world-engine.
 
 ### Why it matters
 
@@ -146,7 +146,7 @@ flowchart LR
   BE -->|"game_service_HTTP"| WE
 ```
 
-**Seams:** `backend/app/services/game_service.py`, `frontend/` (play shell).
+**Seams:** `backend/app/services/game/game_service.py`, `frontend/` (play shell).
 
 **What to notice:** The engine sits **behind** the backend for typical player operations.
 
@@ -191,7 +191,7 @@ flowchart TB
   API -->|"internal_HTTP"| RM
 ```
 
-**Seams:** `backend/app/services/game_service.py`, `world-engine/app/main.py`.
+**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/main.py`.
 
 **What to notice:** One arrow family for **data/admin**, another for **live play**.
 
@@ -275,7 +275,7 @@ flowchart LR
   BE --> WE
 ```
 
-**Seams:** `tools/mcp_server/`, `docs/mcp/01_M0_host_and_runtime.md`, `backend/app/services/game_service.py`.
+**Seams:** `tools/mcp_server/`, `docs/mcp/01_M0_host_and_runtime.md`, `backend/app/services/game/game_service.py`.
 
 **What to notice:** MCP attaches to **backend/ops**, not inside `execute_turn`.
 

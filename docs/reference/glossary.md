@@ -77,7 +77,7 @@ Generic runtime aspect implementing bounded Π28 time manipulation. Module polic
 Diagnostics or non-committed views of model or graph output used for review; must not be treated as committed player truth. Operational docs should point engineers to seam and contract docs for exact behavior.
 
 **RAG (retrieval-augmented generation)**  
-Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag.py`, with path- and module-sensitive behavior (e.g. `content/modules/` vs `content/published/` semantics).
+Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag/__init__.py`, with path- and module-sensitive behavior (e.g. `content/modules/` vs `content/published/` semantics).
 
 **LangGraph (GoC runtime graph)**  
 `RuntimeTurnGraphExecutor` in `ai_stack/langgraph/langgraph_runtime.py` (public surface) and `ai_stack/langgraph/langgraph_runtime_executor.py` (graph wiring) orchestrates the GoC slice turn pipeline. Story-play input follows the retrieval/director/model/validate/commit path; Meta/OOC control input follows `interpret_input` → `meta_control_turn` → `package_output` without story retrieval, model invocation, `validate_seam`, or `commit_seam`. See `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the normative node list.

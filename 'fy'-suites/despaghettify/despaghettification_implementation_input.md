@@ -143,7 +143,7 @@ Each **open** row: **ID**, **pattern** (lead with **C1..C7** from [spaghetti-set
 
 | ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
 |----|---------|--------------------|-------------------------|----------------------------|----------------|
-| **DS-010** | **C4 · C5 ·** Literal-heavy LangGraph/product context functions / migration policy | `ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context`, `ai_stack/langgraph/langgraph_runtime_executor.py:_build_dramatic_generation_packet`, `backend/app/services/governance_runtime_service.py:test_provider_connection`, backend migrations | Product-side scan after DS-009 still shows LangGraph context/action leaders (`_build_dramatic_generation_packet` **562L**, `_assemble_model_context` **562L**, `_interpret_input` **387L**, `_resolve_player_action` **385L**) and `_assemble_model_context` remains the literal-heavy target. Migrations also dominate raw C5. | Promote meaningful literals to named constants/config and split remaining LangGraph context packet/action assembly only where it clarifies boundaries; document or exclude one-way migration data where constants would reduce clarity. | Follows DS-008 validation seam extraction and DS-009 world-engine split; avoid reopening `langgraph_runtime_validation.py` unless tests show contract drift. |
+| **DS-010** | **C4 · C5 ·** Literal-heavy LangGraph/product context functions / migration policy | `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/langgraph/runtime_executor/`, `backend/app/services/governance_runtime_service.py:test_provider_connection`, backend migrations | W01 reduced the 9381-line executor file into a compatibility facade plus named staging files under 200 lines; no numbered suffix names remain. This is not closed yet: `SOURCE_LINES` chunks still need promotion into ordinary semantic modules. | Promote the named groups (`semantic_input`, actor lanes, retrieval, dramatic packet, director context, model pipeline, commit/render) into real Python modules with stable imports; extract meaningful literals/config where it clarifies boundaries; document or exclude one-way migration data where constants would reduce clarity. | Follows DS-008 validation seam extraction and DS-009 world-engine split; W01 evidence is in `ai_stack` state. Keep `langgraph_runtime_executor.py` as compatibility facade until call sites move. |
 | **DS-011** | **C6 ·** Duplicate-name proxy triage | `ai_stack/contracts`, `story_runtime_core`, backend/runtime adapter surfaces | Broad duplicate-name proxy is **15.1112%**; common names include `to_dict`, `generate`, `to_runtime_dict`, `_as_list`, `_json_safe`. | Keep intentional protocol/dunder names, but consolidate or rename local helper families where duplicate names hide different semantics. | Low-value churn risk; run after DS-006 so generated/vendored noise is removed and after DS-008/010 settle helper boundaries. |
 
 *Open **DS-*** rows above come from the refreshed 2026-05-20 `check --with-metrics` run after DS-009 closure; do not hand-copy closed rows back here.*
@@ -161,7 +161,7 @@ Prioritised **phases** for **open** **DS-*** only — aligned with § *Open* in 
 
 | Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
 |------------------|----------|-------------|----------------------|----------------------------|
-| 1 | **DS-010** | Extract or justify remaining LangGraph context/literal clusters after validation and world-engine boundaries settled. | `ai_stack` | Include affected AI stack tests for `_assemble_model_context` / context packet changes; backend service tests for governance service constants. |
+| 1 | **DS-010** | Finish the LangGraph runtime-executor split by promoting named staging groups into real semantic modules. | `ai_stack` | W01 physical split is in flight; include executor import-surface tests and targeted AI-stack tests for model context, dramatic packet, and action resolution changes. |
 | 2 | **DS-011** | Triage duplicate-name proxy after helper boundaries are clear. | `ai_stack` | Avoid renaming protocol/dunder methods by default; gate contract serialization tests across `ai_stack` and `story_runtime_core`. |
 
 ```mermaid
@@ -190,7 +190,7 @@ Use this section only for:
 
 | date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
 |------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
-| — | — | — | — | — | — | — |
+| 2026-05-21 | **DS-010** | W01 physical runtime-executor split: compatibility facade + named staging package under 200 lines per file; semantic promotion remains open. | `artifacts/workstreams/ai_stack/pre/session_20260521_DS-010_runtime_executor_split_snapshot.*` | `artifacts/workstreams/ai_stack/post/session_20260521_DS-010_w01_runtime_executor_split_comparison.*` | `WORKSTREAM_AI_STACK_STATE.md` | working tree |
 
 **Rules:** [`despaghettification_completed_log.md`](despaghettification_completed_log.md) § *When to append here*; formal evidence still under `despaghettify/state/artifacts/…` per [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md).
 

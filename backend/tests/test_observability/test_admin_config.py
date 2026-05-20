@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from app.extensions import db
-from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
 from app.services.governance.observability_governance_service import (
     _candidate_langfuse_base_urls,
     _resolve_langfuse_base_url_for_credentials,

@@ -21,7 +21,7 @@ from app.services.writers_room.writers_room_pipeline import (
     _writers_room_artifact_manifest,
 )
 from app.services.writers_room.writers_room_store import WritersRoomStore
-from app.models.narrative_contracts import DraftPatchBundle
+from app.models.world_engine.narrative_contracts import DraftPatchBundle
 
 
 def run_writers_room_review(

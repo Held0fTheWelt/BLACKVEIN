@@ -100,8 +100,8 @@ The application cannot encrypt a host disk or prove cloud KMS state by itself fr
 
 - [docs/security/AT_REST_ENCRYPTION.md](../security/AT_REST_ENCRYPTION.md)
 - [docs/admin/security-governance.md](../admin/security-governance.md)
-- `backend/app/services/security_governance_service.py`
-- `backend/app/services/system_diagnosis_service.py`
+- `backend/app/services/governance/security_governance_service.py`
+- `backend/app/services/system/system_diagnosis_service.py`
 - `world-engine/app/runtime/json_at_rest.py`
 - `world-engine/app/runtime/store.py`
 - `docker-compose.yml`

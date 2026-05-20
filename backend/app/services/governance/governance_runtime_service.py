@@ -2613,7 +2613,7 @@ def get_provider_credential_for_runtime(provider_id: str) -> str | None:
         print(f"DEBUG: Provider {provider_id} has no credential configured", flush=True)
         return None
 
-    from app.models.governance_core import AIProviderCredential
+    from app.models.backend.governance_core import AIProviderCredential
 
     active_cred = AIProviderCredential.query.filter_by(
         provider_id=provider_id,

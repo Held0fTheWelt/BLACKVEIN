@@ -32,7 +32,7 @@ If product language and file names differ, this text points to the **nearest rea
 ### What this means in the actual system
 
 - Story turns: `StoryRuntimeManager.execute_turn` in `world-engine/app/story_runtime/manager.py` calls `RuntimeTurnGraphExecutor.run` from `ai_stack/langgraph/langgraph_runtime.py`, then `resolve_narrative_commit` in `world-engine/app/story_runtime/commit_models.py`.
-- Player-facing HTTP still goes through **`backend/`** for typical deployments (`backend/app/services/game_service.py` and related routes).
+- Player-facing HTTP still goes through **`backend/`** for typical deployments (`backend/app/services/game/game_service.py` and related routes).
 
 ### Why it matters
 
@@ -86,7 +86,7 @@ flowchart TB
   MCP -.-> BE
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `backend/app/services/game_service.py`, `tools/mcp_server/`.
+**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `backend/app/services/game/game_service.py`, `tools/mcp_server/`.
 
 **What to notice:** **LangGraph / LangChain / RAG / models** sit **under** the **World Engine** for runtime turns, not beside it as a second game server.
 
@@ -190,7 +190,7 @@ flowchart TB
 #### What this means in the actual system
 
 - Primary area: `ai_stack/langchain/` — e.g. `invoke_runtime_adapter_with_langchain` used from the LangGraph **`invoke_model`** node (`docs/technical/integration/LangChain.md`, `ai_stack/langgraph/langgraph_runtime.py`).
-- Writers’ Room uses parallel helpers (`invoke_writers_room_adapter_with_langchain`) from **backend** services (`backend/app/services/writers_room_service.py`).
+- Writers’ Room uses parallel helpers (`invoke_writers_room_adapter_with_langchain`) from **backend** services (`backend/app/services/writers_room/writers_room_service.py`).
 
 #### Why it matters
 
@@ -305,7 +305,7 @@ The **backend** is the main **API and policy gate**: login, data, forums, conten
 
 #### What this means in the actual system
 
-- Flask app under `backend/`; integration with play via `backend/app/services/game_service.py`.
+- Flask app under `backend/`; integration with play via `backend/app/services/game/game_service.py`.
 - Also hosts Writers’ Room HTTP APIs (`backend/app/api/v1/writers_room_routes.py`) that use `ai_stack` from **backend** processes.
 
 #### Why it matters
@@ -353,7 +353,7 @@ flowchart TB
   WE --> AI
 ```
 
-**Seams:** `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
+**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
 
 **What to notice:** **AI_stack** executes **inside** the **engine process** for story turns, not as a separate public microservice in the default design.
 
@@ -395,7 +395,7 @@ flowchart LR
   PL --> FE --> BE --> WE --> G --> OUT
 ```
 
-**Seams:** `frontend/` play routes, `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`.
+**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`.
 
 **What to notice:** **LangGraph** is **inside** `WE`, not a box the player visits.
 
@@ -467,7 +467,7 @@ sequenceDiagram
   Frontend-->>Player: new_scene_text_UI
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game_service.py`.
+**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game/game_service.py`.
 
 **What to notice:** **Models** return **before** **validate/commit**; **session update** happens **after** the graph returns to the manager.
 

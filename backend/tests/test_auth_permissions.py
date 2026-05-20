@@ -15,7 +15,7 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
 from app.models import User, Role
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 from app.auth.permissions import (
     get_current_user,
     create_access_token,
@@ -72,8 +72,8 @@ def app_with_test_routes(test_bp):
 
     with application.app_context():
         db.create_all()
-        from app.models.role import ensure_roles_seeded
-        from app.models.area import ensure_areas_seeded
+        from app.models.backend.role import ensure_roles_seeded
+        from app.models.backend.area import ensure_areas_seeded
         ensure_roles_seeded()
         ensure_areas_seeded()
         yield application
@@ -1155,8 +1155,8 @@ class TestRequireEditorOrN8nServiceDecorator:
 
         with app.app_context():
             db.create_all()
-            from app.models.role import ensure_roles_seeded
-            from app.models.area import ensure_areas_seeded
+            from app.models.backend.role import ensure_roles_seeded
+            from app.models.backend.area import ensure_areas_seeded
             ensure_roles_seeded()
             ensure_areas_seeded()
 

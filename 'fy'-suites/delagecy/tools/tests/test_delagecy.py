@@ -123,6 +123,18 @@ def test_scanner_can_scan_delagecy_internal_selftest_area(tmp_path: Path) -> Non
     assert payload["hits"][0]["path"].endswith("delagecy/internal/fixture.py")
 
 
+def test_scanner_excludes_delagecy_reports_from_active_surface(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    reports = root / "'fy'-suites" / "delagecy" / "reports"
+    reports.mkdir(parents=True)
+    (root / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (reports / "audit.md").write_text("# legacy evidence report\n", encoding="utf-8")
+
+    payload = scan(root)
+
+    assert payload["hit_count"] == 0
+
+
 def test_report_command_writes_readable_markdown(tmp_path: Path, monkeypatch) -> None:
     root = tmp_path / "repo"
     suite = root / "'fy'-suites" / "delagecy"

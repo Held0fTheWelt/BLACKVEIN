@@ -20,8 +20,8 @@ def app():
     application = create_app(TestingConfig)
     with application.app_context():
         db.create_all()
-        from app.models.role import ensure_roles_seeded
-        from app.models.area import ensure_areas_seeded
+        from app.models.backend.role import ensure_roles_seeded
+        from app.models.backend.area import ensure_areas_seeded
         ensure_roles_seeded()
         ensure_areas_seeded()
         yield application
@@ -263,7 +263,7 @@ class TestAccountLockoutMechanism:
 
     def test_lockout_activity_logging(self, client, test_user):
         """Lock-related activity is logged."""
-        from app.models.activity_log import ActivityLog
+        from app.models.backend.activity_log import ActivityLog
 
         with client.application.app_context():
             initial_log_count = ActivityLog.query.count()

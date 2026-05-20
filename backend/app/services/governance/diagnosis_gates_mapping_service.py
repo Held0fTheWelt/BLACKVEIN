@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.extensions import db
-from app.models.governance_core import ReadinessGate
+from app.models.backend.governance_core import ReadinessGate
 from app.services.governance.readiness_gates_service import (
     create_or_update_gate,
     get_gates_by_status,

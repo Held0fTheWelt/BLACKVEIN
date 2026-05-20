@@ -6,7 +6,7 @@ from sqlalchemy.orm import Query as SAQuery
 
 from app.extensions import db
 from app.models import ForumCategory, User
-from app.models.forum import ModeratorAssignment
+from app.models.backend.forum import ModeratorAssignment
 
 pytestmark = pytest.mark.routes_core
 

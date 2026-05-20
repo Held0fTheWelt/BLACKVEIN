@@ -10,7 +10,7 @@ from app.auth.permissions import (
     current_user_is_admin,
     current_user_is_super_admin,
 )
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 
 ErrorPair = tuple[dict[str, Any], int]
 

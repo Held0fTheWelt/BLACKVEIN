@@ -6,9 +6,9 @@ from werkzeug.security import generate_password_hash
 from app.cli_ops import ensure_superadmin_for_username
 from app.extensions import db
 from app.models import Role, User
-from app.models.area import Area
-from app.models.area import ensure_areas_seeded
-from app.models.role import ensure_roles_seeded
+from app.models.backend.area import Area
+from app.models.backend.area import ensure_areas_seeded
+from app.models.backend.role import ensure_roles_seeded
 
 
 def test_ensure_superadmin_updates_existing_user(app):

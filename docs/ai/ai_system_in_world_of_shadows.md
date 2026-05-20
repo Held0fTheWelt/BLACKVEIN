@@ -161,7 +161,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 **Plain:** The system searches project-owned material to build **context packs** for prompts.
 
-**Technical:** `ai_stack/rag.py` — local corpus (e.g. under `.wos/rag/`), sparse and optional hybrid embeddings, profiles and governance lanes. Ingestion paths are documented in [RAG.md](../technical/ai/RAG.md).
+**Technical:** `ai_stack/rag/__init__.py` — local corpus (e.g. under `.wos/rag/`), sparse and optional hybrid embeddings, profiles and governance lanes. Ingestion paths are documented in [RAG.md](../technical/ai/RAG.md).
 
 **Why WoS:** Grounding in repository text improves relevance while keeping governance separate from “what the model read last.”
 
@@ -423,7 +423,7 @@ Turns emit **structured diagnostics**: graph health, validation hints, trace IDs
 
 - **Graph:** `graph_diagnostics` on turn state.
 - **Session events:** `StoryRuntimeManager` appends diagnostics (`retrieval`, `model_route`, `graph`, `validation_outcome`, `committed_result`, …).
-- **Trace ID:** Backend may forward `X-WoS-Trace-Id` toward world-engine (`backend/app/services/game_service.py` pattern).
+- **Trace ID:** Backend may forward `X-WoS-Trace-Id` toward world-engine (`backend/app/services/game/game_service.py` pattern).
 
 **Not:** A guarantee that every deployment exports to a third-party APM; the repo emphasizes JSON-shaped diagnostics and logs.
 

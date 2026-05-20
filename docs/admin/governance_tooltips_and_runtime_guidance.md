@@ -72,7 +72,7 @@ Primary sources:
 
 Primary source:
 
-- `backend/app/services/ai_engineer_suite_service.py`
+- `backend/app/services/ai_stack/ai_engineer_suite_service.py`
 
 ## Inventory summary (Tooltip pass scope)
 

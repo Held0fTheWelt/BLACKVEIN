@@ -9,7 +9,7 @@ from email_validator import validate_email, EmailNotValidError
 
 from app.extensions import db
 from app.models import Role, User
-from app.models.email_verification_token import EmailVerificationToken, PURPOSE_ACTIVATION
+from app.models.backend.email_verification_token import EmailVerificationToken, PURPOSE_ACTIVATION
 from app.services.common.search_utils import _escape_sql_like_wildcards
 from app.services.identity.user_service_account_guards import (
     change_password_validate_inputs,
@@ -241,7 +241,7 @@ def create_user(username, password, email=None):
 
 def create_password_reset_token(user) -> str:
     """Generate a reset token, store its hash, return the raw token."""
-    from app.models.password_reset_token import PasswordResetToken
+    from app.models.backend.password_reset_token import PasswordResetToken
 
     PasswordResetToken.query.filter_by(user_id=user.id, used=False).delete()
     raw = secrets.token_urlsafe(32)
@@ -254,7 +254,7 @@ def create_password_reset_token(user) -> str:
 
 def get_valid_reset_token(raw_token: str):
     """Return a valid (unexpired, unused) PasswordResetToken or None."""
-    from app.models.password_reset_token import PasswordResetToken
+    from app.models.backend.password_reset_token import PasswordResetToken
 
     if not raw_token:
         return None
@@ -454,8 +454,8 @@ def delete_user(user_id: int) -> tuple[bool, str | None]:
         return False, "User not found"
 
     from app.models import NewsArticle
-    from app.models.password_reset_token import PasswordResetToken
-    from app.models.email_verification_token import EmailVerificationToken
+    from app.models.backend.password_reset_token import PasswordResetToken
+    from app.models.backend.email_verification_token import EmailVerificationToken
 
     NewsArticle.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
     PasswordResetToken.query.filter_by(user_id=user.id).delete()

@@ -10,7 +10,7 @@ Accepted
 
 - Layer 1 (platform secrets/wiring): `docker-up.py` generates and preserves these; `backend/app/config.py` reads them.
 - Layer 2 (provider credentials): optional in `.env`; `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` must be a complete pair if present.
-- Layer 3 (governed runtime settings): `backend/app/services/observability_governance_service.py` owns Langfuse operational config; `/manage/observability-settings` is the admin UI surface.
+- Layer 3 (governed runtime settings): `backend/app/services/governance/observability_governance_service.py` owns Langfuse operational config; `/manage/observability-settings` is the admin UI surface.
 - Langfuse connection verification uses backend-managed `observability_configs.service_id="langfuse"` plus active encrypted `observability_credentials` rows; direct Cloud/env-only checks are limited to explicitly marked live-cloud tests.
 - `REDIS_URL` is part of bootstrap governance; Redis is provisioned in Docker Compose by default.
 - No `LANGFUSE_ENABLED` legacy toggle exists; the old model is explicitly prohibited in this ADR.
@@ -240,4 +240,4 @@ When adding a new variable:
 - `backend/app/config.py`
 - `backend/app/factory_app.py`
 - `backend/app/api/v1/observability_governance_routes.py`
-- `backend/app/services/observability_governance_service.py`
+- `backend/app/services/governance/observability_governance_service.py`

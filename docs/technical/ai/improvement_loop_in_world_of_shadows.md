@@ -27,7 +27,7 @@ World of Shadows has **two complementary loops** that both support **governance 
 
 After deterministic evaluation scaffolding, bounded **preflight** and **synthesis** stages may call `route_model` with adapter specs aligned to Writers’ Room. Traces use the same **`routing_evidence`** shape as other product surfaces; missing adapters produce explicit skip reasons—**models do not override** threshold or governance semantics.
 
-**Anchors:** `backend/app/services/improvement_task2a_routing.py` (implementation module for bounded recommendation-stage routing), `backend/app/runtime/routing/model_routing_evidence.py`.
+**Anchors:** `backend/app/services/improvement/improvement_task2a_routing.py` (implementation module for bounded recommendation-stage routing), `backend/app/runtime/routing/model_routing_evidence.py`.
 
 ### Honest product gaps
 

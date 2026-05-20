@@ -1,0 +1,107 @@
+{
+  "repo_root": "/mnt/d/WorldOfShadows",
+  "git": {
+    "base": "paths-file",
+    "head": "paths-file"
+  },
+  "summary": {
+    "files": 7,
+    "change_classes": [
+      "general_code_or_config"
+    ]
+  },
+  "files": [
+    {
+      "path": "'fy'-suites/despaghettify/despaghettification_implementation_input.md",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "'fy'-suites/despaghettify/state/WORKSTREAM_AI_STACK_STATE.md",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "'fy'-suites/despaghettify/state/artifacts/workstreams/ai_stack/post/session_20260521_DS-010_w01_runtime_executor_split_comparison.md",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "'fy'-suites/despaghettify/state/artifacts/workstreams/ai_stack/pre/session_20260521_DS-010_runtime_executor_split_snapshot.md",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "ai_stack/langgraph/runtime_executor/README.md",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    },
+    {
+      "path": "ai_stack/langgraph/runtime_executor/public.py",
+      "change_classes": [
+        "general_code_or_config"
+      ],
+      "inventory_categories": [
+        "stale_documentation_after_behavior_change"
+      ],
+      "recommended_documentation_layers": [
+        "LOCAL_DOCSTRINGS"
+      ],
+      "note": "heuristic_path_only"
+    }
+  ],
+  "disclaimer": "Heuristic path-only classification; verify with code review and the suite documentation standard. Not semantic drift detection."
+}

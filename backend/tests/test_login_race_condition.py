@@ -27,8 +27,8 @@ def app():
     application = create_app(TestingConfig)
     with application.app_context():
         db.create_all()
-        from app.models.role import ensure_roles_seeded
-        from app.models.area import ensure_areas_seeded
+        from app.models.backend.role import ensure_roles_seeded
+        from app.models.backend.area import ensure_areas_seeded
         ensure_roles_seeded()
         ensure_areas_seeded()
         yield application

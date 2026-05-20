@@ -409,4 +409,4 @@ config = AIConfig(reasoning_depth="shallow")  # Less thinking
 - Constitutional AI: https://arxiv.org/abs/2310.11111
 - World of Shadows Architecture: /docs/architecture.md
 - Canonical player session API: /backend/app/api/v1/game_routes.py
-- World-Engine bridge client: /backend/app/services/game_service.py
+- World-Engine bridge client: /backend/app/services/game/game_service.py

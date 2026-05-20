@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app.models.narrative_enums import PlayerAffectSignalType, PlayerAffectState
+from app.models.world_engine.narrative_enums import PlayerAffectSignalType, PlayerAffectState
 
 
 class ValidationViolation(BaseModel):

@@ -16,8 +16,8 @@ This document freezes the routing/registry seam map used for Task 2. It is the w
 |--------|----------------------------|------------------------------|
 | Runtime staged ([`runtime_ai_stages.py`](../../backend/app/runtime/ai_turn/runtime_ai_stages.py)) | `specs=None` → `iter_model_specs()` | `get_adapter(selected_name)` else passed adapter |
 | Runtime legacy single-pass ([`ai_turn_executor.py`](../../backend/app/runtime/ai_turn/ai_turn_executor.py)) | `iter_model_specs()` | Same |
-| Writers-Room ([`writers_room_service.py`](../../backend/app/services/writers_room_service.py)) | `build_writers_room_model_route_specs()` | `workflow.adapters` keyed by provider / `selected_adapter_name` |
-| Improvement ([`improvement_task2a_routing.py`](../../backend/app/services/improvement_task2a_routing.py)) | Same builder as Writers-Room | `build_default_model_adapters()` |
+| Writers-Room ([`writers_room_service.py`](../../backend/app/services/writers_room/writers_room_service.py)) | `build_writers_room_model_route_specs()` | `workflow.adapters` keyed by provider / `selected_adapter_name` |
+| Improvement ([`improvement_task2a_routing.py`](../../backend/app/services/improvement/improvement_task2a_routing.py)) | Same builder as Writers-Room | `build_default_model_adapters()` |
 
 ## Pre–Task 2 gap (resolved in Task 2)
 

@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from app.auth.admin_security_helpers import _check_rate_limit, _is_ip_whitelisted, _verify_2fa
 from app.auth.permissions import current_user_is_super_admin
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 
 
 @dataclass

@@ -6,7 +6,7 @@ from typing import Any
 
 from app.extensions import db
 from app.governance.errors import governance_error
-from app.models.governance_core import ReadinessGate, SettingAuditEvent
+from app.models.backend.governance_core import ReadinessGate, SettingAuditEvent
 from app.utils.time_utils import utc_now
 from uuid import uuid4
 

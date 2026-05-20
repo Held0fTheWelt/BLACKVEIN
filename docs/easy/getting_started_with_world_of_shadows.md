@@ -445,7 +445,7 @@ sequenceDiagram
   Frontend-->>Browser: updated_UI
 ```
 
-**Seams:** `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`, `docs/technical/runtime/a1_free_input_primary_runtime_path.md` (for the documented primary path details).
+**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`, `docs/technical/runtime/a1_free_input_primary_runtime_path.md` (for the documented primary path details).
 
 **In plain words:** Your text hits **frontend → backend → world-engine**; the **engine** runs the heavy turn pipeline.
 
@@ -464,7 +464,7 @@ flowchart LR
   BE -->|JSON| FE
 ```
 
-**Seams:** `frontend/` play routes, `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`.
+**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`.
 
 **What to notice:** **Frontend** does not replace **world-engine**; it **shows** what the platform returns.
 

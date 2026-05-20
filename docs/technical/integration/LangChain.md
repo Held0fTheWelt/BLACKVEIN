@@ -15,7 +15,7 @@ When the system needs a model to return **JSON-shaped** narrative or review data
 | Path | Primary files | Role |
 |------|----------------|------|
 | Runtime turn | `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langchain/bridges.py` | `invoke_runtime_adapter_with_langchain` inside the LangGraph `invoke_model` node; attaches parser metadata and errors to the generation payload. |
-| Writers’ Room | `backend/app/services/writers_room_service.py`, `bridges.py` | `invoke_writers_room_adapter_with_langchain`, `WritersRoomStructuredOutput`; document preview via `LangChainRetrieverBridge.get_writers_room_documents` with `RetrievalDomain.WRITERS_ROOM` / profile `writers_review`. |
+| Writers’ Room | `backend/app/services/writers_room/writers_room_service.py`, `bridges.py` | `invoke_writers_room_adapter_with_langchain`, `WritersRoomStructuredOutput`; document preview via `LangChainRetrieverBridge.get_writers_room_documents` with `RetrievalDomain.WRITERS_ROOM` / profile `writers_review`. |
 | Capability tooling | `bridges.py` | `build_capability_tool_bridge` for review-oriented tool surfaces that share LangChain patterns. |
 
 **Anchors:** `ai_stack/langchain/__init__.py`, `ai_stack/langchain/bridges.py`.

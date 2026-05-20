@@ -18,7 +18,7 @@ from app.models import (
     User,
     Role,
 )
-from app.models.forum import ModeratorAssignment
+from app.models.backend.forum import ModeratorAssignment
 
 
 def _assign_moderators_to_category(app, category_id):

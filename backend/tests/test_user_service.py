@@ -11,8 +11,8 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import NewsArticle, Role, User
-from app.models.email_verification_token import PURPOSE_ACTIVATION
-from app.models.password_reset_token import PasswordResetToken
+from app.models.backend.email_verification_token import PURPOSE_ACTIVATION
+from app.models.backend.password_reset_token import PasswordResetToken
 from app.services.identity import user_service as us
 from app.services.identity.user_service import *
 

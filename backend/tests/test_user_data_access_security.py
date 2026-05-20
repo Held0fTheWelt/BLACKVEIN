@@ -6,8 +6,8 @@ sensitive data leaks (HIGH severity vulnerability fix).
 import pytest
 from werkzeug.security import generate_password_hash
 from app.extensions import db
-from app.models.user import User
-from app.models.role import Role
+from app.models.backend.user import User
+from app.models.backend.role import Role
 
 
 @pytest.fixture

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.extensions import db
-from app.models.governance_core import ObservabilityConfig
+from app.models.backend.governance_core import ObservabilityConfig
 from app.services.governance.observability_governance_service import (
     test_observability_connection as run_observability_connection_test,
     write_observability_credential,

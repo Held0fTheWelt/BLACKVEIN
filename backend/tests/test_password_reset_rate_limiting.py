@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.extensions import db
 from app.models import User
-from app.models.password_reset_token import PasswordResetToken
+from app.models.backend.password_reset_token import PasswordResetToken
 
 
 class TestPasswordResetRateLimiting:

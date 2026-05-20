@@ -51,7 +51,7 @@ The frontend must:
   - Input-UI blocking: disabled while narrator streams, enabled when ruhepunkt signal arrives
 
 - **Configuration**:
-  - Global Typewriter Config stored in `backend/app/models/site_setting.py` (key: `frontend_typewriter_config`)
+  - Global Typewriter Config stored in `backend/app/models/backend/site_setting.py` (key: `frontend_typewriter_config`)
   - Admin Tool UI in `administration-tool/static/manage_runtime_settings.js` to edit settings
   - API endpoint: `GET/PATCH /api/v1/admin/frontend-config/typewriter`
   - Settings applied per-session at load time
@@ -258,7 +258,7 @@ PlayControls event handler:
 ## Configuration: Typewriter Delivery
 
 ### Storage Layer
-**Model**: `backend/app/models/site_setting.py`
+**Model**: `backend/app/models/backend/site_setting.py`
 
 ```python
 class SiteSetting(db.Model):
@@ -407,7 +407,7 @@ trace/export cross-check (real Langfuse or deterministic export)
 | **frontend** | `frontend/static/style.css` | [EXTEND] Block styles + accessibility |
 | **frontend** | `frontend/templates/session_shell.html` | [VERIFY] Confirm `<div id="turn-transcript">`, form IDs |
 | **backend** | `backend/app/api/v1/admin_settings_routes.py` | [CREATE/EXTEND] `GET/PATCH /api/v1/admin/frontend-config/typewriter` |
-| **backend** | `backend/app/models/site_setting.py` | [ALREADY EXISTS] Use for typewriter config storage |
+| **backend** | `backend/app/models/backend/site_setting.py` | [ALREADY EXISTS] Use for typewriter config storage |
 | **administration-tool** | `administration-tool/static/manage_runtime_settings.js` | [EXTEND] Add typewriter config UI section |
 | **administration-tool** | `administration-tool/templates/manage_runtime_settings.html` | [VERIFY/EXTEND] Add form fields for typewriter config |
 | **world-engine** | `world-engine/app/api/http.py` | [VERIFY] Confirm blocks in response |
@@ -438,8 +438,8 @@ trace/export cross-check (real Langfuse or deterministic export)
 | **Frontend Static - Entrypoint** | Module initialization | `frontend/static/play_shell.js` | Initialize all modules | ⏳ REPLACE |
 | **Frontend Static - CSS** | Block + accessibility styles | `frontend/static/style.css` | `.scene-block`, `.block-typewriter`, `.accessibility-mode` | ⏳ EXTEND |
 | **Backend API** | Settings endpoint | `backend/app/api/v1/admin_settings_routes.py` | `GET/PATCH /api/v1/admin/frontend-config/typewriter` | ⏳ CREATE/EXTEND |
-| **Backend Model** | Settings storage | `backend/app/models/site_setting.py` | `SiteSetting(key, value)` | ✅ FOUND |
-| **Backend Service** | Game service | `backend/app/services/game_service.py` | `GameServiceError`, `_parse_create_run_v1()` | ✅ FOUND |
+| **Backend Model** | Settings storage | `backend/app/models/backend/site_setting.py` | `SiteSetting(key, value)` | ✅ FOUND |
+| **Backend Service** | Game service | `backend/app/services/game/game_service.py` | `GameServiceError`, `_parse_create_run_v1()` | ✅ FOUND |
 | **World-Engine API** | HTTP handler | `world-engine/app/api/http.py` | `CreateRunRequest`, `TicketRequest`, `router` | ✅ FOUND |
 | **Admin Tool UI** | Runtime settings | `administration-tool/static/manage_runtime_settings.js` | Extend with typewriter config section | ⏳ EXTEND |
 | **Admin Tool Template** | Settings form | `administration-tool/templates/manage_runtime_settings.html` | Form fields for typewriter config | ⏳ EXTEND/VERIFY |

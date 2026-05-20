@@ -46,7 +46,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 
 **Why this matters in World of Shadows.** Without a single authoritative host, you get duplicate turn logic, divergent session state between Flask and FastAPI, and “AI said it, so it must be true” failures. ADR-0001 and backend classification docs exist precisely to prevent that drift.
 
-**Adjacent systems.** Backend proxies story operations through `backend/app/services/game_service.py` to internal play URLs (`PLAY_SERVICE_INTERNAL_URL`). Frontend play shell hits Flask first for the path documented in `a1_free_input_primary_runtime_path.md`.
+**Adjacent systems.** Backend proxies story operations through `backend/app/services/game/game_service.py` to internal play URLs (`PLAY_SERVICE_INTERNAL_URL`). Frontend play shell hits Flask first for the path documented in `a1_free_input_primary_runtime_path.md`.
 
 **Repository anchors:** `world-engine/app/main.py`, `world-engine/README.md`.
 
@@ -134,7 +134,7 @@ flowchart TB
 
 **What to notice.** Player and admin UIs talk to **backend** first; **live play** executes in **world-engine**. MCP (Phase A) is an **operator** path to backend, not a second runtime inside the turn loop ([`01_M0_host_and_runtime.md`](../../mcp/01_M0_host_and_runtime.md)).
 
-**Seams:** `docker-compose.yml` (`play-service`, `backend`, `frontend`), `backend/app/services/game_service.py`.
+**Seams:** `docker-compose.yml` (`play-service`, `backend`, `frontend`), `backend/app/services/game/game_service.py`.
 
 ---
 
@@ -329,7 +329,7 @@ The backend is still the **front door** for many clients, but for live story tur
 
 ### Technical precision
 
-- **HTTP client:** `backend/app/services/game_service.py` uses `PLAY_SERVICE_INTERNAL_URL` for internal calls (see `_request` in same module): `POST /api/story/sessions`, `POST .../turns`, `GET .../state`, `GET .../diagnostics`.
+- **HTTP client:** `backend/app/services/game/game_service.py` uses `PLAY_SERVICE_INTERNAL_URL` for internal calls (see `_request` in same module): `POST /api/story/sessions`, `POST .../turns`, `GET .../state`, `GET .../diagnostics`.
 - **Auth:** Story routes on the play service require internal API key dependency (`_require_internal_api_key` in `world-engine/app/api/http.py`); backend supplies `X-Play-Service-Key` / `PLAY_SERVICE_INTERNAL_API_KEY` per `world-engine/README.md` and `docker-compose.yml`.
 - **Proxy pattern:** `backend/app/api/v1/game_routes.py` resolves `/api/v1/game/player-sessions/<run_id>`, loads or recreates the stored World-Engine story-session id, then calls `execute_story_turn_in_engine`.
 - **Classification:** Flask in-process `SessionState` and W2 turn paths are **deprecated / volatile** for live authority—see [`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md).
@@ -346,7 +346,7 @@ Nested **runs** (template lobby path) also use `game_service` (`create_run`, `ge
 
 Backend **user accounts**, **JWT issuance**, and **MCP service token** policy (`require_mcp_service_token` in `backend/app/api/v1/auth.py` for operator reads).
 
-**Repository anchors:** `backend/app/services/game_service.py`, `backend/app/api/v1/game_routes.py`, `docker-compose.yml`.
+**Repository anchors:** `backend/app/services/game/game_service.py`, `backend/app/api/v1/game_routes.py`, `docker-compose.yml`.
 
 ---
 
@@ -415,7 +415,7 @@ Interpretation contract is shared conceptually with `story_runtime_core` ([`play
 
 **Rendering policy** in the frontend (typography, layout); the engine supplies **data** for truthful rendering.
 
-**Repository anchors:** [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md), `world-engine/app/api/ws.py`, `backend/app/services/game_service.py`.
+**Repository anchors:** [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md), `world-engine/app/api/ws.py`, `backend/app/services/game/game_service.py`.
 
 ---
 
@@ -701,7 +701,7 @@ flowchart LR
 
 **Not owned.** End-to-end **product analytics** funnels outside logging hooks.
 
-**Repository anchors:** `world-engine/app/main.py`, `backend/app/services/game_service.py`, [`architecture-overview.md`](../architecture/architecture-overview.md).
+**Repository anchors:** `world-engine/app/main.py`, `backend/app/services/game/game_service.py`, [`architecture-overview.md`](../architecture/architecture-overview.md).
 
 ---
 

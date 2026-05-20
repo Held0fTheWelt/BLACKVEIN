@@ -131,7 +131,7 @@ def user_can_moderate_category(user: Optional[User], category: ForumCategory) ->
         return True
     if not user_is_moderator(user):
         return False
-    from app.models.forum import ModeratorAssignment
+    from app.models.backend.forum import ModeratorAssignment
 
     assignment = ModeratorAssignment.query.filter_by(
         user_id=user.id,

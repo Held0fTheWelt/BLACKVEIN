@@ -161,7 +161,7 @@ def internal_observability_initialize():
     No JWT required (internal only, restricted by network access).
     """
     try:
-        from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+        from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
         from app.extensions import db
 
         body = _body()
@@ -253,7 +253,7 @@ def internal_langfuse_credentials():
         return fail("credentials_forbidden", "Valid internal token or admin JWT required.", 403, {})
 
     try:
-        from app.models.governance_core import ObservabilityConfig
+        from app.models.backend.governance_core import ObservabilityConfig
 
         config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
         if not config or not config.is_enabled:

@@ -27,7 +27,7 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
 from app.models import User, Role, ActivityLog
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 from app.auth.admin_security import (
     _get_client_ip,
     _is_ip_whitelisted,
@@ -48,8 +48,8 @@ def app():
 
     with application.app_context():
         db.create_all()
-        from app.models.role import ensure_roles_seeded
-        from app.models.area import ensure_areas_seeded
+        from app.models.backend.role import ensure_roles_seeded
+        from app.models.backend.area import ensure_areas_seeded
         ensure_roles_seeded()
         ensure_areas_seeded()
         yield application

@@ -345,9 +345,9 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 
 ### 8.2 Retrieval record and governance summary (G5)
 
-**Single provenance builder.** `ai_stack/retrieval_governance_summary.py` builds **`retrieval_governance_summary`** on the runtime `retrieval` dict (attached by the graph after context pack assembly). That summary is the **only** place that partitions hit rows into **`authored_truth_refs`** vs **`derived_artifact_refs`**, using the existing canonical `content_class` string on each row (`authored_module` vs all other `ContentClass` values in `ai_stack/rag.py`). Full hit payloads remain under `retrieval.sources`; compact ref entries in the two ref lists are projections of those rows only — not a parallel truth system.
+**Single provenance builder.** `ai_stack/retrieval_governance_summary.py` builds **`retrieval_governance_summary`** on the runtime `retrieval` dict (attached by the graph after context pack assembly). That summary is the **only** place that partitions hit rows into **`authored_truth_refs`** vs **`derived_artifact_refs`**, using the existing canonical `content_class` string on each row (`authored_module` vs all other `ContentClass` values in `ai_stack/rag/__init__.py`). Full hit payloads remain under `retrieval.sources`; compact ref entries in the two ref lists are projections of those rows only — not a parallel truth system.
 
-**`dominant_visibility_class`** inside the summary is derived from `visibility_counts`: highest count wins; ties break by the declaration order of `SourceVisibilityClass` in `ai_stack/rag.py`; empty counts yield `None`.
+**`dominant_visibility_class`** inside the summary is derived from `visibility_counts`: highest count wins; ties break by the declaration order of `SourceVisibilityClass` in `ai_stack/rag/__init__.py`; empty counts yield `None`.
 
 **Dramatic turn projection.** `build_roadmap_dramatic_turn_record` copies from `retrieval.retrieval_governance_summary` into `retrieval_record` without re-classifying hits: `authored_truth_refs`, `derived_artifact_refs`, `retrieval_governance_result` (the full summary), and `retrieval_visibility_class` (= `dominant_visibility_class`). `retrieval_lane` continues to reflect the retrieval profile / route fields on `retrieval`.
 

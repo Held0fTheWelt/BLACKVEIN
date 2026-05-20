@@ -7,8 +7,8 @@ Accepted
 
 **Implemented — validation strategy enum and configuration in place.**
 
-- `backend/app/models/narrative_enums.py`: `NarrativeValidationStrategy` enum with values `SCHEMA_ONLY`, `SCHEMA_PLUS_SEMANTIC`, `STRICT_RULE_ENGINE`.
-- `backend/app/models/governance_enums.py`: `ValidationExecutionMode` enum with matching values.
+- `backend/app/models/world_engine/narrative_enums.py`: `NarrativeValidationStrategy` enum with values `SCHEMA_ONLY`, `SCHEMA_PLUS_SEMANTIC`, `STRICT_RULE_ENGINE`.
+- `backend/app/models/backend/governance_enums.py`: `ValidationExecutionMode` enum with matching values.
 - `world-engine/app/main.py`: strategy resolved from `validation_mode` setting into `OutputValidatorConfig` with `strategy`, `semantic_policy_check`, `enable_corrective_feedback`, and `max_retry_attempts` fields.
 - World-engine startup lifespan reads the configured mode and wires the validator accordingly.
 - Environments can trade latency for scrutiny by changing `VALIDATION_MODE` config.

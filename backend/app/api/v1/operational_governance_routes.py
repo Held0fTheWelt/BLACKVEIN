@@ -1637,8 +1637,8 @@ def mvp4_revoke_state_delta_override(override_id: str):
 def internal_bootstrap_admin_user():
     """Internal endpoint for docker-up.py to create default admin user if missing."""
     try:
-        from app.models.user import User
-        from app.models.role import Role
+        from app.models.backend.user import User
+        from app.models.backend.role import Role
         from app.extensions import db
         from werkzeug.security import generate_password_hash
 

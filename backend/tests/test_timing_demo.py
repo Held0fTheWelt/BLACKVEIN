@@ -17,7 +17,7 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
 from app.models import User, Role
-from app.models.role import ensure_roles_seeded
+from app.models.backend.role import ensure_roles_seeded
 from werkzeug.security import generate_password_hash
 
 def run_timing_test():

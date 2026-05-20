@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.models.game_experience import GameExperienceTemplate
+from app.models.world_engine.game_experience import GameExperienceTemplate
 
 
 @pytest.mark.usefixtures("isolated_app_context")

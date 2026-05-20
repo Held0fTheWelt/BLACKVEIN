@@ -25,8 +25,8 @@ from app.models import (
     NarrativeRuntimeHealthRollup,
     SiteSetting,
 )
-from app.models.narrative_contracts import DraftPatchBundle, ValidationFeedback
-from app.models.narrative_enums import NarrativeEventType
+from app.models.world_engine.narrative_contracts import DraftPatchBundle, ValidationFeedback
+from app.models.world_engine.narrative_enums import NarrativeEventType
 from app.services.game.game_service import (
     GameServiceError,
     end_narrative_preview_session,

@@ -207,7 +207,7 @@ This is authored truth, not runtime memory.
 
 **Current basis:**
 
-- `ai_stack/rag.py`,
+- `ai_stack/rag/__init__.py`,
 - retrieval governance summary,
 - compact context packs,
 - active narrative threads,

@@ -7,7 +7,7 @@ MVP5: Typewriter delivery configuration endpoint.
 import json
 from flask import request, jsonify
 from app.extensions import db
-from app.models.site_setting import SiteSetting
+from app.models.backend.site_setting import SiteSetting
 from app.api.v1 import api_v1_bp
 
 

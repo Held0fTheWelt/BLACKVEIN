@@ -29,8 +29,8 @@ This document explains **how the backend chooses which registered model adapter*
 | Registry | `backend/app/runtime/adapter_registry.py` | Adapter instances and specs; `register_adapter_model` |
 | Bootstrap | `backend/app/runtime/routing_registry_bootstrap.py` | Registers in-repo specs (for example mock) at app startup when enabled |
 | Inventory checks | `backend/app/runtime/routing/model_inventory_contract.py`, `model_inventory_report.py` | Coverage tuples per surface; deterministic reports |
-| Writers’ Room specs | `backend/app/services/writers_room_model_routing.py` | Maps product model rows to `AdapterModelSpec` |
-| Improvement recommendation routing | `backend/app/services/improvement_task2a_routing.py` | Bounded preflight + synthesis stages for recommendation packages (see appendix for filename history) |
+| Writers’ Room specs | `backend/app/services/writers_room/writers_room_model_routing.py` | Maps product model rows to `AdapterModelSpec` |
+| Improvement recommendation routing | `backend/app/services/improvement/improvement_task2a_routing.py` | Bounded preflight + synthesis stages for recommendation packages (see appendix for filename history) |
 | Staged runtime orchestration | `backend/app/runtime/ai_turn/runtime_ai_stages.py`, `backend/app/runtime/ai_turn/ai_turn_executor.py` | Preflight → signal → ranking → conditional synthesis |
 | Operator audit rollups | `backend/app/runtime/routing/operator_audit.py`, `backend/app/runtime/routing/operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |
 
@@ -89,7 +89,7 @@ For the **importable map** of which backend surface owns “primary routing auth
 
 ### Writers’ Room
 
-`backend/app/services/writers_room_service.py` uses specs from `writers_room_model_routing.py` and **two** routing stages (preflight + synthesis), each attaching `routing_evidence` where applicable.
+`backend/app/services/writers_room/writers_room_service.py` uses specs from `writers_room_model_routing.py` and **two** routing stages (preflight + synthesis), each attaching `routing_evidence` where applicable.
 
 ### Improvement HTTP
 
@@ -135,7 +135,7 @@ Some Python modules still use **internal delivery-era filenames** (`*`, `improve
 
 ## routing governance gate traceability (executable doc contracts)
 
-The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`validation_commands.py`](../../backend/app/runtime/validation_commands.py). They do not change routing policy.
+The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`validation_commands.py`](../../backend/app/runtime/validation/validators.py). They do not change routing policy.
 
 **Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.md), [`evolution_closure_report.md`](../../archive/architecture-legacy/evolution_closure_report.md). **Authority map (code):** `routing_authority` in [`backend/app/runtime/routing/routing_authority.py`](../../backend/app/runtime/routing/routing_authority.py).
 

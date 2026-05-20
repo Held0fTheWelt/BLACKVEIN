@@ -566,7 +566,7 @@ def get_observability_config() -> dict[str, Any]:
     - If enabled but no credentials → health_status is "unconfigured"
     - If credentials missing → is_enabled is automatically False
     """
-    from app.models.governance_core import ObservabilityConfig
+    from app.models.backend.governance_core import ObservabilityConfig
     from app.extensions import db
 
     config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
@@ -636,7 +636,7 @@ def write_observability_credential(
 ) -> dict[str, str]:
     """Write encrypted observability credentials."""
     import uuid
-    from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
     from app.extensions import db
     from app.services.governance.governance_secret_crypto_service import encrypt_secret
 
@@ -709,7 +709,7 @@ def write_observability_credential(
 
 def get_observability_credential_for_runtime(secret_name: str) -> Optional[str]:
     """Retrieve and decrypt an observability credential."""
-    from app.models.governance_core import ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityCredential
     from app.services.governance.governance_secret_crypto_service import decrypt_secret
 
     cred = ObservabilityCredential.query.filter_by(
@@ -1182,7 +1182,7 @@ def persist_observability_health_probe(
 ) -> dict[str, Any]:
     """Persist operator-visible health probe outcome on the Langfuse config row."""
     from app.extensions import db
-    from app.models.governance_core import ObservabilityConfig
+    from app.models.backend.governance_core import ObservabilityConfig
 
     config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
     if config is None:
@@ -1240,7 +1240,7 @@ def run_startup_observability_health_check(actor: str = "system_startup") -> dic
 
 def update_observability_config(config_dict: dict[str, Any], actor: str = "system") -> dict[str, Any]:
     """Update Langfuse observability configuration."""
-    from app.models.governance_core import ObservabilityConfig
+    from app.models.backend.governance_core import ObservabilityConfig
     from app.extensions import db
 
     config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
@@ -1283,7 +1283,7 @@ def update_observability_config(config_dict: dict[str, Any], actor: str = "syste
 
 def disable_observability(actor: str = "system") -> dict[str, Any]:
     """Disable observability by deactivating all credentials."""
-    from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
     from app.extensions import db
 
     active_creds = ObservabilityCredential.query.filter_by(

@@ -143,7 +143,7 @@ Review this ADR if `/api/v1` begins accepting browser cookie authentication, if 
 - [docs/admin/security-governance.md](../admin/security-governance.md)
 - [docs/security/csrf-matrix.md](../security/csrf-matrix.md)
 - [docs/admin/security-and-compliance-overview.md](../admin/security-and-compliance-overview.md)
-- `backend/app/services/security_governance_service.py`
+- `backend/app/services/governance/security_governance_service.py`
 - `backend/app/api/v1/security_governance_routes.py`
 - `administration-tool/templates/manage/security_governance.html`
 - `administration-tool/static/manage_security_governance.js`

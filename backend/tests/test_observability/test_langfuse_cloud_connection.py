@@ -50,7 +50,7 @@ class TestLangfuseCloudConnection:
     def test_langfuse_credentials_from_database(self, app, db_session):
         """Verify Langfuse credentials are loaded from database when configured."""
         from app.observability.langfuse_adapter import LangfuseAdapter
-        from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+        from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
 
         adapter = LangfuseAdapter.get_instance()
         config = db_session.query(ObservabilityConfig).filter_by(service_id="langfuse").first()

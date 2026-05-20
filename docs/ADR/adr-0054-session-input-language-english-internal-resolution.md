@@ -187,7 +187,7 @@ Implemented as of 2026-05-17:
   evidence on the player action frame.
 - `backend/app/api/v1/game_routes.py` accepts, validates, defaults, persists,
   and forwards `session_input_language`.
-- `backend/app/services/game_service.py` forwards the field to World-Engine.
+- `backend/app/services/game/game_service.py` forwards the field to World-Engine.
 - `world-engine/app/api/http.py` accepts the field on story session creation.
 - `world-engine/app/story_runtime/manager.py` stores the field on
   `StorySession` and forwards it into opening and player turns.

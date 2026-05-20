@@ -122,8 +122,8 @@ Use the code that already exists.
 
 | Area | Existing path | Current role |
 |---|---|---|
-| Token budget service | `backend/app/services/observability_governance_service.py` | Session budget config, consumption, degradation decisions |
-| Cost dashboard service | `backend/app/services/observability_governance_service.py` | Session cost summary storage and aggregate report placeholders |
+| Token budget service | `backend/app/services/governance/observability_governance_service.py` | Session budget config, consumption, degradation decisions |
+| Cost dashboard service | `backend/app/services/governance/observability_governance_service.py` | Session cost summary storage and aggregate report placeholders |
 | Override audit types/config | `backend/app/auth/admin_security.py` | `OverrideAuditEvent`, `OverrideAuditConfig`, config manager, filtered logging |
 | Evaluation pipeline | `ai_stack/quality_lab/evaluation_pipeline.py` | Rubric, baseline container, weights, score recording, regression scaffold |
 | Backend governance routes | `backend/app/api/v1/operational_governance_routes.py` | `/admin/mvp4/...` token budget, overrides, evaluation, Langfuse toggle |
@@ -307,7 +307,7 @@ Expected result:
 
 Primary files:
 
-- `backend/app/services/observability_governance_service.py`
+- `backend/app/services/governance/observability_governance_service.py`
 - `backend/app/api/v1/game_routes.py`
 - `world-engine/app/story_runtime/manager.py`
 
@@ -337,7 +337,7 @@ Recommended source of truth:
 
 Primary files:
 
-- `backend/app/services/observability_governance_service.py`
+- `backend/app/services/governance/observability_governance_service.py`
 - `backend/app/api/v1/operational_governance_routes.py`
 
 Required work:

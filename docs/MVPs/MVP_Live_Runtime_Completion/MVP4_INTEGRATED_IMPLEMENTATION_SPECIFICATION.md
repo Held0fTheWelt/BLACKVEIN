@@ -316,7 +316,7 @@ Once Phase B is complete, work CANNOT begin on Phase C governance features. Inst
 
 | Priority | Blocker | Contract(s) | Location | What to Fix |
 |----------|---------|------------|----------|------------|
-| **P1** | **D-007: Actor Ownership Lost** | Contract 1 | `backend/app/services/game_service.py:353-360` | Backend must send `human_actor_id`, `npc_actor_ids`, `actor_lanes` to WE in turn response |
+| **P1** | **D-007: Actor Ownership Lost** | Contract 1 | `backend/app/services/game/game_service.py:353-360` | Backend must send `human_actor_id`, `npc_actor_ids`, `actor_lanes` to WE in turn response |
 | **P2** | **D-006: Empty Shell Playable** | Contract 3 | `backend/app/api/v1/game_routes.py:267` | Validate `story_entries.count > 0` before returning `can_execute=True` |
 | **P3** | **D-001: Turn 0 Not Live** | Contract 2 | `world-engine/app/story_runtime/manager.py:2150` | Turn 0 must use real provider (not deterministic LDSS); mark turn_type correctly |
 | **P4** | **D-013: Error Swallowing** | Contract 4 | `world-engine/app/story_runtime/manager.py:2114` | DiagnosticsEnvelope errors must fail fast + log to Langfuse, never suppressed |
@@ -344,7 +344,7 @@ Execution occurs in **3 sequential waves**:
 
 **WAVE 2: Phase C Blocker Fixes (5 Critical Defects)**
 ```
-├─ Task 2.1: Fix P1 — Actor Ownership (backend/app/services/game_service.py)
+├─ Task 2.1: Fix P1 — Actor Ownership (backend/app/services/game/game_service.py)
 ├─ Task 2.2: Fix P2 — Empty Shell Validation (backend/app/api/v1/game_routes.py)
 ├─ Task 2.3: Fix P3 — Turn 0 Truthfulness (world-engine/app/story_runtime/manager.py)
 ├─ Task 2.4: Fix P4 — Error Handling (world-engine/app/story_runtime/manager.py)
@@ -354,7 +354,7 @@ Execution occurs in **3 sequential waves**:
 
 **WAVE 3: Phase C (Governance + Operator Surfaces)**
 ```
-├─ Task 3.1: Cost-Aware LDSS Degradation (backend/app/services/observability_governance_service.py)
+├─ Task 3.1: Cost-Aware LDSS Degradation (backend/app/services/governance/observability_governance_service.py)
 ├─ Task 3.2: Audit Trail & Override Management (backend/app/auth/admin_security.py)
 ├─ Task 3.3: Evaluation Pipeline (ai_stack/quality_lab/evaluation_pipeline.py)
 ├─ Task 3.4: Health Panels (administration-tool/templates/)
@@ -411,7 +411,7 @@ MVP4 Deployment Ready
 
 ✅ `world-engine/app/story_runtime/manager.py` — Span creation for phases, metadata collection readiness
 
-✅ `backend/app/services/observability_governance_service.py` — Token budget tracking (correct file path, not `backend/app/observability_governance_service.py`)
+✅ `backend/app/services/governance/observability_governance_service.py` — Token budget tracking (correct file path, not `backend/app/observability_governance_service.py`)
 
 ### Must Be Created (Phase B Implementation)
 
@@ -427,7 +427,7 @@ MVP4 Deployment Ready
 
 ### Phase C Will Use (After Blockers Fixed)
 
-- `backend/app/services/observability_governance_service.py` — Cost-aware degradation decisions
+- `backend/app/services/governance/observability_governance_service.py` — Cost-aware degradation decisions
 - `backend/app/auth/admin_security.py` — Audit logging
 - `administration-tool/app/admin_routes.py` — Governance UIs
 - New: `ai_stack/quality_lab/evaluation_pipeline.py` — Baseline rubric, regression detection

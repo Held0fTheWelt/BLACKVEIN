@@ -32,7 +32,7 @@ def schedule_token_blacklist_cleanup(app: Flask) -> None:
                     continue
 
                 with app.app_context():
-                    from app.models.token_blacklist import TokenBlacklist
+                    from app.models.backend.token_blacklist import TokenBlacklist
 
                     deleted_count = TokenBlacklist.cleanup_expired()
                     if deleted_count > 0:

@@ -16,8 +16,8 @@ app = create_app(
 def init_db():
     """Create database tables and seed default roles. Does not create any users.
     Also stamps Alembic at 'head' so that 'flask db upgrade' won't re-run migrations."""
-    from app.models.role import ensure_roles_seeded
-    from app.models.area import ensure_areas_seeded
+    from app.models.backend.role import ensure_roles_seeded
+    from app.models.backend.area import ensure_areas_seeded
     with app.app_context():
         db.create_all()
         ensure_roles_seeded()
@@ -71,8 +71,8 @@ def seed_dev_user(username, password, generate, superadmin):
             print(f"Password rejected: {pw_error}")
             return
 
-    from app.models.role import ensure_roles_seeded
-    from app.models.area import assign_user_area_all, ensure_areas_seeded
+    from app.models.backend.role import ensure_roles_seeded
+    from app.models.backend.area import assign_user_area_all, ensure_areas_seeded
 
     with app.app_context():
         db.create_all()
@@ -144,8 +144,8 @@ def seed_admin_user(username, password, generate):
             print(f"Password rejected: {pw_error}")
             return
 
-    from app.models.role import ensure_roles_seeded
-    from app.models.area import assign_user_area_all, ensure_areas_seeded
+    from app.models.backend.role import ensure_roles_seeded
+    from app.models.backend.area import assign_user_area_all, ensure_areas_seeded
 
     with app.app_context():
         db.create_all()

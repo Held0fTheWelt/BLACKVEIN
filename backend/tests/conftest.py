@@ -10,9 +10,9 @@ from app.config import TestingConfig
 from app.extensions import db, limiter
 from app.services.story_runtime.play_service_control_service import bootstrap_play_service_control
 from app.models import Role, User, SiteSetting
-from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
-from app.models.role import ensure_roles_seeded
-from app.models.area import ensure_areas_seeded
+from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
+from app.models.backend.role import ensure_roles_seeded
+from app.models.backend.area import ensure_areas_seeded
 from werkzeug.security import generate_password_hash
 
 

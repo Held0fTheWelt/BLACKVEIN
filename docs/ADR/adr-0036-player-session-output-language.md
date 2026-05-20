@@ -296,8 +296,8 @@ flowchart TD
 
 ### Backend
 - `backend/app/api/v1/game_routes.py` — extend `POST /api/v1/game/player-sessions` to accept `session_output_language` parameter
-- `backend/app/services/game_service.py` — pass language to `create_story_session()` call
-- `backend/app/models/game_save_slot.py` — persist in `GameSaveSlot.metadata["session_output_language"]`
+- `backend/app/services/game/game_service.py` — pass language to `create_story_session()` call
+- `backend/app/models/world_engine/game_save_slot.py` — persist in `GameSaveSlot.metadata["session_output_language"]`
 - `backend/app/api/errors.py` — add error codes `invalid_output_language`, `unsupported_language`
 
 ### World-Engine

@@ -9,7 +9,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_req
 from flask_jwt_extended import create_access_token as _create_access_token_orig
 
 from app.models import User
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 
 # Role names for validation and checks. Single source for allowed roles.
 ALLOWED_ROLES = ("user", "moderator", "admin", "qa")

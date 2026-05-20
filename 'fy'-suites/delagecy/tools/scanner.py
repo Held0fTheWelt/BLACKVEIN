@@ -92,6 +92,8 @@ def should_scan(path: Path) -> bool:
     """Return whether a file should be scanned."""
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
+    if "delagecy" in path.parts and "reports" in path.parts:
+        return False
     if "delagecy" in path.parts and path.name in {
         "delagecy_registry.json",
         "legacy_removal_tracker.md",

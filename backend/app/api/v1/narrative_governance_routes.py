@@ -23,7 +23,7 @@ from app.models import (
     NarrativeRevisionConflict,
     SiteSetting,
 )
-from app.models.narrative_contracts import DraftPatchBundle, ValidationFeedback
+from app.models.world_engine.narrative_contracts import DraftPatchBundle, ValidationFeedback
 from app.services.governance.narrative_governance_service import (
     NarrativeGovernanceError,
     acknowledge_notification,

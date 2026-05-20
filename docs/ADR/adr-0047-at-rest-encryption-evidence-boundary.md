@@ -129,8 +129,8 @@ Review this ADR if a persisted surface is added, a local-only store becomes prod
 - [docs/admin/security-and-compliance-overview.md](../admin/security-and-compliance-overview.md)
 - [docs/database/README.md](../database/README.md)
 - [backend/docs/ENCRYPTION.md](../../backend/docs/ENCRYPTION.md)
-- `backend/app/services/governance_secret_crypto_service.py`
-- `backend/app/services/encryption_service.py`
+- `backend/app/services/governance/governance_secret_crypto_service.py`
+- `backend/app/services/identity/encryption_service.py`
 - `docker-compose.yml`
 - `docker-compose.langfuse.yml`
 - `world-engine/app/runtime/store.py`

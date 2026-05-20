@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from app.extensions import db
 from app.models import Role, User
-from app.models.area import assign_user_area_all, ensure_areas_seeded
-from app.models.role import ensure_roles_seeded
+from app.models.backend.area import assign_user_area_all, ensure_areas_seeded
+from app.models.backend.role import ensure_roles_seeded
 
 
 def seed_base_governance_setup() -> str:

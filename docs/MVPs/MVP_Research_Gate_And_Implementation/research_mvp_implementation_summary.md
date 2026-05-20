@@ -57,7 +57,7 @@ This implementation realizes the bounded Research-and-Canon-Improvement MVP defi
   - MCP-level hard budget validation for `wos.research.explore`.
 
 ## RAG support extension
-- `ai_stack/rag.py`
+- `ai_stack/rag/__init__.py`
   - added retrieval domain `research` and aligned profile metadata for deterministic retrieval usage in research workflows.
 
 ## Determinism enforcement

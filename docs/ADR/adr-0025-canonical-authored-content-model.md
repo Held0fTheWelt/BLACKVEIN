@@ -13,7 +13,7 @@ Accepted
   live as separate authority surfaces.
 - `backend/app/content/module_loader.py` and `backend/app/content/module_models.py` are the authoritative ingestion surface.
 - `backend/app/content/compiler/` compiles to three projections: `runtime_projection`, `retrieval_corpus_seed`, `review_export_seed`.
-- World-Engine, review tools, and RAG (`ai_stack/rag.py`) consume compiled projections.
+- World-Engine, review tools, and RAG (`ai_stack/rag/__init__.py`) consume compiled projections.
 - `docs/technical/content/canonical_authored_content_model.md` and `docs/dev/architecture/content-modules-and-compiler-pipeline.md` document the pipeline with "Migrated Decision: See ADR-0025" pointers.
 - YAML > published snapshots > writers-room > builtins authority precedence is enforced in the loader.
 - Status promoted from "Proposed" because the decision has been stable through MVP1–MVP4.

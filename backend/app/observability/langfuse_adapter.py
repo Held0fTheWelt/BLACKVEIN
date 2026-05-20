@@ -75,7 +75,7 @@ class LangfuseConfig:
     def _get_config_from_db() -> dict[str, Any]:
         """Get Langfuse configuration from the governed runtime database."""
         try:
-            from app.models.governance_core import ObservabilityConfig
+            from app.models.backend.governance_core import ObservabilityConfig
             config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
             if config:
                 return {

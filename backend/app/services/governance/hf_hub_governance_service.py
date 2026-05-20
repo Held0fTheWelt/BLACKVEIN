@@ -23,7 +23,7 @@ HF_HUB_SECRET_NAME = "hub_token"
 
 
 def _decrypt_observability_secret(service_id: str, secret_name: str) -> Optional[str]:
-    from app.models.governance_core import ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityCredential
     from app.services.governance.governance_secret_crypto_service import decrypt_secret
 
     cred = ObservabilityCredential.query.filter_by(
@@ -54,7 +54,7 @@ def get_hf_hub_token_for_runtime() -> Optional[str]:
 
 def get_hf_hub_status() -> dict[str, Any]:
     """Public status for admin UI (no plaintext secrets)."""
-    from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
 
     config = ObservabilityConfig.query.filter_by(service_id=HF_HUB_SERVICE_ID).first()
     active = ObservabilityCredential.query.filter_by(
@@ -79,7 +79,7 @@ def write_hf_hub_token(token: str, actor: str = "system") -> dict[str, str]:
     from datetime import datetime, timezone
 
     from app.extensions import db
-    from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
     from app.services.governance.governance_secret_crypto_service import encrypt_secret
 
     raw = (token or "").strip()
@@ -131,7 +131,7 @@ def write_hf_hub_token(token: str, actor: str = "system") -> dict[str, str]:
 def clear_hf_hub_token(actor: str = "system") -> dict[str, Any]:
     """Deactivate stored token; does not clear ``HF_TOKEN`` from process env (restart to drop)."""
     from app.extensions import db
-    from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
+    from app.models.backend.governance_core import ObservabilityConfig, ObservabilityCredential
 
     ObservabilityCredential.query.filter_by(
         service_id=HF_HUB_SERVICE_ID,
@@ -154,7 +154,7 @@ def test_hf_hub_connection(actor: str = "system") -> dict[str, Any]:
     from datetime import datetime, timezone
 
     from app.extensions import db
-    from app.models.governance_core import ObservabilityConfig
+    from app.models.backend.governance_core import ObservabilityConfig
 
     token = get_hf_hub_token_for_runtime() or (os.environ.get("HF_TOKEN") or "").strip()
     if not token:

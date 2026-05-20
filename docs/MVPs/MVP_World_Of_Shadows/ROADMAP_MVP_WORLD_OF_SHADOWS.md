@@ -65,7 +65,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`
 - **MCP control-plane surface** in `ai_stack/mcp/mcp_canonical_surface.py`
 - **Governed retrieval and provenance shaping** in:
-  - `ai_stack/rag.py`
+  - `ai_stack/rag/__init__.py`
   - `ai_stack/retrieval_governance_summary.py`
 - **Scene direction and dramatic parameter logic** in:
   - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`

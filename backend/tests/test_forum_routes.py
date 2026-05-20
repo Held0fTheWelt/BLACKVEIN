@@ -18,8 +18,8 @@ from app.models import (
     ForumTag,
     ForumThreadTag,
 )
-from app.models.forum import ModeratorAssignment
-from app.models.activity_log import ActivityLog
+from app.models.backend.forum import ModeratorAssignment
+from app.models.backend.activity_log import ActivityLog
 from app.api.v1.forum_routes import (
     _enrich_report_dict,
     _parse_int,

@@ -17,7 +17,7 @@ from app.auth.permissions import (
 )
 from app.auth.admin_security import admin_security, admin_security_sensitive
 from app.extensions import limiter, db
-from app.models.user import SUPERADMIN_THRESHOLD
+from app.models.backend.user import SUPERADMIN_THRESHOLD
 from app.services import log_activity
 from app.services.identity.user_service import (
     ban_user as ban_user_service,
@@ -59,7 +59,7 @@ def _log_privilege_change(admin_id: int, user_id: int, old_role: str, new_role: 
     Log a privilege/role change with security alerts for SuperAdmin grants.
     Logs to both application logger and activity log.
     """
-    from app.models.user import SUPERADMIN_THRESHOLD
+    from app.models.backend.user import SUPERADMIN_THRESHOLD
 
     admin_name = f"admin_id={admin_id}"
     current_admin = get_user_by_id(admin_id) if admin_id else None

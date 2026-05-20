@@ -193,10 +193,10 @@ MVP4 should be considered satisfied only when the following remain true:
 
 ## References
 
-- `backend/app/services/game_service.py`
+- `backend/app/services/game/game_service.py`
 - `backend/app/api/v1/game_routes.py`
 - `backend/app/api/v1/operational_governance_routes.py`
-- `backend/app/services/observability_governance_service.py`
+- `backend/app/services/governance/observability_governance_service.py`
 - `frontend/app/routes_play.py`
 - `world-engine/app/story_runtime/manager.py`
 - `world-engine/app/api/http.py`

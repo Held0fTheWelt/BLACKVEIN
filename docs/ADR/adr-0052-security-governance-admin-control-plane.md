@@ -139,5 +139,5 @@ Review this ADR if the admin page begins storing raw secrets, triggering secret-
 - `administration-tool/templates/manage/security_governance.html`
 - `administration-tool/static/manage_security_governance.js`
 - `backend/app/api/v1/security_governance_routes.py`
-- `backend/app/services/security_governance_service.py`
+- `backend/app/services/governance/security_governance_service.py`
 - `docker-up.py`

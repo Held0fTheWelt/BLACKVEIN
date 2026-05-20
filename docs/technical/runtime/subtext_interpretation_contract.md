@@ -72,5 +72,5 @@ Forbidden primary oracles:
 - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `world-engine/app/story_runtime/manager.py`
-- `backend/app/services/inspector_turn_projection_assembly_helpers.py`
-- `backend/app/services/operator_turn_history_service.py`
+- `backend/app/services/inspector/inspector_turn_projection_assembly_helpers.py`
+- `backend/app/services/story_runtime/operator_turn_history_service.py`

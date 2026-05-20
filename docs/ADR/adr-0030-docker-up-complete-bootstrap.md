@@ -236,5 +236,5 @@ flowchart TD
 - `.env.example`
 - `backend/.env.example`
 - `backend/app/factory_app.py`
-- `backend/app/services/observability_governance_service.py`
+- `backend/app/services/governance/observability_governance_service.py`
 - `backend/app/api/v1/observability_governance_routes.py`
