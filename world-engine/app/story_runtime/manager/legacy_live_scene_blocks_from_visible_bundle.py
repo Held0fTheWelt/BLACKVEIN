@@ -1,3 +1,7 @@
+"""Legacy live-scene block facade.
+
+Exports compatibility live-scene block extraction from visible bundles while the original method remains chunked.
+"""
 from __future__ import annotations
 
 import sys

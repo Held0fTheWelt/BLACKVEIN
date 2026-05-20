@@ -1,3 +1,7 @@
+"""Content language helpers.
+
+Determines session language surfaces and localized content hints used by narrator and player-visible outputs.
+"""
 from __future__ import annotations
 
 from ._deps import *

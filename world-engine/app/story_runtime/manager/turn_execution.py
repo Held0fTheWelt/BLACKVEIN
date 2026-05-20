@@ -1,3 +1,7 @@
+"""Turn execution orchestration.
+
+Coordinates the core manager turn execution flow from input through runtime graph, commit, persistence, and output packaging.
+"""
 from __future__ import annotations
 
 from ._deps import *

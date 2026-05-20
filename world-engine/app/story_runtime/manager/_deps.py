@@ -1,3 +1,7 @@
+"""Manager dependency aliases.
+
+Collects dependency imports that are shared by compatibility-loaded manager methods and newer split manager modules.
+"""
 from __future__ import annotations
 
 import logging

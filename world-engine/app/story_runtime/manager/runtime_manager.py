@@ -1,3 +1,7 @@
+"""Story runtime manager class.
+
+Defines the manager class that coordinates sessions, turn execution, persistence, diagnostics, and split helper modules.
+"""
 from __future__ import annotations
 
 from .manager_init_and_persistence import _ManagerInitAndPersistenceMixin

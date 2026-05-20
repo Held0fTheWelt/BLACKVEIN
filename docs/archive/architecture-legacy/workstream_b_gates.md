@@ -1,7 +1,7 @@
 # routing governance Workstream B Gates — Reproducibility
 
 This document lists the Workstream B reproducibility gates for routing governance.
-Canonical command surface: `validation_commands` in `backend/app/runtime/validation_commands.py`.
+Canonical command surface: `validation_commands` in `backend/app/runtime/validation/validators.py`.
 
 ## Gate Table
 

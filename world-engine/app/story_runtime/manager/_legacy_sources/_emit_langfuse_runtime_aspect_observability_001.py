@@ -1,3 +1,7 @@
+"""Runtime-aspect observability source chunk 001.
+
+Contributes ordered source lines for legacy Langfuse runtime-aspect observability emission. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
                 "selected": symbolic_object_selected,
                 "aspect_record": _rec(ASPECT_SYMBOLIC_OBJECT_RESONANCE),

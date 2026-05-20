@@ -1,3 +1,7 @@
+"""Recoverable aspect-ledger helpers.
+
+Builds aspect-ledger records for recoverable failures and player-safe fallback turns.
+"""
 from __future__ import annotations
 
 from ._deps import *

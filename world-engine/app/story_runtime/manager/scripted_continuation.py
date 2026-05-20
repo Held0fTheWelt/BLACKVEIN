@@ -1,3 +1,7 @@
+"""Scripted continuation helpers.
+
+Provides deterministic scripted continuation paths used when model-driven continuation is unavailable or not desired.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""W5 projection helpers.
+
+Projects who/what/where/when/why actor tracking fields into manager-visible runtime state.
+"""
 from __future__ import annotations
 
 from .._deps import *

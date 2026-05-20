@@ -1,3 +1,7 @@
+"""Session-loop governance helpers.
+
+Applies governance rules around session loops, autonomous continuation, and playable turn boundaries.
+"""
 from __future__ import annotations
 
 from ._deps import *

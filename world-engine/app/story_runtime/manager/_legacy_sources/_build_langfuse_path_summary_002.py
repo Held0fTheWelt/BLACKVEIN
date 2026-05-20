@@ -1,3 +1,7 @@
+"""Langfuse path summary source chunk 002.
+
+Contributes ordered source lines for the legacy path-summary builder used by Langfuse observability. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
         "narrator_path_selected": narrator_path_selected,
         "director_narrator_path_plan": graph_state.get("director_narrator_path_plan")

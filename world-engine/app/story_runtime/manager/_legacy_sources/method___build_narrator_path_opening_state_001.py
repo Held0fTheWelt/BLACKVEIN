@@ -1,3 +1,7 @@
+"""Narrator path opening-state source chunk 001.
+
+Contributes ordered source lines for the legacy manager method that builds narrator opening-path state. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             ),
         )

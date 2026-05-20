@@ -1,3 +1,7 @@
+"""Session payload builders.
+
+Builds API-facing payloads for session state, turn results, diagnostics, and visible projections.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Legacy source manifest.
+
+Lists ordered legacy source chunks and their target methods so the compatibility loader can assemble them deterministically.
+"""
 from __future__ import annotations
 
 SOURCE_CHUNKS = {

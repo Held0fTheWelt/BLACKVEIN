@@ -1,3 +1,7 @@
+"""Live-scene block source chunk 000.
+
+Contributes ordered source lines for extracting live-scene blocks from visible projection bundles. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
 def _live_scene_blocks_from_visible_bundle(
     visible_output_bundle: dict[str, Any] | None,

@@ -1,3 +1,7 @@
+"""Legacy Langfuse path summary facade.
+
+Exports the compatibility wrapper for building Langfuse path summaries from ordered legacy source chunks.
+"""
 from __future__ import annotations
 
 from ._deps import *

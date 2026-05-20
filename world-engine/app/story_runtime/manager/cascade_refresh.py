@@ -1,3 +1,7 @@
+"""Cascade refresh orchestration.
+
+Refreshes derived runtime state after commits so session projections, diagnostics, and visible surfaces stay aligned.
+"""
 from __future__ import annotations
 
 from ._deps import *

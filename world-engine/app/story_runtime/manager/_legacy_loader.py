@@ -1,3 +1,7 @@
+"""Legacy manager source loader.
+
+Assembles ordered legacy source chunks into callable manager methods while larger manager responsibilities are still being promoted into normal modules.
+"""
 from __future__ import annotations
 
 import sys

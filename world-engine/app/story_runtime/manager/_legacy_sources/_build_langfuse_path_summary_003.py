@@ -1,3 +1,7 @@
+"""Langfuse path summary source chunk 003.
+
+Contributes ordered source lines for the legacy path-summary builder used by Langfuse observability. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             if isinstance(scene_plan_record.get("expectation_variation_state"), dict)
             else {}

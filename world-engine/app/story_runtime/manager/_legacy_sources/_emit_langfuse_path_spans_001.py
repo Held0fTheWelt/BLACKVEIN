@@ -1,3 +1,7 @@
+"""Langfuse path-span source chunk 001.
+
+Contributes ordered source lines for legacy emission of Langfuse path spans around runtime path work. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             },
         ),

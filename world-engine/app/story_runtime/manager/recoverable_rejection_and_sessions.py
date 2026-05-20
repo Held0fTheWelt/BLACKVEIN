@@ -1,3 +1,7 @@
+"""Recoverable rejection and session helpers.
+
+Handles recoverable validation rejections while preserving session history and playable continuation state.
+"""
 from __future__ import annotations
 
 from ._deps import *

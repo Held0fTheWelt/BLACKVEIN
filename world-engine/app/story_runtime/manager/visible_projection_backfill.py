@@ -1,3 +1,7 @@
+"""Visible projection backfill helpers.
+
+Backfills visible projection records from committed state when direct projection data is missing or stale.
+"""
 from __future__ import annotations
 
 from ._deps import *

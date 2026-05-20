@@ -35,14 +35,27 @@ TEXT_SUFFIXES = {
 }
 
 EXCLUDED_PARTS = {
+    ".claude",
+    ".cursor",
+    ".idea",
+    ".project",
     ".git",
     ".mypy_cache",
     ".pytest_cache",
+    ".pytest_tmp",
     ".ruff_cache",
+    ".scripts",
     ".state_tmp",
+    ".tmp_goc_pdf",
     ".venv",
+    ".vscode",
+    ".worktrees",
+    ".wos",
     "__pycache__",
+    "htmlcov",
     "node_modules",
+    "tmp",
+    "tmp_coauth_dbg",
     "venv",
 }
 
@@ -127,6 +140,8 @@ def iter_files(root: Path, include: Iterable[str] | None = None) -> Iterable[Pat
                 for name in dirnames
                 if name not in EXCLUDED_PARTS
                 and not (name == "reports" and "delagecy" in (current / name).parts)
+                and not (name == "var" and current.name == "backend")
+                and not (name == "archive" and current.name == "docs")
             ]
             for filename in filenames:
                 path = current / filename

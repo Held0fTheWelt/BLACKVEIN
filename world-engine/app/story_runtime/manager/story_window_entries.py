@@ -1,3 +1,7 @@
+"""Story-window entry helpers.
+
+Builds story-window history entries from committed turns for context retrieval and player-visible continuity.
+"""
 from __future__ import annotations
 
 from ._deps import *

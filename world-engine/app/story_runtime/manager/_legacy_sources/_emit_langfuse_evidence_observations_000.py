@@ -1,3 +1,7 @@
+"""Langfuse evidence observation source chunk 000.
+
+Contributes ordered source lines for legacy emission of evidence observations into Langfuse. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
 def _emit_langfuse_evidence_observations(
     *,

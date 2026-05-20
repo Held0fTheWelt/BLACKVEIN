@@ -1,3 +1,7 @@
+"""Narrator output realization.
+
+Turns narrative commit state and model output into narrator-visible text and structured player-facing blocks.
+"""
 from __future__ import annotations
 
 from ._deps import *

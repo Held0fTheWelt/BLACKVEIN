@@ -1,3 +1,7 @@
+"""Actor turn summary helpers.
+
+Builds compact actor-level turn summaries from visible projection, responder state, and committed runtime truth.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Live-scene turn envelope helpers.
+
+Builds the live-scene envelope that carries committed turn text, actor lines, diagnostics, and player-visible metadata.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,0 +1,23 @@
+# Validation Hardening Gates
+
+This document lists the closure gates for validation hardening.
+Canonical command surface: `validation_commands` in `backend/app/runtime/validation/validators.py`.
+Gate table: `validation_hardening_gates.md`. Closure report: `validation_hardening_closure_report.md`.
+
+## Gate Table
+
+| Gate | Description |
+|------|-------------|
+| G-T4-01 | Runtime, Writers-Room, and Improvement each have proven integration contract truth. |
+| G-T4-02 | Named profiles, bootstrap on/off, and real create_app bootstrap-on staged path. |
+| G-T4-03 | compact_operator_comparison grammar and cross-surface contract regression layers. |
+| G-T4-04 | Degraded Runtime paths and Improvement missing-adapter honesty. |
+| G-T4-05 | Audit schema and routing-evidence stable key expectations. |
+| G-T4-06 | testing-setup.md embeds the exact canonical validation hardening invocation from code. |
+| G-T4-07 | Full proof module list passes via subprocess (excludes gate orchestrator). |
+| G-T4-08 | Required architecture docs reference every G-T4 gate and the command surface. |
+
+## Command Surface Reference
+
+`validation_commands` (`TASK4_FULL_CLOSURE_PYTEST_MODULES`, `task4_full_closure_pytest_invocation`)
+in `backend/app/runtime/validation/validators.py`.

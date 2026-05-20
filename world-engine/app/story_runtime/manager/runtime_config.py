@@ -1,3 +1,7 @@
+"""Runtime configuration projection.
+
+Resolves manager runtime configuration, governed runtime status, and public truth surfaces.
+"""
 from __future__ import annotations
 
 from ._deps import *

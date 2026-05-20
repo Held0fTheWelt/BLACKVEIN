@@ -356,7 +356,7 @@ RUNTIME_FILES_UNTOUCHED_BY_PR_0 = (
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/live_dramatic_scene_simulator.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/story_runtime/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger/__init__.py",
     "ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py",
     "ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py",
     "world-engine/app/story_runtime/manager/dramatic_context_authority.py",

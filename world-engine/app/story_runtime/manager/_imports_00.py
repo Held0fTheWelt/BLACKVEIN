@@ -1,3 +1,7 @@
+"""Manager compatibility import surface.
+
+Provides the first import bundle used by legacy-loaded manager source so split methods can keep their original names and runtime dependencies.
+"""
 from __future__ import annotations
 
 import logging

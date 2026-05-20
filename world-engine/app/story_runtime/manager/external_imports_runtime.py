@@ -1,3 +1,7 @@
+"""External runtime import compatibility.
+
+Centralizes runtime-specific imports used by turn execution, session lifecycle, and visible projection modules.
+"""
 from __future__ import annotations
 
 from ai_stack.story_runtime.narrator.god_of_carnage_narrator_path import (

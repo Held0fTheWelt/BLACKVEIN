@@ -1,3 +1,7 @@
+"""No-dead-end recovery helpers.
+
+Builds playable recovery output when validation or graph execution rejects a turn without ending the session.
+"""
 from __future__ import annotations
 
 from ._deps import *

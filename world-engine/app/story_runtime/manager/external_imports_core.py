@@ -1,3 +1,7 @@
+"""External core import compatibility.
+
+Centralizes core imports used by split manager modules that still mirror legacy manager behaviour.
+"""
 from __future__ import annotations
 
 import logging

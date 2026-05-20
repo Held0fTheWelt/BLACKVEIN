@@ -1,3 +1,7 @@
+"""Langfuse path-span source chunk 000.
+
+Contributes ordered source lines for legacy emission of Langfuse path spans around runtime path work. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
 def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
     try:

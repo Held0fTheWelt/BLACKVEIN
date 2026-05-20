@@ -1,3 +1,7 @@
+"""Visible-projection aspect source chunk 001.
+
+Contributes ordered source lines for recording visible-projection aspect observations. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             source="projection",
             failure_class=(

@@ -1,3 +1,7 @@
+"""Opening fallback observability.
+
+Records diagnostics for fallback opening output so startup failures remain inspectable and player-safe.
+"""
 from __future__ import annotations
 
 from ._deps import *

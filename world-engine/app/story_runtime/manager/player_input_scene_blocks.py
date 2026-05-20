@@ -1,3 +1,7 @@
+"""Player input scene-block helpers.
+
+Extracts scene-block context around player input for runtime prompts, diagnostics, and visible projections.
+"""
 from __future__ import annotations
 
 from ._deps import *

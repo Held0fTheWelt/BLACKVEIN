@@ -1,11 +1,11 @@
-# routing governance Task 3 Operator Comparison Closure Report
+# Operator Comparison Closure Report
 
-This report documents closure of routing governance Task 3 (operator comparison grammar) gates.
+This report documents closure of operator comparison grammar gates.
 Grammar version: `operator_comparison_v1`. Key field: `compact_operator_comparison`.
 
 ## Closure Status
 
-All Task 3 gates are closed.
+All operator comparison gates are closed.
 
 ## Gate Summary
 

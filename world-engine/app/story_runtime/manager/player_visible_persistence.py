@@ -1,3 +1,7 @@
+"""Player-visible persistence helpers.
+
+Persists player-visible turn events and rendered surfaces after authoritative runtime commit.
+"""
 from __future__ import annotations
 
 from ._deps import *

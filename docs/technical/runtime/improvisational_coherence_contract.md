@@ -214,7 +214,7 @@ sentence is the correct improvisational response.
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/story_runtime/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `world-engine/app/story_runtime/manager.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
 

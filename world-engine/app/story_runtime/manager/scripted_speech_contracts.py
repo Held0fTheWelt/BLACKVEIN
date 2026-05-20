@@ -1,3 +1,7 @@
+"""Scripted speech contracts.
+
+Normalizes scripted speech lines and actor contracts before they enter visible projection or session history.
+"""
 from __future__ import annotations
 
 from ._deps import *

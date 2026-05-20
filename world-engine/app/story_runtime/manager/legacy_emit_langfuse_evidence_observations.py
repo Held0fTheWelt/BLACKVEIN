@@ -1,3 +1,7 @@
+"""Legacy Langfuse evidence facade.
+
+Exports the compatibility wrapper for emitting evidence observations to Langfuse from legacy source chunks.
+"""
 from __future__ import annotations
 
 from ._deps import *

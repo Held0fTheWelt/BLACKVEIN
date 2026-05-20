@@ -1,3 +1,7 @@
+"""Prior narrative context readers.
+
+Reads prior narrative context from session history for continuity, planning, and validator inputs.
+"""
 from __future__ import annotations
 
 from ._deps import *

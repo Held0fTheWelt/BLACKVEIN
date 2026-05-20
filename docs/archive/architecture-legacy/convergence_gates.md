@@ -23,7 +23,7 @@ The following Task 2 gate identifiers (G-T2-01 … G-T2-08) are cross-referenced
 to provide documentation continuity:
 G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08.
 
-See [`task2_closure_gates.md`](task2_closure_gates.md) for the Task 2 gate table.
+See [`registry_routing_convergence_gates.md`](registry_routing_convergence_gates.md) for the registry/routing convergence gate table.
 
 ## Authority Reference
 

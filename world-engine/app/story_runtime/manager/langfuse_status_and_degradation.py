@@ -1,3 +1,7 @@
+"""Langfuse status and degradation helpers.
+
+Builds Langfuse health status and fallback degradation records for runtime observability.
+"""
 from __future__ import annotations
 
 from ._deps import *

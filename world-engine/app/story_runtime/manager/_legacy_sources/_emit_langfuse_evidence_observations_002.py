@@ -1,3 +1,7 @@
+"""Langfuse evidence observation source chunk 002.
+
+Contributes ordered source lines for legacy emission of evidence observations into Langfuse. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
         # short-path — so dashboards observe degraded/fallback behaviour rather than gaps.
         _action_diag = _compute_action_consequence_diagnostics(path_summary)

@@ -1,3 +1,7 @@
+"""Legacy runtime-aspect observability facade.
+
+Exports compatibility runtime-aspect Langfuse emission assembled from ordered legacy source chunks.
+"""
 from __future__ import annotations
 
 from ._deps import *

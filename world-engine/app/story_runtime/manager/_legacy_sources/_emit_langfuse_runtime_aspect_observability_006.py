@@ -1,3 +1,7 @@
+"""Runtime-aspect observability source chunk 006.
+
+Contributes ordered source lines for legacy Langfuse runtime-aspect observability emission. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
         (
             "recoverable_turn_http_200",

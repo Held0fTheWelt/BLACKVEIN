@@ -1,3 +1,7 @@
+"""Legacy manager method bindings.
+
+Attaches compatibility-loaded legacy methods to the runtime manager class without reopening the large pre-split manager file.
+"""
 from __future__ import annotations
 
 from ._deps import *

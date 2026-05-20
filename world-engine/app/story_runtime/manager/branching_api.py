@@ -1,3 +1,7 @@
+"""Branching API mixin functions.
+
+Provides manager-facing API methods for branch selection, simulation, and branch timeline inspection.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Manager initialization and persistence.
+
+Initializes runtime manager storage, session indexes, and persistence surfaces used across turn execution.
+"""
 from __future__ import annotations
 
 from ._deps import *

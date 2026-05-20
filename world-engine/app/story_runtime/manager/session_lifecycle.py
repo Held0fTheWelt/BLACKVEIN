@@ -1,3 +1,7 @@
+"""Session lifecycle helpers.
+
+Creates, resumes, and closes story-runtime sessions while maintaining authoritative session state.
+"""
 from __future__ import annotations
 
 from ._deps import *

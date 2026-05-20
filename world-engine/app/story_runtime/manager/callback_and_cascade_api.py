@@ -1,3 +1,7 @@
+"""Callback and cascade API helpers.
+
+Coordinates manager callbacks and cascade refresh entrypoints used after state-changing turn operations.
+"""
 from __future__ import annotations
 
 from ._deps import *

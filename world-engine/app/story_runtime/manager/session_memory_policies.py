@@ -1,3 +1,7 @@
+"""Session memory policy helpers.
+
+Controls how session memory is retained, summarized, and exposed to later runtime turns.
+"""
 from __future__ import annotations
 
 from ._deps import *

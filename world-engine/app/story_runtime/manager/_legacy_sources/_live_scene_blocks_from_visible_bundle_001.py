@@ -1,3 +1,7 @@
+"""Live-scene block source chunk 001.
+
+Contributes ordered source lines for extracting live-scene blocks from visible projection bundles. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
                         selected_player_role=role,
                     ):

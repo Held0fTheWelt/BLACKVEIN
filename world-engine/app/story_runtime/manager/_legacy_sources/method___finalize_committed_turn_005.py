@@ -1,3 +1,7 @@
+"""Committed-turn finalization source chunk 005.
+
+Contributes ordered source lines for the legacy manager method that finalizes committed turns. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             "dramatic_context_summary": dramatic_context_summary,
             "actor_turn_summary": actor_turn_summary,

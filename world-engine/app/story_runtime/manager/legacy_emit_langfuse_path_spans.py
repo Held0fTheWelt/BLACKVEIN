@@ -1,3 +1,7 @@
+"""Legacy Langfuse path-span facade.
+
+Exports the compatibility wrapper for emitting Langfuse path spans while the observability path remains source-chunked.
+"""
 from __future__ import annotations
 
 from ._deps import *

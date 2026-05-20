@@ -1,3 +1,7 @@
+"""Langfuse path summary source chunk 001.
+
+Contributes ordered source lines for the legacy path-summary builder used by Langfuse observability. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
     branching_forecast = (
         event.get("branching_forecast")

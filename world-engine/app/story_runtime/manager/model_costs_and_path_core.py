@@ -1,3 +1,7 @@
+"""Model cost and path-core helpers.
+
+Tracks model invocation cost metadata and canonical path fields that must survive turn commits.
+"""
 from __future__ import annotations
 
 from ._deps import *

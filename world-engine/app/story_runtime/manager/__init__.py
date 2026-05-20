@@ -1,3 +1,7 @@
+"""Story runtime manager package.
+
+Exposes the manager package boundary for session lifecycle, turn execution, visible projection, persistence, and legacy Langfuse support modules.
+"""
 from __future__ import annotations
 
 from importlib import import_module

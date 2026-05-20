@@ -99,5 +99,5 @@ flowchart LR
 
 - [docs/technical/ai/rag_runtime_integration.md](../technical/ai/rag_runtime_integration.md)
 - `world-engine/app/story_runtime/manager.py`, `world-engine/app/story_runtime/commit_models.py`
-- `ai_stack/story_runtime/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - Existing contracts: `docs/technical/runtime/callback_web_contract.md`, `docs/technical/runtime/consequence_cascade_contract.md`

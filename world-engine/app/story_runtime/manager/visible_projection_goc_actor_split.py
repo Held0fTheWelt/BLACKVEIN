@@ -1,3 +1,7 @@
+"""God of Carnage actor visible projection.
+
+Splits visible projection into actor-specific God of Carnage surfaces for player-facing output.
+"""
 from __future__ import annotations
 
 from ._deps import *

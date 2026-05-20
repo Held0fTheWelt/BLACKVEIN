@@ -40,7 +40,7 @@ surfaces:
 
   - surface_id: ai_stack_runtime_aspect_ledger
     primary_files:
-      - ai_stack/story_runtime/runtime_aspect_ledger.py
+      - ai_stack/story_runtime/runtime_aspect_ledger/__init__.py
     symbols:
       - normalize_runtime_aspect_ledger
       - build_runtime_intelligence_projection
@@ -60,7 +60,7 @@ surfaces:
   - surface_id: adr0041_scoped_co_authority_and_readiness_consumer
     primary_files:
       - ai_stack/story_runtime/runtime_readiness_consumer.py
-      - ai_stack/story_runtime/runtime_aspect_ledger.py
+      - ai_stack/story_runtime/runtime_aspect_ledger/__init__.py
     symbols:
       - resolve_runtime_readiness_with_adr0041
     runtime_role: Veto-only readiness overlay; scoped co-authority preview bounded by flags and sidecar
@@ -178,7 +178,7 @@ surfaces:
     primary_files:
       - ai_stack/contracts/active_listening_contracts.py
       - ai_stack/langgraph/langgraph_runtime_executor.py
-      - ai_stack/story_runtime/runtime_aspect_ledger.py
+      - ai_stack/story_runtime/runtime_aspect_ledger/__init__.py
     symbols:
       - derive_broad_nlu_listening
       - derive_conversational_memory_context

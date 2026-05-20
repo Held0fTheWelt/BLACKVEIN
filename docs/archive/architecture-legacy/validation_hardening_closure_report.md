@@ -1,12 +1,12 @@
-# routing governance Task 4 Validation Hardening Closure Report
+# Validation Hardening Closure Report
 
-This report documents closure of routing governance Task 4 (validation hardening) gates.
-Canonical command surface: `validation_commands` in `backend/app/runtime/validation_commands.py`.
-Gate table: `task4_closure_gates.md`. Closure report: `validation_hardening_closure_report.md`.
+This report documents closure of validation hardening gates.
+Canonical command surface: `validation_commands` in `backend/app/runtime/validation/validators.py`.
+Gate table: `validation_hardening_gates.md`. Closure report: `validation_hardening_closure_report.md`.
 
 ## Closure Status
 
-All Task 4 gates are closed.
+All validation hardening gates are closed.
 
 ## Gate Summary
 
@@ -15,9 +15,9 @@ All Task 4 gates are closed.
 - **G-T4-03**: compact_operator_comparison grammar cross-surface contract confirmed.
 - **G-T4-04**: Degraded Runtime and Improvement honesty verified.
 - **G-T4-05**: Audit schema drift resistance confirmed.
-- **G-T4-06**: testing-setup.md embeds canonical Task 4 invocation.
+- **G-T4-06**: testing-setup.md embeds canonical validation hardening invocation.
 - **G-T4-07**: Full proof-suite passes via subprocess.
-- **G-T4-08**: Documentation references all G-T4 gates, task4_closure_gates.md, validation_hardening_closure_report.md, and validation_commands.
+- **G-T4-08**: Documentation references all G-T4 gates, validation_hardening_gates.md, validation_hardening_closure_report.md, and validation_commands.
 
 ## Canonical Invocation (from `task4_full_closure_pytest_invocation(no_cov=True)`)
 

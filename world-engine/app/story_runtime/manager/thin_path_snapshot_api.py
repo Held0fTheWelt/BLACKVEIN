@@ -1,3 +1,7 @@
+"""Thin path snapshot API helpers.
+
+Builds compact path snapshots for diagnostics and lightweight external inspection.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Opening visible projection helpers.
+
+Builds visible projection state for opening turns and initial scene presentation.
+"""
 from __future__ import annotations
 
 from ._deps import *

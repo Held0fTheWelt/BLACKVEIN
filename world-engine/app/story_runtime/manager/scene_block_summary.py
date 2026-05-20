@@ -1,3 +1,7 @@
+"""Scene-block summary helpers.
+
+Summarizes scene blocks for compact diagnostics, prompts, and player-visible turn metadata.
+"""
 from __future__ import annotations
 
 from ._deps import *

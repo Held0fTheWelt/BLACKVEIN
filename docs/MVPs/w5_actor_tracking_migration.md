@@ -171,10 +171,35 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - [x] World-Engine W5 manager helpers live under `world-engine/app/story_runtime/manager/actor_tracking/`; core W5 files live under `ai_stack/actor_tracking/`.
 - [x] No legacy localization fields, `current_room`, `actor_locations`, `complete_actor_locations_for_gathering`, `gathering_scene_id`, or projection fallbacks are removed in this phase.
 
-### Phase 6 — Legacy localization decommission (planned)
+### Phase 6A — Legacy consumer-removal inventory (complete)
+
+**Goal:** Produce a complete, classified inventory of every remaining direct consumer, writer, compatibility alias, test dependency, doc reference, and runtime fallback related to the legacy localization / current-room system so Phase 6B can remove or convert them safely. **No code is removed in Phase 6A.**
+
+- [x] Confirmed forbidden packages absent: `ai_stack/actor_situation/` and `ai_stack/w5_actor_situation/` do not exist on disk and have **zero** active `import` references in the working tree.
+- [x] Confirmed active W5 packages are the only W5 surfaces:
+  - `ai_stack/actor_tracking/` (models, extractor, projection, validation, diagnostics).
+  - `world-engine/app/story_runtime/manager/actor_tracking/` (session_state_w5_view, w5_projection helpers).
+- [x] Enumerated every legacy surface in scope: `current_room`, `current_room_id`, `current_area`, `previous_room_id`, `actor_locations`, `participant.current_room_id`, `snapshot.current_room`, `visible_room_ids`, `RuntimeVisibilityPolicy.visible_occupants`, `complete_actor_locations_for_gathering`, `gathering_scene_id`, `derived_gathering_room_id`, `transition_from_previous.location_changed`, and direct `environment_state.*` location reads outside substrate/extractor/compatibility layers.
+- [x] Classified every finding using the Phase 6A taxonomy (`substrate_keep`, `w5_authority_consumer_should_migrate`, `compatibility_alias_keep_temporarily`, `remove_in_phase_6b`, `rename_in_phase_6b`, `test_only_update`, `doc_only_update`, `unrelated_keep`).
+- [x] Identified five `rename_in_phase_6b` items where the function name `validate_w5_actor_situation`, the diagnostic string `"w5_actor_situation_validation"`, and four docstring/ADR references still use the deprecated `w5_actor_situation` term.
+- [x] Identified the highest-risk legacy consumers and recommended a safe Phase 6B removal order, gated on each W5 flag becoming the default before its legacy fallback is removed.
+- [x] Wrote the full inventory to `docs/MVPs/w5_legacy_consumer_removal_inventory.md`.
+
+**Constraints in Phase 6A:**
+
+- No legacy localization helpers or fields are removed.
+- No W5 feature flag is enabled implicitly or by default.
+- No tests are weakened or converted from semantic to field-presence assertions.
+- Substrate writers (`apply_action_to_environment_state`, the backend/world-engine `engine.py` MOVE_ACTOR effects, the `Participant.current_room_id` dataclass field) are preserved exactly as-is.
+- No new imports of `ai_stack/actor_situation` or `ai_stack/w5_actor_situation` are introduced (and none existed prior).
+
+**Outcome:** Phase 6B is safe to begin once the four W5 consumer flags (Director, Narrator, NPC, Player Shell) are queued to default-on in a coordinated commit and the rename items (R1–R5 in the inventory) are sequenced as the first 6B commit. Substrate consolidation remains out of scope for 6B.
+
+### Phase 6B — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.
 - `environment_state` remains, but only as substrate input to the extractor.
+- The full removal order, risk ranking, and required pre-removal tests are documented in [w5_legacy_consumer_removal_inventory.md](./w5_legacy_consumer_removal_inventory.md).
 
 ### Phase 7 — Retention / compaction (planned)
 

@@ -1,3 +1,7 @@
+"""Committed dramatic-context projection.
+
+Extracts dramatic context from committed turn state for subsequent planner, validator, and visible-projection consumers.
+"""
 from __future__ import annotations
 
 from ._deps import *

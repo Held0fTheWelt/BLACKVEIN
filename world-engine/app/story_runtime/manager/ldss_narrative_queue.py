@@ -1,3 +1,7 @@
+"""LDSS narrative queue helpers.
+
+Queues and drains narrative events for lightweight downstream session-state synchronization.
+"""
 from __future__ import annotations
 
 from ._deps import *

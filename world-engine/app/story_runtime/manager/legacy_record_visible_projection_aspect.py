@@ -1,3 +1,7 @@
+"""Legacy visible-projection aspect facade.
+
+Exports compatibility recording of visible-projection aspect observations for manager diagnostics.
+"""
 from __future__ import annotations
 
 from ._deps import *

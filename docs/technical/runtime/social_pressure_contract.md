@@ -203,7 +203,7 @@ Forbidden primary oracles:
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/story_runtime/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
@@ -211,7 +211,7 @@ Forbidden primary oracles:
 ## Verification Anchors
 
 ```text
-python -m py_compile ai_stack/contracts/social_pressure_contracts.py ai_stack/story_runtime/narrative/social_pressure_engine.py ai_stack/module_runtime_policy.py ai_stack/story_runtime/runtime_aspect_ledger.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py
+python -m py_compile ai_stack/contracts/social_pressure_contracts.py ai_stack/story_runtime/narrative/social_pressure_engine.py ai_stack/module_runtime_policy.py ai_stack/story_runtime/runtime_aspect_ledger/__init__.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py
 python -m pytest ai_stack/tests/test_runtime_authority_aspects.py -q --tb=short
 python -m pytest ai_stack/tests/test_social_pressure_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py -q --tb=short
 PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short

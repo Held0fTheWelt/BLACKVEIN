@@ -1,3 +1,7 @@
+"""Souffleuse output realization.
+
+Builds assisted narrator output used by the souffleuse path without replacing authoritative committed truth.
+"""
 from __future__ import annotations
 
 from ._deps import *

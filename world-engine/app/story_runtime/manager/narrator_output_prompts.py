@@ -1,3 +1,7 @@
+"""Narrator output prompt helpers.
+
+Builds prompt inputs for narrator-facing realization and fallback narration surfaces.
+"""
 from __future__ import annotations
 
 from ._deps import *

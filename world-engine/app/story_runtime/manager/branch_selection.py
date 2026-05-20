@@ -1,3 +1,7 @@
+"""Branch selection helpers.
+
+Chooses and normalizes branch candidates for story-runtime sessions before simulation or timeline projection.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Degradation and turn-block helpers.
+
+Builds safe degraded turn blocks and diagnostics when runtime execution must remain playable after partial failure.
+"""
 from __future__ import annotations
 
 from ._deps import *

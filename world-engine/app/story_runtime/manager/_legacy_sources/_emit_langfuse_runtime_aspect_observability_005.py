@@ -1,3 +1,7 @@
+"""Runtime-aspect observability source chunk 005.
+
+Contributes ordered source lines for legacy Langfuse runtime-aspect observability emission. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
             ASPECT_NPC_AUTHORITY,
             _runtime_aspect_score_value(_rec(ASPECT_NPC_AUTHORITY).get("status") == "passed"),

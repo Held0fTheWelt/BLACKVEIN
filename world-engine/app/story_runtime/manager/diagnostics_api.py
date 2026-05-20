@@ -1,3 +1,7 @@
+"""Diagnostics API helpers.
+
+Provides manager-facing diagnostics snapshots for runtime state, governance surfaces, and session health.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -124,7 +124,7 @@ Hard constraints. PR-B's diff stays inside this guardrail; tests enforce the neg
 - **`ai_stack/story_runtime/canonical_path/canonical_path_resolver.py`** — canonical-path bundle loader; unchanged.
 - **`ai_stack/story_runtime/director/god_of_carnage_scene_director.py`** — owned by PR-C (Director composition, `compute_gathering_state`, `presence_breaks_gathering`); PR-B leaves this file untouched.
 - **`ai_stack/live_dramatic_scene_simulator.py`** — LDSS and mandatory-beat consumption stay unchanged.
-- **`ai_stack/story_runtime/runtime_aspect_ledger.py`** — `ASPECT_KEYS` unchanged; no Director-Pause / Pulse aspect row added.
+- **`ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`** — `ASPECT_KEYS` unchanged; no Director-Pause / Pulse aspect row added.
 - **`ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py`** — Turn 0 narrator path unchanged.
 - **`ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py`** — Souffleuse path unchanged.
 - **`ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py`** — PR-0 stub stays uncoupled from production; PR-B does **not** import it from `ai_stack/story_runtime/player_action_resolution.py`, `world-engine/app/story_runtime/manager.py`, or any other production module (enforced by `tests/test_npc_interactivity_piv_baseline.py::test_runtime_diagnostic_snapshot_stub_is_not_imported_by_production_code`).

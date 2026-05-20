@@ -1,3 +1,7 @@
+"""Runtime-aspect observability source chunk 004.
+
+Contributes ordered source lines for legacy Langfuse runtime-aspect observability emission. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
                     or improvisational_selected.get("acceptance_mode")
                     or improvisational_selected.get("required_anchor_refs")

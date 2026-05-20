@@ -73,6 +73,6 @@ qualitative diagnostics unless a later ADR promotes them into a governed gate.
 
 - `story_runtime_core/recovery/no_dead_end.py`
 - `world-engine/app/story_runtime/manager.py`
-- `ai_stack/story_runtime/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `story_runtime_core/tests/test_no_dead_end_recovery.py`
 - `world-engine/tests/test_story_runtime_narrative_commit.py`

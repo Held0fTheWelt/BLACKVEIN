@@ -1,3 +1,7 @@
+"""Opening prompt and narrator candidates.
+
+Builds opening prompt data and candidate narrator lines before the opening turn is committed.
+"""
 from __future__ import annotations
 
 from ._deps import *

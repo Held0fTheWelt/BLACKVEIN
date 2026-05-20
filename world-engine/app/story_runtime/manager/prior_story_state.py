@@ -1,3 +1,7 @@
+"""Prior story-state readers.
+
+Extracts previous story-state surfaces that inform current turn execution and runtime truth reporting.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Opening turn execution.
+
+Runs the opening-turn path that seeds session state, narrator output, and initial visible projection.
+"""
 from __future__ import annotations
 
 from ._deps import *

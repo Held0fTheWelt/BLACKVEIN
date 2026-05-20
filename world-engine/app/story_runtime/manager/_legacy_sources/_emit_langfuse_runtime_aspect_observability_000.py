@@ -1,3 +1,7 @@
+"""Runtime-aspect observability source chunk 000.
+
+Contributes ordered source lines for legacy Langfuse runtime-aspect observability emission. This chunk is intentionally small and ordered by the legacy manifest.
+"""
 SOURCE = r'''\
 def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) -> None:
     try:

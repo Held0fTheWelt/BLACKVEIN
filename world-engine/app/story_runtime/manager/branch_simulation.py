@@ -1,3 +1,7 @@
+"""Branch simulation helpers.
+
+Runs bounded branch simulation for alternate story paths without mutating the authoritative session state.
+"""
 from __future__ import annotations
 
 from ._deps import *

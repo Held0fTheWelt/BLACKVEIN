@@ -1,3 +1,7 @@
+"""Session-state API helpers.
+
+Provides manager-facing read and update helpers for authoritative session state surfaces.
+"""
 from __future__ import annotations
 
 from ._deps import *

@@ -1,3 +1,7 @@
+"""Session-state W5 view helpers.
+
+Builds W5 actor-state views from manager session state for diagnostics and runtime projections.
+"""
 from __future__ import annotations
 
 import os

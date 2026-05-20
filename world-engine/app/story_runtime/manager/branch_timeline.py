@@ -1,3 +1,7 @@
+"""Branch timeline projection helpers.
+
+Builds readable timeline snapshots for branch decisions, prior turns, and simulated continuations.
+"""
 from __future__ import annotations
 
 from ._deps import *

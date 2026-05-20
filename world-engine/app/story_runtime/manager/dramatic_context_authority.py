@@ -1,3 +1,7 @@
+"""Dramatic context authority helpers.
+
+Reconciles committed dramatic context with authority boundaries used by validators and narrative governance.
+"""
 from __future__ import annotations
 
 from ._deps import *
