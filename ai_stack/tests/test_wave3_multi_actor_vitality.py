@@ -12,6 +12,11 @@ from pathlib import Path
 WORLD_ENGINE_ROOT = Path(__file__).resolve().parents[2] / "world-engine"
 if str(WORLD_ENGINE_ROOT) not in sys.path:
     sys.path.insert(0, str(WORLD_ENGINE_ROOT))
+loaded_app = sys.modules.get("app")
+if loaded_app is not None:
+    loaded_app_file = Path(str(getattr(loaded_app, "__file__", "") or "")).resolve()
+    if loaded_app_file and not loaded_app_file.is_relative_to(WORLD_ENGINE_ROOT):
+        sys.modules.pop("app", None)
 
 # W3.1 Tests: Responder-Set Realization
 
@@ -111,7 +116,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_secondary_directive_present_when_secondaries_nominated(self):
         """Verify dramatic packet contains secondary_responder_directive when len(responder_ids) > 1."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "module_id": "god_of_carnage",
@@ -138,7 +143,7 @@ class TestW31ResponderSetStrengthening:
     def test_dramatic_packet_includes_policy_backed_subtext_interpretation(self):
         """Verify Pi19 subtext reaches the generation packet as a bounded policy surface."""
         from ai_stack.goc_subtext_policy import rule_spec_for_subtext
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         policy_rule_id = "direct_accusation"
         rule = rule_spec_for_subtext(policy_rule_id)
@@ -178,7 +183,7 @@ class TestW31ResponderSetStrengthening:
             NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
             NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
         )
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "turn_number": 12,
@@ -247,7 +252,7 @@ class TestW31ResponderSetStrengthening:
     def test_dramatic_packet_includes_bounded_relationship_dynamics_context(self):
         """Verify Pi27 reaches generation as bounded structural context."""
         from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
         from ai_stack.social_state_goc import build_social_state_record
 
         yaml_slice = load_goc_yaml_slice_bundle()
@@ -335,7 +340,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_secondary_directive_absent_when_no_secondaries(self):
         """Verify secondary_responder_directive is None when only primary."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "module_id": "god_of_carnage",
@@ -356,7 +361,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_does_not_require_npc_agency_for_navigation_command(self):
         """Verify scene/navigation commands do not create required NPC initiative."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "module_id": "god_of_carnage",
@@ -382,7 +387,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_secondary_directive_keeps_minimum_requirement_bounded(self):
         """Verify secondary participation remains a bounded contract field."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "module_id": "god_of_carnage",
@@ -866,7 +871,7 @@ class TestW33InitiativeContinuitySignal:
 
     def test_prior_initiative_truth_collapses_to_none_when_all_empty(self):
         """Verify prior_initiative_truth is None when all fields are empty."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "module_id": "god_of_carnage",

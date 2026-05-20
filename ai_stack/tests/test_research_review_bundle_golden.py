@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ai_stack.research_fixtures import fixture_f_full_run_input
 from ai_stack.research_golden_cases import EXPECTED_BUNDLE_SECTIONS
-from ai_stack.research_langgraph import run_research_pipeline
+from ai_stack.langgraph.research_langgraph import run_research_pipeline
 from ai_stack.research_store import ResearchStore
 
 

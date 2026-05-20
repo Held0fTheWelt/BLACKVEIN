@@ -19,13 +19,13 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ai_stack.langgraph_runtime_executor import (
+from ai_stack.langgraph.langgraph_runtime_executor import (
     _derive_current_step_scene_id_from_state,
     _derive_director_subject_actor_id,
     _derive_named_characters_from_state,
     complete_actor_locations_for_gathering,
 )
-from ai_stack.langgraph_runtime_package_output import package_runtime_graph_output
+from ai_stack.langgraph.langgraph_runtime_package_output import package_runtime_graph_output
 from ai_stack.director_gathering_state_contracts import (
     SCHEMA_VERSION,
     compute_gathering_state,

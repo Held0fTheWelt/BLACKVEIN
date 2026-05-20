@@ -15,7 +15,7 @@ LangGraph pipeline.
 
 from __future__ import annotations
 
-from ai_stack.langgraph_runtime_executor import _actor_lane_validation, _reconcile_model_responders
+from ai_stack.langgraph.langgraph_runtime_executor import _actor_lane_validation, _reconcile_model_responders
 
 
 def _state(selected: list[dict]) -> dict:

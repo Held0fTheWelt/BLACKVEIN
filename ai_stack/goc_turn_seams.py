@@ -1307,7 +1307,7 @@ def build_roadmap_dramatic_turn_record(state: dict[str, Any]) -> dict[str, Any]:
             {
                 "decision_name": node_name,
                 "decision_class": "runtime_graph_node",
-                "owner_layer": "ai_stack.langgraph_runtime",
+                "owner_layer": "ai_stack.langgraph.langgraph_runtime",
                 "input_seam_ref": f"state_before:{node_name}",
                 "chosen_path": node_name,
                 "validation_result": str((state.get("node_outcomes") or {}).get(node_name) or "ok"),

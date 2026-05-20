@@ -13,13 +13,13 @@ from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from story_runtime_core.model_registry import build_default_registry
 
 pytest.importorskip(
-    "ai_stack.langgraph_runtime",
+    "ai_stack.langgraph.langgraph_runtime",
     reason="LangGraph/LangChain stack required for GoC runtime graph tests",
 )
 from ai_stack.goc_frozen_vocab import DIRECTOR_IMMUTABLE_FIELDS, GOC_MODULE_ID
 from ai_stack.goc_turn_seams import build_operator_canonical_turn_record, strip_director_overwrites_from_structured_output
 from ai_stack.goc_yaml_authority import cached_goc_yaml_title, detect_builtin_yaml_title_conflict
-from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
+from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 
 HOST_OK = {"template_id": "god_of_carnage_solo", "title": "God of Carnage"}

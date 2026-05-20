@@ -26,7 +26,7 @@ from ai_stack.with_ai_reasoning_decorator import (
     is_ai_enabled_for_player,
     AIReasoningDiagnostics
 )
-from ai_stack.langgraph_agent_state import AgentState
+from ai_stack.langgraph.langgraph_agent_state import AgentState
 from ai_stack.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 

@@ -654,7 +654,7 @@ def test_actor_lane_enforcement_active_in_graph_execution():
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
 
-    from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+    from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor
 
     executor = RuntimeTurnGraphExecutor.__new__(RuntimeTurnGraphExecutor)
     # Build the run() parameter list with actor_lane_context
@@ -677,7 +677,7 @@ def test_runtime_turn_state_has_actor_lane_context_field():
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
 
-    from ai_stack.langgraph_runtime_state import RuntimeTurnState
+    from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
     annotations = RuntimeTurnState.__annotations__
     assert "actor_lane_context" in annotations, (
         "RuntimeTurnState must have actor_lane_context field. "

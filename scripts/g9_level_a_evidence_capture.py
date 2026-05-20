@@ -50,7 +50,7 @@ from story_runtime_core.model_registry import build_default_registry  # noqa: E4
 
 from ai_stack.goc_turn_seams import build_roadmap_dramatic_turn_record  # noqa: E402
 from ai_stack.goc_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml  # noqa: E402
-from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor  # noqa: E402
+from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor  # noqa: E402
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline  # noqa: E402
 from ai_stack.goc_g9_roadmap_scenarios import ROADMAP_SCENARIO_ID_RETRIEVAL_HEAVY  # noqa: E402
 from ai_stack.goc_s4_misinterpretation_scenario import (  # noqa: E402

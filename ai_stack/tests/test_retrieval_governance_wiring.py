@@ -192,7 +192,7 @@ class TestExecutorRetrievalConfigWiring:
 
     def _make_minimal_executor(self, retrieval_config: RuntimeRetrievalConfig):
         """Build the minimum executor needed to call _retrieve_context."""
-        from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+        from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor
         from ai_stack.rag.rag_context_retriever import ContextRetriever
         from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler
         from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
@@ -375,7 +375,7 @@ class TestExecutorRetrievalConfigWiring:
 
     def test_min_score_filters_sources(self, tmp_path: Path) -> None:
         """Sources below min_score threshold are removed before context assembly."""
-        from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+        from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor
         from ai_stack.rag.rag_context_retriever import ContextRetriever
         from ai_stack.rag.rag_corpus import InMemoryRetrievalCorpus
         from ai_stack.rag.rag_context_pack_assembler import ContextPackAssembler

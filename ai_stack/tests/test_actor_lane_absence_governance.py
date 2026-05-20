@@ -1,6 +1,6 @@
 """Full-route tests proving actor-lane absence governance through complete pipeline."""
 
-from ai_stack.langgraph_runtime_executor import (
+from ai_stack.langgraph.langgraph_runtime_executor import (
     RuntimeTurnGraphExecutor,
     _actor_lane_validation,
     _compute_reaction_order_divergence_for_render,

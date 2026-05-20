@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.langgraph_runtime_executor import (
+from ai_stack.langgraph.langgraph_runtime_executor import (
     RuntimeTurnGraphExecutor,
     _build_authority_aspect_records,
     _build_runtime_aspect_validation,

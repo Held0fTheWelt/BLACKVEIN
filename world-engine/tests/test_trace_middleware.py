@@ -3200,7 +3200,7 @@ def test_S1_self_correction_key_always_written_by_validate_seam():
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
 
-    from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+    from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor
 
     graph = object.__new__(RuntimeTurnGraphExecutor)
     graph.max_self_correction_attempts = 0  # disable SC loop

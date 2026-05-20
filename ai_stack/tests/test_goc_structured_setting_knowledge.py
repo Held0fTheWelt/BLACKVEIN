@@ -11,7 +11,7 @@ from ai_stack.goc_yaml_authority import (
     load_goc_scene_affordances_yaml_inner,
     load_goc_yaml_slice_bundle,
 )
-from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor
 
 
 def setup_module(_m: object) -> None:

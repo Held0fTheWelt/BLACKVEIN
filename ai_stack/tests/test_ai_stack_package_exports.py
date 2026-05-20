@@ -28,7 +28,7 @@ def test_langgraph_export_flag_matches_runtime_import() -> None:
         "langgraph",
         reason='graph lane: pip install -e "./ai_stack[test]"',
     )
-    from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
+    from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 
     assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE is True
     assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_ERROR is None

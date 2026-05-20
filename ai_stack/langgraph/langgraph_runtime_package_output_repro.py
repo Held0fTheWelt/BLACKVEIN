@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.goc_turn_seams import repro_metadata_complete
-from ai_stack.langgraph_runtime_state import RuntimeTurnState
-from ai_stack.langgraph_runtime_tracking import _dist_version
+from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
+from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION,
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,

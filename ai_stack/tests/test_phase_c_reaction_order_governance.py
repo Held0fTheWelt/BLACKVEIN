@@ -19,7 +19,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_extracted_from_responders(self):
         """preferred_reaction_order is built from selected_responder_set."""
-        from ai_stack.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
+        from ai_stack.langgraph.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
 
         responders = [
             {"actor_id": "alice", "preferred_reaction_order": 0},
@@ -31,7 +31,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_sorted_by_sequence(self):
         """preferred_reaction_order is deterministically sorted."""
-        from ai_stack.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
+        from ai_stack.langgraph.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
 
         # Unordered input
         responders = [
@@ -44,7 +44,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_excludes_empty_ids(self):
         """Empty or None actor_ids are excluded."""
-        from ai_stack.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
+        from ai_stack.langgraph.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
 
         responders = [
             {"actor_id": "alice", "preferred_reaction_order": 0},
@@ -57,7 +57,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_deduplicates(self):
         """Duplicate actor IDs appear only once."""
-        from ai_stack.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
+        from ai_stack.langgraph.langgraph_runtime_executor import _preferred_reaction_order_ids_from_responders
 
         responders = [
             {"actor_id": "alice", "preferred_reaction_order": 0},
@@ -68,7 +68,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_in_dramatic_packet(self):
         """Packet contains preferred_reaction_order field."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "session_id": "test_session",
@@ -91,7 +91,7 @@ class TestC11PreferredOrderPacketField:
 
     def test_preferred_reaction_order_none_when_no_responders(self):
         """Preferred order is empty list when no responders."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "session_id": "test_session",
@@ -114,7 +114,7 @@ class TestC12PreferredOrderDirective:
 
     def test_preferred_reaction_order_instruction_present_when_multiple_responders(self):
         """Directive is emitted when multiple responders nominated."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "session_id": "test_session",
@@ -139,7 +139,7 @@ class TestC12PreferredOrderDirective:
 
     def test_preferred_reaction_order_instruction_none_when_single_responder(self):
         """Directive is None when only primary responder."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "session_id": "test_session",
@@ -161,7 +161,7 @@ class TestC12PreferredOrderDirective:
 
     def test_preferred_reaction_order_instruction_normative_language(self):
         """Directive uses normative language, not absolute."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "session_id": "test_session",
@@ -495,7 +495,7 @@ class TestC4IntegrationSanity:
 
     def test_packet_and_prompt_field_names_aligned(self):
         """Packet field names match prompt references."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
         from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
         # Build a minimal packet
@@ -527,7 +527,7 @@ class TestC4IntegrationSanity:
 
     def test_empty_state_does_not_crash(self):
         """Empty or minimal state does not cause packet building to crash."""
-        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+        from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
             "selected_responder_set": None,  # No responders

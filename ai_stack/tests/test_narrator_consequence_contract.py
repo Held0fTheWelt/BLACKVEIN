@@ -21,7 +21,7 @@ from ai_stack.narrator_consequence_contracts import (
     build_narrator_consequence_plan,
     build_updated_player_local_context,
 )
-from ai_stack.langgraph_synthetic_action_resolution import (
+from ai_stack.langgraph.langgraph_synthetic_action_resolution import (
     build_synthetic_generation_for_action_resolution,
 )
 from story_runtime_core.language_adapter import (

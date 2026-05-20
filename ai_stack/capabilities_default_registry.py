@@ -33,7 +33,7 @@ def create_default_capability_registry(
         CapabilityRegistry:
             Returns a value of type ``CapabilityRegistry``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.research_langgraph import research_store_from_repo_root
+    from ai_stack.langgraph.research_langgraph import research_store_from_repo_root
 
     registry = CapabilityRegistry()
     research_store = research_store_from_repo_root(repo_root)

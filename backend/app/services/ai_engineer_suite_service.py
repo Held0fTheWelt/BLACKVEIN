@@ -1180,7 +1180,7 @@ def get_orchestration_status(*, trace_id: str | None = None) -> dict[str, Any]:
     langgraph_import_error: str | None = None
     if not langgraph_dependency_available:
         try:
-            from ai_stack.langgraph_runtime import ensure_langgraph_available
+            from ai_stack.langgraph.langgraph_runtime import ensure_langgraph_available
 
             ensure_langgraph_available()
             langgraph_dependency_available = True

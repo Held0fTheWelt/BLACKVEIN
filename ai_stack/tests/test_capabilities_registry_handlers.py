@@ -28,7 +28,7 @@ class TestResearchSourceInspectHandler:
         mock_store = MagicMock()
         payload = {"source_id": "src_12345"}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {
                 "source": {"source_id": "src_12345", "title": "Test Source"},
                 "anchors": [{"anchor_id": "anc_1"}],
@@ -45,7 +45,7 @@ class TestResearchSourceInspectHandler:
         mock_store = MagicMock()
         payload = {"source_id": 12345}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {"source": {}, "anchors": [], "aspects": []}
             research_source_inspect_handler(mock_store, payload)
             mock_inspect.assert_called_once_with(store=mock_store, source_id="12345")
@@ -55,7 +55,7 @@ class TestResearchSourceInspectHandler:
         mock_store = MagicMock()
         payload = {"source_id": "nonexistent"}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {"error": "source_not_found", "source_id": "nonexistent"}
             result = research_source_inspect_handler(mock_store, payload)
 
@@ -70,7 +70,7 @@ class TestResearchAspectExtractHandler:
         mock_store = MagicMock()
         payload = {"source_id": "src_789"}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {
                 "aspects": [
                     {"aspect_id": "asp_1", "statement": "Test aspect 1"},
@@ -88,7 +88,7 @@ class TestResearchAspectExtractHandler:
         mock_store = MagicMock()
         payload = {"source_id": "src_bad"}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {"error": "source_not_found"}
             result = research_aspect_extract_handler(mock_store, payload)
 
@@ -99,7 +99,7 @@ class TestResearchAspectExtractHandler:
         mock_store = MagicMock()
         payload = {"source_id": "src_empty"}
 
-        with patch("ai_stack.research_langgraph.inspect_source") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_source") as mock_inspect:
             mock_inspect.return_value = {}
             result = research_aspect_extract_handler(mock_store, payload)
 
@@ -114,7 +114,7 @@ class TestResearchClaimListHandler:
         mock_store = MagicMock()
         payload = {"work_id": None}
 
-        with patch("ai_stack.research_langgraph.list_claims") as mock_list:
+        with patch("ai_stack.langgraph.research_langgraph.list_claims") as mock_list:
             mock_list.return_value = {
                 "claims": [
                     {"claim_id": "cl_1", "statement": "Claim 1"},
@@ -130,7 +130,7 @@ class TestResearchClaimListHandler:
         mock_store = MagicMock()
         payload = {"work_id": "god_of_carnage"}
 
-        with patch("ai_stack.research_langgraph.list_claims") as mock_list:
+        with patch("ai_stack.langgraph.research_langgraph.list_claims") as mock_list:
             mock_list.return_value = {
                 "claims": [{"claim_id": "cl_1", "work_id": "god_of_carnage"}]
             }
@@ -144,7 +144,7 @@ class TestResearchClaimListHandler:
         mock_store = MagicMock()
         payload = {}
 
-        with patch("ai_stack.research_langgraph.list_claims") as mock_list:
+        with patch("ai_stack.langgraph.research_langgraph.list_claims") as mock_list:
             mock_list.return_value = {"claims": []}
             research_claim_list_handler(mock_store, payload)
             mock_list.assert_called_once_with(store=mock_store, work_id=None)
@@ -158,7 +158,7 @@ class TestResearchRunGetHandler:
         mock_store = MagicMock()
         payload = {"run_id": "run_123"}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {
                 "run": {
                     "run_id": "run_123",
@@ -175,7 +175,7 @@ class TestResearchRunGetHandler:
         mock_store = MagicMock()
         payload = {"run_id": 999}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {"run": {}}
             research_run_get_handler(mock_store, payload)
             mock_get.assert_called_once_with(store=mock_store, run_id="999")
@@ -185,7 +185,7 @@ class TestResearchRunGetHandler:
         mock_store = MagicMock()
         payload = {"run_id": "missing_run"}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {"error": "run_not_found", "run_id": "missing_run"}
             result = research_run_get_handler(mock_store, payload)
 
@@ -200,7 +200,7 @@ class TestResearchExplorationGraphHandler:
         mock_store = MagicMock()
         payload = {"run_id": "run_explore_1"}
 
-        with patch("ai_stack.research_langgraph.exploration_graph") as mock_graph:
+        with patch("ai_stack.langgraph.research_langgraph.exploration_graph") as mock_graph:
             mock_graph.return_value = {
                 "run_id": "run_explore_1",
                 "nodes": [{"node_id": "n1"}],
@@ -217,7 +217,7 @@ class TestResearchExplorationGraphHandler:
         mock_store = MagicMock()
         payload = {"run_id": 555}
 
-        with patch("ai_stack.research_langgraph.exploration_graph") as mock_graph:
+        with patch("ai_stack.langgraph.research_langgraph.exploration_graph") as mock_graph:
             mock_graph.return_value = {"run_id": "555", "nodes": [], "edges": []}
             research_exploration_graph_handler(mock_store, payload)
             mock_graph.assert_called_once_with(store=mock_store, run_id="555")
@@ -227,7 +227,7 @@ class TestResearchExplorationGraphHandler:
         mock_store = MagicMock()
         payload = {"run_id": "missing_graph"}
 
-        with patch("ai_stack.research_langgraph.exploration_graph") as mock_graph:
+        with patch("ai_stack.langgraph.research_langgraph.exploration_graph") as mock_graph:
             mock_graph.return_value = {"error": "run_not_found"}
             result = research_exploration_graph_handler(mock_store, payload)
 
@@ -242,7 +242,7 @@ class TestCanonIssueInspectHandler:
         mock_store = MagicMock()
         payload = {"module_id": "mod_example"}
 
-        with patch("ai_stack.research_langgraph.inspect_canon_issue") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_canon_issue") as mock_inspect:
             mock_inspect.return_value = {
                 "issues": [
                     {"issue_id": "iss_1", "module_id": "mod_example"},
@@ -258,7 +258,7 @@ class TestCanonIssueInspectHandler:
         mock_store = MagicMock()
         payload = {}
 
-        with patch("ai_stack.research_langgraph.inspect_canon_issue") as mock_inspect:
+        with patch("ai_stack.langgraph.research_langgraph.inspect_canon_issue") as mock_inspect:
             mock_inspect.return_value = {"issues": []}
             canon_issue_inspect_handler(mock_store, payload)
             mock_inspect.assert_called_once_with(store=mock_store, module_id=None)
@@ -292,7 +292,7 @@ class TestResearchExploreHandler:
             "budget": budget_dict,
         }
 
-        with patch("ai_stack.research_langgraph.run_research_pipeline") as mock_run:
+        with patch("ai_stack.langgraph.research_langgraph.run_research_pipeline") as mock_run:
             mock_run.return_value = {
                 "run_id": "run_999",
                 "outputs": {
@@ -319,7 +319,7 @@ class TestResearchExploreHandler:
         }
 
         with patch("ai_stack.research_contract.ExplorationBudget") as mock_budget_cls:
-            with patch("ai_stack.research_langgraph.run_research_pipeline") as mock_run:
+            with patch("ai_stack.langgraph.research_langgraph.run_research_pipeline") as mock_run:
                 mock_budget_cls.from_payload.return_value = MagicMock(to_dict=MagicMock(return_value={}))
                 mock_run.return_value = {"run_id": "run_x", "outputs": {"exploration_summary": {}}}
                 research_explore_handler(mock_store, payload)
@@ -347,7 +347,7 @@ class TestResearchExploreHandler:
             },
         }
 
-        with patch("ai_stack.research_langgraph.run_research_pipeline") as mock_run:
+        with patch("ai_stack.langgraph.research_langgraph.run_research_pipeline") as mock_run:
             mock_run.return_value = {"run_id": "run_y", "outputs": {"exploration_summary": {}}}
             research_explore_handler(mock_store, payload)
 
@@ -365,7 +365,7 @@ class TestResearchValidateHandler:
         mock_store = MagicMock()
         payload = {"run_id": "run_validate_1"}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {
                 "run": {
                     "run_id": "run_validate_1",
@@ -385,7 +385,7 @@ class TestResearchValidateHandler:
         mock_store = MagicMock()
         payload = {"run_id": "missing_validate"}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {"error": "run_not_found"}
             result = research_validate_handler(mock_store, payload)
 
@@ -396,7 +396,7 @@ class TestResearchValidateHandler:
         mock_store = MagicMock()
         payload = {"run_id": "run_no_outputs"}
 
-        with patch("ai_stack.research_langgraph.get_run") as mock_get:
+        with patch("ai_stack.langgraph.research_langgraph.get_run") as mock_get:
             mock_get.return_value = {"run": {"run_id": "run_no_outputs"}}
             result = research_validate_handler(mock_store, payload)
 
@@ -412,7 +412,7 @@ class TestResearchBundleBuildHandler:
         mock_store = MagicMock()
         payload = {"run_id": "run_bundle_1"}
 
-        with patch("ai_stack.research_langgraph.build_research_bundle") as mock_build:
+        with patch("ai_stack.langgraph.research_langgraph.build_research_bundle") as mock_build:
             mock_build.return_value = {
                 "bundle": {
                     "run_id": "run_bundle_1",
@@ -428,7 +428,7 @@ class TestResearchBundleBuildHandler:
         mock_store = MagicMock()
         payload = {"run_id": 777}
 
-        with patch("ai_stack.research_langgraph.build_research_bundle") as mock_build:
+        with patch("ai_stack.langgraph.research_langgraph.build_research_bundle") as mock_build:
             mock_build.return_value = {"bundle": {}}
             research_bundle_build_handler(mock_store, payload)
             mock_build.assert_called_once_with(store=mock_store, run_id="777")
@@ -442,7 +442,7 @@ class TestCanonImprovementProposeHandler:
         mock_store = MagicMock()
         payload = {"module_id": "mod_improve_1"}
 
-        with patch("ai_stack.research_langgraph.propose_canon_improvement") as mock_propose:
+        with patch("ai_stack.langgraph.research_langgraph.propose_canon_improvement") as mock_propose:
             mock_propose.return_value = {
                 "module_id": "mod_improve_1",
                 "proposals": [
@@ -459,7 +459,7 @@ class TestCanonImprovementProposeHandler:
         mock_store = MagicMock()
         payload = {"module_id": 888}
 
-        with patch("ai_stack.research_langgraph.propose_canon_improvement") as mock_propose:
+        with patch("ai_stack.langgraph.research_langgraph.propose_canon_improvement") as mock_propose:
             mock_propose.return_value = {"module_id": "888", "proposals": []}
             canon_improvement_propose_handler(mock_store, payload)
             mock_propose.assert_called_once_with(store=mock_store, module_id="888")
@@ -473,7 +473,7 @@ class TestCanonImprovementPreviewHandler:
         mock_store = MagicMock()
         payload = {"module_id": "mod_preview_1"}
 
-        with patch("ai_stack.research_langgraph.preview_canon_improvement") as mock_preview:
+        with patch("ai_stack.langgraph.research_langgraph.preview_canon_improvement") as mock_preview:
             mock_preview.return_value = {
                 "module_id": "mod_preview_1",
                 "preview": [
@@ -496,7 +496,7 @@ class TestCanonImprovementPreviewHandler:
         mock_store = MagicMock()
         payload = {"module_id": 999}
 
-        with patch("ai_stack.research_langgraph.preview_canon_improvement") as mock_preview:
+        with patch("ai_stack.langgraph.research_langgraph.preview_canon_improvement") as mock_preview:
             mock_preview.return_value = {"module_id": "999", "preview": []}
             canon_improvement_preview_handler(mock_store, payload)
             mock_preview.assert_called_once_with(store=mock_store, module_id="999")
@@ -530,9 +530,9 @@ class TestHandlerDispatchIntegration:
         mock_store = MagicMock()
 
         error_cases = [
-            (research_source_inspect_handler, {"source_id": "bad"}, "ai_stack.research_langgraph.inspect_source"),
-            (research_run_get_handler, {"run_id": "bad"}, "ai_stack.research_langgraph.get_run"),
-            (canon_issue_inspect_handler, {"module_id": "bad"}, "ai_stack.research_langgraph.inspect_canon_issue"),
+            (research_source_inspect_handler, {"source_id": "bad"}, "ai_stack.langgraph.research_langgraph.inspect_source"),
+            (research_run_get_handler, {"run_id": "bad"}, "ai_stack.langgraph.research_langgraph.get_run"),
+            (canon_issue_inspect_handler, {"module_id": "bad"}, "ai_stack.langgraph.research_langgraph.inspect_canon_issue"),
         ]
 
         for handler, payload, func_path in error_cases:

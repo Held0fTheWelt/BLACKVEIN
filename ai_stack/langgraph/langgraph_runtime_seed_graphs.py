@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing_extensions import TypedDict
 
 try:  # pragma: no cover - mirror facade; seed module must not import langgraph_runtime at load time
-    from ai_stack.langgraph_imports import END, StateGraph
+    from ai_stack.langgraph.langgraph_imports import END, StateGraph
 except Exception:  # pragma: no cover
     END = None
     StateGraph = None
@@ -19,7 +19,7 @@ def build_seed_writers_room_graph():
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     """
-    from ai_stack.langgraph_runtime import ensure_langgraph_available
+    from ai_stack.langgraph.langgraph_runtime import ensure_langgraph_available
 
     ensure_langgraph_available()
 
@@ -47,7 +47,7 @@ def build_seed_improvement_graph():
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     """
-    from ai_stack.langgraph_runtime import ensure_langgraph_available
+    from ai_stack.langgraph.langgraph_runtime import ensure_langgraph_available
 
     ensure_langgraph_available()
 

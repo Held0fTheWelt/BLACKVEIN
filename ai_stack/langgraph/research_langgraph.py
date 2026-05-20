@@ -8,7 +8,7 @@ from typing import Any
 from ai_stack.canon_improvement_engine import derive_canon_improvements
 from ai_stack.research_contract import ExplorationBudget, ResearchRunRecord, ResearchStatus, utc_now_iso
 from ai_stack.research_exploration import run_bounded_exploration
-from ai_stack.research_langgraph_run_pipeline_phases import (
+from ai_stack.langgraph.research_langgraph_run_pipeline_phases import (
     canon_relevance_hint,
     improvement_lead_candidate_payloads,
     review_safe_flag,

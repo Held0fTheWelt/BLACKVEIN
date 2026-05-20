@@ -12,13 +12,13 @@ Constitutional Laws:
 from typing import Any, Dict, Optional
 
 try:
-    from ai_stack.langgraph_imports import StateGraph
+    from ai_stack.langgraph.langgraph_imports import StateGraph
 except ImportError:
     # Fallback for testing
     StateGraph = None
 
-from ai_stack.langgraph_agent_state import AgentState, create_initial_state
-from ai_stack.langgraph_agent_nodes import (
+from ai_stack.langgraph.langgraph_agent_state import AgentState, create_initial_state
+from ai_stack.langgraph.langgraph_agent_nodes import (
     initialize_state,
     reason_decision,
     select_action,

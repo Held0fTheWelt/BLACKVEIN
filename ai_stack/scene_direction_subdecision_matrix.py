@@ -182,7 +182,7 @@ SCENE_DIRECTION_SUBDECISION_ROWS: Final[list[dict[str, Any]]] = (
     + _rows_for_frozen_set(
         category="transition_pattern",
         members=TRANSITION_PATTERNS,
-        impl_ref="ai_stack.langgraph_runtime:_render_visible,package_output",
+        impl_ref="ai_stack.langgraph.langgraph_runtime:_render_visible,package_output",
     )
 )
 

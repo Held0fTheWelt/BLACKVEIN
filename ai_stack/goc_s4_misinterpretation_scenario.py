@@ -23,7 +23,7 @@ from story_runtime_core.model_registry import build_default_registry
 
 from ai_stack.goc_gate_evaluation import gate_dramatic_quality, gate_turn_integrity
 from ai_stack.goc_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache
-from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
+from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 
 HOST_OK = {"template_id": "god_of_carnage_solo", "title": "God of Carnage"}

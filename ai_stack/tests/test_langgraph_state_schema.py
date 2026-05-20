@@ -4,7 +4,7 @@ Tests for LangGraph Agent State Schema.
 
 import pytest
 import json
-from ai_stack.langgraph_agent_state import AgentState, create_initial_state
+from ai_stack.langgraph.langgraph_agent_state import AgentState, create_initial_state
 
 
 class TestAgentStateBasic:

@@ -15,7 +15,7 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-from ai_stack.langgraph_imports import END, StateGraph
+from ai_stack.langgraph.langgraph_imports import END, StateGraph
 
 from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
@@ -292,12 +292,12 @@ from ai_stack.goc_turn_seams import (
     strip_director_overwrites_from_structured_output,
     structured_output_to_proposed_effects,
 )
-from ai_stack.langgraph_runtime_state import (
+from ai_stack.langgraph.langgraph_runtime_state import (
     STORY_RUNTIME_ROUTING_POLICY_ID,
     STORY_RUNTIME_ROUTING_POLICY_VERSION,
     RuntimeTurnState,
 )
-from ai_stack.langgraph_runtime_tracking import _dist_version, _track
+from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.player_action_resolution import resolve_player_action
@@ -3908,7 +3908,7 @@ def _attach_retrieval_continuity_signal(
 def _invoke_runtime_adapter_with_langchain(**kwargs: Any) -> Any:
     """Load LangChain integration only when a graph node actually invokes an adapter.
 
-    Keeping this import lazy lets ``ai_stack.langgraph_runtime`` (and test collection)
+    Keeping this import lazy lets ``ai_stack.langgraph.langgraph_runtime`` (and test collection)
     succeed in slim images or CI slices that ship LangGraph but omit optional
     ``langchain_core`` / ``langchain`` extras.
     """
@@ -5278,7 +5278,7 @@ class RuntimeTurnGraphExecutor:
         
         Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
         """
-        from ai_stack.langgraph_runtime import ensure_langgraph_available
+        from ai_stack.langgraph.langgraph_runtime import ensure_langgraph_available
 
         ensure_langgraph_available()
         self._graph = self._build_graph()
@@ -6742,14 +6742,61 @@ class RuntimeTurnGraphExecutor:
                     if isinstance(state.get("actor_lane_context"), dict)
                     else {}
                 )
-                _pr_c_location_completion = complete_actor_locations_for_gathering(
+                _pr_c_w5_projection_enabled = w5_ast_director_projection_enabled()
+                _pr_c_location_resolution = (
+                    complete_actor_locations_for_gathering_with_optional_w5_projection(
+                        actor_locations=_pr_c_actor_locations_raw,
+                        actor_lane_context=_pr_c_alc,
+                        current_step_scene_id=_pr_c_scene_id,
+                        selected_human_actor_id=_pr_c_subject_actor_id,
+                        free_player_action_resolution=free_player_resolution,
+                        environment_current_room_id=_pr_c_env_current_room_id,
+                        w5_latest_snapshot=(
+                            state.get("w5_latest_snapshot")
+                            if isinstance(state.get("w5_latest_snapshot"), dict)
+                            else None
+                        ),
+                        w5_director_projection_enabled=True,
+                    )
+                    if _pr_c_w5_projection_enabled
+                    else {
+                        "location_completion": complete_actor_locations_for_gathering(
+                            actor_locations=_pr_c_actor_locations_raw,
+                            actor_lane_context=_pr_c_alc,
+                            current_step_scene_id=_pr_c_scene_id,
+                            selected_human_actor_id=_pr_c_subject_actor_id,
+                            free_player_action_resolution=free_player_resolution,
+                            environment_current_room_id=_pr_c_env_current_room_id,
+                        ),
+                        "diagnostics": {},
+                        "w5_projection": None,
+                    }
+                )
+                _pr_c_location_completion = _pr_c_location_resolution["location_completion"]
+                _pr_c_w5_director_diagnostics = (
+                    _pr_c_location_resolution.get("diagnostics")
+                    if isinstance(_pr_c_location_resolution.get("diagnostics"), dict)
+                    else {}
+                )
+                _pr_c_w5_director_projection = _pr_c_location_resolution.get("w5_projection")
+                if _pr_c_w5_projection_enabled:
+                    _w5_diag_payload = dict(_pr_c_w5_director_diagnostics)
+                    if isinstance(_pr_c_w5_director_projection, dict):
+                        _w5_diag_payload["w5_director_projection"] = _pr_c_w5_director_projection
+                    update.setdefault("graph_diagnostics", {}).update(
+                        {
+                            "w5_director_projection": _w5_diag_payload,
+                        }
+                    )
+                if False:
+                    _pr_c_location_completion = complete_actor_locations_for_gathering(
                     actor_locations=_pr_c_actor_locations_raw,
                     actor_lane_context=_pr_c_alc,
                     current_step_scene_id=_pr_c_scene_id,
                     selected_human_actor_id=_pr_c_subject_actor_id,
                     free_player_action_resolution=free_player_resolution,
                     environment_current_room_id=_pr_c_env_current_room_id,
-                )
+                    )
                 # --- end actor_locations source resolution ---
                 # gathering_scene_id is room-level, derived from NPC locations.
                 # NPCs do not move in Phase 1 → their location IS the gathering
@@ -11023,7 +11070,7 @@ class RuntimeTurnGraphExecutor:
             RuntimeTurnState:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
-        from ai_stack.langgraph_runtime_package_output import package_runtime_graph_output
+        from ai_stack.langgraph.langgraph_runtime_package_output import package_runtime_graph_output
 
         return package_runtime_graph_output(
             state, graph_name=self.graph_name, graph_version=self.graph_version

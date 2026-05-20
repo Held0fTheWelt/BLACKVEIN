@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 
-from ai_stack.langgraph_runtime_state import RuntimeTurnState
+from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 
 
 def _dist_version(name: str) -> str:

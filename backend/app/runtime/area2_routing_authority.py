@@ -168,7 +168,7 @@ AREA2_AUTHORITY_REGISTRY: tuple[Area2AuthorityEntry, ...] = (
     Area2AuthorityEntry(
         component_id="langgraph_runtime_routing_policy",
         layer=AuthorityLayer.compatibility_layer,
-        module_path="ai_stack.langgraph_runtime",
+        module_path="ai_stack.langgraph.langgraph_runtime",
         description="Uses story_runtime_core.RoutingPolicy.choose(); not Task 2A route_model — parallel graph stack only.",
         canonical_for_task2a_paths=frozenset(),
     ),

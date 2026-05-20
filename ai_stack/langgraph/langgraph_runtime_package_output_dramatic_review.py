@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.langgraph_runtime_state import RuntimeTurnState
+from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 
 
 def _validation_reason_str(vo: dict[str, Any]) -> str:

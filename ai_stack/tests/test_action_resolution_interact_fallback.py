@@ -9,7 +9,7 @@ pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
 import pytest
 
 pytest.importorskip(
-    "ai_stack.langgraph_runtime",
+    "ai_stack.langgraph.langgraph_runtime",
     reason="LangGraph/LangChain stack required for GoC runtime graph tests",
 )
 

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
 from ai_stack.goc_turn_seams import build_diagnostics_refs
-from ai_stack.langgraph_runtime_package_output_repro import build_repro_metadata_and_health
-from ai_stack.langgraph_runtime_package_output_sections import (
+from ai_stack.langgraph.langgraph_runtime_package_output_repro import build_repro_metadata_and_health
+from ai_stack.langgraph.langgraph_runtime_package_output_sections import (
     append_goc_validation_reject_failure_marker,
     build_bounded_dramatic_context_summary,
     build_dramatic_review_section,
@@ -16,8 +16,8 @@ from ai_stack.langgraph_runtime_package_output_sections import (
     compute_experiment_preview_for_package_output,
 )
 from ai_stack.runtime_quality_semantics import canonical_quality_summary
-from ai_stack.langgraph_runtime_state import RuntimeTurnState
-from ai_stack.langgraph_runtime_tracking import _track
+from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
+from ai_stack.langgraph.langgraph_runtime_tracking import _track
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 
 

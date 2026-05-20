@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from ai_stack.research_fixtures import fixture_f_full_run_input
-from ai_stack.research_langgraph import (
+from ai_stack.langgraph.research_langgraph import (
     _canon_relevance_hint,
     _review_safe_flag,
     build_review_bundle,

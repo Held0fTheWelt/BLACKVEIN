@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.goc_turn_seams import build_diagnostics_refs, repro_metadata_complete
-from ai_stack.langgraph_runtime_state import RuntimeTurnState
-from ai_stack.langgraph_runtime_tracking import _dist_version, _track
+from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
+from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,

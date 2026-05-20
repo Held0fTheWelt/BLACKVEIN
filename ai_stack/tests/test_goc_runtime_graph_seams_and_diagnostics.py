@@ -11,10 +11,10 @@ from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from story_runtime_core.model_registry import build_default_registry
 
 pytest.importorskip(
-    "ai_stack.langgraph_runtime",
+    "ai_stack.langgraph.langgraph_runtime",
     reason="LangGraph/LangChain stack required for GoC runtime graph tests",
 )
-from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
+from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS, TASK_TYPES
 from ai_stack.goc_turn_seams import (

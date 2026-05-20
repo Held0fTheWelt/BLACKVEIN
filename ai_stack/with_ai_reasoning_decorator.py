@@ -18,7 +18,7 @@ from typing import Callable, Any, Dict, Optional
 import logging
 from datetime import datetime, timezone
 
-from ai_stack.langgraph_orchestrator import GameOrchestrator
+from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
 from ai_stack.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 

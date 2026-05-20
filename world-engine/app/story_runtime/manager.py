@@ -9821,7 +9821,7 @@ class StoryRuntimeManager:
         langgraph_available = True
         langgraph_import_error: str | None = None
         try:
-            from ai_stack.langgraph_runtime import LANGGRAPH_IMPORT_ERROR
+            from ai_stack.langgraph.langgraph_runtime import LANGGRAPH_IMPORT_ERROR
 
             if LANGGRAPH_IMPORT_ERROR is not None:
                 langgraph_available = False

@@ -4,14 +4,14 @@ Tests for LangGraph Agent Nodes.
 
 import pytest
 from unittest.mock import Mock
-from ai_stack.langgraph_agent_nodes import (
+from ai_stack.langgraph.langgraph_agent_nodes import (
     initialize_state,
     reason_decision,
     select_action,
     execute_turn,
     interpret_result
 )
-from ai_stack.langgraph_agent_state import AgentState
+from ai_stack.langgraph.langgraph_agent_state import AgentState
 from ai_stack.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
