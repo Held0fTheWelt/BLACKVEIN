@@ -3,13 +3,28 @@ MVP4 Contract 2: Opening Truthfulness
 
 Verifies that opening turns (Turn 0) are:
 1. Non-empty with visible output
-2. Use the live runtime graph/model route rather than deterministic LDSS
-3. Have NPC agency (at least one NPC responds)
+2. Use the canonical narrator-path opening route rather than the player-turn graph
+3. Preserve the speech-free opening boundary while allowing scripted continuation
 4. Pass actor-lane validation
 """
 
 import pytest
 from app.story_runtime import StoryRuntimeManager
+
+
+@pytest.fixture(autouse=True)
+def _isolate_langfuse_backend_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These unit contracts should not wait on a live backend credential endpoint."""
+    from app.observability import langfuse_adapter as lf_mod
+
+    monkeypatch.setenv("BACKEND_RUNTIME_CONFIG_URL", "")
+    monkeypatch.delenv("INTERNAL_RUNTIME_CONFIG_TOKEN", raising=False)
+    lf_mod.LangfuseAdapter._instance = None
+    monkeypatch.setattr(
+        lf_mod.LangfuseAdapter,
+        "_fetch_credentials_from_backend",
+        lambda self: None,
+    )
 
 
 def _test_governed_story_runtime_config() -> dict:
@@ -55,16 +70,19 @@ def _god_of_carnage_projection():
         "module_id": "god_of_carnage",
         "module_version": "1.0.0",
         "start_scene_id": "scene_1_opening",
-        "human_actor_id": "veronique",
-        "npc_actor_ids": ["michel", "annette", "alain"],
+        "runtime_profile_id": "god_of_carnage_solo",
+        "runtime_module_id": "solo_story_runtime",
+        "content_module_id": "god_of_carnage",
+        "human_actor_id": "annette_reille",
+        "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
         "actor_lanes": {
-            "veronique": "human",
-            "michel": "npc",
-            "annette": "npc",
-            "alain": "npc",
+            "annette_reille": "human",
+            "alain_reille": "npc",
+            "veronique_vallon": "npc",
+            "michel_longstreet": "npc",
         },
-        "selected_player_role": "veronique",
-        "character_ids": ["veronique", "michel", "annette", "alain"],
+        "selected_player_role": "annette",
+        "character_ids": ["annette_reille", "alain_reille", "veronique_vallon", "michel_longstreet"],
     }
 
 
@@ -102,8 +120,8 @@ def test_mvp4_opening_exists_and_non_empty(runtime_manager):
 
 
 @pytest.mark.mvp4
-def test_mvp4_opening_uses_live_runtime_graph_model_and_retrieval(runtime_manager):
-    """Contract 2.2: Opening must be generated through the live graph/model/RAG path."""
+def test_mvp4_opening_uses_canonical_narrator_path(runtime_manager):
+    """Contract 2.2: speech-free opening uses the narrator path, not the player-turn graph/RAG path."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -123,22 +141,31 @@ def test_mvp4_opening_uses_live_runtime_graph_model_and_retrieval(runtime_manage
     assert metadata is not None, "No generation metadata"
 
     adapter = metadata.get("adapter", "")
-    assert adapter, "Opening generation did not record an adapter"
-    assert adapter != "ldss_deterministic", "Opening bypassed live model generation via deterministic LDSS"
+    assert adapter == "goc_narrator_path_direct"
 
     assert generation.get("success") is True, "Opening model generation did not succeed"
-    assert model_route.get("selected_model"), "Opening did not record selected model"
-    assert model_route.get("selected_provider"), "Opening did not record selected provider"
+    assert generation.get("fallback_used") is False
 
     retrieval = opening_event.get("retrieval", {})
-    assert isinstance(retrieval, dict), "Opening did not expose retrieval diagnostics"
-    assert retrieval.get("domain") == "runtime"
-    assert retrieval.get("profile") == "runtime_turn_support"
-    assert retrieval.get("status") in {"ok", "degraded", "skipped"}
+    assert retrieval == {}
 
     summary = opening_event.get("observability_path_summary", {})
-    assert summary.get("retrieval_called") is True
-    assert summary.get("retrieval_context_attached") is True
+    assert summary.get("selected_model") == "narrator_path_renderer"
+    assert summary.get("selected_provider") == "world_engine"
+    assert summary.get("director_path_mode") == "narrator_path"
+    assert summary.get("narrator_path_selected") is True
+    assert summary.get("route_model_called") is False
+    assert summary.get("invoke_model_called") is False
+    assert summary.get("retrieval_called") is False
+    assert summary.get("retrieval_context_attached") is False
+    assert summary.get("nodes_executed") == [
+        "director.narrator_path.select",
+        "narrator_path.realize",
+        "souffleuse.select",
+        "souffleuse.realize",
+        "visible.project",
+        "commit.apply",
+    ]
 
     visible_bundle = opening_event.get("visible_output_bundle", {})
     scene_blocks = visible_bundle.get("scene_blocks", [])
@@ -146,21 +173,15 @@ def test_mvp4_opening_uses_live_runtime_graph_model_and_retrieval(runtime_manage
     assert not any(str(block.get("text") or "").lstrip().startswith("{") for block in scene_blocks)
     scene_envelope = opening_event.get("scene_turn_envelope", {})
     ldss_diag = (scene_envelope.get("diagnostics") or {}).get("live_dramatic_scene_simulator") or {}
-    if adapter == "ldss_fallback":
-        # Live graph ran first but opening packaging fell back to deterministic LDSS blocks (mock fixtures).
-        assert any(str(b.get("block_type")) == "narrator" for b in scene_blocks)
-        assert any(str(b.get("block_type")) in ("actor_line", "actor_action") for b in scene_blocks)
-        assert ldss_diag.get("invoked") is True
-        assert ldss_diag.get("status") == "evidenced_live_path"
-    else:
-        assert all(block.get("source") == "live_runtime_graph" for block in scene_blocks)
-        assert ldss_diag.get("invoked") is False, "LDSS must only run as fallback when live output fails"
-        assert ldss_diag.get("status") == "not_invoked_live_graph_primary"
+    assert any(str(b.get("block_type")) == "narrator" for b in scene_blocks)
+    assert any(str(b.get("block_type")) == "souffleuse" for b in scene_blocks)
+    assert ldss_diag.get("invoked") is False, "LDSS must only run as fallback when live output fails"
+    assert ldss_diag.get("status") == "not_invoked_live_graph_primary"
 
 
 @pytest.mark.mvp4
-def test_mvp4_opening_has_npc_agency(runtime_manager):
-    """Contract 2.3: Opening must have NPC agency (at least one NPC responds)."""
+def test_mvp4_opening_keeps_speech_free_narrator_boundary(runtime_manager):
+    """Contract 2.3: narrator path does not require full NPC agency for Turn 0."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -170,17 +191,21 @@ def test_mvp4_opening_has_npc_agency(runtime_manager):
 
     opening_event = session.diagnostics[0]
 
-    # Check for visible output that indicates NPC agency
     visible_bundle = opening_event.get("visible_output_bundle", {})
     assert isinstance(visible_bundle, dict), "No visible output bundle"
 
-    # Should have scene blocks with NPC dialogue or actions
     scene_blocks = visible_bundle.get("scene_blocks", [])
     assert len(scene_blocks) > 0, "Opening has no scene blocks"
 
-    # At minimum, opening should have narrator content
     gm_narration = visible_bundle.get("gm_narration", [])
-    assert len(gm_narration) > 0, "Opening has no narrator content (NPC agency manifests through narrative)"
+    assert len(gm_narration) > 0, "Opening has no narrator content"
+    assert opening_event.get("director_path_mode") == "narrator_path"
+    continuation = opening_event.get("scripted_continuation") or {}
+    envelope = opening_event.get("scene_turn_envelope") or {}
+    if continuation.get("scene_block_count", 0) > 0:
+        assert envelope.get("npc_agency_plan") is not None
+    else:
+        assert envelope.get("npc_agency_plan") is None
 
 
 @pytest.mark.mvp4
@@ -213,16 +238,20 @@ def test_mvp4_opening_has_actor_lane_context(runtime_manager):
     )
 
     # Session should retain actor lane information from runtime_projection
-    assert session.runtime_projection.get("human_actor_id") == "veronique"
-    assert session.runtime_projection.get("npc_actor_ids") == ["michel", "annette", "alain"]
+    assert session.runtime_projection.get("human_actor_id") == "annette_reille"
+    assert session.runtime_projection.get("npc_actor_ids") == [
+        "alain_reille",
+        "veronique_vallon",
+        "michel_longstreet",
+    ]
     assert session.runtime_projection.get("actor_lanes") is not None
 
     # Verify actor lanes are properly configured
     actor_lanes = session.runtime_projection.get("actor_lanes", {})
-    assert actor_lanes.get("veronique") == "human"
-    assert actor_lanes.get("michel") == "npc"
-    assert actor_lanes.get("annette") == "npc"
-    assert actor_lanes.get("alain") == "npc"
+    assert actor_lanes.get("annette_reille") == "human"
+    assert actor_lanes.get("alain_reille") == "npc"
+    assert actor_lanes.get("veronique_vallon") == "npc"
+    assert actor_lanes.get("michel_longstreet") == "npc"
 
 
 @pytest.mark.mvp4
@@ -283,7 +312,7 @@ def test_mvp4_opening_turn_contains_committed_truth(runtime_manager):
 
 @pytest.mark.mvp4
 def test_mvp4_opening_quality_class_is_healthy(runtime_manager):
-    """Contract 2.9: Opening via live runtime graph should achieve healthy quality."""
+    """Contract 2.9: Opening via narrator path should achieve healthy quality."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -301,7 +330,7 @@ def test_mvp4_opening_quality_class_is_healthy(runtime_manager):
 
 @pytest.mark.mvp4
 def test_mvp4_opening_no_degradation_signals(runtime_manager):
-    """Contract 2.10: Opening via live runtime graph should have no degradation signals."""
+    """Contract 2.10: Opening via narrator path should have no degradation signals."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(

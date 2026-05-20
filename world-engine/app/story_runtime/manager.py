@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import yaml
+
 logger = logging.getLogger(__name__)
 
 SESSION_LOOP_LOG_POLICY_VERSION = "session_loop_logging.v1"
@@ -25,6 +27,11 @@ SESSION_LOOP_LOG_LEVELS = {
     "error": logging.ERROR,
 }
 
+from ai_stack.w5_actor_situation import (
+    W5Snapshot,
+    build_w5_projection_for_narrator,
+    extract_w5_snapshot_from_committed_event,
+)
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
 from story_runtime_core.language_adapter import (
     build_player_attributed_visible_line,
@@ -312,6 +319,128 @@ from app.story_runtime.narrative_threads import (
 
 def _goc_content_modules_root() -> Path:
     return resolve_wos_repo_root() / "content" / "modules"
+
+
+def _language_code(value: Any, *, fallback: str | None = None) -> str | None:
+    text = str(value or "").strip().lower()
+    if not text:
+        text = str(fallback or "").strip().lower()
+    return text[:2] or None
+
+
+def _read_yaml_dict(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _module_authoring_language(
+    *,
+    module_id: str,
+    runtime_projection: dict[str, Any] | None = None,
+    content_provenance: dict[str, Any] | None = None,
+) -> str:
+    """Resolve the module/source language used for no-op output realization."""
+
+    for container in (runtime_projection, content_provenance):
+        if not isinstance(container, dict):
+            continue
+        for key in (
+            "module_authoring_language",
+            "module_language",
+            "content_language",
+            "authoring_language",
+        ):
+            lang = _language_code(container.get(key))
+            if lang:
+                return lang
+
+    module_dir = _goc_content_modules_root() / str(module_id or "").strip()
+    for rel_path in (
+        "phase_beat_policy.yaml",
+        "canonical_path/index.yaml",
+        "direction/opening_sequence.yaml",
+        "module.yaml",
+    ):
+        payload = _read_yaml_dict(module_dir / rel_path)
+        lang = _language_code(payload.get("authoring_language"))
+        if not lang:
+            for section in (
+                "phase_beat_policy",
+                "canonical_path",
+                "opening_sequence",
+                "module",
+                "content",
+            ):
+                nested = payload.get(section)
+                if isinstance(nested, dict):
+                    lang = _language_code(nested.get("authoring_language"))
+                    if lang:
+                        break
+        if not lang and isinstance(payload.get("metadata"), dict):
+            lang = _language_code(payload["metadata"].get("authoring_language"))
+        if not lang and isinstance(payload.get("content"), dict):
+            lang = _language_code(payload["content"].get("authoring_language"))
+        if lang:
+            return lang
+    return DEFAULT_SESSION_LANGUAGE
+
+
+def _short_sentence(value: Any) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    if not text:
+        return ""
+    head = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)[0].strip()
+    return head.rstrip(".!?")
+
+
+def _humanize_source_atom(value: Any) -> str:
+    text = re.sub(r"[_\s]+", " ", str(value or "").strip())
+    return text
+
+
+def _compose_souffleuse_visible_source_text(block: dict[str, Any]) -> str:
+    facts = block.get("source_facts") if isinstance(block.get("source_facts"), dict) else {}
+    payload: dict[str, Any] = {}
+    raw_text = str(block.get("text") or "").strip()
+    if raw_text.startswith("{"):
+        try:
+            parsed = json.loads(raw_text)
+            if isinstance(parsed, dict):
+                payload = parsed
+        except Exception:
+            payload = {}
+    identity = payload.get("identity") if isinstance(payload.get("identity"), dict) else {}
+    name = _short_sentence(facts.get("character_name") or identity.get("name"))
+    public_identity = _short_sentence(facts.get("character_public_identity"))
+    baseline = _short_sentence(facts.get("character_baseline_attitude"))
+    stance = (
+        facts.get("character_situational_stance")
+        if isinstance(facts.get("character_situational_stance"), dict)
+        else payload.get("situational_stance")
+        if isinstance(payload.get("situational_stance"), dict)
+        else {}
+    )
+    atoms = [
+        _humanize_source_atom(item)
+        for item in (stance.get("stance_atoms") if isinstance(stance, dict) else [])
+        if _humanize_source_atom(item)
+    ]
+    if public_identity and baseline:
+        return f"{public_identity}. {baseline}."
+    if public_identity:
+        return f"{public_identity}."
+    if baseline:
+        return f"{baseline}."
+    if name and atoms:
+        return f"{name}: {', '.join(atoms[:3])}."
+    if atoms:
+        return f"{', '.join(atoms[:3]).capitalize()}."
+    return raw_text
 
 
 SUPPORTED_LIVE_STORY_MODULE_IDS = (GOD_OF_CARNAGE_MODULE_ID,)
@@ -1511,6 +1640,9 @@ class StorySession:
     # Canonical path pointer (Phase 5). For modules with a canonical_path, holds the
     # id of the currently active step (e.g. "opening_004_den_arrival_positioning").
     canonical_step_id: str | None = None
+    # ADR-0063: append-only W5 actor-situation snapshots. Phase 1 is shadow-only.
+    w5_history: list[dict[str, Any]] = field(default_factory=list)
+    w5_latest_snapshot: dict[str, Any] | None = None
 
 
 def _parse_iso_datetime(value: str) -> datetime:
@@ -1545,6 +1677,9 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "runtime_world": session.runtime_world,
         "content_provenance": session.content_provenance,
         "canonical_step_id": session.canonical_step_id,
+        # ADR-0063: append-only W5 actor-situation snapshots (shadow in Phase 1).
+        "w5_history": list(session.w5_history),
+        "w5_latest_snapshot": session.w5_latest_snapshot,
     }
 
 
@@ -1588,6 +1723,15 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         runtime_world=dict(data.get("runtime_world") or {}),
         content_provenance=provenance,
         canonical_step_id=(str(data["canonical_step_id"]) if data.get("canonical_step_id") else None),
+        # ADR-0063: legacy payloads without W5 fields default to [] / None.
+        w5_history=[
+            dict(snap) for snap in (data.get("w5_history") or []) if isinstance(snap, dict)
+        ],
+        w5_latest_snapshot=(
+            dict(data["w5_latest_snapshot"])
+            if isinstance(data.get("w5_latest_snapshot"), dict)
+            else None
+        ),
     )
 
 
@@ -3183,6 +3327,7 @@ def _build_langfuse_path_summary(
         and isinstance(turn_aspect_ledger.get("readiness_policy_input"), dict)
         else None
     )
+    narrator_path_selected = str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
@@ -3213,11 +3358,11 @@ def _build_langfuse_path_summary(
         "session_output_language": getattr(session, "session_output_language", None) or DEFAULT_SESSION_LANGUAGE,
         "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
-        "route_model_called": "route_model" in nodes or bool(routing),
-        "invoke_model_called": "invoke_model" in nodes,
+        "route_model_called": False if narrator_path_selected else "route_model" in nodes or bool(routing),
+        "invoke_model_called": False if narrator_path_selected else "invoke_model" in nodes,
         "fallback_model_called": "fallback_model" in nodes or bool(generation.get("fallback_used")),
         "graph_fallback_node_called": "fallback_model" in nodes,
-        "retrieval_called": "retrieve_context" in nodes or bool(retrieval),
+        "retrieval_called": False if narrator_path_selected else "retrieve_context" in nodes or bool(retrieval),
         "validation_called": "validate_seam" in nodes or bool(validation),
         "commit_called": "commit_seam" in nodes or bool(committed),
         "render_visible_called": "render_visible" in nodes or isinstance(event.get("visible_output_bundle"), dict),
@@ -3375,8 +3520,7 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("realization_plan"), dict)
             else None
         ),
-        "narrator_path_selected": str(graph_state.get("director_path_mode") or "").strip()
-        == "narrator_path",
+        "narrator_path_selected": narrator_path_selected,
         "director_narrator_path_plan": graph_state.get("director_narrator_path_plan")
         if isinstance(graph_state.get("director_narrator_path_plan"), dict)
         else None,
@@ -9891,6 +10035,12 @@ class StoryRuntimeManager:
             f"session_output_language={target_language}.\n"
             "Preserve block count, block ids, order, canonical beat coverage, and narrative distance. "
             "Each output block is narrator perception, one to three natural sentences. "
+            "When source_facts.w5_projection is present, treat its typed who/where/what/how/why summaries as the "
+            "primary actor-situation authority for this turn. Honor where_summary.location_changed, the actor's "
+            "current_location, what_summary.current_action / interaction_type, how_summary (tone/manner/intensity/"
+            "pace/physicality/method/style — first-class, never folded into what), and why_summary (inferred motive/"
+            "goal/pressure/dramatic_function, never spoken as fact). Use transition_from_previous only as a fallback "
+            "when w5_projection is absent. "
             "If source_facts.transition_from_previous.location_changed or scene_changed is true, the block must "
             "narratively orient the shift before describing local detail. Use the current location, prior handoff, "
             "and module setting from source_facts; do not jump directly from one place into room inventory. "
@@ -9994,10 +10144,16 @@ class StoryRuntimeManager:
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         source_language = str(narrator_path.get("authoring_language") or "en").strip().lower()[:2] or "en"
         target_language = str(session.session_output_language or source_language).strip().lower()[:2] or source_language
+        # ADR-0063 Phase 2: optionally enrich each block's ``source_facts`` with
+        # the typed W5 narrator projection. Fail-closed flag — when disabled,
+        # behavior is identical to pre-Phase-2 (no w5_projection key emitted).
+        source_blocks = self._maybe_enrich_blocks_with_w5_narrator_projection(
+            session=session, source_blocks=source_blocks
+        )
         model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
         if adapter is None:
             if target_language != source_language:
-                raise RuntimeError("narrator_path_synthesis_module_unavailable")
+                raise RuntimeError("narrator_path_output_translation_unavailable")
             realized = []
             for block in source_blocks:
                 nb = dict(block)
@@ -10010,10 +10166,12 @@ class StoryRuntimeManager:
                 "status": "fallback_no_output_model",
                 "source_language": source_language,
                 "session_output_language": target_language,
+                "visible_output_language": target_language,
                 "adapter": NARRATOR_PATH_ADAPTER,
                 "adapter_invocation_mode": NARRATOR_PATH_INVOCATION_MODE,
                 "usage_source": "canonical_content_renderer_fallback",
                 "fallback_reason": "no_non_mock_output_model",
+                "translation_required": False,
             }
 
         prompt = self._narrator_path_output_prompt(
@@ -10080,20 +10238,34 @@ class StoryRuntimeManager:
         source_language = SOUFFLEUSE_INTERNAL_LANGUAGE
         target_language = str(session.session_output_language or source_language).strip().lower()[:2] or source_language
         if target_language == source_language or not source_blocks:
-            return [dict(block) for block in source_blocks], {
+            realized: list[dict[str, Any]] = []
+            for block in source_blocks:
+                nb = dict(block)
+                visible_text = _compose_souffleuse_visible_source_text(nb).strip()
+                if visible_text and visible_text != str(nb.get("text") or "").strip():
+                    nb["source_text"] = nb.get("text")
+                    nb["text"] = visible_text
+                    nb["player_display_text"] = visible_text
+                    nb["output_realization_source"] = "souffleuse_source_projection"
+                nb["source_language"] = source_language
+                nb["session_output_language"] = target_language
+                nb["visible_output_language"] = target_language
+                nb["requires_output_realization"] = False
+                realized.append(nb)
+            return realized, {
                 "contract": "souffleuse_output_realization.v1",
                 "status": "not_required",
                 "source_language": source_language,
                 "session_output_language": target_language,
                 "adapter": SOUFFLEUSE_ADAPTER,
                 "adapter_invocation_mode": SOUFFLEUSE_INVOCATION_MODE,
-                "usage_source": "prompt_store_internal_english",
+                "usage_source": "prompt_store_internal_english_visible_projection",
                 "block_count": len(source_blocks),
             }
 
         model_id, provider, adapter, api_model, timeout_seconds = self._narrator_path_output_adapter_candidate()
         if adapter is None:
-            raise RuntimeError("souffleuse_output_module_unavailable")
+            raise RuntimeError("souffleuse_output_translation_unavailable")
         prompt = self._souffleuse_output_prompt(
             source_blocks=source_blocks,
             source_language=source_language,
@@ -10609,7 +10781,11 @@ class StoryRuntimeManager:
                 "commit.apply",
             ],
             "retrieval": {},
-            "routing": {},
+            "routing": {
+                "selected_provider": generation_provider,
+                "selected_model": generation_model,
+                "fallback_stage_reached": "primary_only",
+            },
             "validation_outcome": {
                 "status": "approved",
                 "reason": "narrator_path_opening_contract_passed",
@@ -12109,8 +12285,200 @@ class StoryRuntimeManager:
         self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
         session.diagnostics.append(event)
         turn_lc.advance("observed")
+        # ADR-0063: W5 Actor Situation Tracker shadow extraction (Phase 1).
+        # Best-effort; never fails the turn. No consumer reads w5_history yet.
+        self._w5_shadow_extract_after_commit(
+            session=session,
+            graph_state=graph_state if isinstance(graph_state, dict) else {},
+            event=event,
+        )
         self._persist_session(session)
         return event
+
+    @staticmethod
+    def _w5_ast_narrator_projection_enabled() -> bool:
+        """ADR-0063 Phase 2 feature flag (fail-closed).
+
+        Defaults to ``False``: when unset, the runtime behaves exactly as in
+        Phase 1 (no ``w5_projection`` in narrator ``source_facts``). When set
+        to a truthy value, narrator composition consumes the typed W5
+        projection as a primary actor-situation input while the legacy
+        ``transition_from_previous`` block remains as fallback.
+        """
+
+        raw = (os.environ.get("W5_AST_NARRATOR_PROJECTION_ENABLED") or "").strip().lower()
+        return raw in {"1", "true", "yes", "on"}
+
+    @staticmethod
+    def _w5_narrator_projection_actor_candidates(session: StorySession) -> tuple[str, ...]:
+        projection = (
+            session.runtime_projection
+            if isinstance(session.runtime_projection, dict)
+            else {}
+        )
+        candidates: list[str] = []
+        for key in ("human_actor_id", "selected_player_role"):
+            raw = projection.get(key)
+            if not isinstance(raw, str):
+                continue
+            value = raw.strip()
+            if value and value not in candidates:
+                candidates.append(value)
+        return tuple(candidates)
+
+    def _maybe_enrich_blocks_with_w5_narrator_projection(
+        self,
+        *,
+        session: StorySession,
+        source_blocks: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Phase 2: add ``source_facts.w5_projection`` to each narrator block.
+
+        - Fail-closed: returns ``source_blocks`` untouched when the
+          ``W5_AST_NARRATOR_PROJECTION_ENABLED`` flag is disabled.
+        - Defensive: any failure during projection construction records a
+          ``w5_narrator_projection_failed`` diagnostic and falls back to
+          legacy behavior. The turn is not failed in Phase 2.
+        - Coerces persisted ``w5_latest_snapshot`` dicts through the typed
+          ``build_w5_projection_for_narrator`` builder; never lets the
+          narrator read the raw dict directly.
+        """
+
+        if not self._w5_ast_narrator_projection_enabled():
+            return source_blocks
+        try:
+            latest = session.w5_latest_snapshot
+            history = session.w5_history or []
+            previous: dict[str, Any] | None = None
+            if isinstance(history, list) and len(history) >= 2:
+                cand = history[-2]
+                if isinstance(cand, dict):
+                    previous = cand
+            actor_candidates = StoryRuntimeManager._w5_narrator_projection_actor_candidates(
+                session
+            )
+            projection = build_w5_projection_for_narrator(
+                latest,
+                actor_id=actor_candidates[0] if actor_candidates else None,
+                actor_id_aliases=actor_candidates[1:],
+                previous_snapshot=previous,
+            )
+            projection_payload = projection.to_dict()
+        except Exception as exc:  # pragma: no cover - defensive
+            session.diagnostics.append(
+                {
+                    "diagnostic_kind": "w5_narrator_projection_failed",
+                    "schema_version": "w5_narrator_projection_diagnostic.v1",
+                    "session_id": session.session_id,
+                    "turn_counter": int(session.turn_counter),
+                    "error": str(exc),
+                }
+            )
+            return source_blocks
+
+        enriched: list[dict[str, Any]] = []
+        for block in source_blocks:
+            if not isinstance(block, dict):
+                enriched.append(block)
+                continue
+            nb = dict(block)
+            existing = nb.get("source_facts")
+            facts = dict(existing) if isinstance(existing, dict) else {}
+            facts["w5_projection"] = projection_payload
+            nb["source_facts"] = facts
+            enriched.append(nb)
+        return enriched
+
+    def _w5_shadow_extract_after_commit(
+        self,
+        *,
+        session: StorySession,
+        graph_state: dict[str, Any],
+        event: dict[str, Any],
+    ) -> None:
+        """Run the W5 pure extractor and append its snapshot to ``session``.
+
+        Shadow-only in Phase 1: failures are caught and logged as a session
+        diagnostic; they must not affect the committed turn outcome.
+        """
+
+        try:
+            previous_payload = session.w5_latest_snapshot
+            previous_snapshot: W5Snapshot | None = None
+            if isinstance(previous_payload, dict):
+                try:
+                    previous_snapshot = W5Snapshot.from_dict(previous_payload)
+                except Exception:
+                    previous_snapshot = None
+            environment_state_after = (
+                session.environment_state
+                if isinstance(session.environment_state, dict)
+                else {}
+            )
+            director_gathering_state = (
+                graph_state.get("director_gathering_state")
+                if isinstance(graph_state.get("director_gathering_state"), dict)
+                else None
+            )
+            free_player_action_resolution = (
+                graph_state.get("free_player_action_resolution")
+                if isinstance(graph_state.get("free_player_action_resolution"), dict)
+                else None
+            )
+            actor_lane_context = (
+                graph_state.get("actor_lane_context")
+                if isinstance(graph_state.get("actor_lane_context"), dict)
+                else None
+            )
+            npc_agency_simulation = (
+                graph_state.get("npc_agency_simulation")
+                if isinstance(graph_state.get("npc_agency_simulation"), dict)
+                else (
+                    graph_state.get("npc_agency_plan")
+                    if isinstance(graph_state.get("npc_agency_plan"), dict)
+                    else None
+                )
+            )
+            character_mind_records = (
+                graph_state.get("character_mind_records")
+                if isinstance(graph_state.get("character_mind_records"), dict)
+                else None
+            )
+            active_canonical_step = (
+                graph_state.get("active_canonical_step")
+                if isinstance(graph_state.get("active_canonical_step"), dict)
+                else (
+                    {"step_id": session.canonical_step_id}
+                    if session.canonical_step_id
+                    else None
+                )
+            )
+            snapshot = extract_w5_snapshot_from_committed_event(
+                previous_snapshot=previous_snapshot,
+                committed_event=event,
+                environment_state_after=environment_state_after,
+                director_gathering_state=director_gathering_state,
+                free_player_action_resolution=free_player_action_resolution,
+                actor_lane_context=actor_lane_context,
+                npc_agency_simulation=npc_agency_simulation,
+                character_mind_records=character_mind_records,
+                active_canonical_step=active_canonical_step,
+                story_session_id=session.session_id,
+                turn_number=int(session.turn_counter),
+            )
+            snapshot_payload = snapshot.to_dict()
+            session.w5_history.append(snapshot_payload)
+            session.w5_latest_snapshot = snapshot_payload
+        except Exception as exc:  # pragma: no cover - defensive
+            session.diagnostics.append(
+                {
+                    "diagnostic_kind": "w5_shadow_extraction_failed",
+                    "schema_version": "w5_shadow_diagnostic.v1",
+                    "session_id": session.session_id,
+                    "turn_counter": int(session.turn_counter),
+                    "error": str(exc),
+                }
+            )
 
     # ------------------------------------------------------------------
     # Scripted canon continuation (post-opening Steps 005+)
@@ -12664,7 +13032,7 @@ class StoryRuntimeManager:
         module_id: str,
         runtime_projection: dict[str, Any],
         session_input_language: str | None = None,
-        session_output_language: str = DEFAULT_SESSION_LANGUAGE,
+        session_output_language: str | None = None,
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
         session_id: str | None = None,
@@ -12673,11 +13041,27 @@ class StoryRuntimeManager:
         # Generate trace_id if not provided for audit trail correlation.
         if not trace_id:
             trace_id = uuid4().hex
+        module_language = _module_authoring_language(
+            module_id=module_id,
+            runtime_projection=runtime_projection,
+            content_provenance=content_provenance,
+        )
+        resolved_output_language = (
+            _language_code(session_output_language)
+            or module_language
+            or DEFAULT_SESSION_LANGUAGE
+        )
+        resolved_input_language = (
+            _language_code(session_input_language)
+            or resolved_output_language
+            or module_language
+            or DEFAULT_SESSION_LANGUAGE
+        )
         session = self._create_story_session_record(
             module_id=module_id,
             runtime_projection=runtime_projection,
-            session_input_language=session_input_language or session_output_language,
-            session_output_language=session_output_language,
+            session_input_language=resolved_input_language,
+            session_output_language=resolved_output_language,
             content_provenance=content_provenance,
             session_id=session_id,
         )
@@ -12690,6 +13074,12 @@ class StoryRuntimeManager:
         if skip_graph_opening_on_create or self._skip_graph_opening_on_create:
             return session
         self._assert_live_player_governance()
+        if (
+            len(session.diagnostics) == 1
+            and isinstance(session.diagnostics[0], dict)
+            and session.diagnostics[0].get("event_type") == "runtime_world_initialized"
+        ):
+            session.diagnostics.clear()
         attempts = self._opening_retry_count() + 1
         last_exc: BaseException | None = None
         for attempt in range(1, attempts + 1):

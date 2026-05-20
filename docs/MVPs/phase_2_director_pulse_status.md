@@ -1,7 +1,8 @@
 # Phase 2 — Director Pulse, Block-Stream-Bus & Live Cut-In: Status
 
-**Status:** Living document
-**Last verified:** 2026-05-19
+**Status:** Phase 2 runtime/player-experience chain — **complete**.
+Documentation last refreshed 2026-05-20 (post Stage-M finalization).
+**Last verified:** 2026-05-20
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md)
 **Primary governance:** [ADR-0058](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md), [ADR-0059](../ADR/adr-0059-semantic-npc-motivation-score.md), [ADR-0060](../ADR/adr-0060-souffleuse-inner-voice-composition.md)
 **Vocabulary discipline:** [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) (no Pi/Π runtime keys)
@@ -84,27 +85,33 @@ cut-kind semantics, and the `fallback_path`.
 | ADR | Title | Status | Implementation coverage |
 |---|---|---|---|
 | [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) | Gate tests: no hardcoded oracles; no Pi/Π runtime keys | **Accepted** | Enforced by `tests/gates/test_table_b_anti_hardcoding_gate.py` (18/18 passing, incl. Pi-scope and runtime-surface inventory tests). Stage-M additions to `SCENE_ENERGY_CANONICAL_SURFACES` and `INFORMATION_DISCLOSURE_CANONICAL_SURFACES` are scoped to `ai_stack/phase2_ws_session_loop.py` only and are commented as Stage M usage. |
-| [ADR-0058](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md) | Director-Driven Pulse and Block-Stream-Bus | **Accepted** | Stages A–F documented in the ADR; **Stages G, H, I, K, L, M present in code but not yet folded into the ADR body** — see §3.1 below. |
-| [ADR-0059](../ADR/adr-0059-semantic-npc-motivation-score.md) | Semantic NPC Motivation Score | **Accepted** | `ai_stack/npc_motivation_score_engine.py` + Stage-F three-tier source classification (`real_runtime_signal` / `module_policy_default` / `missing_signal`) surface via `phase2_stream_readiness.classify_motivation_component_sources`. |
-| [ADR-0060](../ADR/adr-0060-souffleuse-inner-voice-composition.md) | Souffleuse inner-voice composition | **Accepted** | Souffleuse block-type registered in `director_pulse_contracts.BLOCK_TYPE_SOUFFLEUSE` and the WS cut-kind map (`souffleuse → skip_to_end`). Live composition pipeline is partially wired and is **deliberate Future Work** alongside the semantic follow-up provider (§5.2). |
+| [ADR-0058](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md) | Director-Driven Pulse and Block-Stream-Bus | **Accepted** | Stages A–M plus a Completion Pass documented in the ADR body (refreshed 2026-05-20). Companion short conceptual ADR ([`adr-0058-director-driven-pulse-and-block-stream-bus.md`](../ADR/adr-0058-director-driven-pulse-and-block-stream-bus.md)) carries a Phase-2 completion banner that defers to the long file for the stage map. |
+| [ADR-0059](../ADR/adr-0059-semantic-npc-motivation-score.md) | Semantic NPC Motivation Score | **Accepted** | `ai_stack/npc_motivation_score_engine.py` + Stage-F three-tier source classification (`real_runtime_signal` / `module_policy_default` / `missing_signal`) surface via `phase2_stream_readiness.classify_motivation_component_sources` (now documented in ADR-0059 §9). |
+| [ADR-0060](../ADR/adr-0060-souffleuse-inner-voice-composition.md) | Souffleuse inner-voice composition | **Accepted** | Souffleuse block-type registered in `director_pulse_contracts.BLOCK_TYPE_SOUFFLEUSE` and the WS cut-kind map (`souffleuse → skip_to_end`). Stage-M NPC follow-up composition (template + safety-gated semantic dispatcher) documented in ADR-0060 §9–§12; live Director-composed Souffleuse pressure-escalation blocks remain explicit Future Work (§5.2). |
 | [ADR-0061](../ADR/adr-0061-director-pause-mode-for-gathering-interruption.md) | Director-Pause mode | Draft | Phase-1 contract; surfaced to Phase 2 via `gathering_paused` plumbing in the autonomous-tick coordinator. |
 | [ADR-0062](../ADR/adr-0062-director-realization-thin-path.md) | Resolver → Director → Narrator thin path | Accepted | Phase-1 thin path that Phase-2 Pulse rides on. |
 
-### 3.1 ADR-0058 documentation lag (governance finding)
+### 3.1 ADR-0058 documentation refresh (2026-05-20)
 
-Two files exist under `docs/ADR/`:
+Two files exist under `docs/ADR/` for ADR-0058:
 
-- `adr-0058-director-driven-pulse-and-block-stream-bus.md` — short conceptual ADR; the file other ADRs cross-link to.
-- `adr-0058-director-driven-pulse-block-stream-bus.md` — long implementation ADR with Stage A–F detail.
+- [`adr-0058-director-driven-pulse-and-block-stream-bus.md`](../ADR/adr-0058-director-driven-pulse-and-block-stream-bus.md) — short conceptual ADR; the file other ADRs cross-link to.
+- [`adr-0058-director-driven-pulse-block-stream-bus.md`](../ADR/adr-0058-director-driven-pulse-block-stream-bus.md) — long implementation ADR with stage-by-stage detail.
 
-This is a known duplication. **Neither file currently documents Stage G, H, I,
-K, L, or M**, all of which are present in code as of this commit (Stage L
-landed in commit `daf030d6` and Stage M in the active change set). This is the
-single open ADR-0058 maintenance item; it is tracked in §5.4 below.
+The 2026-05-20 documentation pass folded Stages G, H, I, K, L, and M
+plus a Completion Pass into the long file (added stage sections,
+flag-table additions, governance/anti-hardcoding entries for every
+new stage). The short conceptual ADR carries a Phase-2 completion
+banner that points to the long file for the stage map; the two files
+agree on every hard boundary.
+
+The duplication itself is left in place rather than collapsed in this
+pass — collapsing it is its own ADR-0023 change and is *not* a Phase-2
+closure blocker.
 
 The hard guarantees that ADR-0058 asserts (no commit/readiness mutation, no
 `validation_outcome` change, no Pi/Π keys, no hardcoded actor/room IDs, cut
-semantics block-type-driven) are still enforced by Stages G–M:
+semantics block-type-driven) are enforced by Stages G–M:
 
 - `ai_stack/phase2_ws_session_loop.py` records `"validation_outcome_changed": False`
   on 5 contract surfaces (Stage K handoff, Stage L replanning decision, Stage L
@@ -124,17 +131,20 @@ All numbers below were obtained on 2026-05-19 against the current working tree.
 
 | Suite | Command | Result |
 |---|---|---|
-| ai_stack — WS session loop pure helpers (Stages D, I, K, L, M) | `python -m pytest ai_stack/tests/test_phase2_ws_session_loop.py` | **98 passed** |
-| ai_stack — Director Pulse + autonomous tick + off-stage + readiness + Stages F/G + dual-mode | `python -m pytest ai_stack/tests/test_phase2_director_pulse.py test_phase2_autonomous_tick.py test_phase2_off_stage_updates.py test_phase2_stream_readiness.py test_phase2_stage_f_capability_feeding.py test_phase2_stage_g_off_stage_commits.py test_phase2_dual_mode.py` | **314 passed** |
-| world-engine — WS session-loop endpoint (Stage D/K/L/M end-to-end at the transport layer) | `python -m pytest world-engine/tests/test_phase2_ws_session_loop_endpoint.py` | **49 passed** |
-| world-engine — MVP3 LDSS integration (committed-state envelope) | `PYTHONPATH=world-engine python -m pytest world-engine/tests/test_mvp3_ldss_integration.py` | **10 passed** |
-| ai_stack — LDSS canonical-step integration | `python -m pytest ai_stack/tests/test_canonical_step_ldss_output.py ai_stack/tests/test_ldss_canonical_step_integration.py` | **10 passed** |
-| tests/gates — full architecture-enforcement suite (incl. ADR-0039 Pi-scope, Table-B anti-hardcoding) | `python tests/run_tests.py --suite gates --quick` | **156 passed** (incl. 18 Table-B gate tests, all 14 Table-B aspect surface tests) |
-| frontend — blocks orchestrator (Stage B/C/D client) | `cd frontend; npx jest tests/test_blocks_orchestrator.js` | **95 passed** |
+| ai_stack — WS session loop pure helpers (Stages D, I, K, L, M) | `python -m pytest ai_stack/tests/test_phase2_ws_session_loop.py` | **98 passed** (verified 2026-05-19) |
+| ai_stack — Director Pulse + autonomous tick + off-stage + readiness + Stages F/G + dual-mode | `python -m pytest ai_stack/tests/test_phase2_director_pulse.py test_phase2_autonomous_tick.py test_phase2_off_stage_updates.py test_phase2_stream_readiness.py test_phase2_stage_f_capability_feeding.py test_phase2_stage_g_off_stage_commits.py test_phase2_dual_mode.py` | **314 passed** (verified 2026-05-19) |
+| world-engine — WS session-loop endpoint (Stage D/K/L/M end-to-end at the transport layer) | `python -m pytest world-engine/tests/test_phase2_ws_session_loop_endpoint.py` | **49 passed** (verified 2026-05-19) |
+| world-engine — MVP3 LDSS integration (committed-state envelope) | `PYTHONPATH=world-engine python -m pytest world-engine/tests/test_mvp3_ldss_integration.py` | **10 passed** (verified 2026-05-19) |
+| ai_stack — LDSS canonical-step integration | `python -m pytest ai_stack/tests/test_canonical_step_ldss_output.py ai_stack/tests/test_ldss_canonical_step_integration.py` | **10 passed** (verified 2026-05-19) |
+| tests/gates — full architecture-enforcement suite (incl. ADR-0039 Pi-scope, Table-B anti-hardcoding) | `python tests/run_tests.py --suite gates --quick` | **156 passed** (incl. 18 Table-B gate tests, all 14 Table-B aspect surface tests; verified 2026-05-19) |
+| frontend — blocks orchestrator (Stage B/C/D client) | `cd frontend; npx jest tests/test_blocks_orchestrator.js` | **95 passed** (verified 2026-05-19) |
 | Whitespace gate | `git diff --check` | **clean** |
 
 **Aggregate: 732 Python + 95 JS test cases proving Phase-2 stages A–M, plus
-the gate suite proving Table-B / ADR-0039 surface governance.**
+the gate suite proving Table-B / ADR-0039 surface governance. The
+2026-05-20 documentation pass touches docs only (ADR-0058 long/short,
+ADR-0059, ADR-0060, this status doc, the PIV log); the test counts
+above are unchanged by doc-only edits.**
 
 ### 4.2 Out-of-scope, pre-existing failures (not Phase-2 regressions)
 
@@ -270,48 +280,67 @@ needs:
 budgets, plus a documented matrix of which Π27 / Π1 surfaces are write
 targets. Not in Phase 2 scope.
 
-### 5.4 Production rollout flags + ADR-0058 §"Stage G–M" consolidation
+### 5.4 Production rollout flags + ADR-0058 file consolidation
 
 **Current state.** All Phase-2 server flags default off. The frontend flags
 default off. There is no per-environment rollout policy beyond
 `is_*_enabled()` helpers.
 
-**Outstanding ADR maintenance.**
+**ADR maintenance status (2026-05-20).**
 
-- ADR-0058 has two on-disk variants; only the long one carries Stage A–F
-  detail. Neither documents Stages G/H/I/K/L/M.
-- Decision needed: consolidate to one ADR-0058 file and append a
-  §"Stage G", §"Stage H", §"Stage I", §"Stage K", §"Stage L", §"Stage M"
-  block (each mirroring the existing §"Stage E" / §"Stage F" structure:
-  what it adds, the new flag, the hard boundaries it preserves, the
-  anti-hardcoding posture).
+- ADR-0058 (long file) now documents **Stages A–M** plus a **Completion
+  Pass** in its Decision body, with closed-enum vocabulary and
+  anti-hardcoding postures recorded per stage. ADR-0059 §9 documents
+  the Stage F three-tier source classification. ADR-0060 §9–§12
+  document the Stage M dispatcher, safety-gate suite, and the
+  Souffleuse / NPC follow-up boundary.
+- ADR-0058 still exists in two on-disk variants
+  (`adr-0058-director-driven-pulse-and-block-stream-bus.md` short /
+  `adr-0058-director-driven-pulse-block-stream-bus.md` long). The
+  short file now carries a Phase-2 completion banner that defers to
+  the long file for the stage map. Collapsing the two files into one
+  is **not** a Phase-2 closure blocker — it is its own ADR-0023
+  governance change.
 
-**Why deferred from this status doc.** Editing ADR-0058 is its own change
-under ADR-0023 (decision framework) and should not ride on the same commit
-that finalizes Stage M code. The mechanical work (sections, tables, flag
-inventory updates, "Remaining work" list) is captured here so it can be
-lifted into ADR-0058 in a follow-up.
+**Production rollout flags.** Per-environment policy for the seven
+Phase-2 feature flags (server + frontend window flags) remains a
+future-work item; the flags themselves all fail closed today.
 
 ---
 
 ## 6. Closure judgment
 
 **Is Phase 2 a complete end-to-end playable chain?**
-Yes for the player-experience chain (player turn → autonomous NPC tick →
-player cut-in → handoff → promoted input → replanning → follow-up →
-silence fallback) at the WS-transport + ai_stack pure-helper level, with
-all closed-enum safety gates and source-classification diagnostics in place.
+Yes for the player-experience chain (player turn → block stream → autonomous
+NPC tick → player cut-in → handoff → promoted player input → post-cut-in
+replanning → follow-up block or silence → diagnostics) at the WS-transport
++ `ai_stack` pure-helper level, with all closed-enum safety gates and
+source-classification diagnostics in place. The Completion Pass in
+ADR-0058 records the same chain as the canonical reference.
 
 **Can Phase 2 be marked complete in the roadmap?**
-Yes for Stages A–M as listed in §2, **with §5 explicitly noted as deliberate
-Future Work** (not silent gaps). The ADR-0058 documentation consolidation in
-§5.4 is the only Phase-2-internal cleanup item; everything else in §5 is
-out-of-scope by design.
+**Yes.** Stages A–M as listed in §2 are complete, the ADR refresh of
+2026-05-20 brings ADR-0058/0059/0060 into agreement with the
+implemented surfaces, and §5 explicitly separates **deliberate Future
+Work** (Stage J full mid-turn graph mutation, Stage M production
+provider wiring, richer Stage G off-stage commit policy, per-env
+flag rollout, optional ADR-0058 file consolidation) from Phase-2
+closure. None of the Future-Work items are required for the Phase-2
+completion target defined by `NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md` §4.
 
 **Live-smoke prerequisites:** §2.1 flag set must be active; provider for §5.2
 intentionally omitted so the dispatcher exercises the deterministic template
-path during smoke runs.
+path during smoke runs. Local/live smoke evidence is runtime verification
+only — no staging or live-environment claim is recorded here unless the
+underlying turn carries explicit environment metadata.
 
 **Diagnostics that prove the chain are live:** §4.3 enumerates the
 server-side + client-side surfaces an operator can inspect to confirm
 end-to-end Phase-2 behavior on a real session.
+
+**Out-of-scope pre-existing failures:** §4.2 lists the known
+pre-existing failure buckets (greeting imperative classification,
+actor-id canonicalization, narrator-path synthesis env condition,
+GoC long-run breadth, semantic planner golden cases). None touch
+`phase2_*` modules, none block Phase-2 closure, and none were
+introduced by the 2026-05-20 documentation pass.

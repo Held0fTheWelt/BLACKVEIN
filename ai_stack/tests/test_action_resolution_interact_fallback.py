@@ -13,26 +13,17 @@ pytest.importorskip(
     reason="LangGraph/LangChain stack required for GoC runtime graph tests",
 )
 
-from ai_stack.tests.test_goc_mvp_breadth_playability_regression import (
-    HOST_OK,
-    JsonAdapter,
-    _executor,
-)
+from ai_stack.tests.test_langgraph_runtime import _build_graph
 
 
-def test_semantic_resolution_required_uses_full_dramatic_pipeline_not_short_path(tmp_path: Path) -> None:
-    """Unresolved free action requires AI semantics and still keeps director + model path."""
-    narrative = (
-        "Michel raises his voice, attacks your accusation, and threatens another fight "
-        "if you continue under rising pressure in the room."
-    )
-    result = _executor(tmp_path, adapter=JsonAdapter(narrative)).run(
+def test_semantic_resolution_required_uses_thin_path_not_short_path(tmp_path: Path) -> None:
+    """Unresolved free action requires AI semantics and still keeps the Director thin path."""
+    result = _build_graph(tmp_path).run(
         session_id="s-interact-reg",
         module_id="god_of_carnage",
         current_scene_id="living_room",
         player_input="I am furious and attack your accusation right now.",
         trace_id="trace-interact-reg",
-        host_experience_template=HOST_OK,
     )
     frame = result.get("player_action_frame") or {}
     assert frame.get("verb") == "semantic_resolution_required"
@@ -41,9 +32,20 @@ def test_semantic_resolution_required_uses_full_dramatic_pipeline_not_short_path
     assert frame.get("action_commit_policy") == "needs_clarification"
 
     nodes = (result.get("graph_diagnostics") or {}).get("nodes_executed") or result.get("nodes_executed") or []
+    for required in (
+        "resolve_player_action",
+        "director_compose_realization",
+        "realize_via_capabilities",
+        "route_model",
+        "invoke_model",
+        "validate_seam",
+        "commit_seam",
+        "package_output",
+    ):
+        assert required in nodes
     assert "authoritative_action_resolution" not in nodes
-    assert "invoke_model" in nodes
-    assert result.get("selected_scene_function")
+    assert "goc_resolve_canonical_content" not in nodes
+    assert "director_assess_scene" not in nodes
 
     repro = (result.get("graph_diagnostics") or {}).get("repro_metadata") or {}
     assert repro.get("action_resolution_short_path") is False

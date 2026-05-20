@@ -163,6 +163,7 @@ def test_actor_lane_context_uses_mvp1_handoff():
 
     profile = resolve_runtime_profile("god_of_carnage_solo")
     ownership = build_actor_ownership("annette", profile)
+    expected_human = "annette_reille"
 
     ctx = build_actor_lane_context(
         ownership,
@@ -170,10 +171,15 @@ def test_actor_lane_context_uses_mvp1_handoff():
         runtime_profile_id="god_of_carnage_solo",
         content_module_id="god_of_carnage",
     )
-    assert ctx.human_actor_id == "annette"
+    assert ctx.human_actor_id == expected_human
     assert ctx.contract == "actor_lane_context.v1"
-    assert "annette" not in ctx.ai_allowed_actor_ids
-    assert "annette" in ctx.ai_forbidden_actor_ids
+    assert expected_human not in ctx.ai_allowed_actor_ids
+    assert expected_human in ctx.ai_forbidden_actor_ids
+    assert set(ctx.ai_allowed_actor_ids) == {
+        "alain_reille",
+        "veronique_vallon",
+        "michel_longstreet",
+    }
     assert "visitor" not in ctx.actor_lanes
     assert "visitor" not in ctx.ai_allowed_actor_ids
     assert "visitor" not in ctx.ai_forbidden_actor_ids
@@ -540,6 +546,7 @@ def test_actor_lane_context_uses_mvp1_handoff_alain_start():
 
     profile = resolve_runtime_profile("god_of_carnage_solo")
     ownership = build_actor_ownership("alain", profile)
+    expected_human = "alain_reille"
 
     ctx = build_actor_lane_context(
         ownership,
@@ -547,13 +554,13 @@ def test_actor_lane_context_uses_mvp1_handoff_alain_start():
         runtime_profile_id="god_of_carnage_solo",
         content_module_id="god_of_carnage",
     )
-    assert ctx.human_actor_id == "alain"
+    assert ctx.human_actor_id == expected_human
     assert ctx.contract == "actor_lane_context.v1"
-    assert "alain" not in ctx.ai_allowed_actor_ids
-    assert "alain" in ctx.ai_forbidden_actor_ids
+    assert expected_human not in ctx.ai_allowed_actor_ids
+    assert expected_human in ctx.ai_forbidden_actor_ids
     assert "visitor" not in ctx.actor_lanes
     # Remaining three canonical actors are NPC
-    for npc_id in ["annette", "veronique", "michel"]:
+    for npc_id in ["annette_reille", "veronique_vallon", "michel_longstreet"]:
         assert npc_id in ctx.ai_allowed_actor_ids, f"{npc_id} must be in ai_allowed for Alain start"
 
 

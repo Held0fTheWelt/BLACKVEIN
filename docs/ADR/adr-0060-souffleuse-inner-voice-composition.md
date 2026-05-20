@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2026-05-19
+2026-05-20
 
 ## Related ADRs
 
@@ -128,6 +128,98 @@ not modified by this ADR. The opening Souffleuse path continues to work as
 implemented under ADR-0035. This ADR governs the rules that any future Souffleuse
 composition path must follow.
 
+### 9. Stage M follow-up composition (NPC reply after a player cut-in)
+
+ADR-0058 §"Stage M" ships the dispatcher that composes the
+`post_cut_in_follow_up_event.v1` block when an NPC is selected to reply
+to a promoted player cut-in. The Stage-M follow-up is *not* the
+Souffleuse (it is an NPC reply, not the played character's inner voice),
+but it inherits the same voice discipline that this ADR establishes —
+voice-profile-driven, content-authored, never generic — and the
+shared safety-gate vocabulary listed in §10.
+
+**Composition modes (closed enum):**
+
+| Mode | When it fires |
+|---|---|
+| `template_render` | Deterministic render of an authored template from the NPC voice profile (`follow_up_composition`, `speech_patterns`, or top-level template keys). |
+| `semantic_generation` | A `FollowUpSemanticProvider` is injected and `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED=true`. The provider receives a `follow_up_composition_request.v1` projection and returns text only — never a safety verdict. |
+| `template_fallback_after_semantic_failure` | Semantic generation was attempted but the provider raised, returned non-text, or its text was rejected by a safety gate. The dispatcher renders the deterministic template and tags the result with this mode plus a `semantic_attempt_metadata` block. |
+| `not_applicable` | No voice profile available, or composition was not attempted (e.g. the selected next-action source was `silence`). |
+
+The feature flag *and* an injected provider are both required to take
+the semantic path. Setting the flag alone leaves the dispatcher on the
+deterministic template path. Production provider wiring on the WS
+endpoint is **not** active in Phase 2; see
+`docs/MVPs/phase_2_director_pulse_status.md` §5.2 for the deliberate
+deferral.
+
+Template-path placeholders are restricted to a closed allowlist:
+`actor_id`, `baseline_tone`, `current_phase_voice_hint`,
+`interrupted_block_id`, `interrupted_block_type`, `motivation_score`,
+`player_input`, `promoted_player_input`, `promoted_player_input_id`,
+`voice_hint`. An unrecognised placeholder rejects the render with
+`unsupported_follow_up_template_placeholder`.
+
+### 10. Stage M safety gates (closed enum, applied to template AND semantic output)
+
+Every gate runs on whichever text reaches the rendered stage. Any
+single `reject` fails the composition; the dispatcher records the first
+failing gate's reason and stays on the deterministic template (or, if
+the template path also fails, emits a no-follow-up event with a
+closed-enum reason).
+
+| Gate | What it checks |
+|---|---|
+| `length` | Non-empty and ≤ `MAX_COMPOSED_FOLLOW_UP_CHARS` (280 chars). |
+| `actor_lane` | Actor ID is not in the AI-forbidden actor lane (human player, `ai_forbidden_actor_ids`, or `actor_lane_context.ai_forbidden_actor_ids`). |
+| `voice_forbidden_markers` | Output contains no `voice_consistency.forbidden_language_markers` declared on the actor's voice profile. |
+| `no_new_people` | Output contains no token in `forbidden_new_person_tokens`. |
+| `no_new_rooms` | Output contains no token in `forbidden_new_room_tokens`. |
+| `no_forbidden_plot_facts` | Output contains no token in `forbidden_plot_fact_tokens`. |
+| `information_disclosure` | Output contains no `forbidden_disclosure_tokens` from `information_disclosure_target.withheld_units`. |
+
+Each gate returns `pass` / `reject` / `not_applicable` deterministically.
+The provider's `success` flag is *advisory*; the gates own the final
+decision.
+
+### 11. Inherited invariants — no generic assistant phrasing, no hardcoded NPC lines
+
+The Stage M follow-up composition inherits §1, §2, §3, and §5 of this
+ADR:
+
+- The voice profile is the mandatory primary source of text. Without
+  a voice profile the dispatcher returns `composition_mode="not_applicable"`
+  with `reason="voice_profile_unavailable"`; it never substitutes
+  generic copy.
+- No hardcoded NPC lines. Template strings live in the authored voice
+  profile YAML, not in Python. Tests that exercise the dispatcher
+  drive it with fixture profiles built from policy/contract constants,
+  not from authored prose.
+- No generic assistant phrasing ("You might want to...",
+  "Consider...") and no generic narrator phrasing ("The room is
+  tense."). These would fail either the `voice_forbidden_markers`
+  gate (when the voice profile lists them) or trip the
+  `actor_lane`/`no_new_people` gates on lane-breaking content.
+
+### 12. Stage M ≠ live Souffleuse pipeline
+
+Stage M composes an NPC reply (e.g. an `actor_line` follow-up); it does
+*not* compose new Souffleuse blocks. Live Director-composed Souffleuse
+blocks (pressure-escalation inner-voice cues outside the opening
+canonical_path cues) remain deferred — see §3 and §4 above. Phase 2
+ships:
+
+- The Souffleuse block-type / lane / cut-kind contract surface
+  (`director_pulse_contracts.BLOCK_TYPE_SOUFFLEUSE`,
+  `LANE_PLAYER_HINT`, `CUT_KIND_SKIP_TO_END`).
+- The opening Souffleuse path via `goc_souffleuse.py` (unchanged).
+- The Stage M follow-up composition for NPC replies, sharing the
+  voice-profile discipline and safety-gate vocabulary above.
+
+Live Director-composed Souffleuse pressure-escalation blocks are
+explicit future work and are not part of Phase 2 closure.
+
 ## Consequences
 
 **Positive:**
@@ -150,5 +242,18 @@ composition path must follow.
 - `ai_stack/goc_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
 - `ai_stack/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
   and `CUT_KIND_SKIP_TO_END` constants define the Souffleuse's stream position.
+- `ai_stack/phase2_ws_session_loop.py` — Stage M follow-up composition
+  dispatcher (`_compose_npc_follow_up`, `_compose_template_render_follow_up`,
+  `_compose_semantic_npc_follow_up`, `_run_safety_gates`,
+  `_build_follow_up_composition_request`). Closed-enum vocabulary:
+  `COMPOSITION_MODES`, `SAFETY_GATES`, `SOURCE_CONTEXTS`,
+  `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED`,
+  `MAX_COMPOSED_FOLLOW_UP_CHARS`.
+- `ai_stack/tests/test_phase2_ws_session_loop.py` — dispatcher,
+  template, semantic, fallback, and per-gate test coverage (98 tests
+  on the WS pure helpers).
 - Future: Director-composed Souffleuse blocks in `director_pulse_shadow.py` when
-  pressure escalation is live-wired.
+  pressure escalation is live-wired (not part of Phase 2).
+- Future: production semantic-provider wiring for the Stage M
+  dispatcher on the WS endpoint (not part of Phase 2; see
+  `docs/MVPs/phase_2_director_pulse_status.md` §5.2).

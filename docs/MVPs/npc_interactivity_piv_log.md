@@ -2,6 +2,7 @@
 
 **Status:** Living document
 **Created:** 2026-05-19
+**Last refreshed:** 2026-05-20 (Phase 2 documentation pass — ADR-0058/0059/0060 aligned with implemented Stages A–M)
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md)
 **Reviewer rule:** False or invented `file:line` references in any linked PIV artifact are reject-worthy. Every claim about runtime structure must trace to a verified source location at the time the PIV was written.
 
@@ -23,9 +24,9 @@ The roadmap defines Phase 1 (free player action + Director-Pause) and Phase 2 (D
 | 1 | **PR-A** | Resolver-Contract closure (`free_player_action_resolution.v1`, `resolved_target_type: "location"` for movement) | **Draft (this commit)** | [`pr_a_resolver_contract_closure_piv.md`](../implementation_logs/pr_a_resolver_contract_closure_piv.md) |
 | 1 | **PR-B** | Live-effect propagation (`narrator_consequence_realization.v1`, `canonical_path_hold_effect.v1`) | **Draft (this commit)** | [`pr_b_live_effect_propagation_piv.md`](../implementation_logs/pr_b_live_effect_propagation_piv.md) |
 | 1 | **PR-C** | Director-Pause mode (`director_gathering_state.v1`, `compute_gathering_state`, beat-consumption gate, narrator reaction hook) | **Draft** | [`pr_c_director_pause_mode_piv.md`](../implementation_logs/pr_c_director_pause_mode_piv.md) |
-| 2 | ADR-0058 / Pulse-MVP | Director-driven tick + Block-Stream-Bus (Stages A–M) | Shipped — see status doc | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
-| 2 | ADR-0059 | Motivation-Score (per-NPC, principled-deterministic; Stage-F three-tier source classification) | Shipped — see status doc | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
-| 2 | ADR-0060 | Souffleuse inner-voice composition + pressure escalation | Contract surface shipped; live composition pipeline deferred (Future Work §5.2) | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
+| 2 | ADR-0058 / Pulse-MVP | Director-driven tick + Block-Stream-Bus (Stages A–M + Completion Pass) | **Shipped** — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
+| 2 | ADR-0059 | Motivation-Score (per-NPC, principled-deterministic; Stage-F three-tier source classification) | **Shipped** — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
+| 2 | ADR-0060 | Souffleuse inner-voice composition + Stage M NPC follow-up dispatcher | **Shipped** (Souffleuse contract surface + Stage M template/semantic dispatcher with closed-enum safety gates) — see [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md). Live Director-composed Souffleuse pressure-escalation blocks and production semantic-provider wiring remain Future Work (§5.2). | [`phase_2_director_pulse_status.md`](phase_2_director_pulse_status.md) |
 
 ## 3. PIV artifact requirements
 

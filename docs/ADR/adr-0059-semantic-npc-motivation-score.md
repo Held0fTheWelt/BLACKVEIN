@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2026-05-19
+2026-05-20
 
 ## Related ADRs
 
@@ -146,6 +146,58 @@ All `npc_motivation_score.v1` records are included in the shadow-path output
 regardless of threshold crossing. This lets an operator or test see exactly
 why a given NPC was selected (or not selected) for initiative on any tick.
 
+### 9. Stage F — three-tier source classification (closed enum)
+
+Phase 2 Stage F (ADR-0058 §"Stage F") adds a per-component **source
+classification** that records, for every tick, *where* each motivation
+component's signal came from. The classification is a closed enum with
+exactly three labels:
+
+| Source label | Meaning |
+|---|---|
+| `real_runtime_signal` | A structured runtime capability output was supplied for this component (e.g. `scene_energy_output`, `social_pressure_output`, `relationship_state_output`, `narrative_momentum_output`) and was used directly. |
+| `module_policy_default` | No structured runtime output was supplied for this component, but the module policy provided a usable default (e.g. weight values from `module.yaml.runtime_intelligence.npc_motivation_score.score_weights`, or actor pressure markers from `actor_pressure_profiles.yaml`). |
+| `missing_signal` | Neither a structured runtime output nor a module-policy default was available; the engine fell back to a neutral mid-range constant (`0.50`). |
+
+Implementation: `ai_stack/phase2_stream_readiness.classify_motivation_component_sources()`.
+The autonomous-tick coordinator
+(`ai_stack/phase2_autonomous_tick.AutonomousTickOutcome`) surfaces:
+
+- `motivation_score_component_sources: dict[str, str]` — one label per
+  component (`scene_energy`, `social_pressure`,
+  `relationship_axis_pressure`, `narrative_momentum`,
+  `pressure_baseline`).
+- `capability_outputs_used: list[str]` — Stage F surfaces that were
+  actually supplied for this tick.
+- `capability_outputs_missing: list[str]` — Stage F surfaces that were
+  absent for this tick.
+
+The same labels are forwarded to the WS `autonomous_tick_evaluated`
+summary, the `diagnostics.director_pulse.motivation_score_sources`
+field, and the
+`diagnostics.phase2_event_stream_readiness.motivation_score_sources`
+readiness surface.
+
+### 10. Initiative discipline (closed-enum invariants)
+
+The motivation-score engine never:
+
+- maintains a speaker queue, roundtable rotation, or fixed turn-order
+  roster;
+- branches on hardcoded NPC IDs (the engine reads
+  `actor_pressure_modifiers` as a generic dict);
+- promotes an NPC below the resolved threshold;
+- fakes a `real_runtime_signal` label when the structured runtime
+  output is absent — the source label degrades through
+  `module_policy_default` to `missing_signal` rather than asserting
+  evidence the engine did not see.
+
+Silence is the *active*, recorded outcome when no NPC crosses
+threshold. The director tick decision carries
+`chosen_action_kind="silence"` and a closed-enum `silence_reason`
+(`no_npc_above_motivation_threshold`,
+`gathering_paused_off_stage_only`, or `director_chose_silence`).
+
 ## Consequences
 
 **Positive:**
@@ -169,7 +221,17 @@ why a given NPC was selected (or not selected) for initiative on any tick.
 
 - `ai_stack/npc_motivation_score_engine.py` — `compute_npc_motivation_scores()` and
   `select_initiative_actor()`.
+- `ai_stack/phase2_stream_readiness.py` —
+  `classify_motivation_component_sources()` and
+  `classify_capability_availability()` (Stage F three-tier source
+  labelling).
+- `ai_stack/phase2_autonomous_tick.py` — surfaces
+  `motivation_score_component_sources`,
+  `capability_outputs_used`, and `capability_outputs_missing` on
+  every `AutonomousTickOutcome`.
 - `content/modules/god_of_carnage/module.yaml` — `runtime_intelligence.npc_motivation_score`
   section with weights, base_threshold, and actor_pressure_modifiers.
 - `ai_stack/tests/test_phase2_director_pulse.py` — `TestNpcMotivationScoreEngine`,
   `TestInitiativeSelection`.
+- `ai_stack/tests/test_phase2_stage_f_capability_feeding.py` —
+  Stage F capability feeding and source-label classification tests.

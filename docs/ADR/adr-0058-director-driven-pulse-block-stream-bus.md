@@ -2,7 +2,7 @@
 id: ADR-0058
 title: Director-Driven Pulse and Block-Stream-Bus
 status: ACCEPTED
-date: 2026-05-19
+date: 2026-05-20
 ---
 
 ## Context
@@ -209,13 +209,29 @@ All flags fail closed. Invalid values treat as false.
 **Remaining work for full real-time co-existence (post Stage D):**
 
 1. ~~Autonomous NPC ticking~~ — **Stage E (complete).** See `Stage E` below.
-2. Live re-evaluation that mutates an in-flight turn — the current model
-   queues cut-in input for the next `start_turn`. Mid-turn Director
-   re-planning remains gated and is *not* part of Stage E.
-3. Real-time `block_stream_event.cut_in_state` rewrite after cut — Stage D
-   emits a `block_cut` envelope but does not rewrite the original event's
-   `cut_in_state` field; consumers should read the `block_cut` message,
-   not retro-mutate prior events. Stage E preserves this discipline.
+2. ~~Multi-tick autonomous evaluation during a pause window~~ —
+   **Stage H (complete).** See `Stage H` below.
+3. ~~Future-only replanning after a player cut-in~~ —
+   **Stage I (complete).** See `Stage I` below.
+4. ~~Player cut-in immediate Director handoff~~ —
+   **Stage K (complete).** See `Stage K` below.
+5. ~~Post-cut-in Director re-read and follow-up composition~~ —
+   **Stages L+M (complete; provider wiring deferred).** See
+   `Stage L` and `Stage M` below.
+6. **Stage J — controlled mid-turn graph mutation.** Still deferred.
+   Stage I's `future_events_only` scope is the boundary; Stage J
+   would re-run validation/commit against a delta. Out of Phase-2
+   scope; tracked in
+   `docs/MVPs/phase_2_director_pulse_status.md` §5.1.
+7. **Production semantic-provider wiring for Stage M.** The
+   dispatcher and gates ship in Phase 2; no production provider is
+   registered on the WS endpoint. Out of Phase-2 scope; tracked in
+   `docs/MVPs/phase_2_director_pulse_status.md` §5.2.
+8. Real-time `block_stream_event.cut_in_state` rewrite after cut —
+   Stage D emits a `block_cut` envelope but does not rewrite the
+   original event's `cut_in_state` field; consumers should read the
+   `block_cut` message, not retro-mutate prior events. Every later
+   stage (E–M) preserves this discipline.
 
 ### Stage E — Autonomous Director Ticks and NPC Coexistence (complete)
 
@@ -336,6 +352,8 @@ sends `autonomous_tick_evaluated` followed by `stream_idle(reason=completed)`.
 | Flag | Default | Purpose |
 |---|---|---|
 | `PHASE2_AUTONOMOUS_TICK_ENABLED` | off | Enable Stage E autonomous Director ticks |
+| `PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED` | off | Enable Stage H multi-tick pause-loop iteration (separately gated from Stage E) |
+| `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED` | off | Enable Stage M semantic-generation dispatcher (provider must also be injected) |
 
 ### Stage F — Capability-Fed Autonomous Ticks and Off-Stage Memory (complete)
 
@@ -451,3 +469,422 @@ names.
   `mandatory_beat_consume_attempted` / `no_off_stage_actor` /
   `no_npc_chosen`); candidate payload shape is structured-only and
   schema-versioned
+- Stage G anti-hardcoding: commit policy is opt-in per call;
+  `allowed_candidate_kinds`, `commit_target`, and `skipped_reason` are
+  closed enums; `auto_commit_enabled` defaults to `False`;
+  `max_commits_per_tick` is bounded `[0, 8]`; the safety gate from
+  Stage F is re-run before any commit projection
+- Stage H anti-hardcoding: loop bounds (`max_ticks_per_pause`,
+  `min_tick_interval_ms`) come from content policy
+  (`pacing_rhythm`); loop triggers and stop reasons are closed
+  enums; no wall-clock polling; the loop never weakens any Stage-E
+  per-iteration gate
+- Stage I anti-hardcoding: replanning scope is fixed at
+  `future_events_only`; replanned diagnostic event is built from
+  closed-enum contract constants (`director_replanning`,
+  `replanned_after_cut_in`, `player_input_priority_replan`); no actor,
+  room, or verb literal in any replanning artifact
+- Stage K anti-hardcoding: `handoff_status` and `non_handoff_reason`
+  are closed enums; the handoff carries IDs only, never invented
+  player text; `next_turn_trigger` value is the closed-enum constant
+  `player_cut_in_handoff`
+- Stage L anti-hardcoding: `selected_next_action_source` is a closed
+  enum (`player_input_priority` / `npc_response` / `silence` /
+  `idle`); candidate/rejected lists are structured records, never
+  free text; the follow-up event reuses the existing
+  `block_stream_event.v1` shape
+- Stage M anti-hardcoding: composition modes
+  (`template_render` / `semantic_generation` /
+  `template_fallback_after_semantic_failure` / `not_applicable`),
+  safety gates (`length`, `actor_lane`, `voice_forbidden_markers`,
+  `no_new_people`, `no_new_rooms`, `no_forbidden_plot_facts`,
+  `information_disclosure`), source contexts, and gate results
+  (`pass` / `reject` / `not_applicable`) are all closed enums;
+  template placeholders are restricted to a closed allowlist; the
+  semantic provider returns text only — the safety gates are owned
+  by this module; no hardcoded actor IDs, NPC lines, or assistant
+  phrasing anywhere in the dispatcher
+- Stage M canonical-surface registration: `phase2_ws_session_loop.py`
+  is the registered Stage-M canonical surface in
+  `SCENE_ENERGY_CANONICAL_SURFACES` and
+  `INFORMATION_DISCLOSURE_CANONICAL_SURFACES`
+  (`tests/gates/test_table_b_anti_hardcoding_gate.py`)
+- Completion Pass: every Stage A–M artifact records the same six
+  invariants (`historical_events_mutated`,
+  `graph_state_mutated_mid_turn`, `validation_outcome_changed`,
+  `commit_or_readiness_changed`, `canonical_path_advanced`,
+  `mandatory_beat_consumed`), all `False`; REST/bundle fallback is
+  preserved; WebSocket is not mandatory; full mid-turn graph
+  mutation (Stage J) and production semantic-provider wiring are
+  explicit Future Work, tracked in
+  `docs/MVPs/phase_2_director_pulse_status.md`
+
+### Stage G — Off-Stage Safe Commit Path (complete, scaffold)
+
+Stage G adds an *opt-in*, *per-call* commit path on top of the Stage F
+preview scaffold. Stage F still produces every candidate; Stage G adds the
+mechanics that route an accepted candidate to the existing safe
+relationship-state / hierarchical-memory commit surfaces.
+
+**New entry points:** `ai_stack/phase2_off_stage_updates.py`
+
+- `OffStageCommitInputs` — per-call policy + targets. Plain data only;
+  the caller (autonomous-tick coordinator or test) supplies the
+  candidate result, normalized policy, known actor/room sets, the
+  current relationship-state record, the hierarchical-memory snapshot
+  and its module policy.
+- `commit_off_stage_update_candidates(...)` — validates the policy
+  vector, re-runs the structural safety gate on the candidate, and
+  produces an `off_stage_commit_result.v1` envelope that names the
+  exact commit target(s) and the *projected* updated artifact (an
+  updated `relationship_state_record` and/or a merged hierarchical
+  memory snapshot). The function **never** writes back to a store —
+  persistence stays inside the existing runtime/session layer.
+- `build_default_off_stage_commit_result(...)` — closed-enum
+  "no-commit" sentinel for the case where Stage G inputs are omitted.
+
+**Closed-enum policy / commit-target vocabulary:**
+
+| Field | Closed enum |
+|---|---|
+| `off_stage_updates_policy.v1.allowed_candidate_kinds` | `relationship_tension_update` / `off_stage_memory_note` |
+| `off_stage_commit_result.v1.commit_target` | `relationship_state` / `hierarchical_memory` |
+| `off_stage_commit_result.v1.skipped_reason` (closed enum) | `policy_disabled` / `candidate_kind_not_allowed` / `safety_gate_blocked` / `max_commits_per_tick_exhausted` / `no_off_stage_candidate` |
+
+**Hard boundaries (Stage G preserves Stage A–F promises and adds):**
+
+- Default fail-closed: when `off_stage_updates_policy` is omitted from
+  `OffStageCommitInputs` the path stays preview-only and returns
+  `skipped_reason="policy_disabled"`.
+- `auto_commit_enabled` is false by default; enabling it requires an
+  explicit caller-supplied policy.
+- Commits are bounded per tick (`max_commits_per_tick`, default 1,
+  clamped to `[0, 8]`).
+- The safety gate from Stage F runs *again* before any projected
+  commit; `require_safety_gate_pass=True` is the default.
+- The function projects a **next-state artifact**; it does not invoke
+  a writer. Validation/Commit/Readiness/`validation_outcome` remain
+  unchanged.
+- `canonical_path_advanced` / `mandatory_beat_consumed` invariants
+  remain false on every commit-result row.
+
+### Stage H — Multi-Tick Autonomous Pause Loop (complete)
+
+`PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED=true` activates Stage H server-side.
+Off by default; invalid values fail closed; separately gated from the
+single-tick Stage-E flag (enabling autonomous ticks does *not*
+automatically enable pause-loop iteration).
+
+**What Stage H adds:** explicit, bounded multi-tick evaluation during a
+single pause opportunity. The Director can decide to keep emitting
+autonomous NPC blocks while a pause window is open, as long as every
+loop step still passes the Stage-E pre-check, the cooldown clock has
+advanced enough between iterations, and no player cut-in has been
+queued.
+
+**New entry points:** `ai_stack/phase2_autonomous_tick.py`
+
+- `AutonomousPauseLoopInputs` — pure inputs (`tick_inputs`,
+  `loop_trigger_kind`, optional `max_ticks_per_pause` override,
+  per-step elapsed times, an optional cut-in index).
+- `AutonomousPauseLoopOutcome` — outcome (flag state, trigger kind,
+  per-step `AutonomousTickOutcome` list, `stop_reason` closed enum,
+  resolved `max_ticks_per_pause`, resolved `min_tick_interval_ms`).
+- `evaluate_autonomous_pause_loop(...)` — runs the bounded loop and
+  records exactly one closed-enum stop reason.
+
+**Loop trigger kinds (closed enum):** `user_pause`, `silence`,
+`gathering_paused`.
+
+**Stop reasons (closed enum):** `loop_disabled`, `invalid_loop_trigger`,
+`max_ticks_per_pause`, `cooldown_active`, `elapsed_input_missing`,
+`player_cut_in`, `unsafe_candidate`, `no_motivation_threshold_crossed`,
+`tick_suppressed`.
+
+**Hard boundaries (Stage H preserves Stage A–G promises and adds):**
+
+- Loop is bounded by content policy: `max_ticks_per_pause` comes from
+  `pacing_rhythm.max_ticks_per_pause` (default 1, clamped to `[1, 8]`).
+- Cooldown is enforced between iterations using the same
+  `min_tick_interval_ms` resolution used by Stage E.
+- Per-step elapsed timings are *required* input; a missing entry stops
+  the loop with `elapsed_input_missing`.
+- A queued or in-flight player cut-in stops the loop at that index
+  (`player_cut_in`).
+- An unsafe off-stage candidate (Stage F `safety_gate_blocked`) stops
+  the loop with `unsafe_candidate`.
+- `canonical_path_advanced` / `mandatory_beat_consumed` invariants
+  remain false across every loop step, including the loop-level
+  outcome.
+- Stage H never replaces Stage E — every step of the loop is a real
+  Stage-E evaluation and obeys every Stage-E gate.
+
+### Stage I — Mid-Turn Replanning Readiness (complete)
+
+Stage I introduces the *readiness* contract for canceling future, not-yet-
+started events after a player cut-in — without rewriting history and
+without mutating mid-turn graph state. Stage I is the "future events only"
+boundary that mid-turn graph mutation (a future-work item) will need to
+respect.
+
+**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+
+- `build_replanning_request(...)` — `replanning_request.v1`. Captures
+  the delivery boundary at the cut moment (committed event IDs,
+  streamed-but-not-committed event IDs, not-yet-started event IDs,
+  canceled tick count). Records `historical_events_mutated=False`,
+  `graph_state_mutated_mid_turn=False`,
+  `validation_outcome_changed=False`,
+  `commit_or_readiness_changed=False`,
+  `canonical_path_advanced=False`,
+  `mandatory_beat_consumed=False`.
+- `build_replanned_event_after_cut_in(...)` — one diagnostic
+  `block_stream_event.v1` (`originator="director_replanning"`,
+  `event_generation="replanned_after_cut_in"`,
+  `next_action_source="player_input_priority"`) replacing the
+  not-yet-started event IDs.
+- `build_replanning_decision(...)` — `replanning_decision.v1`.
+  Decides `prioritize_player_input` and lists the canceled event IDs
+  plus the bounded replanned-event set. Replanning scope is fixed at
+  `future_events_only`.
+
+**Closed-enum next-action source set:** `player_input_priority`,
+`idle`, `npc_response`, `silence`.
+
+**Hard boundaries (Stage I preserves Stage A–H promises and adds):**
+
+- Replanning scope is `future_events_only` — already-emitted or
+  committed events are never mutated.
+- Replanned diagnostic events carry `diagnostic_only=true` and a
+  silence director tick decision with
+  `silence_reason="player_input_priority_replan"`.
+- No commit-or-readiness mutation. No `validation_outcome` mutation.
+- Stage I emits messages *after* the canonical delivery boundary; the
+  REST/bundle fallback path remains unchanged.
+
+### Stage J — Controlled Mid-Turn Replanning
+
+Stage J is **deliberately deferred** to a future ADR. Stage I documents
+the readiness boundary; Stage J is the "mid-turn graph mutation" decision
+that would re-run validation/commit against a delta. Phase 2 does not
+ship Stage J. The status doc (`docs/MVPs/phase_2_director_pulse_status.md`)
+lists this under explicit Future Work.
+
+### Stage K — Player Cut-In Immediate Director Handoff (complete)
+
+Stage K adds the immediate Director handoff that promotes a queued
+player cut-in into the next turn's authoritative trigger, while pausing
+any in-progress autonomous-pause loop.
+
+**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+
+- `build_player_cut_in_handoff(...)` — `player_cut_in_handoff.v1`.
+  Carries `handoff_id`, the originating `cut_in_id`, the
+  `promoted_player_input_id` (or `null` when there is no promotable
+  player input), the source replanning-decision ID, the canceled
+  event-ID and tick counts inherited from Stage I, and a closed-enum
+  `handoff_status` (`promoted` or `not_applicable`) with a closed-enum
+  `non_handoff_reason` (`no_promotable_player_input`).
+- `next_turn_trigger="player_cut_in_handoff"` on promoted handoffs;
+  null on `not_applicable` handoffs.
+- `autonomous_loop_paused` boolean — Stage H loops pause while a
+  promoted handoff is in flight.
+
+**Hard boundaries (Stage K preserves Stage A–I promises and adds):**
+
+- The handoff carries IDs and invariants only; the player's literal
+  text stays in the existing queued cut-in payload.
+- Handoff status is a closed enum; missing/empty payloads result in
+  `not_applicable`, never an invented handoff.
+- `historical_events_mutated=False`,
+  `graph_state_mutated_mid_turn=False`,
+  `validation_outcome_changed=False`,
+  `commit_or_readiness_changed=False`,
+  `canonical_path_advanced=False`,
+  `mandatory_beat_consumed=False`.
+
+### Stage L — Post-Cut-In Director Replanning (complete)
+
+Stage L runs a fresh Director read after a promoted handoff and decides
+which next-action source should drive the upcoming turn (or whether
+silence is the right answer). It also constructs the future-only follow-up
+event that the WS transport then streams (Stage L+M jointly own the
+follow-up event shape).
+
+**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+
+- `build_post_cut_in_replanning_decision(...)` —
+  `post_cut_in_replanning_decision.v1`. Carries the source handoff
+  ID, the promoted-input ID, the interrupted-block context, the
+  canceled prior-plan set, an optional new Director context dict,
+  candidate-action / rejected-candidate audit lists, a closed-enum
+  `selected_next_action_source`
+  (`player_input_priority` / `npc_response` / `silence` / `idle`),
+  a `selected_next_actor_id` (nullable), a closed-enum
+  `selected_next_action_kind`, and a `silence_reason` (nullable).
+- `build_post_cut_in_follow_up_event(...)` —
+  `post_cut_in_follow_up_event.v1`. Builds the actual follow-up
+  artifact: an executable `block_stream_event.v1` when an NPC
+  response is composed, or an explicit silence diagnostic, or a
+  "no-follow-up" record with a closed-enum rejection reason.
+
+**Hard boundaries (Stage L preserves Stage A–K promises and adds):**
+
+- The follow-up is appended *after* already-planned promoted-input
+  output; it never rewrites the committed turn.
+- The audit envelope records `prior_plan_canceled`,
+  `canceled_event_ids`, `canceled_ticks`, and the interrupted
+  context — full traceability for any operator review.
+- The decision and the follow-up artifact each independently record
+  `historical_events_mutated=False`,
+  `graph_state_mutated_mid_turn=False`,
+  `validation_outcome_changed=False`,
+  `commit_or_readiness_changed=False`,
+  `canonical_path_advanced=False`,
+  `mandatory_beat_consumed=False`.
+
+### Stage M — Semantic NPC Follow-Up Composition (complete; provider wiring deferred)
+
+Stage M is the composition layer for the Stage-L follow-up event. It
+selects between two paths — a deterministic template render and a
+semantic-generation dispatcher — and runs the same closed-enum safety
+gate suite on whichever output reaches the rendered-text stage.
+
+**Feature flag:**
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `PHASE2_FOLLOW_UP_SEMANTIC_COMPOSITION_ENABLED` | off | Enable Stage M semantic dispatcher (provider must also be injected) |
+
+**Composition modes (closed enum):**
+
+- `template_render` — deterministic template path rendered from the
+  authored voice profile (`follow_up_composition`,
+  `speech_patterns`, or a top-level template key). Placeholders are
+  restricted to a closed allowlist
+  (`actor_id`, `baseline_tone`, `current_phase_voice_hint`,
+  `interrupted_block_id`, `interrupted_block_type`,
+  `motivation_score`, `player_input`, `promoted_player_input`,
+  `promoted_player_input_id`, `voice_hint`).
+- `semantic_generation` — the injected `FollowUpSemanticProvider` is
+  called with a structured `follow_up_composition_request.v1` and
+  must return either `{success: True, text: str}` or
+  `{success: False, error_code: str}`. The provider is *advisory*; it
+  never bypasses the safety gates.
+- `template_fallback_after_semantic_failure` — when semantic
+  generation was attempted and either failed at the provider boundary
+  or was rejected by the safety gates, the dispatcher renders the
+  deterministic template and tags the result with this mode plus a
+  `semantic_attempt_metadata` block.
+- `not_applicable` — no voice profile available, or no composition
+  was attempted.
+
+**Safety gates (closed enum, all run on both template and semantic
+output before any block is emitted):**
+
+| Gate | What it checks |
+|---|---|
+| `length` | non-empty and ≤ `MAX_COMPOSED_FOLLOW_UP_CHARS` (280) |
+| `actor_lane` | actor ID is not in the AI-forbidden actor lane (human player or `ai_forbidden_actor_ids`) |
+| `voice_forbidden_markers` | text contains no `voice_consistency.forbidden_language_markers` from the voice profile |
+| `no_new_people` | text contains no token in `forbidden_new_person_tokens` |
+| `no_new_rooms` | text contains no token in `forbidden_new_room_tokens` |
+| `no_forbidden_plot_facts` | text contains no token in `forbidden_plot_fact_tokens` |
+| `information_disclosure` | text contains no `forbidden_disclosure_tokens` from `information_disclosure_target.withheld_units` |
+
+Each gate returns `pass` / `reject` / `not_applicable`. *Any* `reject`
+fails the composition; the dispatcher records the first failing gate's
+reason and stays on the template path or, if both paths fail, emits a
+no-follow-up event with a closed-enum rejection reason.
+
+**Source-context vocabulary (closed enum, reported per composition):**
+
+`voice_profile`, `promoted_player_input`, `interrupted_block`,
+`motivation_score`, `relationship_state`, `scene_energy`,
+`social_pressure`, `recent_visible_context`,
+`information_disclosure_target`.
+
+**`follow_up_composition_request.v1`** (provider input): voice profile,
+promoted player input excerpt + ID, interrupted block ID/type,
+motivation score, relationship-state output, scene-energy output,
+social-pressure output, recent visible block list, information-
+disclosure target, `max_text_chars`, and the voice-profile
+`voice_forbidden_markers`. The provider sees a *projection* of the
+runtime, never the canonical graph; it has no mutators and no commit
+handles.
+
+**Hard boundaries (Stage M preserves Stage A–L promises and adds):**
+
+- The flag *and* an injected provider are both required to take the
+  semantic path. Setting the flag alone leaves the dispatcher on the
+  deterministic template path.
+- Provider exceptions are caught and recorded as
+  `semantic_provider_exception`; the dispatcher then falls back to
+  the template path.
+- The safety gates are run by this module, not the provider — the
+  provider's `success` flag is advisory.
+- Output is capped at `MAX_COMPOSED_FOLLOW_UP_CHARS`; longer outputs
+  are rejected by the `length` gate.
+- `provider_metadata` is reported when a provider was invoked, never
+  forged when the deterministic template path was taken.
+- Composition never advances the canonical path, consumes a
+  mandatory beat, or mutates committed events / `validation_outcome`.
+
+**Future work explicitly outside Phase 2 scope:** no production semantic
+provider is registered on the WS endpoint in Phase 2; the dispatcher
+takes the deterministic template path whenever no provider is injected.
+See `docs/MVPs/phase_2_director_pulse_status.md` §5.2.
+
+### Completion Pass — End-to-End Player Experience Chain
+
+The Phase-2 player-experience chain is now proven end-to-end at the
+WS-transport + `ai_stack` pure-helper level:
+
+```
+Player Turn
+  → block_stream_event.v1                 (Stage D — sequenced over WS)
+  → autonomous_tick_evaluated             (Stage E/H — after a clean delivery)
+  → block_stream_event.v1                 (autonomous NPC block,
+                                           originator=autonomous_tick)
+  → block_cut + player_cut_in_event.v1    (Stage D — cut-in semantics)
+  → replanning_decision.v1                (Stage I — cancel future events only)
+  → player_cut_in_handoff.v1              (Stage K — promote queued input)
+  → post_cut_in_replanning_decision.v1    (Stage L — next-action source)
+  → post_cut_in_follow_up_event.v1        (Stage L+M — composition_result
+                                           with closed-enum composition_mode
+                                           and safety_gate_decisions)
+  → silence path: stream_idle + post_cut_in_follow_up_event.silence_reason
+```
+
+The Completion Pass clarifies that:
+
+- The **event-stream channel is primary behind flags**. Bundle delivery
+  remains the canonical fallback path and is never removed in Phase 2.
+- The **REST/bundle path is preserved** as a first-class fallback for
+  any session that does not opt into the WS session loop or for which
+  the Stage-C primary selection records a `fallback_reason`.
+- **WebSocket is not mandatory.** Stage D is an opt-in transport; a
+  session that never opens a socket continues to receive the canonical
+  bundle exactly as before.
+- **Commit and Readiness semantics are unchanged.** Every Phase-2
+  artifact records the same six invariants
+  (`historical_events_mutated`, `graph_state_mutated_mid_turn`,
+  `validation_outcome_changed`, `commit_or_readiness_changed`,
+  `canonical_path_advanced`, `mandatory_beat_consumed`), all `False`.
+- **`validation_outcome` is never mutated by Phase 2.** Stage I/K/L/M
+  artifacts each carry `validation_outcome_changed=False`; the Table-B
+  anti-hardcoding gate enforces that no Phase-2 module reads or writes
+  a Pi/Π-named runtime key.
+- **Full mid-turn graph mutation is Future Work (Stage J).** Stage I
+  is `future_events_only` by construction; it does not advance into
+  Stage J in Phase 2.
+- **Production semantic provider wiring is Future Work** (see Stage M
+  paragraph above and the status doc §5.2). The current follow-up
+  composition shipping in Phase 2 is the deterministic template path
+  plus the gated semantic dispatcher; no semantic provider is wired
+  into the WS endpoint by default.
+
+Local/live-smoke evidence is documented in
+`docs/MVPs/phase_2_director_pulse_status.md` §4. Phase 2 makes no
+staging or production-live claim that is not backed by environment
+metadata on the recorded turn.

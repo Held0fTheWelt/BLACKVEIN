@@ -211,6 +211,27 @@ def test_goc_opening_uses_narrator_path_without_full_turn_graph() -> None:
     assert opening["runtime_governance_surface"]["director_path_mode"] == "narrator_path"
 
 
+def test_goc_opening_defaults_to_module_language_without_output_pipeline() -> None:
+    manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
+    manager.turn_graph = _ExplodingTurnGraph()  # type: ignore[assignment]
+    manager._build_opening_prompt = _explode_opening_prompt  # type: ignore[method-assign]
+
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        trace_id="0123456789abcdef0123456789abcdef",
+    )
+
+    assert session.session_input_language == "en"
+    assert session.session_output_language == "en"
+    opening = session.diagnostics[-1]
+    realization = opening["runtime_governance_surface"]["narrator_path"]["output_realization"]
+    assert realization["source_language"] == "en"
+    assert realization["session_output_language"] == "en"
+    assert realization["translation_required"] is False
+    assert realization["status"] == "fallback_no_output_model"
+
+
 def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
     _install_output_module(manager)

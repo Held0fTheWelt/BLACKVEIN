@@ -31,9 +31,13 @@ def test_create_run_persists_runtime_profile_handoff_for_backend_resume(client):
     assert details["runtime_module_id"] == "solo_story_runtime"
     assert details["runtime_mode"] == "solo_story"
     assert details["selected_player_role"] == "annette"
-    assert details["human_actor_id"] == "annette"
-    assert set(details["npc_actor_ids"]) == {"alain", "veronique", "michel"}
-    assert details["actor_lanes"]["annette"] == "human"
-    assert details["actor_lanes"]["alain"] == "npc"
+    assert details["human_actor_id"] == "annette_reille"
+    assert set(details["npc_actor_ids"]) == {
+        "alain_reille",
+        "veronique_vallon",
+        "michel_longstreet",
+    }
+    assert details["actor_lanes"]["annette_reille"] == "human"
+    assert details["actor_lanes"]["alain_reille"] == "npc"
     assert details["visitor_present"] is False
     assert "visitor" not in details["actor_lanes"]

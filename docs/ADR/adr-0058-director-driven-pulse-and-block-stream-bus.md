@@ -6,7 +6,33 @@ Accepted
 
 ## Date
 
-2026-05-19
+2026-05-20
+
+## Phase 2 Completion Note (2026-05-20)
+
+This file is the **conceptual** ADR — the 10-section Decision block other
+ADRs cross-link to. The **stage-by-stage implementation record** for
+Phase 2 lives in the companion file
+[`adr-0058-director-driven-pulse-block-stream-bus.md`](adr-0058-director-driven-pulse-block-stream-bus.md)
+(note: no "and" in the slug). That file documents **Stages A–M** plus a
+**Completion Pass** that proves the end-to-end player-experience chain:
+
+```
+Player Turn → block_stream_event → autonomous tick → player cut-in →
+handoff → promoted input → post-cut-in replanning → follow-up event →
+silence fallback → diagnostics
+```
+
+Phase 2 ships behind feature flags. Bundle delivery, REST fallback,
+Commit / Readiness semantics, and `validation_outcome` are unchanged.
+WebSocket is not mandatory. Full mid-turn graph mutation (Stage J) and
+production semantic-provider wiring for the Stage-M dispatcher are
+explicit Future Work. Current status:
+[`docs/MVPs/phase_2_director_pulse_status.md`](../MVPs/phase_2_director_pulse_status.md).
+
+The two ADR-0058 files are a known governance duplication; their
+conceptual layer (this file) and implementation layer (the long file)
+agree on every hard boundary listed below.
 
 ## Related ADRs
 
