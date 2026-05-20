@@ -128,8 +128,37 @@ def _approved_effects() -> list[dict]:
     ]
 
 
-def test_w5_validation_disabled_leaves_seam_behavior_unchanged(monkeypatch) -> None:
+def test_w5_validation_default_on_unset_env_runs_after_actor_lane(monkeypatch) -> None:
+    """Phase 6B-1: with env unset, W5 validation runs after Actor Lane.
+
+    Actor Lane stays authoritative — W5 cannot mask Actor Lane rejection — but
+    when Actor Lane accepts, W5 validation produces its compact diagnostic.
+    """
+
     monkeypatch.delenv("W5_AST_VALIDATION_ENABLED", raising=False)
+    generation = _generation(spoken=[{"speaker_id": "michel", "text": "No."}])
+
+    outcome = run_validation_seam(
+        module_id=GOC_MODULE_ID,
+        proposed_state_effects=_approved_effects(),
+        generation=generation,
+        w5_latest_snapshot=_snapshot(_situation("michel")).to_dict(),
+    )
+
+    # Actor Lane and canonical checks accepted (no Actor Lane rejection).
+    assert outcome.get("actor_lane_validation", {}).get("status", "ok") != "rejected"
+    # Semantic assertion: W5 validation actually ran with the provided snapshot.
+    assert "w5_validation" in outcome
+    assert outcome["w5_validation"]["w5_validation_ran"] is True
+    assert outcome["w5_validation"]["w5_validation_failed"] is False
+
+
+def test_w5_validation_explicit_opt_out_zero_leaves_seam_behavior_unchanged(
+    monkeypatch,
+) -> None:
+    """Phase 6B-1 explicit opt-out: ``W5_AST_VALIDATION_ENABLED=0``."""
+
+    monkeypatch.setenv("W5_AST_VALIDATION_ENABLED", "0")
     generation = _generation(spoken=[{"speaker_id": "michel", "text": "No."}])
 
     baseline = run_validation_seam(
@@ -146,6 +175,33 @@ def test_w5_validation_disabled_leaves_seam_behavior_unchanged(monkeypatch) -> N
 
     assert baseline == with_snapshot
     assert "w5_validation" not in with_snapshot
+
+
+def test_w5_validation_default_on_does_not_mask_actor_lane_rejection(
+    monkeypatch,
+) -> None:
+    """Phase 6B-1: Actor Lane rejection remains authoritative under default-on."""
+
+    monkeypatch.delenv("W5_AST_VALIDATION_ENABLED", raising=False)
+    generation = _generation(spoken=[{"speaker_id": "annette", "text": "I apologize."}])
+
+    outcome = run_validation_seam(
+        module_id=GOC_MODULE_ID,
+        proposed_state_effects=_approved_effects(),
+        generation=generation,
+        actor_lane_context={
+            "human_actor_id": "annette",
+            "ai_forbidden_actor_ids": ["annette"],
+        },
+        # Even a clean W5 snapshot must not undo Actor Lane rejection.
+        w5_latest_snapshot=_snapshot(_situation("annette", location="salon")).to_dict(),
+    )
+
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] == "ai_controlled_human_actor"
+    assert outcome["actor_lane_validation"]["status"] == "rejected"
+    # W5 validation must not run when Actor Lane has already rejected.
+    assert "w5_validation" not in outcome
 
 
 def test_w5_validation_enabled_rejects_after_actor_lane_accepts(monkeypatch) -> None:

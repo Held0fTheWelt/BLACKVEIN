@@ -503,8 +503,46 @@ def test_dramatic_packet_includes_actor_w5_situation_when_flag_enabled(monkeypat
     assert diagnostic["npc_projection_has_inferred_why"] is True
 
 
-def test_dramatic_packet_omits_actor_w5_situation_when_flag_disabled(monkeypatch) -> None:
+def test_dramatic_packet_default_on_unset_env_includes_actor_specific_w5_projection(
+    monkeypatch,
+) -> None:
+    """Phase 6B-1: with env unset, actor-specific NPC W5 projection is default.
+
+    Asserts the projection is actor-specific (target_consumer + actor_id),
+    preserves privacy (no other actor's private inferred Why leaks into the
+    NPC's projection), and surfaces the compact diagnostic for the actor.
+    """
+
     monkeypatch.delenv("W5_AST_NPC_PROJECTION_ENABLED", raising=False)
+    from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
+
+    state = _dramatic_packet_state()
+    actor_id = state["actor_lane_context"]["npc_actor_ids"][0]
+    packet = _build_dramatic_generation_packet(state)
+
+    proposal = next(
+        row
+        for row in packet["npc_agency_simulation"]["npc_intent_proposals"]
+        if row["actor_id"] == actor_id
+    )
+    situation = proposal["actor_w5_situation"]
+    assert situation["target_consumer"] == "npc"
+    assert situation["actor_id"] == actor_id
+    # Semantic value, not just key presence.
+    assert situation["where_summary"]["facts"]["scene_location"] == "salon"
+    assert situation["how_summary"]["facts"]["tone"] == "controlled"
+    # Diagnostic confirms W5 projection actually used.
+    diagnostic = next(
+        row for row in packet["w5_npc_projection_diagnostics"] if row["npc_actor_id"] == actor_id
+    )
+    assert diagnostic["w5_npc_projection_used"] is True
+    assert diagnostic["npc_projection_source"] == "w5_projection"
+
+
+def test_dramatic_packet_explicit_opt_out_zero_omits_actor_w5_situation(monkeypatch) -> None:
+    """Phase 6B-1 explicit opt-out: ``W5_AST_NPC_PROJECTION_ENABLED=0``."""
+
+    monkeypatch.setenv("W5_AST_NPC_PROJECTION_ENABLED", "0")
     from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
     packet = _build_dramatic_generation_packet(_dramatic_packet_state())

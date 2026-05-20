@@ -228,17 +228,20 @@ class _OpeningFallbackObservabilityMixin:
 
     @staticmethod
     def _w5_ast_narrator_projection_enabled() -> bool:
-        """ADR-0063 Phase 2 feature flag (fail-closed).
+        """ADR-0063 narrator-projection flag (default-on as of Phase 6B-1).
 
-        Defaults to ``False``: when unset, the runtime behaves exactly as in
-        Phase 1 (no ``w5_projection`` in narrator ``source_facts``). When set
-        to a truthy value, narrator composition consumes the typed W5
-        projection as a primary actor-situation input while the legacy
-        ``transition_from_previous`` block remains as fallback.
+        Returns True when unset/empty: narrator composition consumes the
+        typed W5 projection as a primary actor-situation input while the
+        legacy ``transition_from_previous`` block remains as fallback.
+        Explicit opt-out is preserved — setting the env var to
+        ``0/false/no/off`` restores Phase 1 behavior (no ``w5_projection`` in
+        narrator ``source_facts``).
         """
 
         raw = (os.environ.get("W5_AST_NARRATOR_PROJECTION_ENABLED") or "").strip().lower()
-        return raw in {"1", "true", "yes", "on"}
+        if raw in {"0", "false", "no", "off"}:
+            return False
+        return True
 
 
 __all__ = ["_OpeningFallbackObservabilityMixin"]

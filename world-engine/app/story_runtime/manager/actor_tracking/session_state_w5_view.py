@@ -11,8 +11,13 @@ from ai_stack.actor_tracking import build_w5_projection_for_player_shell
 
 
 def _w5_ast_frontend_player_view_enabled() -> bool:
+    # Phase 6B-1: player-shell W5 projection is default-on. Legacy
+    # ``current_room`` fallback remains in place. Explicit opt-out via
+    # ``0/false/no/off`` keeps the pre-Phase-6B-1 behavior.
     raw = (os.environ.get("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED") or "").strip().lower()
-    return raw in {"1", "true", "yes", "on"}
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return True
 
 
 def _player_actor_id_from_projection(runtime_projection: dict[str, Any] | None) -> str | None:

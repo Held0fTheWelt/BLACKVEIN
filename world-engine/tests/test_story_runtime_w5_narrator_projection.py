@@ -1,18 +1,22 @@
-"""StoryRuntimeManager narrator-projection wiring tests (ADR-0063 Phase 2).
+"""StoryRuntimeManager narrator-projection wiring tests (ADR-0063 Phase 2 +
+Phase 6B-1 default-on flag flip).
 
 Exercises ``_maybe_enrich_blocks_with_w5_narrator_projection`` directly so we
 can verify both flag states without booting the full runtime.
 
 Asserted behavior:
 
-- When ``W5_AST_NARRATOR_PROJECTION_ENABLED`` is disabled, narrator
+- Default-on (Phase 6B-1): when ``W5_AST_NARRATOR_PROJECTION_ENABLED`` is
+  unset, narrator ``source_facts`` DOES contain ``w5_projection`` and the
+  legacy ``transition_from_previous`` block remains as fallback.
+- When the flag is explicitly disabled (``0``/``false``), narrator
   ``source_facts`` does NOT contain ``w5_projection`` — i.e. behavior is
   identical to pre-Phase-2.
 - When the flag is enabled, narrator ``source_facts`` DOES contain the typed
   projection payload with the five W5 summaries.
 - The projection in ``source_facts`` carries semantic values, not just keys.
 - When ``w5_latest_snapshot`` is malformed, the helper falls back to legacy
-  behavior and records a diagnostic — the turn is not failed in Phase 2.
+  behavior and records a diagnostic — the turn is not failed.
 """
 
 from __future__ import annotations
@@ -162,10 +166,32 @@ def _enrich(session: StorySession, blocks: list[dict[str, Any]]) -> list[dict[st
     )
 
 
-def test_flag_disabled_does_not_add_w5_projection_to_source_facts(
+def test_default_on_unset_env_adds_w5_projection_with_semantic_values(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Phase 6B-1: with env unset, the narrator projection is the default."""
+
     monkeypatch.delenv("W5_AST_NARRATOR_PROJECTION_ENABLED", raising=False)
+    session = _make_session(w5_latest=_snapshot_with_five_dimensions())
+    enriched = _enrich(session, [_legacy_block()])
+    proj = enriched[0]["source_facts"]["w5_projection"]
+    assert proj["target_consumer"] == "narrator"
+    # Semantic values, not just key presence.
+    assert proj["how_summary"]["facts"]["tone"] == "sharp"
+    assert proj["where_summary"]["current_location"] == "parlor"
+    # Legacy transition_from_previous fallback block is preserved.
+    assert (
+        enriched[0]["source_facts"]["transition_from_previous"]["location_changed"]
+        is True
+    )
+
+
+def test_explicit_opt_out_zero_does_not_add_w5_projection_to_source_facts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase 6B-1 explicit opt-out: ``W5_AST_NARRATOR_PROJECTION_ENABLED=0``."""
+
+    monkeypatch.setenv("W5_AST_NARRATOR_PROJECTION_ENABLED", "0")
     session = _make_session(w5_latest=_snapshot_with_five_dimensions())
     blocks = [_legacy_block()]
     enriched = _enrich(session, blocks)

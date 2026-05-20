@@ -250,7 +250,39 @@ Phase 6B may begin once:
 - [x] Forbidden packages (`ai_stack/actor_situation`, `ai_stack/w5_actor_situation`) are confirmed absent. ✅
 - [x] No active code imports either forbidden package. ✅
 - [x] Active W5 packages (`ai_stack/actor_tracking`, `world-engine/app/story_runtime/manager/actor_tracking`) are the only W5 surfaces. ✅
-- [ ] The four W5 flags (Director, Narrator, NPC, Player Shell) are ready to flip to default-on in a single coordinated commit. The codepath supports it today; the operational decision is the open prerequisite.
-- [x] The rename items (R1–R5) are landed as Phase 6B-0 (this commit). The rest of 6B (default-on flag rollout, then consumer migration) can now use the new names.
+- [x] The five W5 flags (Director, Narrator, NPC, Validation, Player Shell) have been flipped to default-on in a single coordinated commit (Phase 6B-1). The legacy fallbacks remain in place; explicit env opt-out (`0/false/no/off`) restores pre-6B-1 behavior.
+- [x] The rename items (R1–R5) are landed as Phase 6B-0. The rest of 6B (consumer migration) can now use the new names.
 
-When the one unchecked item above is decided, Phase 6B-1 (default-on Director/Narrator/NPC/Validation/Player-Shell flag rollout) is safe to start. Substrate writers (S1–S8) remain out of scope for 6B and will be addressed by a separate, dedicated ADR.
+---
+
+## Phase 6B-1 — default-on consumer flags (complete)
+
+Phase 6B-1 flips the five W5 consumer flags to default-on as a single coordinated change. The change is intentionally narrow: only the *default value* of each resolver is flipped, and every legacy fallback branch is preserved.
+
+**Files changed (defaults flipped):**
+
+| Flag | Resolver location | Behavior under default-on |
+|------|-------------------|---------------------------|
+| `W5_AST_DIRECTOR_PROJECTION_ENABLED` | `ai_stack/langgraph/runtime_executor/director_location_completion.py` (SOURCE_LINES `w5_ast_director_projection_enabled`) | Director/Gathering reads typed W5 projection as actor-location substrate; legacy `complete_actor_locations_for_gathering` remains as fallback. ADR-0061 pause semantics unchanged. |
+| `W5_AST_NARRATOR_PROJECTION_ENABLED` | `world-engine/app/story_runtime/manager/opening_fallback_observability.py::_w5_ast_narrator_projection_enabled` | Narrator `source_facts` gets typed `w5_projection`; legacy `transition_from_previous` block remains as fallback. |
+| `W5_AST_NPC_PROJECTION_ENABLED` | `ai_stack/langgraph/runtime_executor/reaction_order_governance.py` (SOURCE_LINES `w5_ast_npc_projection_enabled`) | NPC planning gets actor-specific typed W5 projection; legacy NPC context remains as fallback. |
+| `W5_AST_VALIDATION_ENABLED` | `ai_stack/actor_tracking/validation.py::w5_ast_validation_enabled` | W5 validation runs after Actor Lane has accepted; Actor Lane remains authoritative; legacy seam stays canonical. |
+| `W5_AST_FRONTEND_PLAYER_VIEW_ENABLED` | `world-engine/app/story_runtime/manager/actor_tracking/session_state_w5_view.py::_w5_ast_frontend_player_view_enabled` | Player-shell state exposes typed `w5_player_view` and `feature_flags`; legacy `current_room` / `current_room_id` remains as fallback. |
+
+Reporter helper `ai_stack/actor_tracking/diagnostics.py::_flag_enabled` was updated in lockstep so `w5_projection_flag_states()` and `build_w5_runtime_metadata()` accurately reflect runtime gate state.
+
+**Explicit opt-out preserved.** Every resolver still honors `0/false/no/off` (case-insensitive) as an explicit disable. This is regression-pinned in `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py`.
+
+**No legacy code removed yet.** Phase 6B-1 deliberately keeps every legacy fallback branch — narrator transition block, Director baseline completion, NPC legacy context, validation seam fallback, `current_room` / `current_room_id` — so opting any single flag out reverts the corresponding consumer to its exact pre-6B-1 path.
+
+**No committed-output mutation.** Default-on does not change committed events. The only new fields visible under default-on are the W5 diagnostics/metadata that were already produced under explicit opt-in (e.g., `w5_director_projection_used`, `w5_player_view_diagnostics`, `feature_flags.W5_AST_FRONTEND_PLAYER_VIEW_ENABLED`, `w5_runtime_metadata.w5_projection_flags_used`).
+
+**Next phase — Phase 6B-2 (planned).** Inspect which fallback branches are now dead under default config. Candidates to investigate (informational, not removed in 6B-1):
+
+- C1 / C4 legacy-only Director completion paths under `complete_actor_locations_for_gathering_with_optional_w5_projection` when the flag is enabled.
+- Narrator-only `transition_from_previous` enrichment branches that are never selected when the W5 projection succeeds.
+- NPC legacy context fields that are still attached even when W5 projection succeeded.
+- Player-shell legacy `current_room` extraction when `w5_player_view` has a valid location.
+- Reporter `w5_validation_fallback_reason` emissions that only fire when an operator explicitly opts out.
+
+Substrate writers (S1–S8) and the `Participant.current_room_id` dataclass field remain out of scope for 6B.

@@ -173,10 +173,33 @@ def _state(session: StorySession) -> dict[str, Any]:
     return StoryRuntimeManager.get_state(_Proxy(session), session.session_id)  # type: ignore[arg-type]
 
 
-def test_player_view_flag_disabled_leaves_state_without_w5_player_view(
+def test_player_view_default_on_unset_env_adds_w5_player_view_with_valid_snapshot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Phase 6B-1: with env unset, the W5 player view is the default."""
+
     monkeypatch.delenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", raising=False)
+    state = _state(_session(w5_latest=_snapshot("salon_w5")))
+    view = state["w5_player_view"]
+    assert view is not None
+    assert view["target_consumer"] == "player_shell"
+    assert view["where_summary"]["current_visible_location"] == "salon_w5"
+    diag = state["w5_player_view_diagnostics"]
+    assert diag["w5_player_view_used"] is True
+    assert diag["w5_player_view_source"] == "w5_projection"
+    assert diag["current_room_source"] == "w5_player_view"
+    # Legacy fallback value remains present in committed state for compatibility.
+    assert state["committed_state"]["environment_state"]["current_room_id"] == "fallback_salon"
+    # Feature-flag advertised to frontend.
+    assert state["feature_flags"]["W5_AST_FRONTEND_PLAYER_VIEW_ENABLED"] is True
+
+
+def test_player_view_explicit_opt_out_zero_leaves_state_without_w5_player_view(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase 6B-1 explicit opt-out: ``W5_AST_FRONTEND_PLAYER_VIEW_ENABLED=0``."""
+
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "0")
     state = _state(_session(w5_latest=_snapshot()))
     assert "w5_player_view" not in state
     assert "w5_player_view" not in state["committed_state"]

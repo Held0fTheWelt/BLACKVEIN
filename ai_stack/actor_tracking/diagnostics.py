@@ -33,8 +33,13 @@ W5_RUNTIME_METADATA_SCHEMA_VERSION = "w5_runtime_metadata.v1"
 
 
 def _flag_enabled(name: str) -> bool:
+    # Phase 6B-1: W5 projection flags are default-on. Reporter mirrors runtime
+    # gate semantics — unset/empty → enabled; explicit "0/false/no/off" →
+    # disabled; anything else → enabled.
     raw = (os.environ.get(name) or "").strip().lower()
-    return raw in {"1", "true", "yes", "on"}
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return True
 
 
 def w5_projection_flag_states() -> dict[str, bool]:

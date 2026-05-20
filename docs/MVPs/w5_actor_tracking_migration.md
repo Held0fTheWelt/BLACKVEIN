@@ -210,6 +210,38 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Note on `player_actor_situation`:** The W5 player-shell projection payload retains the key `where_summary.player_actor_situation` (`ai_stack/actor_tracking/projection.py`). This is a runtime payload field, semantically *the situation an actor is in*, not a reference to the deprecated package name. It is **not** in the R1–R5 scope and was deliberately left untouched.
 
+### Phase 6B-1 — Default-on W5 consumer flags (complete)
+
+**Goal:** Flip the five W5 consumer flags to default-on in one coordinated commit so W5 Actor Tracking becomes the default higher-level actor-situation authority for Director, Narrator, NPC planning, validation, and player shell/frontend. Legacy fallbacks remain in place for this phase; no legacy code is removed.
+
+- [x] `W5_AST_DIRECTOR_PROJECTION_ENABLED` default flipped to **enabled** in `ai_stack/langgraph/runtime_executor/director_location_completion.py` (SOURCE_LINES). Explicit env override `0/false/no/off` continues to disable.
+- [x] `W5_AST_NARRATOR_PROJECTION_ENABLED` default flipped to **enabled** in `world-engine/app/story_runtime/manager/opening_fallback_observability.py::_w5_ast_narrator_projection_enabled`. Explicit opt-out preserved.
+- [x] `W5_AST_NPC_PROJECTION_ENABLED` default flipped to **enabled** in `ai_stack/langgraph/runtime_executor/reaction_order_governance.py` (SOURCE_LINES). Explicit opt-out preserved.
+- [x] `W5_AST_VALIDATION_ENABLED` default flipped to **enabled** in `ai_stack/actor_tracking/validation.py::w5_ast_validation_enabled`. Explicit opt-out preserved.
+- [x] `W5_AST_FRONTEND_PLAYER_VIEW_ENABLED` default flipped to **enabled** in `world-engine/app/story_runtime/manager/actor_tracking/session_state_w5_view.py::_w5_ast_frontend_player_view_enabled`. Explicit opt-out preserved.
+- [x] Reporter helper `ai_stack/actor_tracking/diagnostics.py::_flag_enabled` mirrors the new default-on semantics so `w5_projection_flag_states()` reflects runtime gate behavior.
+- [x] Fallback behavior preserved end-to-end:
+  - Narrator: legacy `transition_from_previous` block stays in `source_facts`; W5 projection is added when the snapshot is well-formed.
+  - Director/Gathering: `complete_actor_locations_for_gathering` baseline still runs; W5 projection only replaces the actor-location substrate when the snapshot is well-formed. ADR-0061 pause predicate unchanged.
+  - NPC: legacy NPC context fields remain; W5 projection augments per-actor when the snapshot is well-formed; projection failures are diagnostic-only.
+  - Validation: legacy validation seam remains canonical; W5 validation runs after Actor Lane has accepted; missing/malformed snapshot records a fallback diagnostic and does not fail the turn.
+  - Player shell: legacy `current_room` / `current_room_id` remains the compatibility fallback; W5 player view is preferred when valid.
+- [x] Safety semantics unchanged:
+  - Actor Lane remains authoritative — W5 validation cannot mask Actor Lane rejection.
+  - Inferred Why remains soft truth; How remains first-class.
+  - LLM output cannot create OBSERVED W5 facts.
+  - No mutation of committed events or committed output (the only new entries are the W5 diagnostics/metadata that already existed under explicit opt-in).
+- [x] Diagnostics still emitted for each default-on path: narrator `w5_narrator_projection_failed` (on fallback), Director `w5_director_projection_used` / `w5_director_projection_failed` / `derived_actor_locations_source` / `gathering_pause_source`, NPC `w5_npc_projection_used` / `w5_npc_projection_failed` / `npc_projection_source`, validation `w5_validation_enabled` / `w5_validation_ran` / `w5_validation_failure_codes`, player shell `w5_player_view_used` / `current_room_source` / `current_room_mismatch`.
+- [x] Tests:
+  - `ai_stack/tests/test_w5_actor_tracking_phase_6b1_default_on_flags.py` pins the resolver matrix (5 flags × default-on + explicit opt-out + explicit opt-in) with semantic assertions, and verifies the SOURCE_LINES-assembled Director and NPC resolvers via `ai_stack.langgraph.runtime_executor.public`.
+  - `world-engine/tests/test_story_runtime_w5_narrator_projection.py` covers default-on adds W5 projection + legacy fallback present; explicit `0` opt-out reverts to legacy.
+  - `world-engine/tests/test_story_runtime_w5_player_view.py` covers default-on adds W5 player view and `feature_flags`; explicit `0` opt-out reverts.
+  - `ai_stack/tests/test_w5_actor_tracking_validation.py` covers default-on W5 validation runs after Actor Lane, does not mask Actor Lane rejection, and explicit `0` opt-out leaves the seam unchanged.
+  - `ai_stack/tests/test_npc_agency_planner.py` covers default-on actor-specific NPC projection (privacy preserved) and explicit `0` opt-out reverts to legacy NPC context.
+- [x] Migration & inventory doc updated to mark this phase complete and to note that the next phase should inspect which fallback branches are now dead under default config.
+
+**Phase 6B-1 explicitly does not remove any legacy code path.** Legacy fallbacks remain temporarily so any operator who opts a flag out gets the pre-Phase-6B-1 behavior exactly. The next phase (Phase 6B-2, planned) is a fallback / dead-branch inventory that catalogs which legacy branches are now unreachable under the default config and which still serve as explicit-opt-out paths.
+
 ### Phase 6B — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.

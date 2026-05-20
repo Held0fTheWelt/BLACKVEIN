@@ -35,10 +35,19 @@ _HARD_TRUTH_LEVELS = {
 
 
 def w5_ast_validation_enabled() -> bool:
-    """Fail-closed Phase 4A flag."""
+    """W5 validation feature flag (default-on as of Phase 6B-1).
+
+    Returns True when unset/empty (Phase 6B-1 default). Explicit opt-out is
+    preserved: setting the env var to ``0/false/no/off`` (case-insensitive)
+    disables W5 validation and keeps the legacy Actor Lane / canonical
+    validation seam behavior unchanged. Any other value (``1/true/yes/on``
+    included) is treated as enabled.
+    """
 
     raw = (os.environ.get("W5_AST_VALIDATION_ENABLED") or "").strip().lower()
-    return raw in {"1", "true", "yes", "on"}
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return True
 
 
 def _coerce_snapshot(snapshot: W5Snapshot | Mapping[str, Any] | None) -> W5Snapshot:
