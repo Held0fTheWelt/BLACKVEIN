@@ -4,7 +4,7 @@ Handles recoverable validation rejections while preserving session history and p
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 class _RecoverableRejectionAndSessionsMixin:
     def _build_recoverable_rejection_turn(

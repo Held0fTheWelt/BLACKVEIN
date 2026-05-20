@@ -4,8 +4,8 @@ Provides manager-facing read and update helpers for authoritative session state 
 """
 from __future__ import annotations
 
-from ._deps import *
-from .actor_tracking.session_state_w5_view import _maybe_build_w5_player_view_for_session
+from .._deps import *
+from ..actor_tracking.session_state_w5_view import _maybe_build_w5_player_view_for_session
 
 
 class _SessionStateApiMixin:

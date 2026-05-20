@@ -4,7 +4,7 @@ Applies governance rules around session loops, autonomous continuation, and play
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 class _SessionLoopGovernanceMixin:
     def _log_session_loop_event(self, *, event: str, session: StorySession, trace_id: str | None = None) -> None:

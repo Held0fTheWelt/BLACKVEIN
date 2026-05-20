@@ -4,7 +4,7 @@ Controls how session memory is retained, summarized, and exposed to later runtim
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 def story_session_from_payload(data: dict[str, Any]) -> StorySession:
     fv = data.get("format_version", 1)

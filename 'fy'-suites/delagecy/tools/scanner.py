@@ -52,8 +52,14 @@ EXCLUDED_PARTS = {
     ".worktrees",
     ".wos",
     "__pycache__",
+    ".fydata",
+    "generated",
     "htmlcov",
+    "imports",
     "node_modules",
+    "normalized",
+    "reports",
+    "site-packages",
     "tmp",
     "tmp_coauth_dbg",
     "venv",
@@ -106,6 +112,10 @@ def should_scan(path: Path) -> bool:
     """Return whether a file should be scanned."""
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
+    if path.name == "CHANGELOG.md":
+        return False
+    if path.name.startswith("audit_") and path.suffix.lower() in {".json", ".md"}:
+        return False
     if "delagecy" in path.parts and "reports" in path.parts:
         return False
     if "delagecy" in path.parts and path.name in {
@@ -142,6 +152,8 @@ def iter_files(root: Path, include: Iterable[str] | None = None) -> Iterable[Pat
                 and not (name == "reports" and "delagecy" in (current / name).parts)
                 and not (name == "var" and current.name == "backend")
                 and not (name == "archive" and current.name == "docs")
+                and not (name == "MVPs" and current.name == "docs")
+                and not (name == "source" and current.name == "world-engine")
             ]
             for filename in filenames:
                 path = current / filename

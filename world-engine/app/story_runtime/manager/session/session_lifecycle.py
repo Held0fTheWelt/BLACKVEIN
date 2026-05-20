@@ -4,7 +4,7 @@ Creates, resumes, and closes story-runtime sessions while maintaining authoritat
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 class _SessionLifecycleMixin:
     def _emit_session_loop_observation(self, *, session: StorySession, trace_id: str | None = None) -> None:

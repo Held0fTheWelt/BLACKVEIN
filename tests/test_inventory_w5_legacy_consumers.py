@@ -22,9 +22,12 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "inventory_w5_legacy_consumers.py"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("inventory_w5_legacy_consumers", SCRIPT_PATH)
+    name = "inventory_w5_legacy_consumers"
+    spec = importlib.util.spec_from_file_location(name, SCRIPT_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    # Register before execution so @dataclass can resolve ``cls.__module__``.
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 

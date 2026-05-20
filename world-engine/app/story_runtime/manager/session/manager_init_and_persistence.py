@@ -4,7 +4,7 @@ Initializes runtime manager storage, session indexes, and persistence surfaces u
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 class _ManagerInitAndPersistenceMixin:
     def __init__(

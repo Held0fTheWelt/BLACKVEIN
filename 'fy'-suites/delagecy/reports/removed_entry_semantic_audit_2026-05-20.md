@@ -110,11 +110,13 @@ An adjacent W5 player-view residue was removed while preserving the current fall
 
 ## Verification
 
+- Delagecy active-surface scan after this audit: `active_surface_scan_after_semantic_audit.json`
+- Delagecy readable gate report: `active_surface_report_after_semantic_audit.md`
+- Gate result after the semantic audit: **FAIL**, because 723 new unregistered findings were reported. Removed/canonicalized residue counts are both 0. Per policy, these new findings were not removed in this pass.
 - `PYTHONPATH="'fy'-suites" python3 -m pytest "'fy'-suites/delagecy/tools/tests" -q`
-- `PYTHONPATH=backend python3 -m pytest backend/tests/runtime/test_ai_adapter.py -q`
+- `PYTHONPATH=backend python3 -m pytest backend/tests/runtime/test_ai_adapter.py backend/tests/runtime/test_ai_decision_logging.py backend/tests/runtime/test_preview_delta.py -q`
 - `PYTHONPATH=. python3 -m pytest ai_stack/tests/test_npc_agency_contracts.py ai_stack/tests/test_narrative_runtime_agent.py ai_stack/tests/test_actor_lane_hydration.py ai_stack/tests/test_npc_agency_planner.py ai_stack/tests/test_social_pressure_engine.py -q`
 - `PYTHONPATH=. python3 -m pytest tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py tools/mcp_server/tests/test_tools_registry_aliases.py -q`
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python3 -m pytest world-engine/tests/test_mvp3_narrative_agent_orchestration.py -q`
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python3 -m pytest world-engine/tests/test_story_runtime_w5_player_view.py -q`
 - `PYTHONPATH=backend python3 -m pytest backend/tests/test_w5_player_shell_payload.py -q`
-

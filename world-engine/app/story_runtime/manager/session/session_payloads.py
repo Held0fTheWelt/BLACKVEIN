@@ -4,7 +4,7 @@ Builds API-facing payloads for session state, turn results, diagnostics, and vis
 """
 from __future__ import annotations
 
-from ._deps import *
+from .._deps import *
 
 def _recoverable_playable_turn_envelope(
     *,
