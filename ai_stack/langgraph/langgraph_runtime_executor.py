@@ -30,7 +30,7 @@ from story_runtime_core.player_input_intent_contract import (
     player_input_kind_family,
 )
 from ai_stack.capabilities import CapabilityRegistry
-from ai_stack.story_runtime_playability import (
+from ai_stack.story_runtime.story_runtime_playability import (
     build_rewrite_instruction,
     decide_playability_recovery,
     degrade_validation_outcome,
@@ -175,7 +175,7 @@ from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
 from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
-from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS
+from ai_stack.semantic_planner.goc_roadmap_semantic_surface import ROUTING_LABELS
 from ai_stack.goc_yaml_authority import (
     detect_builtin_yaml_title_conflict,
     goc_character_profile_snippet,
@@ -277,12 +277,12 @@ from ai_stack.director.scene_director_goc import (
     build_scene_assessment,
     prior_continuity_classes,
 )
-from ai_stack.scene_plan_contract import ScenePlanRecord
-from ai_stack.semantic_scene_planner import build_semantic_scene_plan_enrichment
-from ai_stack.semantic_move_contract import SemanticMoveRecord
-from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
-from ai_stack.social_state_contract import SocialStateRecord
-from ai_stack.social_state_goc import build_social_state_record, social_state_fingerprint
+from ai_stack.semantic_planner.scene_plan_contract import ScenePlanRecord
+from ai_stack.semantic_planner.semantic_scene_planner import build_semantic_scene_plan_enrichment
+from ai_stack.semantic_planner.semantic_move_contract import SemanticMoveRecord
+from ai_stack.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
+from ai_stack.semantic_planner.social_state_contract import SocialStateRecord
+from ai_stack.semantic_planner.social_state_goc import build_social_state_record, social_state_fingerprint
 from ai_stack.dramatic_effect.dramatic_effect_gate import build_evaluation_context_from_runtime_state
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_turn_seams import (

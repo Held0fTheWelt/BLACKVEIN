@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 import sys
 
-from ._imports_00 import *
-from ._imports_01 import *
+from .external_imports_core import *
+from .external_imports_runtime import *
 
 logger = logging.getLogger("app.story_runtime.manager")
 

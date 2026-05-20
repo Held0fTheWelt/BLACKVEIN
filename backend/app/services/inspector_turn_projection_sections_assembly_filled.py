@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.semantic_planner_effect_surface import support_level_for_module
+from ai_stack.semantic_planner.semantic_planner_effect_surface import support_level_for_module
 
 from app.contracts.inspector_turn_projection import (
     make_supported_section,

@@ -16,7 +16,7 @@ pytest.importorskip(
 )
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS, TASK_TYPES
+from ai_stack.semantic_planner.goc_roadmap_semantic_surface import ROUTING_LABELS, TASK_TYPES
 from ai_stack.goc_turn_seams import (
     build_operator_canonical_turn_record,
     repro_metadata_complete,

@@ -2006,6 +2006,12 @@ quality/degradation semantics
 
 Required handoff artifact: `tests/reports/MVP4_HANDOFF_DIAGNOSTICS_AND_TRACE.md`.
 
+### W5 Actor-Situation Diagnostic Addendum
+
+W5 Phase 4B exposes actor-situation state through read-only Narrative Governance and World-Engine admin diagnostics. The panels and routes show compact typed views only: current snapshot, per-actor Who/Where/What/How/Why, source/truth levels, visibility/perception scope, stale/contradicted facts, conflicts, narrator/NPC projection previews, and W5 validation diagnostics.
+
+These surfaces do not mutate runtime truth, committed events, validation output, projection flags, or `admin_override` authority. Operator visibility is diagnostic until a future ADR defines explicit repair authority; `admin_override` remains audited and cannot produce OBSERVED W5 truth.
+
 ## Stop Condition
 
 Stop only when:

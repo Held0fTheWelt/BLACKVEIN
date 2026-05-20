@@ -153,7 +153,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_policy_backed_subtext_interpretation(self):
         """Verify Pi19 subtext reaches the generation packet as a bounded policy surface."""
-        from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+        from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         policy_rule_id = "direct_accusation"
@@ -264,7 +264,7 @@ class TestW31ResponderSetStrengthening:
         """Verify Pi27 reaches generation as bounded structural context."""
         from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
-        from ai_stack.social_state_goc import build_social_state_record
+        from ai_stack.semantic_planner.social_state_goc import build_social_state_record
 
         yaml_slice = load_goc_yaml_slice_bundle()
         social_state = build_social_state_record(

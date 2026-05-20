@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ai_stack.research_fixtures import fixture_a_intake_input
-from ai_stack.research_golden_cases import EXPECTED_INTAKE_SEGMENT_COUNT
-from ai_stack.research_ingestion import ingest_resource, normalize_resource
-from ai_stack.research_store import ResearchStore
+from ai_stack.research.research_fixtures import fixture_a_intake_input
+from ai_stack.research.research_golden_cases import EXPECTED_INTAKE_SEGMENT_COUNT
+from ai_stack.research.research_ingestion import ingest_resource, normalize_resource
+from ai_stack.research.research_store import ResearchStore
 
 
 def test_fixture_a_intake_normalization_and_policy_enforcement(tmp_path):

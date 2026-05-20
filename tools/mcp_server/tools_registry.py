@@ -133,7 +133,7 @@ def create_default_registry(
         backend = BackendClient(base_url=config.backend_url, bearer_token=config.bearer_token)
     if fs is None:
         fs = FileSystemTools(config)
-    from ai_stack.langgraph.research_langgraph import research_store_from_repo_root
+    from ai_stack.research.research_langgraph import research_store_from_repo_root
 
     research_store = research_store_from_repo_root(config.repo_root)
     handlers, make_blocked = build_default_mcp_tool_handlers(

@@ -41,11 +41,11 @@ Large-scale statistical experiment grids, dedicated triage UI, and full database
 
 **Anchors:**
 
-- `ai_stack/research_contract.py` — statuses, exploration enums, issue/proposal taxonomies, legal state transitions.
-- `ai_stack/research_store.py` — JSON persistence under `.wos/research/research_store.json`
-- `ai_stack/langgraph/research_langgraph.py` — `run_research_pipeline`, `build_review_bundle`, helpers (`inspect_source`, `exploration_graph`, …). **Note:** orchestration here is **sequential Python**, not a compiled LangGraph `StateGraph` (see `research_langgraph.py` module docstring).
-- `ai_stack/research_ingestion.py`, `research_aspect_extraction.py`, `research_exploration.py`, `research_validation.py`
-- `ai_stack/canon_improvement_engine.py` — deterministic issue/proposal derivation from validated claims
+- `ai_stack/research/research_contract.py` — statuses, exploration enums, issue/proposal taxonomies, legal state transitions.
+- `ai_stack/research/research_store.py` — JSON persistence under `.wos/research/research_store.json`
+- `ai_stack/research/research_langgraph.py` — `run_research_pipeline`, `build_review_bundle`, helpers (`inspect_source`, `exploration_graph`, …). **Note:** orchestration here is **sequential Python**, not a compiled LangGraph `StateGraph` (see `research_langgraph.py` module docstring).
+- `ai_stack/research/research_ingestion.py`, `research_aspect_extraction.py`, `research_exploration.py`, `research_validation.py`
+- `ai_stack/research/canon_improvement_engine.py` — deterministic issue/proposal derivation from validated claims
 
 ### Pipeline stages (control flow)
 
@@ -59,7 +59,7 @@ Large-scale statistical experiment grids, dedicated triage UI, and full database
 
 ### Diagram: research pipeline vs sandbox improvement
 
-*Anchors:* `ai_stack/langgraph/research_langgraph.py`, `backend/app/api/v1/improvement_routes.py`.
+*Anchors:* `ai_stack/research/research_langgraph.py`, `backend/app/api/v1/improvement_routes.py`.
 
 ```mermaid
 flowchart TB
@@ -87,7 +87,7 @@ Operators and agents invoke research tools through the MCP server; handlers call
 
 **Anchors:** `tools/mcp_server/tools_registry.py` (`run_research_pipeline`, `build_research_bundle`, `propose_canon_improvement`, …), `ai_stack/mcp_canonical_surface.py` (suite `wos-ai`).
 
-**Note on `wos.research.validate`:** The MCP handler returns a **summary** of claim ids already produced for a run (`handle_research_validate` in `tools_registry.py`); **full** verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research_validation.py`). Treat the MCP tool as a **workflow checkpoint**, not a second verification engine.
+**Note on `wos.research.validate`:** The MCP handler returns a **summary** of claim ids already produced for a run (`handle_research_validate` in `tools_registry.py`); **full** verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research/research_validation.py`). Treat the MCP tool as a **workflow checkpoint**, not a second verification engine.
 
 ---
 

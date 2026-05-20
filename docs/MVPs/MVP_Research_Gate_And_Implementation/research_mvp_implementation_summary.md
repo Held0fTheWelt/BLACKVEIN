@@ -4,31 +4,31 @@
 This implementation realizes the bounded Research-and-Canon-Improvement MVP defined in `docs/MVPs/MVP_Research_And_Canon_Improvement_System/ROADMAP_MVP_RESEARCH_AND_CANON_IMPROVEMENT_SYSTEM.md` with deterministic contracts, budget-enforced exploration, structured canon improvement outputs, and review-safe publication posture.
 
 ## Implemented modules
-- `ai_stack/research_contract.py`
+- `ai_stack/research/research_contract.py`
   - canonical owner for status model, contradiction classes, abort reasons, relation enums, issue/proposal taxonomies, legal transitions, and mandatory exploration-budget contract.
-- `ai_stack/research_store.py`
+- `ai_stack/research/research_store.py`
   - deterministic persistent structured store for source/anchor/aspect/exploration/claim/issue/proposal/run records.
   - hard referential integrity checks for source/anchor/aspect/node/edge/claim links.
   - governance field hardening (`provenance`, `metadata`, `outputs`, `preview_patch_ref` cannot be semantically empty).
-- `ai_stack/research_ingestion.py`
+- `ai_stack/research/research_ingestion.py`
   - deterministic source normalization, operational copyright posture enforcement, segmentation, and anchor creation.
   - segment records now carry `source_id` to enforce source-local aspect extraction.
-- `ai_stack/research_perspectives.py`
+- `ai_stack/research/research_perspectives.py`
   - perspective-separated deterministic extraction rules (playwright, director, actor, dramaturg).
-- `ai_stack/research_aspect_extraction.py`
+- `ai_stack/research/research_aspect_extraction.py`
   - extraction and persistence of perspective-specific aspect records.
-- `ai_stack/research_exploration.py`
+- `ai_stack/research/research_exploration.py`
   - bounded exploration engine with deterministic branching, pruning, budget accounting, and stable abort semantics.
   - explicit time abort reason (`time_budget_exhausted`) and explicit elapsed wall-time reporting.
-- `ai_stack/research_validation.py`
+- `ai_stack/research/research_validation.py`
   - canonical owner for promotion decisions, block logic, and contradiction-aware verification flow.
   - promotion requires `kept_for_validation` exploration outcome and known anchor references.
-- `ai_stack/canon_improvement_contract.py`
+- `ai_stack/research/canon_improvement_contract.py`
   - canonical issue/proposal mapping contract.
-- `ai_stack/canon_improvement_engine.py`
+- `ai_stack/research/canon_improvement_engine.py`
   - deterministic canon issue detection and taxonomy-bound proposal generation.
   - issues/proposals are persisted as review artifacts (`approved_research`) to avoid silent canon adoption semantics.
-- `ai_stack/langgraph/research_langgraph.py`
+- `ai_stack/research/research_langgraph.py`
   - orchestrates six pipeline phases (intake -> extraction -> exploration -> verification -> canon improvement -> review bundle) without owning classification truth.
   - review bundle now includes an explicit populated `aspects` section and computed `review_safe` posture.
   - canon relevance hint is derived deterministically from exploration content, not hardcoded.

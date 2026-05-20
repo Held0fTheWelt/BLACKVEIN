@@ -135,10 +135,16 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - [x] INFERRED Why conflicts do not hard-block; they remain warnings / pending Director evidence unless a future ADR configures otherwise.
 - [x] Diagnostics include compact failure codes, warnings, snapshot id, source, fallback reason, and source/truth fact references without exposing raw W5 ledgers.
 
-### Phase 4B — Admin / diagnostics visibility (planned)
+### Phase 4B — Admin / diagnostics visibility (complete)
 
-- Surface W5 validation diagnostics in operator/admin views without exposing raw ledgers.
-- Add richer diagnostics projections once the Phase 4A commit-gating semantics remain stable.
+- [x] Add compact typed diagnostic builders in `ai_stack/actor_situation/diagnostics.py`.
+- [x] Add read-only world-engine internal W5 surfaces for snapshot, per-actor drill-in, conflicts, narrator projection preview, NPC projection preview, and latest validation diagnostics.
+- [x] Add backend admin proxy routes under `/api/v1/admin/w5/...` using existing moderator/admin and World-Engine `observe` capability checks.
+- [x] Extend the Narrative Runtime governance UI with W5 Actor Situation, per-actor, source/truth, visibility/perception, stale/contradicted, projection preview, and validation panels.
+- [x] Add compact runtime diagnostics and Langfuse metadata (`w5.snapshot_id`, actor/conflict counts, How/Why presence, validation flags/failure codes) without emitting raw W5 ledgers or inferred Why prose.
+- [x] Admin panels are read-only and do not mutate runtime truth, committed events, validation state, or any projection feature flag.
+- [x] `admin_override`, where present in future repair flows, remains audited and cannot produce OBSERVED truth in this phase.
+- [x] W5 visibility in admin/governance remains diagnostic; no operator repair authority exists until a separate ADR defines it.
 
 ### Phase 4C — Frontend / player-shell projections (planned)
 

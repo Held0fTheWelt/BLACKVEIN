@@ -245,7 +245,7 @@ flowchart LR
 
 The connected reference describes **three AI-related planes** that share libraries but serve different jobs: **runtime play AI**, **research/improvement AI**, and **operator/control-plane AI** (`docs/ai/ai_system_in_world_of_shadows.md`). Across them: **models and graphs propose**; **validation, commit rules, and the session host** decide live truth.
 
-**Anchors:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langgraph/research_langgraph.py`, `tools/mcp_server/server.py`.
+**Anchors:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/research/research_langgraph.py`, `tools/mcp_server/server.py`.
 
 ### Why this matters
 

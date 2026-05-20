@@ -13,7 +13,7 @@ from ai_stack.dramatic_effect.dramatic_effect_gate_evaluate_branch_outcomes impo
     continuity_posture_for_social,
 )
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
-from ai_stack.social_state_contract import SocialStateRecord
+from ai_stack.semantic_planner.social_state_contract import SocialStateRecord
 
 
 def _ctx(

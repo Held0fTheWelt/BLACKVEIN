@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.goc_roadmap_semantic_surface import ROADMAP_SEMANTIC_REGISTRY
+from ai_stack.semantic_planner.goc_roadmap_semantic_surface import ROADMAP_SEMANTIC_REGISTRY
 
 
 def test_roadmap_registry_has_all_mandatory_families() -> None:

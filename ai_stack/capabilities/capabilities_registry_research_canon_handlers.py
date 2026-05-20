@@ -22,7 +22,7 @@ def research_source_inspect_handler(research_store: Any, payload: dict[str, Any]
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import inspect_source
+    from ai_stack.research.research_langgraph import inspect_source
 
     return inspect_source(store=research_store, source_id=str(payload["source_id"]))
 
@@ -41,7 +41,7 @@ def research_aspect_extract_handler(research_store: Any, payload: dict[str, Any]
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import inspect_source
+    from ai_stack.research.research_langgraph import inspect_source
 
     source_id = str(payload["source_id"])
     inspected = inspect_source(store=research_store, source_id=source_id)
@@ -67,7 +67,7 @@ def research_claim_list_handler(research_store: Any, payload: dict[str, Any]) ->
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import list_claims
+    from ai_stack.research.research_langgraph import list_claims
 
     return list_claims(store=research_store, work_id=payload.get("work_id"))
 
@@ -86,7 +86,7 @@ def research_run_get_handler(research_store: Any, payload: dict[str, Any]) -> di
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import get_run
+    from ai_stack.research.research_langgraph import get_run
 
     return get_run(store=research_store, run_id=str(payload["run_id"]))
 
@@ -105,7 +105,7 @@ def research_exploration_graph_handler(research_store: Any, payload: dict[str, A
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import exploration_graph
+    from ai_stack.research.research_langgraph import exploration_graph
 
     return exploration_graph(store=research_store, run_id=str(payload["run_id"]))
 
@@ -124,7 +124,7 @@ def canon_issue_inspect_handler(research_store: Any, payload: dict[str, Any]) ->
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import inspect_canon_issue
+    from ai_stack.research.research_langgraph import inspect_canon_issue
 
     return inspect_canon_issue(store=research_store, module_id=payload.get("module_id"))
 
@@ -143,8 +143,8 @@ def research_explore_handler(research_store: Any, payload: dict[str, Any]) -> di
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.research_contract import ExplorationBudget
-    from ai_stack.langgraph.research_langgraph import run_research_pipeline
+    from ai_stack.research.research_contract import ExplorationBudget
+    from ai_stack.research.research_langgraph import run_research_pipeline
 
     budget = ExplorationBudget.from_payload(payload.get("budget", {}))
     run = run_research_pipeline(
@@ -177,7 +177,7 @@ def research_validate_handler(research_store: Any, payload: dict[str, Any]) -> d
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import get_run
+    from ai_stack.research.research_langgraph import get_run
 
     run_id = str(payload["run_id"])
     run = get_run(store=research_store, run_id=run_id)
@@ -204,7 +204,7 @@ def research_bundle_build_handler(research_store: Any, payload: dict[str, Any]) 
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import build_research_bundle
+    from ai_stack.research.research_langgraph import build_research_bundle
 
     return build_research_bundle(store=research_store, run_id=str(payload["run_id"]))
 
@@ -223,7 +223,7 @@ def canon_improvement_propose_handler(research_store: Any, payload: dict[str, An
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import propose_canon_improvement
+    from ai_stack.research.research_langgraph import propose_canon_improvement
 
     return propose_canon_improvement(store=research_store, module_id=str(payload["module_id"]))
 
@@ -242,6 +242,6 @@ def canon_improvement_preview_handler(research_store: Any, payload: dict[str, An
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.langgraph.research_langgraph import preview_canon_improvement
+    from ai_stack.research.research_langgraph import preview_canon_improvement
 
     return preview_canon_improvement(store=research_store, module_id=str(payload["module_id"]))

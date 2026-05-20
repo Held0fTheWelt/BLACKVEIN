@@ -226,6 +226,12 @@ def build_w5_langfuse_metadata(
         snapshot,
         latest_validation_outcome=latest_validation_outcome,
     )
+    w5_validation = (
+        latest_validation_outcome.get("w5_validation")
+        if isinstance(latest_validation_outcome, Mapping)
+        and isinstance(latest_validation_outcome.get("w5_validation"), Mapping)
+        else {}
+    )
     return {
         "w5.snapshot_id": runtime.get("w5_snapshot_id"),
         "w5.actor_count": runtime.get("w5_actor_count"),
@@ -238,13 +244,7 @@ def build_w5_langfuse_metadata(
         "w5.has_how": bool(runtime.get("w5_has_how")),
         "w5.has_inferred_why": bool(runtime.get("w5_has_inferred_why")),
         "w5.validation_enabled": bool(runtime.get("w5_validation_enabled")),
-        "w5.validation_failed": bool(
-            (latest_validation_outcome or {})
-            .get("w5_validation", {})
-            .get("w5_validation_failed")
-        )
-        if isinstance(latest_validation_outcome, Mapping)
-        else False,
+        "w5.validation_failed": bool(w5_validation.get("w5_validation_failed")),
         "w5.validation_failure_codes": list(runtime.get("w5_validation_failure_codes") or []),
     }
 

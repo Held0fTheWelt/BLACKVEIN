@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.semantic_scene_planner import (
+from ai_stack.semantic_planner.semantic_scene_planner import (
     SEMANTIC_SCENE_PLANNER_VERSION,
     build_semantic_scene_plan_enrichment,
 )

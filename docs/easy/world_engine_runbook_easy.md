@@ -111,7 +111,7 @@ You can read one function and see the **spine** of “suggest → check → comm
 
 ### What it is not
 
-This is **not** a guarantee that every module has the same richness as God of Carnage (GoC); support levels for semantic planner features are **module-aware** (`ai_stack/semantic_planner_effect_surface.py`).
+This is **not** a guarantee that every module has the same richness as God of Carnage (GoC); support levels for semantic planner features are **module-aware** (`ai_stack/semantic_planner/semantic_planner_effect_surface.py`).
 
 ---
 
@@ -336,9 +336,9 @@ You may hear **social semantic planner** or **semantic dramatic planner**. In th
 ### What this means in the actual system
 
 - Graph state carries planner fields such as `semantic_move_record`, `social_state_record`, `character_mind_records`, `scene_plan_record`, `dramatic_effect_outcome` (`RuntimeTurnState` in `ai_stack/langgraph/langgraph_runtime.py`; comment notes they are **advisory until validation/commit**).
-- Contracts include `ai_stack/semantic_move_contract.py`, `ai_stack/social_state_contract.py`, `ai_stack/scene_plan_contract.py`.
-- GoC-specific builders include `ai_stack/social_state_goc.py`, `ai_stack/semantic_move_interpretation_goc.py`, and scene direction in `ai_stack/director/scene_director_goc.py`.
-- Module support level is explicit (`ai_stack/semantic_planner_effect_surface.py`): full path for `god_of_carnage`, waived / not equivalent for other modules.
+- Contracts include `ai_stack/semantic_planner/semantic_move_contract.py`, `ai_stack/semantic_planner/social_state_contract.py`, `ai_stack/semantic_planner/scene_plan_contract.py`.
+- GoC-specific builders include `ai_stack/semantic_planner/social_state_goc.py`, `ai_stack/semantic_planner/semantic_move_interpretation_goc.py`, and scene direction in `ai_stack/director/scene_director_goc.py`.
+- Module support level is explicit (`ai_stack/semantic_planner/semantic_planner_effect_surface.py`): full path for `god_of_carnage`, waived / not equivalent for other modules.
 
 ### Why it matters
 

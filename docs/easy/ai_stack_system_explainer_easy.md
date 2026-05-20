@@ -436,7 +436,7 @@ This is the **cooperation story**: each layer has a **job**, and **only some lay
 
 ### What it is not
 
-Not every module has the same **GoC depth**; planner support can be **module-gated** (`ai_stack/semantic_planner_effect_surface.py`).
+Not every module has the same **GoC depth**; planner support can be **module-gated** (`ai_stack/semantic_planner/semantic_planner_effect_surface.py`).
 
 **In plain words:** Think **conveyor belt** with **inspectors** at the end—not a **free-for-all chat**.
 

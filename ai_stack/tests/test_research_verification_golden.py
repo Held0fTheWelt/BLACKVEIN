@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from ai_stack.research_fixtures import fixture_a_intake_input, fixture_d_candidate_payloads
-from ai_stack.research_golden_cases import EXPECTED_CONTRADICTION_CLASSES, EXPECTED_VERIFICATION_STATUSES
-from ai_stack.research_ingestion import ingest_resource, normalize_resource
-from ai_stack.research_store import ResearchStore
-from ai_stack.research_validation import verify_and_promote_claims
+from ai_stack.research.research_fixtures import fixture_a_intake_input, fixture_d_candidate_payloads
+from ai_stack.research.research_golden_cases import EXPECTED_CONTRADICTION_CLASSES, EXPECTED_VERIFICATION_STATUSES
+from ai_stack.research.research_ingestion import ingest_resource, normalize_resource
+from ai_stack.research.research_store import ResearchStore
+from ai_stack.research.research_validation import verify_and_promote_claims
 
 
 def test_fixture_d_verification_support_contradiction_unresolved(tmp_path):

@@ -50,7 +50,7 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 ## What LangGraph is not
 
 - **Not** the session host: `StoryRuntimeManager` in world-engine increments counters, appends history, runs `resolve_narrative_commit`, and owns persistence after `run()` returns (`world-engine/app/story_runtime/manager.py`).
-- **Not** the research pipeline: `ai_stack/langgraph/research_langgraph.py` sequences research stages in **plain Python**; the filename is historical—the research path does **not** compile a LangGraph `StateGraph` for production orchestration.
+- **Not** the research pipeline: `ai_stack/research/research_langgraph.py` sequences research stages in **plain Python**; the filename is historical—the research path does **not** compile a LangGraph `StateGraph` for production orchestration.
 - **Not** a durable replay engine by default: checkpoint persistence is explicitly deferred; traces and deterministic fallback take precedence in the current design (verify before assuming checkpoint replay in a given deployment).
 
 ## Neighbors

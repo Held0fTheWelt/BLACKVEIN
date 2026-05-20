@@ -1,4 +1,4 @@
-"""Extended tests for ai_stack/research_store.py to achieve 95%+ coverage."""
+"""Extended tests for ai_stack/research/research_store.py to achieve 95%+ coverage."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.research_store import (
+from ai_stack.research.research_store import (
     RESEARCH_STORE_SCHEMA_VERSION,
     ResearchStore,
     _empty_state,

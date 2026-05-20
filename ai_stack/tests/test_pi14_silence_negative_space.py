@@ -16,8 +16,8 @@ from ai_stack.goc_dramatic_alignment import (
 )
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, SILENCE_BREVITY_MODES
 from ai_stack.director.scene_director_goc import build_pacing_and_silence
-from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES, SemanticMoveRecord
-from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move
+from ai_stack.semantic_planner.semantic_move_contract import SEMANTIC_MOVE_TYPES, SemanticMoveRecord
+from ai_stack.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move
 from ai_stack.silence_negative_space_contract import (
     SILENCE_NEGATIVE_SPACE_CONTRACT_VERSION,
     SILENCE_NEGATIVE_SPACE_SOURCES,

@@ -69,9 +69,9 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `ai_stack/retrieval_governance_summary.py`
 - **Scene direction and dramatic parameter logic** in:
   - `ai_stack/director/scene_director_goc.py`
-  - `ai_stack/semantic_move_interpretation_goc.py`
+  - `ai_stack/semantic_planner/semantic_move_interpretation_goc.py`
   - `ai_stack/dramatic_effect/dramatic_effect_gate.py`
-  - `ai_stack/social_state_goc.py`
+  - `ai_stack/semantic_planner/social_state_goc.py`
   - `ai_stack/npc_agency/character/character_mind_goc.py`
 - **Backend / frontend / administration-tool / world-engine service separation**
 - **Existing test and report discipline**, including slice, runtime, MCP, and acceptance-oriented artifacts

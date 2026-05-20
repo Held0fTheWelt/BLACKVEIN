@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from ai_stack.semantic_planner_effect_surface import support_level_for_module
+from ai_stack.semantic_planner.semantic_planner_effect_surface import support_level_for_module
 
 
 def planner_slice(row: dict[str, Any]) -> dict[str, Any]:

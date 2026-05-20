@@ -27,7 +27,7 @@ from .capabilities import (
     create_default_capability_registry,
     evidence_lane_mix_from_sources,
 )
-from .research_contract import (
+from .research.research_contract import (
     CanonIssueType,
     ContradictionStatus,
     CopyrightPosture,

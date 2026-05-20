@@ -26,7 +26,7 @@ This document is the **canonical spine** for AI in this repository: how retrieva
 4. **Tests** as supporting evidence for behavior, not as a substitute for reading production code.
 5. **Inference** — only when the code is genuinely ambiguous; label it explicitly.
 
-**Archive warning:** Older summaries under [`docs/archive/architecture-legacy/`](../archive/architecture-legacy/) may describe components as “planned.” When archive text disagrees with the current tree, **trust the implemented modules** (for example `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langgraph/research_langgraph.py`, `tools/mcp_server/server.py`) and the normative slice contracts linked from this doc.
+**Archive warning:** Older summaries under [`docs/archive/architecture-legacy/`](../archive/architecture-legacy/) may describe components as “planned.” When archive text disagrees with the current tree, **trust the implemented modules** (for example `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/research/research_langgraph.py`, `tools/mcp_server/server.py`) and the normative slice contracts linked from this doc.
 
 **Graph version (code):** `RUNTIME_TURN_GRAPH_VERSION` in `ai_stack/version.py`.
 
@@ -41,14 +41,14 @@ World of Shadows uses **three distinguishable AI-related planes** that share lib
 | Plane | Role | Primary anchors |
 |--------|------|------------------|
 | **Runtime play AI** | Per-turn interpretation, retrieval, direction, model calls, validation/commit inside the live narrative pipeline | `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py` |
-| **Research / improvement AI** | Bounded exploration over sources, structured claims, optional canon-issue and **non-publish** proposal previews; **separate** sandbox experiment loop for module variants | `ai_stack/research_*.py`, `ai_stack/canon_improvement_engine.py`, `backend/app/api/v1/improvement_routes.py` |
+| **Research / improvement AI** | Bounded exploration over sources, structured claims, optional canon-issue and **non-publish** proposal previews; **separate** sandbox experiment loop for module variants | `ai_stack/research/research_*.py`, `ai_stack/research/canon_improvement_engine.py`, `backend/app/api/v1/improvement_routes.py` |
 | **Operator / control-plane AI** | Tools and APIs for inspection, diagnostics, governance packages—not a second story runtime | `tools/mcp_server/`, backend governance and session APIs |
 
 Across all planes: **models and graphs propose**; **validation, commit rules, and the session host** decide what becomes **live session truth**. RAG supplies **context**, not canon. **MCP** exposes **tools, resources, and prompts** for operators; it does not replace the play service’s authority.
 
 ### Diagram: AI planes in World of Shadows
 
-*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py` (runtime graph), `ai_stack/langgraph/research_langgraph.py` (research pipeline), `tools/mcp_server/server.py` (MCP control plane).
+*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py` (runtime graph), `ai_stack/research/research_langgraph.py` (research pipeline), `tools/mcp_server/server.py` (MCP control plane).
 
 ```mermaid
 flowchart TB
@@ -86,7 +86,7 @@ AI helps interpret input, retrieve relevant text, propose narrative structure, r
 
 ### Technical precision
 
-- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities/capabilities.py`), **research pipeline** (`ai_stack/langgraph/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
+- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities/capabilities.py`), **research pipeline** (`ai_stack/research/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
 - **`story_runtime_core`:** Shared adapters, registry patterns used by world-engine and backend paths.
 - **`world-engine`:** Authoritative host for live `StorySession` lifecycle, turn execution, diagnostics, and bounded narrative commit after the graph returns (`world-engine/app/story_runtime/manager.py`).
 - **`backend`:** Policy, auth, Writers’ Room, improvement HTTP surfaces, proxy to play—**not** a parallel authoritative runtime for the canonical play path.
@@ -197,7 +197,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 ## Research, sandbox improvement, and canon improvement (first-class)
 
-This is a **real subsystem**, not a footnote: structured intake, exploration graphs, claims, validation promotion rules, review bundles, and deterministic canon-issue/proposal derivation live under `ai_stack/research_*.py`, `ai_stack/canon_improvement_engine.py`, and `ai_stack/research_contract.py`.
+This is a **real subsystem**, not a footnote: structured intake, exploration graphs, claims, validation promotion rules, review bundles, and deterministic canon-issue/proposal derivation live under `ai_stack/research/research_*.py`, `ai_stack/research/canon_improvement_engine.py`, and `ai_stack/research/research_contract.py`.
 
 ### Plain language
 
@@ -207,11 +207,11 @@ This is a **real subsystem**, not a footnote: structured intake, exploration gra
 
 ### Technical precision
 
-- **Contracts and enums:** `ai_stack/research_contract.py` — `ResearchStatus`, exploration relation types, abort reasons, canon issue and proposal types, legal status transitions.
-- **Persistence:** `ai_stack/research_store.py` — JSON store at `.wos/research/research_store.json` (schema `research_store_v1`), buckets for sources, anchors, aspects, exploration nodes/edges, claims, issues, proposals, runs.
-- **Pipeline orchestration:** `ai_stack/langgraph/research_langgraph.py` — `run_research_pipeline` runs normalize/ingest (`research_ingestion.py`), aspect extraction (`research_aspect_extraction.py`), bounded exploration (`research_exploration.py`), claim verification (`research_validation.py`), canon improvement derivation (`canon_improvement_engine.py`), and embeds a **review bundle** in the run record (`build_review_bundle`). Bundle flags include `canon_mutation_permitted: false`.
-- **Canon improvement engine:** `ai_stack/canon_improvement_engine.py` — keyword-driven issue classification from validated claims, `ImprovementProposalRecord` with `preview_patch_ref` and `mutation_allowed: false` in previews.
-- **Orchestration entry (deterministic Python):** `ai_stack/langgraph/research_langgraph.py` sequences the stages above for callers such as MCP (`tools/mcp_server/tools_registry.py`). Despite the filename, this module does **not** compile a LangGraph `StateGraph`; runtime turn orchestration remains in `langgraph_runtime.py`.
+- **Contracts and enums:** `ai_stack/research/research_contract.py` — `ResearchStatus`, exploration relation types, abort reasons, canon issue and proposal types, legal status transitions.
+- **Persistence:** `ai_stack/research/research_store.py` — JSON store at `.wos/research/research_store.json` (schema `research_store_v1`), buckets for sources, anchors, aspects, exploration nodes/edges, claims, issues, proposals, runs.
+- **Pipeline orchestration:** `ai_stack/research/research_langgraph.py` — `run_research_pipeline` runs normalize/ingest (`research_ingestion.py`), aspect extraction (`research_aspect_extraction.py`), bounded exploration (`research_exploration.py`), claim verification (`research_validation.py`), canon improvement derivation (`canon_improvement_engine.py`), and embeds a **review bundle** in the run record (`build_review_bundle`). Bundle flags include `canon_mutation_permitted: false`.
+- **Canon improvement engine:** `ai_stack/research/canon_improvement_engine.py` — keyword-driven issue classification from validated claims, `ImprovementProposalRecord` with `preview_patch_ref` and `mutation_allowed: false` in previews.
+- **Orchestration entry (deterministic Python):** `ai_stack/research/research_langgraph.py` sequences the stages above for callers such as MCP (`tools/mcp_server/tools_registry.py`). Despite the filename, this module does **not** compile a LangGraph `StateGraph`; runtime turn orchestration remains in `langgraph_runtime.py`.
 
 ### Why this matters in World of Shadows
 
@@ -232,7 +232,7 @@ Authors and operators need a **bounded** way to turn notes and sources into **st
 
 ### Diagram: Research pipeline (control flow)
 
-*Anchored in:* `ai_stack/langgraph/research_langgraph.py` (`run_research_pipeline`), `ai_stack/research_exploration.py`, `ai_stack/research_validation.py`, `ai_stack/canon_improvement_engine.py`.
+*Anchored in:* `ai_stack/research/research_langgraph.py` (`run_research_pipeline`), `ai_stack/research/research_exploration.py`, `ai_stack/research/research_validation.py`, `ai_stack/research/canon_improvement_engine.py`.
 
 ```mermaid
 flowchart LR
@@ -486,7 +486,7 @@ sequenceDiagram
 
 - **Backend `ai_turn_executor`:** Transitional for in-process `SessionState`; keep separate from world-engine GoC path.
 - **LangGraph checkpointing:** Described in [LangGraph.md](../technical/integration/LangGraph.md); verify before assuming durable graph replay in production.
-- **Research `wos.research.validate` (MCP):** Returns a **summary view** of an existing run’s claim ids (`tools/mcp_server/tools_registry.py`); full verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research_validation.py`).
+- **Research `wos.research.validate` (MCP):** Returns a **summary view** of an existing run’s claim ids (`tools/mcp_server/tools_registry.py`); full verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research/research_validation.py`).
 
 ---
 

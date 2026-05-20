@@ -206,7 +206,7 @@ from ai_stack.runtime_turn_contracts import (
     QUALITY_CLASS_HEALTHY,
     QUALITY_CLASS_VALUES,
 )
-from ai_stack.story_runtime_playability import is_hard_boundary_failure
+from ai_stack.story_runtime.story_runtime_playability import is_hard_boundary_failure
 from ai_stack.live_dramatic_scene_simulator import (
     LDSSInput,
     build_ldss_input_from_session,

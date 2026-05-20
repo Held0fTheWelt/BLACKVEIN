@@ -654,7 +654,7 @@ frontend card shape, and judge labels are never the pass/fail oracle.
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.
 
-The authoritative value source for GoC is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Runtime code builds records through `ai_stack/goc_subtext_policy.py` and validates labels against the contract constants in `ai_stack/semantic_move_contract.py`.
+The authoritative value source for GoC is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Runtime code builds records through `ai_stack/semantic_planner/goc_subtext_policy.py` and validates labels against the contract constants in `ai_stack/semantic_planner/semantic_move_contract.py`.
 
 During a turn:
 

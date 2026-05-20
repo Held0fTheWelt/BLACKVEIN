@@ -37,6 +37,72 @@ def _patch_game_service_ok(monkeypatch):
     monkeypatch.setattr(we, "get_story_diagnostics", lambda sid, **k: {"session_id": sid, "diagnostics": []})
     monkeypatch.setattr(
         we,
+        "get_story_w5_snapshot",
+        lambda sid, **k: {
+            "status": "ok",
+            "snapshot_id": "w5s_route",
+            "stats": {"actor_count": 1, "has_how": True, "has_inferred_why": True},
+            "actor_summaries": {"michel": {"actor_type": "npc"}},
+            "raw_w5_history_exposed": False,
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
+        "get_story_w5_actor",
+        lambda sid, actor_id, **k: {
+            "status": "ok",
+            "actor_id": actor_id,
+            "dimensions": {
+                "who": {"actor_id": actor_id},
+                "where": {"facts": [{"key": "scene_location", "value": "study"}]},
+                "what": {"facts": [{"key": "current_action", "value": "listens"}]},
+                "how": {"facts": [{"key": "tone", "value": "dry"}]},
+                "why": {"facts": [{"key": "motive", "truth_label": "soft_inferred"}]},
+            },
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
+        "get_story_w5_conflicts",
+        lambda sid, **k: {
+            "status": "ok",
+            "unresolved_count": 1,
+            "conflicts": [{"conflict_id": "c1", "resolution_status": "unresolved"}],
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
+        "get_story_w5_narrator_projection",
+        lambda sid, **k: {
+            "status": "ok",
+            "projection": {"target_consumer": "narrator", "how_summary": {"facts": {"tone": "dry"}}},
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
+        "get_story_w5_npc_projection",
+        lambda sid, actor_id, **k: {
+            "status": "ok",
+            "actor_id": actor_id,
+            "projection": {"target_consumer": "npc", "actor_id": actor_id},
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
+        "get_story_w5_validation",
+        lambda sid, **k: {
+            "status": "ok",
+            "validation": {"w5_validation_enabled": False, "w5_validation_failure_codes": []},
+            "read_only": True,
+        },
+    )
+    monkeypatch.setattr(
+        we,
         "create_story_session",
         lambda **k: {"session_id": "new", "module_id": k["module_id"], "turn_counter": 0, "current_scene_id": "", "warnings": []},
     )
@@ -101,3 +167,36 @@ def test_story_turn_requires_author(client, moderator_headers, _patch_game_servi
         json={"player_input": "hello"},
     )
     assert r2.status_code == 200
+
+
+def test_w5_admin_routes_are_observe_only_and_read_only(client, moderator_headers, _patch_game_service_ok, monkeypatch):
+    from app.auth import feature_registry as fr
+
+    monkeypatch.setattr(fr, "user_can_access_world_engine_capability", lambda u, c: c == "observe")
+
+    snapshot = client.get("/api/v1/admin/w5/s1/snapshot", headers=moderator_headers)
+    assert snapshot.status_code == 200
+    snapshot_payload = snapshot.get_json()
+    assert snapshot_payload["snapshot_id"] == "w5s_route"
+    assert snapshot_payload["stats"]["has_how"] is True
+    assert snapshot_payload["raw_w5_history_exposed"] is False
+    assert snapshot_payload["read_only"] is True
+
+    actor = client.get("/api/v1/admin/w5/s1/actor/michel", headers=moderator_headers)
+    assert actor.status_code == 200
+    actor_payload = actor.get_json()
+    assert actor_payload["dimensions"]["where"]["facts"][0]["value"] == "study"
+    assert actor_payload["dimensions"]["how"]["facts"][0]["value"] == "dry"
+    assert actor_payload["dimensions"]["why"]["facts"][0]["truth_label"] == "soft_inferred"
+
+    narrator = client.get("/api/v1/admin/w5/s1/narrator-projection", headers=moderator_headers)
+    assert narrator.status_code == 200
+    assert narrator.get_json()["projection"]["target_consumer"] == "narrator"
+
+    npc = client.get("/api/v1/admin/w5/s1/npc-projection/michel", headers=moderator_headers)
+    assert npc.status_code == 200
+    assert npc.get_json()["projection"]["actor_id"] == "michel"
+
+    validation = client.get("/api/v1/admin/w5/s1/validation", headers=moderator_headers)
+    assert validation.status_code == 200
+    assert validation.get_json()["validation"]["w5_validation_enabled"] is False

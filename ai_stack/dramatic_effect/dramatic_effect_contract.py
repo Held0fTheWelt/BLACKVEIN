@@ -14,9 +14,9 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 from ai_stack.npc_agency.character.character_mind_contract import CharacterMindRecord
-from ai_stack.scene_plan_contract import ScenePlanRecord
-from ai_stack.semantic_move_contract import SemanticMoveRecord
-from ai_stack.social_state_contract import SocialStateRecord
+from ai_stack.semantic_planner.scene_plan_contract import ScenePlanRecord
+from ai_stack.semantic_planner.semantic_move_contract import SemanticMoveRecord
+from ai_stack.semantic_planner.social_state_contract import SocialStateRecord
 
 
 class DramaticEffectGateResult(str, Enum):

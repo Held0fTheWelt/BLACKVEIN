@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from ai_stack.research_aspect_extraction import extract_and_store_aspects
-from ai_stack.research_fixtures import fixture_b_aspect_input
-from ai_stack.research_golden_cases import EXPECTED_PERSPECTIVES
-from ai_stack.research_ingestion import ingest_resource, normalize_resource
-from ai_stack.research_store import ResearchStore
+from ai_stack.research.research_aspect_extraction import extract_and_store_aspects
+from ai_stack.research.research_fixtures import fixture_b_aspect_input
+from ai_stack.research.research_golden_cases import EXPECTED_PERSPECTIVES
+from ai_stack.research.research_ingestion import ingest_resource, normalize_resource
+from ai_stack.research.research_store import ResearchStore
 
 
 def test_fixture_b_aspect_extraction_perspective_separation(tmp_path):

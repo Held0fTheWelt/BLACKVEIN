@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.story_runtime_experience import extract_policy_from_resolved_config
+from ai_stack.story_runtime.story_runtime_experience import extract_policy_from_resolved_config
 
 
 def test_extract_policy_reads_backend_truth_surface_wrapper():

@@ -8,7 +8,7 @@ import sys
 import time
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import httpx
 from flask import current_app
@@ -775,6 +775,84 @@ def get_story_diagnostics(session_id: str, *, trace_id: str | None = None) -> di
     payload = _request("GET", f"/api/story/sessions/{session_id}/diagnostics", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected story-diagnostics payload.")
+    return payload
+
+
+def get_story_w5_snapshot(session_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/snapshot",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 snapshot payload.")
+    return payload
+
+
+def get_story_w5_actor(session_id: str, actor_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/actor/{quote(actor_id, safe='')}",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 actor payload.")
+    return payload
+
+
+def get_story_w5_conflicts(session_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/conflicts",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 conflicts payload.")
+    return payload
+
+
+def get_story_w5_narrator_projection(
+    session_id: str,
+    *,
+    actor_id: str | None = None,
+    trace_id: str | None = None,
+) -> dict:
+    suffix = f"?actor_id={quote(actor_id, safe='')}" if actor_id else ""
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/narrator-projection{suffix}",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 narrator projection payload.")
+    return payload
+
+
+def get_story_w5_npc_projection(session_id: str, actor_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/npc-projection/{quote(actor_id, safe='')}",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 NPC projection payload.")
+    return payload
+
+
+def get_story_w5_validation(session_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{quote(session_id, safe='')}/w5/validation",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected W5 validation payload.")
     return payload
 
 

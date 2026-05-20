@@ -42,7 +42,7 @@ Subtext records are advisory until validation and commit. They may shape respond
 }
 ```
 
-The allowed values are declared in `content/modules/god_of_carnage/direction/subtext_policy.yaml` and mirrored by the bounded contract constants in `ai_stack/semantic_move_contract.py`. Runtime code must not invent labels outside those sets.
+The allowed values are declared in `content/modules/god_of_carnage/direction/subtext_policy.yaml` and mirrored by the bounded contract constants in `ai_stack/semantic_planner/semantic_move_contract.py`. Runtime code must not invent labels outside those sets.
 
 ## Flow
 
@@ -66,9 +66,9 @@ Forbidden primary oracles:
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/direction/subtext_policy.yaml`
-- `ai_stack/goc_subtext_policy.py`
-- `ai_stack/semantic_move_contract.py`
-- `ai_stack/semantic_move_interpretation_goc.py`
+- `ai_stack/semantic_planner/goc_subtext_policy.py`
+- `ai_stack/semantic_planner/semantic_move_contract.py`
+- `ai_stack/semantic_planner/semantic_move_interpretation_goc.py`
 - `ai_stack/director/scene_director_goc.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `world-engine/app/story_runtime/manager.py`

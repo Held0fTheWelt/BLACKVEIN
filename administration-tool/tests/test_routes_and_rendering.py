@@ -199,6 +199,7 @@ class TestManagementRoutesRenderingContract:
             ("/manage/diagnosis", "manage/diagnosis.html"),
             ("/manage/play-service-control", "manage/play_service_control.html"),
             ("/manage/world-engine-console", "manage/world_engine_console.html"),
+            ("/manage/narrative/runtime", "manage/narrative_governance/runtime.html"),
             ("/manage/prompt-store", "manage/prompt_store.html"),
             ("/manage/analytics", "manage_analytics.html"),
             ("/manage/moderator-dashboard", "manage_moderator_dashboard.html"),
@@ -236,6 +237,15 @@ class TestManagementRoutesRenderingContract:
         response = client.get("/manage/login")
         assert response.status_code == 200
         assert b"<!DOCTYPE" in response.data or b"<html" in response.data.lower()
+
+    @pytest.mark.contract
+    def test_narrative_runtime_renders_w5_diagnostic_panels(self, client):
+        response = client.get("/manage/narrative/runtime")
+        assert response.status_code == 200
+        body = response.data.decode("utf-8")
+        assert "Actor Situation Diagnostics" in body
+        assert "Who / Where / What / How / Why" in body
+        assert "ng-runtime-w5" in body
 
 
 # ============================================================================

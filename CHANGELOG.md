@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **World Engine — opening turn on create:** `POST /api/internal/story/sessions` returns `opening_turn` and `runtime_config_status`; internal reload route for governed config (`world-engine/app/api/http.py`, `world-engine/app/story_runtime/manager.py`, governed runtime and metrics modules as applicable).
-- **AI stack — playability and self-correction:** `ai_stack/story_runtime_playability.py`, LangGraph executor retries and opening leniency, LangChain bridge correction block (`ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/langchain/bridges.py`).
+- **AI stack — playability and self-correction:** `ai_stack/story_runtime/story_runtime_playability.py`, LangGraph executor retries and opening leniency, LangChain bridge correction block (`ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/langchain/bridges.py`).
 - **Story runtime core — adapter and registry:** optional `model_name`, `provider_model_name`, OpenAI `base_url` / `api_key` on chat adapter (`story_runtime_core/adapters.py`, `story_runtime_core/model_registry.py`).
 - **Backend play bridge — opening on first turn:** when `POST /api/v1/sessions/<id>/turns` creates the world-engine story session, response may include `opening_turn` and `world_engine_opening_meta` (`backend/app/api/v1/session_routes.py`).
 - **Frontend play shell — opening row and narration reveal:** transcript persistence for opening, opening-specific UI mapping, CSS animation on narration (`frontend/app/routes_play.py`, `frontend/static/play_shell.js`, `frontend/templates/session_shell.html`, `frontend/static/style.css`).
@@ -324,7 +324,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Despaghettify autonomous `backlog-implement`:** while a backlog **DS-*** row stays **open**, record each implementation slice with **`autonomous-advance --kind backlog-implement --ds … --check-json …`** (repo-relative path to hub **`check --out`** JSON); **`backlog-solve`** only after the row is closed (**exit 2** otherwise). Implementation in [`despaghettify/tools/autonomous_loop.py`]('fy'-suites/despaghettify/tools/autonomous_loop.py), [`hub_cli.py`]('fy'-suites/despaghettify/tools/hub_cli.py), schema and tests; task doc, router skill, hub **README** tables, and [`CLI.md`]('fy'-suites/despaghettify/superpowers/references/CLI.md).
 - **Improvement experiment pipeline (typed companions):** [`backend/app/api/v1/improvement_experiment_pipeline_types.py`](backend/app/api/v1/improvement_experiment_pipeline_types.py); orchestration trimmed in [`improvement_experiment_pipeline.py`](backend/app/api/v1/improvement_experiment_pipeline.py) and [`improvement_experiment_pipeline_finalize.py`](backend/app/api/v1/improvement_experiment_pipeline_finalize.py).
 - **Runtime and projection helper modules:** [`backend/app/runtime/lore_direction_context_types.py`](backend/app/runtime/lore_direction_context_types.py), [`progression_summary_derive_constants.py`](backend/app/runtime/progression_summary_derive_constants.py), [`session_history_constants.py`](backend/app/runtime/session_history_constants.py); [`backend/app/services/inspector_projection_shared.py`](backend/app/services/inspector_projection_shared.py) for shared inspector projection logic.
-- **LangGraph research pipeline phases:** [`ai_stack/langgraph/research_langgraph_run_pipeline_phases.py`](ai_stack/langgraph/research_langgraph_run_pipeline_phases.py) plus refactor of [`research_langgraph.py`](ai_stack/langgraph/research_langgraph.py) to delegate phase work.
+- **LangGraph research pipeline phases:** [`ai_stack/research/research_langgraph_run_pipeline_phases.py`](ai_stack/research/research_langgraph_run_pipeline_phases.py) plus refactor of [`research_langgraph.py`](ai_stack/research/research_langgraph.py) to delegate phase work.
 - **God of Carnage scene-candidate legacy path (later removed):** the early
   hub wave temporarily split keyword-based scene-candidate support into helper
   modules. That implementation has since been superseded by the semantic move
@@ -659,18 +659,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Canonical research contracts and engine semantics**
-  - `ai_stack/research_contract.py`: added explicit abort reason `time_budget_exhausted`.
-  - `ai_stack/research_exploration.py`: fixed time-budget abort classification, stabilized abort handling, and clarified consumed-budget time accounting via `elapsed_wall_time_ms`.
-  - `ai_stack/research_validation.py`: promotion now requires `kept_for_validation`; unknown evidence anchors are blocked deterministically.
-  - `ai_stack/langgraph/research_langgraph.py`: source-local segment filtering for aspect extraction, deterministic canon-relevance hinting, populated `aspects` bundle section, and computed `review_safe` posture.
-  - `ai_stack/canon_improvement_engine.py`: proposal/issue persistence posture aligned to review-safe non-mutation flow (`approved_research` artifacts, no implied adoption).
+  - `ai_stack/research/research_contract.py`: added explicit abort reason `time_budget_exhausted`.
+  - `ai_stack/research/research_exploration.py`: fixed time-budget abort classification, stabilized abort handling, and clarified consumed-budget time accounting via `elapsed_wall_time_ms`.
+  - `ai_stack/research/research_validation.py`: promotion now requires `kept_for_validation`; unknown evidence anchors are blocked deterministically.
+  - `ai_stack/research/research_langgraph.py`: source-local segment filtering for aspect extraction, deterministic canon-relevance hinting, populated `aspects` bundle section, and computed `review_safe` posture.
+  - `ai_stack/research/canon_improvement_engine.py`: proposal/issue persistence posture aligned to review-safe non-mutation flow (`approved_research` artifacts, no implied adoption).
 - **Store/governance hardening**
-  - `ai_stack/research_store.py`: referential integrity checks (sources/anchors/aspects/nodes/edges/claims), semantic-empty object blocking for governance-critical fields, and fail-fast load behavior for invalid/corrupt store state.
-  - `ai_stack/research_ingestion.py`: segment records now carry `source_id` for deterministic source-bound extraction.
-  - `ai_stack/research_claims.py`: claim payload shape now requires non-empty valid `evidence_anchor_ids`.
+  - `ai_stack/research/research_store.py`: referential integrity checks (sources/anchors/aspects/nodes/edges/claims), semantic-empty object blocking for governance-critical fields, and fail-fast load behavior for invalid/corrupt store state.
+  - `ai_stack/research/research_ingestion.py`: segment records now carry `source_id` for deterministic source-bound extraction.
+  - `ai_stack/research/research_claims.py`: claim payload shape now requires non-empty valid `evidence_anchor_ids`.
 - **Golden fixture A–F strengthening**
   - Upgraded `test_research_intake_golden.py`, `test_research_aspect_golden.py`, `test_research_exploration_golden.py`, `test_research_verification_golden.py`, `test_research_canon_improvement_golden.py`, `test_research_review_bundle_golden.py` with stricter deterministic structural/status assertions.
-  - `ai_stack/research_golden_cases.py` extended with `time_budget_exhausted` to keep abort taxonomy complete and testable.
+  - `ai_stack/research/research_golden_cases.py` extended with `time_budget_exhausted` to keep abort taxonomy complete and testable.
 - **Capability/MCP audit parity**
   - `ai_stack/capabilities/capabilities.py` now includes compact consumed/effective budget evidence in `wos.research.explore` result summaries.
   - `ai_stack/tests/test_capabilities.py` adds invalid-budget negative-path coverage for `wos.research.explore`.

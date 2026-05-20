@@ -44,7 +44,7 @@ class _RuntimeConfigMixin:
         section has not been seeded yet (first boot), canonical defaults are
         used so the runtime still packages truthfully in recap mode.
         """
-        from ai_stack.story_runtime_experience import (
+        from ai_stack.story_runtime.story_runtime_experience import (
             extract_policy_from_resolved_config,
         )
 
@@ -54,7 +54,7 @@ class _RuntimeConfigMixin:
         if not isinstance(raw_bundle, dict):
             return raw_bundle
         try:
-            from ai_stack.story_runtime_experience_packaging import (
+            from ai_stack.story_runtime.story_runtime_experience_packaging import (
                 package_bundle_with_policy,
             )
 

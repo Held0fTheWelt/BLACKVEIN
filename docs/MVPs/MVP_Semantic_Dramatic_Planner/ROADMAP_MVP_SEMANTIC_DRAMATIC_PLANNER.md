@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/semantic_move_contract.py`, `ai_stack/semantic_move_interpretation_goc.py`, `ai_stack/goc_subtext_policy.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/semantic_planner/semantic_move_contract.py`, `ai_stack/semantic_planner/semantic_move_interpretation_goc.py`, `ai_stack/semantic_planner/goc_subtext_policy.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -732,11 +732,11 @@ This phase is explicitly post-MVP.
 
 Recommended new modules:
 
-- `ai_stack/semantic_move_contract.py`
+- `ai_stack/semantic_planner/semantic_move_contract.py`
 - `ai_stack/npc_agency/character/character_mind_contract.py`
-- `ai_stack/social_state_contract.py`
-- `ai_stack/scene_plan_contract.py`
-- `ai_stack/semantic_scene_planner.py`
+- `ai_stack/semantic_planner/social_state_contract.py`
+- `ai_stack/semantic_planner/scene_plan_contract.py`
+- `ai_stack/semantic_planner/semantic_scene_planner.py`
 - `ai_stack/dramatic_effect/dramatic_effect_gate.py`
 
 Recommended migration posture:

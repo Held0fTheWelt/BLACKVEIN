@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.story_runtime_experience import (
+from ai_stack.story_runtime.story_runtime_experience import (
     DEGRADATION_LIVE_NOT_FULLY_HONORED,
     DEGRADATION_PULSE_CAP_APPLIED,
     canonical_defaults,
@@ -19,7 +19,7 @@ from ai_stack.story_runtime_experience import (
     resolve_story_runtime_experience_policy,
     validate_story_runtime_experience,
 )
-from ai_stack.story_runtime_experience_packaging import package_bundle_with_policy
+from ai_stack.story_runtime.story_runtime_experience_packaging import package_bundle_with_policy
 
 
 # -- Canonical settings model --------------------------------------------

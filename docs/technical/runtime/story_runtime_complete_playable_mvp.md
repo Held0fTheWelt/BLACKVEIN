@@ -46,5 +46,5 @@ The World Engine exposes `POST /api/internal/story/runtime/reload-config` to re-
 ## Related code
 
 - World Engine: `world-engine/app/story_runtime/manager.py`, `world-engine/app/api/http.py`
-- AI stack: `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/langchain/bridges.py`, `ai_stack/story_runtime_playability.py`
+- AI stack: `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/langchain/bridges.py`, `ai_stack/story_runtime/story_runtime_playability.py`
 - Play UI: `frontend/app/routes_play.py`, `frontend/static/play_shell.js`

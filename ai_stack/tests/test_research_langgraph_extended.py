@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from ai_stack.research_fixtures import fixture_f_full_run_input
-from ai_stack.langgraph.research_langgraph import (
+from ai_stack.research.research_fixtures import fixture_f_full_run_input
+from ai_stack.research.research_langgraph import (
     _canon_relevance_hint,
     _review_safe_flag,
     build_review_bundle,
@@ -23,7 +23,7 @@ from ai_stack.langgraph.research_langgraph import (
     run_research_pipeline,
     build_research_bundle,
 )
-from ai_stack.research_store import ResearchStore
+from ai_stack.research.research_store import ResearchStore
 
 
 class TestReviewSafeFlag:

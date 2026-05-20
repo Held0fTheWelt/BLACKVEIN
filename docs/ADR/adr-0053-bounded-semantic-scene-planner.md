@@ -11,7 +11,7 @@ default player-turn LangGraph route uses the Director realization thin path;
 semantic scene planner records are no longer emitted as default player-turn
 graph truth.
 
-- `ai_stack/semantic_scene_planner.py` builds bounded short-horizon scene-plan enrichment.
+- `ai_stack/semantic_planner/semantic_scene_planner.py` builds bounded short-horizon scene-plan enrichment.
 - `ScenePlanRecord` now carries `narrative_scene_function`, `scene_target`, `target_obligations`, `actor_directives`, `dramatic_beats`, `handover_policy`, `content_frame`, `speech_policy`, `quote_moment_policy`, `dialogue_plan`, `capability_manager_plan`, `continuity_obligation`, `expected_transition_pattern`, and `semantic_scene_planner_version`.
 - `pressure_target` remains as a compatibility alias for pressure-specific target data; the broader concept is now `scene_target`.
 - The legacy `director_select_dramatic_parameters` path can call the planner after AI semantic move, social state, responder, character-mind, and pacing decisions are available. The ADR-0062 thin path does not visit that node for ordinary player turns.
@@ -184,7 +184,7 @@ planner selects direction -> model realizes proposal -> validation checks -> com
 
 **Follow-ups:**
 
-- Keep `ai_stack/semantic_scene_planner.py` deterministic and contract-first.
+- Keep `ai_stack/semantic_planner/semantic_scene_planner.py` deterministic and contract-first.
 - Add policy/YAML-backed mappings if target functions, actor directives, pressure functions, or beat templates need authoring control.
 - Expand dramatic-effect validation to inspect `scene_target`, `actor_directives`, `handover_policy`, `dramatic_beats`, and `continuity_obligation` more deeply.
 - Expand validator coverage for `speech_policy`, `dialogue_plan`, `quote_moment_policy`, and `capability_manager_plan`.
@@ -235,7 +235,7 @@ flowchart TD
 
 Current verification:
 
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/goc_yaml_authority.py ai_stack/scene_plan_contract.py ai_stack/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/goc_yaml_authority.py ai_stack/semantic_planner/scene_plan_contract.py ai_stack/semantic_planner/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_director_capability_manager.py -q --tb=short`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_scene_planner.py ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_goc_structured_setting_knowledge.py -q --tb=short` - 23 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_planner_graph_authority.py -q --tb=short` - 7 passed
@@ -261,9 +261,9 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 
 - [MVP Semantic Dramatic Planner roadmap](../MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md)
 - [Canonical GoC turn contract](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
-- `ai_stack/semantic_scene_planner.py`
+- `ai_stack/semantic_planner/semantic_scene_planner.py`
 - `ai_stack/director/capabilities_manager/director_capability_manager.py`
-- `ai_stack/scene_plan_contract.py`
+- `ai_stack/semantic_planner/scene_plan_contract.py`
 - `ai_stack/goc_yaml_authority.py`
 - `ai_stack/director/scene_director_goc.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`

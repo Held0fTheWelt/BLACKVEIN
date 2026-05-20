@@ -6737,42 +6737,42 @@
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 36,
       "kind": "class",
       "name": "PlayabilityDecision",
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 49,
       "kind": "function",
       "name": "is_hard_boundary_failure",
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 62,
       "kind": "function",
       "name": "collect_playability_feedback_codes",
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 94,
       "kind": "function",
       "name": "decide_playability_recovery",
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 137,
       "kind": "function",
       "name": "build_rewrite_instruction",
       "code": "MISSING_OR_EMPTY_DOCSTRING"
     },
     {
-      "path": "ai_stack/story_runtime_playability.py",
+      "path": "ai_stack/story_runtime/story_runtime_playability.py",
       "line": 147,
       "kind": "function",
       "name": "degrade_validation_outcome",

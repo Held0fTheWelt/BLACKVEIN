@@ -203,7 +203,7 @@ def assert_matrix_aligned_with_roadmap_registry() -> None:
     """Cross-check matrix coverage vs ``goc_roadmap_semantic_surface`` union
         (development / tests).
     """
-    from ai_stack.goc_roadmap_semantic_surface import SCENE_DIRECTION_SUBDECISION_LABELS
+    from ai_stack.semantic_planner.goc_roadmap_semantic_surface import SCENE_DIRECTION_SUBDECISION_LABELS
 
     derived = scene_direction_labels_from_matrix()
     if derived != SCENE_DIRECTION_SUBDECISION_LABELS:

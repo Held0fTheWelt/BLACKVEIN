@@ -3592,8 +3592,8 @@ def test_opening_shape_failure_appends_single_string_token_when_structured_str(m
 
 def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
     """P0: experience packaging collapses gm lines; post-pack hook restores three narrators."""
-    from ai_stack.story_runtime_experience import canonical_defaults, resolve_story_runtime_experience_policy
-    from ai_stack.story_runtime_experience_packaging import package_bundle_with_policy
+    from ai_stack.story_runtime.story_runtime_experience import canonical_defaults, resolve_story_runtime_experience_policy
+    from ai_stack.story_runtime.story_runtime_experience_packaging import package_bundle_with_policy
 
     session = StorySession(
         session_id="s-opening-pack",
@@ -3908,7 +3908,7 @@ def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session()
 
 
 def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch):
-    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
@@ -3967,7 +3967,7 @@ def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch
 
 
 def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
-    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
@@ -4021,7 +4021,7 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
 
 
 def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
-    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True

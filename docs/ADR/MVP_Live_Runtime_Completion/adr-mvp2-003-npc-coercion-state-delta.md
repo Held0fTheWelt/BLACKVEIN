@@ -51,7 +51,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 - `ai_stack/goc_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
 - `ai_stack/capabilities/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — live authority-aspect and commit-seam wiring
-- `ai_stack/story_runtime_playability.py` — retry/degraded-commit policy for coercion failures
+- `ai_stack/story_runtime/story_runtime_playability.py` — retry/degraded-commit policy for coercion failures
 
 ## Consequences
 

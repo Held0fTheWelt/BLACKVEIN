@@ -35,7 +35,7 @@ A passive NPC that only responds when directly addressed violates the live drama
 - `ai_stack/npc_agency/npc_agency_claim_readiness.py` — evidence gate for bounded, live-staging-ready, and full long-horizon claim states.
 - `ai_stack/npc_agency/npc_agency_realization.py` — shared realization, validation, and durable closure helpers for `npc_initiative_realization_v1`, `npc_initiative_validation_v1`, and `npc_agency_closure.v1`.
 - `ai_stack/runtime_aspect_ledger.py` — `npc_agency` runtime aspect projection for candidate, planned, realized, missing, carry-forward, closure, and scoring evidence.
-- `ai_stack/story_runtime_playability.py` — recoverable rewrite feedback for missing required NPC initiative without allowing degraded commit to hide it.
+- `ai_stack/story_runtime/story_runtime_playability.py` — recoverable rewrite feedback for missing required NPC initiative without allowing degraded commit to hide it.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — model-visible current NPC agency simulation projection, bounded initiative directives, validation-aspect wiring, and self-correction trigger surface.
 - `ai_stack/actor_survival_telemetry.py` — vitality telemetry projection of candidate, planned, realized, missing, required, and carry-forward NPC initiatives.
 - `ai_stack/narrative_runtime_agent.py` — ruhepunkt pressure analysis reads the v1 `npc_initiatives` contract and remains backward-compatible with legacy `initiatives`.

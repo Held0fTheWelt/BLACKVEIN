@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
 from ai_stack.director.scene_director_goc import build_scene_assessment
-from ai_stack.social_state_goc import build_social_state_record, social_state_fingerprint
+from ai_stack.semantic_planner.social_state_goc import build_social_state_record, social_state_fingerprint
 
 
 def test_social_state_fingerprint_stable() -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.research_claims import (
+from ai_stack.research.research_claims import (
     RECOGNIZED_CLAIM_TYPES,
     is_recognized_claim_type,
     is_schema_valid_claim_payload,

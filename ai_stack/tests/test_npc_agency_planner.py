@@ -21,7 +21,7 @@ from ai_stack.npc_agency.npc_agency_realization import (
     build_npc_agency_closure,
     validate_npc_initiative_realization,
 )
-from ai_stack.social_state_goc import build_social_state_record
+from ai_stack.semantic_planner.social_state_goc import build_social_state_record
 from ai_stack.actor_situation import (
     W5ActorSituation,
     W5ActorType,

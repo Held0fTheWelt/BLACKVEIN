@@ -17,6 +17,12 @@ from app.services.game_service import (
     get_story_diagnostics,
     get_story_thin_path_summary,
     get_story_state,
+    get_story_w5_actor,
+    get_story_w5_conflicts,
+    get_story_w5_narrator_projection,
+    get_story_w5_npc_projection,
+    get_story_w5_snapshot,
+    get_story_w5_validation,
     list_runs,
     list_story_sessions,
     list_templates,
@@ -176,6 +182,84 @@ def world_engine_console_story_state(session_id: str):
 def world_engine_console_story_diagnostics(session_id: str):
     try:
         data = get_story_diagnostics(session_id, trace_id=_trace())
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/snapshot", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_snapshot(session_id: str):
+    try:
+        data = get_story_w5_snapshot(session_id, trace_id=_trace())
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/actor/<actor_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_actor(session_id: str, actor_id: str):
+    try:
+        data = get_story_w5_actor(session_id, actor_id, trace_id=_trace())
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/conflicts", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_conflicts(session_id: str):
+    try:
+        data = get_story_w5_conflicts(session_id, trace_id=_trace())
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/narrator-projection", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_narrator_projection(session_id: str):
+    actor_id = request.args.get("actor_id")
+    actor_id = actor_id.strip() if isinstance(actor_id, str) and actor_id.strip() else None
+    try:
+        data = get_story_w5_narrator_projection(
+            session_id,
+            actor_id=actor_id,
+            trace_id=_trace(),
+        )
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/npc-projection/<actor_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_npc_projection(session_id: str, actor_id: str):
+    try:
+        data = get_story_w5_npc_projection(session_id, actor_id, trace_id=_trace())
+    except GameServiceError as exc:
+        return _gs_err(exc)
+    return jsonify(data), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/w5/<session_id>/validation", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_console_w5_validation(session_id: str):
+    try:
+        data = get_story_w5_validation(session_id, trace_id=_trace())
     except GameServiceError as exc:
         return _gs_err(exc)
     return jsonify(data), route_status_codes.ok

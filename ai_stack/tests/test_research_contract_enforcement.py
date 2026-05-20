@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.research_contract import CopyrightPosture, ResearchSourceRecord
-from ai_stack.research_exploration import run_bounded_exploration
-from ai_stack.research_ingestion import enforce_mvp_copyright_posture
-from ai_stack.research_store import ResearchStore
-from ai_stack.research_validation import verify_and_promote_claims
+from ai_stack.research.research_contract import CopyrightPosture, ResearchSourceRecord
+from ai_stack.research.research_exploration import run_bounded_exploration
+from ai_stack.research.research_ingestion import enforce_mvp_copyright_posture
+from ai_stack.research.research_store import ResearchStore
+from ai_stack.research.research_validation import verify_and_promote_claims
 
 
 def test_exploration_requires_budget_object():

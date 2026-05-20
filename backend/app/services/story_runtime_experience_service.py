@@ -13,7 +13,7 @@ from typing import Any
 
 from sqlalchemy.orm.attributes import flag_modified
 
-from ai_stack.story_runtime_experience import (
+from ai_stack.story_runtime.story_runtime_experience import (
     canonical_defaults,
     normalize_story_runtime_experience,
     resolve_story_runtime_experience_policy,

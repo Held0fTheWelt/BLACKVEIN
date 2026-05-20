@@ -11,7 +11,7 @@ from ai_stack.sensory_context_engine import (
     derive_sensory_context,
     validate_sensory_context_realization,
 )
-from ai_stack.story_runtime_playability import decide_playability_recovery, is_hard_boundary_failure
+from ai_stack.story_runtime.story_runtime_playability import decide_playability_recovery, is_hard_boundary_failure
 
 
 MODULE_ID = "god_of_carnage"

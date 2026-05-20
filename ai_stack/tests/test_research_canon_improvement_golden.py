@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ai_stack.canon_improvement_engine import derive_canon_improvements
-from ai_stack.research_fixtures import fixture_a_intake_input, fixture_d_candidate_payloads, fixture_e_module_id
-from ai_stack.research_golden_cases import EXPECTED_ISSUE_TYPES, EXPECTED_PROPOSAL_TYPES
-from ai_stack.research_ingestion import ingest_resource, normalize_resource
-from ai_stack.research_store import ResearchStore
-from ai_stack.research_validation import verify_and_promote_claims
+from ai_stack.research.canon_improvement_engine import derive_canon_improvements
+from ai_stack.research.research_fixtures import fixture_a_intake_input, fixture_d_candidate_payloads, fixture_e_module_id
+from ai_stack.research.research_golden_cases import EXPECTED_ISSUE_TYPES, EXPECTED_PROPOSAL_TYPES
+from ai_stack.research.research_ingestion import ingest_resource, normalize_resource
+from ai_stack.research.research_store import ResearchStore
+from ai_stack.research.research_validation import verify_and_promote_claims
 
 
 def test_fixture_e_canon_issue_and_proposal_taxonomy(tmp_path):

@@ -12,7 +12,7 @@ from ai_stack.relationship_state_engine import (
     relationship_state_fingerprint,
     validate_relationship_state_realization,
 )
-from ai_stack.social_state_goc import build_social_state_record
+from ai_stack.semantic_planner.social_state_goc import build_social_state_record
 
 
 def _policy() -> dict:

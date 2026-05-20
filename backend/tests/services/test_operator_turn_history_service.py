@@ -143,7 +143,7 @@ def test_operator_surface_exposes_top_passivity_factors_and_actions():
 
 
 def test_turn_history_row_surfaces_intent_surface_evidence_from_path_summary():
-    from ai_stack.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     rule = rule_spec_for_subtext("direct_accusation")
     summary = build_turn_history_summary_for_session(

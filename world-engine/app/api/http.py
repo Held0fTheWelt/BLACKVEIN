@@ -931,6 +931,10 @@ def execute_story_turn(
                 player_input=player_line,
                 trace_id=trace_id if isinstance(trace_id, str) else None,
             )
+            try:
+                w5_trace_metadata = manager.get_w5_langfuse_metadata(session_id)
+            except Exception:
+                w5_trace_metadata = {}
 
             # Update root span with turn results
             if root_span and turn:
@@ -977,6 +981,7 @@ def execute_story_turn(
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
                         "p0_action_resolution_evidence": p0_evidence,
+                        **w5_trace_metadata,
                     },
                     level=level,
                     status_message=status_message,

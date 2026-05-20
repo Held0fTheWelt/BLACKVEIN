@@ -10,7 +10,7 @@ from ai_stack.pacing_rhythm_engine import (
     derive_pacing_rhythm,
     validate_pacing_rhythm_realization,
 )
-from ai_stack.story_runtime_playability import (
+from ai_stack.story_runtime.story_runtime_playability import (
     decide_playability_recovery,
     is_hard_boundary_failure,
 )

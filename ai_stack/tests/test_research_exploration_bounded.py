@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock, patch
 
-from ai_stack.research_exploration_bounded import (
+from ai_stack.research.research_exploration_bounded import (
     ExplorationResult,
     deterministic_contradiction_scan,
     run_bounded_exploration,
 )
-from ai_stack.research_contract import (
+from ai_stack.research.research_contract import (
     ContradictionStatus,
     ExplorationAbortReason,
     ExplorationBudget,

@@ -5,13 +5,13 @@ from __future__ import annotations
 import pytest
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
-from ai_stack.goc_subtext_policy import rule_spec_for_subtext, subtext_policy_values
-from ai_stack.semantic_move_contract import (
+from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext, subtext_policy_values
+from ai_stack.semantic_planner.semantic_move_contract import (
     SUBTEXT_FUNCTIONS,
     SUBTEXT_HIDDEN_INTENT_HYPOTHESES,
     SUBTEXT_SURFACE_MODES,
 )
-from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move
+from ai_stack.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move
 from story_runtime_core.player_input_intent_contract import (
     FORBIDDEN_NON_SPEECH_ACTION_SEMANTIC_MOVES,
     QUESTION_PUNCTUATION_PROBE_GUARDED_KINDS,

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from ai_stack.research_fixtures import fixture_f_full_run_input
-from ai_stack.research_golden_cases import EXPECTED_BUNDLE_SECTIONS
-from ai_stack.langgraph.research_langgraph import run_research_pipeline
-from ai_stack.research_store import ResearchStore
+from ai_stack.research.research_fixtures import fixture_f_full_run_input
+from ai_stack.research.research_golden_cases import EXPECTED_BUNDLE_SECTIONS
+from ai_stack.research.research_langgraph import run_research_pipeline
+from ai_stack.research.research_store import ResearchStore
 
 
 def test_fixture_f_review_bundle_structure_and_review_safety(tmp_path):

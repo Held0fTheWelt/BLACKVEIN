@@ -199,7 +199,7 @@ Updated on 2026-05-18:
   output is attached as `semantic_action` / `semantic_move`, and retrieval
   prefers normalized internal-language evidence (`normalized_english_text` for
   English-authored compatibility paths).
-- `ai_stack/semantic_move_interpretation_goc.py` reads bounded AI semantic move
+- `ai_stack/semantic_planner/semantic_move_interpretation_goc.py` reads bounded AI semantic move
   payloads and runtime silence signals only; phrase synsets and priority-rule
   stacks were removed.
 - `ai_stack/director/scene_director_goc.py` no longer imports legacy keyword scene

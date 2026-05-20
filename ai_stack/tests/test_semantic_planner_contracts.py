@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from ai_stack.npc_agency.character.character_mind_contract import CharacterMindRecord, FieldProvenance
-from ai_stack.scene_plan_contract import ScenePlanRecord
-from ai_stack.semantic_move_contract import (
+from ai_stack.semantic_planner.scene_plan_contract import ScenePlanRecord
+from ai_stack.semantic_planner.semantic_move_contract import (
     InterpretationTraceItem,
     RankedMoveCandidate,
     SemanticMoveRecord,
@@ -15,7 +15,7 @@ from ai_stack.semantic_move_contract import (
     SUBTEXT_HIDDEN_INTENT_HYPOTHESES,
     SUBTEXT_SURFACE_MODES,
 )
-from ai_stack.social_state_contract import SocialStateRecord
+from ai_stack.semantic_planner.social_state_contract import SocialStateRecord
 
 
 def test_semantic_move_record_roundtrip_json() -> None:

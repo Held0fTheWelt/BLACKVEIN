@@ -221,6 +221,193 @@
         }
     }
 
+    function dimensionFacts(section) {
+        var facts = (section && section.facts) || [];
+        if (!facts.length) return "none";
+        return facts
+            .slice(0, 4)
+            .map(function (fact) {
+                return (
+                    fact.key +
+                    "=" +
+                    displayValue(fact.value, "—") +
+                    " [" +
+                    displayValue(fact.truth_label || fact.truth_level, "truth") +
+                    "]"
+                );
+            })
+            .join("; ");
+    }
+
+    function renderProjectionDetails(title, payload) {
+        var projection = (payload && payload.projection) || {};
+        var who = projection.who_summary || {};
+        var where = projection.where_summary || {};
+        var what = projection.what_summary || {};
+        var how = projection.how_summary || {};
+        var why = projection.why_summary || {};
+        return (
+            '<details class="manage-dx-check-details" open><summary>' +
+            escapeHtml(title) +
+            "</summary>" +
+            '<div class="ng-runtime-kv-list">' +
+            metaRow("Consumer", projection.target_consumer, "none") +
+            metaRow("Actor", projection.actor_id, "global") +
+            metaRow("Who", who.actor_type || (who.actor_id ? who.actor_id : null), "none") +
+            metaRow("Where", JSON.stringify(where.facts || where.derived_actor_locations || {}), "none", { mono: true }) +
+            metaRow("What", JSON.stringify(what.facts || {}), "none", { mono: true }) +
+            metaRow("How", JSON.stringify(how.facts || {}), "none", { mono: true }) +
+            metaRow("Why", JSON.stringify(why.facts || {}), "none", { mono: true }) +
+            metaRow("Attribution paths", Object.keys(projection.source_attribution || {}).length) +
+            "</div></details>"
+        );
+    }
+
+    function renderW5Diagnostics(snapshot, actor, conflicts, narratorProjection, npcProjection, validation) {
+        var el = document.getElementById("ng-runtime-w5");
+        if (!el) return;
+        if (!snapshot || snapshot.status === "unavailable") {
+            el.innerHTML = '<p class="manage-dx-empty">No W5 snapshot available for the latest session.</p>';
+            return;
+        }
+        var stats = snapshot.stats || {};
+        var actors = snapshot.actor_summaries || {};
+        var actorIds = Object.keys(actors);
+        var selectedActor = actor || {};
+        var dims = selectedActor.dimensions || {};
+        var flags = snapshot.flags || {};
+        var validationData = (validation && validation.validation) || {};
+        var conflictRows = ((conflicts && conflicts.conflicts) || [])
+            .slice(0, 5)
+            .map(function (conflict) {
+                return (
+                    conflict.conflict_id +
+                    " · " +
+                    conflict.actor_id +
+                    " · " +
+                    conflict.dimension +
+                    " · " +
+                    conflict.resolution_status
+                );
+            })
+            .join("; ");
+
+        var html = '<div class="mui-card-grid ng-runtime-gov-grid">';
+        html += renderPanel(
+            "W5 Actor Situation View",
+            "w5_snapshot",
+            metaRow("Snapshot", snapshot.snapshot_id, "none", { mono: true, id: true }) +
+                metaRow("Actors", stats.actor_count, "0") +
+                metaRow("Conflicts", stats.conflict_count, "0") +
+                metaRow("How present", stats.has_how) +
+                metaRow("Inferred Why", stats.has_inferred_why)
+        );
+        html += renderPanel(
+            "Per-Actor W5 Drill-In",
+            "w5_actor",
+            metaRow("Actor", selectedActor.actor_id || actorIds[0], "none", { mono: true }) +
+                metaRow("Who", JSON.stringify((dims.who || {})), "none", { mono: true }) +
+                metaRow("Where", dimensionFacts(dims.where), "none") +
+                metaRow("What", dimensionFacts(dims.what), "none") +
+                metaRow("How", dimensionFacts(dims.how), "none") +
+                metaRow("Why", dimensionFacts(dims.why), "none")
+        );
+        html += renderPanel(
+            "Source & Truth-Level Inspector",
+            "w5_truth",
+            metaRow("Truth levels", ((selectedActor.source_truth_inspector || {}).truth_levels || []).join(", "), "none") +
+                metaRow("Source count", (selectedActor.source_truth_inspector || {}).source_count, "0") +
+                metaRow("Validation flags", JSON.stringify(flags), "{}", { mono: true })
+        );
+        html += renderPanel(
+            "Visibility / Perception Matrix",
+            "w5_visibility",
+            metaRow("Private facts", (selectedActor.visibility_perception_matrix || {}).private_fact_count, "0") +
+                metaRow(
+                    "Scoped actors",
+                    ((selectedActor.visibility_perception_matrix || {}).scoped_actor_ids || []).join(", "),
+                    "none"
+                )
+        );
+        html += renderPanel(
+            "Stale / Contradicted Fact View",
+            "w5_stale",
+            metaRow("Stale facts", stats.stale_fact_count, "0") +
+                metaRow("Contradicted facts", stats.contradicted_fact_count, "0") +
+                metaRow("Unresolved conflicts", conflicts ? conflicts.unresolved_count : 0, "0") +
+                metaRow("Conflict list", conflictRows, "none")
+        );
+        html += renderPanel(
+            "W5 Validation Diagnostics",
+            "w5_validation",
+            metaRow("Enabled", validationData.w5_validation_enabled) +
+                metaRow("Ran", validationData.w5_validation_ran) +
+                metaRow("Failed", validationData.w5_validation_failed) +
+                metaRow(
+                    "Failure codes",
+                    (validationData.w5_validation_failure_codes || []).join(", "),
+                    "none",
+                    { mono: true }
+                )
+        );
+        html += "</div>";
+        html += renderProjectionDetails("Narrator Projection Preview", narratorProjection || {});
+        html += renderProjectionDetails("NPC Projection Preview", npcProjection || {});
+        el.innerHTML = html;
+    }
+
+    function loadW5Diagnostics(summary) {
+        var sessionId = String((summary || {}).last_story_session_id || "").trim();
+        var el = document.getElementById("ng-runtime-w5");
+        if (!el) return Promise.resolve();
+        if (!sessionId) {
+            el.innerHTML = '<p class="manage-dx-empty">No live session available for W5 diagnostics.</p>';
+            return Promise.resolve();
+        }
+        el.innerHTML = '<p class="manage-dx-empty">Loading W5 diagnostics…</p>';
+        return ManageAuth.apiFetchWithAuth("/api/v1/admin/w5/" + encodeURIComponent(sessionId) + "/snapshot")
+            .then(function (snapshotRes) {
+                var snapshot = apiData(snapshotRes);
+                var actors = snapshot.actor_summaries || {};
+                var actorIds = Object.keys(actors);
+                var npcActorId = actorIds.find(function (actorId) {
+                    return actors[actorId] && actors[actorId].actor_type === "npc";
+                });
+                var selectedActorId = npcActorId || actorIds[0] || "";
+                var base = "/api/v1/admin/w5/" + encodeURIComponent(sessionId);
+                var actorReq = selectedActorId
+                    ? ManageAuth.apiFetchWithAuth(base + "/actor/" + encodeURIComponent(selectedActorId))
+                    : Promise.resolve({});
+                var npcReq = npcActorId
+                    ? ManageAuth.apiFetchWithAuth(base + "/npc-projection/" + encodeURIComponent(npcActorId))
+                    : Promise.resolve({});
+                return Promise.all([
+                    Promise.resolve(snapshot),
+                    actorReq,
+                    ManageAuth.apiFetchWithAuth(base + "/conflicts"),
+                    ManageAuth.apiFetchWithAuth(base + "/narrator-projection"),
+                    npcReq,
+                    ManageAuth.apiFetchWithAuth(base + "/validation")
+                ]);
+            })
+            .then(function (payloads) {
+                renderW5Diagnostics(
+                    apiData(payloads[0]),
+                    apiData(payloads[1]),
+                    apiData(payloads[2]),
+                    apiData(payloads[3]),
+                    apiData(payloads[4]),
+                    apiData(payloads[5])
+                );
+            })
+            .catch(function (err) {
+                el.innerHTML =
+                    '<p class="manage-dx-empty">W5 diagnostics unavailable: ' +
+                    escapeHtml(err && err.message ? err.message : "request failed") +
+                    "</p>";
+            });
+    }
+
     function setGovLoading(loading) {
         var root = document.getElementById("mvp4-narrative-gov-summary");
         if (!root) return;
@@ -289,9 +476,11 @@
                 }
                 renderSessionMeta(summary);
                 renderTechnicalDetails(config, diagnostics);
-                if (window.ManageUI && typeof window.ManageUI.scan === "function") {
-                    window.ManageUI.scan(document.querySelector('[data-page="narrative-runtime"]') || document);
-                }
+                return loadW5Diagnostics(summary).then(function () {
+                    if (window.ManageUI && typeof window.ManageUI.scan === "function") {
+                        window.ManageUI.scan(document.querySelector('[data-page="narrative-runtime"]') || document);
+                    }
+                });
             })
             .catch(function (err) {
                 var root = document.getElementById("mvp4-narrative-gov-summary");

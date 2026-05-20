@@ -17,7 +17,7 @@ from __future__ import annotations
 import pytest
 from typing import Any
 
-from ai_stack.story_runtime_playability import decide_playability_recovery, build_rewrite_instruction
+from ai_stack.story_runtime.story_runtime_playability import decide_playability_recovery, build_rewrite_instruction
 from ai_stack.dramatic_effect.dramatic_effect_gate_evaluate_core import evaluate_dramatic_effect_gate
 from ai_stack.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
 
