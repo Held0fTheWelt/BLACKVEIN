@@ -19,11 +19,11 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.services.improvement_task2a_routing import (
+from app.services.improvement.improvement_task2a_routing import (
     _run_routed_bounded_call,
     enrich_improvement_package_with_task2a_routing,
 )
-from app.services.writers_room_model_routing import build_writers_room_model_route_specs
+from app.services.writers_room.writers_room_model_routing import build_writers_room_model_route_specs
 
 
 class StubModelAdapter:

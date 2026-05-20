@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import ai_stack.capabilities.capability_validator_dispatch as capability_validator_dispatch
-import ai_stack.runtime_aspect_ledger as runtime_aspect_ledger
+import ai_stack.story_runtime.runtime_aspect_ledger as runtime_aspect_ledger
 from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
 from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import (
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     adapter_dramatic_effect_gate_mirror_contract,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_DRIFT_ADR_STRICTER,
     ADR0041_DRIFT_ALIGNED,
     ADR0041_DRIFT_CONFLICTING_RESULT,

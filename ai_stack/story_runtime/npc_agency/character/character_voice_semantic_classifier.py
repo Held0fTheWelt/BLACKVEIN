@@ -11,7 +11,7 @@ from ai_stack.contracts.character_voice_contract import (
     VoiceSemanticLineClassification,
     VoiceValidationMode,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 SEMANTIC_CLASSIFICATION_POLICY_SOURCE = (
     "character_voice.voice_consistency.semantic_classification"

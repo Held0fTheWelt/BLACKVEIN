@@ -14,7 +14,7 @@
 | File | Line | Consumer description |
 |------|------|---------------------|
 | `ai_stack/contracts/free_player_action_resolution_contracts.py` | 44 | SCHEMA_VERSION constant; contract builder |
-| `ai_stack/player_action_resolution.py` | 32 | Imports `build_free_player_action_resolution` |
+| `ai_stack/story_runtime/player_action_resolution.py` | 32 | Imports `build_free_player_action_resolution` |
 | `ai_stack/contracts/canonical_path_hold_effect_contracts.py` | 170 | Reads the `.v1` dict as input to build hold-effect |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 6308–6315 | Lifts `canonical_path_hold_effect` into graph state |
 | `ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py` | 63–67 | `ResolverOutputPlaceholder` — reserves payload slot |
@@ -25,7 +25,7 @@
 | File | Line | Consumer description |
 |------|------|---------------------|
 | `ai_stack/contracts/canonical_path_hold_effect_contracts.py` | 48 | SCHEMA_VERSION constant; contract builder |
-| `ai_stack/player_action_resolution.py` | 29–31 | Imports builder |
+| `ai_stack/story_runtime/player_action_resolution.py` | 29–31 | Imports builder |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 6308–6315 | Lifts into graph state as top-level key |
 | `world-engine/app/story_runtime/manager.py` | 8706–8710 | `_turn_holds_canonical_path_for_free_player_action` reads frame literal |
 | `world-engine/app/story_runtime/manager.py` | 8769 | Gate against step advance uses the hold |
@@ -54,7 +54,7 @@
 
 ### 2.1 What happens today when the player leaves the gathering?
 
-1. `resolve_player_action` (ai_stack/player_action_resolution.py) classifies the action.
+1. `resolve_player_action` (ai_stack/story_runtime/player_action_resolution.py) classifies the action.
 2. `build_free_player_action_resolution` emits `presence_breaks_gathering: False` (preliminary, line 460).
 3. `build_canonical_path_hold_effect` may return a hold if `canonical_path_effect == "hold_current_step"`.
 4. The executor (langgraph_runtime_executor.py:6313–6315) lifts hold-effect into graph state.

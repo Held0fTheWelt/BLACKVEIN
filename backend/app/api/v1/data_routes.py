@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.api.v1 import api_v1_bp
 from app.auth.feature_registry import FEATURE_MANAGE_DATA_EXPORT, FEATURE_MANAGE_DATA_IMPORT
 from app.auth.permissions import current_user_is_admin, current_user_is_super_admin, require_feature
-from app.services import data_export_service, data_import_service
+from app.services.data import data_export_service, data_import_service
 from app.extensions import limiter
 from app.utils.error_handler import log_full_error, ERROR_MESSAGES
 from app.config.route_constants import route_status_codes, route_pagination_config

@@ -143,7 +143,7 @@ def _selected_executed_summary_runtime(
             rollup_exec = rev2.get("executed_adapter_name")
     return {
         "per_stage": rows,
-        "legacy_roll_up": {
+        "single_route_rollup": {
             "route_reason_code": rollup_code,
             "selected_adapter_name": rollup_sel,
             "executed_adapter_name": rollup_exec,
@@ -212,7 +212,7 @@ def _comparison_trace_rows(
     traces_bd: list[dict[str, Any]],
     model_routing_trace: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Traces used for compact comparison rows (includes legacy rollup-only runtime)."""
+    """Traces used for compact comparison rows, including single-route runtime rollups."""
     if surface == "runtime":
         if traces_rt:
             return traces_rt
@@ -221,7 +221,7 @@ def _comparison_trace_rows(
             if isinstance(rev, dict) and rev:
                 return [
                     {
-                        "stage_id": "legacy_single_route",
+                        "stage_id": "single_route",
                         "routing_evidence": rev,
                         "decision": model_routing_trace.get("decision"),
                     }
@@ -231,11 +231,11 @@ def _comparison_trace_rows(
 
 
 def _unified_selected_vs_executed_for_comparison(selected_executed: dict[str, Any]) -> dict[str, Any]:
-    """Same ``per_stage`` + ``legacy_roll_up`` shape on every surface (bounded uses null rollup)."""
+    """Same ``per_stage`` + ``single_route_rollup`` shape on every surface."""
     per_stage = selected_executed.get("per_stage")
     if not isinstance(per_stage, list):
         per_stage = []
-    roll = selected_executed.get("legacy_roll_up")
+    roll = selected_executed.get("single_route_rollup")
     if isinstance(roll, dict):
         rollup = {
             "route_reason_code": roll.get("route_reason_code"),
@@ -244,7 +244,7 @@ def _unified_selected_vs_executed_for_comparison(selected_executed: dict[str, An
         }
     else:
         rollup = {"route_reason_code": None, "selected_adapter_name": None, "executed_adapter_name": None}
-    return {"per_stage": per_stage, "legacy_roll_up": rollup}
+    return {"per_stage": per_stage, "single_route_rollup": rollup}
 
 
 def _routing_evidence_for_row(trace: dict[str, Any]) -> dict[str, Any]:

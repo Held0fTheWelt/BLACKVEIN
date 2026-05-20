@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     clear_goc_yaml_slice_cache,
     load_goc_director_surface_hints_yaml,
     select_goc_director_surface_hints_for_turn,

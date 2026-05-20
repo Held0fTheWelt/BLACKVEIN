@@ -7,7 +7,7 @@ Not Finished
 
 **Partially implemented — evaluation pipeline exists; formal promotion gate enforcement is incomplete.**
 
-- `ai_stack/evaluation_pipeline.py` exists and handles evaluation scoring/baselines.
+- `ai_stack/quality_lab/evaluation_pipeline.py` exists and handles evaluation scoring/baselines.
 - Backend operator routes under `/api/v1/admin/mvp4/...` expose evaluation recent-turns, baselines, and regression checks (per ADR-0032).
 - What is NOT implemented: a hard gate that blocks package promotion without passing evaluation scores. The evaluation pipeline produces data but does not currently block a promotion action if scores fail.
 - Manual approval path: not formalized as a system-enforced gate; relies on operator workflow convention.

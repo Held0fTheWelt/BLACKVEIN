@@ -11,7 +11,7 @@ from app.auth.permissions import get_current_user, require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, fail_from_error, ok
 from app.governance.errors import GovernanceError, governance_error
-from app.services.observability_governance_service import (
+from app.services.governance.observability_governance_service import (
     disable_observability,
     get_observability_config,
     get_observability_credential_for_runtime,
@@ -71,7 +71,7 @@ def _handle(action: str, callback):
         data = callback()
         actor = get_current_user()
         if actor is not None:
-            from app.services.governance_runtime_service import record_operational_activity
+            from app.services.governance.governance_runtime_service import record_operational_activity
             record_operational_activity(actor, action, f"Observability action: {action}", {})
         return ok(data)
     except GovernanceError as err:

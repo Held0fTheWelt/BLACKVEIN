@@ -24,7 +24,7 @@ from ai_stack.contracts.symbolic_object_resonance_contracts import (
 )
 from ai_stack.contracts.temporal_control_contracts import TEMPORAL_CONTROL_POLICY_VERSION
 from ai_stack.contracts.tonal_consistency_contracts import TONAL_CONSISTENCY_POLICY_VERSION
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,

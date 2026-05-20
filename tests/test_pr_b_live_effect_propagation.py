@@ -3,7 +3,7 @@
 These tests close the seams from the resolver contract output to the
 runtime gate the manager evaluates today:
 
-1. The resolver envelope (``ai_stack.player_action_resolution.resolve_player_action``)
+1. The resolver envelope (``ai_stack.story_runtime.player_action_resolution.resolve_player_action``)
    emits a ``canonical_path_hold_effect`` dict at the envelope root for
    eligible mundane / free-action commits, and ``None`` (no key) for
    ineligible action classes.
@@ -50,7 +50,7 @@ from ai_stack.contracts.narrator_consequence_realization_contracts import (
     SCHEMA_VERSION as REALIZATION_SCHEMA_VERSION,
     build_narrator_consequence_realization,
 )
-from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.story_runtime.player_action_resolution import resolve_player_action
 from story_runtime_core.language_adapter import clear_language_adapter_caches
 
 
@@ -389,7 +389,7 @@ def test_thin_path_summary_row_does_not_expose_mutation_fields() -> None:
 PR_B_TOUCHED_FILES = (
     "ai_stack/contracts/canonical_path_hold_effect_contracts.py",
     "ai_stack/contracts/narrator_consequence_realization_contracts.py",
-    "ai_stack/player_action_resolution.py",
+    "ai_stack/story_runtime/player_action_resolution.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "world-engine/app/story_runtime/manager/thin_path_snapshot_api.py",
     "world-engine/app/story_runtime/manager/_legacy_sources/_build_langfuse_path_summary_001.py",

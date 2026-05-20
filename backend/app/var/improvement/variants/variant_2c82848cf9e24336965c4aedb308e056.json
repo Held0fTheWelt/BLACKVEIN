@@ -1,0 +1,33 @@
+{
+  "variant_id": "variant_2c82848cf9e24336965c4aedb308e056",
+  "baseline_id": "god_of_carnage",
+  "candidate_summary": "Increase de-escalation options in scene transitions.",
+  "improvement_entry_class": "runtime_issue_improvement",
+  "metadata": {
+    "source": "writers_room"
+  },
+  "created_by": "1",
+  "created_at": "2026-05-20T20:35:24.239070+00:00",
+  "review_status": "pending_review",
+  "mutation_plan": [
+    {
+      "operation": "adjust_conflict_pacing",
+      "target": "scene_transition",
+      "intent": "reduce repetitive escalation loops"
+    },
+    {
+      "operation": "strengthen_guard_behavior",
+      "target": "safety_filter",
+      "intent": "lower unsafe response acceptance"
+    }
+  ],
+  "mutation_metadata": {
+    "source": "writers_room",
+    "intent_tags": []
+  },
+  "lineage": {
+    "baseline_id": "god_of_carnage",
+    "derived_from": "god_of_carnage",
+    "lineage_depth": 1
+  }
+}

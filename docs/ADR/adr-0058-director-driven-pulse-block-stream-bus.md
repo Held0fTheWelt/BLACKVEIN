@@ -252,7 +252,7 @@ over the WS session loop (Stage D), the Director MAY emit *one*
 autonomous NPC block when motivation scoring promotes an initiative
 actor. Stage E does **not** replace Stage D; it composes on top.
 
-**New module:** `ai_stack/autonomous_tick.py`
+**New module:** `ai_stack/story_runtime/autonomous_tick.py`
 
 - `AutonomousTickInputs` — pure inputs (trigger kind, NPCs, capability
   outputs, pacing policy, gathering_paused, cooldown timestamp).
@@ -399,7 +399,7 @@ Stage F preserves every Stage E surface and gate. It adds three things:
    supplied this tick.
 
 3. **Off-stage update scaffold.** A new pure module
-   `ai_stack/off_stage_updates.py` builds *candidate*
+   `ai_stack/story_runtime/off_stage_updates.py` builds *candidate*
    relationship and hierarchical-memory updates from autonomous ticks
    that target an NPC outside the visible scene. The scaffold:
 
@@ -535,7 +535,7 @@ preview scaffold. Stage F still produces every candidate; Stage G adds the
 mechanics that route an accepted candidate to the existing safe
 relationship-state / hierarchical-memory commit surfaces.
 
-**New entry points:** `ai_stack/off_stage_updates.py`
+**New entry points:** `ai_stack/story_runtime/off_stage_updates.py`
 
 - `OffStageCommitInputs` — per-call policy + targets. Plain data only;
   the caller (autonomous-tick coordinator or test) supplies the
@@ -591,7 +591,7 @@ loop step still passes the Stage-E pre-check, the cooldown clock has
 advanced enough between iterations, and no player cut-in has been
 queued.
 
-**New entry points:** `ai_stack/autonomous_tick.py`
+**New entry points:** `ai_stack/story_runtime/autonomous_tick.py`
 
 - `AutonomousPauseLoopInputs` — pure inputs (`tick_inputs`,
   `loop_trigger_kind`, optional `max_ticks_per_pause` override,
@@ -636,7 +636,7 @@ without mutating mid-turn graph state. Stage I is the "future events only"
 boundary that mid-turn graph mutation (a future-work item) will need to
 respect.
 
-**New entry points:** `ai_stack/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
 
 - `build_replanning_request(...)` — `replanning_request.v1`. Captures
   the delivery boundary at the cut moment (committed event IDs,
@@ -685,7 +685,7 @@ Stage K adds the immediate Director handoff that promotes a queued
 player cut-in into the next turn's authoritative trigger, while pausing
 any in-progress autonomous-pause loop.
 
-**New entry points:** `ai_stack/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
 
 - `build_player_cut_in_handoff(...)` — `player_cut_in_handoff.v1`.
   Carries `handoff_id`, the originating `cut_in_id`, the
@@ -720,7 +720,7 @@ silence is the right answer). It also constructs the future-only follow-up
 event that the WS transport then streams (Stage L+M jointly own the
 follow-up event shape).
 
-**New entry points:** `ai_stack/ws_session_loop.py`
+**New entry points:** `ai_stack/story_runtime/ws_session_loop.py`
 
 - `build_post_cut_in_replanning_decision(...)` —
   `post_cut_in_replanning_decision.v1`. Carries the source handoff

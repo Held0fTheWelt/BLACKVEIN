@@ -10,7 +10,7 @@ from ai_stack.contracts.genre_awareness_contracts import (
     GENRE_AWARENESS_SCHEMA_VERSION,
     normalize_genre_awareness_policy,
 )
-from ai_stack.genre_awareness_engine import (
+from ai_stack.story_runtime.narrative.genre_awareness_engine import (
     build_genre_awareness_aspect_record,
     compact_genre_awareness_context,
     derive_genre_awareness,

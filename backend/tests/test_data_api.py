@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from app.services.data_export_service import EXPORT_FORMAT_VERSION
+from app.services.data.data_export_service import EXPORT_FORMAT_VERSION
 
 
 def test_data_export_full_requires_auth(client):
@@ -258,7 +258,7 @@ def test_decrypt_type_error(client, admin_headers, monkeypatch):
 
 def test_import_execute_import_error(client, super_admin_headers, monkeypatch):
     from app.api.v1 import data_routes
-    from app.services import data_import_service
+    from app.services.data import data_import_service
 
     class DummyPre:
         ok = True

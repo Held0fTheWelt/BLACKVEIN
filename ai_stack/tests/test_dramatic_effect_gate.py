@@ -12,7 +12,7 @@ from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import evaluate
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_branch_outcomes import (
     continuity_posture_for_social,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.contracts.social_state_contract import SocialStateRecord
 
 

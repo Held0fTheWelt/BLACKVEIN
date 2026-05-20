@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.story_runtime.player_action_resolution import resolve_player_action
 from ai_stack.language_io.language_adapter import clear_language_adapter_caches
 
 

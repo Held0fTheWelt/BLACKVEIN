@@ -94,7 +94,7 @@ This amendment names the four runtime contracts that PR-A, PR-B, and PR-C of the
 
 ### Contract 1 — `free_player_action_resolution.v1`
 
-Produced per turn by the player-action resolver (entry: `ai_stack/player_action_resolution.py:502`).
+Produced per turn by the player-action resolver (entry: `ai_stack/story_runtime/player_action_resolution.py:502`).
 
 Required fields:
 

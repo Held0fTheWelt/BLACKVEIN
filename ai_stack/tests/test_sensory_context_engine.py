@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.contracts.sensory_context_contracts import (
     SENSORY_CONTEXT_FAILURE_CODES,
     SENSORY_CONTEXT_POLICY_VERSION,
     SENSORY_CONTEXT_SCHEMA_VERSION,
 )
-from ai_stack.sensory_context_engine import (
+from ai_stack.story_runtime.narrative.sensory_context_engine import (
     derive_sensory_context,
     validate_sensory_context_realization,
 )

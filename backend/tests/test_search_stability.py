@@ -9,12 +9,12 @@ Tests for:
 """
 import pytest
 from app.models import ForumCategory, ForumThread, ForumPost, ForumTag, ForumThreadTag
-from app.services.forum_service import (
+from app.services.content.forum_service import (
     suggest_related_threads_by_tags,
     list_tags_for_threads,
     batch_tag_thread_counts,
 )
-from app.services.user_service import (
+from app.services.identity.user_service import (
     get_user_recent_threads,
     get_user_recent_posts,
     count_user_threads,
@@ -57,7 +57,7 @@ class TestSearchEdgeCases:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             category = ForumCategory.query.get(forum_category)
             thread, post, err = create_thread(
                 category=category,
@@ -75,7 +75,7 @@ class TestSearchEdgeCases:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
@@ -130,7 +130,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             category = ForumCategory.query.get(forum_category)
             thread, post, _ = create_thread(
                 category=category, author_id=user.id,
@@ -145,7 +145,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
             category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
@@ -169,7 +169,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags, soft_delete_thread
+            from app.services.content.forum_service import create_thread, set_thread_tags, soft_delete_thread
             category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
@@ -194,7 +194,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags, hide_thread
+            from app.services.content.forum_service import create_thread, set_thread_tags, hide_thread
             category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
@@ -219,7 +219,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
             category = ForumCategory.query.get(forum_category)
 
             t1, _, _ = create_thread(category=category, author_id=user.id,
@@ -243,7 +243,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
             category = ForumCategory.query.get(forum_category)
 
             t1, _, _ = create_thread(category=category, author_id=user.id,
@@ -265,7 +265,7 @@ class TestRelatedThreadsSuggestions:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
             category = ForumCategory.query.get(forum_category)
 
             t1, _, _ = create_thread(category=category, author_id=user.id,
@@ -291,7 +291,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             category = ForumCategory.query.get(forum_category)
 
             # Create 25 threads
@@ -312,7 +312,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, soft_delete_thread
+            from app.services.content.forum_service import create_thread, soft_delete_thread
             category = ForumCategory.query.get(forum_category)
 
             t1, _, _ = create_thread(category=category, author_id=user.id,
@@ -339,7 +339,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, create_post
+            from app.services.content.forum_service import create_thread, create_post
             category = ForumCategory.query.get(forum_category)
 
             t, _, _ = create_thread(category=category, author_id=user.id,
@@ -356,7 +356,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, create_post
+            from app.services.content.forum_service import create_thread, create_post
             category = ForumCategory.query.get(forum_category)
 
             long_content = "x" * 500
@@ -373,7 +373,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             category = ForumCategory.query.get(forum_category)
 
             count_before = count_user_threads(user.id)
@@ -389,7 +389,7 @@ class TestProfileActivityDiscovery:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, create_post
+            from app.services.content.forum_service import create_thread, create_post
             category = ForumCategory.query.get(forum_category)
 
             count_before = count_user_posts(user.id)
@@ -418,7 +418,7 @@ class TestBatchOperations:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags, list_all_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags, list_all_tags
             category = ForumCategory.query.get(forum_category)
 
             # Create threads with tags
@@ -443,7 +443,7 @@ class TestBatchOperations:
         with app.app_context():
             from app.models import ForumCategory
             user, _ = test_user
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
             category = ForumCategory.query.get(forum_category)
 
             threads = []

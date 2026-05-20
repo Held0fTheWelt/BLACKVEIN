@@ -194,7 +194,7 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 **Summary:**
 
 - **Row 4:** `tests/gates/fixtures/mvp3_ldss_player_inputs.yaml` holds primary/secondary-human and NPC-autonomous player lines plus MVP04-shared LDSS/diagnostics prose; MVP03 and MVP04 load via `gate_fixtures.load_yaml` + `copy.deepcopy`.
-- **Narrative Gov manager test:** `assert_story_runtime_manager_exposes_diagnostics_api` + `assert_manager_get_narrative_gov_summary_calls_builder` (AST) replace raw `read_text` substring checks; `set(d.keys()) == set(NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS)` pins `NarrativeGovSummary.to_dict()` surface to `ai_stack/diagnostics_envelope.py`.
+- **Narrative Gov manager test:** `assert_story_runtime_manager_exposes_diagnostics_api` + `assert_manager_get_narrative_gov_summary_calls_builder` (AST) replace raw `read_text` substring checks; `set(d.keys()) == set(NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS)` pins `NarrativeGovSummary.to_dict()` surface to `ai_stack/telemetry/diagnostics_envelope.py`.
 - **Constants:** `FORBIDDEN_RUNTIME_ACTOR_ID`, `GOD_OF_CARNAGE_*`, `LDSS_DETERMINISTIC_MODEL_ID`, `NARRATIVE_RUNTIME_AGENT_DETERMINISTIC_MODEL_ID` — assertions still explicit against forbidden/contract IDs (not tautological).
 
 **Test results (authoritative run after wave 03 implementation):**
@@ -231,7 +231,7 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 
 - The Table B anti-hardcoding gate now covers the re-audited legacy control ids `pi_1` through `pi_13` / `Π1` through `Π13`, not only the previously covered `pi_11`.
 - A production scan found no active code hits for Π1-Π13 legacy labels in `ai_stack`, backend/frontend runtime roots, `story_runtime_core`, MCP, or World-Engine app code.
-- `ai_stack/quality_lab/trace_interpreter.py` no longer carries a parallel hardcoded runtime-aspect list. It imports `ASPECT_KEYS` from `ai_stack.runtime_aspect_ledger`, so Quality Lab diagnostics follow the same canonical aspect taxonomy as the runtime ledger.
+- `ai_stack/quality_lab/trace_interpreter.py` no longer carries a parallel hardcoded runtime-aspect list. It imports `ASPECT_KEYS` from `ai_stack.story_runtime.runtime_aspect_ledger`, so Quality Lab diagnostics follow the same canonical aspect taxonomy as the runtime ledger.
 
 **Test results (authoritative targeted run after wave 05 implementation):**
 
@@ -255,7 +255,7 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 
 **Test results (authoritative targeted run after Π16 implementation):**
 
-- `python -m py_compile ai_stack/contracts/dramatic_irony_contracts.py ai_stack/dramatic_irony_runtime.py ai_stack/story_runtime/story_runtime_playability.py ai_stack/module_runtime_policy.py ai_stack/langgraph/langgraph_runtime_executor.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — **passed**.
+- `python -m py_compile ai_stack/contracts/dramatic_irony_contracts.py ai_stack/story_runtime/narrative/dramatic_irony_runtime.py ai_stack/story_runtime/story_runtime_playability.py ai_stack/module_runtime_policy.py ai_stack/langgraph/langgraph_runtime_executor.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — **passed**.
 - `python -m pytest ai_stack/tests/test_dramatic_irony_runtime.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_story_runtime_playability.py -q --tb=short` — **24 passed**.
 - `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short` — **1 passed**.
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` — **7 passed**.

@@ -6,7 +6,7 @@ import json
 
 from app.extensions import db
 from app.models import PromptStorePrompt
-from app.services.prompt_store_service import seed_prompt_store_from_files
+from app.services.prompts.prompt_store_service import seed_prompt_store_from_files
 
 
 def _write_prompt_seed(root, *, template: str = "Hello {name}", seed_version: str = "test.v1") -> None:

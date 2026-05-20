@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.opening_shape_normalizer import (
+from ai_stack.story_runtime.opening_shape_normalizer import (
     GOD_OF_CARNAGE_MODULE_ID,
     normalize_opening_narration_beats,
 )

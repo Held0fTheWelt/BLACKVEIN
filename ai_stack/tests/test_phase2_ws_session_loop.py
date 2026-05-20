@@ -1,6 +1,6 @@
 """Phase 2 — WebSocket Session Loop pure-helper tests.
 
-Tests for ai_stack/ws_session_loop.py:
+Tests for ai_stack/story_runtime/ws_session_loop.py:
 * feature-flag is_ws_session_loop_enabled (fail-closed)
 * WSSessionLoopState transitions
 * apply_cut_in semantics per block type (em_dash / skip_to_end / no_active_block)
@@ -36,7 +36,7 @@ from ai_stack.contracts.director_pulse_contracts import (
     SCHEMA_PLAYER_CUT_IN_EVENT,
     build_block_stream_event,
 )
-from ai_stack.ws_session_loop import (
+from ai_stack.story_runtime.ws_session_loop import (
     CLIENT_MSG_CUT_IN,
     CLIENT_MSG_PING,
     CLIENT_MSG_START_TURN,
@@ -973,7 +973,7 @@ class TestAdr0039Discipline:
         assert "Π" not in flat
 
     def test_no_fixed_speaker_routing_terms_in_module_source(self):
-        from ai_stack import ws_session_loop
+        from ai_stack.story_runtime import ws_session_loop
 
         with open(ws_session_loop.__file__, "r", encoding="utf-8") as fh:
             source = fh.read().lower()

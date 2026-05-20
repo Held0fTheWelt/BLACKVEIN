@@ -6,7 +6,7 @@ from flask import jsonify, request
 
 from app.auth.permissions import current_user_is_admin, get_current_user
 from app.services import log_activity
-from app.services.user_service import get_user_by_id, update_user as update_user_service
+from app.services.identity.user_service import get_user_by_id, update_user as update_user_service
 
 from app.api.v1.user_routes_users_update_guards import (
     user_put_authorization_error,

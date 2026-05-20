@@ -13,7 +13,7 @@ from app.api.v1.auth_login_phases import banned_user_error, unverified_email_err
 from app.extensions import db
 from app.models import User
 from app.services import log_activity
-from app.services.token_service import generate_tokens
+from app.services.identity.token_service import generate_tokens
 
 logger = logging.getLogger(__name__)
 

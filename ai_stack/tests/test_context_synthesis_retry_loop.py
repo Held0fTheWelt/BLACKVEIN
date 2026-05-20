@@ -12,7 +12,7 @@ pytest.importorskip(
     "ai_stack.langgraph.langgraph_runtime",
     reason="LangGraph/LangChain stack required for runtime retry tests",
 )
-from ai_stack.context_synthesis_engine import build_context_synthesis_bundle, context_synthesis_prompt_lines
+from ai_stack.story_runtime.narrative.context_synthesis_engine import build_context_synthesis_bundle, context_synthesis_prompt_lines
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 

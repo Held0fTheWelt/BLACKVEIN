@@ -10,15 +10,15 @@ from flask import current_app, g, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from sqlalchemy import select
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
-from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
-from ai_stack.runtime_readiness_consumer import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.live_runtime_commit_semantics import evaluate_session_opening_readiness
+from ai_stack.story_runtime.runtime_readiness_consumer import (
     build_adr0041_readiness_projection_echo,
     degradation_signals_from_latest_turn,
     resolve_runtime_readiness_with_adr0041,
     runtime_intelligence_projection_from_turn_aspect_ledger,
 )
-from ai_stack.player_narrative_cards import (
+from ai_stack.story_runtime.player_narrative_cards import (
     build_player_facing_narrative_cards,
     player_shell_typewriter_start_index,
 )
@@ -30,7 +30,7 @@ from app.content.compiler import compile_module
 from app.content.module_exceptions import ModuleLoadError
 from app.extensions import db, limiter
 from app.models import GameSaveSlot, User
-from app.services.game_content_service import (
+from app.services.game.game_content_service import (
     GameContentConflictError,
     GameContentLifecycleError,
     GameContentNotFoundError,
@@ -47,7 +47,7 @@ from app.services.game_content_service import (
     unpublish_experience,
     update_experience,
 )
-from app.services.game_profile_service import (
+from app.services.game.game_profile_service import (
     NotFoundError,
     OwnershipError,
     ValidationError,
@@ -60,7 +60,7 @@ from app.services.game_profile_service import (
     upsert_save_slot_for_user,
     delete_save_slot_for_user,
 )
-from app.services.game_service import (
+from app.services.game.game_service import (
     GameServiceConfigError,
     GameServiceError,
     create_run as create_play_run,

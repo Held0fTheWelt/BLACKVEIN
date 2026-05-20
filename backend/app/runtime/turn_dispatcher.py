@@ -19,7 +19,7 @@ from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.runtime_models import MockDecision, SessionState
 from app.runtime.turn_execution_types import TurnExecutionResult
 from app.runtime.turn_executor import execute_turn
-from app.services.governance_runtime_service import get_active_runtime_snapshot
+from app.services.governance.governance_runtime_service import get_active_runtime_snapshot
 
 
 async def dispatch_turn(

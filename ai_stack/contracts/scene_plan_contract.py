@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from ai_stack.god_of_carnage_frozen_vocabulary import TRANSITION_PATTERNS
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import TRANSITION_PATTERNS
 
 
 class ScenePlanRecord(BaseModel):
@@ -97,7 +97,7 @@ class ScenePlanRecord(BaseModel):
     semantic_scene_planner_version: str = ""
     selection_source: str = Field(
         default="semantic_pipeline_v1",
-        description="semantic_pipeline_v1 | structural_fallback — compatibility trace only for legacy.",
+        description="semantic_pipeline_v1 | structural_fallback — diagnostic trace only.",
     )
 
     @field_validator("expected_transition_pattern")

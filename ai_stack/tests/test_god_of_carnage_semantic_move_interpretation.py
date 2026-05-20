@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_subtext_policy import rule_spec_for_subtext, subtext_policy_values
 from ai_stack.contracts.semantic_move_contract import (
     SUBTEXT_FUNCTIONS,

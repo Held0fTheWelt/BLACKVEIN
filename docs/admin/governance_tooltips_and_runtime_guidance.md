@@ -45,8 +45,8 @@ Authority boundaries:
 
 Primary sources:
 
-- `ai_stack/runtime_readiness_consumer.py`
-- `ai_stack/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_readiness_consumer.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger.py`
 - `docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md`
 
 ## AI Runtime recommended combinations

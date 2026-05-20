@@ -1,7 +1,7 @@
 import json
 
 from ai_stack.story_runtime.narrator.god_of_carnage_narrator_path import build_goc_narrator_path_opening
-from ai_stack.god_of_carnage_souffleuse import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_souffleuse import (
     SOUFFLEUSE_INTERNAL_LANGUAGE,
     SOUFFLEUSE_OPENING_ROLE_ORIENTATION,
     build_goc_opening_souffleuse_projection,

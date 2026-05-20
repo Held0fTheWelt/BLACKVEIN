@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import json
 import pytest
 
-from app.services.ai_stack_closure_cockpit_parsing import (
+from app.services.ai_stack.ai_stack_closure_cockpit_parsing import (
     EXPECTED_GATE_ORDER,
     extract_gate_id,
     extract_heading_statement,

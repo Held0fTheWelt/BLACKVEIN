@@ -5,7 +5,7 @@ from ai_stack import CapabilityInvocationError
 from ai_stack.rag.rag_constants import INDEX_VERSION
 
 from app.api.v1 import improvement_routes as improvement_routes_module
-from app.services.improvement_service import (
+from app.services.improvement.improvement_service import (
     ImprovementStore,
     _simulate_sandbox_turn,
     apply_improvement_recommendation_decision,
@@ -569,7 +569,7 @@ def test_governance_accessibility_lists_recommendation_packages(client, auth_hea
 
 def test_improvement_experiment_task2a_routing_calls_route_model_twice(client, auth_headers, monkeypatch):
     """Task 2A enrichment must invoke route_model exactly twice (preflight + synthesis)."""
-    import app.services.improvement_task2a_routing as improvement_task2a_routing
+    import app.services.improvement.improvement_task2a_routing as improvement_task2a_routing
     from app.runtime import model_routing as runtime_model_routing
 
     calls = {"n": 0}
@@ -790,7 +790,7 @@ def test_sandbox_experiment_evaluation_uses_interpretation_signals(tmp_path):
     speech_turn = experiment["transcript"][0]
     assert speech_turn["guard_rejected"] is False
     # Semantic rates must be present in evaluated metrics
-    from app.services.improvement_service import _evaluate_transcript
+    from app.services.improvement.improvement_service import _evaluate_transcript
     metrics = _evaluate_transcript(experiment["transcript"])
     assert "semantic_speech_rate" in metrics
     assert "semantic_action_rate" in metrics

@@ -6,7 +6,7 @@ from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_admin
 from app.extensions import db, limiter
 from app.i18n import validate_language_code
-from app.services.slogan_service import list_slogans_for_placement, resolve_slogan_for_placement
+from app.services.content.slogan_service import list_slogans_for_placement, resolve_slogan_for_placement
 from app.config.route_constants import route_site_config, route_status_codes
 
 _OPERATOR_SETTING_KEYS = (

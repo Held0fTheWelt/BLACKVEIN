@@ -23,7 +23,7 @@ from unittest import mock
 
 import pytest
 
-from ai_stack.block_stream_dual_mode import (
+from ai_stack.story_runtime.block_stream_dual_mode import (
     PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED,
     augment_envelope_with_block_stream,
     block_stream_event_to_block_shape,
@@ -473,17 +473,17 @@ class TestDualModeADR0039Guardrails:
         return inspect.getsource(mod)
 
     def test_no_pi_keys_in_dual_mode_module(self):
-        source = self._source("ai_stack.block_stream_dual_mode")
+        source = self._source("ai_stack.story_runtime.block_stream_dual_mode")
         pi_pattern = re.compile(r"\bPi?\d+\b|capability_\d+", re.IGNORECASE)
         assert not pi_pattern.search(source), "Pi/Π key found in block_stream_dual_mode"
 
     def test_no_hardcoded_npc_ids_in_dual_mode_module(self):
-        source = self._source("ai_stack.block_stream_dual_mode").lower()
+        source = self._source("ai_stack.story_runtime.block_stream_dual_mode").lower()
         for name in ("veronique", "michel", "annette", "alain"):
             assert name not in source, f"Hardcoded NPC ID found: {name!r}"
 
     def test_no_speaker_queue_in_dual_mode_module(self):
-        source = self._source("ai_stack.block_stream_dual_mode").lower()
+        source = self._source("ai_stack.story_runtime.block_stream_dual_mode").lower()
         for term in ("speaker_queue", "fixed_roster"):
             assert term not in source, f"Forbidden speaker-queue concept: {term!r}"
 

@@ -189,7 +189,7 @@ class TestC1PromptIntegration:
 
     def test_canonical_catalog_includes_preferred_order_guidance(self):
         """Canonical prompt catalog has preferred_reaction_order guidance."""
-        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+        from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
         catalog = CanonicalPromptCatalog()
         system_prompt = catalog.get_prompt("runtime_turn_system")["template"]
@@ -197,7 +197,7 @@ class TestC1PromptIntegration:
 
     def test_system_prompt_allows_divergence(self):
         """System prompt allows divergence from preferred order."""
-        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+        from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
         catalog = CanonicalPromptCatalog()
         system_prompt = catalog.get_prompt("runtime_turn_system")["template"]
@@ -206,7 +206,7 @@ class TestC1PromptIntegration:
 
     def test_human_prompt_references_preferred_order(self):
         """Human prompt explicitly mentions preferred_reaction_order."""
-        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+        from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
         catalog = CanonicalPromptCatalog()
         human_prompt = catalog.get_prompt("runtime_turn_human")["template"]
@@ -496,7 +496,7 @@ class TestC4IntegrationSanity:
     def test_packet_and_prompt_field_names_aligned(self):
         """Packet field names match prompt references."""
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
-        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+        from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
         # Build a minimal packet
         state = {

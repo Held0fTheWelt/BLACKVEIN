@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
-from app.services.system_diagnosis_service import (
+from app.services.system.system_diagnosis_service import (
     _resolve_overall,
     get_system_diagnosis,
     reset_diagnosis_cache_for_tests,
@@ -25,8 +25,8 @@ def _reset_diagnosis_cache():
 def _install_diagnosis_httpx_mock(monkeypatch, *, backend_ok=True, play_timeout=False, play_health_status=200):
     """Patch httpx.Client in diagnosis service + play-http helper (play uses its own httpx binding)."""
 
-    import app.services.system_diagnosis_play_http as play_mod
-    import app.services.system_diagnosis_service as mod
+    import app.services.system.system_diagnosis_play_http as play_mod
+    import app.services.system.system_diagnosis_service as mod
 
     class Resp:
         def __init__(self, status_code, body):
@@ -75,7 +75,7 @@ def _install_diagnosis_httpx_mock(monkeypatch, *, backend_ok=True, play_timeout=
 
 
 def _install_ai_report_mock(monkeypatch, overall="partial"):
-    import app.services.system_diagnosis_service as mod
+    import app.services.system.system_diagnosis_service as mod
 
     def _fast_report(*, trace_id: str):
         return {"overall_status": overall, "trace_id": trace_id}
@@ -204,7 +204,7 @@ def test_diagnosis_play_health_timeout_fails_critical(client, moderator_headers,
 
 
 def test_diagnosis_play_config_missing_overall_fail(app, monkeypatch):
-    import app.services.system_diagnosis_service as mod
+    import app.services.system.system_diagnosis_service as mod
 
     monkeypatch.setattr(mod, "has_complete_play_service_config", lambda: False)
     _install_diagnosis_httpx_mock(monkeypatch)

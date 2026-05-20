@@ -1,4 +1,4 @@
-"""Tests for app.services.area_service."""
+"""Tests for app.services.content.area_service."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 from app.auth.feature_registry import FEATURE_MANAGE_USERS
 from app.extensions import db
 from app.models import Area, FeatureArea, Role, User
-from app.services.area_service import (
+from app.services.content.area_service import (
     create_area,
     delete_area,
     get_area_by_id,

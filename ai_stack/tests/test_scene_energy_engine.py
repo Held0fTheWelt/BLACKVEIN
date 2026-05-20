@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.contracts.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
-from ai_stack.scene_energy_engine import (
+from ai_stack.story_runtime.narrative.scene_energy_engine import (
     derive_scene_energy,
     validate_scene_energy_realization,
 )

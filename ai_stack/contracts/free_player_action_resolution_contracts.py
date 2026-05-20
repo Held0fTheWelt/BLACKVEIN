@@ -19,7 +19,7 @@ Authoritative governance:
 
 The contract is a per-turn dict; it is not a runtime aspect ledger row, it is
 not a new graph node, and it does not own Director authority. The dict is
-emitted by ``ai_stack.player_action_resolution.resolve_player_action`` on every
+emitted by ``ai_stack.story_runtime.player_action_resolution.resolve_player_action`` on every
 return path and embedded inside the existing ``player_action_frame`` payload so
 graph-state propagation flows it through without further executor changes.
 

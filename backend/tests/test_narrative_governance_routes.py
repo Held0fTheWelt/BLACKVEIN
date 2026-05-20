@@ -118,7 +118,7 @@ def test_revision_transition_role_violation_returns_403(app, client, moderator_h
 
 def test_promote_preview_route_maps_reload_refusal(client, moderator_headers, monkeypatch):
     from app.api.v1 import narrative_governance_routes as routes_module
-    from app.services.narrative_governance_service import NarrativeGovernanceError
+    from app.services.governance.narrative_governance_service import NarrativeGovernanceError
 
     def _raise(**kwargs):
         raise NarrativeGovernanceError("reload refused", code="world_engine_reload_refused")

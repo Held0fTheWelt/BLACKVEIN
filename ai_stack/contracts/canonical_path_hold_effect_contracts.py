@@ -36,7 +36,7 @@ Vocabulary discipline (ADR-0039 + Phase-1 amendment):
 This module is intentionally pure (no I/O) and reads only the
 ``free_player_action_resolution.v1`` payload plus the resolver's
 ``canonical_path_effect`` literal (already derived in
-``ai_stack.player_action_resolution._canonical_path_effect_from_policy``).
+``ai_stack.story_runtime.player_action_resolution._canonical_path_effect_from_policy``).
 It does not import the PR-0 diagnostic snapshot stub.
 """
 

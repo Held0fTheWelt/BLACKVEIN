@@ -26,7 +26,7 @@ CRITERIA = (
     "graceful_degradation",
 )
 
-# Canonical flags for each fixed scenario id (align with ai_stack/god_of_carnage_experience_acceptance_roadmap_scenarios.py).
+# Canonical flags for each fixed scenario id (align with ai_stack/story_runtime/god_of_carnage/god_of_carnage_experience_acceptance_roadmap_scenarios.py).
 _CANONICAL_FAILURE_ORIENTED: dict[str, bool] = {
     "goc_roadmap_s1_direct_provocation": False,
     "goc_roadmap_s2_deflection_brevity": False,

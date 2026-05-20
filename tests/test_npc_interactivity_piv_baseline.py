@@ -92,7 +92,7 @@ def test_pr_0_piv_artifact_required_sections() -> None:
         assert keyword in text, f"PR-0 PIV artifact missing required section: {keyword}"
 
     for verified_anchor in (
-        "ai_stack/player_action_resolution.py:502",
+        "ai_stack/story_runtime/player_action_resolution.py:502",
         "world-engine/app/story_runtime/manager/dramatic_context_authority.py:229",
         "ai_stack/langgraph/langgraph_runtime_executor.py:3996",
         "ai_stack/langgraph/langgraph_runtime_executor.py:4703",
@@ -349,16 +349,16 @@ PR_A_B_C_FORBIDDEN_RUNTIME_SYMBOLS = (
 
 
 RUNTIME_FILES_UNTOUCHED_BY_PR_0 = (
-    "ai_stack/player_action_resolution.py",
+    "ai_stack/story_runtime/player_action_resolution.py",
     "ai_stack/contracts/narrator_consequence_contracts.py",
     "ai_stack/story_runtime/canonical_path/canonical_path_resolver.py",
     "ai_stack/story_runtime/director/god_of_carnage_scene_director.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/live_dramatic_scene_simulator.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py",
-    "ai_stack/god_of_carnage_souffleuse.py",
+    "ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py",
     "world-engine/app/story_runtime/manager/dramatic_context_authority.py",
     "world-engine/app/story_runtime/manager/ldss_narrative_queue.py",
 )

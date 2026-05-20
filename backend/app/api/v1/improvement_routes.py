@@ -14,8 +14,8 @@ from app.api.v1.improvement_experiment_pipeline import apply_capability_pipeline
 from app.contracts.improvement_operating_loop import ImprovementLoopStage
 from app.observability.audit_log import log_workflow_audit
 from app.observability.trace import get_trace_id
-from app.services.governance_runtime_service import read_scope_settings
-from app.services.improvement_service import (
+from app.services.governance.governance_runtime_service import read_scope_settings
+from app.services.improvement.improvement_service import (
     ImprovementStore,
     apply_improvement_recommendation_decision,
     build_recommendation_package,

@@ -37,7 +37,7 @@ class TestW31ResponderSetStrengthening:
 
     @staticmethod
     def _yaml_slice() -> dict[str, Any]:
-        from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+        from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 
         return load_goc_yaml_slice_bundle()
 
@@ -262,7 +262,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_bounded_relationship_dynamics_context(self):
         """Verify Pi27 reaches generation as bounded structural context."""
-        from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+        from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
         from ai_stack.story_runtime.semantic_planner.god_of_carnage_social_state import build_social_state_record
 

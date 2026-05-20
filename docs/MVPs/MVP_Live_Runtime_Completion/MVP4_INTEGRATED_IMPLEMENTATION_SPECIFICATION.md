@@ -53,7 +53,7 @@ Deployment Ready
 **Status**: ✅ DONE — All tests passing
 
 **What Phase A delivered:**
-- `DiagnosticsEnvelope` dataclass in `ai_stack/diagnostics_envelope.py`
+- `DiagnosticsEnvelope` dataclass in `ai_stack/telemetry/diagnostics_envelope.py`
 - `degradation_timeline` tracking DegradationEvent (quality_class, signals)
 - `cost_summary` field (skeleton, all zeros for Phase B to fill)
 - `to_response(context="operator"|"langfuse"|"super_admin")` tiered visibility
@@ -80,7 +80,7 @@ Deployment Ready
 
 ### Phase B Gap 1: Narrative Token Attribution
 
-**File**: `ai_stack/narrative_runtime_agent.py` (lines ~224)
+**File**: `ai_stack/story_runtime/narrative_runtime_agent.py` (lines ~224)
 
 **Current (Scaffold):**
 ```python
@@ -335,7 +335,7 @@ Execution occurs in **3 sequential waves**:
 **WAVE 1: Phase B (Real Cost Attribution)**
 ```
 ├─ Task 1.1: Add calculate_token_cost() helper to langfuse_adapter.py
-├─ Task 1.2: Update Narrator Token Attribution (ai_stack/narrative_runtime_agent.py)
+├─ Task 1.2: Update Narrator Token Attribution (ai_stack/story_runtime/narrative_runtime_agent.py)
 ├─ Task 1.3: Add LDSS Decision Spans (ai_stack/live_dramatic_scene_simulator.py)
 ├─ Task 1.4: Wire Cost Summary Aggregation (world-engine/app/story_runtime/manager.py)
 ├─ Task 1.5: Add Phase B Tests (test_goc_mvp04_observability_diagnostics_gate.py)
@@ -356,7 +356,7 @@ Execution occurs in **3 sequential waves**:
 ```
 ├─ Task 3.1: Cost-Aware LDSS Degradation (backend/app/services/observability_governance_service.py)
 ├─ Task 3.2: Audit Trail & Override Management (backend/app/auth/admin_security.py)
-├─ Task 3.3: Evaluation Pipeline (ai_stack/evaluation_pipeline.py)
+├─ Task 3.3: Evaluation Pipeline (ai_stack/quality_lab/evaluation_pipeline.py)
 ├─ Task 3.4: Health Panels (administration-tool/templates/)
 ├─ Task 3.5: Cost Dashboard (administration-tool/)
 └─ GATE 3: test_mvp4_governance_phase_complete PASS → Phase C ready for deployment
@@ -407,7 +407,7 @@ MVP4 Deployment Ready
 
 ✅ `world-engine/app/api/http.py` — HTTP handler creates root span `world-engine.turn.execute`, linked to Backend trace via `X-WoS-Trace-Id` header
 
-✅ `ai_stack/diagnostics_envelope.py` — DiagnosticsEnvelope with `cost_summary` field and `to_response(context)` method
+✅ `ai_stack/telemetry/diagnostics_envelope.py` — DiagnosticsEnvelope with `cost_summary` field and `to_response(context)` method
 
 ✅ `world-engine/app/story_runtime/manager.py` — Span creation for phases, metadata collection readiness
 
@@ -417,7 +417,7 @@ MVP4 Deployment Ready
 
 ❌ `calculate_token_cost()` function (add to langfuse_adapter.py)
 
-❌ Token extraction in `ai_stack/narrative_runtime_agent.py` (lines ~224)
+❌ Token extraction in `ai_stack/story_runtime/narrative_runtime_agent.py` (lines ~224)
 
 ❌ LDSS decision spans in `ai_stack/live_dramatic_scene_simulator.py`
 
@@ -430,7 +430,7 @@ MVP4 Deployment Ready
 - `backend/app/services/observability_governance_service.py` — Cost-aware degradation decisions
 - `backend/app/auth/admin_security.py` — Audit logging
 - `administration-tool/app/admin_routes.py` — Governance UIs
-- New: `ai_stack/evaluation_pipeline.py` — Baseline rubric, regression detection
+- New: `ai_stack/quality_lab/evaluation_pipeline.py` — Baseline rubric, regression detection
 - New: `administration-tool/templates/manage/narrative-gov/runtime.html` — 6 health panels
 
 ---

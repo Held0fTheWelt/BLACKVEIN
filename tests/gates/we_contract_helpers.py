@@ -431,7 +431,7 @@ NARRATIVE_GOV_JSON_KEYS: tuple[str, ...] = (
     "degradation_health",
 )
 
-# Mirrors ``NarrativeGovSummary.to_dict()`` keys in ``ai_stack/diagnostics_envelope.py`` (operator contract surface).
+# Mirrors ``NarrativeGovSummary.to_dict()`` keys in ``ai_stack/telemetry/diagnostics_envelope.py`` (operator contract surface).
 NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS: tuple[str, ...] = (
     "contract",
     "content_module_id",

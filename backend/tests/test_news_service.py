@@ -1,4 +1,4 @@
-"""Service-level coverage for app.services.news_service helpers and branches."""
+"""Service-level coverage for app.services.content.news_service helpers and branches."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from app.models import (
     NewsArticleForumThread,
     NewsArticleTranslation,
 )
-from app.services import news_service as ns
+from app.services.content import news_service as ns
 
 
 def test_normalize_slug_edge_cases():
@@ -730,7 +730,7 @@ def test_list_news_sort_col_none_fallback_uses_created_at(app, sample_news):
         return builtins.getattr(obj, name, default)
 
     with app.app_context():
-        with patch("app.services.news_service.getattr", side_effect=_getattr):
+        with patch("app.services.content.news_service.getattr", side_effect=_getattr):
             items, total = ns.list_news(published_only=True, sort="published_at", lang="de")
         assert total >= 1
         assert all("id" in x for x in items)
@@ -1093,7 +1093,7 @@ def test_get_suggested_threads_for_article_with_tags_and_mock(app, test_user):
 
         fake = [{"id": 999, "slug": "mock"}]
         with patch(
-            "app.services.forum_service.suggest_related_threads_for_query",
+            "app.services.content.forum_service.suggest_related_threads_for_query",
             return_value=fake,
         ) as m:
             out = ns.get_suggested_threads_for_article(article.id, limit=3)
@@ -1415,5 +1415,5 @@ def test_get_suggested_threads_no_discussion_thread(app, test_user):
             )
         )
         db.session.commit()
-        with patch("app.services.forum_service.suggest_related_threads_for_query", return_value=[]):
+        with patch("app.services.content.forum_service.suggest_related_threads_for_query", return_value=[]):
             assert ns.get_suggested_threads_for_article(article.id) == []

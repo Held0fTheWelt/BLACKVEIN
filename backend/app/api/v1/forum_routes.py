@@ -36,8 +36,8 @@ from app.models import (
     ForumTag,
 )
 from app.services import log_activity
-from app.services.activity_log_service import list_activity_logs
-from app.services.forum_service import (
+from app.services.activity.activity_log_service import list_activity_logs
+from app.services.content.forum_service import (
     assign_report_to_moderator,
     bulk_update_report_status,
     create_category,

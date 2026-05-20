@@ -7,9 +7,9 @@ Accepted
 
 **Implemented as a bounded compatibility surface.**
 
-- `ai_stack/god_of_carnage_scene_identity.py` is the sole legacy-compatible definition
+- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py` is the sole legacy-compatible definition
   point for `guidance_phase_key_for_scene_id`.
-- `ai_stack/god_of_carnage_yaml_authority.py` re-exports and consumes that module without introducing a second mapping dict.
+- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py` re-exports and consumes that module without introducing a second mapping dict.
 - `ai_stack/tests/test_god_of_carnage_scene_identity.py` includes `test_sole_definition_of_guidance_phase_key_for_scene_id` which scans the entire repo for duplicate definitions and fails on any found.
 - `tools/verify_goc_scene_identity_single_source.py` enforces the no-local-remap rule in CI.
 - Governance investigation confirms `CTR-ADR-0003-SCENE-IDENTITY` implemented and validated.
@@ -40,7 +40,7 @@ Authored narrative modules are consumed by more than one component (content comp
 
 ## Decision
 1. Treat **compiler runtime projection** and world-engine **commit resolver** as the **normative** contract for scene row identity at the seam (unchanged from prior draft).
-2. **Single owned compatibility resolver:** [`ai_stack/god_of_carnage_scene_identity.py`](../../ai_stack/god_of_carnage_scene_identity.py) is the only place that defines legacy runtime `scene_id` -> phase-policy guidance keys and guidance-phase -> escalation-arc subkeys. [`ai_stack/god_of_carnage_yaml_authority.py`](../../ai_stack/god_of_carnage_yaml_authority.py) **re-exports** and consumes that module; it must not introduce a second mapping dict.
+2. **Single owned compatibility resolver:** [`ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py`](../../ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py) is the only place that defines legacy runtime `scene_id` -> phase-policy guidance keys and guidance-phase -> escalation-arc subkeys. [`ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`](../../ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py) **re-exports** and consumes that module; it must not introduce a second mapping dict.
 3. **No local remap (mandatory):**
    - No duplicate scene-id -> guidance dicts outside `god_of_carnage_scene_identity.py` (enforced by `python tools/verify_goc_scene_identity_single_source.py` in CI and by `test_sole_definition_of_guidance_phase_key_for_scene_id` in `ai_stack/tests/test_god_of_carnage_scene_identity.py`).
    - No ad hoc `if scene_id == "...": phase = ...` mapping in consumers; use `guidance_phase_key_for_scene_id` (exceptions require ADR amendment or state decision log + expiry).

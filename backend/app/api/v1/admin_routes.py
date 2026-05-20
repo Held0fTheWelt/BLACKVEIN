@@ -6,9 +6,9 @@ from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_admin, get_current_user
 from app.auth.admin_security import admin_security
 from app.extensions import limiter, db
-from app.services.activity_log_service import list_activity_logs
+from app.services.activity.activity_log_service import list_activity_logs
 from app.services import log_activity
-from app.services.metrics_service import get_metrics
+from app.services.analytics.metrics_service import get_metrics
 from app.utils.csv_safe import csv_safe_cell
 from app.models import User, ForumCategory, ModeratorAssignment
 from app.config.route_constants import route_status_codes, route_pagination_config

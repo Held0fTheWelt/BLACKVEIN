@@ -45,7 +45,7 @@ def test_hf_hub_write_internal_get_roundtrip(app, client, admin_jwt):
 def test_hf_hub_test_connection_mocked(client, admin_jwt, monkeypatch):
     import requests
 
-    from app.services import hf_hub_governance_service as mod
+    from app.services.governance import hf_hub_governance_service as mod
 
     monkeypatch.setattr(
         mod,

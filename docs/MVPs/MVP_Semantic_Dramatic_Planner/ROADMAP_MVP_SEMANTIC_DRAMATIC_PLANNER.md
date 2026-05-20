@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/god_of_carnage_dramatic_alignment.py`, `ai_stack/god_of_carnage_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_dramatic_alignment.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -50,7 +50,7 @@ This means the system already has a stable orchestration surface and does not ne
 
 ### 2.2 Canonical content authority already exists
 
-The GoC slice already has a canonical YAML authority through `ai_stack/god_of_carnage_yaml_authority.py`, and the vertical slice contract already defines YAML-backed slice authority and truth handling.
+The GoC slice already has a canonical YAML authority through `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`, and the vertical slice contract already defines YAML-backed slice authority and truth handling.
 
 This is a major strength because the semantic planner can be grounded in authored dramatic structure instead of inventing truth from scratch.
 
@@ -66,7 +66,7 @@ That means the target architecture should evolve **inside** these seams rather t
 
 ### 2.5 Dramatic alignment exists, but remains surface-oriented
 
-`ai_stack/god_of_carnage_dramatic_alignment.py` already protects the system from fluent but empty output. However, it does so through rule and token checks tied to scene-function support, minimum narrative mass, and banned weak-output patterns.
+`ai_stack/story_runtime/god_of_carnage/god_of_carnage_dramatic_alignment.py` already protects the system from fluent but empty output. However, it does so through rule and token checks tied to scene-function support, minimum narrative mass, and banned weak-output patterns.
 
 This is useful, but it is still not a true dramatic-effect evaluator.
 

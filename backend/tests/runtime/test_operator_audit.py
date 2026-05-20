@@ -141,15 +141,15 @@ def test_bounded_surface_audit_adds_stage_id_alias():
     assert len(audit["audit_timeline"]) == 2
 
 
-def test_build_audit_timeline_entry_legacy_shape():
+def test_build_audit_timeline_entry_single_route_shape():
     entry = build_audit_timeline_entry(
         0,
         {
-            "stage_id": "legacy_single_route",
-            "stage_kind": "legacy_single_route",
+            "stage_id": "single_route",
+            "stage_kind": "single_route",
             "routing_evidence": {},
             "errors": [],
         },
     )
     assert entry["ordinal"] == 0
-    assert entry["stage_key"] == "legacy_single_route"
+    assert entry["stage_key"] == "single_route"

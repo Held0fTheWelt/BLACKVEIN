@@ -23,7 +23,7 @@ from ai_stack.mcp.mcp_canonical_surface import (
     McpSuite,
     descriptor_to_public_metadata,
 )
-from ai_stack.limit_inventory import mcp_tool_rate_limit_metadata
+from ai_stack.quality_lab.limit_inventory import mcp_tool_rate_limit_metadata
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.config import Config
 from tools.mcp_server.fs_tools import FileSystemTools

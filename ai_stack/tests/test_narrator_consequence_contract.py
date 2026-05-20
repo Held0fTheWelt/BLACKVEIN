@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.god_of_carnage_yaml_authority import load_goc_scene_affordances_block
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_scene_affordances_block
 from ai_stack.contracts.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,

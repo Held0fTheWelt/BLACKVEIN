@@ -7,7 +7,7 @@ from flask import current_app, g, jsonify, request
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin, require_world_engine_capability
 from app.extensions import limiter
-from app.services.game_service import (
+from app.services.game.game_service import (
     GameServiceError,
     create_story_session,
     execute_story_turn,
@@ -28,7 +28,7 @@ from app.services.game_service import (
     list_templates,
     terminate_run,
 )
-from app.services.world_engine_control_center_service import build_world_engine_control_center_snapshot
+from app.services.story_runtime.world_engine_control_center_service import build_world_engine_control_center_snapshot
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 

@@ -673,7 +673,7 @@ def test_counters_after_hide_unhide(app, client, test_user, moderator_headers):
         db.session.add_all([p1, p2])
         db.session.commit()
 
-        from app.services.forum_service import recalc_thread_counters, hide_post, unhide_post
+        from app.services.content.forum_service import recalc_thread_counters, hide_post, unhide_post
 
         recalc_thread_counters(thread)
         db.session.refresh(thread)

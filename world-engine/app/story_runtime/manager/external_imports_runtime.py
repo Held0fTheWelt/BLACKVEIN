@@ -6,7 +6,7 @@ from ai_stack.story_runtime.narrator.god_of_carnage_narrator_path import (
     build_goc_narrator_path_opening,
     build_goc_scripted_continuation,
 )
-from ai_stack.god_of_carnage_souffleuse import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_souffleuse import (
     SOUFFLEUSE_ADAPTER,
     SOUFFLEUSE_BLOCK_TYPE,
     SOUFFLEUSE_INTERNAL_LANGUAGE,
@@ -14,12 +14,12 @@ from ai_stack.god_of_carnage_souffleuse import (
     SOUFFLEUSE_OPENING_ROLE_ORIENTATION,
     build_goc_opening_souffleuse_projection,
 )
-from ai_stack.god_of_carnage_knowledge_runtime_gates import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_knowledge_runtime_gates import (
     build_knowledge_path_summary,
     build_narrator_packet,
 )
 from ai_stack.contracts.semantic_move_contract import SEMANTIC_MOVE_TYPES
-from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
+from ai_stack.story_runtime.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.contracts.visible_narrative_contract import (
     _goc_visible_lane_text_fold,
     dedupe_goc_speaker_colon_stutter_visible,

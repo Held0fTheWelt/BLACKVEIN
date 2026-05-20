@@ -9,7 +9,7 @@ class _SouffleuseOutputRealizationMixin:
         meta: dict[str, Any],
     ) -> dict[str, Any]:
         """Non-blocking shadow gate (Sub-Plan 4 PR-4D) — diagnostics only."""
-        from ai_stack.souffleuse_production_judge import evaluate_souffleuse_visible_text_shadow
+        from ai_stack.quality_lab.souffleuse_production_judge import evaluate_souffleuse_visible_text_shadow
 
         judgments: list[dict[str, Any]] = []
         for block in realized:

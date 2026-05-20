@@ -19,7 +19,7 @@ def seed_base_governance_setup() -> str:
     ensure_areas_seeded()
 
     # Import here to avoid circular imports
-    from app.services.governance_runtime_service import (
+    from app.services.governance.governance_runtime_service import (
         _seed_default_presets,
         _seed_default_providers,
         _ensure_default_mock_path,

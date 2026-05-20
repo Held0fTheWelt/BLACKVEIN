@@ -167,5 +167,5 @@ Gate and promotion-style tests must comply with **[ADR-0039](adr-0039-gate-tests
 - `frontend/tests/test_typewriter_engine.js` — existing unit suite the determinism guarantee protects.
 - [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) §7 and §**narration_beat semantics** — display text, slice rules, opening field semantics.
 - `docs/technical/player-shell/narration_beat_and_opening_slots.md` — operator cheat sheet (literary slots vs shell field).
-- `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py`, `ai_stack/god_of_carnage_opening_transition.py` — canonical opening content vs gm_narration slots.
+- `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py` — canonical opening content vs gm_narration slots.
 - `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags`.

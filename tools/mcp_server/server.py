@@ -22,7 +22,7 @@ from ai_stack.mcp.mcp_canonical_surface import (
     resolve_active_mcp_suite_filter,
     resolve_mcp_operating_profile,
 )
-from ai_stack.limit_inventory import (
+from ai_stack.quality_lab.limit_inventory import (
     MCP_RATE_LIMIT_LABEL,
     MCP_RATE_LIMIT_MAX_CALLS,
     MCP_RATE_LIMIT_WINDOW_SECONDS,

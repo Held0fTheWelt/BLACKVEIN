@@ -123,5 +123,5 @@ flowchart TD
 - [docs/technical/ai/rag_runtime_integration.md](../technical/ai/rag_runtime_integration.md)
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — validation/commit seams, retrieval.
 - `ai_stack/capabilities/capability_selector.py`, `ai_stack/capabilities/capability_validator_registry.py` — selection and validator plans.
-- `ai_stack/story_runtime/turn/validation_authority_bridge.py`, `ai_stack/runtime_readiness_consumer.py` — ADR-0041 bridge and veto-only readiness overlay.
+- `ai_stack/story_runtime/turn/validation_authority_bridge.py`, `ai_stack/story_runtime/runtime_readiness_consumer.py` — ADR-0041 bridge and veto-only readiness overlay.
 - `backend/app/api/v1/game_routes.py` — player session bundle readiness source.

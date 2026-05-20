@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.extensions import db
-from app.services import forum_service
+from app.services.content import forum_service
 from app.models import (
     ForumCategory,
     ForumThread,
@@ -19,7 +19,7 @@ from app.models import (
     ForumThreadTag,
     ForumThreadBookmark,
 )
-from app.services.forum_service import (
+from app.services.content.forum_service import (
     _normalize_tag_value,
     _utc_now,
     bookmark_thread,

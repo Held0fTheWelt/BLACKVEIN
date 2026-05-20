@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.player_narrative_cards import (
+from ai_stack.story_runtime.player_narrative_cards import (
     build_player_facing_narrative_cards,
     player_shell_typewriter_start_index,
 )

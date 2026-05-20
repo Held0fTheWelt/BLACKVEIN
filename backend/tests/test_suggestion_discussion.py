@@ -107,7 +107,7 @@ def test_get_suggested_threads_excludes_primary_discussion(
     app, discussion_suggestion_setup
 ):
     """Primary discussion thread is not included in suggestions."""
-    from app.services.news_service import get_suggested_threads_for_article
+    from app.services.content.news_service import get_suggested_threads_for_article
 
     ids = discussion_suggestion_setup
     with app.app_context():
@@ -122,7 +122,7 @@ def test_get_suggested_threads_reason_labels_tag_matches(
     app, discussion_suggestion_setup
 ):
     """When tags overlap, the reason label includes 'Matched' and 'tag(s)'."""
-    from app.services.news_service import get_suggested_threads_for_article
+    from app.services.content.news_service import get_suggested_threads_for_article
 
     with app.app_context():
         items = get_suggested_threads_for_article(

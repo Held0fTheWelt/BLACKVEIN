@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_scene_assessment
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_social_state import build_social_state_record, social_state_fingerprint
 

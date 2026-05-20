@@ -28,7 +28,7 @@ from ai_stack.contracts.active_listening_contracts import (
     build_conversational_memory_aspect_record,
     build_prompt_authority_aspect_record,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BROAD_NLU_LISTENING,
     ASPECT_CONSEQUENCE_CASCADE,

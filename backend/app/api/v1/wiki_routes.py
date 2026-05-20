@@ -10,7 +10,7 @@ from app.auth.permissions import get_current_user, require_jwt_moderator_or_admi
 from app.extensions import db, limiter
 from app.models import ForumThread
 from app.services import log_activity
-from app.services.wiki_service import (
+from app.services.content.wiki_service import (
     get_wiki_page_by_slug,
     get_suggested_threads_for_wiki_page,
     list_related_threads_for_page,

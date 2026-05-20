@@ -1,0 +1,93 @@
+{
+  "hits": [
+    {
+      "fingerprint": "1e3ef60cf18b59b6",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/services/__init__.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Service package exports and legacy module aliases.\"\"\""
+    },
+    {
+      "fingerprint": "3fea88423f105e66",
+      "kind": "code",
+      "line": 161,
+      "path": "backend/app/services/data/data_import_preflight.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Validate structure and compatibility of a payload without writing to DB (implementation).\"\"\""
+    },
+    {
+      "fingerprint": "6431fc574151a9d3",
+      "kind": "code",
+      "line": 5,
+      "path": "backend/app/services/data/data_import_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- schema/version compatibility checks"
+    },
+    {
+      "fingerprint": "67130ec8bc1610e4",
+      "kind": "code",
+      "line": 69,
+      "path": "backend/app/services/data/data_import_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Validate structure and compatibility of a payload without writing to DB.\"\"\""
+    },
+    {
+      "fingerprint": "8f9c89256bc878fb",
+      "kind": "code",
+      "line": 1777,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\blegacy_",
+      "text": "if bool(st.get(\"legacy_default_registry_path\")):"
+    },
+    {
+      "fingerprint": "34f12677001e9e38",
+      "kind": "code",
+      "line": 1779,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Kept for backwards compatibility with older play-service versions"
+    },
+    {
+      "fingerprint": "220113c0f269ddbf",
+      "kind": "code",
+      "line": 1785,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"message\": \"Play-service story runtime reports legacy default registry posture (should not occur in current version).\","
+    },
+    {
+      "fingerprint": "2e2894ae6dfa7b94",
+      "kind": "code",
+      "line": 45,
+      "path": "backend/app/services/identity/user_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Return error message that includes \"invalid\" for test compatibility"
+    },
+    {
+      "fingerprint": "eef1e31432b13a7f",
+      "kind": "code",
+      "line": 232,
+      "path": "backend/app/services/identity/user_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# treat accounts as verified on creation for backward compatibility."
+    },
+    {
+      "fingerprint": "b940ee0bd19c0fdf",
+      "kind": "code",
+      "line": 270,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Project phase_beat_policy into the legacy scene-guidance shape."
+    },
+    {
+      "fingerprint": "513486037bf269fc",
+      "kind": "code",
+      "line": 334,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Project phase_beat_policy phases into the legacy scene_phases shape.\"\"\""
+    }
+  ],
+  "unregistered_count": 11
+}

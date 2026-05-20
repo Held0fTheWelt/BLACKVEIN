@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     clear_goc_yaml_slice_cache,
     load_goc_apartment_layout_yaml,
     load_goc_scene_affordances_block,

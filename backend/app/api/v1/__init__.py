@@ -4,7 +4,7 @@ from importlib import import_module
 import time
 import sys
 
-from app.services.user_service import update_user_last_seen
+from app.services.identity.user_service import update_user_last_seen
 from app.observability.trace import (
     LANGFUSE_TRACE_ID,
     TRACE_ID,

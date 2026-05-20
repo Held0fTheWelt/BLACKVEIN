@@ -8,7 +8,7 @@ from ai_stack.contracts.expectation_variation_contracts import (
     EXPECTATION_VARIATION_SCHEMA_VERSION,
     normalize_expectation_variation_policy,
 )
-from ai_stack.expectation_variation_engine import (
+from ai_stack.story_runtime.narrative.expectation_variation_engine import (
     build_expectation_variation_aspect_record,
     compact_expectation_variation_context,
     derive_expectation_variation,

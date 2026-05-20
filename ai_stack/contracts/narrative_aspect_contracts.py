@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from ai_stack.narrative_aspect_semantic_classifier import (
+from ai_stack.story_runtime.narrative.narrative_aspect_semantic_classifier import (
     classify_narrative_aspect_semantics,
 )
 

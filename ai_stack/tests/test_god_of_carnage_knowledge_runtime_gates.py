@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_knowledge_runtime_gates import build_knowledge_path_summary
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_knowledge_runtime_gates import build_knowledge_path_summary
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_validation_seam
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     load_goc_hard_forbidden_rules_yaml,
     load_goc_opening_scene_sequence_yaml,
 )

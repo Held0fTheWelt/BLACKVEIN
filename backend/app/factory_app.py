@@ -24,7 +24,7 @@ def create_app(config_object=None, *, testing: bool | None = None):
     configure_app_secrets_jwt_and_logging(app)
 
     init_extensions(app)
-    from app.services.observability_governance_service import init_runtime_governance_storage
+    from app.services.governance.observability_governance_service import init_runtime_governance_storage
 
     init_runtime_governance_storage(app)
 
@@ -35,7 +35,7 @@ def create_app(config_object=None, *, testing: bool | None = None):
 
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 
-    from app.services.play_service_control_service import (
+    from app.services.story_runtime.play_service_control_service import (
         bootstrap_play_service_control,
         validate_play_service_env_pairing,
     )
@@ -55,7 +55,7 @@ def create_app(config_object=None, *, testing: bool | None = None):
 
     init_routing_registry_bootstrap(app)
 
-    from app.services.governance_runtime_service import ensure_governance_baseline
+    from app.services.governance.governance_runtime_service import ensure_governance_baseline
 
     with app.app_context():
         # Ensure all database tables exist before initializing observability
@@ -70,7 +70,7 @@ def create_app(config_object=None, *, testing: bool | None = None):
             app.langfuse_adapter = LangfuseAdapter.get_instance()
 
         try:
-            from app.services.hf_hub_governance_service import sync_hf_token_from_store_to_os_environ
+            from app.services.governance.hf_hub_governance_service import sync_hf_token_from_store_to_os_environ
 
             sync_hf_token_from_store_to_os_environ()
         except Exception as sync_hf_exc:
@@ -107,7 +107,7 @@ def _initialize_observability(app: Flask) -> None:
             return
 
         from app.observability.langfuse_adapter import LangfuseConfig
-        from app.services.observability_governance_service import (
+        from app.services.governance.observability_governance_service import (
             get_observability_config,
             get_observability_credential_for_runtime,
         )
@@ -146,7 +146,7 @@ def _initialize_observability(app: Flask) -> None:
         app.langfuse_adapter = LangfuseAdapter.get_instance(config)
         print("[INFO] Langfuse observability initialized and ready")
         try:
-            from app.services.observability_governance_service import (
+            from app.services.governance.observability_governance_service import (
                 run_startup_observability_health_check,
             )
 

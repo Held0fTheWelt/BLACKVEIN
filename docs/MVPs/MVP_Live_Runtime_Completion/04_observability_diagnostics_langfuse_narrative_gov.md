@@ -658,7 +658,7 @@ def classify_scene_intent(state):
 **Why**: LangGraph agents are essential to World of Shadows logic; visualization enables debugging
 
 **Implementation**:
-- `ai_stack/narrative_runtime_agent.py`: Add `@observe()` to LangGraph nodes
+- `ai_stack/story_runtime/narrative_runtime_agent.py`: Add `@observe()` to LangGraph nodes
 - `ai_stack/live_dramatic_scene_simulator.py`: Same for LDSS nodes
 - Langfuse SDK handles graph inference automatically (from observation nesting)
 - Tests: Verify agent graphs render in Langfuse dashboard
@@ -871,7 +871,7 @@ with langfuse_context.set_attributes(
 | Langfuse API Key | ✅ Connected | .env |
 | Langfuse Adapter | ✅ Built | `backend/app/observability/langfuse_adapter.py` |
 | Trace Context | ✅ Built | `world-engine/app/observability/trace.py` |
-| NarrativeRuntimeAgent | ✅ Has flag | `ai_stack/narrative_runtime_agent.py` |
+| NarrativeRuntimeAgent | ✅ Has flag | `ai_stack/story_runtime/narrative_runtime_agent.py` |
 | Trace Scaffold Tests | ✅ Passing | `ai_stack/tests/test_narrative_runtime_agent.py` |
 | **Ready to instrument**: Yes | | LDSS, NRA, HTTP handler, story manager |
 
@@ -903,7 +903,7 @@ Three critical architectural decisions for Langfuse/DiagnosticsEnvelope integrat
   - Admin-Tool UI warns: "Debug payload contains sensitive data. Access is logged and audited."
 
 **Implementation**:
-- `ai_stack/diagnostics_envelope.py`: Add `debug_payload: Optional[dict]` field
+- `ai_stack/telemetry/diagnostics_envelope.py`: Add `debug_payload: Optional[dict]` field
 - `world-engine/app/api/http.py`: Build both strict and unredacted versions, store unredacted in debug_payload
 - `administration-tool/templates/manage/diagnostics/`: Add Super-Admin section for debug payload access
 - Audit: `backend/app/auth/admin_security.py` logs all debug_payload access
@@ -952,7 +952,7 @@ Three critical architectural decisions for Langfuse/DiagnosticsEnvelope integrat
 - `backend/app/runtime/runtime_models.py`: Update `DegradedMarker` enum to include severity
 - `world-engine/app/story_runtime/manager.py`: Collect marker events with timestamps during turn execution
 - `world-engine/app/api/http.py`: Build degradation_timeline from marker events, compute quality_class from highest severity
-- `ai_stack/diagnostics_envelope.py`: `degradation_timeline: list[DegradationEvent]` field
+- `ai_stack/telemetry/diagnostics_envelope.py`: `degradation_timeline: list[DegradationEvent]` field
 
 ### 9. Audit Trail for Override Operations (DECIDED: Option D)
 

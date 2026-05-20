@@ -6,7 +6,7 @@ from ai_stack.contracts.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING,
     NARRATIVE_MOMENTUM_SCHEMA_VERSION,
 )
-from ai_stack.narrative_momentum_engine import (
+from ai_stack.story_runtime.narrative.narrative_momentum_engine import (
     compact_narrative_momentum_context,
     derive_narrative_momentum,
     validate_narrative_momentum_realization,

@@ -22,7 +22,7 @@ from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import (
     repro_metadata_complete,
     strip_director_overwrites_from_structured_output,
 )
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     cached_goc_yaml_title,
     clear_goc_yaml_slice_cache,
     detect_builtin_yaml_title_conflict,

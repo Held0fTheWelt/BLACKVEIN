@@ -4,14 +4,14 @@ G4).
 
 Machine-readable source of truth for frozen subdecision labels and G4
 seam metadata. Must stay consistent with ``ai_stack.story_runtime.director.god_of_carnage_scene_director``
-and ``ai_stack.god_of_carnage_frozen_vocabulary``.
+and ``ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Final
 
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     CONTINUITY_CLASSES,
     PACING_MODES,
     SCENE_FUNCTIONS,

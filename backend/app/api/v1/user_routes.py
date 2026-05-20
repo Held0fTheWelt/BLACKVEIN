@@ -19,7 +19,7 @@ from app.auth.admin_security import admin_security, admin_security_sensitive
 from app.extensions import limiter, db
 from app.models.user import SUPERADMIN_THRESHOLD
 from app.services import log_activity
-from app.services.user_service import (
+from app.services.identity.user_service import (
     ban_user as ban_user_service,
     change_password as change_password_service,
     get_user_by_id,

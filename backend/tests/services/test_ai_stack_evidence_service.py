@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import json
 import pytest
 
-from app.services.ai_stack_evidence_service import (
+from app.services.ai_stack.ai_stack_evidence_service import (
     _summarize_tool_influence,
     _retrieval_influence_from_turn,
     _committed_narrative_surface,
@@ -21,7 +21,7 @@ from app.services.ai_stack_evidence_service import (
     _latest_improvement_package,
     build_release_readiness_report,
 )
-from app.services.game_service import GameServiceError
+from app.services.game.game_service import GameServiceError
 
 
 class TestSummarizeToolInfluence:
@@ -112,7 +112,7 @@ class TestRetrievalInfluenceFromTurn:
     def test_retrieval_influence_empty_turn(self):
         """Test with turn without retrieval."""
         turn = {}
-        with patch("app.services.ai_stack_evidence_service.build_retrieval_trace") as mock_trace:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.build_retrieval_trace") as mock_trace:
             mock_trace.return_value = {
                 "domain": "test_domain",
                 "profile": "test_profile",
@@ -130,7 +130,7 @@ class TestRetrievalInfluenceFromTurn:
                 "hits": [{"id": "hit1"}],
             }
         }
-        with patch("app.services.ai_stack_evidence_service.build_retrieval_trace") as mock_trace:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.build_retrieval_trace") as mock_trace:
             mock_trace.return_value = {
                 "domain": "live",
                 "profile": "full",
@@ -480,7 +480,7 @@ class TestWritersRoomGovernanceSignals:
                 "evidence_strength": "strong",
             },
         }
-        with patch("app.services.ai_stack_evidence_service._retrieval_tier_strong_enough_for_governance") as mock_strong:
+        with patch("app.services.ai_stack.ai_stack_evidence_service._retrieval_tier_strong_enough_for_governance") as mock_strong:
             mock_strong.return_value = True
             result = _writers_room_governance_signals(review)
             assert result["review_id"] == "review-123"
@@ -518,8 +518,8 @@ class TestSessionEvidenceBundle:
     def test_assemble_session_evidence_bundle_no_session(self):
         """Missing World-Engine story session returns not-found evidence."""
         with (
-            patch("app.services.ai_stack_evidence_service.get_story_state") as mock_state,
-            patch("app.services.ai_stack_evidence_service.get_story_diagnostics") as mock_diag,
+            patch("app.services.ai_stack.ai_stack_evidence_service.get_story_state") as mock_state,
+            patch("app.services.ai_stack.ai_stack_evidence_service.get_story_diagnostics") as mock_diag,
         ):
             mock_state.side_effect = GameServiceError(
                 "Story session not found",
@@ -541,7 +541,7 @@ class TestSessionEvidenceBundle:
 
     def test_build_session_evidence_bundle(self):
         """Test wrapper function."""
-        with patch("app.services.ai_stack_evidence_service.assemble_session_evidence_bundle") as mock_assemble:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.assemble_session_evidence_bundle") as mock_assemble:
             mock_assemble.return_value = {"bundle": "data"}
 
             result = build_session_evidence_bundle(
@@ -557,14 +557,14 @@ class TestLatestReviewAndPackage:
 
     def test_latest_writers_room_review_no_dir(self):
         """Test when writers room directory doesn't exist."""
-        with patch("app.services.ai_stack_evidence_service.Path") as mock_path:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.Path") as mock_path:
             mock_path.return_value.exists.return_value = False
             result = _latest_writers_room_review()
             assert result is None
 
     def test_latest_writers_room_review_no_files(self):
         """Test when no JSON files exist."""
-        with patch("app.services.ai_stack_evidence_service.Path") as mock_path:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.Path") as mock_path:
             mock_root = MagicMock()
             mock_root.exists.return_value = True
             mock_root.glob.return_value = []
@@ -581,15 +581,15 @@ class TestLatestReviewAndPackage:
 
     def test_latest_improvement_package_empty(self):
         """Test when no packages exist."""
-        with patch("app.services.ai_stack_evidence_service.list_recommendation_packages") as mock_list:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.list_recommendation_packages") as mock_list:
             mock_list.return_value = []
             result = _latest_improvement_package()
             assert result is None
 
     def test_latest_improvement_package_found(self):
         """Test finding latest package."""
-        with patch("app.services.ai_stack_evidence_service.list_recommendation_packages") as mock_list:
-            with patch("app.services.ai_stack_evidence_service._improvement_package_recency_timestamp") as mock_ts:
+        with patch("app.services.ai_stack.ai_stack_evidence_service.list_recommendation_packages") as mock_list:
+            with patch("app.services.ai_stack.ai_stack_evidence_service._improvement_package_recency_timestamp") as mock_ts:
                 pkg1 = {"generated_at": "2026-01-01T00:00:00Z"}
                 pkg2 = {"generated_at": "2026-01-15T00:00:00Z"}
                 mock_list.return_value = [pkg1, pkg2]
@@ -604,9 +604,9 @@ class TestBuildReleaseReadinessReport:
 
     def test_build_release_readiness_report(self):
         """Test building release readiness report."""
-        with patch("app.services.ai_stack_evidence_service._latest_writers_room_review") as mock_wr:
-            with patch("app.services.ai_stack_evidence_service._latest_improvement_package") as mock_pkg:
-                with patch("app.services.ai_stack_release_readiness_report.build_release_readiness_report_payload") as mock_payload:
+        with patch("app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review") as mock_wr:
+            with patch("app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package") as mock_pkg:
+                with patch("app.services.ai_stack.ai_stack_release_readiness_report.build_release_readiness_report_payload") as mock_payload:
                     mock_wr.return_value = None
                     mock_pkg.return_value = None
                     mock_payload.return_value = {"report": "data"}

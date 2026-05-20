@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.god_of_carnage_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache
 
 
 @pytest.fixture(autouse=True)

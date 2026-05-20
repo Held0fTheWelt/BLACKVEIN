@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from app.extensions import db
 from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
-from app.services.observability_governance_service import (
+from app.services.governance.observability_governance_service import (
     _candidate_langfuse_base_urls,
     _resolve_langfuse_base_url_for_credentials,
     disable_observability,
@@ -444,7 +444,7 @@ class TestObservabilityTestConnectionRoute:
 
     def test_test_connection_returns_envelope_not_500(self, client, admin_jwt, monkeypatch):
         monkeypatch.setattr(
-            "app.services.observability_governance_service.verify_langfuse_runtime_connectivity",
+            "app.services.governance.observability_governance_service.verify_langfuse_runtime_connectivity",
             lambda **_: {
                 "ok": True,
                 "health_status": "connected",
@@ -470,7 +470,7 @@ class TestServiceLayerFunctions:
         """Auth preflight must not construct a Langfuse SDK client (shutdown deadlock)."""
         import httpx
 
-        from app.services.observability_governance_service import _langfuse_projects_for_host
+        from app.services.governance.observability_governance_service import _langfuse_projects_for_host
 
         class _Resp:
             status_code = 200
@@ -542,7 +542,7 @@ class TestServiceLayerFunctions:
         write_observability_credential(public_key="pk_test", secret_key="sk_test", actor="test")
 
         monkeypatch.setattr(
-            "app.services.observability_governance_service.verify_langfuse_runtime_connectivity",
+            "app.services.governance.observability_governance_service.verify_langfuse_runtime_connectivity",
             lambda **_: {
                 "ok": True,
                 "health_status": "connected",
@@ -572,7 +572,7 @@ class TestServiceLayerFunctions:
         write_observability_credential(public_key="pk-lf-test", secret_key="sk-lf-test", actor="test")
 
         monkeypatch.setattr(
-            "app.services.observability_governance_service._resolve_langfuse_base_url_for_credentials",
+            "app.services.governance.observability_governance_service._resolve_langfuse_base_url_for_credentials",
             lambda **_: (
                 "https://us.cloud.langfuse.com",
                 "Credentials authenticate against https://us.cloud.langfuse.com, but BASE URL is https://cloud.langfuse.com.",
@@ -593,7 +593,7 @@ class TestServiceLayerFunctions:
             return False, [], "[Errno 111] Connection refused"
 
         monkeypatch.setattr(
-            "app.services.observability_governance_service._langfuse_projects_for_host",
+            "app.services.governance.observability_governance_service._langfuse_projects_for_host",
             fake_projects_for_host,
         )
 
@@ -634,7 +634,7 @@ class TestServiceLayerFunctions:
         monkeypatch.setenv("WOS_BACKEND_RUNNING_IN_DOCKER", "1")
         monkeypatch.setenv("LANGFUSE_BASE_URL", "http://langfuse-web:3000")
         monkeypatch.setattr(
-            "app.services.observability_governance_service._langfuse_projects_for_host",
+            "app.services.governance.observability_governance_service._langfuse_projects_for_host",
             fake_projects_for_host,
         )
 
@@ -657,7 +657,7 @@ class TestServiceLayerFunctions:
             return False, [], "Forbidden"
 
         monkeypatch.setattr(
-            "app.services.observability_governance_service._langfuse_projects_for_host",
+            "app.services.governance.observability_governance_service._langfuse_projects_for_host",
             fake_projects_for_host,
         )
 

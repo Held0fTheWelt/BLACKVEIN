@@ -16,7 +16,7 @@ from app.story_runtime.manager import (
     _check_ruhepunkt_signal,
     _process_input_queue,
 )
-from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeEventKind
+from ai_stack.story_runtime.narrative import NarrativeEventKind, NarrativeRuntimeAgent
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ header = '''"""LangGraph runtime: package_output node logic (extracted from lang
 
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_diagnostics_refs, repro_metadata_complete
 from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version, _track

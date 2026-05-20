@@ -1,6 +1,6 @@
 """Phase 2 Stage E — Autonomous Director Tick Coordinator tests.
 
-Covers ``ai_stack/autonomous_tick.py``:
+Covers ``ai_stack/story_runtime/autonomous_tick.py``:
 
 * Feature flag fail-closed semantics
 * Pre-check (``should_emit_autonomous_tick``) enumerates each suppression
@@ -46,7 +46,7 @@ from ai_stack.contracts.director_pulse_contracts import (
     TRIGGER_PLAYER_INPUT,
     TRIGGER_STATE_CHANGE,
 )
-from ai_stack.autonomous_tick import (
+from ai_stack.story_runtime.autonomous_tick import (
     LOOP_STOP_COOLDOWN_ACTIVE,
     LOOP_STOP_DISABLED,
     LOOP_STOP_ELAPSED_INPUT_MISSING,
@@ -706,7 +706,7 @@ class TestADR0039Discipline:
     )
 
     def _source(self) -> str:
-        from ai_stack import autonomous_tick
+        from ai_stack.story_runtime import autonomous_tick
 
         with open(autonomous_tick.__file__, "r", encoding="utf-8") as fh:
             return fh.read()

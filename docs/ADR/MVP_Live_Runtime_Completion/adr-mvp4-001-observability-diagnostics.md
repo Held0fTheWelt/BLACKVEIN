@@ -66,7 +66,7 @@ MVP3 established the Live Dramatic Scene Simulator (LDSS) as the core narrative 
 
 | Service | File | Change |
 |---------|------|--------|
-| ai_stack | `ai_stack/diagnostics_envelope.py` | Add DegradationEvent, extend DiagnosticsEnvelope, implement to_response() |
+| ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Add DegradationEvent, extend DiagnosticsEnvelope, implement to_response() |
 | world-engine | `world-engine/app/story_runtime/manager.py` | Collect degradation_events during turn execution |
 | world-engine | `world-engine/app/api/http.py` | Call `to_response(context="operator")` in HTTP responses |
 | backend | `backend/app/observability/langfuse_adapter.py` | Phase B: fill cost_summary with real values |

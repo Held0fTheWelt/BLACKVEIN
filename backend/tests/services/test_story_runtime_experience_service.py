@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.governance_runtime_service import (
+from app.services.governance.governance_runtime_service import (
     build_resolved_runtime_config,
     ensure_governance_baseline,
 )
-from app.services.story_runtime_experience_service import (
+from app.services.story_runtime.story_runtime_experience_service import (
     build_story_runtime_experience_truth_surface,
     get_story_runtime_experience_settings,
     seed_default_story_runtime_experience,

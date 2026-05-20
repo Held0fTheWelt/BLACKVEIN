@@ -8,8 +8,8 @@ from app.config.route_constants import route_auth_config, route_status_codes, ro
 from app.extensions import limiter, db
 from app.models import User
 from app.services import create_user, log_activity
-from app.services.token_service import refresh_access_token, revoke_user_tokens
-from app.services.user_service import (
+from app.services.identity.token_service import refresh_access_token, revoke_user_tokens
+from app.services.identity.user_service import (
     create_email_verification_token,
     validate_password_complexity,
     create_password_reset_token,
@@ -17,7 +17,7 @@ from app.services.user_service import (
     get_user_by_email,
     validate_email_format,
 )
-from app.services.mail_service import send_verification_email, send_password_reset_email
+from app.services.identity.mail_service import send_verification_email, send_password_reset_email
 from app.utils.error_handler import log_full_error, ERROR_MESSAGES
 
 

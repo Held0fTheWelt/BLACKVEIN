@@ -1,4 +1,4 @@
-"""Tests for app.services.game_content_service and role_service (admin roles)."""
+"""Tests for app.services.game.game_content_service and role_service (admin roles)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import GameExperienceTemplate, Role, User
-from app.services.game_content_service import (
+from app.services.game.game_content_service import (
     CONTENT_LIFECYCLE_APPROVED,
     CONTENT_LIFECYCLE_DRAFT,
     CONTENT_LIFECYCLE_PUBLISHED,
@@ -34,7 +34,7 @@ from app.services.game_content_service import (
     unpublish_experience,
     update_experience,
 )
-from app.services.role_service import create_role, delete_role, list_roles, update_role, validate_role_name
+from app.services.identity.role_service import create_role, delete_role, list_roles, update_role, validate_role_name
 
 pytestmark = [pytest.mark.services, pytest.mark.content]
 

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ai_stack.contracts.dramatic_effect_contract import SemanticPlannerSupportLevel
-from app.services.inspector_turn_projection_sections_semantic import (
+from app.services.inspector.inspector_turn_projection_sections_semantic import (
     build_semantic_decision_flow,
     support_posture,
 )
@@ -15,8 +15,8 @@ class TestSupportPosture:
 
     def test_support_posture_valid_module_full_goc(self):
         """Test support posture for valid full GoC module."""
-        with patch("app.services.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
-            with patch("app.services.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
+        with patch("app.services.inspector.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
+            with patch("app.services.inspector.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
                 mock_level.return_value = SemanticPlannerSupportLevel.full_goc
                 mock_evaluator = MagicMock()
                 mock_evaluator.__class__.__name__ = "GoCAffectEvaluator"
@@ -31,8 +31,8 @@ class TestSupportPosture:
 
     def test_support_posture_valid_module_non_goc_waived(self):
         """Test support posture for valid non-GoC waived module."""
-        with patch("app.services.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
-            with patch("app.services.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
+        with patch("app.services.inspector.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
+            with patch("app.services.inspector.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
                 mock_level.return_value = SemanticPlannerSupportLevel.non_goc_waived
                 mock_evaluator = MagicMock()
                 mock_evaluator.__class__.__name__ = "CanonicalEvaluator"
@@ -46,8 +46,8 @@ class TestSupportPosture:
 
     def test_support_posture_with_whitespace(self):
         """Test support posture with module_id containing whitespace."""
-        with patch("app.services.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
-            with patch("app.services.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
+        with patch("app.services.inspector.inspector_turn_projection_sections_semantic.support_level_for_module") as mock_level:
+            with patch("app.services.inspector.inspector_turn_projection_sections_semantic.resolve_dramatic_effect_evaluator") as mock_eval:
                 mock_level.return_value = SemanticPlannerSupportLevel.full_goc
                 mock_eval.return_value = MagicMock(__class__=MagicMock(__name__="Evaluator"))
 

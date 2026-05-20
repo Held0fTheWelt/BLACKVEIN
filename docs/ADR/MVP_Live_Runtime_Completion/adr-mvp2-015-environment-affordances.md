@@ -36,7 +36,7 @@ Environment state is therefore a projection of admitted/canonical environment tr
 - `world-engine/app/runtime/models.py` — `ObjectAdmissionRecord`, `VALID_SOURCE_KINDS`
 - `world-engine/app/runtime/object_admission.py` — `admit_object()`, `validate_object_admission()`
 - `ai_stack/contracts/environment_state_contracts.py` — canonical `EnvironmentModel` / durable `EnvironmentState` helpers
-- `ai_stack/player_action_resolution.py` — action affordance context bound to current environment state
+- `ai_stack/story_runtime/player_action_resolution.py` — action affordance context bound to current environment state
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — environment state initialization, generation context, commit-time mutation, render context
 - `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — render support marker for bound environment state
 - `world-engine/app/story_runtime/manager.py` — `StorySession.environment_state` persistence and get-state diagnostics

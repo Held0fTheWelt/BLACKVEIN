@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     CONTINUITY_CLASSES,
     FAILURE_CLASSES,
     GATE_FAMILIES,

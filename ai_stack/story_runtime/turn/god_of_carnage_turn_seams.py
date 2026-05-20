@@ -9,12 +9,12 @@ import json
 import re
 from typing import Any
 
-from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
-from ai_stack.god_of_carnage_field_initialization_envelope import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_field_initialization_envelope import (
     SETTER_SURFACE_RUNTIME_HOST_SESSION,
     goc_uninitialized_field_envelope,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     DIRECTOR_IMMUTABLE_FIELDS,
     GOC_MODULE_ID,
     assert_transition_pattern,
@@ -22,13 +22,13 @@ from ai_stack.god_of_carnage_frozen_vocabulary import (
     expand_goc_actor_id_aliases,
 )
 from ai_stack.story_runtime.npc_agency.god_of_carnage_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     goc_actor_display_name,
     goc_actor_identity,
     select_goc_director_surface_hints_for_turn,
     thin_edge_staging_line_from_guidance,
 )
-from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from ai_stack.story_runtime.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams_validation import (
     GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT,
     _apply_w5_validation_to_outcome,

@@ -56,7 +56,7 @@ def _goc_actor_ids_from_docs(docs: dict[str, dict[str, Any]]) -> list[str]:
 
 def _goc_content_fallback_from_module_authority() -> tuple[list[str], str]:
     try:
-        from ai_stack.god_of_carnage_yaml_authority import goc_module_yaml_dir
+        from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import goc_module_yaml_dir
 
         docs, content_hash = _load_goc_character_documents_from_root(goc_module_yaml_dir().parents[2])
         return _goc_actor_ids_from_docs(docs), content_hash
@@ -104,7 +104,7 @@ def _resolve_goc_content(*, allow_fallback: bool = False) -> tuple[list[str], st
 
 def _build_selectable_roles(actor_ids: list[str]) -> list[dict[str, str]]:
     """Build selectable player roles from content-resolved actor IDs."""
-    from ai_stack.god_of_carnage_yaml_authority import goc_actor_identity
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import goc_actor_identity
 
     out: list[dict[str, str]] = []
     for actor_id in actor_ids:

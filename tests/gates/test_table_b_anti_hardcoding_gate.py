@@ -183,9 +183,9 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/contracts/narrative_momentum_contracts.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/contracts/scene_energy_contracts.py",
-    "ai_stack/scene_energy_engine.py",
+    "ai_stack/story_runtime/narrative/scene_energy_engine.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "backend/app/services/inspector_turn_projection_sections_assembly_filled.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
@@ -195,11 +195,11 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/contracts/director_pulse_contracts.py",
     "ai_stack/story_runtime/director/director_pulse_shadow.py",
     "ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py",
-    "ai_stack/block_stream_dual_mode.py",
-    "ai_stack/stream_readiness.py",
+    "ai_stack/story_runtime/block_stream_dual_mode.py",
+    "ai_stack/story_runtime/stream_readiness.py",
     # Phase 2 Stage M — Follow-up composition consumes scene_energy as a
     # semantic capability input for the NPC reply provider (ADR-0058 §Stage M).
-    "ai_stack/ws_session_loop.py",
+    "ai_stack/story_runtime/ws_session_loop.py",
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
@@ -207,26 +207,26 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/capabilities/capability_validator_dispatch.py",
     "ai_stack/capabilities/capability_validator_plan.py",
     "ai_stack/contracts/information_disclosure_contracts.py",
-    "ai_stack/information_disclosure_engine.py",
+    "ai_stack/story_runtime/narrative/information_disclosure_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Stage M — Follow-up composition enforces information_disclosure
     # gate on generated NPC reply text (ADR-0058 §Stage M).
-    "ai_stack/ws_session_loop.py",
+    "ai_stack/story_runtime/ws_session_loop.py",
 }
 
 EXPECTATION_VARIATION_CANONICAL_SURFACES = {
     "ai_stack/contracts/expectation_variation_contracts.py",
-    "ai_stack/expectation_variation_engine.py",
+    "ai_stack/story_runtime/narrative/expectation_variation_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/contracts/narrative_momentum_contracts.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -238,8 +238,8 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/contracts/narrative_momentum_contracts.py",
-    "ai_stack/narrative_momentum_engine.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/narrative/narrative_momentum_engine.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -248,8 +248,8 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "ai_stack/contracts/director_pulse_contracts.py",
     "ai_stack/story_runtime/director/director_pulse_shadow.py",
     "ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py",
-    "ai_stack/block_stream_dual_mode.py",
-    "ai_stack/stream_readiness.py",
+    "ai_stack/story_runtime/block_stream_dual_mode.py",
+    "ai_stack/story_runtime/stream_readiness.py",
 }
 
 PACING_RHYTHM_CANONICAL_SURFACES = {
@@ -260,8 +260,8 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/module_runtime_policy.py",
     "ai_stack/contracts/narrative_momentum_contracts.py",
     "ai_stack/contracts/pacing_rhythm_contracts.py",
-    "ai_stack/pacing_rhythm_engine.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/narrative/pacing_rhythm_engine.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -270,9 +270,9 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/contracts/director_pulse_contracts.py",
     "ai_stack/story_runtime/director/director_pulse_shadow.py",
     # Phase 2 Stage E — Autonomous Director tick consults pacing_rhythm for cooldown
-    "ai_stack/autonomous_tick.py",
+    "ai_stack/story_runtime/autonomous_tick.py",
     # Phase 2 Stage F — Director policy/source classifier reads pacing_rhythm policy
-    "ai_stack/stream_readiness.py",
+    "ai_stack/story_runtime/stream_readiness.py",
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
@@ -283,9 +283,9 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/contracts/sensory_context_contracts.py",
-    "ai_stack/sensory_context_engine.py",
+    "ai_stack/story_runtime/narrative/sensory_context_engine.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -300,7 +300,7 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "story_runtime_core/consequences/__init__.py",
     "story_runtime_core/consequences/consequence_cascade.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
@@ -315,10 +315,10 @@ TEMPORAL_CONTROL_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "ai_stack/contracts/temporal_control_contracts.py",
-    "ai_stack/temporal_control_engine.py",
+    "ai_stack/story_runtime/narrative/temporal_control_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
@@ -326,11 +326,11 @@ TEMPORAL_CONTROL_CANONICAL_SURFACES = {
 
 IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
     "ai_stack/contracts/improvisational_coherence_contracts.py",
-    "ai_stack/improvisational_coherence_engine.py",
+    "ai_stack/story_runtime/narrative/improvisational_coherence_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -339,9 +339,9 @@ META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/contracts/meta_narrative_awareness_contracts.py",
-    "ai_stack/meta_narrative_awareness_engine.py",
+    "ai_stack/story_runtime/narrative/meta_narrative_awareness_engine.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_experience.py",
 }
 
@@ -349,9 +349,9 @@ SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/contracts/symbolic_object_resonance_contracts.py",
-    "ai_stack/symbolic_object_resonance_engine.py",
+    "ai_stack/story_runtime/narrative/symbolic_object_resonance_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
@@ -360,11 +360,11 @@ SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
 GENRE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/capabilities/capability_selector.py",
     "ai_stack/contracts/genre_awareness_contracts.py",
-    "ai_stack/genre_awareness_engine.py",
+    "ai_stack/story_runtime/narrative/genre_awareness_engine.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/commit_models.py",
@@ -375,13 +375,13 @@ TONAL_CONSISTENCY_CANONICAL_SURFACES = {
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
     "ai_stack/langgraph/langgraph_runtime_state.py",
-    "ai_stack/live_runtime_commit_semantics.py",
+    "ai_stack/story_runtime/live_runtime_commit_semantics.py",
     "ai_stack/module_runtime_policy.py",
-    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime/runtime_aspect_ledger.py",
     "ai_stack/story_runtime/story_runtime_playability.py",
-    "ai_stack/tonal_consistency_classifier.py",
+    "ai_stack/story_runtime/narrative/tonal_consistency_classifier.py",
     "ai_stack/contracts/tonal_consistency_contracts.py",
-    "ai_stack/tonal_consistency_engine.py",
+    "ai_stack/story_runtime/narrative/tonal_consistency_engine.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager/",
 }
@@ -391,18 +391,18 @@ TONAL_CONSISTENCY_CANONICAL_SURFACES = {
 # module-specific legacy seams that must be modularized before Table B rows can
 # honestly move beyond partial/proven status.
 KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
-    "ai_stack/legacy_actor_lane_hydration.py": (
+    "ai_stack/story_runtime/legacy_actor_lane_hydration.py": (
         "GoC-only legacy compatibility shim: hydrates narrative-only model output into "
         "spoken_lines/action_lines when validator floors require actor lanes; not a generic "
         "runtime surface."
     ),
-    "ai_stack/canonical_prompt_catalog.py": "Legacy prompt catalog embeds GoC host/guest footing.",
-    "ai_stack/diagnostics_envelope.py": "Legacy diagnostics defaults still use the GoC live profile.",
+    "ai_stack/prompt_store/catalog.py": "Legacy prompt catalog embeds GoC host/guest footing.",
+    "ai_stack/telemetry/diagnostics_envelope.py": "Legacy diagnostics defaults still use the GoC live profile.",
     "ai_stack/langchain/bridges.py": "Schema descriptions include GoC-flavored examples.",
     "ai_stack/live_dramatic_scene_simulator.py": "LDSS fallback/opening data is still GoC-specific.",
-    "ai_stack/narrative_runtime_agent.py": "Narrator validation examples still mention GoC actors.",
+    "ai_stack/story_runtime/narrative_runtime_agent.py": "Narrator validation examples still mention GoC actors.",
     "ai_stack/contracts/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",
-    "ai_stack/opening_shape_normalizer.py": "Opening-shape compatibility shim still names GoC.",
+    "ai_stack/story_runtime/opening_shape_normalizer.py": "Opening-shape compatibility shim still names GoC.",
     "ai_stack/research/research_fixtures.py": "Research fixture data is intentionally GoC-specific.",
     "ai_stack/contracts/visible_narrative_contract.py": "Visible sanitizer still has GoC actor fallback tokens.",
     "backend/app/api/v1/game_routes.py": "Play handoff compatibility still knows the GoC solo profile.",

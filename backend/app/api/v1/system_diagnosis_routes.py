@@ -9,7 +9,7 @@ from app.auth.feature_registry import FEATURE_MANAGE_SYSTEM_DIAGNOSIS
 from app.auth.permissions import require_feature, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.observability.trace import get_trace_id
-from app.services.system_diagnosis_service import get_system_diagnosis
+from app.services.system.system_diagnosis_service import get_system_diagnosis
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 

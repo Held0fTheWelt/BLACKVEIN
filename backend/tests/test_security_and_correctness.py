@@ -225,11 +225,11 @@ def test_news_update_marks_translations_outdated(app, moderator_headers, client,
 
 def test_verification_email_does_not_log_token(app, caplog, test_user):
     """Regression: send_verification_email must not log raw token or usable activation URL."""
-    from app.services.mail_service import send_verification_email
+    from app.services.identity.mail_service import send_verification_email
     user, _ = test_user
     raw_token = "regression-test-secret-token-xyz"
     with app.test_request_context("http://testserver/"):
-        with caplog.at_level(logging.INFO, logger="app.services.mail_service"):
+        with caplog.at_level(logging.INFO, logger="app.services.identity.mail_service"):
             send_verification_email(user, raw_token)
     log_text = caplog.text
     assert raw_token not in log_text
@@ -238,11 +238,11 @@ def test_verification_email_does_not_log_token(app, caplog, test_user):
 
 def test_password_reset_email_does_not_log_token_or_url(app, caplog, test_user):
     """Regression: send_password_reset_email must not log raw token or usable reset URL."""
-    from app.services.mail_service import send_password_reset_email
+    from app.services.identity.mail_service import send_password_reset_email
     user, _ = test_user
     raw_token = "regression-reset-secret-abc"
     with app.test_request_context("http://testserver/"):
-        with caplog.at_level(logging.INFO, logger="app.services.mail_service"):
+        with caplog.at_level(logging.INFO, logger="app.services.identity.mail_service"):
             send_password_reset_email(user, raw_token)
     log_text = caplog.text
     assert raw_token not in log_text

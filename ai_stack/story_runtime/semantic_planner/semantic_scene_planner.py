@@ -24,7 +24,7 @@ from ai_stack.contracts.dramatic_capability_contracts import (
     NARRATOR_PERCEPTION_RESULT_DESCRIBE,
     NARRATOR_SCENE_CONTEXT_ESTABLISH,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import CONTINUITY_CLASSES, TRANSITION_PATTERNS
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import CONTINUITY_CLASSES, TRANSITION_PATTERNS
 
 SEMANTIC_SCENE_PLANNER_VERSION: Final[str] = "goc_semantic_scene_planner_v1"
 

@@ -9,7 +9,7 @@ from ai_stack.contracts.improvisational_coherence_contracts import (
     IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
     normalize_improvisational_coherence_policy,
 )
-from ai_stack.improvisational_coherence_engine import (
+from ai_stack.story_runtime.narrative.improvisational_coherence_engine import (
     build_improvisational_coherence_aspect_record,
     compact_improvisational_coherence_context,
     derive_improvisational_coherence,

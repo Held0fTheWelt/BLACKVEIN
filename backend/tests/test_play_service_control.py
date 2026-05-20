@@ -10,8 +10,8 @@ import pytest
 
 from app.extensions import db
 from app.models import SiteSetting
-from app.services import play_service_control_service as psc
-from app.services.play_service_control_service import STORAGE_KEY, _empty_document, run_test_persist
+from app.services.story_runtime import play_service_control_service as psc
+from app.services.story_runtime.play_service_control_service import STORAGE_KEY, _empty_document, run_test_persist
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ from typing import Any
 
 from flask import Blueprint, abort, current_app, g, jsonify, render_template, send_file, url_for
 
-from ai_stack.limit_inventory import (
+from ai_stack.quality_lab.limit_inventory import (
     build_mcp_tool_limit_inventory,
     mcp_dispatch_rate_limit_metadata,
     rate_limit_production_tuning_metadata,

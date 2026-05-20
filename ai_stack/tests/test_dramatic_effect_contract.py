@@ -14,7 +14,7 @@ from ai_stack.contracts.dramatic_effect_contract import (
     DramaticEffectTraceItem,
     SemanticPlannerSupportLevel,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface import resolve_dramatic_effect_evaluator, support_level_for_module
 
 

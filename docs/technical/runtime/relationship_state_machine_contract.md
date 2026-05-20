@@ -133,11 +133,11 @@ Forbidden primary oracles:
 ## Implementation Anchors
 
 - `ai_stack/contracts/relationship_state_contracts.py`
-- `ai_stack/relationship_state_engine.py`
+- `ai_stack/story_runtime/narrative/relationship_state_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from app.extensions import db
 from app.models.governance_core import ObservabilityConfig
-from app.services.observability_governance_service import (
+from app.services.governance.observability_governance_service import (
     test_observability_connection as run_observability_connection_test,
     write_observability_credential,
 )
@@ -251,7 +251,7 @@ class TestLangfuseInitializationEndpoint:
         assert resp_data["data"]["is_enabled"] is True
 
         # Verify credentials were stored
-        from app.services.observability_governance_service import get_observability_credential_for_runtime
+        from app.services.governance.observability_governance_service import get_observability_credential_for_runtime
         public_key = get_observability_credential_for_runtime("public_key")
         secret_key = get_observability_credential_for_runtime("secret_key")
 
@@ -311,7 +311,7 @@ class TestLangfuseInitializationEndpoint:
         assert data["initialized"] is False
         assert data["skipped_existing"] is True
 
-        from app.services.observability_governance_service import get_observability_credential_for_runtime
+        from app.services.governance.observability_governance_service import get_observability_credential_for_runtime
 
         assert get_observability_credential_for_runtime("public_key") == "pk_existing"
         assert get_observability_credential_for_runtime("secret_key") == "sk_existing"
@@ -355,7 +355,7 @@ class TestLangfuseInitializationEndpoint:
         assert data["initialized"] is True
         assert "skipped_existing" not in data
 
-        from app.services.observability_governance_service import get_observability_credential_for_runtime
+        from app.services.governance.observability_governance_service import get_observability_credential_for_runtime
 
         assert get_observability_credential_for_runtime("public_key") == "pk_env"
         assert get_observability_credential_for_runtime("secret_key") == "sk_env"
@@ -437,7 +437,7 @@ class TestLangfuseAdapterIntegration:
 
     def test_langfuse_connection(self, db_session, app, monkeypatch):
         """Connection test uses governed backend Langfuse data, not direct Cloud/env fields."""
-        from app.services.observability_governance_service import get_observability_config
+        from app.services.governance.observability_governance_service import get_observability_config
 
         config = ObservabilityConfig(
             service_id="langfuse",
@@ -513,7 +513,7 @@ class TestLangfuseAdapterIntegration:
 
         monkeypatch.setitem(sys.modules, "langfuse", SimpleNamespace(Langfuse=FakeLangfuse))
         monkeypatch.setattr(
-            "app.services.observability_governance_service._resolve_langfuse_base_url_for_credentials",
+            "app.services.governance.observability_governance_service._resolve_langfuse_base_url_for_credentials",
             fake_resolve_base_url,
         )
 

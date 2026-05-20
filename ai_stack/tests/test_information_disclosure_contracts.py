@@ -4,7 +4,7 @@ from ai_stack.contracts.information_disclosure_contracts import (
     INFORMATION_DISCLOSURE_POLICY_VERSION,
     normalize_information_disclosure_policy,
 )
-from ai_stack.information_disclosure_engine import (
+from ai_stack.story_runtime.narrative.information_disclosure_engine import (
     derive_information_disclosure,
     validate_information_disclosure_realization,
 )

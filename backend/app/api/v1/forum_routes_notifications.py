@@ -9,7 +9,7 @@ from app.api.v1 import api_v1_bp
 from app.api.v1.forum_routes_helpers import _parse_int, _require_user
 from app.extensions import db, limiter
 from app.models import Notification
-from app.services.forum_service import get_post_by_id, get_thread_by_id, _utc_now
+from app.services.content.forum_service import get_post_by_id, get_thread_by_id, _utc_now
 
 
 @api_v1_bp.route("/notifications", methods=["GET"])

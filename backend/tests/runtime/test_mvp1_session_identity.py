@@ -30,7 +30,7 @@ class TestGameServiceCreateRun:
 
     def test_create_run_passes_runtime_profile_id_to_play_service(self, app):
         with app.app_context():
-            from app.services.game_service import create_run as svc_create_run
+            from app.services.game.game_service import create_run as svc_create_run
             captured = {}
 
             def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None, langfuse_trace_id=None, timeout_seconds=None):
@@ -42,8 +42,8 @@ class TestGameServiceCreateRun:
                     "hint": "test",
                 }
 
-            with patch("app.services.game_service._request", side_effect=fake_request):
-                with patch("app.services.game_service._parse_create_run_v1", side_effect=lambda x: x):
+            with patch("app.services.game.game_service._request", side_effect=fake_request):
+                with patch("app.services.game.game_service._parse_create_run_v1", side_effect=lambda x: x):
                     svc_create_run(
                         account_id="1",
                         display_name="Test",
@@ -58,7 +58,7 @@ class TestGameServiceCreateRun:
 
     def test_create_run_passes_template_id_when_no_profile(self, app):
         with app.app_context():
-            from app.services.game_service import create_run as svc_create_run
+            from app.services.game.game_service import create_run as svc_create_run
             captured = {}
 
             def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None, langfuse_trace_id=None, timeout_seconds=None):
@@ -70,8 +70,8 @@ class TestGameServiceCreateRun:
                     "hint": "test",
                 }
 
-            with patch("app.services.game_service._request", side_effect=fake_request):
-                with patch("app.services.game_service._parse_create_run_v1", side_effect=lambda x: x):
+            with patch("app.services.game.game_service._request", side_effect=fake_request):
+                with patch("app.services.game.game_service._parse_create_run_v1", side_effect=lambda x: x):
                     svc_create_run(
                         template_id="some_template",
                         account_id="1",

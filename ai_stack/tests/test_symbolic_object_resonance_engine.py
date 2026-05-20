@@ -8,7 +8,7 @@ from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
     normalize_symbolic_object_resonance_policy,
 )
-from ai_stack.symbolic_object_resonance_engine import (
+from ai_stack.story_runtime.narrative.symbolic_object_resonance_engine import (
     build_symbolic_object_resonance_aspect_record,
     compact_symbolic_object_resonance_context,
     derive_symbolic_object_resonance,

@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from ai_stack.god_of_carnage_frozen_vocabulary import SILENCE_BREVITY_MODES
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import SILENCE_BREVITY_MODES
 
 SILENCE_NEGATIVE_SPACE_CONTRACT_VERSION = "silence_negative_space.v1"
 

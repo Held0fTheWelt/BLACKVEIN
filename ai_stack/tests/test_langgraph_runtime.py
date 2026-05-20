@@ -27,7 +27,7 @@ from ai_stack.contracts.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     EXECUTION_HEALTH_VALUES,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_BROAD_NLU_LISTENING,

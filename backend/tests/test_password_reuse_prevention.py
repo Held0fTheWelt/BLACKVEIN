@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.extensions import db
 from app.models import User, Role
-from app.services.user_service import change_password, create_user
+from app.services.identity.user_service import change_password, create_user
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ Tests for canonical prompt catalog - game-specific LLM prompts.
 """
 
 import pytest
-from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
 
 class MockOperationalProfile:

@@ -235,7 +235,7 @@ def test_game_admin_create_experience_errors(client, moderator_headers, monkeypa
 
 
 def test_game_admin_runtime_game_service_error(client, moderator_headers, monkeypatch):
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     def err():
         raise GameServiceError('play down', status_code=503)
@@ -246,7 +246,7 @@ def test_game_admin_runtime_game_service_error(client, moderator_headers, monkey
 
 
 def test_game_admin_get_experience_404(client, moderator_headers, monkeypatch):
-    from app.services.game_content_service import GameContentNotFoundError
+    from app.services.game.game_content_service import GameContentNotFoundError
 
     def boom(_id, include_payload=True):
         raise GameContentNotFoundError("missing")
@@ -279,7 +279,7 @@ def test_game_admin_publish_404(client, moderator_headers, monkeypatch):
 
 
 def test_game_admin_runtime_detail_transcript_terminate_errors(client, moderator_headers, monkeypatch):
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     monkeypatch.setattr("app.api.v1.game_admin_routes.list_play_runs", lambda: [])
     monkeypatch.setattr(

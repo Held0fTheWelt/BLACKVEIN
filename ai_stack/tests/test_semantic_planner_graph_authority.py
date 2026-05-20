@@ -14,7 +14,7 @@ langgraph_runtime = pytest.importorskip("ai_stack.langgraph.langgraph_runtime", 
 from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
     initialize_runtime_aspect_ledger,

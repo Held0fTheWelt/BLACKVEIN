@@ -7,7 +7,7 @@ from app.extensions import limiter, db
 from app.i18n import normalize_language, validate_language_code
 from app.services import log_activity
 from app.models import WikiPage, ForumThread
-from app.services.wiki_service import (
+from app.services.content.wiki_service import (
     approve_wiki_translation,
     create_wiki_page,
     get_wiki_page_by_id,

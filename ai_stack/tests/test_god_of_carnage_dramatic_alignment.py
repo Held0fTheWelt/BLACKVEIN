@@ -1,7 +1,7 @@
 # ai_stack/tests/test_god_of_carnage_dramatic_alignment.py
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_dramatic_alignment import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import (
     _FUNCTION_SUBSTRING_TOKENS,
     _MIN_CHARS_HIGH_STAKES,
     _MIN_CHARS_WITHHELD_OR_THIN,
@@ -65,13 +65,13 @@ def test_establish_pressure_has_tension_tokens() -> None:
 
 
 def test_extract_proposed_narrative_text_empty_list() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
     result = extract_proposed_narrative_text([])
     assert result == ""
 
 
 def test_extract_proposed_narrative_text_valid_descriptions() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
     proposed = [
         {"description": "The character speaks."},
         {"description": "The other replies."}
@@ -82,7 +82,7 @@ def test_extract_proposed_narrative_text_valid_descriptions() -> None:
 
 
 def test_extract_proposed_narrative_text_skips_non_string_descriptions() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
     proposed = [
         {"description": "Valid text"},
         {"description": None},
@@ -94,7 +94,7 @@ def test_extract_proposed_narrative_text_skips_non_string_descriptions() -> None
 
 
 def test_extract_proposed_narrative_text_skips_non_dict_items() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
     proposed = [
         {"description": "First"},
         "not a dict",
@@ -106,31 +106,31 @@ def test_extract_proposed_narrative_text_skips_non_dict_items() -> None:
 
 
 def test_silence_mode_with_valid_dict() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import _silence_mode
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import _silence_mode
     result = _silence_mode({"mode": "withheld"})
     assert result == "withheld"
 
 
 def test_silence_mode_with_none() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import _silence_mode
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import _silence_mode
     result = _silence_mode(None)
     assert result == "normal"
 
 
 def test_silence_mode_with_non_dict() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import _silence_mode
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import _silence_mode
     result = _silence_mode("invalid")
     assert result == "normal"
 
 
 def test_silence_mode_missing_mode_key() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import _silence_mode
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import _silence_mode
     result = _silence_mode({})
     assert result == "normal"
 
 
 def test_dramatic_alignment_structural_fallback_withhold_or_evade_too_short() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
@@ -141,7 +141,7 @@ def test_dramatic_alignment_structural_fallback_withhold_or_evade_too_short() ->
 
 
 def test_dramatic_alignment_structural_fallback_withhold_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
@@ -152,7 +152,7 @@ def test_dramatic_alignment_structural_fallback_withhold_valid() -> None:
 
 
 def test_dramatic_alignment_structural_fallback_withhold_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="withhold_or_evade",
         pacing_mode="normal",
@@ -163,7 +163,7 @@ def test_dramatic_alignment_structural_fallback_withhold_meta_commentary() -> No
 
 
 def test_dramatic_alignment_structural_fallback_thin_insufficient_mass() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="thin_edge",
@@ -174,7 +174,7 @@ def test_dramatic_alignment_structural_fallback_thin_insufficient_mass() -> None
 
 
 def test_dramatic_alignment_structural_fallback_brief_mode_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
@@ -185,7 +185,7 @@ def test_dramatic_alignment_structural_fallback_brief_mode_valid() -> None:
 
 
 def test_dramatic_alignment_structural_fallback_non_high_stakes_short() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
@@ -196,7 +196,7 @@ def test_dramatic_alignment_structural_fallback_non_high_stakes_short() -> None:
 
 
 def test_dramatic_alignment_structural_fallback_non_high_stakes_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",
         pacing_mode="normal",
@@ -207,7 +207,7 @@ def test_dramatic_alignment_structural_fallback_non_high_stakes_valid() -> None:
 
 
 def test_dramatic_alignment_structural_fallback_high_stakes_insufficient_mass() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
@@ -218,7 +218,7 @@ def test_dramatic_alignment_structural_fallback_high_stakes_insufficient_mass() 
 
 
 def test_dramatic_alignment_structural_fallback_high_stakes_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
@@ -229,7 +229,7 @@ def test_dramatic_alignment_structural_fallback_high_stakes_meta_commentary() ->
 
 
 def test_dramatic_alignment_structural_fallback_high_stakes_valid() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="escalate_conflict",
         pacing_mode="normal",
@@ -240,7 +240,7 @@ def test_dramatic_alignment_structural_fallback_high_stakes_valid() -> None:
 
 
 def test_dramatic_alignment_structural_fallback_non_high_stakes_meta_commentary() -> None:
-    from ai_stack.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
+    from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import dramatic_alignment_structural_fallback_only
     # Test non-high-stakes function with meta-commentary
     result = dramatic_alignment_structural_fallback_only(
         selected_scene_function="probe_motive",

@@ -12,13 +12,13 @@ from app.contracts.inspector_turn_projection import (
     build_inspector_turn_projection_root,
     make_unavailable_section,
 )
-from app.services.inspector_projection_service import (
+from app.services.inspector.inspector_projection_service import (
     build_inspector_comparison_projection,
     build_inspector_coverage_health_projection,
     build_inspector_provenance_raw_projection,
     build_inspector_timeline_projection,
 )
-from app.services.inspector_turn_projection_service import build_inspector_turn_projection
+from app.services.inspector.inspector_turn_projection_service import build_inspector_turn_projection
 
 
 def _bundle_with_turn() -> dict:
@@ -178,7 +178,7 @@ def test_service_marks_missing_turn_data_as_explicit_unavailable(monkeypatch):
         "degraded_path_signals": [],
     }
     monkeypatch.setattr(
-        "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: bundle,
     )
     payload = build_inspector_turn_projection(session_id="backend-missing", trace_id="trace-missing")
@@ -191,7 +191,7 @@ def test_service_marks_missing_turn_data_as_explicit_unavailable(monkeypatch):
 
 def test_service_preserves_authority_fallback_provenance_and_rejection(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_turn(),
     )
     payload = build_inspector_turn_projection(session_id="backend-sid", trace_id="trace-123")
@@ -235,7 +235,7 @@ def test_endpoint_returns_canonical_projection_shape(client, moderator_headers, 
     story_session_id = "we-inspector-turn"
 
     monkeypatch.setattr(
-        "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: {**_bundle_with_turn(), "session_id": story_session_id},
     )
 
@@ -255,7 +255,7 @@ def test_endpoint_returns_canonical_projection_shape(client, moderator_headers, 
 def test_endpoint_raw_mode_returns_expanded_evidence(client, moderator_headers, monkeypatch):
     story_session_id = "we-inspector-raw"
     monkeypatch.setattr(
-        "app.services.inspector_turn_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: {**_bundle_with_turn(), "session_id": story_session_id},
     )
     response = client.get(
@@ -286,7 +286,7 @@ def test_missing_section_template_uses_unavailable_default():
 
 def test_timeline_includes_semantic_planner_columns(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_turn(),
     )
     payload = build_inspector_timeline_projection(session_id="backend-sid", trace_id="trace-123")
@@ -297,7 +297,7 @@ def test_timeline_includes_semantic_planner_columns(monkeypatch):
 
 def test_timeline_projection_returns_multi_turn_rows(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_two_turns(),
     )
     payload = build_inspector_timeline_projection(session_id="backend-sid", trace_id="trace-123")
@@ -312,7 +312,7 @@ def test_timeline_projection_returns_multi_turn_rows(monkeypatch):
 
 def test_comparison_projection_requires_two_turns(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_turn(),
     )
     payload = build_inspector_comparison_projection(session_id="backend-sid", trace_id="trace-123")
@@ -324,7 +324,7 @@ def test_comparison_projection_requires_two_turns(monkeypatch):
 
 def test_comparison_projection_includes_turn_to_turn_deltas(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_two_turns(),
     )
     payload = build_inspector_comparison_projection(session_id="backend-sid", trace_id="trace-123")
@@ -340,7 +340,7 @@ def test_comparison_projection_includes_turn_to_turn_deltas(monkeypatch):
 
 def test_coverage_health_projection_reports_required_metrics(monkeypatch):
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.build_session_evidence_bundle",
+        "app.services.ai_stack.ai_stack_evidence_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_two_turns(),
     )
     payload = build_inspector_coverage_health_projection(session_id="backend-sid", trace_id="trace-123")
@@ -360,7 +360,7 @@ def test_coverage_health_projection_reports_required_metrics(monkeypatch):
 
 def test_provenance_raw_projection_respects_mode(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_two_turns(),
     )
     canonical = build_inspector_provenance_raw_projection(
@@ -400,7 +400,7 @@ def test_new_inspector_projection_endpoints_are_read_only(client, moderator_head
 def test_new_inspector_projection_endpoints_return_payload(client, moderator_headers, monkeypatch):
     story_session_id = "we-inspector-projection"
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.inspector.inspector_projection_service.build_session_evidence_bundle",
         lambda **_kwargs: {**_bundle_with_two_turns(), "session_id": story_session_id},
     )
 

@@ -8,7 +8,7 @@
 **Core semantic gate implemented; some diagnostics fields and frontend contracts still in progress.**
 
 **Implemented:**
-- `ai_stack/live_runtime_commit_semantics.py`: `evaluate_live_turn_success_gate()` computes `live_success`, `adapter_kind`, `visible_output_present`, `visible_output_count`, `quality_class`, `degradation_signals` per ADR definitions.
+- `ai_stack/story_runtime/live_runtime_commit_semantics.py`: `evaluate_live_turn_success_gate()` computes `live_success`, `adapter_kind`, `visible_output_present`, `visible_output_count`, `quality_class`, `degradation_signals` per ADR definitions.
 - `adapter_kind` classification: `real`, `mock`, `fallback`, `placeholder`.
 - Mock and fallback paths set `live_success=false`; `opening_leniency_approved=True` marks degraded diagnostic commits.
 - §13.5 (Langfuse trace-level scores): `LangfuseAdapter.add_score` emits scores both at observation level and trace level via `create_score(trace_id=...)`. Regression guard in `world-engine/tests/test_trace_middleware.py`.
@@ -737,12 +737,12 @@ A failure of either check is a contract break; passing one but not the other ind
 
 ### 13.8 Actor-lane evidence in trace score metadata
 
-**Problem:** §13.1 mandates `actor_lane=unknown → live_success=false`. That rule is enforced today at the **gate-payload bridge** (`ai_stack/live_runtime_commit_semantics.py:_actor_lane_unknown_flag` and the envelope→payload bridge that materializes `"actor_lane": actor_lane_status or "unknown"`). It is **not** enforceable from a fetched Langfuse trace today, because:
+**Problem:** §13.1 mandates `actor_lane=unknown → live_success=false`. That rule is enforced today at the **gate-payload bridge** (`ai_stack/story_runtime/live_runtime_commit_semantics.py:_actor_lane_unknown_flag` and the envelope→payload bridge that materializes `"actor_lane": actor_lane_status or "unknown"`). It is **not** enforceable from a fetched Langfuse trace today, because:
 
 1. The `actor_lane_safety_pass` score (`world-engine/app/story_runtime/manager.py`, deterministic_scores block) is binary `1.0`/`0.0`. Its metadata only carries `session_id`, `turn_number`, `quality_class`, `degradation_signals` — **not** `actor_lane_validation_status`.
 2. The current accept-set on the producer side is `{"approved", None}`, which silently treats a missing path-summary value as approved.
 3. No span statusMessage emits an `actor_lane=` token that the live-gate regex (`_status_field` in the live-gate test) could parse.
-4. The `traceable_decisions` builder (`ai_stack/diagnostics_envelope.py:build_traceable_decisions`) defensively coerces unknown statuses to `"approved"`, masking the underlying state in any downstream consumer of that field.
+4. The `traceable_decisions` builder (`ai_stack/telemetry/diagnostics_envelope.py:build_traceable_decisions`) defensively coerces unknown statuses to `"approved"`, masking the underlying state in any downstream consumer of that field.
 
 The literal value `"unknown"` exists exactly **once** in the codebase as a materialized string — at the gate-payload bridge — and is therefore never written into a Langfuse trace.
 

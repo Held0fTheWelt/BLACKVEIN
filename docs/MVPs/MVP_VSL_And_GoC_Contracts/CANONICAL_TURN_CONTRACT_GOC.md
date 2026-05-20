@@ -341,7 +341,7 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 
 **`turn_number` (operational).** Do not silently default `turn_number` to `1`. When the host supplies an integer via `RuntimeTurnGraphExecutor.run(..., turn_number=<int>)` (or equivalent session wiring), the projection emits that integer. When not supplied, the Turn Basis uses **`goc_uninitialized_field_envelope_v1`** with `setter_surface: runtime_host_session` (or `admin_control_plane` if session policy is admin-owned) and an `expected_source` that points to the host/session API. **Writers' Room is not** the setter for `turn_number`.
 
-**Implementation helper:** `ai_stack/god_of_carnage_field_initialization_envelope.py` (`goc_uninitialized_field_envelope`, `is_goc_uninitialized_field_envelope`) is the only supported constructor/validator for this envelope.
+**Implementation helper:** `ai_stack/story_runtime/god_of_carnage/god_of_carnage_field_initialization_envelope.py` (`goc_uninitialized_field_envelope`, `is_goc_uninitialized_field_envelope`) is the only supported constructor/validator for this envelope.
 
 ### 8.2 Retrieval record and governance summary (G5)
 

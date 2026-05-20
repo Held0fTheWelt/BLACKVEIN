@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.god_of_carnage_yaml_authority import goc_actor_display_name, goc_actor_identity
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import goc_actor_display_name, goc_actor_identity
 
 GOD_OF_CARNAGE_MODULE_ID = "god_of_carnage"
 

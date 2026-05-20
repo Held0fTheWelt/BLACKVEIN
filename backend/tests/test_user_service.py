@@ -13,8 +13,8 @@ from app.extensions import db
 from app.models import NewsArticle, Role, User
 from app.models.email_verification_token import PURPOSE_ACTIVATION
 from app.models.password_reset_token import PasswordResetToken
-from app.services import user_service as us
-from app.services.user_service import *
+from app.services.identity import user_service as us
+from app.services.identity.user_service import *
 
 # Fixtures from conftest.py
 # - app: Flask test app
@@ -31,41 +31,41 @@ from app.services.user_service import *
 
 def test_validate_password_valid(app):
     """Valid password passes validation."""
-    from app.services.user_service import validate_password
+    from app.services.identity.user_service import validate_password
     result = validate_password("ValidPass123")
     assert result is None  # None means valid
 
 def test_validate_password_invalid_length(app):
     """Short password fails validation."""
-    from app.services.user_service import validate_password
+    from app.services.identity.user_service import validate_password
     result = validate_password("Short1")
     assert result is not None
     assert "at least" in result.lower()
 
 def test_validate_password_missing_uppercase(app):
     """Password without uppercase fails."""
-    from app.services.user_service import validate_password
+    from app.services.identity.user_service import validate_password
     result = validate_password("lowercase123")
     assert result is not None
     assert "uppercase" in result.lower()
 
 def test_validate_password_missing_lowercase(app):
     """Password without lowercase fails."""
-    from app.services.user_service import validate_password
+    from app.services.identity.user_service import validate_password
     result = validate_password("UPPERCASE123")
     assert result is not None
     assert "lowercase" in result.lower()
 
 def test_validate_password_missing_digit(app):
     """Password without digits fails."""
-    from app.services.user_service import validate_password
+    from app.services.identity.user_service import validate_password
     result = validate_password("NoDigitsHere")
     assert result is not None
     assert "digit" in result.lower()
 
 def test_get_user_by_username_found(app, test_user):
     """Get user by username returns correct user."""
-    from app.services.user_service import get_user_by_username
+    from app.services.identity.user_service import get_user_by_username
     user_obj, _ = test_user
     user = get_user_by_username(user_obj.username)
     assert user is not None
@@ -74,7 +74,7 @@ def test_get_user_by_username_found(app, test_user):
 
 def test_get_user_by_username_case_insensitive(app, test_user):
     """Username lookup is case-insensitive."""
-    from app.services.user_service import get_user_by_username
+    from app.services.identity.user_service import get_user_by_username
     user_obj, _ = test_user
     user = get_user_by_username(user_obj.username.upper())
     assert user is not None
@@ -82,20 +82,20 @@ def test_get_user_by_username_case_insensitive(app, test_user):
 
 def test_get_user_by_username_not_found(app):
     """Non-existent username returns None."""
-    from app.services.user_service import get_user_by_username
+    from app.services.identity.user_service import get_user_by_username
     user = get_user_by_username("nonexistent_user_xyz")
     assert user is None
 
 def test_verify_user_incorrect_password(app, test_user):
     """Login with wrong password fails."""
-    from app.services.user_service import verify_user
+    from app.services.identity.user_service import verify_user
     user_obj, _ = test_user
     user = verify_user(user_obj.username, "WrongPassword123")
     assert user is None
 
 def test_get_user_by_email_found(app, test_user_with_email):
     """Get user by email returns correct user."""
-    from app.services.user_service import get_user_by_email
+    from app.services.identity.user_service import get_user_by_email
     user_obj, _ = test_user_with_email
     user = get_user_by_email(user_obj.email)
     assert user is not None
@@ -103,7 +103,7 @@ def test_get_user_by_email_found(app, test_user_with_email):
 
 def test_get_user_by_email_case_insensitive(app, test_user_with_email):
     """Email lookup is case-insensitive."""
-    from app.services.user_service import get_user_by_email
+    from app.services.identity.user_service import get_user_by_email
     user_obj, _ = test_user_with_email
     user = get_user_by_email(user_obj.email.upper())
     assert user is not None
@@ -111,7 +111,7 @@ def test_get_user_by_email_case_insensitive(app, test_user_with_email):
 
 def test_get_user_by_email_not_found(app):
     """Non-existent email returns None."""
-    from app.services.user_service import get_user_by_email
+    from app.services.identity.user_service import get_user_by_email
     user = get_user_by_email("nonexistent@example.com")
     assert user is None
 

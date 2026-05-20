@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_opening_transition import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_opening_transition import (
     deterministic_part1_premise,
     enforce_opening_transition_on_beats,
     generic_conflict_resolution_detected,

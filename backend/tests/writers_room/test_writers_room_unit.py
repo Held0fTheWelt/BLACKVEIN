@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.services.writers_room_pipeline import (
+from app.services.writers_room.writers_room_pipeline import (
     _append_workflow_stage,
     _context_fingerprint,
     _langchain_preview_documents_from_context_pack,
@@ -188,7 +188,7 @@ class TestWritersRoomStoreIntegration:
     def test_writers_room_store_write_and_read_review(self, store_root: Path):
         """Store persists and retrieves review JSON."""
         # Import here to avoid circular imports
-        from app.services.writers_room_service import WritersRoomStore
+        from app.services.writers_room.writers_room_service import WritersRoomStore
 
         store = WritersRoomStore(root=store_root)
         review_id = f"review_{uuid4().hex}"
@@ -210,7 +210,7 @@ class TestWritersRoomStoreIntegration:
 
     def test_writers_room_store_read_raises_file_not_found(self, store_root: Path):
         """Reading nonexistent review raises FileNotFoundError."""
-        from app.services.writers_room_service import WritersRoomStore
+        from app.services.writers_room.writers_room_service import WritersRoomStore
 
         store = WritersRoomStore(root=store_root)
         with pytest.raises(FileNotFoundError):

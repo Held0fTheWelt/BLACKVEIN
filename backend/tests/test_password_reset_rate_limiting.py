@@ -18,7 +18,7 @@ class TestPasswordResetRateLimiting:
     def test_forgot_password_rate_limit_5_per_hour(self, app, client):
         """Test that forgot-password endpoint is rate limited to 5 per hour per email."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("testuser", "InitPass123!", email="bruteforce@example.com")
             assert err is None
 
@@ -43,7 +43,7 @@ class TestPasswordResetRateLimiting:
     def test_forgot_password_rate_limit_per_email(self, app, client):
         """Test that rate limit is per email, not per IP."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user1, err = create_user("user1", "InitPass123!", email="user1@example.com")
             assert err is None
             user2, err = create_user("user2", "InitPass123!", email="user2@example.com")
@@ -86,7 +86,7 @@ class TestPasswordResetRateLimiting:
     def test_reset_password_rate_limit_5_per_hour(self, app, client):
         """Test that reset-password endpoint is rate limited to 5 per hour per IP."""
         with app.app_context():
-            from app.services.user_service import create_user, create_password_reset_token
+            from app.services.identity.user_service import create_user, create_password_reset_token
             user, err = create_user("resetuser", "InitPass123!", email="reset@example.com")
             assert err is None
 
@@ -119,7 +119,7 @@ class TestPasswordResetRateLimiting:
     def test_password_reset_token_one_time_use(self, app, client):
         """Test that password reset tokens can only be used once."""
         with app.app_context():
-            from app.services.user_service import create_user, create_password_reset_token
+            from app.services.identity.user_service import create_user, create_password_reset_token
             user, err = create_user("onetime", "InitPass123!", email="onetime@example.com")
             assert err is None
 
@@ -148,7 +148,7 @@ class TestPasswordResetRateLimiting:
     def test_password_reset_token_expires_after_60_minutes(self, app, client):
         """Test that password reset tokens expire after 60 minutes."""
         with app.app_context():
-            from app.services.user_service import create_user, create_password_reset_token
+            from app.services.identity.user_service import create_user, create_password_reset_token
             user, err = create_user("expiredtoken", "InitPass123!", email="expired@example.com")
             assert err is None
 
@@ -174,7 +174,7 @@ class TestPasswordResetRateLimiting:
     def test_password_reset_constant_time_delay(self, app, client):
         """Test that password reset endpoint applies constant-time delay for non-existent emails."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("exists", "InitPass123!", email="exists@example.com")
             assert err is None
 
@@ -228,7 +228,7 @@ class TestPasswordResetRateLimiting:
     def test_reset_password_weak_password_rejected(self, app, client):
         """Test that weak passwords are rejected during reset."""
         with app.app_context():
-            from app.services.user_service import create_user, create_password_reset_token
+            from app.services.identity.user_service import create_user, create_password_reset_token
             user, err = create_user("weakpass", "InitPass123!", email="weak@example.com")
             assert err is None
 
@@ -246,7 +246,7 @@ class TestPasswordResetRateLimiting:
     def test_forgot_password_nonexistent_email_no_enumeration(self, app, client):
         """Test that forgot-password doesn't reveal if email exists."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("exists", "InitPass123!", email="existing@example.com")
             assert err is None
 
@@ -274,7 +274,7 @@ class TestPasswordResetRateLimiting:
     def test_resend_verification_still_has_previous_limits(self, app, client):
         """Test that resend-verification endpoint has its own rate limiting."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("verifyuser", "InitPass123!", email="verify@example.com")
             assert err is None
 

@@ -18,7 +18,7 @@ class TestPasswordReuseAPI:
         """Test that API endpoint blocks password reuse."""
         with app.app_context():
             # Create a test user with auth token
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("apiuser", "InitPass123!", email="api@example.com")
             assert err is None
 
@@ -59,7 +59,7 @@ class TestPasswordReuseAPI:
     def test_api_password_change_allows_rotation(self, app, client):
         """Test that old passwords can be reused after rotation."""
         with app.app_context():
-            from app.services.user_service import create_user
+            from app.services.identity.user_service import create_user
             user, err = create_user("rotationuser", "Pass1234567!", email="rot@example.com")
             assert err is None
 

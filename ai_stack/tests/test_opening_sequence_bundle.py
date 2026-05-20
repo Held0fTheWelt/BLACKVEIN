@@ -1,7 +1,7 @@
 """Canonical GoC opening_sequence.yaml is bundled for runtime and narrative hints."""
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_yaml_authority import clear_goc_yaml_slice_cache, load_goc_opening_sequence_yaml, load_goc_yaml_slice_bundle
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import clear_goc_yaml_slice_cache, load_goc_opening_sequence_yaml, load_goc_yaml_slice_bundle
 
 
 def test_load_goc_opening_sequence_yaml_structure() -> None:

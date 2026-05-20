@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.god_of_carnage_field_initialization_envelope import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_field_initialization_envelope import (
     ALLOWED_SETTER_SURFACES,
     GOC_UNINITIALIZED_FIELD_ENVELOPE_SCHEMA_ID,
     assert_goc_uninitialized_field_envelope,

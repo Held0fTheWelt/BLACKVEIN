@@ -11,7 +11,7 @@ from app.auth.permissions import get_current_user, require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, fail_from_error, ok
 from app.governance.errors import GovernanceError
-from app.services.ai_engineer_suite_service import (
+from app.services.ai_stack.ai_engineer_suite_service import (
     apply_runtime_preset,
     get_advanced_settings,
     get_effective_runtime_config,
@@ -29,8 +29,8 @@ from app.services.ai_engineer_suite_service import (
     update_orchestration_settings,
     update_rag_settings,
 )
-from app.services.governance_runtime_service import record_operational_activity
-from app.services.hf_hub_governance_service import (
+from app.services.governance.governance_runtime_service import record_operational_activity
+from app.services.governance.hf_hub_governance_service import (
     clear_hf_hub_token,
     get_hf_hub_status,
     test_hf_hub_connection,

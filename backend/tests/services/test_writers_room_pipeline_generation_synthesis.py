@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from app.services.writers_room_pipeline_generation_synthesis import (
+from app.services.writers_room.writers_room_pipeline_generation_synthesis import (
     _norm_wr_adapter,
     route_synthesis_and_build_generation_shell,
     fill_generation_from_primary_adapter,
@@ -56,7 +56,7 @@ class TestRouteSynthesisAndBuildGenerationShell:
         ]
         preflight_trace = {"preflight": "data"}
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.route_model") as mock_route:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.route_model") as mock_route:
             mock_decision = MagicMock()
             mock_decision.selected_adapter_name = "adapter1"
             mock_decision.model_dump.return_value = {"decision": "data"}
@@ -82,7 +82,7 @@ class TestRouteSynthesisAndBuildGenerationShell:
         specs = []
         preflight_trace = {}
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.route_model") as mock_route:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.route_model") as mock_route:
             mock_decision = MagicMock()
             mock_decision.selected_adapter_name = None
             mock_decision.model_dump.return_value = {}
@@ -121,7 +121,7 @@ class TestFillGenerationFromPrimaryAdapter:
         generation = {"success": False, "error": None, "metadata": {}}
         mock_adapter = MagicMock()
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
             mock_result = MagicMock()
             mock_result.call.success = True
             mock_result.call.content = "Generated content"
@@ -149,7 +149,7 @@ class TestFillGenerationFromPrimaryAdapter:
         generation = {"success": False, "error": None, "metadata": {}}
         mock_adapter = MagicMock()
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
             mock_parsed = MagicMock()
             mock_parsed.review_notes = "Review notes"
             mock_parsed.model_dump.return_value = {"structured": "data"}
@@ -178,7 +178,7 @@ class TestFillGenerationFromPrimaryAdapter:
         generation = {"success": False, "error": None, "metadata": {}}
         mock_adapter = MagicMock()
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.invoke_writers_room_adapter_with_langchain") as mock_invoke:
             mock_result = MagicMock()
             mock_result.call.success = False
             mock_result.call.metadata = {"error": "Adapter error"}
@@ -313,7 +313,7 @@ class TestAttachSynthesisRoutingEvidence:
         syn_decision = MagicMock()
         syn_decision.selected_adapter_name = "Adapter1"
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
             attach_synthesis_routing_evidence(
                 generation=generation,
                 synthesis_req=syn_req,
@@ -337,7 +337,7 @@ class TestAttachSynthesisRoutingEvidence:
         syn_decision = MagicMock()
         syn_decision.selected_adapter_name = "Adapter2"
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
             attach_synthesis_routing_evidence(
                 generation=generation,
                 synthesis_req=syn_req,
@@ -360,7 +360,7 @@ class TestAttachSynthesisRoutingEvidence:
         syn_decision = MagicMock()
         syn_decision.selected_adapter_name = "Adapter1"
 
-        with patch("app.services.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
+        with patch("app.services.writers_room.writers_room_pipeline_generation_synthesis.attach_stage_routing_evidence") as mock_attach:
             attach_synthesis_routing_evidence(
                 generation=generation,
                 synthesis_req=syn_req,

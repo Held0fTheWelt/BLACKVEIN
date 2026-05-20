@@ -183,7 +183,7 @@ Implemented as of 2026-05-17:
 - `ai_stack/langgraph/langgraph_runtime_executor.py` carries `session_input_language`
   through runtime state and semantic interpretation.
 - `ai_stack/contracts/action_resolution_contracts.py` and
-  `ai_stack/player_action_resolution.py` preserve normalized English resolution
+  `ai_stack/story_runtime/player_action_resolution.py` preserve normalized English resolution
   evidence on the player action frame.
 - `backend/app/api/v1/game_routes.py` accepts, validates, defaults, persists,
   and forwards `session_input_language`.

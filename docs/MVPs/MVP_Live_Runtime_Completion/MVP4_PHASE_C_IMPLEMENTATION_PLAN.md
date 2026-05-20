@@ -125,11 +125,11 @@ Use the code that already exists.
 | Token budget service | `backend/app/services/observability_governance_service.py` | Session budget config, consumption, degradation decisions |
 | Cost dashboard service | `backend/app/services/observability_governance_service.py` | Session cost summary storage and aggregate report placeholders |
 | Override audit types/config | `backend/app/auth/admin_security.py` | `OverrideAuditEvent`, `OverrideAuditConfig`, config manager, filtered logging |
-| Evaluation pipeline | `ai_stack/evaluation_pipeline.py` | Rubric, baseline container, weights, score recording, regression scaffold |
+| Evaluation pipeline | `ai_stack/quality_lab/evaluation_pipeline.py` | Rubric, baseline container, weights, score recording, regression scaffold |
 | Backend governance routes | `backend/app/api/v1/operational_governance_routes.py` | `/admin/mvp4/...` token budget, overrides, evaluation, Langfuse toggle |
 | Backend observability config routes | `backend/app/api/v1/observability_governance_routes.py` | Current Langfuse config, credential, test, disable flows |
-| Runtime diagnostics truth | `ai_stack/diagnostics_envelope.py` | `DiagnosticsEnvelope`, `degradation_timeline`, `cost_summary` |
-| Runtime phase cost truth | `ai_stack/runtime_cost_attribution.py` | canonical phase-cost shape and aggregation |
+| Runtime diagnostics truth | `ai_stack/telemetry/diagnostics_envelope.py` | `DiagnosticsEnvelope`, `degradation_timeline`, `cost_summary` |
+| Runtime phase cost truth | `ai_stack/telemetry/runtime_cost_attribution.py` | canonical phase-cost shape and aggregation |
 | World-engine diagnostics endpoint | `world-engine/app/api/http.py` | `/api/story/sessions/{session_id}/diagnostics-envelope` |
 | World-engine streaming endpoint | `world-engine/app/api/http.py` | `/api/story/sessions/{session_id}/stream-narrator` |
 | Narrative gov summary endpoint | `world-engine/app/api/http.py` | `/api/story/runtime/narrative-gov-summary` |
@@ -377,7 +377,7 @@ Panel data sources should be explicit:
 
 Primary files:
 
-- `ai_stack/evaluation_pipeline.py`
+- `ai_stack/quality_lab/evaluation_pipeline.py`
 - `backend/app/api/v1/operational_governance_routes.py`
 - `administration-tool/templates/manage/narrative_governance/evaluations.html`
 

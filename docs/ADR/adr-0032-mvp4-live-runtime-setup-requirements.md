@@ -200,6 +200,6 @@ MVP4 should be considered satisfied only when the following remain true:
 - `frontend/app/routes_play.py`
 - `world-engine/app/story_runtime/manager.py`
 - `world-engine/app/api/http.py`
-- `ai_stack/evaluation_pipeline.py`
+- `ai_stack/quality_lab/evaluation_pipeline.py`
 - `docker-compose.yml`
 - `docker-up.py`

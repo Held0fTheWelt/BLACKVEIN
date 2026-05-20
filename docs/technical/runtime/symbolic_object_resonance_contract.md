@@ -63,10 +63,10 @@ examples, and Pi-number runtime keys are not valid pass/fail evidence.
 Primary implementation anchors:
 
 - `ai_stack/contracts/symbolic_object_resonance_contracts.py`
-- `ai_stack/symbolic_object_resonance_engine.py`
+- `ai_stack/story_runtime/narrative/symbolic_object_resonance_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`

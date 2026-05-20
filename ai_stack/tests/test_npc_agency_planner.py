@@ -535,6 +535,6 @@ def test_dramatic_packet_falls_back_and_records_diagnostic_for_missing_w5_snapsh
     assert diagnostic["w5_npc_projection_used"] is False
     assert diagnostic["w5_npc_projection_failed"] == "missing_w5_latest_snapshot"
     assert diagnostic["w5_snapshot_id"] is None
-    assert diagnostic["npc_projection_source"] == "legacy"
+    assert diagnostic["npc_projection_source"] == "actor_lane_context"
     assert diagnostic["npc_projection_has_how"] is False
     assert diagnostic["npc_projection_has_inferred_why"] is False

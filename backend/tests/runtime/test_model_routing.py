@@ -405,19 +405,19 @@ def test_allow_fallback_false_clears_chain():
     assert d.fallback_chain == []
 
 
-def test_legacy_get_adapter_after_register_adapter_model():
+def test_get_adapter_after_register_adapter_model():
     clear_registry()
     spec = _spec(
-        name="legacy_check",
+        name="adapter_check",
         provider="x",
         model="m",
         role=LLMOrSLM.slm,
         tier=ModelTier.light,
         tasks=frozenset({TaskKind.cheap_preflight}),
     )
-    ad = NamedAdapter("legacy_check")
+    ad = NamedAdapter("adapter_check")
     register_adapter_model(spec, ad)
-    assert get_adapter("legacy_check") is ad
+    assert get_adapter("adapter_check") is ad
 
 
 def test_register_adapter_without_spec_not_in_iter_model_specs():

@@ -10,7 +10,7 @@ Comprehensive tests for moderation features:
 import pytest
 from datetime import datetime, timezone, timedelta
 from app.models import ForumReport, User
-from app.services.forum_service import (
+from app.services.content.forum_service import (
     list_escalation_queue,
     list_review_queue,
     list_moderator_assigned_reports,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 
-import app.services.governance_runtime_service as governance_runtime_service
+import app.services.governance.governance_runtime_service as governance_runtime_service
 
 
 def _with_kek(monkeypatch):
@@ -820,8 +820,8 @@ def test_mvp4_session_summary_exposes_live_cost_budget_and_overrides(client, adm
     session_id = "story-session-phase-c-summary"
 
     with client.application.app_context():
-        from ai_stack.evaluation_pipeline import EvaluationPipeline, TurnScore
-        from app.services.observability_governance_service import (
+        from ai_stack.quality_lab.evaluation_pipeline import EvaluationPipeline, TurnScore
+        from app.services.governance.observability_governance_service import (
             get_runtime_governance_storage,
             ingest_runtime_turn_cost,
         )
@@ -858,7 +858,7 @@ def test_mvp4_session_summary_exposes_live_cost_budget_and_overrides(client, adm
         )
 
     monkeypatch.setattr(
-        "app.services.game_service.get_story_state",
+        "app.services.game.game_service.get_story_state",
         lambda requested_session_id: {
             "session_id": requested_session_id,
             "module_id": "god_of_carnage",
@@ -954,7 +954,7 @@ def test_mvp4_evaluation_routes_close_annotation_baseline_and_regression_loop(cl
 
 
 def test_runtime_governance_redis_json_storage_round_trips_structured_values():
-    from app.services.observability_governance_service import RedisJsonObservabilityStorage, TokenBudgetConfig
+    from app.services.governance.observability_governance_service import RedisJsonObservabilityStorage, TokenBudgetConfig
 
     class FakeRedis:
         def __init__(self):

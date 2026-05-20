@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from story_runtime_core.adapters import build_default_model_adapters
-from app.services.writers_room_model_routing import build_writers_room_model_route_specs
+from app.services.writers_room.writers_room_model_routing import build_writers_room_model_route_specs
 from ai_stack import (
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
@@ -15,7 +15,7 @@ from ai_stack import (
 from ai_stack.rag.rag_context_retriever import ContextRetriever
 
 from app.services import writers_room_pipeline as writers_room_pipeline_module
-from app.services.writers_room_pipeline import _WritersRoomWorkflow
+from app.services.writers_room.writers_room_pipeline import _WritersRoomWorkflow
 
 
 def _repo_root() -> Path:
@@ -263,7 +263,7 @@ def test_writers_room_patch_candidates_have_preview_summary_and_confidence(clien
 
 def test_proposal_package_langchain_preview_paths_materialized(client, auth_headers, monkeypatch):
     """LangChain retriever preview paths must be copied into the packaged proposal."""
-    from app.services import writers_room_service as wrs
+    from app.services.writers_room import writers_room_service as wrs
 
     repo = _repo_root()
     rb = {
@@ -295,7 +295,7 @@ def test_proposal_package_langchain_preview_paths_materialized(client, auth_head
 
 def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client, auth_headers, monkeypatch):
     """After revise, revision-submit re-runs workflow and appends a revision cycle."""
-    from app.services import writers_room_service as wrs
+    from app.services.writers_room import writers_room_service as wrs
 
     repo = _repo_root()
     rb = {
@@ -403,7 +403,7 @@ def test_writers_room_retrieval_sources_materially_change_proposal_artifacts(
     client, auth_headers, monkeypatch
 ):
     """Different context_pack sources must change proposal evidence and issue linkage."""
-    from app.services import writers_room_service as wrs
+    from app.services.writers_room import writers_room_service as wrs
 
     repo = _repo_root()
     rb = {
@@ -444,7 +444,7 @@ def test_writers_room_retrieval_sources_materially_change_proposal_artifacts(
 
 def test_writers_room_review_bundle_tool_output_in_review_summary(client, auth_headers, monkeypatch):
     """Governance envelope (review bundle) ids must flow into review_summary."""
-    from app.services import writers_room_service as wrs
+    from app.services.writers_room import writers_room_service as wrs
 
     repo = _repo_root()
     ctx = _context_pack_for_paths(["corp/d1_tool_surface.md"])

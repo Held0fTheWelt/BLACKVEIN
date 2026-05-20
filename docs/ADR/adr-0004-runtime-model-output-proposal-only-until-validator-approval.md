@@ -9,7 +9,7 @@ Accepted
 
 - Model output is treated as a proposal in `world-engine/app/story_runtime/manager.py` (LangGraph graph execution → validation seam → commit seam).
 - `world-engine/app/api/http.py` enforces the proposal → validation → commit pipeline for every turn.
-- `ai_stack/live_runtime_commit_semantics.py` formalizes `live_success` computation separating "commit_applied" from proof of real generation.
+- `ai_stack/story_runtime/live_runtime_commit_semantics.py` formalizes `live_success` computation separating "commit_applied" from proof of real generation.
 - ADR-0033 (Live Runtime Commit Semantics) extends this principle with specific fields (`adapter_kind`, `live_success`, `validation_status` provenance) — the two ADRs are complementary.
 - Blocked turns are first-class: degradation markers and `quality_class=degraded` propagate when validation fails.
 

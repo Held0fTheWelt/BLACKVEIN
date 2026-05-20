@@ -25,7 +25,7 @@ from app.story_runtime.manager import (
 )
 from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
 from ai_stack.contracts.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,

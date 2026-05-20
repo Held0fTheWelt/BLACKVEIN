@@ -9,17 +9,17 @@ from app.auth.feature_registry import FEATURE_MANAGE_GAME_OPERATIONS
 from app.auth.permissions import get_current_user, require_feature, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.observability.trace import get_trace_id
-from app.services.activity_log_service import log_activity
-from app.services.ai_stack_closure_cockpit_service import build_closure_cockpit_report
-from app.services.ai_stack_evidence_service import build_release_readiness_report, build_session_evidence_bundle
-from app.services.inspector_projection_service import (
+from app.services.activity.activity_log_service import log_activity
+from app.services.ai_stack.ai_stack_closure_cockpit_service import build_closure_cockpit_report
+from app.services.ai_stack.ai_stack_evidence_service import build_release_readiness_report, build_session_evidence_bundle
+from app.services.inspector.inspector_projection_service import (
     build_inspector_comparison_projection,
     build_inspector_coverage_health_projection,
     build_inspector_provenance_raw_projection,
     build_inspector_timeline_projection,
 )
-from app.services.inspector_turn_projection_service import build_inspector_turn_projection
-from app.services.improvement_service import list_recommendation_packages
+from app.services.inspector.inspector_turn_projection_service import build_inspector_turn_projection
+from app.services.improvement.improvement_service import list_recommendation_packages
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 

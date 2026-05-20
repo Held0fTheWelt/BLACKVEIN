@@ -51,9 +51,9 @@ from ai_stack.rag.retrieval_runtime_planner import (
     build_retrieval_authority_metadata,
     build_runtime_retrieval_plan,
 )
-from ai_stack.runtime_memory_indexes import build_runtime_memory_indexes_from_state
+from ai_stack.story_runtime.runtime_memory_indexes import build_runtime_memory_indexes_from_state
 from ai_stack.rag.retrieval_governance_summary import attach_retrieval_governance_summary
-from ai_stack.context_synthesis_engine import (
+from ai_stack.story_runtime.narrative.context_synthesis_engine import (
     build_context_synthesis_bundle,
     build_context_synthesis_error_bundle,
     context_synthesis_prompt_lines,
@@ -83,7 +83,7 @@ from ai_stack.capabilities.capability_validator_dispatch import (
     ValidatorDispatchMode,
     resolve_validator_dispatch_mode,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
@@ -117,7 +117,7 @@ from ai_stack.runtime_aspect_ledger import (
     make_aspect_record,
     set_aspect_record,
 )
-from ai_stack.dramatic_irony_runtime import (
+from ai_stack.story_runtime.narrative.dramatic_irony_runtime import (
     build_dramatic_irony_aspect_record,
     build_dramatic_irony_record,
     compact_dramatic_irony_context,
@@ -173,17 +173,17 @@ from ai_stack.actor_tracking import (
 )
 from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID, canonicalize_goc_actor_id
-from ai_stack.god_of_carnage_frozen_vocabulary import expand_goc_actor_id_aliases
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID, canonicalize_goc_actor_id
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import expand_goc_actor_id_aliases
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_roadmap_semantic_surface import ROUTING_LABELS
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     detect_builtin_yaml_title_conflict,
     goc_character_profile_snippet,
     load_goc_canonical_module_yaml,
     load_goc_yaml_slice_bundle,
     scene_guidance_snippets,
 )
-from ai_stack.god_of_carnage_knowledge_runtime_gates import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_knowledge_runtime_gates import (
     build_opening_scene_plan_metadata,
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
@@ -195,79 +195,79 @@ from ai_stack.contracts.npc_agency_contracts import (
     npc_actor_ids_from_context,
 )
 from ai_stack.story_runtime.npc_agency.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
-from ai_stack.legacy_actor_lane_hydration import apply_legacy_structured_hydration
+from ai_stack.story_runtime.actor_lane_hydration import apply_structured_hydration
 from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
-from ai_stack.information_disclosure_engine import (
+from ai_stack.story_runtime.narrative.information_disclosure_engine import (
     derive_information_disclosure,
     validate_information_disclosure_realization,
 )
-from ai_stack.expectation_variation_engine import (
+from ai_stack.story_runtime.narrative.expectation_variation_engine import (
     build_expectation_variation_aspect_record,
     compact_expectation_variation_context,
     derive_expectation_variation,
     validate_expectation_variation_realization,
 )
-from ai_stack.narrative_momentum_engine import (
+from ai_stack.story_runtime.narrative.narrative_momentum_engine import (
     build_narrative_momentum_aspect_record,
     compact_narrative_momentum_context,
     derive_narrative_momentum,
     validate_narrative_momentum_realization,
 )
-from ai_stack.improvisational_coherence_engine import (
+from ai_stack.story_runtime.narrative.improvisational_coherence_engine import (
     build_improvisational_coherence_aspect_record,
     compact_improvisational_coherence_context,
     derive_improvisational_coherence,
     validate_improvisational_coherence_realization,
 )
-from ai_stack.meta_narrative_awareness_engine import (
+from ai_stack.story_runtime.narrative.meta_narrative_awareness_engine import (
     build_meta_narrative_awareness_aspect_record,
     compact_meta_narrative_awareness_context,
     derive_meta_narrative_awareness,
     validate_meta_narrative_awareness_realization,
 )
-from ai_stack.pacing_rhythm_engine import (
+from ai_stack.story_runtime.narrative.pacing_rhythm_engine import (
     derive_pacing_rhythm,
     validate_pacing_rhythm_realization,
 )
-from ai_stack.temporal_control_engine import (
+from ai_stack.story_runtime.narrative.temporal_control_engine import (
     build_temporal_control_aspect_record,
     compact_temporal_control_context,
     derive_temporal_control,
     validate_temporal_control_realization,
 )
-from ai_stack.social_pressure_engine import (
+from ai_stack.story_runtime.narrative.social_pressure_engine import (
     derive_social_pressure,
     validate_social_pressure_metric,
 )
-from ai_stack.relationship_state_engine import (
+from ai_stack.story_runtime.narrative.relationship_state_engine import (
     build_relationship_state_aspect_record,
     derive_relationship_state,
     validate_relationship_state_realization,
 )
-from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
-from ai_stack.sensory_context_engine import (
+from ai_stack.story_runtime.narrative.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
+from ai_stack.story_runtime.narrative.sensory_context_engine import (
     derive_sensory_context,
     validate_sensory_context_realization,
 )
-from ai_stack.genre_awareness_engine import (
+from ai_stack.story_runtime.narrative.genre_awareness_engine import (
     build_genre_awareness_aspect_record,
     compact_genre_awareness_context,
     derive_genre_awareness,
     validate_genre_awareness_realization,
 )
-from ai_stack.tonal_consistency_engine import (
+from ai_stack.story_runtime.narrative.tonal_consistency_engine import (
     build_tonal_consistency_aspect_record,
     compact_tonal_consistency_context,
     derive_tonal_consistency,
     validate_tonal_consistency_realization,
 )
-from ai_stack.symbolic_object_resonance_engine import (
+from ai_stack.story_runtime.narrative.symbolic_object_resonance_engine import (
     build_symbolic_object_resonance_aspect_record,
     compact_symbolic_object_resonance_context,
     derive_symbolic_object_resonance,
     validate_symbolic_object_resonance_realization,
 )
-from ai_stack.god_of_carnage_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_mind import build_character_mind_records_for_goc
 from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_voice import build_character_voice_profiles_for_goc
 from ai_stack.story_runtime.npc_agency.character.character_voice_validation import validate_voice_consistency
@@ -284,7 +284,7 @@ from ai_stack.story_runtime.semantic_planner.god_of_carnage_semantic_move_interp
 from ai_stack.contracts.social_state_contract import SocialStateRecord
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_social_state import build_social_state_record, social_state_fingerprint
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import build_evaluation_context_from_runtime_state
-from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import (
     build_diagnostics_refs,
     build_goc_continuity_impacts_on_commit,
@@ -309,9 +309,9 @@ from ai_stack.langgraph.langgraph_runtime_validation import (
     run_runtime_validation_seam,
 )
 from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version, _track
-from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from ai_stack.story_runtime.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.prompt_store import render_prompt, render_prompt_lines
-from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.story_runtime.player_action_resolution import resolve_player_action
 from ai_stack.story_runtime.director.director_realization_composer import (
     CAPABILITY_ACTOR_SPEECH,
     CAPABILITY_NARRATOR_CLARIFICATION,
@@ -2523,7 +2523,7 @@ def _build_w5_npc_projection_inputs(
             "w5_npc_projection_failed": None,
             "w5_snapshot_id": None,
             "npc_actor_id": actor_id,
-            "npc_projection_source": "legacy",
+            "npc_projection_source": "actor_lane_context",
             "npc_projection_has_how": False,
             "npc_projection_has_inferred_why": False,
         }
@@ -3167,7 +3167,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "the commit seam. Use speech_policy to decide whether NPC speech is required; use "
                 "quote_moment_policy only for rare moment-locked short anchors. capability_manager_plan "
                 "is the selected runtime capability gate: do not realize unselected branches. "
-                "pressure_target is a compatibility alias for pressure-specific targets."
+                "pressure_target is an alternate key for pressure-specific targets."
             ),
         },
         "scene_energy": {
@@ -3727,14 +3727,14 @@ def complete_actor_locations_for_gathering_with_optional_w5_projection(
 ) -> dict[str, Any]:
     """Resolve Director/Gathering actor locations with W5 Phase 3A fallback.
 
-    When disabled, this returns the exact legacy completion payload. When
+    When disabled, this returns the baseline completion payload. When
     enabled, it builds a typed W5 Director projection, uses its
     ``derived_actor_locations`` map as the input substrate, then runs the
     existing completion helper so current-turn target movement and NPC fallback
     semantics stay unchanged.
     """
 
-    legacy_completion = complete_actor_locations_for_gathering(
+    baseline_completion = complete_actor_locations_for_gathering(
         actor_locations=actor_locations,
         actor_lane_context=actor_lane_context,
         current_step_scene_id=current_step_scene_id,
@@ -3749,7 +3749,7 @@ def complete_actor_locations_for_gathering_with_optional_w5_projection(
     )
     if not enabled:
         return {
-            "location_completion": legacy_completion,
+            "location_completion": baseline_completion,
             "diagnostics": {},
             "w5_projection": None,
         }
@@ -3758,8 +3758,8 @@ def complete_actor_locations_for_gathering_with_optional_w5_projection(
         "w5_director_projection_used": False,
         "w5_director_projection_failed": None,
         "w5_snapshot_id": None,
-        "derived_actor_locations_source": "legacy",
-        "gathering_pause_source": "legacy",
+        "derived_actor_locations_source": "baseline_completion",
+        "gathering_pause_source": "baseline_completion",
     }
     try:
         if not isinstance(w5_latest_snapshot, dict):
@@ -3806,7 +3806,7 @@ def complete_actor_locations_for_gathering_with_optional_w5_projection(
     except Exception as exc:
         diagnostics["w5_director_projection_failed"] = _w5_director_projection_failure_reason(exc)
         return {
-            "location_completion": legacy_completion,
+            "location_completion": baseline_completion,
             "diagnostics": diagnostics,
             "w5_projection": None,
         }
@@ -8667,11 +8667,11 @@ class RuntimeTurnGraphExecutor:
                     parsed_runtime_structure = False
                     if isinstance(parsed, dict):
                         narr_summary = parsed.get("narration_summary")
-                        legacy_narrative = parsed.get("narrative_response")
+                        fallback_narrative = parsed.get("narrative_response")
                         if isinstance(narr_summary, str) and narr_summary.strip():
                             parsed_narrative = narr_summary.strip()
-                        elif isinstance(legacy_narrative, str) and legacy_narrative.strip():
-                            parsed_narrative = legacy_narrative.strip()
+                        elif isinstance(fallback_narrative, str) and fallback_narrative.strip():
+                            parsed_narrative = fallback_narrative.strip()
                         parsed_runtime_structure = any(
                             isinstance(parsed.get(key), list)
                             for key in ("spoken_lines", "action_lines", "initiative_events")
@@ -8693,7 +8693,7 @@ class RuntimeTurnGraphExecutor:
             meta["structured_output"] = cleaned
             generation["metadata"] = meta
         if isinstance(cleaned, dict):
-            generation = apply_legacy_structured_hydration(state, generation)
+            generation = apply_structured_hydration(state, generation)
             meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
             cleaned = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else cleaned
         proposed = structured_output_to_proposed_effects(cleaned)
@@ -8804,7 +8804,7 @@ class RuntimeTurnGraphExecutor:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
         update = _track(state, node_name="validate_seam")
-        generation = apply_legacy_structured_hydration(state, dict(state.get("generation") or {}))
+        generation = apply_structured_hydration(state, dict(state.get("generation") or {}))
         proposed = list(state.get("proposed_state_effects") or [])
         silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
 
@@ -8899,7 +8899,7 @@ class RuntimeTurnGraphExecutor:
                 retry_context_synthesis_bundle=retry_context_synthesis_bundle,
                 retry_context_synthesis_prompt=retry_context_synthesis_prompt,
             )
-            generation = apply_legacy_structured_hydration(state, generation)
+            generation = apply_structured_hydration(state, generation)
             validation_eval = _build_runtime_aspect_validation(
                 state=state,
                 generation=generation,

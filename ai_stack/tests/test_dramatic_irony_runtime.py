@@ -9,7 +9,7 @@ from ai_stack.contracts.dramatic_irony_contracts import (
     DRAMATIC_IRONY_VIOLATION_FORBIDDEN_SURFACE_MODE,
     DRAMATIC_IRONY_VIOLATION_HIDDEN_FACT_ECHO,
 )
-from ai_stack.dramatic_irony_runtime import (
+from ai_stack.story_runtime.narrative.dramatic_irony_runtime import (
     DIRECT_HIDDEN_INTENT_VIOLATION,
     build_dramatic_irony_record,
     compact_dramatic_irony_context,

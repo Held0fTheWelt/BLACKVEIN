@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from ai_stack.runtime_cost_attribution import build_deterministic_phase_cost
+from ai_stack.telemetry.runtime_cost_attribution import build_deterministic_phase_cost
 
 
 # ---------------------------------------------------------------------------

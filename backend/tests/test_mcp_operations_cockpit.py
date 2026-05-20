@@ -11,7 +11,7 @@ import pytest
 from app.extensions import db
 from app.models.mcp_diagnostic_case import McpDiagnosticCase
 from app.models.mcp_ops_telemetry import McpOpsTelemetry
-from app.services.mcp_operations_service import ingest_telemetry_batch
+from app.services.mcp.mcp_operations_service import ingest_telemetry_batch
 
 pytestmark = pytest.mark.observability
 

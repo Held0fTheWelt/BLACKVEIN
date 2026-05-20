@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, call
 import json
 import pytest
 
-from app.services.play_service_control_service import (
+from app.services.story_runtime.play_service_control_service import (
     SCHEMA_VERSION,
     MODE_DISABLED,
     MODE_LOCAL,
@@ -269,7 +269,7 @@ class TestLoadAndPersistDocument:
 
     def test_load_raw_document_empty(self):
         """Test loading empty document when no setting exists."""
-        with patch("app.services.play_service_control_service.db") as mock_db:
+        with patch("app.services.story_runtime.play_service_control_service.db") as mock_db:
             mock_db.session.get.return_value = None
             doc = _load_raw_document()
             assert doc["version"] == SCHEMA_VERSION
@@ -284,7 +284,7 @@ class TestLoadAndPersistDocument:
         }
         row = MagicMock(value=json.dumps(existing_data))
 
-        with patch("app.services.play_service_control_service.db") as mock_db:
+        with patch("app.services.story_runtime.play_service_control_service.db") as mock_db:
             mock_db.session.get.return_value = row
             doc = _load_raw_document()
             assert doc["desired"]["mode"] == "remote"
@@ -293,7 +293,7 @@ class TestLoadAndPersistDocument:
         """Test loading document with invalid JSON."""
         row = MagicMock(value="invalid json{")
 
-        with patch("app.services.play_service_control_service.db") as mock_db:
+        with patch("app.services.story_runtime.play_service_control_service.db") as mock_db:
             mock_db.session.get.return_value = row
             doc = _load_raw_document()
             assert doc["version"] == SCHEMA_VERSION
@@ -301,7 +301,7 @@ class TestLoadAndPersistDocument:
 
     def test_persist_document_new(self):
         """Test persisting new document."""
-        with patch("app.services.play_service_control_service.db") as mock_db:
+        with patch("app.services.story_runtime.play_service_control_service.db") as mock_db:
             mock_db.session.get.return_value = None
             doc = {"version": SCHEMA_VERSION, "desired": {"mode": "remote"}}
             _persist_document(doc)
@@ -311,7 +311,7 @@ class TestLoadAndPersistDocument:
 
     def test_persist_document_existing(self):
         """Test persisting existing document."""
-        with patch("app.services.play_service_control_service.db") as mock_db:
+        with patch("app.services.story_runtime.play_service_control_service.db") as mock_db:
             mock_db.session.get.return_value = MagicMock()
             doc = {"version": SCHEMA_VERSION, "desired": {"mode": "remote"}}
             _persist_document(doc)
@@ -379,8 +379,8 @@ class TestBootstrap:
 
     def test_bootstrap_with_valid_applied_state(self):
         """Test bootstrap loads applied state from database."""
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._sync_flask_config_from_desired") as mock_sync:
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._sync_flask_config_from_desired") as mock_sync:
                 app = MagicMock()
                 doc = {
                     "applied_desired": {"mode": MODE_REMOTE, "enabled": True},
@@ -394,8 +394,8 @@ class TestBootstrap:
 
     def test_bootstrap_with_no_state(self):
         """Test bootstrap clears flags when no applied state."""
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._clear_control_flags_default") as mock_clear:
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._clear_control_flags_default") as mock_clear:
                 app = MagicMock()
                 mock_load.return_value = {"applied_desired": None, "apply_ok": False}
 
@@ -405,8 +405,8 @@ class TestBootstrap:
 
     def test_bootstrap_with_exception(self):
         """Test bootstrap clears flags on exception."""
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._clear_control_flags_default") as mock_clear:
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._clear_control_flags_default") as mock_clear:
                 app = MagicMock()
                 mock_load.side_effect = Exception("DB error")
 
@@ -465,7 +465,7 @@ class TestCapabilitiesAndProbing:
 
     def test_probe_play_http_success(self):
         """Test successful HTTP probe."""
-        with patch("app.services.play_service_control_service.httpx.Client") as mock_client_class:
+        with patch("app.services.story_runtime.play_service_control_service.httpx.Client") as mock_client_class:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.content = b'{"status": "ok"}'
@@ -487,7 +487,7 @@ class TestCapabilitiesAndProbing:
 
     def test_probe_play_http_timeout(self):
         """Test HTTP probe timeout handling."""
-        with patch("app.services.play_service_control_service.httpx.Client") as mock_client_class:
+        with patch("app.services.story_runtime.play_service_control_service.httpx.Client") as mock_client_class:
             mock_client = MagicMock()
             mock_client.get.side_effect = Exception("timeout")
             mock_client_class.return_value.__enter__.return_value = mock_client
@@ -525,7 +525,7 @@ class TestDesiredFromEnvBaseline:
             "PLAY_SERVICE_REQUEST_TIMEOUT": 30,
         }.get(key)
 
-        with patch("app.services.play_service_control_service._secret_present_in_app") as mock_secret:
+        with patch("app.services.story_runtime.play_service_control_service._secret_present_in_app") as mock_secret:
             mock_secret.return_value = True
             result = _desired_from_env_baseline(app)
 
@@ -543,7 +543,7 @@ class TestBuildObservedState:
             "PLAY_SERVICE_CONTROL_DISABLED": True,
         }.get(key, default)
 
-        with patch("app.services.play_service_control_service.has_app_context", return_value=True):
+        with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
             observed = build_observed_state(app)
 
             assert observed["effective_mode"] == MODE_DISABLED
@@ -561,10 +561,10 @@ class TestBuildObservedState:
             "PLAY_SERVICE_ALLOW_NEW_SESSIONS": True,
         }.get(key, default)
 
-        with patch("app.services.play_service_control_service.has_app_context", return_value=True):
-            with patch("app.services.play_service_control_service._secret_present_in_app", return_value=True):
-                with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-                    with patch("app.services.play_service_control_service.run_connectivity_test") as mock_test:
+        with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
+            with patch("app.services.story_runtime.play_service_control_service._secret_present_in_app", return_value=True):
+                with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+                    with patch("app.services.story_runtime.play_service_control_service.run_connectivity_test") as mock_test:
                         mock_load.return_value = {"applied_desired": {"mode": MODE_REMOTE}}
                         mock_test.return_value = {
                             "checks": [
@@ -593,9 +593,9 @@ class TestControlPayloadFunctions:
             "PLAY_SERVICE_ALLOW_NEW_SESSIONS": True,
         }.get(key)
 
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service.build_observed_state") as mock_obs:
-                with patch("app.services.play_service_control_service.has_app_context", return_value=True):
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service.build_observed_state") as mock_obs:
+                with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
                     mock_load.return_value = {
                         "desired": {"mode": MODE_REMOTE},
                         "applied_at": "2026-01-01T00:00:00Z",
@@ -614,9 +614,9 @@ class TestControlPayloadFunctions:
         """Test saving valid desired state."""
         app = MagicMock()
 
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._persist_document") as mock_persist:
-                with patch("app.services.play_service_control_service.has_app_context", return_value=True):
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._persist_document") as mock_persist:
+                with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
                     mock_load.return_value = {}
 
                     body = {
@@ -650,10 +650,10 @@ class TestControlPayloadFunctions:
             "PLAY_SERVICE_SHARED_SECRET": "secret",
         }.get(key)
 
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._persist_document") as mock_persist:
-                with patch("app.services.play_service_control_service.has_app_context", return_value=True):
-                    with patch("app.services.play_service_control_service.build_observed_state") as mock_obs:
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._persist_document") as mock_persist:
+                with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
+                    with patch("app.services.story_runtime.play_service_control_service.build_observed_state") as mock_obs:
                         mock_load.return_value = {
                             "desired": {
                                 "mode": MODE_REMOTE,
@@ -675,9 +675,9 @@ class TestControlPayloadFunctions:
         """Test apply fails when no desired state saved."""
         app = MagicMock()
 
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service.build_observed_state") as mock_obs:
-                with patch("app.services.play_service_control_service.has_app_context", return_value=True):
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service.build_observed_state") as mock_obs:
+                with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
                     mock_load.return_value = {"desired": None}
                     mock_obs.return_value = {}
 
@@ -692,10 +692,10 @@ class TestControlPayloadFunctions:
             "PLAY_SERVICE_SHARED_SECRET": "secret",
         }.get(key)
 
-        with patch("app.services.play_service_control_service._load_raw_document") as mock_load:
-            with patch("app.services.play_service_control_service._persist_document") as mock_persist:
-                with patch("app.services.play_service_control_service.has_app_context", return_value=True):
-                    with patch("app.services.play_service_control_service.run_connectivity_test") as mock_test:
+        with patch("app.services.story_runtime.play_service_control_service._load_raw_document") as mock_load:
+            with patch("app.services.story_runtime.play_service_control_service._persist_document") as mock_persist:
+                with patch("app.services.story_runtime.play_service_control_service.has_app_context", return_value=True):
+                    with patch("app.services.story_runtime.play_service_control_service.run_connectivity_test") as mock_test:
                         mock_load.return_value = {
                             "desired": {
                                 "mode": MODE_REMOTE,

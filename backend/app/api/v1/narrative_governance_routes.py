@@ -24,7 +24,7 @@ from app.models import (
     SiteSetting,
 )
 from app.models.narrative_contracts import DraftPatchBundle, ValidationFeedback
-from app.services.narrative_governance_service import (
+from app.services.governance.narrative_governance_service import (
     NarrativeGovernanceError,
     acknowledge_notification,
     apply_revision_bundle_to_draft,

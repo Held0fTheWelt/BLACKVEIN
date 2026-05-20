@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 
 from app.models import User, Role
-from app.services.user_service import (
+from app.services.identity.user_service import (
     create_user,
     reset_password_with_token,
     ban_user,
@@ -454,7 +454,7 @@ class TestUserBanAndUnban:
 class TestServiceLevel:
 
     def test_area_service_validation(self, app):
-        from app.services.area_service import validate_area_name, validate_area_slug
+        from app.services.content.area_service import validate_area_name, validate_area_slug
         with app.app_context():
             assert validate_area_name("") is not None
             assert validate_area_name(None) is not None
@@ -468,7 +468,7 @@ class TestServiceLevel:
             assert validate_area_slug("valid_slug") is None
 
     def test_area_service_get_by_slug(self, app):
-        from app.services.area_service import get_area_by_slug
+        from app.services.content.area_service import get_area_by_slug
         with app.app_context():
             result = get_area_by_slug(None)
             assert result is None
@@ -476,7 +476,7 @@ class TestServiceLevel:
             assert result is None
 
     def test_slogan_service_parse_dt(self, app):
-        from app.services.slogan_service import _parse_dt
+        from app.services.content.slogan_service import _parse_dt
         assert _parse_dt(None) is None
         assert _parse_dt("") is None
         assert _parse_dt("invalid") is None
@@ -486,7 +486,7 @@ class TestServiceLevel:
         assert result is not None
 
     def test_data_export_service(self, app):
-        from app.services.data_export_service import (
+        from app.services.data.data_export_service import (
             export_full,
             export_table,
             list_exportable_tables,
@@ -504,13 +504,13 @@ class TestServiceLevel:
             assert "metadata" in payload
 
     def test_data_export_service_unknown_table(self, app):
-        from app.services.data_export_service import export_table
+        from app.services.data.data_export_service import export_table
         with app.app_context():
             with pytest.raises(ValueError):
                 export_table("nonexistent_table")
 
     def test_data_import_preflight(self, app):
-        from app.services.data_import_service import preflight_validate_payload
+        from app.services.data.data_import_service import preflight_validate_payload
         with app.app_context():
             # Invalid payload
             result = preflight_validate_payload("not a dict")
@@ -532,7 +532,7 @@ class TestServiceLevel:
             assert not result.ok
 
     def test_wiki_service_functions(self, app):
-        from app.services.wiki_service import (
+        from app.services.content.wiki_service import (
             get_wiki_page_by_key,
             get_wiki_markdown_for_display,
             get_wiki_page_by_slug,
@@ -547,7 +547,7 @@ class TestServiceLevel:
             assert page is None
 
     def test_news_service_functions(self, app):
-        from app.services.news_service import (
+        from app.services.content.news_service import (
             get_news_by_id,
             get_news_by_slug,
             get_news_article_by_id,
@@ -560,7 +560,7 @@ class TestServiceLevel:
             assert get_news_article_by_id(None) is None
 
     def test_slogan_service_crud(self, app):
-        from app.services.slogan_service import (
+        from app.services.content.slogan_service import (
             create_slogan,
             update_slogan,
             delete_slogan,
@@ -603,7 +603,7 @@ class TestServiceLevel:
             assert get_slogan_by_id(s.id) is None
 
     def test_slogan_service_error_and_filter_paths(self, app):
-        from app.services.slogan_service import (
+        from app.services.content.slogan_service import (
             create_slogan,
             list_slogans,
             list_slogans_for_placement,
@@ -644,12 +644,12 @@ class TestServiceLevel:
             assert resolve_slogan_for_placement("landing.hero.primary", "") is not None
             assert len(list_slogans_for_placement("landing.hero.primary", "")) >= 1
 
-            from app.services.slogan_service import delete_slogan
+            from app.services.content.slogan_service import delete_slogan
 
             delete_slogan(s.id)
 
     def test_area_service_create_delete(self, app):
-        from app.services.area_service import create_area, delete_area, get_area_by_id, update_area
+        from app.services.content.area_service import create_area, delete_area, get_area_by_id, update_area
         with app.app_context():
             # Create
             area, err = create_area("Test Area SVC", slug="test_area_svc", description="desc")

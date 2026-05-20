@@ -1,11 +1,11 @@
-"""Tests for app.services.token_service."""
+"""Tests for app.services.identity.token_service."""
 
 import pytest
 from flask_jwt_extended import decode_token
 
 from app.extensions import db
 from app.models import RefreshToken
-from app.services.token_service import generate_tokens, refresh_access_token, revoke_user_tokens
+from app.services.identity.token_service import generate_tokens, refresh_access_token, revoke_user_tokens
 
 
 class TestTokenService:

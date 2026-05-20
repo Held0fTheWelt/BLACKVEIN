@@ -132,12 +132,12 @@ def test_no_w2_scope_jump_adapter_registry():
     assert True  # Scope validation is manual
 
 def test_register_adapter_after_register_adapter_model_keeps_stale_spec():
-    """Legacy register_adapter replaces the instance only; model spec metadata is unchanged (Task 2D)."""
+    """register_adapter replaces the instance only; model spec metadata is unchanged."""
     from app.runtime.adapter_registry import (
         get_model_spec,
         has_model_spec,
         iter_model_specs,
-        legacy_adapter_without_model_spec,
+        adapter_without_model_spec,
         register_adapter_model,
     )
     from app.runtime.model_routing_contracts import (
@@ -170,7 +170,7 @@ def test_register_adapter_after_register_adapter_model_keeps_stale_spec():
     register_adapter_model(spec, first)
     assert get_adapter("dual") is first
     assert has_model_spec("dual")
-    assert not legacy_adapter_without_model_spec("dual")
+    assert not adapter_without_model_spec("dual")
     second = MockAdapter("dual")
     register_adapter("dual", second)
     assert get_adapter("dual") is second

@@ -7,7 +7,7 @@ from typing import Any
 from ai_stack.contracts.character_mind_contract import FieldProvenance
 from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_mind import resolve_runtime_actor_id
 from ai_stack.contracts.character_voice_contract import CharacterVoiceProfileRecord
-from ai_stack.god_of_carnage_scene_identity import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_scene_identity import (
     GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY,
     guidance_phase_key_for_scene_id,
 )

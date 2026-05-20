@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 from ai_stack.contracts.relationship_state_contracts import (
     RELATIONSHIP_STATE_SCHEMA_VERSION,
     RelationshipStateRecord,
 )
-from ai_stack.relationship_state_engine import (
+from ai_stack.story_runtime.narrative.relationship_state_engine import (
     derive_relationship_state,
     relationship_state_fingerprint,
     validate_relationship_state_realization,

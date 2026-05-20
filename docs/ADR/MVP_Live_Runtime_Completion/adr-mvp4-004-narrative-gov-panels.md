@@ -32,7 +32,7 @@ These decisions require structured health panels that surface operator-critical 
 
 **Phase C (Narrative Governance Panels)**: Implement `NarrativeGovSummary` dataclass with 6 operator-facing health panels.
 
-### 1. **NarrativeGovSummary Dataclass** (`ai_stack/diagnostics_envelope.py`)
+### 1. **NarrativeGovSummary Dataclass** (`ai_stack/telemetry/diagnostics_envelope.py`)
 
 ```python
 @dataclass
@@ -271,8 +271,8 @@ def build_narrative_gov_summary(
 
 | Service | File | Change |
 |---------|------|--------|
-| ai_stack | `ai_stack/diagnostics_envelope.py` | Add HealthPanel and NarrativeGovSummary dataclasses |
-| ai_stack | `ai_stack/diagnostics_envelope.py` | Implement build_narrative_gov_summary() |
+| ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Add HealthPanel and NarrativeGovSummary dataclasses |
+| ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Implement build_narrative_gov_summary() |
 | world-engine | `world-engine/app/story_runtime/manager.py` | Call build_narrative_gov_summary() after turn |
 | world-engine | `world-engine/app/api/http.py` | Add /narrative-gov endpoints |
 | backend | `backend/app/auth/admin_security.py` | Audit trail for override tracking |

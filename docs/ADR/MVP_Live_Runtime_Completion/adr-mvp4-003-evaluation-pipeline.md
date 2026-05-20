@@ -31,7 +31,7 @@ MVP3 produced narrative output via LDSS. MVP4 must measure whether that output m
 
 **Phase C (Quality Evaluation & Rubric)**: Implement `EvaluationPipeline` with versioned `QualityRubric`, turn score recording, and auto-tuning weights.
 
-### 1. **QualityDimension Enum** (`ai_stack/evaluation_pipeline.py`)
+### 1. **QualityDimension Enum** (`ai_stack/quality_lab/evaluation_pipeline.py`)
 
 ```python
 class QualityDimension(Enum):
@@ -238,7 +238,7 @@ if pipeline.check_baseline_regression(recent_score):
 
 | Service | File | Change |
 |---------|------|--------|
-| ai_stack | `ai_stack/evaluation_pipeline.py` | Implement EvaluationPipeline, QualityRubric, TurnScore |
+| ai_stack | `ai_stack/quality_lab/evaluation_pipeline.py` | Implement EvaluationPipeline, QualityRubric, TurnScore |
 | backend | `backend/app/evaluations/storage.py` | Persist rubrics and turn scores |
 | world-engine | `world-engine/app/story_runtime/manager.py` | Call record_turn_score() after turn evaluation |
 | backend | `backend/app/api/evaluations.py` | HTTP endpoints for rubric CRUD and score recording |

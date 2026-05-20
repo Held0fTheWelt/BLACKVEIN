@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
 

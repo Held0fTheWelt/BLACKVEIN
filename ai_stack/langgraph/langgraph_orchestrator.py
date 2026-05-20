@@ -26,7 +26,7 @@ from ai_stack.langgraph.langgraph_agent_nodes import (
     interpret_result
 )
 from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
-from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
 
 class GameOrchestrator:

@@ -1,4 +1,4 @@
-"""Tests for ``app.services.game_service`` (play-service HTTP client and tickets).
+"""Tests for ``app.services.game.game_service`` (play-service HTTP client and tickets).
 
 Kept at ``tests/test_play_service_client.py`` so the module name does not collide with
 ``tests/services/test_game_service.py`` during full-suite collection.
@@ -12,8 +12,8 @@ import json
 import httpx
 import pytest
 
-from app.services import game_service
-from app.services.game_service import (
+from app.services.game import game_service
+from app.services.game.game_service import (
     GameServiceConfigError,
     GameServiceError,
     PlayJoinContext,
@@ -183,7 +183,7 @@ class TestGameServiceClient:
         capture = {}
         response = _FakeResponse(status_code=200, payload={"ok": True})
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=response, capture=capture, **kwargs),
         )
 
@@ -201,7 +201,7 @@ class TestGameServiceClient:
         error_capture = {}
         error_response = _FakeResponse(status_code=404, payload={"detail": "Run not found"})
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=error_response, capture=error_capture, **kwargs),
         )
         with app.app_context():
@@ -213,7 +213,7 @@ class TestGameServiceClient:
         empty_capture = {}
         empty_response = _FakeResponse(status_code=200, payload={"ignored": True}, content=b"")
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=empty_response, capture=empty_capture, **kwargs),
         )
         with app.app_context():
@@ -233,14 +233,14 @@ class TestGameServiceClient:
             },
         )
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=response, capture=capture, **kwargs),
         )
         with app.app_context():
             app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
             app.config["PLAY_SERVICE_INTERNAL_API_KEY"] = "k"
             app.config["PLAY_SERVICE_STORY_SESSION_TIMEOUT"] = 75
-            from app.services import game_service as gs
+            from app.services.game import game_service as gs
 
             gs.create_story_session(
                 module_id="god_of_carnage",
@@ -256,7 +256,7 @@ class TestGameServiceClient:
     def test_create_story_session_accepts_session_loop_without_opening_turn(self, app, monkeypatch):
         response = _FakeResponse(status_code=200, payload=_session_loop_payload())
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=response, **kwargs),
         )
         with app.app_context():
@@ -273,7 +273,7 @@ class TestGameServiceClient:
             payload={"session_id": "we-1", "session_loop": {"status": "runtime_engine_initialized"}},
         )
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(response=response, **kwargs),
         )
         with app.app_context():
@@ -288,7 +288,7 @@ class TestGameServiceClient:
     def test_request_wraps_transport_failures(self, app, monkeypatch):
         transport_error = httpx.RequestError("down", request=httpx.Request("GET", "https://play.example.com"))
         monkeypatch.setattr(
-            "app.services.game_service.httpx.Client",
+            "app.services.game.game_service.httpx.Client",
             lambda **kwargs: _FakeClient(error=transport_error, **kwargs),
         )
 
@@ -303,16 +303,16 @@ class TestGameServiceClient:
             app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
             app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
 
-            monkeypatch.setattr("app.services.game_service._request", lambda *args, **kwargs: [{"id": "tpl-1"}])
+            monkeypatch.setattr("app.services.game.game_service._request", lambda *args, **kwargs: [{"id": "tpl-1"}])
             assert list_templates() == [{"id": "tpl-1"}]
             assert list_runs() == [{"id": "tpl-1"}]
 
-            monkeypatch.setattr("app.services.game_service._request", lambda *args, **kwargs: {"not": "a list"})
+            monkeypatch.setattr("app.services.game.game_service._request", lambda *args, **kwargs: {"not": "a list"})
             assert list_templates() == []
             assert list_runs() == []
 
             monkeypatch.setattr(
-                "app.services.game_service._request",
+                "app.services.game.game_service._request",
                 lambda method, path, **kwargs: (
                     {"templates": [{"id": "wrapped-tpl", "title": "W", "kind": "solo_story"}]}
                     if path == "/api/templates"
@@ -353,7 +353,7 @@ class TestGameServiceClient:
                     return _detail_v1
                 return _detail_v1
 
-            monkeypatch.setattr("app.services.game_service._request", _fake_request)
+            monkeypatch.setattr("app.services.game.game_service._request", _fake_request)
             assert create_run(template_id="tpl-1", account_id="7", display_name="Bruno") == {
                 "run": {"id": "run-1"},
                 "store": {"backend": "memory"},
@@ -370,7 +370,7 @@ class TestGameServiceClient:
             }
 
             monkeypatch.setattr(
-                "app.services.game_service._request",
+                "app.services.game.game_service._request",
                 lambda *args, **kwargs: {
                     "run_id": "run-1",
                     "participant_id": "p-1",
@@ -390,7 +390,7 @@ class TestGameServiceClient:
                 character_id="11",
             )
 
-            monkeypatch.setattr("app.services.game_service._request", lambda *args, **kwargs: ["unexpected"])
+            monkeypatch.setattr("app.services.game.game_service._request", lambda *args, **kwargs: ["unexpected"])
             with pytest.raises(GameServiceError, match="unexpected create_run payload"):
                 create_run(template_id="tpl-1", account_id="7", display_name="Bruno")
             with pytest.raises(GameServiceError, match="unexpected join-context payload"):
@@ -415,7 +415,7 @@ class TestGameServiceClient:
                 "reason": "stop",
             }
 
-        monkeypatch.setattr("app.services.game_service._request", capture)
+        monkeypatch.setattr("app.services.game.game_service._request", capture)
         with app.app_context():
             app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://internal.example.com"
             out = game_service.terminate_run("r9", actor_display_name="u", reason="stop")
@@ -429,7 +429,7 @@ class TestGameServiceClient:
 
     def test_create_run_rejects_contradictory_flat_run_id(self, app, monkeypatch):
         monkeypatch.setattr(
-            "app.services.game_service._request",
+            "app.services.game.game_service._request",
             lambda *a, **k: {
                 "run_id": "other",
                 "run": {"id": "run-1"},
@@ -444,7 +444,7 @@ class TestGameServiceClient:
 
     def test_get_run_details_rejects_path_run_id_mismatch(self, app, monkeypatch):
         monkeypatch.setattr(
-            "app.services.game_service._request",
+            "app.services.game.game_service._request",
             lambda *a, **k: {
                 "run": {"id": "wrong"},
                 "template_source": "builtin",
@@ -466,7 +466,7 @@ class TestGameServiceClient:
 
     def test_terminate_requires_json_true_not_truthy(self, app, monkeypatch):
         monkeypatch.setattr(
-            "app.services.game_service._request",
+            "app.services.game.game_service._request",
             lambda *a, **k: {
                 "run_id": "run-1",
                 "terminated": 1,
@@ -481,7 +481,7 @@ class TestGameServiceClient:
                 terminate_run("run-1")
 
     def test_issue_play_ticket_encodes_signed_payload(self, app, monkeypatch):
-        monkeypatch.setattr("app.services.game_service.time.time", lambda: 1_700_000_000)
+        monkeypatch.setattr("app.services.game.game_service.time.time", lambda: 1_700_000_000)
         with app.app_context():
             app.config["PLAY_SERVICE_SHARED_SECRET"] = "shared-secret-value"
             app.config["GAME_TICKET_TTL_SECONDS"] = 120

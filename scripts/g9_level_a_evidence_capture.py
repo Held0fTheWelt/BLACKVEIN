@@ -3,12 +3,12 @@
 
 Aligned with pytest anchors:
   test_goc_runtime_breadth_continuity_diagnostics: s1, s2, s3
-  ai_stack.god_of_carnage_misinterpretation_correction_scenario: s4 (misinterpretation / correction chain)
+  ai_stack.story_runtime.god_of_carnage.god_of_carnage_misinterpretation_correction_scenario: s4 (misinterpretation / correction chain)
   test_goc_multi_turn_experience_quality: s5 (primary-failure / fallback / degraded explanation)
   test_goc_retrieval_heavy_scenario: s6
 
 S4 (Roadmap §6.9 scenario 4) uses the canonical three-turn chain in
-``ai_stack/god_of_carnage_misinterpretation_correction_scenario.py`` (pronominal misroute in phase_3,
+``ai_stack/story_runtime/god_of_carnage/god_of_carnage_misinterpretation_correction_scenario.py`` (pronominal misroute in phase_3,
 player correction naming Veronique, sustained host-focused beat).
 
 This script still writes one JSON file per roadmap scenario (S1–S6) when run
@@ -49,11 +49,11 @@ from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult  # noq
 from story_runtime_core.model_registry import build_default_registry  # noqa: E402
 
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_roadmap_dramatic_turn_record  # noqa: E402
-from ai_stack.god_of_carnage_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml  # noqa: E402
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml  # noqa: E402
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor  # noqa: E402
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline  # noqa: E402
-from ai_stack.god_of_carnage_experience_acceptance_roadmap_scenarios import ROADMAP_SCENARIO_ID_RETRIEVAL_HEAVY  # noqa: E402
-from ai_stack.god_of_carnage_misinterpretation_correction_scenario import (  # noqa: E402
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_experience_acceptance_roadmap_scenarios import ROADMAP_SCENARIO_ID_RETRIEVAL_HEAVY  # noqa: E402
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_misinterpretation_correction_scenario import (  # noqa: E402
     ROADMAP_S4_PYTEST_NODE,
     TRACE_S4_T1,
     TRACE_S4_T2,

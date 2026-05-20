@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     CONTINUITY_CLASSES,
     CONTINUITY_CLASS_SEVERITY_ORDER,
     GOC_MODULE_ID,
@@ -16,8 +16,8 @@ from ai_stack.god_of_carnage_frozen_vocabulary import (
     assert_scene_function,
     assert_silence_brevity_mode,
 )
-from ai_stack.god_of_carnage_scene_identity import GOC_DEFAULT_GUIDANCE_PHASE_KEY, guidance_phase_key_for_scene_id
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_scene_identity import GOC_DEFAULT_GUIDANCE_PHASE_KEY, guidance_phase_key_for_scene_id
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     goc_actor_ids_from_content,
     goc_actor_identity_index,
     scene_assessment_phase_hints,

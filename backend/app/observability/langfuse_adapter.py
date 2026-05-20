@@ -98,7 +98,7 @@ class LangfuseConfig:
     def _get_credential_from_db(secret_name: str) -> Optional[str]:
         """Get credential from database (stored via admin tool)."""
         try:
-            from app.services.observability_governance_service import get_observability_credential_for_runtime
+            from app.services.governance.observability_governance_service import get_observability_credential_for_runtime
             return get_observability_credential_for_runtime(secret_name)
         except Exception:
             return None

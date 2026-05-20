@@ -7,7 +7,7 @@ from ai_stack.contracts.temporal_control_contracts import (
     TEMPORAL_CONTROL_SCHEMA_VERSION,
     normalize_temporal_control_policy,
 )
-from ai_stack.temporal_control_engine import (
+from ai_stack.story_runtime.narrative.temporal_control_engine import (
     build_temporal_control_aspect_record,
     compact_temporal_control_context,
     derive_temporal_control,

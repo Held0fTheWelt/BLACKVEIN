@@ -2,7 +2,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from app.services.game_service import (
+from app.services.game.game_service import (
     GameServiceError,
     GameServiceConfigError,
     PlayJoinContext,
@@ -277,7 +277,7 @@ class TestConfigFunctions:
 
     def test_has_complete_play_service_config_all_present(self):
         """Test when all config is present."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             def mock_config_get(key, default=None):
                 config = {
                     "PLAY_SERVICE_CONTROL_DISABLED": False,
@@ -294,7 +294,7 @@ class TestConfigFunctions:
 
     def test_has_complete_play_service_config_disabled(self):
         """Test when service is explicitly disabled."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             def mock_config_get(key, default=None):
                 config = {
                     "PLAY_SERVICE_CONTROL_DISABLED": True,
@@ -308,7 +308,7 @@ class TestConfigFunctions:
 
     def test_has_complete_play_service_config_missing_url(self):
         """Test when public URL is missing."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             def mock_config_get(key, default=None):
                 config = {
                     "PLAY_SERVICE_CONTROL_DISABLED": False,
@@ -325,7 +325,7 @@ class TestConfigFunctions:
 
     def test_require_configured_url_public(self):
         """Test getting public URL when configured."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             def mock_config_get(key, default=None):
                 config = {
                     "PLAY_SERVICE_PUBLIC_URL": "https://public.example.com/",
@@ -339,7 +339,7 @@ class TestConfigFunctions:
 
     def test_require_configured_url_not_configured(self):
         """Test error when URL not configured."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             mock_app.config.get = lambda key, default=None: None
 
             with pytest.raises(GameServiceConfigError):
@@ -351,7 +351,7 @@ class TestPublicUrlFunctions:
 
     def test_get_play_service_public_url(self):
         """Test retrieving public URL."""
-        with patch("app.services.game_service._require_configured_url") as mock_require:
+        with patch("app.services.game.game_service._require_configured_url") as mock_require:
             mock_require.return_value = "https://play.example.com"
 
             result = get_play_service_public_url()
@@ -360,7 +360,7 @@ class TestPublicUrlFunctions:
 
     def test_get_play_service_websocket_url_https(self):
         """Test converting HTTPS to WSS."""
-        with patch("app.services.game_service.get_play_service_public_url") as mock_get:
+        with patch("app.services.game.game_service.get_play_service_public_url") as mock_get:
             mock_get.return_value = "https://play.example.com:8443/path"
 
             result = get_play_service_websocket_url()
@@ -369,7 +369,7 @@ class TestPublicUrlFunctions:
 
     def test_get_play_service_websocket_url_http(self):
         """Test converting HTTP to WS."""
-        with patch("app.services.game_service.get_play_service_public_url") as mock_get:
+        with patch("app.services.game.game_service.get_play_service_public_url") as mock_get:
             mock_get.return_value = "http://play.example.com:8080"
 
             result = get_play_service_websocket_url()
@@ -382,7 +382,7 @@ class TestInternalHeaders:
 
     def test_headers_without_api_key(self):
         """Test headers when no API key configured."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             mock_app.config.get = lambda key, default=None: None
 
             headers = _internal_headers()
@@ -391,7 +391,7 @@ class TestInternalHeaders:
 
     def test_headers_with_api_key(self):
         """Test headers when API key is configured."""
-        with patch("app.services.game_service.current_app") as mock_app:
+        with patch("app.services.game.game_service.current_app") as mock_app:
             def mock_config_get(key, default=None):
                 config = {
                     "PLAY_SERVICE_INTERNAL_API_KEY": "api-key-123",

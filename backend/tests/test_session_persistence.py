@@ -13,7 +13,7 @@ import json
 import tempfile
 import asyncio
 from pathlib import Path
-from app.services.persistence_service import save_session, load_session
+from app.services.data.persistence_service import save_session, load_session
 from app.runtime.session_start import start_session
 from app.runtime.session_store import (
     create_session as register_session,

@@ -16,9 +16,9 @@ pytest.importorskip(
     "ai_stack.langgraph.langgraph_runtime",
     reason="LangGraph/LangChain stack required for GoC runtime graph tests",
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import DIRECTOR_IMMUTABLE_FIELDS, GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import DIRECTOR_IMMUTABLE_FIELDS, GOC_MODULE_ID
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_operator_canonical_turn_record, strip_director_overwrites_from_structured_output
-from ai_stack.god_of_carnage_yaml_authority import cached_goc_yaml_title, detect_builtin_yaml_title_conflict
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import cached_goc_yaml_title, detect_builtin_yaml_title_conflict
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 

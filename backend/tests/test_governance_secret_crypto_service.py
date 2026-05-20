@@ -5,7 +5,7 @@ import base64
 import pytest
 
 from app.governance.errors import GovernanceError
-from app.services.governance_secret_crypto_service import _load_kek
+from app.services.governance.governance_secret_crypto_service import _load_kek
 
 
 def test_load_kek_accepts_unpadded_base64(monkeypatch) -> None:

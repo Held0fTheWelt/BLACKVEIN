@@ -1,20 +1,152 @@
-from app.services.activity_log_service import log_activity
-from app.services.user_service import (
+"""Service package exports and submodule aliases."""
+
+from __future__ import annotations
+
+from importlib import import_module
+from types import ModuleType
+
+from app.services.activity.activity_log_service import log_activity
+from app.services.content.news_service import (
+    create_news,
+    delete_news,
+    get_news_by_id,
+    get_news_by_slug,
+    list_news,
+    publish_news,
+    unpublish_news,
+    update_news,
+)
+from app.services.identity.user_service import (
     create_user,
     get_user_by_email,
     get_user_by_username,
     verify_user,
 )
-from app.services.news_service import (
-    list_news,
-    get_news_by_id,
-    get_news_by_slug,
-    create_news,
-    update_news,
-    delete_news,
-    publish_news,
-    unpublish_news,
-)
+
+_MODULE_ALIASES: dict[str, str] = {
+    "activity_log_service": "app.services.activity.activity_log_service",
+    "_analytics_utils": "app.services.analytics._analytics_utils",
+    "analytics_service": "app.services.analytics.analytics_service",
+    "analytics_service_content": "app.services.analytics.analytics_service_content",
+    "analytics_service_timeline": "app.services.analytics.analytics_service_timeline",
+    "metrics_service": "app.services.analytics.metrics_service",
+    "log_utils": "app.services.common.log_utils",
+    "search_utils": "app.services.common.search_utils",
+    "ai_engineer_suite_service": "app.services.ai_stack.ai_engineer_suite_service",
+    "ai_stack_closure_cockpit_parsing": "app.services.ai_stack.ai_stack_closure_cockpit_parsing",
+    "ai_stack_closure_cockpit_report_assembly": "app.services.ai_stack.ai_stack_closure_cockpit_report_assembly",
+    "ai_stack_closure_cockpit_report_sections": "app.services.ai_stack.ai_stack_closure_cockpit_report_sections",
+    "ai_stack_closure_cockpit_service": "app.services.ai_stack.ai_stack_closure_cockpit_service",
+    "ai_stack_evidence_internals": "app.services.ai_stack.ai_stack_evidence_internals",
+    "ai_stack_evidence_service": "app.services.ai_stack.ai_stack_evidence_service",
+    "ai_stack_evidence_session_bundle": "app.services.ai_stack.ai_stack_evidence_session_bundle",
+    "ai_stack_evidence_session_bundle_sections": "app.services.ai_stack.ai_stack_evidence_session_bundle_sections",
+    "ai_stack_release_readiness_area_rows_list": "app.services.ai_stack.ai_stack_release_readiness_area_rows_list",
+    "ai_stack_release_readiness_report": "app.services.ai_stack.ai_stack_release_readiness_report",
+    "ai_stack_release_readiness_report_payload_parts": "app.services.ai_stack.ai_stack_release_readiness_report_payload_parts",
+    "ai_stack_release_readiness_report_sections": "app.services.ai_stack.ai_stack_release_readiness_report_sections",
+    "ai_stack_release_readiness_signal_extractors": "app.services.ai_stack.ai_stack_release_readiness_signal_extractors",
+    "ai_stack_release_readiness_static_tail": "app.services.ai_stack.ai_stack_release_readiness_static_tail",
+    "area_service": "app.services.content.area_service",
+    "economy_service": "app.services.content.economy_service",
+    "forum_service": "app.services.content.forum_service",
+    "forum_service_permissions": "app.services.content.forum_service_permissions",
+    "news_service": "app.services.content.news_service",
+    "news_service_create_guards": "app.services.content.news_service_create_guards",
+    "news_service_translation_upsert_guards": "app.services.content.news_service_translation_upsert_guards",
+    "news_service_update_guards": "app.services.content.news_service_update_guards",
+    "slogan_service": "app.services.content.slogan_service",
+    "wiki_service": "app.services.content.wiki_service",
+    "data_export_service": "app.services.data.data_export_service",
+    "data_import_preflight": "app.services.data.data_import_preflight",
+    "data_import_service": "app.services.data.data_import_service",
+    "data_import_types": "app.services.data.data_import_types",
+    "persistence_service": "app.services.data.persistence_service",
+    "game_content_service": "app.services.game.game_content_service",
+    "game_profile_service": "app.services.game.game_profile_service",
+    "game_service": "app.services.game.game_service",
+    "diagnosis_gates_mapping_service": "app.services.governance.diagnosis_gates_mapping_service",
+    "governance_console_service": "app.services.governance.governance_console_service",
+    "governance_runtime_service": "app.services.governance.governance_runtime_service",
+    "governance_secret_crypto_service": "app.services.governance.governance_secret_crypto_service",
+    "governed_provider_adapter_service": "app.services.governance.governed_provider_adapter_service",
+    "hf_hub_governance_service": "app.services.governance.hf_hub_governance_service",
+    "narrative_governance_service": "app.services.governance.narrative_governance_service",
+    "observability_governance_service": "app.services.governance.observability_governance_service",
+    "readiness_gates_service": "app.services.governance.readiness_gates_service",
+    "research_domain_governance_service": "app.services.governance.research_domain_governance_service",
+    "runtime_config_truth_service": "app.services.governance.runtime_config_truth_service",
+    "security_governance_service": "app.services.governance.security_governance_service",
+    "encryption_service": "app.services.identity.encryption_service",
+    "mail_service": "app.services.identity.mail_service",
+    "role_service": "app.services.identity.role_service",
+    "token_service": "app.services.identity.token_service",
+    "user_service": "app.services.identity.user_service",
+    "user_service_account_guards": "app.services.identity.user_service_account_guards",
+    "user_service_admin_guards": "app.services.identity.user_service_admin_guards",
+    "user_service_update_guards": "app.services.identity.user_service_update_guards",
+    "improvement_constants": "app.services.improvement.improvement_constants",
+    "improvement_service": "app.services.improvement.improvement_service",
+    "improvement_service_policy_evaluators": "app.services.improvement.improvement_service_policy_evaluators",
+    "improvement_service_recommendation_decision": "app.services.improvement.improvement_service_recommendation_decision",
+    "improvement_store": "app.services.improvement.improvement_store",
+    "improvement_task2a_routing": "app.services.improvement.improvement_task2a_routing",
+    "inspector_projection_comparison": "app.services.inspector.inspector_projection_comparison",
+    "inspector_projection_coverage_health": "app.services.inspector.inspector_projection_coverage_health",
+    "inspector_projection_coverage_health_distribution": "app.services.inspector.inspector_projection_coverage_health_distribution",
+    "inspector_projection_provenance_raw_entries": "app.services.inspector.inspector_projection_provenance_raw_entries",
+    "inspector_projection_service": "app.services.inspector.inspector_projection_service",
+    "inspector_projection_shared": "app.services.inspector.inspector_projection_shared",
+    "inspector_projection_turn_view": "app.services.inspector.inspector_projection_turn_view",
+    "inspector_turn_projection_assembly_helpers": "app.services.inspector.inspector_turn_projection_assembly_helpers",
+    "inspector_turn_projection_sections": "app.services.inspector.inspector_turn_projection_sections",
+    "inspector_turn_projection_sections_assembly": "app.services.inspector.inspector_turn_projection_sections_assembly",
+    "inspector_turn_projection_sections_assembly_filled": "app.services.inspector.inspector_turn_projection_sections_assembly_filled",
+    "inspector_turn_projection_sections_constants": "app.services.inspector.inspector_turn_projection_sections_constants",
+    "inspector_turn_projection_sections_gate_payload": "app.services.inspector.inspector_turn_projection_sections_gate_payload",
+    "inspector_turn_projection_sections_provenance": "app.services.inspector.inspector_turn_projection_sections_provenance",
+    "inspector_turn_projection_sections_provenance_entries": "app.services.inspector.inspector_turn_projection_sections_provenance_entries",
+    "inspector_turn_projection_sections_semantic": "app.services.inspector.inspector_turn_projection_sections_semantic",
+    "inspector_turn_projection_sections_utils": "app.services.inspector.inspector_turn_projection_sections_utils",
+    "inspector_turn_projection_service": "app.services.inspector.inspector_turn_projection_service",
+    "mcp_operations_service": "app.services.mcp.mcp_operations_service",
+    "prompt_store_service": "app.services.prompts.prompt_store_service",
+    "operator_turn_history_service": "app.services.story_runtime.operator_turn_history_service",
+    "play_service_control_service": "app.services.story_runtime.play_service_control_service",
+    "runtime_status_semantics": "app.services.story_runtime.runtime_status_semantics",
+    "story_runtime_experience_service": "app.services.story_runtime.story_runtime_experience_service",
+    "world_engine_control_center_service": "app.services.story_runtime.world_engine_control_center_service",
+    "system_diagnosis_play_http": "app.services.system.system_diagnosis_play_http",
+    "system_diagnosis_service": "app.services.system.system_diagnosis_service",
+    "writers_room_model_routing": "app.services.writers_room.writers_room_model_routing",
+    "writers_room_pipeline": "app.services.writers_room.writers_room_pipeline",
+    "writers_room_pipeline_context_preview": "app.services.writers_room.writers_room_pipeline_context_preview",
+    "writers_room_pipeline_finalize_audits": "app.services.writers_room.writers_room_pipeline_finalize_audits",
+    "writers_room_pipeline_finalize_package_out": "app.services.writers_room.writers_room_pipeline_finalize_package_out",
+    "writers_room_pipeline_finalize_stage": "app.services.writers_room.writers_room_pipeline_finalize_stage",
+    "writers_room_pipeline_generation_preflight": "app.services.writers_room.writers_room_pipeline_generation_preflight",
+    "writers_room_pipeline_generation_stage": "app.services.writers_room.writers_room_pipeline_generation_stage",
+    "writers_room_pipeline_generation_synthesis": "app.services.writers_room.writers_room_pipeline_generation_synthesis",
+    "writers_room_pipeline_manifest": "app.services.writers_room.writers_room_pipeline_manifest",
+    "writers_room_pipeline_packaging_issue_extraction": "app.services.writers_room.writers_room_pipeline_packaging_issue_extraction",
+    "writers_room_pipeline_packaging_payloads": "app.services.writers_room.writers_room_pipeline_packaging_payloads",
+    "writers_room_pipeline_packaging_recommendation_bundling": "app.services.writers_room.writers_room_pipeline_packaging_recommendation_bundling",
+    "writers_room_pipeline_packaging_stage": "app.services.writers_room.writers_room_pipeline_packaging_stage",
+    "writers_room_pipeline_retrieval_stage": "app.services.writers_room.writers_room_pipeline_retrieval_stage",
+    "writers_room_pipeline_workflow": "app.services.writers_room.writers_room_pipeline_workflow",
+    "writers_room_service": "app.services.writers_room.writers_room_service",
+    "writers_room_store": "app.services.writers_room.writers_room_store",
+}
+
+
+def __getattr__(name: str) -> ModuleType:
+    target = _MODULE_ALIASES.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = import_module(target)
+    globals()[name] = module
+    return module
+
 
 __all__ = [
     "log_activity",
@@ -30,4 +162,5 @@ __all__ = [
     "delete_news",
     "publish_news",
     "unpublish_news",
+    *_MODULE_ALIASES,
 ]

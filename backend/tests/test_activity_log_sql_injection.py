@@ -5,7 +5,7 @@ and properly sanitize input to prevent SQL injection attacks.
 """
 import pytest
 from app.models import ActivityLog
-from app.services.activity_log_service import list_activity_logs, log_activity
+from app.services.activity.activity_log_service import list_activity_logs, log_activity
 
 pytestmark = pytest.mark.serial
 

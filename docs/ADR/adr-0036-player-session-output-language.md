@@ -307,7 +307,7 @@ flowchart TD
 
 ### AI Stack
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — inject language directive into prompt context
-- `ai_stack/diagnostics_envelope.py` — mirror `session_output_language` in diagnostics for observability
+- `ai_stack/telemetry/diagnostics_envelope.py` — mirror `session_output_language` in diagnostics for observability
 
 ### Observability
 - Langfuse trace integration — set User-level attribute `session_output_language` on all traces

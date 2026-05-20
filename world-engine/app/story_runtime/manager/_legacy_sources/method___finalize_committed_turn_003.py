@@ -84,12 +84,12 @@ SOURCE = r'''\
                 # runtime signals rather than defaults where available.
                 # Bundle path and all existing keys are preserved unchanged.
                 try:
-                    from ai_stack.block_stream_dual_mode import (
+                    from ai_stack.story_runtime.block_stream_dual_mode import (
                         augment_envelope_with_block_stream,
                         is_dual_mode_enabled,
                         is_primary_enabled,
                     )
-                    from ai_stack.stream_readiness import (
+                    from ai_stack.story_runtime.stream_readiness import (
                         compute_primary_selection,
                         compute_stream_readiness,
                         extract_capability_outputs_from_graph_state,

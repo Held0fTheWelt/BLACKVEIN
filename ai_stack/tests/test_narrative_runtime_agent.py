@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from ai_stack.contracts.npc_agency_contracts import normalize_npc_agency_plan
-from ai_stack.narrative_runtime_agent import (
+from ai_stack.story_runtime.narrative_runtime_agent import (
     NarrativeRuntimeAgent,
     NarrativeRuntimeAgentInput,
     NarrativeRuntimeAgentConfig,

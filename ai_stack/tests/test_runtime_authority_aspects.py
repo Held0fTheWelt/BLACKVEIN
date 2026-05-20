@@ -12,7 +12,7 @@ from ai_stack.contracts.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING,
     NARRATIVE_MOMENTUM_SCHEMA_VERSION,
 )
-from ai_stack.narrative_momentum_engine import derive_narrative_momentum
+from ai_stack.story_runtime.narrative.narrative_momentum_engine import derive_narrative_momentum
 from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_COERCIVE_ACTION_TYPES,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
@@ -20,7 +20,7 @@ from ai_stack.contracts.dramatic_capability_contracts import (
 )
 from ai_stack.contracts.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
     ASPECT_NARRATIVE_MOMENTUM,
@@ -36,8 +36,8 @@ from ai_stack.contracts.social_pressure_contracts import (
     SOCIAL_PRESSURE_BANDS,
     SOCIAL_PRESSURE_SCHEMA_VERSION,
 )
-from ai_stack.social_pressure_engine import derive_social_pressure
-from ai_stack.tonal_consistency_engine import derive_tonal_consistency
+from ai_stack.story_runtime.narrative.social_pressure_engine import derive_social_pressure
+from ai_stack.story_runtime.narrative.tonal_consistency_engine import derive_tonal_consistency
 
 
 def _coercive_action_type() -> str:

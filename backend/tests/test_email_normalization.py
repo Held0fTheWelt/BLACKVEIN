@@ -8,7 +8,7 @@ from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
 from app.models import User, Role
-from app.services.user_service import (
+from app.services.identity.user_service import (
     create_user,
     get_user_by_email,
     validate_email_format,

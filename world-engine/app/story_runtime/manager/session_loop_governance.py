@@ -90,7 +90,7 @@ class _SessionLoopGovernanceMixin:
         prompt_template_source = "unknown"
         prompt_template_fallback = False
         try:
-            from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog  # noqa: F401
+            from ai_stack.prompt_store.catalog import CanonicalPromptCatalog  # noqa: F401
 
             prompt_template_source = "canonical_prompt_catalog"
         except Exception:

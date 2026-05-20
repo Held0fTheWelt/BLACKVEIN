@@ -33,7 +33,7 @@ The administration-tool's Narrative Gov `runtime.html` page was a placeholder wi
 
 ## Affected Services/Files
 
-- `ai_stack/diagnostics_envelope.py` — `NarrativeGovSummary`, `build_narrative_gov_summary()`
+- `ai_stack/telemetry/diagnostics_envelope.py` — `NarrativeGovSummary`, `build_narrative_gov_summary()`
 - `world-engine/app/story_runtime/manager.py` — `get_narrative_gov_summary()`
 - `world-engine/app/api/http.py` — `GET /story/runtime/narrative-gov-summary`
 - `administration-tool/templates/manage/narrative_governance/runtime.html` — 6 health panels with JS fetch

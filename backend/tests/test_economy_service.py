@@ -9,7 +9,7 @@ Tests cover:
 """
 import pytest
 
-from app.services.economy_service import (
+from app.services.content.economy_service import (
     EconomyError,
     InsufficientBalanceError,
     InvalidAmountError,
@@ -23,7 +23,7 @@ class TestValidateAmount:
 
     def test_positive_integer_is_valid(self):
         """Positive integers should be valid."""
-        from app.services.economy_service import validate_amount
+        from app.services.content.economy_service import validate_amount
         # Should not raise
         validate_amount(100)
         validate_amount(1)
@@ -31,19 +31,19 @@ class TestValidateAmount:
 
     def test_negative_amount_raises_error(self):
         """Negative amounts should raise InvalidAmountError."""
-        from app.services.economy_service import validate_amount
+        from app.services.content.economy_service import validate_amount
         with pytest.raises(InvalidAmountError):
             validate_amount(-50)
 
     def test_zero_amount_raises_error(self):
         """Zero amount should raise InvalidAmountError."""
-        from app.services.economy_service import validate_amount
+        from app.services.content.economy_service import validate_amount
         with pytest.raises(InvalidAmountError):
             validate_amount(0)
 
     def test_non_numeric_amount_raises_error(self):
         """Non-numeric amounts should raise InvalidAmountError."""
-        from app.services.economy_service import validate_amount
+        from app.services.content.economy_service import validate_amount
         with pytest.raises(InvalidAmountError):
             validate_amount("not a number")
 

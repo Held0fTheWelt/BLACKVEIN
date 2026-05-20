@@ -6,7 +6,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.api.v1 import api_v1_bp
 from app.observability.audit_log import log_workflow_audit
 from app.observability.trace import get_trace_id
-from app.services.writers_room_service import (
+from app.services.writers_room.writers_room_service import (
     apply_writers_room_decision,
     get_writers_room_review,
     run_writers_room_review,

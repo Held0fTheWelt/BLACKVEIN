@@ -15,7 +15,7 @@ from ai_stack.langgraph.langgraph_runtime_package_output_sections import (
     build_planner_state_projection,
     compute_experiment_preview_for_package_output,
 )
-from ai_stack.runtime_quality_semantics import canonical_quality_summary
+from ai_stack.quality_lab.runtime_quality_semantics import canonical_quality_summary
 from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 from ai_stack.langgraph.langgraph_runtime_tracking import _track
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph

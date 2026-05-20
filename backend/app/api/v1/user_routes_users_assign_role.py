@@ -17,7 +17,7 @@ from app.config.route_constants import route_status_codes
 from app.extensions import db
 from app.models import Role
 from app.services import log_activity
-from app.services.user_service import assign_role as assign_role_service, get_user_by_id
+from app.services.identity.user_service import assign_role as assign_role_service, get_user_by_id
 
 
 @dataclass

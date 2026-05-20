@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
-from ai_stack.god_of_carnage_scene_identity import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_scene_identity import (
     GOC_DEFAULT_GUIDANCE_PHASE_KEY,
     GOC_SCENE_ID_TO_GUIDANCE_PHASE,
     all_expected_guidance_phase_keys,
     guidance_phase_key_for_scene_id,
 )
-from ai_stack.god_of_carnage_yaml_authority import load_goc_scene_guidance_yaml
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_scene_guidance_yaml
 
 _IGNORED_SCAN_PARTS = {
     ".claude",
@@ -82,7 +82,12 @@ def test_unknown_scene_id_uses_default() -> None:
 
 def test_sole_definition_of_guidance_phase_key_for_scene_id() -> None:
     """No-local-remap: only god_of_carnage_scene_identity may define the resolver (see tools/verify script)."""
-    canon = Path(__file__).resolve().parents[1] / "god_of_carnage_scene_identity.py"
+    canon = (
+        Path(__file__).resolve().parents[1]
+        / "story_runtime"
+        / "god_of_carnage"
+        / "god_of_carnage_scene_identity.py"
+    )
     text = canon.read_text(encoding="utf-8")
     assert "def guidance_phase_key_for_scene_id" in text
     root = _repo_root()

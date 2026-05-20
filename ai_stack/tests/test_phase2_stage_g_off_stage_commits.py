@@ -7,11 +7,11 @@ from typing import Any
 from ai_stack.contracts.hierarchical_memory_contracts import (
     HIERARCHICAL_MEMORY_WRITE_SCHEMA_VERSION,
 )
-from ai_stack.autonomous_tick import (
+from ai_stack.story_runtime.autonomous_tick import (
     AutonomousTickInputs,
     evaluate_autonomous_tick,
 )
-from ai_stack.off_stage_updates import (
+from ai_stack.story_runtime.off_stage_updates import (
     BLOCKER_FREE_TEXT_BODY,
     BLOCKER_NEW_PERSON,
     BLOCKER_NEW_PLOT_FACT,

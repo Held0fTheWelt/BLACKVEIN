@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
 
-from app.services.inspector_turn_projection_service import (
+from app.services.inspector.inspector_turn_projection_service import (
     _LAST_TURN_PLANNER_KEYS,
     _last_turn_from_bundle,
     _planner_fields_from_last_turn,
@@ -386,7 +386,7 @@ class TestBuildInspectorTurnProjection:
     def test_build_inspector_turn_projection_session_not_found(self):
         """Test when session is not found."""
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             mock_bundle.return_value = {"error": "world_engine_story_session_not_found"}
 
@@ -418,13 +418,13 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_operator_canonical_turn_record"
+                "app.services.inspector.inspector_turn_projection_service.build_operator_canonical_turn_record"
             ) as mock_canonical:
                 with patch(
-                    "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                    "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
                 ) as mock_sections:
                     mock_bundle.return_value = bundle
                     mock_canonical.return_value = {"canonical": "record"}
@@ -465,13 +465,13 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_operator_canonical_turn_record"
+                "app.services.inspector.inspector_turn_projection_service.build_operator_canonical_turn_record"
             ) as mock_canonical:
                 with patch(
-                    "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                    "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
                 ) as mock_sections:
                     mock_bundle.return_value = bundle
                     mock_canonical.return_value = {"canonical": "record"}
@@ -500,10 +500,10 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
             ) as mock_sections:
                 mock_bundle.return_value = bundle
                 mock_sections.return_value = {}
@@ -536,10 +536,10 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
             ) as mock_sections:
                 mock_bundle.return_value = bundle
                 mock_sections.return_value = {}
@@ -572,10 +572,10 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
             ) as mock_sections:
                 mock_bundle.return_value = bundle
                 mock_sections.return_value = {}
@@ -608,10 +608,10 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
             ) as mock_sections:
                 mock_bundle.return_value = bundle
                 mock_sections.return_value = {}
@@ -644,10 +644,10 @@ class TestBuildInspectorTurnProjection:
         }
 
         with patch(
-            "app.services.inspector_turn_projection_service.build_session_evidence_bundle"
+            "app.services.inspector.inspector_turn_projection_service.build_session_evidence_bundle"
         ) as mock_bundle:
             with patch(
-                "app.services.inspector_turn_projection_service.build_inspector_projection_sections"
+                "app.services.inspector.inspector_turn_projection_service.build_inspector_projection_sections"
             ) as mock_sections:
                 mock_bundle.return_value = bundle
                 mock_sections.return_value = {}

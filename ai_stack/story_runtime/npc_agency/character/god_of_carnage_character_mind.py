@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.contracts.character_mind_contract import CharacterMindRecord, FieldProvenance
-from ai_stack.god_of_carnage_scene_identity import guidance_phase_key_for_scene_id
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_scene_identity import guidance_phase_key_for_scene_id
 
 
 def resolve_runtime_actor_id(

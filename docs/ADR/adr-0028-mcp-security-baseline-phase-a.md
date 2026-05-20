@@ -10,7 +10,7 @@ Accepted
 - Phase A MCP is read/preview-only for operator workflows; write operations are not exposed through the MCP tool set.
 - Bearer token authentication (`Authorization: Bearer <SERVICE_TOKEN>`) is used for backend calls per the ADR.
 - Tokens are stored in local config, not committed to repo.
-- Rate limiting (30 calls/min per token) is enforced in `tools/mcp_server/server.py`, sourced from `ai_stack/limit_inventory.py`, and mirrored per tool in `tools/list` metadata. Request-body hashing in logs remains a separate logging constraint.
+- Rate limiting (30 calls/min per token) is enforced in `tools/mcp_server/server.py`, sourced from `ai_stack/quality_lab/limit_inventory.py`, and mirrored per tool in `tools/list` metadata. Request-body hashing in logs remains a separate logging constraint.
 - Status promoted from "Proposed" because the Phase A security posture is in force and the MCP server is operational.
 - Review if rate limiting is not implemented in `tools/mcp_server/` before expanding Phase A scope.
 

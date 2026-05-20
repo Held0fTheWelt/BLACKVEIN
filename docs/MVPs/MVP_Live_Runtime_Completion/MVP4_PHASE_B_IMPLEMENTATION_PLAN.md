@@ -34,7 +34,7 @@ For real provider calls, `billing_mode` must be `provider_usage`, token counts m
 
 **Current local implementation snapshot (2026-05-16):**
 
-- `ai_stack/runtime_cost_attribution.py` is the shared canonical helper surface for phase-cost records and aggregation.
+- `ai_stack/telemetry/runtime_cost_attribution.py` is the shared canonical helper surface for phase-cost records and aggregation.
 - World-engine GoC committed turns aggregate `graph_state["phase_costs"]` into `diagnostics_envelope.cost_summary`.
 - Deterministic/mock paths are explicit zero-cost records.
 - Provider-backed model generation records a semantic `model_generation` phase only from adapter-reported usage metadata.
@@ -106,8 +106,8 @@ Do not rebuild the following infrastructure:
 | Root turn spans | `world-engine/app/api/http.py` | `world-engine.turn.execute` root span for story/session and turn routes |
 | Phase spans | `world-engine/app/story_runtime/manager.py` | `story.phase.ldss`, `story.phase.narrator` |
 | LDSS execution | `ai_stack/live_dramatic_scene_simulator.py` | deterministic LDSS output and LDSS span metadata scaffold |
-| Narrator blocks | `ai_stack/narrative_runtime_agent.py` | narrator block spans and scaffold token metadata |
-| Diagnostics envelope | `ai_stack/diagnostics_envelope.py` | response redaction, cost summary field, trace evidence |
+| Narrator blocks | `ai_stack/story_runtime/narrative_runtime_agent.py` | narrator block spans and scaffold token metadata |
+| Diagnostics envelope | `ai_stack/telemetry/diagnostics_envelope.py` | response redaction, cost summary field, trace evidence |
 
 Important boundary:
 
@@ -154,7 +154,7 @@ Add a small shared helper module, preferably in `ai_stack`, for normalizing cost
 
 Suggested file:
 
-`ai_stack/runtime_cost_attribution.py`
+`ai_stack/telemetry/runtime_cost_attribution.py`
 
 Responsibilities:
 
@@ -210,7 +210,7 @@ If a future LDSS path calls a real model, that path must use provider usage and 
 
 File:
 
-`ai_stack/narrative_runtime_agent.py`
+`ai_stack/story_runtime/narrative_runtime_agent.py`
 
 Current behavior:
 
@@ -281,7 +281,7 @@ Files:
 
 - `world-engine/app/story_runtime/manager.py`
 - `ai_stack/live_dramatic_scene_simulator.py`
-- `ai_stack/narrative_runtime_agent.py`
+- `ai_stack/story_runtime/narrative_runtime_agent.py`
 
 Required change:
 

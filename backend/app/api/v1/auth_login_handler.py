@@ -16,7 +16,7 @@ from app.api.v1.auth_login_phases import (
     parse_login_request,
 )
 from app.services import log_activity, verify_user
-from app.services.user_service import get_user_by_username
+from app.services.identity.user_service import get_user_by_username
 
 
 def execute_auth_login():

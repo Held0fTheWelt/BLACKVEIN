@@ -15,7 +15,7 @@ from app.runtime.model_routing_contracts import (
     StructuredOutputReliability,
     TaskKind,
 )
-from app.services.writers_room_model_routing import (
+from app.services.writers_room.writers_room_model_routing import (
     _cost_class,
     _latency_class,
     _task_kinds_for_use_cases,

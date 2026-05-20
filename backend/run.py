@@ -5,7 +5,7 @@ import click
 from app import create_app
 from app.config import Config, DevelopmentConfig, env_bool
 from app.extensions import db
-from app.services.user_service import validate_password
+from app.services.identity.user_service import validate_password
 
 app = create_app(
     DevelopmentConfig if env_bool("DEV_SECRETS_OK", False) else Config
@@ -218,7 +218,7 @@ def seed_news():
         print("Refusing to seed news: set DEV_SECRETS_OK=1 for local development only.")
         return
     from app.models import User
-    from app.services.news_service import create_news, get_news_by_slug
+    from app.services.content.news_service import create_news, get_news_by_slug
 
     with app.app_context():
         db.create_all()
@@ -316,7 +316,7 @@ def seed_base_governance():
 def seed_prompt_store(overwrite):
     """Seed Prompt Store rows from repo-level prompts/*.json files."""
     from app.config import env_bool
-    from app.services.prompt_store_service import seed_prompt_store_from_files
+    from app.services.prompts.prompt_store_service import seed_prompt_store_from_files
 
     effective_overwrite = bool(overwrite or env_bool("WOS_PROMPT_STORE_SEED_OVERWRITE", False))
     with app.app_context():

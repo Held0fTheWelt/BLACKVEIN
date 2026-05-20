@@ -14,7 +14,11 @@ from fastapi.testclient import TestClient
 
 from app.api.http import router
 from app.story_runtime.manager import StoryRuntimeManager, _orchestrate_narrative_agent
-from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeEventKind, NarrativeRuntimeAgentEvent
+from ai_stack.story_runtime.narrative import (
+    NarrativeEventKind,
+    NarrativeRuntimeAgent,
+    NarrativeRuntimeAgentEvent,
+)
 from datetime import datetime, timezone
 
 

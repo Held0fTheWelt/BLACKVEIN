@@ -14,8 +14,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import httpx
 import pytest
 
-from app.services import game_service
-from app.services.game_service import GameServiceError
+from app.services.game import game_service
+from app.services.game.game_service import GameServiceError
 
 
 def _free_port() -> int:

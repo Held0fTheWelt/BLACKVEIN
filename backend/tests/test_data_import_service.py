@@ -25,7 +25,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.extensions import db
 from app.models import Role, User
-from app.services.data_import_service import (
+from app.services.data.data_import_service import (
     ImportError,
     ImportIssue,
     ImportPreflightResult,
@@ -36,7 +36,7 @@ from app.services.data_import_service import (
     execute_import,
     preflight_validate_payload,
 )
-from app.services.data_export_service import EXPORT_FORMAT_VERSION, export_full
+from app.services.data.data_export_service import EXPORT_FORMAT_VERSION, export_full
 
 
 # Utility fixtures and helpers

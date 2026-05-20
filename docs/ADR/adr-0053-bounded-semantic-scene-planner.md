@@ -235,7 +235,7 @@ flowchart TD
 
 Current verification:
 
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/god_of_carnage_yaml_authority.py ai_stack/contracts/scene_plan_contract.py ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py ai_stack/contracts/scene_plan_contract.py ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_director_capability_manager.py -q --tb=short`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_scene_planner.py ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py -q --tb=short` - 23 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_planner_graph_authority.py -q --tb=short` - 7 passed
@@ -264,7 +264,7 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 - `ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py`
 - `ai_stack/story_runtime/director/capabilities_manager/director_capability_manager.py`
 - `ai_stack/contracts/scene_plan_contract.py`
-- `ai_stack/god_of_carnage_yaml_authority.py`
+- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`
 - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/tests/test_semantic_scene_planner.py`

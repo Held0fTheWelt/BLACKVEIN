@@ -15,8 +15,8 @@ from app.auth.feature_registry import FEATURE_MANAGE_SYSTEM_DIAGNOSIS
 from app.auth.permissions import require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, ok
-from app.services.game_service import GameServiceError, get_story_diagnostics
-from app.services.operator_turn_history_service import (
+from app.services.game.game_service import GameServiceError, get_story_diagnostics
+from app.services.story_runtime.operator_turn_history_service import (
     build_turn_history_summary_for_session,
     operator_diagnostics_surface,
 )

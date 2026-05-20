@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from app.contracts.improvement_operating_loop import ImprovementLoopStage
-from app.services.improvement_service import (
+from app.services.improvement.improvement_service import (
     ImprovementStore,
     build_evidence_strength_map,
     build_recommendation_rationale,
     finalize_recommendation_rationale_with_retrieval_digest,
     recompute_semantic_compliance_validation,
 )
-from app.services.improvement_task2a_routing import enrich_improvement_package_with_task2a_routing
+from app.services.improvement.improvement_task2a_routing import enrich_improvement_package_with_task2a_routing
 
 
 def hydrate_evidence_bundle_from_evaluation(

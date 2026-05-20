@@ -79,14 +79,14 @@ runtime identifiers, score names, schema keys, routing keys, or branch logic.
 ## Implementation Anchors
 
 - `ai_stack/contracts/meta_narrative_awareness_contracts.py`
-- `ai_stack/meta_narrative_awareness_engine.py`
+- `ai_stack/story_runtime/narrative/meta_narrative_awareness_engine.py`
 - `ai_stack/story_runtime/story_runtime_experience.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger.py`
 - `content/modules/god_of_carnage/module.yaml`
 
 ## Validation Evidence
 
-- `PYTHONPATH=. python -m py_compile ai_stack/contracts/meta_narrative_awareness_contracts.py ai_stack/meta_narrative_awareness_engine.py ai_stack/story_runtime/story_runtime_experience.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py`
+- `PYTHONPATH=. python -m py_compile ai_stack/contracts/meta_narrative_awareness_contracts.py ai_stack/story_runtime/narrative/meta_narrative_awareness_engine.py ai_stack/story_runtime/story_runtime_experience.py ai_stack/module_runtime_policy.py ai_stack/story_runtime/runtime_aspect_ledger.py ai_stack/langgraph/langgraph_runtime_state.py ai_stack/langgraph/langgraph_runtime_executor.py`
 - `PYTHONPATH=. pytest ai_stack/tests/test_meta_narrative_awareness_engine.py tests/integration/test_story_runtime_experience.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_langgraph_runtime.py -q -s`

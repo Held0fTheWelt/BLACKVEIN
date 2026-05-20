@@ -7,7 +7,7 @@ from app.auth.feature_registry import FEATURE_MANAGE_GAME_CONTENT, FEATURE_MANAG
 from app.auth.permissions import get_current_user, require_feature, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.services import log_activity
-from app.services.game_content_service import (
+from app.services.game.game_content_service import (
     GameContentConflictError,
     GameContentLifecycleError,
     GameContentNotFoundError,
@@ -23,7 +23,7 @@ from app.services.game_content_service import (
     unpublish_experience,
     update_experience,
 )
-from app.services.game_service import GameServiceError, get_run_details, get_run_transcript, list_runs as list_play_runs, terminate_run
+from app.services.game.game_service import GameServiceError, get_run_details, get_run_transcript, list_runs as list_play_runs, terminate_run
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 

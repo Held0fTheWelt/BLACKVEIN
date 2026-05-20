@@ -11,7 +11,7 @@ from app.api.v1.auth import require_mcp_service_token
 from app.auth.feature_registry import FEATURE_MANAGE_MCP_OPERATIONS
 from app.auth.permissions import require_feature, require_jwt_moderator_or_admin
 from app.extensions import db, limiter
-from app.services.mcp_operations_service import (
+from app.services.mcp.mcp_operations_service import (
     INGEST_MAX_BODY_BYTES,
     action_audit_bundle,
     action_refresh_catalog,

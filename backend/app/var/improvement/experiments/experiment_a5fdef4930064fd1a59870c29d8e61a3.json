@@ -1,0 +1,90 @@
+{
+  "experiment_id": "experiment_a5fdef4930064fd1a59870c29d8e61a3",
+  "variant_id": "variant_040c2473c95f45c0b5257d8312be25a7",
+  "baseline_id": "god_of_carnage",
+  "created_by": "1",
+  "created_at": "2026-05-20T20:38:09.696606+00:00",
+  "sandbox": true,
+  "transcript": [
+    {
+      "turn_number": 1,
+      "player_input": "a",
+      "interpreted_kind": "ambiguous",
+      "interpretation_confidence": 0.45,
+      "guard_rejected": false,
+      "triggered_tags": [
+        "uncertain"
+      ],
+      "repetition_flag": false,
+      "scene_marker": "scene_1",
+      "quality_hint": 0.0125,
+      "variant_id": "variant_040c2473c95f45c0b5257d8312be25a7"
+    },
+    {
+      "turn_number": 2,
+      "player_input": "b",
+      "interpreted_kind": "ambiguous",
+      "interpretation_confidence": 0.45,
+      "guard_rejected": false,
+      "triggered_tags": [
+        "uncertain"
+      ],
+      "repetition_flag": false,
+      "scene_marker": "scene_1",
+      "quality_hint": 0.0125,
+      "variant_id": "variant_040c2473c95f45c0b5257d8312be25a7"
+    }
+  ],
+  "baseline_transcript": [
+    {
+      "turn_number": 1,
+      "player_input": "a",
+      "interpreted_kind": "ambiguous",
+      "interpretation_confidence": 0.45,
+      "guard_rejected": false,
+      "triggered_tags": [
+        "uncertain"
+      ],
+      "repetition_flag": false,
+      "scene_marker": "scene_1",
+      "quality_hint": 0.0125,
+      "variant_id": "baseline::god_of_carnage"
+    },
+    {
+      "turn_number": 2,
+      "player_input": "b",
+      "interpreted_kind": "ambiguous",
+      "interpretation_confidence": 0.45,
+      "guard_rejected": false,
+      "triggered_tags": [
+        "uncertain"
+      ],
+      "repetition_flag": false,
+      "scene_marker": "scene_1",
+      "quality_hint": 0.0125,
+      "variant_id": "baseline::god_of_carnage"
+    }
+  ],
+  "lineage": {
+    "baseline_id": "god_of_carnage",
+    "derived_from": "god_of_carnage",
+    "lineage_depth": 1
+  },
+  "metadata": {
+    "execution_mode": "sandbox",
+    "publish_state": "isolated_non_authoritative",
+    "mutation_plan": [
+      {
+        "operation": "adjust_conflict_pacing",
+        "target": "scene_transition",
+        "intent": "reduce repetitive escalation loops"
+      },
+      {
+        "operation": "strengthen_guard_behavior",
+        "target": "safety_filter",
+        "intent": "lower unsafe response acceptance"
+      }
+    ],
+    "improvement_entry_class": "runtime_issue_improvement"
+  }
+}

@@ -11,7 +11,7 @@ from ai_stack.story_runtime.director.god_of_carnage_scene_director import (
     select_single_scene_function,
     semantic_move_to_scene_candidates,
 )
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     CONTINUITY_CLASSES,
     CONTINUITY_CLASS_SEVERITY_ORDER,
     GOC_MODULE_ID,

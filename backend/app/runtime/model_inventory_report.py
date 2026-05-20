@@ -31,7 +31,7 @@ class SetupClassification(str, Enum):
 @dataclass(slots=True)
 class RegistryInventoryEntry:
     adapter_name: str
-    has_legacy_instance: bool
+    has_adapter_instance: bool
     has_model_spec: bool
     stale_spec_risk: bool
 
@@ -39,31 +39,31 @@ class RegistryInventoryEntry:
 @dataclass(slots=True)
 class RegistryInventoryReport:
     entries: list[RegistryInventoryEntry]
-    legacy_names_without_spec: list[str]
+    adapter_names_without_spec: list[str]
 
 
 def report_registry_inventory() -> RegistryInventoryReport:
-    """Snapshot legacy registrations and spec presence (deterministic name order)."""
+    """Snapshot adapter registrations and spec presence (deterministic name order)."""
 
-    legacy_names, spec_names = adapter_registry.snapshot_registry_keys()
-    all_names = sorted(set(legacy_names) | set(spec_names))
+    adapter_names, spec_names = adapter_registry.snapshot_registry_keys()
+    all_names = sorted(set(adapter_names) | set(spec_names))
     entries: list[RegistryInventoryEntry] = []
-    legacy_only: list[str] = []
+    adapter_only: list[str] = []
     for name in all_names:
-        has_legacy = name in legacy_names
+        has_adapter = name in adapter_names
         has_spec = name in spec_names
-        stale_risk = has_legacy and not has_spec
-        if has_legacy and not has_spec:
-            legacy_only.append(name)
+        stale_risk = has_adapter and not has_spec
+        if has_adapter and not has_spec:
+            adapter_only.append(name)
         entries.append(
             RegistryInventoryEntry(
                 adapter_name=name,
-                has_legacy_instance=has_legacy,
+                has_adapter_instance=has_adapter,
                 has_model_spec=has_spec,
                 stale_spec_risk=stale_risk,
             )
         )
-    return RegistryInventoryReport(entries=entries, legacy_names_without_spec=legacy_only)
+    return RegistryInventoryReport(entries=entries, adapter_names_without_spec=adapter_only)
 
 
 @dataclass(slots=True)
@@ -137,6 +137,6 @@ def inventory_summary_dict() -> dict[str, Any]:
     inv = report_registry_inventory()
     return {
         "adapter_names": [e.adapter_name for e in inv.entries],
-        "legacy_without_spec": list(inv.legacy_names_without_spec),
+        "adapter_without_spec": list(inv.adapter_names_without_spec),
         "model_spec_count": len(adapter_registry.iter_model_specs()),
     }

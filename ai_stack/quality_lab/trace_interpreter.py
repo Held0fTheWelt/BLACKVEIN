@@ -19,7 +19,7 @@ from ai_stack.langfuse.langfuse_evaluator_catalog import (
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
 )
-from ai_stack.runtime_aspect_ledger import ASPECT_KEYS
+from ai_stack.story_runtime.runtime_aspect_ledger import ASPECT_KEYS
 from ai_stack.quality_lab.schemas import user_decision_prompt
 
 

@@ -8,7 +8,7 @@ from ai_stack.capabilities.capability_validator_dispatch import (
     build_validator_dispatch_report,
 )
 from ai_stack.capabilities.capability_validator_plan import ValidatorPlanEntry, build_validator_execution_plan
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,

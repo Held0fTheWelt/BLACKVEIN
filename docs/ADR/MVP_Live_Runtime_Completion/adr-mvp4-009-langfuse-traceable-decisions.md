@@ -27,7 +27,7 @@ The live runtime makes multiple decisions per turn (responder plan, actor-lane v
 
 ## Affected Services/Files
 
-- `ai_stack/diagnostics_envelope.py` — `TraceableDecision`, `LocalTraceExport`, `build_traceable_decisions()`, `build_local_trace_export()`, `redact_secrets()`
+- `ai_stack/telemetry/diagnostics_envelope.py` — `TraceableDecision`, `LocalTraceExport`, `build_traceable_decisions()`, `build_local_trace_export()`, `redact_secrets()`
 - `backend/app/observability/langfuse_adapter.py` — pre-existing Langfuse adapter (unchanged)
 - `backend/app/observability/trace.py` — trace_id context var (unchanged)
 

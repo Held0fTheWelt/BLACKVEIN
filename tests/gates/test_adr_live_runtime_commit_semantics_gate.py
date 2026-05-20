@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from gate_fixtures import load_yaml as _load_gate_fixture_yaml
 
-from ai_stack.live_runtime_commit_semantics import evaluate_live_turn_success_gate
+from ai_stack.story_runtime.live_runtime_commit_semantics import evaluate_live_turn_success_gate
 
 _SNIP = _load_gate_fixture_yaml("adr0033_live_turn_claim_snippet.yaml")
 

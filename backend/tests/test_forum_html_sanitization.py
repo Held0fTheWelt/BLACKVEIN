@@ -3,7 +3,7 @@ Test suite for HTML sanitization in forum endpoints.
 Ensures stored XSS prevention via HTML injection filtering.
 """
 import pytest
-from app.services.forum_service import _sanitize_html, create_thread, create_post
+from app.services.content.forum_service import _sanitize_html, create_thread, create_post
 from app.models import ForumCategory, ForumThread, User
 from app.extensions import db
 

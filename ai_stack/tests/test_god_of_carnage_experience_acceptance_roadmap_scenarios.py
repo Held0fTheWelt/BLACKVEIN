@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ai_stack.god_of_carnage_experience_acceptance_roadmap_scenarios import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_experience_acceptance_roadmap_scenarios import (
     G9_ROADMAP_SCENARIOS,
     ROADMAP_SCENARIO_IDS,
     ROADMAP_SCENARIO_ID_RETRIEVAL_HEAVY,

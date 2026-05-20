@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from ai_stack.capabilities.capability_validator_dispatch import ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode
 from ai_stack.capabilities.capability_validator_plan import JUDGE_VALIDATORS
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_DRIFT_ADR_STRICTER,
     ADR0041_DRIFT_ALIGNED,
     ADR0041_DRIFT_MISSING_CONTEXT,

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.story_runtime.player_action_resolution import resolve_player_action
 
 
 def resolve_npc_mundane_action(

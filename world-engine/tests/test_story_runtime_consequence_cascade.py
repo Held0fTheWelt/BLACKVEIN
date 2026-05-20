@@ -13,7 +13,7 @@ from ai_stack.contracts.consequence_cascade_contracts import (
     consequence_cascade_policy_from_module_runtime,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.runtime_aspect_ledger import ASPECT_CONSEQUENCE_CASCADE
+from ai_stack.story_runtime.runtime_aspect_ledger import ASPECT_CONSEQUENCE_CASCADE
 from app.story_runtime import StoryRuntimeManager
 from story_runtime_core.consequences import CONSEQUENCE_CASCADE_FEEDBACK_CONTRACT
 

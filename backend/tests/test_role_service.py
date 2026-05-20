@@ -1,4 +1,4 @@
-"""Direct unit tests for app.services.role_service (edge cases not reachable via HTTP)."""
+"""Direct unit tests for app.services.identity.role_service (edge cases not reachable via HTTP)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import Role, User
-from app.services.role_service import (
+from app.services.identity.role_service import (
     create_role,
     delete_role,
     get_role_by_id,

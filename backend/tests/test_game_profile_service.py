@@ -1,4 +1,4 @@
-"""Tests for app.services.game_profile_service (characters and save slots)."""
+"""Tests for app.services.game.game_profile_service (characters and save slots)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import Role, User
-from app.services.game_profile_service import (
+from app.services.game.game_profile_service import (
     NotFoundError,
     OwnershipError,
     ValidationError,
@@ -114,7 +114,7 @@ class TestGameProfileCharacterFlows:
     def test_touch_character_last_used_updates_timestamp(self, app, test_user, monkeypatch):
         user, _ = test_user
         fixed_now = datetime(2026, 3, 29, 18, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr("app.services.game_profile_service._utc_now", lambda: fixed_now)
+        monkeypatch.setattr("app.services.game.game_profile_service._utc_now", lambda: fixed_now)
 
         with app.app_context():
             character = create_character_for_user(user, name="Alain")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import app.services.ai_engineer_suite_service as suite_service
+import app.services.ai_stack.ai_engineer_suite_service as suite_service
 
 
 def test_effective_config_includes_comparison_and_boundedness(monkeypatch):

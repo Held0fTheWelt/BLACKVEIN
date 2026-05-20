@@ -1,6 +1,6 @@
 """PR-A acceptance tests for ``free_player_action_resolution.v1``.
 
-These tests assert that ``ai_stack.player_action_resolution.resolve_player_action``
+These tests assert that ``ai_stack.story_runtime.player_action_resolution.resolve_player_action``
 emits the closed-enum contract dict on every return path (meta-control,
 semantic-resolution-required, speech-only, main inference path). Assertions
 are over contract field names, closed enum values, and structural properties
@@ -46,7 +46,7 @@ from ai_stack.contracts.free_player_action_resolution_contracts import (
     RESOLVED_TARGET_TYPE_OBJECT,
     SCHEMA_VERSION,
 )
-from ai_stack.player_action_resolution import resolve_player_action
+from ai_stack.story_runtime.player_action_resolution import resolve_player_action
 from ai_stack.language_io.language_adapter import clear_language_adapter_caches
 
 
@@ -714,7 +714,9 @@ def test_speech_only_short_circuit_emits_none_target_type() -> None:
 _CONTRACT_MODULE_PATH = (
     REPO_ROOT / "ai_stack" / "contracts" / "free_player_action_resolution_contracts.py"
 )
-_RESOLVER_MODULE_PATH = REPO_ROOT / "ai_stack" / "player_action_resolution.py"
+_RESOLVER_MODULE_PATH = (
+    REPO_ROOT / "ai_stack" / "story_runtime" / "player_action_resolution.py"
+)
 
 _ACTIVE_PI_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9])pi_\d+\b|(?<![A-Za-z0-9])pi\d+_[A-Za-z0-9_]+\b|\u03a0\d+\b",

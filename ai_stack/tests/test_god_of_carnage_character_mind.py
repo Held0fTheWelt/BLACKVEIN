@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_mind import build_character_mind_records_for_goc
-from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 
 
 def test_character_mind_provenance_has_authored_or_derived() -> None:

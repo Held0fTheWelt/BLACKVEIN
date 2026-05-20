@@ -15,7 +15,7 @@ from ai_stack.contracts.callback_web_contracts import (
     validate_callback_web_record,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.runtime_aspect_ledger import ASPECT_CALLBACK_WEB
+from ai_stack.story_runtime.runtime_aspect_ledger import ASPECT_CALLBACK_WEB
 from app.story_runtime import StoryRuntimeManager
 from story_runtime_core.callbacks import (
     CALLBACK_WEB_FEEDBACK_CONTRACT,

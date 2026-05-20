@@ -1,4 +1,4 @@
-from ai_stack.souffleuse_production_judge import (
+from ai_stack.quality_lab.souffleuse_production_judge import (
     VIOLATION_SELF_LABEL,
     evaluate_souffleuse_visible_text_shadow,
 )

@@ -6,7 +6,7 @@ from app.models import (
     User, Role, ForumThread, ForumPost, ForumCategory, ForumTag,
     ForumThreadTag, ForumReport, ActivityLog
 )
-from app.services import analytics_service
+from app.services.analytics import analytics_service
 from werkzeug.security import generate_password_hash
 
 

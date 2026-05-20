@@ -57,7 +57,7 @@ def test_invalid_feature_flag_fails_closed_or_warns() -> None:
 
 
 def test_scoped_co_authority_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,
         resolve_adr0041_scoped_co_authority_enabled,
     )
@@ -71,7 +71,7 @@ def test_scoped_co_authority_flag_defaults_closed(monkeypatch: pytest.MonkeyPatc
 
 
 def test_invalid_scoped_co_authority_flag_fails_closed() -> None:
-    from ai_stack.runtime_aspect_ledger import resolve_adr0041_scoped_co_authority_enabled
+    from ai_stack.story_runtime.runtime_aspect_ledger import resolve_adr0041_scoped_co_authority_enabled
 
     enabled, warnings = resolve_adr0041_scoped_co_authority_enabled(env_value="maybe")
 
@@ -81,7 +81,7 @@ def test_invalid_scoped_co_authority_flag_fails_closed() -> None:
 
 
 def test_readiness_preview_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
         resolve_adr0041_readiness_co_authority_preview_enabled,
     )
@@ -94,7 +94,7 @@ def test_readiness_preview_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_invalid_readiness_preview_flag_fails_closed() -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         resolve_adr0041_readiness_co_authority_preview_enabled,
     )
 
@@ -106,7 +106,7 @@ def test_invalid_readiness_preview_flag_fails_closed() -> None:
 
 
 def test_scoped_readiness_enforcement_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV,
         resolve_adr0041_scoped_readiness_enforcement_enabled,
     )
@@ -119,7 +119,7 @@ def test_scoped_readiness_enforcement_flag_defaults_closed(monkeypatch: pytest.M
 
 
 def test_invalid_scoped_readiness_enforcement_flag_fails_closed() -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         resolve_adr0041_scoped_readiness_enforcement_enabled,
     )
 
@@ -131,7 +131,7 @@ def test_invalid_scoped_readiness_enforcement_flag_fails_closed() -> None:
 
 
 def test_scoped_readiness_aggregation_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV,
         resolve_adr0041_scoped_readiness_aggregation_enabled,
     )
@@ -144,7 +144,7 @@ def test_scoped_readiness_aggregation_flag_defaults_closed(monkeypatch: pytest.M
 
 
 def test_invalid_scoped_readiness_aggregation_flag_fails_closed() -> None:
-    from ai_stack.runtime_aspect_ledger import resolve_adr0041_scoped_readiness_aggregation_enabled
+    from ai_stack.story_runtime.runtime_aspect_ledger import resolve_adr0041_scoped_readiness_aggregation_enabled
 
     enabled, warnings = resolve_adr0041_scoped_readiness_aggregation_enabled(env_value="on-maybe")
 
@@ -154,7 +154,7 @@ def test_invalid_scoped_readiness_aggregation_flag_fails_closed() -> None:
 
 
 def test_runtime_readiness_consumer_flag_defaults_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV,
         resolve_adr0041_runtime_readiness_consumer_enabled,
     )
@@ -167,7 +167,7 @@ def test_runtime_readiness_consumer_flag_defaults_closed(monkeypatch: pytest.Mon
 
 
 def test_invalid_runtime_readiness_consumer_flag_fails_closed() -> None:
-    from ai_stack.runtime_aspect_ledger import resolve_adr0041_runtime_readiness_consumer_enabled
+    from ai_stack.story_runtime.runtime_aspect_ledger import resolve_adr0041_runtime_readiness_consumer_enabled
 
     enabled, warnings = resolve_adr0041_runtime_readiness_consumer_enabled(env_value="maybe")
 
@@ -185,7 +185,7 @@ def test_env_plan_enforced_requires_explicit_resolution(monkeypatch: pytest.Monk
 
 
 def test_runtime_projection_defaults_to_dry_run_without_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ai_stack.runtime_aspect_ledger import initialize_runtime_aspect_ledger
+    from ai_stack.story_runtime.runtime_aspect_ledger import initialize_runtime_aspect_ledger
 
     monkeypatch.delenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, raising=False)
     ledger = initialize_runtime_aspect_ledger(
@@ -206,7 +206,7 @@ def test_runtime_projection_defaults_to_dry_run_without_env(monkeypatch: pytest.
 def test_runtime_projection_without_graph_sidecar_stays_dry_run_with_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_stack.runtime_aspect_ledger import (
+    from ai_stack.story_runtime.runtime_aspect_ledger import (
         initialize_runtime_aspect_ledger,
         normalize_runtime_aspect_ledger,
     )

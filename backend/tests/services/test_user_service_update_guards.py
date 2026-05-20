@@ -3,7 +3,7 @@ import re
 from unittest.mock import MagicMock
 import pytest
 
-from app.services.user_service_update_guards import (
+from app.services.identity.user_service_update_guards import (
     update_user_build_patch,
 )
 from app.models import User

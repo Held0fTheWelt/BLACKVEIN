@@ -5,7 +5,7 @@ from ai_stack.contracts.context_synthesis_contracts import (
     CONTEXT_SYNTHESIS_FORBIDDEN_TRUTH_FIELDS,
     CONTEXT_SYNTHESIS_SCHEMA_VERSION,
 )
-from ai_stack.context_synthesis_engine import (
+from ai_stack.story_runtime.narrative.context_synthesis_engine import (
     build_context_synthesis_bundle,
     context_synthesis_prompt_lines,
     summarize_context_synthesis_for_diagnostics,

@@ -6,7 +6,7 @@ pytestmark = pytest.mark.routes_core
 
 
 def test_runtime_config_truth_summary_not_ready_when_probes_unverified(monkeypatch):
-    from app.services import runtime_config_truth_service as service
+    from app.services.governance import runtime_config_truth_service as service
 
     monkeypatch.setattr(
         service,
@@ -89,7 +89,7 @@ def test_narrative_routes_are_feature_gated(client, moderator_headers, monkeypat
 
 
 def test_feature_flag_governance_marks_adr_flags_env_only():
-    from app.services.governance_console_service import get_feature_flag_governance
+    from app.services.governance.governance_console_service import get_feature_flag_governance
 
     rows = get_feature_flag_governance()["rows"]
     by_key = {row["setting"]: row for row in rows}
@@ -100,7 +100,7 @@ def test_feature_flag_governance_marks_adr_flags_env_only():
 
 
 def test_validator_registry_unavailable_not_counted_as_passing():
-    from app.services.governance_console_service import get_validator_registry_status
+    from app.services.governance.governance_console_service import get_validator_registry_status
 
     rows = get_validator_registry_status()["rows"]
     assert rows, "expected validator registry rows"

@@ -186,7 +186,7 @@ The backend decides **whether you are allowed in** (authentication), **what you 
 
 **Transport and headers:** Optional HTTPS redirect when `ENFORCE_HTTPS` (`create_app`). Security headers include CSP (with `connect-src` extended by `PLAY_SERVICE_PUBLIC_URL`), `X-Frame-Options: DENY`, HSTS when HTTPS enforced (`backend/app/__init__.py`).
 
-**Rate limiting:** Flask-Limiter with key function preferring JWT user id (`get_rate_limit_key` in `extensions.py`); test-mode proxy limiter for pytest. The inspectable route/tool inventory is built by `ai_stack/limit_inventory.py`, surfaced through `/backend/api-explorer`, `/backend/security-features`, `/backend/auth`, and `/backend/mcp`, and documented in `docs/security/rate-limit-inventory.md` plus ADR-0048.
+**Rate limiting:** Flask-Limiter with key function preferring JWT user id (`get_rate_limit_key` in `extensions.py`); test-mode proxy limiter for pytest. The inspectable route/tool inventory is built by `ai_stack/quality_lab/limit_inventory.py`, surfaced through `/backend/api-explorer`, `/backend/security-features`, `/backend/auth`, and `/backend/mcp`, and documented in `docs/security/rate-limit-inventory.md` plus ADR-0048.
 
 **Admin-sensitive exports:** `admin_security` wrapper on sensitive CSV export (`admin_routes.py`).
 

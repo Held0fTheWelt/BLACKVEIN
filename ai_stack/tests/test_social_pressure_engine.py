@@ -6,7 +6,7 @@ from ai_stack.contracts.social_pressure_contracts import (
     SOCIAL_PRESSURE_POLICY_VERSION,
     SOCIAL_PRESSURE_SCHEMA_VERSION,
 )
-from ai_stack.social_pressure_engine import (
+from ai_stack.story_runtime.narrative.social_pressure_engine import (
     derive_social_pressure,
     validate_social_pressure_metric,
 )

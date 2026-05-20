@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.observability_governance_service import verify_langfuse_runtime_connectivity
+from app.services.governance.observability_governance_service import verify_langfuse_runtime_connectivity
 
 
 class TestLangfuseCloudConnection:

@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import get_current_user
 from app.extensions import limiter
-from app.services.analytics_service import (
+from app.services.analytics.analytics_service import (
     get_analytics_summary,
     get_analytics_timeline,
     get_analytics_users,

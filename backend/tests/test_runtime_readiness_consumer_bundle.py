@@ -8,7 +8,7 @@ from ai_stack.capabilities.capability_validator_dispatch import (
     ADR0041_VALIDATOR_DISPATCH_MODE_ENV,
     ValidatorDispatchMode,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
     ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV,
     ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV,

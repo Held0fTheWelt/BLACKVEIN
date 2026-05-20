@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack import RuntimeTurnGraphExecutor
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_COMMIT,
     ASPECT_HIERARCHICAL_MEMORY,

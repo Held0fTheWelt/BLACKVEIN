@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 
 NPC_AGENCY_PLAN_SCHEMA_VERSION = "npc_agency_plan.v1"

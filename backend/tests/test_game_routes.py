@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from app.extensions import db
 from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
-from app.services.game_service import GameServiceError, PlayJoinContext
+from app.services.game.game_service import GameServiceError, PlayJoinContext
 
 pytestmark = pytest.mark.routes_core
 
@@ -985,7 +985,7 @@ def test_game_templates_unknown_kind_gets_title_case_label(client, auth_headers,
 def test_game_bootstrap_marks_unconfigured_when_ws_url_fails(
     client, auth_headers, test_user, app, monkeypatch
 ):
-    from app.services.game_service import GameServiceConfigError
+    from app.services.game.game_service import GameServiceConfigError
 
     app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
     app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play.example.com"
@@ -1004,13 +1004,13 @@ def test_game_bootstrap_marks_unconfigured_when_ws_url_fails(
 
 def test_error_response_branches():
     from app.api.v1 import game_routes
-    from app.services.game_content_service import (
+    from app.services.game.game_content_service import (
         GameContentConflictError,
         GameContentNotFoundError,
         GameContentValidationError,
     )
-    from app.services.game_profile_service import NotFoundError, OwnershipError, ValidationError
-    from app.services.game_service import GameServiceConfigError, GameServiceError
+    from app.services.game.game_profile_service import NotFoundError, OwnershipError, ValidationError
+    from app.services.game.game_service import GameServiceConfigError, GameServiceError
 
     body, code = game_routes._error_response(PermissionError("Authentication required."))
     assert code == 401
@@ -1042,7 +1042,7 @@ def test_play_service_bootstrap_config_error(app, monkeypatch):
     from app.api.v1 import game_routes
 
     def boom():
-        from app.services.game_service import GameServiceConfigError
+        from app.services.game.game_service import GameServiceConfigError
 
         raise GameServiceConfigError("no ws")
 
@@ -1066,7 +1066,7 @@ def test_resolve_identity_invalid_character_id(app, test_user, monkeypatch):
 
 
 def test_game_content_get_not_found(client, moderator_headers, monkeypatch):
-    from app.services.game_content_service import GameContentNotFoundError
+    from app.services.game.game_content_service import GameContentNotFoundError
 
     monkeypatch.setattr(
         "app.api.v1.game_routes.get_experience",
@@ -1126,7 +1126,7 @@ def test_require_game_user_banned(app, test_user, monkeypatch):
 
 def test_parse_optional_int(app):
     from app.api.v1 import game_routes
-    from app.services.game_profile_service import ValidationError
+    from app.services.game.game_profile_service import ValidationError
 
     with app.app_context():
         assert game_routes._parse_optional_int(None, field_name="x") is None

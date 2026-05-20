@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import Role, User
-from app.services.metrics_service import get_metrics
+from app.services.analytics.metrics_service import get_metrics
 
 
 def test_dashboard_metrics_anonymous_returns_401(client):
@@ -63,7 +63,7 @@ def test_dashboard_metrics_invalid_range_defaults_to_24h(client, admin_headers):
 class TestMetricsServiceAggregates:
     def test_get_metrics_aggregates_real_user_counts(self, app, monkeypatch):
         fixed_now = datetime(2026, 3, 28, 12, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr("app.services.metrics_service._utc_now", lambda: fixed_now)
+        monkeypatch.setattr("app.services.analytics.metrics_service._utc_now", lambda: fixed_now)
 
         with app.app_context():
             user_role = Role.query.filter_by(name=Role.NAME_USER).first()
@@ -118,7 +118,7 @@ class TestMetricsServiceAggregates:
     def test_get_metrics_12m_monthly_bucket_labels(self, app, monkeypatch):
         """12m range uses _range_end_and_buckets branch and %Y-%m labels."""
         fixed_now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
-        monkeypatch.setattr("app.services.metrics_service._utc_now", lambda: fixed_now)
+        monkeypatch.setattr("app.services.analytics.metrics_service._utc_now", lambda: fixed_now)
         with app.app_context():
             metrics = get_metrics("12m")
         assert metrics["selected_range"] == "12m"

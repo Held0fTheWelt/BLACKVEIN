@@ -71,7 +71,7 @@ def test_compile_player_module_preserves_authoritative_runtime_profile_handoff(m
 @pytest.mark.mvp4
 def test_runtime_profile_handoff_rejects_visitor_actor():
     from app.api.v1 import game_routes
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     with pytest.raises(GameServiceError, match="visitor"):
         game_routes._runtime_profile_handoff_from_run_payload(
@@ -85,7 +85,7 @@ def test_runtime_profile_handoff_rejects_visitor_actor():
 @pytest.mark.mvp4
 def test_runtime_profile_handoff_rejects_content_module_mismatch():
     from app.api.v1 import game_routes
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     with pytest.raises(GameServiceError, match="does not match compiled module"):
         game_routes._merge_runtime_profile_handoff(

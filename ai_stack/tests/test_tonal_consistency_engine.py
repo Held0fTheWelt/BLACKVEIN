@@ -7,8 +7,8 @@ from ai_stack.contracts.tonal_consistency_contracts import (
     TONAL_CONSISTENCY_POLICY_VERSION,
     TONAL_CONSISTENCY_SCHEMA_VERSION,
 )
-from ai_stack.tonal_consistency_classifier import classify_tonal_consistency_from_policy
-from ai_stack.tonal_consistency_engine import (
+from ai_stack.story_runtime.narrative.tonal_consistency_classifier import classify_tonal_consistency_from_policy
+from ai_stack.story_runtime.narrative.tonal_consistency_engine import (
     build_tonal_consistency_aspect_record,
     compact_tonal_consistency_context,
     derive_tonal_consistency,

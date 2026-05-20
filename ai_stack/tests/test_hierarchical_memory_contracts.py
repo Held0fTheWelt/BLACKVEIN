@@ -6,7 +6,7 @@ from ai_stack.contracts.hierarchical_memory_contracts import (
     normalize_hierarchical_memory_policy,
     project_hierarchical_memory_context,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,

@@ -9,7 +9,7 @@ from app.api.v1 import api_v1_bp
 from app.auth.feature_registry import FEATURE_MANAGE_PLAY_SERVICE_CONTROL
 from app.auth.permissions import require_feature, require_jwt_admin
 from app.extensions import limiter
-from app.services.play_service_control_service import (
+from app.services.story_runtime.play_service_control_service import (
     apply_desired,
     get_control_payload,
     run_test_persist,

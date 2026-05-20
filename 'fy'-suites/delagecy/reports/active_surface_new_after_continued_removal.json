@@ -1,0 +1,37 @@
+{
+  "hits": [
+    {
+      "fingerprint": "d48e9b7d3045f76e",
+      "kind": "test",
+      "line": 12,
+      "path": "backend/tests/runtime/doc_test_paths.py",
+      "pattern": "\\blegacy\\b",
+      "text": "_ARCHIVED_ARCHITECTURE = REPO_ROOT / \"docs\" / \"archive\" / \"architecture-legacy\""
+    },
+    {
+      "fingerprint": "9812b5d9b13316eb",
+      "kind": "code",
+      "line": 100,
+      "path": "ai_stack/contracts/scene_plan_contract.py",
+      "pattern": "\\blegacy\\b",
+      "text": "description=\"semantic_pipeline_v1 | structural_fallback \u2014 compatibility trace only for legacy.\","
+    },
+    {
+      "fingerprint": "633dc2ed40e48cd9",
+      "kind": "code",
+      "line": 3170,
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"pressure_target is a compatibility alias for pressure-specific targets.\""
+    },
+    {
+      "fingerprint": "26d9c5f9a29a2d7e",
+      "kind": "code",
+      "line": 8135,
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_default_registry_path\": not governed,"
+    }
+  ],
+  "unregistered_count": 4
+}

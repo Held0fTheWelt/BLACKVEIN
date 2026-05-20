@@ -920,7 +920,7 @@ class TestW5DirectorProjectionPhase3AParity:
         self,
         *,
         w5_actor_locations: dict[str, str] | None,
-        legacy_actor_locations: dict[str, str] | None = None,
+        baseline_actor_locations: dict[str, str] | None = None,
         free_player_action_resolution: dict[str, Any] | None = None,
         turn: int = 4,
     ) -> dict[str, Any]:
@@ -930,7 +930,7 @@ class TestW5DirectorProjectionPhase3AParity:
             else None
         )
         return complete_actor_locations_for_gathering_with_optional_w5_projection(
-            actor_locations=legacy_actor_locations or {},
+            actor_locations=baseline_actor_locations or {},
             actor_lane_context=self._actor_lane_context(),
             current_step_scene_id="gathering_room",
             selected_human_actor_id="human_a",
@@ -962,8 +962,8 @@ class TestW5DirectorProjectionPhase3AParity:
             previous_state=previous_state,
         )
 
-    def test_w5_projection_produces_same_actor_locations_as_legacy_completion(self):
-        legacy = complete_actor_locations_for_gathering(
+    def test_w5_projection_produces_same_actor_locations_as_baseline_completion(self):
+        baseline = complete_actor_locations_for_gathering(
             actor_locations={"human_a": "gathering_room"},
             actor_lane_context=self._actor_lane_context(),
             current_step_scene_id="gathering_room",
@@ -977,12 +977,12 @@ class TestW5DirectorProjectionPhase3AParity:
         )
         assert w5["diagnostics"]["w5_director_projection_used"] is True
         assert w5["diagnostics"]["derived_actor_locations_source"] == "w5_projection"
-        assert w5["location_completion"]["actor_locations"] == legacy["actor_locations"]
-        assert w5["location_completion"]["gathering_scene_id"] == legacy["gathering_scene_id"]
+        assert w5["location_completion"]["actor_locations"] == baseline["actor_locations"]
+        assert w5["location_completion"]["gathering_scene_id"] == baseline["gathering_scene_id"]
 
-    def test_w5_and_legacy_feed_compute_gathering_state_with_same_pause_result(self):
+    def test_w5_and_baseline_feed_compute_gathering_state_with_same_pause_result(self):
         action = {"target_location": "other_room", "action_commit_policy": "commit_action"}
-        legacy_completion = complete_actor_locations_for_gathering(
+        baseline_completion = complete_actor_locations_for_gathering(
             actor_locations={"human_a": "gathering_room"},
             actor_lane_context=self._actor_lane_context(),
             current_step_scene_id="gathering_room",
@@ -1004,17 +1004,17 @@ class TestW5DirectorProjectionPhase3AParity:
             "reason": "required_actor_not_at_scene_location",
             "source": "actor_topology_derived",
         }
-        legacy_state = compute_gathering_state(
-            actor_locations=legacy_completion["actor_locations"],
+        baseline_state = compute_gathering_state(
+            actor_locations=baseline_completion["actor_locations"],
             current_step_named_characters=["human_a", "npc_x", "npc_y"],
-            current_step_scene_id=legacy_completion["gathering_scene_id"],
+            current_step_scene_id=baseline_completion["gathering_scene_id"],
             current_turn_number=4,
             previous_state=previous,
         )
         w5_state = self._gathering_state(w5_completion, previous_state=previous, turn=4)
-        assert w5_state["paused"] == legacy_state["paused"] is True
-        assert w5_state["missing_actor_ids"] == legacy_state["missing_actor_ids"] == ["human_a"]
-        assert w5_state["since_turn"] == legacy_state["since_turn"] == 2
+        assert w5_state["paused"] == baseline_state["paused"] is True
+        assert w5_state["missing_actor_ids"] == baseline_state["missing_actor_ids"] == ["human_a"]
+        assert w5_state["since_turn"] == baseline_state["since_turn"] == 2
 
     def test_same_room_participation_break_still_pauses_with_w5_projection(self):
         completion = self._completion_from_w5(
@@ -1078,23 +1078,23 @@ class TestW5DirectorProjectionPhase3AParity:
         assert result["paused"] is False
         assert result["missing_actor_ids"] == []
 
-    def test_malformed_missing_w5_snapshot_falls_back_to_legacy_and_records_diagnostic(self):
+    def test_malformed_missing_w5_snapshot_falls_back_to_baseline_and_records_diagnostic(self):
         result = self._completion_from_w5(
             w5_actor_locations=None,
-            legacy_actor_locations={"human_a": "gathering_room", "npc_x": "gathering_room"},
+            baseline_actor_locations={"human_a": "gathering_room", "npc_x": "gathering_room"},
         )
         assert result["diagnostics"]["w5_director_projection_used"] is False
         assert result["diagnostics"]["w5_director_projection_failed"] == "missing_w5_latest_snapshot"
-        assert result["diagnostics"]["derived_actor_locations_source"] == "legacy"
-        assert result["diagnostics"]["gathering_pause_source"] == "legacy"
+        assert result["diagnostics"]["derived_actor_locations_source"] == "baseline_completion"
+        assert result["diagnostics"]["gathering_pause_source"] == "baseline_completion"
         assert result["location_completion"]["actor_locations"] == {
             "human_a": "gathering_room",
             "npc_x": "gathering_room",
             "npc_y": "gathering_room",
         }
 
-    def test_w5_director_projection_disabled_is_legacy_identical(self):
-        legacy = complete_actor_locations_for_gathering(
+    def test_w5_director_projection_disabled_is_baseline_identical(self):
+        baseline = complete_actor_locations_for_gathering(
             actor_locations={"human_a": "gathering_room"},
             actor_lane_context=self._actor_lane_context(),
             current_step_scene_id="gathering_room",
@@ -1112,7 +1112,7 @@ class TestW5DirectorProjectionPhase3AParity:
             w5_latest_snapshot={"malformed": "ignored_when_disabled"},
             w5_director_projection_enabled=False,
         )
-        assert result["location_completion"] == legacy
+        assert result["location_completion"] == baseline
         assert result["diagnostics"] == {}
         assert result["w5_projection"] is None
 

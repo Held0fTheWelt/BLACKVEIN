@@ -60,7 +60,7 @@ from we_contract_helpers import (
     assert_story_runtime_manager_exposes_diagnostics_api,
 )
 
-from ai_stack.diagnostics_envelope import (
+from ai_stack.telemetry.diagnostics_envelope import (
     DegradationEvent,
     DiagnosticsEnvelope,
     LocalTraceExport,
@@ -691,7 +691,7 @@ def test_mvp04_narrative_gov_summary_from_manager():
     )
     d = summary.to_dict()
     assert set(d.keys()) == set(NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS), (
-        "NarrativeGovSummary.to_dict keys must match operator contract (see ai_stack/diagnostics_envelope.py)"
+        "NarrativeGovSummary.to_dict keys must match operator contract (see ai_stack/telemetry/diagnostics_envelope.py)"
     )
     assert d["contract"] == "narrative_gov_summary.v1"
     assert d["last_story_session_id"] == "gate-test-session"
@@ -876,7 +876,7 @@ def test_mvp04_phase_b_langfuse_adapter_span_context():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_calculate_token_cost():
     """Shared token cost calculation handles multiple models correctly."""
-    from ai_stack.runtime_cost_attribution import calculate_token_cost
+    from ai_stack.telemetry.runtime_cost_attribution import calculate_token_cost
 
     # Claude 3 Sonnet pricing
     cost, pricing_source = calculate_token_cost("claude-3-sonnet", 1000, 500)
@@ -897,7 +897,7 @@ def test_mvp04_phase_b_calculate_token_cost():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_narrator_block_span_instrumentation():
     """Narrator block generation includes span instrumentation."""
-    from ai_stack.narrative_runtime_agent import (
+    from ai_stack.story_runtime.narrative_runtime_agent import (
         NarrativeRuntimeAgent,
         NarrativeRuntimeAgentInput,
         NarrativeRuntimeAgentConfig,
@@ -1013,7 +1013,7 @@ def test_mvp04_phase_b_operator_response_redacts_costs():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_degradation_timeline_with_span_references():
     """DegradationEvent supports span_ids for Phase B tracing."""
-    from ai_stack.diagnostics_envelope import DegradationEvent
+    from ai_stack.telemetry.diagnostics_envelope import DegradationEvent
 
     event = DegradationEvent(
         marker="LDSS_VALIDATION_REJECTED",
@@ -1040,7 +1040,7 @@ def test_mvp04_phase_b_degradation_timeline_with_span_references():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_token_budget_warning_level():
     """Token budget warns at 80% usage."""
-    from backend.app.services.observability_governance_service import TokenBudgetService, DegradationLevel
+    from backend.app.services.governance.observability_governance_service import TokenBudgetService, DegradationLevel
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1057,7 +1057,7 @@ def test_mvp04_phase_c_token_budget_warning_level():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_token_budget_critical_level():
     """Token budget goes critical at 100% usage."""
-    from backend.app.services.observability_governance_service import TokenBudgetService, DegradationLevel
+    from backend.app.services.governance.observability_governance_service import TokenBudgetService, DegradationLevel
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1073,7 +1073,7 @@ def test_mvp04_phase_c_token_budget_critical_level():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_cost_aware_degradation_ldss_shorter():
     """Cost-aware degradation reduces LDSS narration when WARNING level."""
-    from backend.app.services.observability_governance_service import TokenBudgetService, DegradationLevel
+    from backend.app.services.governance.observability_governance_service import TokenBudgetService, DegradationLevel
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1091,7 +1091,7 @@ def test_mvp04_phase_c_cost_aware_degradation_ldss_shorter():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_cost_aware_degradation_fallback_cheaper():
     """Cost-aware degradation uses fallback when CRITICAL level."""
-    from backend.app.services.observability_governance_service import TokenBudgetService, DegradationLevel
+    from backend.app.services.governance.observability_governance_service import TokenBudgetService, DegradationLevel
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1153,7 +1153,7 @@ def test_mvp04_phase_c_audit_config_granularity():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_evaluation_rubric_dimensions():
     """Evaluation rubric includes 4 quality dimensions."""
-    from ai_stack.evaluation_pipeline import EvaluationPipeline, QualityDimension
+    from ai_stack.quality_lab.evaluation_pipeline import EvaluationPipeline, QualityDimension
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1173,7 +1173,7 @@ def test_mvp04_phase_c_evaluation_rubric_dimensions():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_evaluation_turn_score_recording():
     """Turn scores can be recorded and stored."""
-    from ai_stack.evaluation_pipeline import EvaluationPipeline, TurnScore
+    from ai_stack.quality_lab.evaluation_pipeline import EvaluationPipeline, TurnScore
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1202,7 +1202,7 @@ def test_mvp04_phase_c_evaluation_turn_score_recording():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_rubric_weights_auto_tuning():
     """Rubric weights can be auto-tuned based on failures."""
-    from ai_stack.evaluation_pipeline import EvaluationPipeline
+    from ai_stack.quality_lab.evaluation_pipeline import EvaluationPipeline
     from unittest.mock import MagicMock
 
     storage = MagicMock()
@@ -1219,7 +1219,7 @@ def test_mvp04_phase_c_rubric_weights_auto_tuning():
 @pytest.mark.mvp4
 def test_mvp04_phase_c_baseline_regression_detection():
     """Baseline regression detection is prepared for Phase B integration."""
-    from ai_stack.evaluation_pipeline import EvaluationPipeline
+    from ai_stack.quality_lab.evaluation_pipeline import EvaluationPipeline
     from unittest.mock import MagicMock
 
     storage = MagicMock()

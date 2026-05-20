@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from ai_stack.diagnostics_envelope import envelope_dict_to_response
+from ai_stack.telemetry.diagnostics_envelope import envelope_dict_to_response
 from app.config import PLAY_SERVICE_INTERNAL_API_KEY
 from app.repo_root import resolve_wos_repo_root
 from app.narrative.corrective_retry import apply_corrective_retry

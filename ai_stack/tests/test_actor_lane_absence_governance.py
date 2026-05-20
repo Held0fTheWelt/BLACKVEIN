@@ -5,9 +5,9 @@ from ai_stack.langgraph.langgraph_runtime_executor import (
     _actor_lane_validation,
     _compute_reaction_order_divergence_for_render,
 )
-from ai_stack.runtime_quality_semantics import canonical_degradation_signals
+from ai_stack.quality_lab.runtime_quality_semantics import canonical_degradation_signals
 from ai_stack.contracts.runtime_turn_contracts import DEGRADATION_SIGNAL_NO_ACTOR_LANE_OUTPUT
-from ai_stack.god_of_carnage_frozen_vocabulary import expand_goc_actor_id_aliases
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import expand_goc_actor_id_aliases
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_validation_seam, run_visible_render
 
 
@@ -287,7 +287,7 @@ def test_run_visible_render_survives_vitality_warning_and_reaction_order_diverge
 
 def test_opening_leniency_produces_degradation_signal():
     """Verify opening-turn leniency approval produces DEGRADATION_SIGNAL_OPENING_LENIENCY_APPROVED."""
-    from ai_stack.runtime_quality_semantics import canonical_degradation_signals
+    from ai_stack.quality_lab.runtime_quality_semantics import canonical_degradation_signals
     from ai_stack.contracts.runtime_turn_contracts import DEGRADATION_SIGNAL_OPENING_LENIENCY_APPROVED
 
     state = {
@@ -304,7 +304,7 @@ def test_opening_leniency_produces_degradation_signal():
 
 def test_opening_leniency_produces_weak_quality_class():
     """Verify opening-leniency approval results in weak_but_legal quality class."""
-    from ai_stack.runtime_quality_semantics import canonical_quality_class, canonical_degradation_signals
+    from ai_stack.quality_lab.runtime_quality_semantics import canonical_quality_class, canonical_degradation_signals
     from ai_stack.contracts.runtime_turn_contracts import QUALITY_CLASS_WEAK_BUT_LEGAL
 
     state = {
@@ -533,7 +533,7 @@ def test_opening_narration_synth_skipped_when_actor_lane_rejected():
     state["generation"] = generation
     result = graph._proposal_normalize(state)
     structured = result["generation"]["metadata"]["structured_output"]
-    from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+    from ai_stack.story_runtime.opening_shape_normalizer import narration_summary_to_plain_str
 
     assert not narration_summary_to_plain_str(structured.get("narration_summary"))
     assert "narration_summary_synthesized" not in result["generation"]["metadata"]
@@ -548,7 +548,7 @@ def test_opening_narration_synth_skipped_when_actor_lanes_empty():
     state["generation"] = generation
     result = graph._proposal_normalize(state)
     structured = result["generation"]["metadata"]["structured_output"]
-    from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+    from ai_stack.story_runtime.opening_shape_normalizer import narration_summary_to_plain_str
 
     assert not narration_summary_to_plain_str(structured.get("narration_summary"))
     assert "narration_summary_synthesized" not in result["generation"]["metadata"]

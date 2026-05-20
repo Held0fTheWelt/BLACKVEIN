@@ -1,6 +1,6 @@
 """Phase 2 Stage F — Off-Stage Update Scaffold tests.
 
-Covers ``ai_stack/off_stage_updates.py``:
+Covers ``ai_stack/story_runtime/off_stage_updates.py``:
 
 * Off-stage candidate only emitted when the chosen NPC is *not* visible.
 * New-person / new-room / new-plot-fact / free-text-body all become closed-enum
@@ -24,7 +24,7 @@ import uuid
 
 import pytest
 
-from ai_stack.off_stage_updates import (
+from ai_stack.story_runtime.off_stage_updates import (
     BLOCKER_CANONICAL_PATH_ADVANCE_ATTEMPTED,
     BLOCKER_FREE_TEXT_BODY,
     BLOCKER_MANDATORY_BEAT_CONSUME_ATTEMPTED,
@@ -265,7 +265,7 @@ class TestADR0039Discipline:
     _FORBIDDEN_NPC_LITERALS = ("veronique", "michel", "annette", "alain")
 
     def _source(self) -> str:
-        from ai_stack import off_stage_updates as mod
+        from ai_stack.story_runtime import off_stage_updates as mod
         with open(mod.__file__, "r", encoding="utf-8") as fh:
             return fh.read()
 

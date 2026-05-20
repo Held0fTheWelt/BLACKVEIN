@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.god_of_carnage_gate_evaluation import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_gate_evaluation import (
     gate_turn_integrity,
     gate_diagnostic_sufficiency,
     gate_dramatic_quality,

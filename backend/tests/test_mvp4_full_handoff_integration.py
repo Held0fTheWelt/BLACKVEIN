@@ -68,7 +68,7 @@ def test_game_player_session_create_includes_actor_ownership_handoff(client, aut
     return opening_turn with non-empty visible output.
     """
     # Mock world-engine POST /api/story/sessions
-    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
+    with patch('app.services.game.game_service.httpx.Client') as mock_client_cls:
         # World-Engine returns session with opening
         opening_text = "The room is tense."
         mock_client = _mock_play_service_client(
@@ -173,7 +173,7 @@ def test_game_player_session_can_execute_reflects_opening_state(client, auth_hea
     False when it doesn't.
     """
     # Test with NO opening
-    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
+    with patch('app.services.game.game_service.httpx.Client') as mock_client_cls:
         _mock_play_service_client(
             mock_client_cls,
             [
@@ -209,7 +209,7 @@ def test_opening_turn_has_committed_truth_not_proposals(client, auth_headers):
     Contract 2 & 4 Verification: opening_turn must contain committed truth
     (not AI proposals), marked appropriately.
     """
-    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
+    with patch('app.services.game.game_service.httpx.Client') as mock_client_cls:
         _mock_play_service_client(
             mock_client_cls,
             [

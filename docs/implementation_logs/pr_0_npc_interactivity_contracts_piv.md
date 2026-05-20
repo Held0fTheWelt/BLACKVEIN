@@ -18,16 +18,16 @@ PR-0 establishes the contract and verification baseline that PR-A, PR-B, and PR-
 
 | Surface today | File:line (verified) | What it does today | What PR-A/B/C will change |
 |---|---|---|---|
-| Player-action resolution entry point | [`ai_stack/player_action_resolution.py:502`](../../ai_stack/player_action_resolution.py) `resolve_player_action()` | Builds `PlayerActionFrameContract` + `AffordanceResolutionContract`; returns frame, affordance, scene affordance model. Today does **not** guarantee `resolved_target_type: "location"` for paraphrased movement inputs in every register. | PR-A closes the resolver contract so movement paraphrases reliably produce `resolved_target_type: "location"` + `resolved_target_id`. |
+| Player-action resolution entry point | [`ai_stack/story_runtime/player_action_resolution.py:502`](../../ai_stack/story_runtime/player_action_resolution.py) `resolve_player_action()` | Builds `PlayerActionFrameContract` + `AffordanceResolutionContract`; returns frame, affordance, scene affordance model. Today does **not** guarantee `resolved_target_type: "location"` for paraphrased movement inputs in every register. | PR-A closes the resolver contract so movement paraphrases reliably produce `resolved_target_type: "location"` + `resolved_target_id`. |
 | Canonical-path-control policy projection | [`ai_stack/module_runtime_policy.py:413`](../../ai_stack/module_runtime_policy.py) | Projects `runtime_governance_policy.player_freedom.canonical_path_control` from module YAML. | No change in PR-0; PR-B may extend to expose hold-effect provenance. |
-| Canonical-path-control policy consumer | [`ai_stack/player_action_resolution.py:336`](../../ai_stack/player_action_resolution.py) `policy.get("canonical_path_control")` | Reads the module's default hold mode. | PR-B will propagate `canonical_path_hold_effect.v1` source (`ai_semantic_plausible_inference`, `gathering_paused`, `social_wait_policy`) alongside the existing literal. |
+| Canonical-path-control policy consumer | [`ai_stack/story_runtime/player_action_resolution.py:336`](../../ai_stack/story_runtime/player_action_resolution.py) `policy.get("canonical_path_control")` | Reads the module's default hold mode. | PR-B will propagate `canonical_path_hold_effect.v1` source (`ai_semantic_plausible_inference`, `gathering_paused`, `social_wait_policy`) alongside the existing literal. |
 | Hold-effect read at commit | [`world-engine/app/story_runtime/manager/dramatic_context_authority.py:229`](../../world-engine/app/story_runtime/manager/dramatic_context_authority.py) `_turn_holds_canonical_path_for_free_player_action()` | Returns `True` iff `player_action_frame.canonical_path_effect == "hold_current_step"`. | PR-B will ensure the effect string lands consistently in `graph_state` after every mundane inference; the read site stays. |
 | Hold-effect gate against pointer advance | [`world-engine/app/story_runtime/manager/ldss_narrative_queue.py:61`](../../world-engine/app/story_runtime/manager/ldss_narrative_queue.py) | Gates `session.canonical_step_id` advance when the hold returns `True`. | No change in PR-0; PR-B uses this gate as the acceptance probe. |
 | Canonical-path control block in graph state | [`ai_stack/langgraph/langgraph_runtime_executor.py:4703`](../../ai_stack/langgraph/langgraph_runtime_executor.py) | Constructs the `canonical_path_control` projection block in graph_state from policy. | PR-B will extend the block with `until_condition` and `source` fields from `canonical_path_hold_effect.v1`. |
 | NPC agency / responder selection | [`ai_stack/story_runtime/director/god_of_carnage_scene_director.py:655`](../../ai_stack/story_runtime/director/god_of_carnage_scene_director.py) `_build_responder_set()` definition; call site at [`:911`](../../ai_stack/story_runtime/director/god_of_carnage_scene_director.py) | Selects NPC responders for the current beat. | PR-C wraps this with a `gathering_paused` gate: when paused, mandatory-beat consumption is suppressed (no responder selection drives a step advance). |
 | NPC agency plan projection | [`ai_stack/langgraph/langgraph_runtime_executor.py:3996`](../../ai_stack/langgraph/langgraph_runtime_executor.py) `_build_npc_agency_plan_projection()` definition; call site at [`:4279`](../../ai_stack/langgraph/langgraph_runtime_executor.py) | Builds the NPC agency plan that the LDSS consumes. | PR-C consults `director_gathering_state.v1` here so paused gatherings short-circuit mandatory-beat consumption without removing NPC mundane-action freedom. |
 | Named-characters predicate (content) | [`content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml:36`](../../content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml) `named_characters: [...]` | Declares which actors must be co-present for the step to consume mandatory beats. | PR-C reads this as the source of `presence_required_for_step` in `director_gathering_state.v1`. |
-| Runtime aspect ledger keys | [`ai_stack/runtime_aspect_ledger.py:128-163`](../../ai_stack/runtime_aspect_ledger.py) `ASPECT_KEYS` | Enumerates the persisted runtime-aspect rows. No Director-Pause row exists today. | PR-C will either reuse an existing aspect (e.g. `npc_agency` companion field) or, if a new aspect row is required, that addition is scoped in PR-C with its own ADR-0061 evidence — **not** in PR-0. |
+| Runtime aspect ledger keys | [`ai_stack/story_runtime/runtime_aspect_ledger.py:128-163`](../../ai_stack/story_runtime/runtime_aspect_ledger.py) `ASPECT_KEYS` | Enumerates the persisted runtime-aspect rows. No Director-Pause row exists today. | PR-C will either reuse an existing aspect (e.g. `npc_agency` companion field) or, if a new aspect row is required, that addition is scoped in PR-C with its own ADR-0061 evidence — **not** in PR-0. |
 
 **Cross-cutting consumer note.** The four PR-A/B/C contracts are **runtime data contracts**, not new node names. They flow through existing graph state keys (`player_action_frame`, `affordance_resolution`, `canonical_path_control`, `narrator_consequence_packet`) plus a new graph-state key for `director_gathering_state` (PR-C). PR-0 introduces only the **names and field lists**; no consumer is added.
 
@@ -46,7 +46,7 @@ Phase 1 illustrates four action classes (§3.4 of the plan). For each, the exist
 |---|---|---|
 | Langfuse spans for `resolve_player_action` | Yes (via existing thin-path summary in ADR-0062). | PR-A adds `resolved_target_type`, `resolved_target_id`, `presence_breaks_gathering`, `affordance_status`, `canon_safety`, `canonical_risk`, `action_commit_policy` as structured span fields. |
 | Operator endpoint exposing per-turn evidence | `GET /api/story/sessions/{session_id}/thin-path-summary` (per [ADR-0062](../ADR/adr-0062-director-realization-thin-path.md)). | PR-A/B/C add the same fields to the existing endpoint's payload — no new endpoint family for PR-0. |
-| Runtime aspect ledger row for Director-Pause | None. Aspect keys today (`ai_stack/runtime_aspect_ledger.py:128-163`) do not include a Director-Pause row. | PR-C decides whether to add a row or attach `gathering_paused` to an existing aspect; ADR-0061 records that decision. |
+| Runtime aspect ledger row for Director-Pause | None. Aspect keys today (`ai_stack/story_runtime/runtime_aspect_ledger.py:128-163`) do not include a Director-Pause row. | PR-C decides whether to add a row or attach `gathering_paused` to an existing aspect; ADR-0061 records that decision. |
 | Diagnostic UI surface | `world-engine/app/web/templates/ui/narrative_systems.html` is the natural home per plan §3.5; today it shows thin-path evidence only. | PR-A/B/C add structured fields to the existing page through the operator endpoint above. PR-0 introduces **no** UI page; the snapshot envelope stub is contract-only. |
 | Live-smoke session ("smoke link") | `WOS_THIN_PATH_LIVE_SMOKE=1 python -m pytest tests/smoke/test_thin_path_pr_a_live_smoke.py` (per ADR-0062). | PR-A extends this smoke; PR-B/PR-C add their own live smokes against the same model. |
 
@@ -78,7 +78,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 
 ## 7. What existing paths will be extended later (not in PR-0)
 
-- `ai_stack/player_action_resolution.py:502` — PR-A adds the contract fields enumerated in `free_player_action_resolution.v1`.
+- `ai_stack/story_runtime/player_action_resolution.py:502` — PR-A adds the contract fields enumerated in `free_player_action_resolution.v1`.
 - `ai_stack/langgraph/langgraph_runtime_executor.py:4703` — PR-B extends the `canonical_path_control` block with `canonical_path_hold_effect.v1` fields.
 - `ai_stack/contracts/narrator_consequence_contracts.py` — PR-B adds `narrator_consequence_realization.v1` realization-evidence fields.
 - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py:655` / `ai_stack/langgraph/langgraph_runtime_executor.py:3996` — PR-C introduces the `gathering_paused` gate around mandatory-beat consumption.
@@ -87,7 +87,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 
 ## 8. What must not be touched in PR-0
 
-- `ai_stack/player_action_resolution.py` — no change. Resolver behavior is unchanged.
+- `ai_stack/story_runtime/player_action_resolution.py` — no change. Resolver behavior is unchanged.
 - `ai_stack/contracts/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
 - `ai_stack/story_runtime/canonical_path/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
 - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` — no change. Director / responder selection is unchanged.
@@ -97,9 +97,9 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 - `world-engine/app/story_runtime/manager/` — no change. The hold-read site (`_turn_holds_canonical_path_for_free_player_action`) and all commit / readiness paths are unchanged.
 - `world-engine/app/web/templates/ui/**` — no change. No diagnostic UI page is introduced.
 - `world-engine/app/api/**` — no change. No operator endpoint is added.
-- `ai_stack/runtime_aspect_ledger.py` — no change. `ASPECT_KEYS` is unchanged; no Director-Pause aspect row is added.
+- `ai_stack/story_runtime/runtime_aspect_ledger.py` — no change. `ASPECT_KEYS` is unchanged; no Director-Pause aspect row is added.
 - `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py` — no change. Narrator path (Turn 0) is unchanged.
-- `ai_stack/god_of_carnage_souffleuse.py` — no change. Souffleuse production is unchanged.
+- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py` — no change. Souffleuse production is unchanged.
 - `frontend/static/play_typewriter_engine.js` — no change. Block streaming and cut-in semantics are unchanged.
 - Any schema/database migration — none introduced.
 - Any Commit / Readiness gate — none changed.

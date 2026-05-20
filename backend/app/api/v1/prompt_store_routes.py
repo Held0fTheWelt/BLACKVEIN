@@ -11,7 +11,7 @@ from app.auth.permissions import get_current_user, require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, fail_from_error, ok
 from app.governance.errors import GovernanceError
-from app.services.prompt_store_service import (
+from app.services.prompts.prompt_store_service import (
     get_active_prompt_bundle,
     get_prompt_record,
     get_prompt_store_status,

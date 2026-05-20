@@ -70,8 +70,8 @@ labels are not pass/fail oracles.
 ## Implementation Anchors
 
 - `ai_stack/contracts/meta_narrative_awareness_contracts.py`
-- `ai_stack/meta_narrative_awareness_engine.py`
+- `ai_stack/story_runtime/narrative/meta_narrative_awareness_engine.py`
 - `ai_stack/story_runtime/story_runtime_experience.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `ai_stack/runtime_aspect_ledger.py`
+- `ai_stack/story_runtime/runtime_aspect_ledger.py`
 - `content/modules/god_of_carnage/module.yaml`

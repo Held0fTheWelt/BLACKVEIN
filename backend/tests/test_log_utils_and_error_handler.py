@@ -1,4 +1,4 @@
-"""Tests for app.services.log_utils and app.utils.error_handler."""
+"""Tests for app.services.common.log_utils and app.utils.error_handler."""
 
 from __future__ import annotations
 

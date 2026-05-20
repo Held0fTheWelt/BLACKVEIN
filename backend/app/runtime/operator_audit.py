@@ -54,7 +54,7 @@ def _routing_evidence_from_trace(trace: dict[str, Any]) -> dict[str, Any]:
 
 
 def runtime_additive_orchestration_fields(traces: list[dict[str, Any]]) -> dict[str, Any]:
-    """Additive orchestration summary keys; legacy ``stages_skipped`` unchanged.
+    """Additive orchestration summary keys; ``stages_skipped`` remains unchanged.
 
     Separates packaging (no model call by design) from routing skips (no eligible adapter).
     """
@@ -289,8 +289,8 @@ def build_runtime_operator_audit(
     elif model_routing_trace and isinstance(model_routing_trace, dict):
         rev = model_routing_trace.get("routing_evidence")
         synthetic = {
-            "stage_id": "legacy_single_route",
-            "stage_kind": "legacy_single_route",
+            "stage_id": "single_route",
+            "stage_kind": "single_route",
             "bounded_model_call": None,
             "skip_reason": None,
             "routing_evidence": rev if isinstance(rev, dict) else {},
@@ -304,7 +304,7 @@ def build_runtime_operator_audit(
         if isinstance(rev, dict) and rev.get("execution_deviation"):
             deviations = [
                 {
-                    "stage_key": "legacy_single_route",
+                    "stage_key": "single_route",
                     "execution_deviation": dict(rev["execution_deviation"]),
                 }
             ]
@@ -323,7 +323,7 @@ def build_runtime_operator_audit(
         if isinstance(rev, dict):
             trace_input_for_primary = [
                 {
-                    "stage_id": "legacy_single_route",
+                    "stage_id": "single_route",
                     "routing_evidence": rev,
                     "errors": [],
                 }
@@ -344,7 +344,7 @@ def build_runtime_operator_audit(
         "stages_executed_count": len(traces),
         "note_deep_traces": (
             "Authoritative detail: runtime_stage_traces with per-stage routing_evidence; "
-            "model_routing_trace is the legacy rollup."
+            "model_routing_trace is the single-route rollup."
         ),
     }
     for _rk in RUNTIME_RANKING_ORCHESTRATION_SUMMARY_KEYS:

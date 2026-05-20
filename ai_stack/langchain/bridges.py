@@ -347,11 +347,11 @@ class RuntimeTurnStructuredOutput(BaseModel):
     )
     opening_events_covered: list[str] = Field(
         default_factory=list,
-        description="Opening turn compatibility alias for opening_event_ids.",
+        description="Opening turn alternate key for opening_event_ids.",
     )
     covered_event_ids: list[str] = Field(
         default_factory=list,
-        description="Generic compatibility alias for opening/opening_event_coverage covered event ids.",
+        description="Generic alternate key for opening/opening_event_coverage covered event ids.",
     )
     opening_event_coverage: dict[str, Any] = Field(
         default_factory=dict,
@@ -366,7 +366,7 @@ class RuntimeTurnStructuredOutput(BaseModel):
     )
     must_establish_coverage: list[str] | dict[str, bool] = Field(
         default_factory=list,
-        description="Compatibility alias for opening_must_establish_coverage.",
+        description="Alternate key for opening_must_establish_coverage.",
     )
     opening_render_policy_evidence: dict[str, Any] = Field(
         default_factory=dict,
@@ -380,7 +380,7 @@ class RuntimeTurnStructuredOutput(BaseModel):
     )
 
     responder_id: str | None = None
-    narrative_response: str = Field(default="", description="Deprecated. Copy of narration_summary for legacy callers only.")
+    narrative_response: str = Field(default="", description="Copy of narration_summary for alternate callers.")
     function_type: str | None = None
     emotional_shift: dict | None = None
     social_outcome: str | None = None
@@ -404,7 +404,7 @@ def _narration_summary_joined_plain(parsed: RuntimeTurnStructuredOutput) -> str:
 
 
 def _normalize_runtime_structured_output(parsed: RuntimeTurnStructuredOutput) -> RuntimeTurnStructuredOutput:
-    """Normalize new and legacy fields into one compatible runtime shape."""
+    """Normalize canonical and alternate fields into one runtime shape."""
     updates: dict[str, Any] = {}
     narration_plain = _narration_summary_joined_plain(parsed)
     narrative_response = (parsed.narrative_response or "").strip()
@@ -414,17 +414,17 @@ def _normalize_runtime_structured_output(parsed: RuntimeTurnStructuredOutput) ->
         updates["narrative_response"] = narration_plain
 
     primary_responder = (parsed.primary_responder_id or "").strip()
-    legacy_responder = (parsed.responder_id or "").strip()
-    if not primary_responder and legacy_responder:
-        updates["primary_responder_id"] = legacy_responder
-        primary_responder = legacy_responder
-    if not legacy_responder and primary_responder:
+    alternate_responder = (parsed.responder_id or "").strip()
+    if not primary_responder and alternate_responder:
+        updates["primary_responder_id"] = alternate_responder
+        primary_responder = alternate_responder
+    if not alternate_responder and primary_responder:
         updates["responder_id"] = primary_responder
 
     secondary_ids = [str(x).strip() for x in parsed.secondary_responder_ids if str(x).strip()]
-    legacy_scope = [str(x).strip() for x in parsed.responder_actor_ids if str(x).strip()]
-    if not secondary_ids and legacy_scope:
-        secondary_ids = [x for x in legacy_scope if x != primary_responder]
+    responder_scope = [str(x).strip() for x in parsed.responder_actor_ids if str(x).strip()]
+    if not secondary_ids and responder_scope:
+        secondary_ids = [x for x in responder_scope if x != primary_responder]
         updates["secondary_responder_ids"] = secondary_ids
 
     if updates:
@@ -443,7 +443,7 @@ class WritersRoomStructuredOutput(BaseModel):
 
 def _build_runtime_prompt_template() -> ChatPromptTemplate:
     """Build runtime prompt template from the central prompt store."""
-    from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+    from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
     return CanonicalPromptCatalog().get_runtime_turn_template()
 
@@ -476,7 +476,7 @@ class ThinPathRuntimeOutput(BaseModel):
 
     Downstream proposal_normalize accepts this shape because it treats unknown
     fields as absent rather than as required. Schema version stays compatible
-    with RuntimeTurnStructuredOutput so legacy readers don't break.
+    with RuntimeTurnStructuredOutput so current readers keep one parser shape.
     """
 
     schema_version: str = Field(default="runtime_actor_turn_v1")

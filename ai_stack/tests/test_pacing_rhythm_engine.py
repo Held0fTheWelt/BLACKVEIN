@@ -6,7 +6,7 @@ from ai_stack.contracts.pacing_rhythm_contracts import (
     PACING_RHYTHM_POLICY_VERSION,
     PACING_RHYTHM_SCHEMA_VERSION,
 )
-from ai_stack.pacing_rhythm_engine import (
+from ai_stack.story_runtime.narrative.pacing_rhythm_engine import (
     derive_pacing_rhythm,
     validate_pacing_rhythm_realization,
 )

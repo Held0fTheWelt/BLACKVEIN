@@ -13,11 +13,11 @@ import re
 import unicodedata
 from typing import Any, Sequence
 
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     canonicalize_goc_actor_id,
     expand_goc_actor_id_aliases,
 )
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     goc_actor_display_name,
     goc_actor_ids_from_content,
     goc_actor_identity,

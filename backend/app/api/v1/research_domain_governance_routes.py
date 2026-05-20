@@ -10,8 +10,8 @@ from app.auth.feature_registry import FEATURE_MANAGE_RESEARCH_GOVERNANCE
 from app.auth.permissions import get_current_user, require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, ok
-from app.services.governance_runtime_service import record_operational_activity
-from app.services.research_domain_governance_service import (
+from app.services.governance.governance_runtime_service import record_operational_activity
+from app.services.governance.research_domain_governance_service import (
     LAYER_IDS,
     build_research_domain_overview,
     build_research_layer_payload,

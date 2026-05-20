@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-from ai_stack.runtime_aspect_ledger import ASPECT_KEYS
+from ai_stack.story_runtime.runtime_aspect_ledger import ASPECT_KEYS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

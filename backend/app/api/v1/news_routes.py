@@ -26,7 +26,7 @@ from app.extensions import limiter, db
 from app.services import log_activity
 from app.i18n import normalize_language, validate_language_code
 from app.models import NewsArticle, ForumThread
-from app.services.news_service import (
+from app.services.content.news_service import (
     SORT_FIELDS,
     SORT_ORDERS,
     approve_article_translation,

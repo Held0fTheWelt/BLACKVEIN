@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
     ASPECT_VALIDATION,

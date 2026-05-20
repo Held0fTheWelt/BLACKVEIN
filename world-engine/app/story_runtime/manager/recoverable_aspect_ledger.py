@@ -229,10 +229,10 @@ def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
     lang = str(getattr(session, "session_output_language", DEFAULT_SESSION_LANGUAGE) or DEFAULT_SESSION_LANGUAGE).strip().lower()[:2] or DEFAULT_SESSION_LANGUAGE
     if lang == "en":
         if reason == "graph_execution_exception":
-            return "Fallback: the turn could not be generated because the runtime raised an exception. Try a simpler move from here."
+            return "Fallback: the moment catches and stays playable. Try a simpler move from here."
         return "Fallback: the turn could not be accepted by the runtime. Try a clearer move from this same state."
     if reason == "graph_execution_exception":
-        return "Fallback: Der Zug konnte nicht erzeugt werden, weil die Runtime eine Exception ausgelöst hat. Versuche von hier aus einen einfacheren Zug."
+        return "Fallback: Der Moment hakt, bleibt aber spielbar. Versuche von hier aus einen einfacheren Zug."
     return "Fallback: Der Zug wurde von der Runtime nicht akzeptiert. Versuche aus demselben Zustand heraus einen klareren Zug."
 
 __all__ = [

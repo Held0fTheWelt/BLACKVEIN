@@ -12,12 +12,12 @@ from typing import Any
 from ai_stack.capabilities.capability_validator_plan import ValidatorPlanEntry
 from ai_stack.contracts.dramatic_effect_contract import DramaticEffectEvaluationContext
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate
-from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
-from ai_stack.god_of_carnage_frozen_vocabulary import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import (
     GOC_MODULE_ID,
     expand_goc_actor_id_aliases,
 )
-from ai_stack.god_of_carnage_knowledge_runtime_gates import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_knowledge_runtime_gates import (
     detect_hard_forbidden_runtime,
     evaluate_opening_event_coverage,
     text_from_generation_and_effects,

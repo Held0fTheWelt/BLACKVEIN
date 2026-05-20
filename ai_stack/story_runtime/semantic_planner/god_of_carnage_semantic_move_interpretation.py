@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_subtext_policy import build_subtext_record_from_policy
 from ai_stack.contracts.semantic_move_contract import (
     SEMANTIC_MOVE_TYPES,

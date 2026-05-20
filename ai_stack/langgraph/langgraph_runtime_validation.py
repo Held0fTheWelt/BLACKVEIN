@@ -5,38 +5,38 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
-from ai_stack.dramatic_irony_runtime import (
+from ai_stack.story_runtime.narrative.dramatic_irony_runtime import (
     build_dramatic_irony_aspect_record,
     validate_dramatic_irony_realization,
 )
-from ai_stack.expectation_variation_engine import (
+from ai_stack.story_runtime.narrative.expectation_variation_engine import (
     build_expectation_variation_aspect_record,
     validate_expectation_variation_realization,
 )
-from ai_stack.genre_awareness_engine import (
+from ai_stack.story_runtime.narrative.genre_awareness_engine import (
     build_genre_awareness_aspect_record,
     validate_genre_awareness_realization,
 )
-from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
-from ai_stack.improvisational_coherence_engine import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.story_runtime.narrative.improvisational_coherence_engine import (
     build_improvisational_coherence_aspect_record,
     validate_improvisational_coherence_realization,
 )
-from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
-from ai_stack.meta_narrative_awareness_engine import (
+from ai_stack.story_runtime.narrative.information_disclosure_engine import validate_information_disclosure_realization
+from ai_stack.story_runtime.narrative.meta_narrative_awareness_engine import (
     build_meta_narrative_awareness_aspect_record,
     validate_meta_narrative_awareness_realization,
 )
-from ai_stack.narrative_momentum_engine import (
+from ai_stack.story_runtime.narrative.narrative_momentum_engine import (
     build_narrative_momentum_aspect_record,
     validate_narrative_momentum_realization,
 )
-from ai_stack.pacing_rhythm_engine import validate_pacing_rhythm_realization
-from ai_stack.relationship_state_engine import (
+from ai_stack.story_runtime.narrative.pacing_rhythm_engine import validate_pacing_rhythm_realization
+from ai_stack.story_runtime.narrative.relationship_state_engine import (
     build_relationship_state_aspect_record,
     validate_relationship_state_realization,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
@@ -61,24 +61,24 @@ from ai_stack.runtime_aspect_ledger import (
     make_aspect_record,
     set_aspect_record,
 )
-from ai_stack.scene_energy_engine import validate_scene_energy_realization
-from ai_stack.sensory_context_engine import validate_sensory_context_realization
-from ai_stack.social_pressure_engine import validate_social_pressure_metric
+from ai_stack.story_runtime.narrative.scene_energy_engine import validate_scene_energy_realization
+from ai_stack.story_runtime.narrative.sensory_context_engine import validate_sensory_context_realization
+from ai_stack.story_runtime.narrative.social_pressure_engine import validate_social_pressure_metric
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import build_evaluation_context_from_runtime_state
 from ai_stack.story_runtime.director.capabilities_manager.director_capability_manager import (
     executable_capabilities_from_manager_plan,
 )
 from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_validation_seam
-from ai_stack.symbolic_object_resonance_engine import (
+from ai_stack.story_runtime.narrative.symbolic_object_resonance_engine import (
     build_symbolic_object_resonance_aspect_record,
     validate_symbolic_object_resonance_realization,
 )
-from ai_stack.temporal_control_engine import (
+from ai_stack.story_runtime.narrative.temporal_control_engine import (
     build_temporal_control_aspect_record,
     validate_temporal_control_realization,
 )
-from ai_stack.tonal_consistency_engine import (
+from ai_stack.story_runtime.narrative.tonal_consistency_engine import (
     build_tonal_consistency_aspect_record,
     validate_tonal_consistency_realization,
 )

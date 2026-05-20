@@ -1,6 +1,6 @@
 """Test password complexity validation."""
 import pytest
-from app.services.user_service import validate_password_complexity
+from app.services.identity.user_service import validate_password_complexity
 
 
 class TestPasswordComplexityValidation:
@@ -216,7 +216,7 @@ class TestPasswordComplexityIntegration:
 
     def test_reset_password_with_weak_password(self, client, auth_user):
         """Test that password reset fails with weak password."""
-        from app.services.user_service import create_password_reset_token
+        from app.services.identity.user_service import create_password_reset_token
 
         user, _ = auth_user
         # Create reset token
@@ -234,7 +234,7 @@ class TestPasswordComplexityIntegration:
 
     def test_reset_password_with_strong_password(self, client, auth_user):
         """Test that password reset succeeds with strong password."""
-        from app.services.user_service import create_password_reset_token
+        from app.services.identity.user_service import create_password_reset_token
 
         user, _ = auth_user
         # Create reset token

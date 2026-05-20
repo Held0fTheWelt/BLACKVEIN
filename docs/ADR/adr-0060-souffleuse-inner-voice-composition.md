@@ -123,7 +123,7 @@ block stream concepts. This is enforced by existing PR-C guardrail tests.
 
 ### 8. Existing `god_of_carnage_souffleuse.py` unchanged
 
-`ai_stack/god_of_carnage_souffleuse.py` and `build_goc_opening_souffleuse_projection()` are
+`ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py` and `build_goc_opening_souffleuse_projection()` are
 not modified by this ADR. The opening Souffleuse path continues to work as
 implemented under ADR-0035. This ADR governs the rules that any future Souffleuse
 composition path must follow.
@@ -239,10 +239,10 @@ explicit future work and are not part of Phase 2 closure.
 
 ## Implementation
 
-- `ai_stack/god_of_carnage_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
+- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
 - `ai_stack/contracts/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
   and `CUT_KIND_SKIP_TO_END` constants define the Souffleuse's stream position.
-- `ai_stack/ws_session_loop.py` — Stage M follow-up composition
+- `ai_stack/story_runtime/ws_session_loop.py` — Stage M follow-up composition
   dispatcher (`_compose_npc_follow_up`, `_compose_template_render_follow_up`,
   `_compose_semantic_npc_follow_up`, `_run_safety_gates`,
   `_build_follow_up_composition_request`). Closed-enum vocabulary:

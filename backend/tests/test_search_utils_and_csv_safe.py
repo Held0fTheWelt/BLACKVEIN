@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.services.search_utils import _escape_sql_like_wildcards
+from app.services.common.search_utils import _escape_sql_like_wildcards
 from app.utils.csv_safe import csv_safe_cell
 
 

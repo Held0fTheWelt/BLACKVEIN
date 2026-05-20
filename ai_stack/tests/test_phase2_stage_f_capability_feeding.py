@@ -30,12 +30,12 @@ from typing import Any
 
 import pytest
 
-from ai_stack.autonomous_tick import (
+from ai_stack.story_runtime.autonomous_tick import (
     AutonomousTickInputs,
     evaluate_autonomous_tick,
 )
-from ai_stack.off_stage_updates import SAFETY_GATE_RESULTS
-from ai_stack.stream_readiness import (
+from ai_stack.story_runtime.off_stage_updates import SAFETY_GATE_RESULTS
+from ai_stack.story_runtime.stream_readiness import (
     COMPONENT_SOURCE_MISSING,
     COMPONENT_SOURCE_MODULE_POLICY_DEFAULT,
     COMPONENT_SOURCE_REAL_RUNTIME,
@@ -465,7 +465,7 @@ class TestDualModeEnvelopeSurfacesStageFFields:
         }
 
     def test_augment_writes_capability_outputs_into_director_pulse(self):
-        from ai_stack.block_stream_dual_mode import augment_envelope_with_block_stream
+        from ai_stack.story_runtime.block_stream_dual_mode import augment_envelope_with_block_stream
         env = augment_envelope_with_block_stream(
             self._envelope(),
             scene_energy_output=_scene_energy_high(),
@@ -485,7 +485,7 @@ class TestDualModeEnvelopeSurfacesStageFFields:
         assert "motivation_score_component_sources" in pulse
 
     def test_augment_records_missing_when_none_supplied(self):
-        from ai_stack.block_stream_dual_mode import augment_envelope_with_block_stream
+        from ai_stack.story_runtime.block_stream_dual_mode import augment_envelope_with_block_stream
         env = augment_envelope_with_block_stream(self._envelope())
         pulse = env["diagnostics"]["director_pulse"]
         missing = pulse["capability_outputs_missing"]
@@ -514,7 +514,7 @@ class TestStageFADR0039Discipline:
     _FORBIDDEN_NPC_LITERALS = ("veronique", "michel", "annette", "alain")
 
     def test_no_pi_keys_in_stage_f_modules(self):
-        from ai_stack import off_stage_updates, stream_readiness
+        from ai_stack.story_runtime import off_stage_updates, stream_readiness
         for mod in (off_stage_updates, stream_readiness):
             with open(mod.__file__, "r", encoding="utf-8") as fh:
                 src = fh.read()
@@ -522,7 +522,7 @@ class TestStageFADR0039Discipline:
                 assert not pat.search(src), f"Pi/Π in {mod.__name__}: {pat.pattern}"
 
     def test_no_hardcoded_actor_ids_in_stage_f_modules(self):
-        from ai_stack import off_stage_updates, stream_readiness
+        from ai_stack.story_runtime import off_stage_updates, stream_readiness
         for mod in (off_stage_updates, stream_readiness):
             with open(mod.__file__, "r", encoding="utf-8") as fh:
                 src = fh.read().lower()

@@ -5,7 +5,7 @@ from app.api.v1 import api_v1_bp
 from app.auth.feature_registry import FEATURE_MANAGE_ROLES
 from app.auth.permissions import require_feature, require_jwt_admin
 from app.extensions import limiter
-from app.services.role_service import (
+from app.services.identity.role_service import (
     create_role as create_role_service,
     delete_role as delete_role_service,
     get_role_by_id,

@@ -73,7 +73,7 @@ AREA2_AUTHORITY_REGISTRY: tuple[Area2AuthorityEntry, ...] = (
     Area2AuthorityEntry(
         component_id="writers_room_model_spec_translation",
         layer=AuthorityLayer.translation_layer,
-        module_path="app.services.writers_room_model_routing",
+        module_path="app.services.writers_room.writers_room_model_routing",
         description="Maps story_runtime_core.ModelSpec rows to AdapterModelSpec; same builder for WR and Improvement.",
         canonical_for_task2a_paths=frozenset(
             {CanonicalSurface.writers_room, CanonicalSurface.improvement_bounded}
@@ -154,14 +154,14 @@ AREA2_AUTHORITY_REGISTRY: tuple[Area2AuthorityEntry, ...] = (
     Area2AuthorityEntry(
         component_id="improvement_task2a_routing",
         layer=AuthorityLayer.non_authoritative_support,
-        module_path="app.services.improvement_task2a_routing",
+        module_path="app.services.improvement.improvement_task2a_routing",
         description="Bounded enrichment calls route_model with explicit WR-derived specs.",
         canonical_for_task2a_paths=frozenset({CanonicalSurface.improvement_bounded}),
     ),
     Area2AuthorityEntry(
         component_id="writers_room_service",
         layer=AuthorityLayer.non_authoritative_support,
-        module_path="app.services.writers_room_service",
+        module_path="app.services.writers_room.writers_room_service",
         description="Writers-Room workflow; uses route_model with explicit specs from translation layer.",
         canonical_for_task2a_paths=frozenset({CanonicalSurface.writers_room}),
     ),

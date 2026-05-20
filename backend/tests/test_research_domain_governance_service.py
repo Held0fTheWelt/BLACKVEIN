@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.services.research_domain_governance_service import (
+from app.services.governance.research_domain_governance_service import (
     LAYER_IDS,
     build_research_domain_overview,
     build_research_layer_payload,

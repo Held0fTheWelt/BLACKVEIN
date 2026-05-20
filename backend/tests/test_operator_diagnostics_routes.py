@@ -15,7 +15,7 @@ def _allow_all_features(monkeypatch):
 
 def test_operator_diagnostics_session_not_found_returns_404(client, moderator_headers, monkeypatch):
     _allow_all_features(monkeypatch)
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     def _missing(_sid):
         raise GameServiceError("missing", status_code=404)

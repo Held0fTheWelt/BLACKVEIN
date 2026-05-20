@@ -9,7 +9,7 @@ from typing import Any, Iterable
 
 import yaml
 
-from ai_stack.limit_inventory import API_DEFAULT_RATE_LIMIT, route_rate_limit_metadata
+from ai_stack.quality_lab.limit_inventory import API_DEFAULT_RATE_LIMIT, route_rate_limit_metadata
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 _METHOD_ORDER = {method.upper(): idx for idx, method in enumerate(_HTTP_METHODS)}

@@ -7,7 +7,7 @@ from app.models import (
     ForumCategory, ForumThread, ForumPost, ForumTag,
     ForumReport, ForumThreadBookmark, ForumPostLike
 )
-from app.services.forum_service import (
+from app.services.content.forum_service import (
     suggest_related_threads_by_tags,
     list_escalation_queue,
     list_review_queue,
@@ -23,7 +23,7 @@ from app.services.forum_service import (
     assign_report_to_moderator,
     list_handled_reports,
 )
-from app.services.user_service import (
+from app.services.identity.user_service import (
     count_user_threads,
     count_user_posts,
     count_user_bookmarks,
@@ -40,7 +40,7 @@ class TestRelatedThreadsRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             t1, _, _ = create_thread(category=cat, author_id=user.id,
                                     title="Python Discussion", content="Talk about Python")
@@ -66,7 +66,7 @@ class TestRelatedThreadsRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             t1, _, _ = create_thread(category=cat, author_id=user.id,
                                     title="Main", content="Content")
@@ -98,7 +98,7 @@ class TestRelatedThreadsRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             t1, _, _ = create_thread(category=cat, author_id=user.id,
                                     title="Main", content="Content")
@@ -290,7 +290,7 @@ class TestCommunityProfilesRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, create_post
+            from app.services.content.forum_service import create_thread, create_post
 
             thread_count_before = count_user_threads(user.id)
             post_count_before = count_user_posts(user.id)
@@ -313,7 +313,7 @@ class TestCommunityProfilesRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             bookmark_count_before = count_user_bookmarks(user.id)
 
@@ -330,7 +330,7 @@ class TestCommunityProfilesRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             threads = []
             for i in range(5):
@@ -355,7 +355,7 @@ class TestBookmarksTagsLikesRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             t, _, _ = create_thread(category=cat, author_id=user.id,
                                    title="Test", content="Content")
@@ -380,7 +380,7 @@ class TestBookmarksTagsLikesRegression:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, list_tags_for_thread
+            from app.services.content.forum_service import create_thread, list_tags_for_thread
 
             t, _, _ = create_thread(category=cat, author_id=user.id,
                                    title="Test", content="Content")
@@ -408,7 +408,7 @@ class TestBookmarksTagsLikesRegression:
         with app.app_context():
             from app.models import User
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, create_post
+            from app.services.content.forum_service import create_thread, create_post
 
             t, p, _ = create_thread(category=cat, author_id=user.id,
                                    title="Test", content="Content")
@@ -444,7 +444,7 @@ class TestIntegration:
         mod_user, _ = moderator_user
         admin, _ = admin_user
         with app.app_context():
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             cat = ForumCategory.query.get(forum_category)
             t, _, _ = create_thread(category=cat, author_id=user.id,
@@ -495,7 +495,7 @@ class TestIntegration:
         user, _ = test_user
         with app.app_context():
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             # Create main thread with tags
             t1, _, _ = create_thread(category=cat, author_id=user.id,

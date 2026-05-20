@@ -103,8 +103,8 @@ from ai_stack import (
 )
 from ai_stack.prompt_store import configure_prompt_bundle, render_prompt
 from ai_stack.rag.rag_retrieval_dtos import retrieval_config_from_governed
-from ai_stack.runtime_quality_semantics import canonical_quality_class
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.quality_lab.runtime_quality_semantics import canonical_quality_class
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
@@ -213,26 +213,30 @@ from ai_stack.live_dramatic_scene_simulator import (
     build_scene_turn_envelope_v2,
     run_ldss,
 )
-from ai_stack.diagnostics_envelope import (
+from ai_stack.telemetry.diagnostics_envelope import (
     DegradationEvent,
     build_diagnostics_envelope,
     build_narrative_gov_summary,
 )
-from ai_stack.runtime_cost_attribution import (
+from ai_stack.telemetry.runtime_cost_attribution import (
     aggregate_phase_costs,
     build_deterministic_phase_cost,
     build_mock_phase_cost,
     build_provider_usage_phase_cost,
     build_unavailable_phase_cost,
 )
-from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
-from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
-from ai_stack.god_of_carnage_yaml_authority import goc_actor_identity
+from ai_stack.story_runtime.narrative import (
+    NarrativeEventKind,
+    NarrativeRuntimeAgent,
+    NarrativeRuntimeAgentInput,
+)
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import goc_actor_identity
 from ai_stack.story_runtime.npc_agency.god_of_carnage_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
 )
-from ai_stack.god_of_carnage_opening_transition import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_opening_transition import (
     compute_opening_transition_from_scene_blocks,
     polish_first_opening_actor_block,
     role_display_name as _role_display_name,

@@ -11,7 +11,7 @@ Registry pattern:
 Task 2A adds model-aware registration:
 - register_adapter_model(spec, adapter) — Register adapter plus AdapterModelSpec
 - get_model_spec(name) / iter_model_specs() — Read routing metadata
-- clear_registry() clears both legacy adapters and model specs
+- clear_registry() clears both adapter instances and model specs
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ def register_adapter(name: str, adapter: StoryAIAdapter) -> None:
 def register_adapter_model(spec: AdapterModelSpec, adapter: StoryAIAdapter) -> None:
     """Register an adapter together with its Task 2A model routing spec.
 
-    Writes to the legacy adapter map and the model-spec store. ``adapter.adapter_name``
+    Writes to the adapter instance map and the model-spec store. ``adapter.adapter_name``
     must match ``spec.adapter_name`` (trimmed) for a single canonical name.
 
     Raises:
@@ -95,7 +95,7 @@ def iter_model_specs() -> list[AdapterModelSpec]:
 
 
 def clear_registry() -> None:
-    """Clear legacy adapters and Task 2A model specs (primarily for tests)."""
+    """Clear adapter instances and Task 2A model specs (primarily for tests)."""
     _adapter_registry.clear()
     _model_spec_by_name.clear()
 
@@ -119,7 +119,7 @@ def has_model_spec(name: str) -> bool:
     return get_model_spec(name) is not None
 
 
-def legacy_adapter_without_model_spec(name: str) -> bool:
+def adapter_without_model_spec(name: str) -> bool:
     """True when an adapter instance exists but no model spec is registered for that name."""
     if not name:
         return False
@@ -128,7 +128,7 @@ def legacy_adapter_without_model_spec(name: str) -> bool:
 
 
 def snapshot_registry_keys() -> tuple[list[str], list[str]]:
-    """Return sorted legacy adapter names and sorted model-spec names (diagnostics / Task 2 inventory)."""
+    """Return sorted adapter instance names and sorted model-spec names for diagnostics."""
 
     return (sorted(_adapter_registry.keys()), sorted(_model_spec_by_name.keys()))
 

@@ -5,7 +5,7 @@ from app.api.v1 import api_v1_bp
 from app.auth.permissions import current_user_can_write_news, get_current_user
 from app.extensions import limiter
 from app.services import log_activity
-from app.services.slogan_service import (
+from app.services.content.slogan_service import (
     activate_slogan as activate_slogan_svc,
     create_slogan as create_slogan_svc,
     deactivate_slogan as deactivate_slogan_svc,

@@ -26,7 +26,7 @@ class TestSuggestedThreadsOrdering:
             db.session.commit()
             
             # Get suggestions twice
-            from app.services.forum_service import suggest_related_threads_by_tags
+            from app.services.content.forum_service import suggest_related_threads_by_tags
             result1 = suggest_related_threads_by_tags(thread.id)
             result2 = suggest_related_threads_by_tags(thread.id)
             
@@ -57,7 +57,7 @@ class TestSuggestedThreadsExclusions:
             db.session.add(thread)
             db.session.commit()
             
-            from app.services.forum_service import suggest_related_threads_by_tags
+            from app.services.content.forum_service import suggest_related_threads_by_tags
             results = suggest_related_threads_by_tags(thread.id)
             ids = [t.id for t in results]
             
@@ -81,7 +81,7 @@ class TestSuggestedThreadsExclusions:
             db.session.add(thread)
             db.session.commit()
             
-            from app.services.forum_service import suggest_related_threads_by_tags
+            from app.services.content.forum_service import suggest_related_threads_by_tags
             results = suggest_related_threads_by_tags(thread.id, include_hidden=False)
             
             # Check status of returned threads
@@ -123,7 +123,7 @@ class TestReasonLabels:
     def test_reason_labels_not_same_category(self, client, test_user, app):
         """Reason labels should NOT be "Same category" (not in current implementation)."""
         with app.app_context():
-            from app.services.forum_service import suggest_related_threads_by_tags
+            from app.services.content.forum_service import suggest_related_threads_by_tags
             
             cat = ForumCategory(slug="test", title="Test", sort_order=0, is_active=True, is_private=False)
             db.session.add(cat)

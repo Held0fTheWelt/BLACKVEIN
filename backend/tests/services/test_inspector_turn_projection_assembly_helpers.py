@@ -1,6 +1,6 @@
 """Unit tests for inspector_turn_projection_assembly_helpers."""
 
-from app.services.inspector_turn_projection_assembly_helpers import (
+from app.services.inspector.inspector_turn_projection_assembly_helpers import (
     build_decision_trace_data,
     build_validation_projection_data,
 )

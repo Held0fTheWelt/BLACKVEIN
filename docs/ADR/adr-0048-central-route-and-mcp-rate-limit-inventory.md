@@ -34,13 +34,13 @@ That split made it easy for operator-facing views or tests to drift from runtime
 
 ## Decision
 
-1. `ai_stack/limit_inventory.py` is the central helper for route and MCP rate-limit metadata.
+1. `ai_stack/quality_lab/limit_inventory.py` is the central helper for route and MCP rate-limit metadata.
 
 2. HTTP/API inventory entries must be derived from runtime route evidence where possible: Flask URL map, OpenAPI/catalog metadata, handler decorators, `admin_security` rate-limit wrappers, and the configured default limiter value.
 
 3. The API catalog must expose a structured `rate_limit` object per endpoint. The API Explorer and backend info pages must read that structured field instead of maintaining independent prose-only tables.
 
-4. MCP dispatch limits must use the same constants exported by `ai_stack/limit_inventory.py`. MCP `tools/list` metadata must mirror that inventory for every registered tool.
+4. MCP dispatch limits must use the same constants exported by `ai_stack/quality_lab/limit_inventory.py`. MCP `tools/list` metadata must mirror that inventory for every registered tool.
 
 5. The following operator-facing surfaces must include the inventory or link directly to it:
 
@@ -90,7 +90,7 @@ That split made it easy for operator-facing views or tests to drift from runtime
 
 ```mermaid
 flowchart LR
-  ROUTES["Flask URL map\nOpenAPI catalog\nroute decorators"] --> INV["ai_stack/limit_inventory.py"]
+  ROUTES["Flask URL map\nOpenAPI catalog\nroute decorators"] --> INV["ai_stack/quality_lab/limit_inventory.py"]
   DEFAULTS["Flask-Limiter default"] --> INV
   MCP["MCP dispatch constants\ntool registry"] --> INV
 
@@ -122,7 +122,7 @@ Review this ADR if:
 - [docs/security/rate-limit-inventory.md](../security/rate-limit-inventory.md)
 - [docs/security/README.md](../security/README.md)
 - [ADR-0028](adr-0028-mcp-security-baseline-phase-a.md)
-- `ai_stack/limit_inventory.py`
+- `ai_stack/quality_lab/limit_inventory.py`
 - `backend/app/info/api_catalog.py`
 - `backend/app/info/routes.py`
 - `backend/app/info/templates/security_features.html`

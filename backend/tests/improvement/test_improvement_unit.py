@@ -10,7 +10,7 @@ import pytest
 
 from app.contracts.improvement_entry_class import parse_improvement_entry_class
 from app.contracts.writers_room_artifact_class import WritersRoomArtifactClass
-from app.services.improvement_service import (
+from app.services.improvement.improvement_service import (
     ImprovementStore,
     _evaluate_transcript,
     build_comparison_package,

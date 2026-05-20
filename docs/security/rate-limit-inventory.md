@@ -6,10 +6,10 @@ This document describes the shared rate-limit inventory for HTTP/API routes, Aut
 
 | Surface | Runtime enforcement | Inventory source | Operator view |
 |---------|---------------------|------------------|---------------|
-| HTTP/API routes | Flask-Limiter route decorators and default limiter config | `ai_stack/limit_inventory.py`, `backend/app/info/api_catalog.py` | `/backend/api`, `/backend/api-explorer`, `/backend/security-features` |
-| Auth routes | Flask-Limiter route decorators and default limiter config | `ai_stack/limit_inventory.py`, API catalog metadata | `/backend/auth`, `/backend/security-features` |
-| Admin-sensitive route policy | `admin_security(..., rate_limit=...)` wrappers | `ai_stack/limit_inventory.py` layer extraction | `/backend/security-features`, API catalog detail |
-| MCP JSON-RPC dispatch | MCP `RateLimiter` in `tools/mcp_server/server.py` | shared constants from `ai_stack/limit_inventory.py` | `/backend/mcp`, `/backend/security-features`, MCP `tools/list` |
+| HTTP/API routes | Flask-Limiter route decorators and default limiter config | `ai_stack/quality_lab/limit_inventory.py`, `backend/app/info/api_catalog.py` | `/backend/api`, `/backend/api-explorer`, `/backend/security-features` |
+| Auth routes | Flask-Limiter route decorators and default limiter config | `ai_stack/quality_lab/limit_inventory.py`, API catalog metadata | `/backend/auth`, `/backend/security-features` |
+| Admin-sensitive route policy | `admin_security(..., rate_limit=...)` wrappers | `ai_stack/quality_lab/limit_inventory.py` layer extraction | `/backend/security-features`, API catalog detail |
+| MCP JSON-RPC dispatch | MCP `RateLimiter` in `tools/mcp_server/server.py` | shared constants from `ai_stack/quality_lab/limit_inventory.py` | `/backend/mcp`, `/backend/security-features`, MCP `tools/list` |
 
 The current shared defaults are:
 

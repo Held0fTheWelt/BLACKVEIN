@@ -14,7 +14,7 @@ from ai_stack.contracts.meta_narrative_awareness_contracts import (
     META_NARRATIVE_FAILURE_UNAUTHORIZED_ACTOR,
     normalize_meta_narrative_awareness_policy,
 )
-from ai_stack.meta_narrative_awareness_engine import (
+from ai_stack.story_runtime.narrative.meta_narrative_awareness_engine import (
     build_meta_narrative_awareness_aspect_record,
     compact_meta_narrative_awareness_context,
     derive_meta_narrative_awareness,

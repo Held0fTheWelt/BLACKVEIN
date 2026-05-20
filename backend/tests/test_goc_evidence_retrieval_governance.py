@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ai_stack.rag.retrieval_governance_summary import summarize_retrieval_governance_from_hit_rows
 
-from app.services.ai_stack_evidence_service import _retrieval_influence_from_turn
+from app.services.ai_stack.ai_stack_evidence_service import _retrieval_influence_from_turn
 
 
 def test_retrieval_influence_from_turn_passes_through_retrieval_governance_summary() -> None:

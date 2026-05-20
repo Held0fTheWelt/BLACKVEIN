@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from app.observability.audit_log import log_world_engine_bridge, log_workflow_audit
-from app.services.ai_stack_closure_cockpit_parsing import G9B_ATTEMPT_RECORD_PATH, read_audit_json as closure_read_audit_json
+from app.services.ai_stack.ai_stack_closure_cockpit_parsing import G9B_ATTEMPT_RECORD_PATH, read_audit_json as closure_read_audit_json
 
 pytestmark = pytest.mark.observability
 
@@ -16,7 +16,7 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     session_id = "we-x"
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -25,7 +25,7 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -83,12 +83,12 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
 
 
 def test_admin_session_evidence_404_for_unknown_session(client, moderator_headers, monkeypatch):
-    from app.services.game_service import GameServiceError
+    from app.services.game.game_service import GameServiceError
 
     def _missing(*_a, **_k):
         raise GameServiceError("missing", status_code=404)
 
-    monkeypatch.setattr("app.services.ai_stack_evidence_service.get_story_state", _missing)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service.get_story_state", _missing)
 
     response = client.get(
         "/api/v1/admin/ai-stack/session-evidence/nonexistent-session-id",
@@ -147,7 +147,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
     session_id = "we-y"
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -156,7 +156,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -199,7 +199,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service._latest_writers_room_review",
+        "app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review",
         lambda: {
             "review_id": "review_1",
             "review_state": {"status": "accepted"},
@@ -213,7 +213,7 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service._latest_improvement_package",
+        "app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package",
         lambda: {
             "package_id": "pkg_1",
             "generated_at": "2026-04-04T12:00:00+00:00",
@@ -281,7 +281,7 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
     session_id = "we-z"
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -290,7 +290,7 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -326,7 +326,7 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
     """Empty diagnostics must not imply a healthy last-turn graph or retrieval tier."""
     session_id = "we-empty"
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_state",
         lambda *_a, **_k: {
             "session_id": session_id,
             "module_id": "god_of_carnage",
@@ -335,11 +335,11 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
         },
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.ai_stack.ai_stack_evidence_service.get_story_diagnostics",
         lambda *_a, **_k: {"diagnostics": [], "committed_state": {"current_scene_id": "s0", "turn_counter": 0}},
     )
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package", lambda: None)
 
     response = client.get(
         f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
@@ -354,7 +354,7 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
 
 
 def test_latest_improvement_package_selects_newest_generated_at(monkeypatch):
-    from app.services import ai_stack_evidence_service as evidence_svc
+    from app.services.ai_stack import ai_stack_evidence_service as evidence_svc
 
     packages = [
         {"package_id": "older", "generated_at": "2026-01-01T00:00:00+00:00"},
@@ -367,8 +367,8 @@ def test_latest_improvement_package_selects_newest_generated_at(monkeypatch):
 
 
 def test_release_readiness_reports_partial_honestly(client, moderator_headers, monkeypatch):
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package", lambda: None)
 
     response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
     assert response.status_code == 200
@@ -383,8 +383,8 @@ def test_release_readiness_sparse_env_does_not_claim_ready(client, moderator_hea
     Proves the system is honest about partial evidence states rather than silently
     claiming readiness when the underlying artifact stores are empty.
     """
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package", lambda: None)
 
     response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
     assert response.status_code == 200
@@ -418,14 +418,14 @@ def test_release_readiness_sparse_env_does_not_claim_ready(client, moderator_hea
 def test_release_readiness_writers_room_weak_retrieval_is_not_ready(client, moderator_headers, monkeypatch):
     """Presence of retrieval_trace with none/weak tier must not count as review-grade retrieval surface."""
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service._latest_writers_room_review",
+        "app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review",
         lambda: {
             "review_id": "r1",
             "review_state": {"status": "pending"},
             "retrieval_trace": {"evidence_tier": "weak", "evidence_strength": "weak"},
         },
     )
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package", lambda: None)
 
     response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
     assert response.status_code == 200
@@ -438,9 +438,9 @@ def test_release_readiness_writers_room_weak_retrieval_is_not_ready(client, mode
 
 
 def test_release_readiness_improvement_weak_retrieval_backing_is_partial(client, moderator_headers, monkeypatch):
-    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service._latest_improvement_package",
+        "app.services.ai_stack.ai_stack_evidence_service._latest_improvement_package",
         lambda: {
             "package_id": "pkg_weak",
             "generated_at": "2026-04-04T10:00:00+00:00",
@@ -479,7 +479,7 @@ def test_closure_cockpit_endpoint_returns_normalized_gate_truth(client, moderato
             return g9b_fixture
         return closure_read_audit_json(path)
 
-    monkeypatch.setattr("app.services.ai_stack_closure_cockpit_service.read_audit_json", _read_audit_json)
+    monkeypatch.setattr("app.services.ai_stack.ai_stack_closure_cockpit_service.read_audit_json", _read_audit_json)
 
     response = client.get("/api/v1/admin/ai-stack/closure-cockpit", headers=moderator_headers)
     assert response.status_code == 200

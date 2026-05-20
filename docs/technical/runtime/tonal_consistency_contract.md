@@ -75,8 +75,8 @@ Validation fields:
 The current implementation is local contract evidence:
 
 - `ai_stack/contracts/tonal_consistency_contracts.py`
-- `ai_stack/tonal_consistency_classifier.py`
-- `ai_stack/tonal_consistency_engine.py`
+- `ai_stack/story_runtime/narrative/tonal_consistency_classifier.py`
+- `ai_stack/story_runtime/narrative/tonal_consistency_engine.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ModuleRuntimePolicy.runtime_governance_policy.tonal_consistency`
 - `RuntimeAspectLedger.tonal_consistency`

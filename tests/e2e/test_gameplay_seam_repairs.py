@@ -138,7 +138,7 @@ class TestTurnResponseValidation:
 
     def test_backend_validates_world_engine_response(self, client, player_backend_mock):
         """Verify backend validates world-engine turn response contains canonical evidence."""
-        from app.services.game_service import _validate_story_turn_canonical_evidence
+        from app.services.game.game_service import _validate_story_turn_canonical_evidence
 
         # Valid turn response with all canonical evidence fields.
         valid_turn = {
@@ -158,7 +158,7 @@ class TestTurnResponseValidation:
 
     def test_backend_rejects_missing_required_fields(self):
         """Verify backend rejects turn response missing visible output evidence."""
-        from app.services.game_service import (
+        from app.services.game.game_service import (
             GameServiceError,
             _validate_story_turn_canonical_evidence,
         )
@@ -181,7 +181,7 @@ class TestTurnResponseValidation:
 
     def test_backend_validates_canonical_evidence_field_types(self):
         """Verify backend validates canonical evidence field types (dict vs string)."""
-        from app.services.game_service import (
+        from app.services.game.game_service import (
             GameServiceError,
             _validate_story_turn_canonical_evidence,
         )

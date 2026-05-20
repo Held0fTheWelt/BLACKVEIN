@@ -19,7 +19,7 @@ from ai_stack.capabilities.capability_selector import (
     CAP_VOICE_CONSISTENCY,
     validate_semantic_capability_name,
 )
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
     ASPECT_NPC_AGENCY,

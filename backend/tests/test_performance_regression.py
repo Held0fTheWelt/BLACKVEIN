@@ -10,7 +10,7 @@ import os
 import time
 import pytest
 from app.models import ForumCategory, ForumThread, ForumPost
-from app.services.forum_service import (
+from app.services.content.forum_service import (
     list_threads_for_category,
     list_bookmarked_threads,
     list_escalation_queue,
@@ -20,7 +20,7 @@ from app.services.forum_service import (
 )
 
 pytestmark = pytest.mark.serial
-from app.services.user_service import (
+from app.services.identity.user_service import (
     get_user_recent_threads,
     get_user_recent_posts,
 )
@@ -39,7 +39,7 @@ class TestQueryPerformance:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             # Create 1000 threads
             for i in range(1000):
@@ -60,7 +60,7 @@ class TestQueryPerformance:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             # Create 1000 threads
             for i in range(1000):
@@ -79,7 +79,7 @@ class TestQueryPerformance:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, bookmark_thread
+            from app.services.content.forum_service import create_thread, bookmark_thread
 
             # Create and bookmark threads
             for i in range(50):
@@ -160,7 +160,7 @@ class TestQueryPerformance:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, set_thread_tags
+            from app.services.content.forum_service import create_thread, set_thread_tags
 
             # Create threads with many tags
             for i in range(100):
@@ -180,7 +180,7 @@ class TestQueryPerformance:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             # Create many threads
             for i in range(500):
@@ -203,7 +203,7 @@ class TestNoN1Queries:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
             from app.extensions import db
 
             # Create 10 threads
@@ -241,7 +241,7 @@ class TestNoN1Queries:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, bookmark_thread
+            from app.services.content.forum_service import create_thread, bookmark_thread
             from app.extensions import db
 
             # Create and bookmark threads
@@ -277,7 +277,7 @@ class TestIndexUsage:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread, hide_thread
+            from app.services.content.forum_service import create_thread, hide_thread
 
             # Create mix of visible and hidden threads
             for i in range(100):
@@ -299,7 +299,7 @@ class TestIndexUsage:
         with app.app_context():
             user, _ = test_user
             cat = ForumCategory.query.get(forum_category)
-            from app.services.forum_service import create_thread
+            from app.services.content.forum_service import create_thread
 
             # Create threads in bulk
             for i in range(500):

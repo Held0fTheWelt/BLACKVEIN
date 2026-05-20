@@ -40,7 +40,7 @@ from ai_stack.capabilities.capability_validator_plan import (
     ValidatorPlanEntry,
 )
 from ai_stack.story_runtime.npc_agency.character.character_voice_validation import validate_voice_consistency
-from ai_stack.dramatic_irony_runtime import validate_dramatic_irony_realization
+from ai_stack.story_runtime.narrative.dramatic_irony_runtime import validate_dramatic_irony_realization
 from ai_stack.contracts.environment_state_contracts import evaluate_environment_state_contract
 from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import (
     ACTOR_LANE_FORBIDDEN_CONTRACT,
@@ -53,15 +53,15 @@ from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters i
     SEAM_MIRROR_VALIDATOR_IDS,
     seam_mirror_registry_map,
 )
-from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
+from ai_stack.story_runtime.narrative.information_disclosure_engine import validate_information_disclosure_realization
 from ai_stack.story_runtime.narrator.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.story_runtime.turn.player_turn_validator_evaluation import (
     evaluate_action_resolution_contract,
     evaluate_player_intent_contract,
 )
-from ai_stack.scene_energy_engine import validate_scene_energy_realization
-from ai_stack.sensory_context_engine import validate_sensory_context_realization
+from ai_stack.story_runtime.narrative.scene_energy_engine import validate_scene_energy_realization
+from ai_stack.story_runtime.narrative.sensory_context_engine import validate_sensory_context_realization
 
 LOCAL_PROOF_LEVEL = "local_only"
 
@@ -135,7 +135,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="scene_energy_contract",
         capability=CAP_SCENE_ENERGY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
-        source_file_or_symbol="ai_stack/scene_energy_engine.py::validate_scene_energy_realization",
+        source_file_or_symbol="ai_stack/story_runtime/narrative/scene_energy_engine.py::validate_scene_energy_realization",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
@@ -157,7 +157,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="information_disclosure_contract",
         capability=CAP_INFORMATION_DISCLOSURE,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
-        source_file_or_symbol="ai_stack/information_disclosure_engine.py::validate_information_disclosure_realization",
+        source_file_or_symbol="ai_stack/story_runtime/narrative/information_disclosure_engine.py::validate_information_disclosure_realization",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
@@ -223,7 +223,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="forecast_contract",
         capability=CAP_LONG_HORIZON_FORECAST,
         current_status=STATUS_PLANNED_ONLY,
-        source_file_or_symbol="ai_stack/runtime_aspect_ledger.py::branching_forecast projection",
+        source_file_or_symbol="ai_stack/story_runtime/runtime_aspect_ledger.py::branching_forecast projection",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="blocking",
@@ -245,7 +245,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="dramatic_irony_contract",
         capability=CAP_DRAMATIC_IRONY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
-        source_file_or_symbol="ai_stack/dramatic_irony_runtime.py::validate_dramatic_irony_realization",
+        source_file_or_symbol="ai_stack/story_runtime/narrative/dramatic_irony_runtime.py::validate_dramatic_irony_realization",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
@@ -278,7 +278,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="sensory_context_diagnostic",
         capability=CAP_SENSORY_CONTEXT,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/sensory_context_engine.py::validate_sensory_context_realization",
+        source_file_or_symbol="ai_stack/story_runtime/narrative/sensory_context_engine.py::validate_sensory_context_realization",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="non_blocking",

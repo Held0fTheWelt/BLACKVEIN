@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.runtime_quality_semantics import canonical_quality_summary
+from ai_stack.quality_lab.runtime_quality_semantics import canonical_quality_summary
 
 
 def test_healthy_turn_has_clean_quality_surface() -> None:

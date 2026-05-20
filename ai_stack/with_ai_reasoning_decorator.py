@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
 from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
-from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+from ai_stack.prompt_store.catalog import CanonicalPromptCatalog
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ from app.api.v1 import api_v1_bp
 from app.auth.permissions import get_current_user, require_feature, require_jwt_admin
 from app.auth.feature_registry import FEATURE_IDS, FEATURE_MANAGE_AREAS, FEATURE_MANAGE_FEATURE_AREAS
 from app.extensions import limiter
-from app.services.area_service import (
+from app.services.content.area_service import (
     create_area as create_area_service,
     delete_area as delete_area_service,
     get_area_by_id,
@@ -15,7 +15,7 @@ from app.services.area_service import (
     set_user_areas as set_user_areas_service,
     update_area as update_area_service,
 )
-from app.services.user_service import get_user_by_id
+from app.services.identity.user_service import get_user_by_id
 from app.config.route_constants import route_status_codes, route_pagination_config
 from app.api.v1._route_utils import _parse_int
 
@@ -207,6 +207,6 @@ def feature_areas_set(feature_id):
     ok, err = set_feature_areas_service(feature_id, area_ids)
     if not ok:
         return jsonify({"error": err}), route_status_codes.bad_request
-    from app.services.area_service import list_feature_areas_mapping
+    from app.services.content.area_service import list_feature_areas_mapping
     mapping = next((m for m in list_feature_areas_mapping() if m["feature_id"] == feature_id), {})
     return jsonify(mapping), route_status_codes.ok

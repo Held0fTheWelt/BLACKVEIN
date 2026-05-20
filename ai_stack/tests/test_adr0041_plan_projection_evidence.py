@@ -5,7 +5,7 @@ Default omits ``adr0041_plan_projection``; validator_dispatch_report remains unc
 
 from __future__ import annotations
 
-from ai_stack.runtime_aspect_ledger import (
+from ai_stack.story_runtime.runtime_aspect_ledger import (
     ADR0041_PLAN_PROJECTION_ENABLED_ENV,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,

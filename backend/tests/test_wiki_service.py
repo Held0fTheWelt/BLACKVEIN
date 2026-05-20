@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime, timezone
 from app.extensions import db
 from app.models import WikiPage, WikiPageTranslation, WikiPageForumThread, ForumThread, ForumCategory
-from app.services import wiki_service
+from app.services.content import wiki_service
 from app.i18n import (
     TRANSLATION_STATUS_APPROVED,
     TRANSLATION_STATUS_REVIEW_REQUIRED,

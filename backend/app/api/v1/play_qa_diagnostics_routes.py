@@ -21,7 +21,7 @@ from app.auth.permissions import require_feature
 from app.extensions import db, limiter
 from app.governance.envelopes import fail, ok
 from app.models import GameSaveSlot, User
-from app.services.game_service import get_story_diagnostics, get_story_state
+from app.services.game.game_service import get_story_diagnostics, get_story_state
 def _current_user() -> User | None:
     uid = get_jwt_identity()
     if uid is None:

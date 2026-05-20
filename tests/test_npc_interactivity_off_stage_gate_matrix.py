@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.off_stage_updates import (
+from ai_stack.story_runtime.off_stage_updates import (
     BLOCKER_CANONICAL_PATH_ADVANCE_ATTEMPTED,
     BLOCKER_FREE_TEXT_BODY,
     BLOCKER_MANDATORY_BEAT_CONSUME_ATTEMPTED,

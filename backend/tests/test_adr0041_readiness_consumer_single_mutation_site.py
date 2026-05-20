@@ -28,7 +28,7 @@ def test_adr0041_readiness_consumer_only_wired_in_player_session_bundle() -> Non
 
 
 def test_adr0041_mutating_consumer_path_constant_matches_game_routes() -> None:
-    from ai_stack.runtime_readiness_consumer import ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH
+    from ai_stack.story_runtime.runtime_readiness_consumer import ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH
 
     assert ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH == (
         "backend.app.api.v1.game_routes._player_session_bundle"

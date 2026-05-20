@@ -9,8 +9,8 @@ from flask import jsonify, request
 
 from app.api.v1.forum_routes_helpers import _current_user_optional, _parse_int
 from app.extensions import db
-from app.services.forum_service import user_is_moderator
-from app.services.search_utils import _escape_sql_like_wildcards
+from app.services.content.forum_service import user_is_moderator
+from app.services.common.search_utils import _escape_sql_like_wildcards
 
 
 @dataclass

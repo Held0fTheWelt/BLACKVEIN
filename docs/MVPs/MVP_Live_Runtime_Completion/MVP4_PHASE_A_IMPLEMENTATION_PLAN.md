@@ -43,10 +43,10 @@ MVP4 Phase A ("Foundation & Data Collection") erweitert die bereits existierende
 3. **Cost Summary** — `cost_summary` Feld (Nullen in Phase A, echte Werte in Phase B)
 
 **Was bereits existiert (nicht neu bauen):**
-- `ai_stack/diagnostics_envelope.py` — `DiagnosticsEnvelope` dataclass + `build_diagnostics_envelope()` ✅
+- `ai_stack/telemetry/diagnostics_envelope.py` — `DiagnosticsEnvelope` dataclass + `build_diagnostics_envelope()` ✅
 - `world-engine/app/story_runtime/manager.py` — ruft bereits `build_diagnostics_envelope()` auf ✅
 - `world-engine/app/api/http.py` — `/story/sessions/{session_id}/diagnostics-envelope` endpoint ✅
-- `ai_stack/runtime_quality_semantics.py` — `canonical_quality_summary()`, `canonical_quality_class()` ✅
+- `ai_stack/quality_lab/runtime_quality_semantics.py` — `canonical_quality_summary()`, `canonical_quality_class()` ✅
 - `backend/app/observability/langfuse_adapter.py` — v4 SDK adapter, flush(), record_validation() ✅
 - `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` — bestehende MVP4 gate tests ✅
 - `world-engine/tests/test_mvp4_diagnostics_integration.py` — integration tests ✅
@@ -57,8 +57,8 @@ MVP4 Phase A ("Foundation & Data Collection") erweitert die bereits existierende
 
 | Datei | Aktion | Zweck |
 |---|---|---|
-| `ai_stack/diagnostics_envelope.py` | ERWEITERN | DegradationEvent Dataclass + neue Felder + to_response() |
-| `ai_stack/runtime_quality_semantics.py` | ERWEITERN | DegradationEvent Sammlung während Turn |
+| `ai_stack/telemetry/diagnostics_envelope.py` | ERWEITERN | DegradationEvent Dataclass + neue Felder + to_response() |
+| `ai_stack/quality_lab/runtime_quality_semantics.py` | ERWEITERN | DegradationEvent Sammlung während Turn |
 | `world-engine/app/story_runtime/manager.py` | ERWEITERN | DegradationEvents während Turn sammeln |
 | `world-engine/app/api/http.py` | ERWEITERN | to_response(context=...) aufrufen vor Response |
 | `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` | ERWEITERN | Tests für neue Felder |
@@ -68,7 +68,7 @@ MVP4 Phase A ("Foundation & Data Collection") erweitert die bereits existierende
 ## Implementierungsreihenfolge
 
 ### Schritt 1: `DegradationEvent` Dataclass + Erweiterung `DiagnosticsEnvelope`
-**Datei**: `ai_stack/diagnostics_envelope.py`
+**Datei**: `ai_stack/telemetry/diagnostics_envelope.py`
 
 **Hinzufügen:**
 ```python
@@ -156,7 +156,7 @@ In `_finalize_committed_turn()` (Zeile ~1960 wo `build_diagnostics_envelope` auf
 
 ```python
 # Vor dem build_diagnostics_envelope Aufruf:
-from ai_stack.diagnostics_envelope import DegradationEvent
+from ai_stack.telemetry.diagnostics_envelope import DegradationEvent
 from datetime import datetime, timezone
 
 degradation_events = []

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from app.services import encryption_service
+from app.services.identity import encryption_service
 
 
 class TestEncryptionService:

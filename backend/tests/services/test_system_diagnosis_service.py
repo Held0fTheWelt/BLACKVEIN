@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 import pytest
 
-from app.services.system_diagnosis_service import (
+from app.services.system.system_diagnosis_service import (
     _utc_now_iso,
     _play_internal_headers_from_config,
     _internal_base_url_from_config,
@@ -83,7 +83,7 @@ class TestBackendHealthCheck:
 
     def test_check_backend_api_success(self):
         """Test successful backend health check."""
-        with patch("app.services.system_diagnosis_service.httpx.Client") as mock_client_class:
+        with patch("app.services.system.system_diagnosis_service.httpx.Client") as mock_client_class:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.content = b'{"status": "ok"}'
@@ -102,7 +102,7 @@ class TestBackendHealthCheck:
 
     def test_check_backend_api_http_error(self):
         """Test backend health check with HTTP error."""
-        with patch("app.services.system_diagnosis_service.httpx.Client") as mock_client_class:
+        with patch("app.services.system.system_diagnosis_service.httpx.Client") as mock_client_class:
             mock_response = MagicMock()
             mock_response.status_code = 500
             mock_client = MagicMock()
@@ -117,7 +117,7 @@ class TestBackendHealthCheck:
 
     def test_check_backend_api_invalid_response(self):
         """Test backend health check with invalid JSON response."""
-        with patch("app.services.system_diagnosis_service.httpx.Client") as mock_client_class:
+        with patch("app.services.system.system_diagnosis_service.httpx.Client") as mock_client_class:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.content = b'{}'
@@ -133,7 +133,7 @@ class TestBackendHealthCheck:
 
     def test_check_backend_api_timeout(self):
         """Test backend health check timeout."""
-        with patch("app.services.system_diagnosis_service.httpx.Client") as mock_client_class:
+        with patch("app.services.system.system_diagnosis_service.httpx.Client") as mock_client_class:
             mock_client = MagicMock()
             mock_client.get.side_effect = Exception("timeout")
             mock_client_class.return_value.__enter__.return_value = mock_client
@@ -149,7 +149,7 @@ class TestDatabaseHealthCheck:
 
     def test_check_database_success(self):
         """Test successful database health check."""
-        with patch("app.services.system_diagnosis_service.db") as mock_db:
+        with patch("app.services.system.system_diagnosis_service.db") as mock_db:
             mock_db.session.execute.return_value.scalar.return_value = 1
 
             result = _check_database()
@@ -161,7 +161,7 @@ class TestDatabaseHealthCheck:
 
     def test_check_database_error(self):
         """Test database health check with error."""
-        with patch("app.services.system_diagnosis_service.db") as mock_db:
+        with patch("app.services.system.system_diagnosis_service.db") as mock_db:
             mock_db.session.execute.side_effect = Exception("Connection failed")
 
             result = _check_database()
@@ -176,7 +176,7 @@ class TestPlayServiceConfigCheck:
 
     def test_play_service_config_complete(self):
         """Test when play service config is complete."""
-        with patch("app.services.system_diagnosis_service.has_complete_play_service_config") as mock_check:
+        with patch("app.services.system.system_diagnosis_service.has_complete_play_service_config") as mock_check:
             mock_check.return_value = True
 
             result = _check_play_service_configuration()
@@ -187,7 +187,7 @@ class TestPlayServiceConfigCheck:
 
     def test_play_service_config_incomplete(self):
         """Test when play service config is incomplete."""
-        with patch("app.services.system_diagnosis_service.has_complete_play_service_config") as mock_check:
+        with patch("app.services.system.system_diagnosis_service.has_complete_play_service_config") as mock_check:
             mock_check.return_value = False
 
             result = _check_play_service_configuration()
@@ -202,7 +202,7 @@ class TestPublishedFeedCheck:
 
     def test_check_published_feed_success(self):
         """Test successful published feed check."""
-        with patch("app.services.system_diagnosis_service.list_published_experience_payloads") as mock_list:
+        with patch("app.services.system.system_diagnosis_service.list_published_experience_payloads") as mock_list:
             mock_list.return_value = [{"id": "exp1"}, {"id": "exp2"}]
 
             result = _check_published_feed()
@@ -213,7 +213,7 @@ class TestPublishedFeedCheck:
 
     def test_check_published_feed_empty(self):
         """Test published feed check with no experiences."""
-        with patch("app.services.system_diagnosis_service.list_published_experience_payloads") as mock_list:
+        with patch("app.services.system.system_diagnosis_service.list_published_experience_payloads") as mock_list:
             mock_list.return_value = []
 
             result = _check_published_feed()
@@ -223,7 +223,7 @@ class TestPublishedFeedCheck:
 
     def test_check_published_feed_error(self):
         """Test published feed check with error."""
-        with patch("app.services.system_diagnosis_service.list_published_experience_payloads") as mock_list:
+        with patch("app.services.system.system_diagnosis_service.list_published_experience_payloads") as mock_list:
             mock_list.side_effect = Exception("Database error")
 
             result = _check_published_feed()
@@ -237,7 +237,7 @@ class TestAIStackReadinessCheck:
 
     def test_check_ai_stack_readiness_success(self):
         """Test successful AI stack readiness check."""
-        with patch("app.services.system_diagnosis_service.build_release_readiness_report") as mock_report:
+        with patch("app.services.system.system_diagnosis_service.build_release_readiness_report") as mock_report:
             mock_report.return_value = {
                 "overall_status": "ready",  # Correct key
                 "components": [],
@@ -251,7 +251,7 @@ class TestAIStackReadinessCheck:
 
     def test_check_ai_stack_readiness_error(self):
         """Test AI stack readiness check with error."""
-        with patch("app.services.system_diagnosis_service.build_release_readiness_report") as mock_report:
+        with patch("app.services.system.system_diagnosis_service.build_release_readiness_report") as mock_report:
             mock_report.side_effect = Exception("Build failed")
 
             result = _check_ai_stack_readiness(trace_id="trace-123")
@@ -268,7 +268,7 @@ class TestRunWithTimeout:
         def quick_func():
             return "success"
 
-        with patch("app.services.system_diagnosis_service.ThreadPoolExecutor") as mock_executor_class:
+        with patch("app.services.system.system_diagnosis_service.ThreadPoolExecutor") as mock_executor_class:
             mock_executor = MagicMock()
             mock_future = MagicMock()
             mock_future.result.return_value = "success"
@@ -284,7 +284,7 @@ class TestRunWithTimeout:
             import time
             time.sleep(10)
 
-        with patch("app.services.system_diagnosis_service.ThreadPoolExecutor") as mock_executor_class:
+        with patch("app.services.system.system_diagnosis_service.ThreadPoolExecutor") as mock_executor_class:
             mock_executor = MagicMock()
             mock_future = MagicMock()
             from concurrent.futures import TimeoutError
@@ -387,7 +387,7 @@ class TestStorageLayerEncryptionCheck:
 
     def test_check_storage_layer_encryption_ready(self):
         """Test ready storage-layer governance maps to running diagnosis."""
-        with patch("app.services.security_governance_service.get_security_governance") as mock_governance:
+        with patch("app.services.governance.security_governance_service.get_security_governance") as mock_governance:
             mock_governance.return_value = {
                 "storage_encryption_governance": {
                     "status": "ready",
@@ -407,9 +407,9 @@ class TestBuildDiagnosis:
 
     def test_build_diagnosis_structure(self):
         """Test diagnosis structure generation."""
-        with patch("app.services.system_diagnosis_service._check_backend_api") as mock_backend:
-            with patch("app.services.system_diagnosis_service._check_database_bounded") as mock_db:
-                with patch("app.services.system_diagnosis_service._check_play_service_configuration") as mock_play_cfg:
+        with patch("app.services.system.system_diagnosis_service._check_backend_api") as mock_backend:
+            with patch("app.services.system.system_diagnosis_service._check_database_bounded") as mock_db:
+                with patch("app.services.system.system_diagnosis_service._check_play_service_configuration") as mock_play_cfg:
                     mock_backend.return_value = {"id": "backend", "status": "running", "critical": True}
                     mock_db.return_value = {"id": "database", "status": "running", "critical": True}
                     mock_play_cfg.return_value = {"id": "play_cfg", "status": "running"}
@@ -431,7 +431,7 @@ class TestGetSystemDiagnosis:
         """Test diagnosis with cache."""
         reset_diagnosis_cache_for_tests()
 
-        with patch("app.services.system_diagnosis_service._build_diagnosis") as mock_build:
+        with patch("app.services.system.system_diagnosis_service._build_diagnosis") as mock_build:
             mock_build.return_value = {"status": "ok"}
 
             app = MagicMock()
@@ -458,7 +458,7 @@ class TestGetSystemDiagnosis:
         """Test diagnosis with forced refresh."""
         reset_diagnosis_cache_for_tests()
 
-        with patch("app.services.system_diagnosis_service._build_diagnosis") as mock_build:
+        with patch("app.services.system.system_diagnosis_service._build_diagnosis") as mock_build:
             mock_build.return_value = {"status": "ok"}
 
             app = MagicMock()
@@ -474,7 +474,7 @@ class TestGetSystemDiagnosis:
     def test_reset_diagnosis_cache_for_tests(self):
         """Test cache reset function."""
         # Verify reset doesn't raise and cache is cleared
-        with patch("app.services.system_diagnosis_service._build_diagnosis") as mock_build:
+        with patch("app.services.system.system_diagnosis_service._build_diagnosis") as mock_build:
             mock_build.return_value = {"status": "ok"}
 
             # Fill cache

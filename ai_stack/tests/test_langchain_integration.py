@@ -231,7 +231,7 @@ def test_runtime_structured_output_preserves_opening_gate_evidence() -> None:
     assert dumped["opening_render_policy_evidence"] == {"summary_only": False}
 
 
-def test_langchain_runtime_invocation_normalizes_legacy_and_new_responder_fields() -> None:
+def test_langchain_runtime_invocation_normalizes_alternate_and_canonical_responder_fields() -> None:
     adapter = LegacyResponderScopeAdapter()
     result = invoke_runtime_adapter_with_langchain(
         adapter=adapter,

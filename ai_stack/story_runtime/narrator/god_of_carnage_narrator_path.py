@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.god_of_carnage_yaml_authority import (
+from ai_stack.story_runtime.god_of_carnage.god_of_carnage_yaml_authority import (
     load_goc_canonical_module_yaml,
     load_goc_canonical_path_yaml,
     load_goc_locations_yaml,
