@@ -69,7 +69,7 @@ class McpCanonicalToolDescriptor:
     tool_class: McpToolClass
     authority_source: str
     implementation_status: McpImplementationStatus
-    permission_legacy: str
+    permission_scope: str
     narrative_mutation_risk: str
     governance: McpToolGovernanceView
     mcp_suite: McpSuite
@@ -127,7 +127,7 @@ def _derive_canonical_vs_supporting(name: str, tool_class: McpToolClass) -> str:
     return "supporting"
 
 
-def _derive_permission_legacy(tool_class: McpToolClass, name: str) -> str:
+def _derive_permission_scope(tool_class: McpToolClass, name: str) -> str:
     if tool_class is McpToolClass.read_only:
         return "read"
     if tool_class is McpToolClass.review_bound:
@@ -217,7 +217,7 @@ def _build_descriptor(name: str, tool_class: McpToolClass, suite: McpSuite, auth
         tool_class=tool_class,
         authority_source=authority,
         implementation_status=McpImplementationStatus.implemented,
-        permission_legacy=_derive_permission_legacy(tool_class, name),
+        permission_scope=_derive_permission_scope(tool_class, name),
         narrative_mutation_risk=_derive_governance_risk_token(name, "action"),
         governance=governance,
         mcp_suite=suite,

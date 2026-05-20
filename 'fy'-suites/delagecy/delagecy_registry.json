@@ -708,10 +708,13 @@
       "notes": [],
       "path": "backend/app/runtime/ai_adapter.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:19+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/ai_adapter.py:44"
     },
     {
@@ -729,10 +732,13 @@
       "notes": [],
       "path": "backend/app/runtime/ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:20+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/ai_adapter.py:256"
     },
     {
@@ -750,10 +756,13 @@
       "notes": [],
       "path": "backend/app/runtime/ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:20+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/ai_adapter.py:262"
     },
     {
@@ -771,10 +780,13 @@
       "notes": [],
       "path": "backend/app/runtime/ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:20+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/ai_adapter.py:340"
     },
     {
@@ -792,10 +804,13 @@
       "notes": [],
       "path": "backend/app/runtime/ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:20+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/ai_decision_logging.py:102"
     },
     {
@@ -855,10 +870,13 @@
       "notes": [],
       "path": "backend/app/runtime/area2_operator_truth.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:21+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/area2_operator_truth.py:62"
     },
     {
@@ -1002,10 +1020,13 @@
       "notes": [],
       "path": "backend/app/runtime/area2_routing_authority.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:21+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/area2_routing_authority.py:6"
     },
     {
@@ -1023,10 +1044,13 @@
       "notes": [],
       "path": "backend/app/runtime/area2_routing_authority.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:21+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/area2_routing_authority.py:109"
     },
     {
@@ -1044,10 +1068,13 @@
       "notes": [],
       "path": "backend/app/runtime/area2_routing_authority.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:21+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/area2_routing_authority.py:176"
     },
     {
@@ -1065,10 +1092,13 @@
       "notes": [],
       "path": "backend/app/runtime/area2_routing_authority.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:22+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code backend/app/runtime/area2_routing_authority.py:179"
     },
     {
@@ -4824,10 +4854,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:22+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:385"
     },
     {
@@ -4845,10 +4878,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:22+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:398"
     },
     {
@@ -4866,10 +4902,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:22+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:427"
     },
     {
@@ -4887,10 +4926,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:23+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:448"
     },
     {
@@ -4908,10 +4950,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:23+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:449"
     },
     {
@@ -4929,10 +4974,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_adapter.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:23+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:450"
     },
     {
@@ -4950,10 +4998,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:24+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:85"
     },
     {
@@ -4971,10 +5022,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:24+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:101"
     },
     {
@@ -4992,10 +5046,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:24+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:107"
     },
     {
@@ -5013,10 +5070,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:24+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:108"
     },
     {
@@ -5034,10 +5094,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:25+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:109"
     },
     {
@@ -5055,10 +5118,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:25+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:350"
     },
     {
@@ -5076,10 +5142,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:25+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:367"
     },
     {
@@ -5097,10 +5166,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:25+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:376"
     },
     {
@@ -5244,10 +5316,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:26+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:184"
     },
     {
@@ -5265,10 +5340,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:26+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:211"
     },
     {
@@ -5286,10 +5364,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:26+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:218"
     },
     {
@@ -5307,10 +5388,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:26+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:219"
     },
     {
@@ -5328,10 +5412,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:26+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:220"
     },
     {
@@ -5349,10 +5436,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:27+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:221"
     },
     {
@@ -5370,10 +5460,13 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:27+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:222"
     },
     {
@@ -9717,10 +9810,13 @@
       "notes": [],
       "path": "ai_stack/langchain/bridges.py",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:27+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/langchain/bridges.py:250"
     },
     {
@@ -11061,10 +11157,13 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:27+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:72"
     },
     {
@@ -11082,10 +11181,13 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:28+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:130"
     },
     {
@@ -11103,10 +11205,13 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:28+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:220"
     },
     {
@@ -11754,10 +11859,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:28+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:132"
     },
     {
@@ -11775,10 +11883,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:28+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139"
     },
     {
@@ -11796,10 +11907,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:28+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:140"
     },
     {
@@ -11817,10 +11931,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:29+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151"
     },
     {
@@ -11838,10 +11955,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:29+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155"
     },
     {
@@ -12552,10 +12672,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:29+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:41"
     },
     {
@@ -12573,10 +12696,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:29+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:492"
     },
     {
@@ -12594,10 +12720,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:30+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:497"
     },
     {
@@ -12615,10 +12744,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:30+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:502"
     },
     {
@@ -12636,10 +12768,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:30+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:507"
     },
     {
@@ -12678,10 +12813,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:30+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:179"
     },
     {
@@ -12699,10 +12837,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:30+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:180"
     },
     {
@@ -12720,10 +12861,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:31+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:192"
     },
     {
@@ -12741,10 +12885,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:31+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:199"
     },
     {
@@ -12762,10 +12909,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:31+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:202"
     },
     {
@@ -12783,10 +12933,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:31+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:1"
     },
     {
@@ -12804,10 +12957,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:31+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:24"
     },
     {
@@ -12825,10 +12981,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:32+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:39"
     },
     {
@@ -12846,10 +13005,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:32+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:47"
     },
     {
@@ -12867,10 +13029,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:32+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:48"
     },
     {
@@ -12888,10 +13053,13 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:32+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:49"
     },
     {
@@ -21309,10 +21477,13 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:33+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:316"
     },
     {
@@ -21330,10 +21501,13 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:33+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:317"
     },
     {
@@ -21351,10 +21525,13 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:33+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:318"
     },
     {
@@ -21372,10 +21549,13 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:33+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:320"
     },
     {
@@ -21393,10 +21573,13 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T21:02:33+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:373"
     },
     {
@@ -22994,6 +23177,198 @@
       "reported_to": "user next wave request 2026-05-20",
       "status": "approved_for_removal",
       "title": "Next wave legacy removal: code ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py:334"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "c31fd05e1de5c37e",
+      "id": "DLG-1096",
+      "kind": "config",
+      "line": 588,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_0c95552486884972807f381825a433c9.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:34+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_0c95552486884972807f381825a433c9.json:588"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "9735ae1bf6a8ecbf",
+      "id": "DLG-1097",
+      "kind": "config",
+      "line": 576,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_1bd7044d4b1f41a38821dd11c34e6ef5.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:34+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_1bd7044d4b1f41a38821dd11c34e6ef5.json:576"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "b7d5fa08a110f5a5",
+      "id": "DLG-1098",
+      "kind": "config",
+      "line": 588,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_44eb47204006475ab31eeb119eb774b3.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:34+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_44eb47204006475ab31eeb119eb774b3.json:588"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "32be38057758751e",
+      "id": "DLG-1099",
+      "kind": "config",
+      "line": 585,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_691fa23760314b8c8b2797a9248c585e.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:34+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_691fa23760314b8c8b2797a9248c585e.json:585"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "4a092835336f365b",
+      "id": "DLG-1100",
+      "kind": "config",
+      "line": 588,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_6cf86f54a70642dab0ea4434d31cf3cb.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:35+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_6cf86f54a70642dab0ea4434d31cf3cb.json:588"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "af1a839d38f3f662",
+      "id": "DLG-1101",
+      "kind": "config",
+      "line": 588,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_8b1362178dc84516bc50ec352ba770e9.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:35+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_8b1362178dc84516bc50ec352ba770e9.json:588"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "7e25214fe2bf764d",
+      "id": "DLG-1102",
+      "kind": "config",
+      "line": 576,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_9ae35c68404b4507b8dd96e8697d13e6.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:35+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_9ae35c68404b4507b8dd96e8697d13e6.json:576"
+    },
+    {
+      "approval": {
+        "approved_at": "2026-05-20T20:42:25+00:00",
+        "approved_by": "user next wave request 2026-05-20",
+        "note": "Registered before next-wave cleanup. Generated improvement recommendation summaries: remove terminology residue only; do not change runtime behavior."
+      },
+      "discussion_required": false,
+      "fingerprint": "a2ea04078869d4d1",
+      "id": "DLG-1103",
+      "kind": "config",
+      "line": 567,
+      "match_text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core.",
+      "notes": [],
+      "path": "backend/app/var/improvement/recommendations/recommendation_d6cff5f5df024de69df3959c3342f371.json",
+      "pattern": "\\bcompatibility\\b",
+      "removal": {
+        "removed_at": "2026-05-20T21:02:35+00:00",
+        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
+      },
+      "reported_at": "2026-05-20T20:42:25+00:00",
+      "reported_to": "user next wave request 2026-05-20",
+      "status": "removed",
+      "title": "Next wave legacy removal: config backend/app/var/improvement/recommendations/recommendation_d6cff5f5df024de69df3959c3342f371.json:567"
     }
   ],
   "policy": {

@@ -3,7 +3,7 @@
 **Task 2 binding (minimal):** Each canonical execution surface (Runtime, Writers-Room,
 Improvement bounded enrichment) has exactly **one primary operational authority** for
 Task 2A routing—*who applies routing policy* and *where specs come from* on that path.
-Translation, compatibility, and non-authoritative support layers may coexist **only**
+    Translation, adapter, and non-authoritative support layers may coexist **only**
 when they are **explicit, bounded, and non-competing** with that primary line (no hidden
 second routing policy for the same canonical HTTP/in-process path).
 
@@ -24,7 +24,7 @@ class AuthorityLayer(str, Enum):
 
     authoritative = "authoritative"
     translation_layer = "translation_layer"
-    compatibility_layer = "compatibility_layer"
+    adapter_layer = "adapter_layer"
     non_authoritative_support = "non_authoritative_support"
 
 
@@ -106,7 +106,7 @@ AREA2_AUTHORITY_REGISTRY: tuple[Area2AuthorityEntry, ...] = (
         component_id="model_inventory_report",
         layer=AuthorityLayer.non_authoritative_support,
         module_path="app.runtime.model_inventory_report",
-        description="Registry snapshots, validate_surface_coverage, legacy setup classifiers.",
+        description="Registry snapshots, validate_surface_coverage, adapter-instance classifiers.",
         canonical_for_task2a_paths=frozenset(CanonicalSurface),
     ),
     Area2AuthorityEntry(
@@ -167,16 +167,16 @@ AREA2_AUTHORITY_REGISTRY: tuple[Area2AuthorityEntry, ...] = (
     ),
     Area2AuthorityEntry(
         component_id="langgraph_runtime_routing_policy",
-        layer=AuthorityLayer.compatibility_layer,
+        layer=AuthorityLayer.adapter_layer,
         module_path="ai_stack.langgraph.langgraph_runtime",
         description="Uses story_runtime_core.RoutingPolicy.choose(); not Task 2A route_model — parallel graph stack only.",
         canonical_for_task2a_paths=frozenset(),
     ),
     Area2AuthorityEntry(
-        component_id="story_runtime_core_routing_policy_legacy",
-        layer=AuthorityLayer.compatibility_layer,
+        component_id="story_runtime_core_routing_policy_choose",
+        layer=AuthorityLayer.adapter_layer,
         module_path="story_runtime_core.model_registry.RoutingPolicy",
-        description="Legacy choose() API used by ai_stack LangGraph; Writers-Room canonical HTTP path uses route_model instead.",
+        description="RoutingPolicy.choose() API used by ai_stack LangGraph; Writers-Room canonical HTTP path uses route_model instead.",
         canonical_for_task2a_paths=frozenset(),
     ),
 )

@@ -72,7 +72,7 @@ class ActorSchemaJsonAdapter(BaseModelAdapter):
         )
 
 
-class LegacyResponderScopeAdapter(BaseModelAdapter):
+class AlternateResponderScopeAdapter(BaseModelAdapter):
     adapter_name = "mock"
 
     def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
@@ -232,7 +232,7 @@ def test_runtime_structured_output_preserves_opening_gate_evidence() -> None:
 
 
 def test_langchain_runtime_invocation_normalizes_alternate_and_canonical_responder_fields() -> None:
-    adapter = LegacyResponderScopeAdapter()
+    adapter = AlternateResponderScopeAdapter()
     result = invoke_runtime_adapter_with_langchain(
         adapter=adapter,
         player_input="I keep still.",

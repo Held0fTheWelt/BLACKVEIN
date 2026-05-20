@@ -38,7 +38,7 @@ from ai_stack.mcp.mcp_canonical_surface import (
     verify_catalog_names_alignment,
     _derive_canonical_vs_supporting,
     _derive_governance_risk_token,
-    _derive_permission_legacy,
+    _derive_permission_scope,
     _derive_reviewable_posture,
     _derive_runtime_safe_vs_internal,
     _operational_state_token,
@@ -489,22 +489,22 @@ def test_derive_canonical_vs_supporting_other_tools():
 
 
 # ============================================================================
-# Tests for _derive_permission_legacy()
+# Tests for _derive_permission_scope()
 # ============================================================================
 
 
-def test_derive_permission_legacy_read_only():
-    perm = _derive_permission_legacy(McpToolClass.read_only, "any_name")
+def test_derive_permission_scope_read_only():
+    perm = _derive_permission_scope(McpToolClass.read_only, "any_name")
     assert perm == "read"
 
 
-def test_derive_permission_legacy_review_bound():
-    perm = _derive_permission_legacy(McpToolClass.review_bound, "any_name")
+def test_derive_permission_scope_review_bound():
+    perm = _derive_permission_scope(McpToolClass.review_bound, "any_name")
     assert perm == "preview"
 
 
-def test_derive_permission_legacy_write_capable():
-    perm = _derive_permission_legacy(McpToolClass.write_capable, "any_name")
+def test_derive_permission_scope_write_capable():
+    perm = _derive_permission_scope(McpToolClass.write_capable, "any_name")
     assert perm == "write"
 
 

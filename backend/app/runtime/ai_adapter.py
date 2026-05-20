@@ -41,7 +41,7 @@ class AdapterRequest(BaseModel):
         continuity_context: Task 1C/1D — JSON-safe snapshots from ``session.context_layers``
             only (W2.3 layers plus ``active_narrative_threads``; no raw history or metadata dumps).
         request_role_structured_output: If True, request output as AIRoleContract shape (W2.4.2+).
-                                        Defaults to False for backward compatibility.
+                                        Defaults to False for existing in-process callers.
                                         W2.4.3 will update default to True when normalization is ready.
         metadata: Extensible metadata dict for future use
     """
@@ -253,13 +253,13 @@ class MockStoryAIAdapter(StoryAIAdapter):
         """Generate deterministic mock output from request.
 
         If request.request_role_structured_output is True, returns output in AIRoleContract shape
-        (interpreter, director, responder). Otherwise, returns legacy structure.
+        (interpreter, director, responder). Otherwise, returns the unstructured decision shape.
 
         Args:
             request: AdapterRequest (fields used to construct deterministic output)
 
         Returns:
-            AdapterResponse with role-structured or legacy mock data
+            AdapterResponse with role-structured or unstructured mock data
         """
         raw = (
             f"[mock adapter] turn={request.turn_number} "
@@ -337,7 +337,7 @@ class MockStoryAIAdapter(StoryAIAdapter):
         if request.request_role_structured_output:
             structured_payload = _create_mock_role_contract()
         else:
-            # Legacy fallback for backward compatibility
+            # Unstructured output for callers that have not requested role contracts.
             structured_payload = {
                 "detected_triggers": [],
                 "proposed_deltas": [],

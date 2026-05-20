@@ -246,8 +246,8 @@ def _tolerant_parse(
 class RuntimeTurnStructuredOutput(BaseModel):
     """Normalized runtime output parsed through LangChain parser primitives.
 
-    The model is intentionally backward-compatible:
-    - Legacy callers can keep using ``narrative_response``.
+    The model accepts both response text aliases:
+    - Alternate callers can keep using ``narrative_response``.
     - Actor-level callers can use ``narration_summary`` plus structured lanes.
     """
 

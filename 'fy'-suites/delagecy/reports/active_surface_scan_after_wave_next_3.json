@@ -1,0 +1,3359 @@
+{
+  "hit_count": 419,
+  "hits": [
+    {
+      "fingerprint": "1b61c74547b9fffd",
+      "kind": "code",
+      "line": 136,
+      "path": "backend/app/auth/admin_security.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Re-export for tests and backwards compatibility"
+    },
+    {
+      "fingerprint": "27d1d55b629ee761",
+      "kind": "code",
+      "line": 18,
+      "path": "backend/app/config/__init__.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Re-export main configuration classes for backward compatibility"
+    },
+    {
+      "fingerprint": "a22a4b31c97eebf6",
+      "kind": "code",
+      "line": 518,
+      "path": "backend/app/content/module_loader.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy support: old phase files -> scene_phases. New modules should use"
+    },
+    {
+      "fingerprint": "9fa7c1078f319007",
+      "kind": "code",
+      "line": 168,
+      "path": "backend/app/content/module_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "useful for checking module compatibility and basic information."
+    },
+    {
+      "fingerprint": "24399b7dc1b2f74c",
+      "kind": "code",
+      "line": 32,
+      "path": "backend/app/models/narrative_enums.py",
+      "pattern": "_legacy\\b",
+      "text": "IMPORTED_LEGACY = \"imported_legacy\""
+    },
+    {
+      "fingerprint": "cd1b2487ee4158a0",
+      "kind": "code",
+      "line": 41,
+      "path": "backend/app/models/narrative_enums.py",
+      "pattern": "_legacy\\b",
+      "text": "IMPORTED_LEGACY = \"imported_legacy\""
+    },
+    {
+      "fingerprint": "0f25f32a7dac6ad6",
+      "kind": "code",
+      "line": 189,
+      "path": "backend/app/observability/langfuse_adapter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Default-environment client (backward compatibility).\"\"\""
+    },
+    {
+      "fingerprint": "9c3becc84f1ab315",
+      "kind": "code",
+      "line": 44,
+      "path": "backend/app/runtime/ai_adapter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "Defaults to False for backward compatibility."
+    },
+    {
+      "fingerprint": "1f728c3d37c4e5fb",
+      "kind": "code",
+      "line": 256,
+      "path": "backend/app/runtime/ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "(interpreter, director, responder). Otherwise, returns legacy structure."
+    },
+    {
+      "fingerprint": "c051666bdcb28283",
+      "kind": "code",
+      "line": 262,
+      "path": "backend/app/runtime/ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "AdapterResponse with role-structured or legacy mock data"
+    },
+    {
+      "fingerprint": "7c990b7ef712507e",
+      "kind": "code",
+      "line": 340,
+      "path": "backend/app/runtime/ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy fallback for backward compatibility"
+    },
+    {
+      "fingerprint": "4419b4baaf431e26",
+      "kind": "code",
+      "line": 102,
+      "path": "backend/app/runtime/ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- If role_aware_decision is None, leave role fields as None (legacy path)"
+    },
+    {
+      "fingerprint": "aacb544bec0717c9",
+      "kind": "code",
+      "line": 21,
+      "path": "backend/app/runtime/ai_turn_generation.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Run generate_with_timeout in a retry loop matching legacy ai_turn_executor semantics.\"\"\""
+    },
+    {
+      "fingerprint": "0e57b78793da272b",
+      "kind": "code",
+      "line": 39,
+      "path": "backend/app/runtime/area2_no_eligible_operator_meaning.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Same keys/shape as legacy ``_no_eligible_operator_meaning`` (operator_audit contract).\"\"\""
+    },
+    {
+      "fingerprint": "5affd8e0ba1abc17",
+      "kind": "code",
+      "line": 62,
+      "path": "backend/app/runtime/area2_operator_truth.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"ai_stack LangGraph RoutingPolicy is compatibility-only, not canonical for these HTTP paths.\""
+    },
+    {
+      "fingerprint": "185eecdd3920386c",
+      "kind": "code",
+      "line": 6,
+      "path": "backend/app/runtime/area2_routing_authority.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "Translation, compatibility, and non-authoritative support layers may coexist **only**"
+    },
+    {
+      "fingerprint": "11eef9d86a4bcadd",
+      "kind": "code",
+      "line": 109,
+      "path": "backend/app/runtime/area2_routing_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "description=\"Registry snapshots, validate_surface_coverage, legacy setup classifiers.\","
+    },
+    {
+      "fingerprint": "6ffd15e7b740ebd0",
+      "kind": "code",
+      "line": 176,
+      "path": "backend/app/runtime/area2_routing_authority.py",
+      "pattern": "_legacy\\b",
+      "text": "component_id=\"story_runtime_core_routing_policy_legacy\","
+    },
+    {
+      "fingerprint": "84afc08b815f9384",
+      "kind": "code",
+      "line": 179,
+      "path": "backend/app/runtime/area2_routing_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "description=\"Legacy choose() API used by ai_stack LangGraph; Writers-Room canonical HTTP path uses route_model instead.\","
+    },
+    {
+      "fingerprint": "887d8a2dceef3d63",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/runtime/engine.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"DEPRECATED (transitional): In-process experience runtime engine (rooms, actions, snapshots)."
+    },
+    {
+      "fingerprint": "f240bf9fa20c483b",
+      "kind": "code",
+      "line": 19,
+      "path": "backend/app/runtime/input_interpreter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Python 3.10 compatibility"
+    },
+    {
+      "fingerprint": "f6a08d7e369644e2",
+      "kind": "code",
+      "line": 23,
+      "path": "backend/app/runtime/input_interpreter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Precautionary compatibility for existing backend import sites."
+    },
+    {
+      "fingerprint": "54ef01b7782d5631",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/runtime/manager.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"DEPRECATED (transitional): In-process runtime manager (runs, WebSockets, run store)."
+    },
+    {
+      "fingerprint": "8138093dfa9401e1",
+      "kind": "code",
+      "line": 3,
+      "path": "backend/app/runtime/models.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "Shared schema for built-in templates and the **deprecated transitional** in-process"
+    },
+    {
+      "fingerprint": "38c18daf7a931bc2",
+      "kind": "code",
+      "line": 122,
+      "path": "backend/app/runtime/model_routing_contracts.py",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy enum members remain for backward compatibility when ingesting older"
+    },
+    {
+      "fingerprint": "456425f3b6cdbfc2",
+      "kind": "code",
+      "line": 135,
+      "path": "backend/app/runtime/model_routing_contracts.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy \u2014 not emitted by route_model after Task 2E"
+    },
+    {
+      "fingerprint": "31bb66c06a5c40d2",
+      "kind": "code",
+      "line": 327,
+      "path": "backend/app/runtime/model_routing_evidence.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"Legacy code: structured output constraints shaped the pool.\","
+    },
+    {
+      "fingerprint": "8fb60c24de563adf",
+      "kind": "code",
+      "line": 332,
+      "path": "backend/app/runtime/model_routing_evidence.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"Legacy code: escalation-sensitive routing with hints.\","
+    },
+    {
+      "fingerprint": "62b923d07f06f025",
+      "kind": "code",
+      "line": 24,
+      "path": "backend/app/runtime/narrative_state_transfer_dto.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "commit_payload: Raw commit data (unchanged for backwards compatibility)."
+    },
+    {
+      "fingerprint": "6ad6bf71bb147b60",
+      "kind": "code",
+      "line": 19,
+      "path": "backend/app/runtime/narrative_threads.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Re-export ThreadStatus type alias for backwards compatibility"
+    },
+    {
+      "fingerprint": "93d876dd456d0f0a",
+      "kind": "code",
+      "line": 107,
+      "path": "backend/app/runtime/narrative_threads.py",
+      "pattern": "\\blegacy\\b",
+      "text": "DS-007 Task 2: Updated signature to accept both legacy NarrativeCommitRecord"
+    },
+    {
+      "fingerprint": "318a98c8e6f1a614",
+      "kind": "code",
+      "line": 112,
+      "path": "backend/app/runtime/narrative_threads.py",
+      "pattern": "\\blegacy\\b",
+      "text": "narrative_commit: Either NarrativeCommitRecord (legacy) or NarrativeCommitEvent (DS-007)."
+    },
+    {
+      "fingerprint": "4b0350b149472b8c",
+      "kind": "code",
+      "line": 81,
+      "path": "backend/app/runtime/narrative_threads_update_from_commit.py",
+      "pattern": "\\blegacy\\b",
+      "text": "narrative_commit: Either NarrativeCommitRecord (legacy) or NarrativeCommitEvent (DS-007)."
+    },
+    {
+      "fingerprint": "e6686a0ed580751b",
+      "kind": "code",
+      "line": 211,
+      "path": "backend/app/runtime/runtime_ai_stages.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Stage routing: LLM-heavy narrative synthesis (same semantics as legacy runtime request).\"\"\""
+    },
+    {
+      "fingerprint": "462462e1fea4e008",
+      "kind": "code",
+      "line": 382,
+      "path": "backend/app/runtime/runtime_ai_stages.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Preserve the legacy final-path label when both early routed stages had no eligible adapter."
+    },
+    {
+      "fingerprint": "65351e6645aa1469",
+      "kind": "code",
+      "line": 561,
+      "path": "backend/app/runtime/runtime_ai_stages.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy-shaped trace for ``last_model_routing_trace`` / ``AIDecisionLog.model_routing_trace``.\"\"\""
+    },
+    {
+      "fingerprint": "c841daf12381dcea",
+      "kind": "code",
+      "line": 29,
+      "path": "backend/app/runtime/runtime_ai_stages_sections.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Attach runtime stage metadata to an adapter request (same contract as legacy orchestrator).\"\"\""
+    },
+    {
+      "fingerprint": "83097fc292284f91",
+      "kind": "code",
+      "line": 655,
+      "path": "backend/app/runtime/runtime_models.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# W2.4.4 role diagnostic fields (optional for backward compatibility)"
+    },
+    {
+      "fingerprint": "dbdf8f3adeea5962",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/runtime/session_start.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"DEPRECATED (transitional): bootstrap a W2 ``SessionState`` inside the backend process."
+    },
+    {
+      "fingerprint": "ed9352a0c0580705",
+      "kind": "code",
+      "line": 213,
+      "path": "backend/app/runtime/session_store.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Use raw SQL for maximum compatibility with SQLite"
+    },
+    {
+      "fingerprint": "ed8bf8505271d022",
+      "kind": "code",
+      "line": 332,
+      "path": "backend/app/runtime/session_store.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Query the database using raw SQL for compatibility"
+    },
+    {
+      "fingerprint": "36d5344c641634fa",
+      "kind": "code",
+      "line": 3,
+      "path": "backend/app/runtime/store.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "These stores back the **deprecated** backend-local experience runtime, not the World"
+    },
+    {
+      "fingerprint": "97081edee00d097e",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/runtime/turn_dispatcher.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"DEPRECATED (transitional): in-process turn router for W2 ``SessionState``."
+    },
+    {
+      "fingerprint": "f28427a7fd51abaa",
+      "kind": "code",
+      "line": 59,
+      "path": "backend/app/runtime/turn_executor.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# (re-exported above for backward compatibility)."
+    },
+    {
+      "fingerprint": "18e619bc2653520e",
+      "kind": "code",
+      "line": 333,
+      "path": "backend/app/runtime/turn_executor.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "Default False for backward compatibility with non-AI paths."
+    },
+    {
+      "fingerprint": "aa99b5a8f3d7f929",
+      "kind": "code",
+      "line": 7,
+      "path": "backend/app/runtime/__init__.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "2. **Deprecated transitional** \u2014 In-process ``SessionState`` turn pipeline, in-memory"
+    },
+    {
+      "fingerprint": "8f83c65f3e1c993d",
+      "kind": "code",
+      "line": 1,
+      "path": "backend/app/runtime/transitional/__init__.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"Deprecated transitional ``app.runtime`` modules (in-process session / turn / AI execution)."
+    },
+    {
+      "fingerprint": "8f9c89256bc878fb",
+      "kind": "code",
+      "line": 1777,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\blegacy_",
+      "text": "if bool(st.get(\"legacy_default_registry_path\")):"
+    },
+    {
+      "fingerprint": "34f12677001e9e38",
+      "kind": "code",
+      "line": 1779,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Kept for backwards compatibility with older play-service versions"
+    },
+    {
+      "fingerprint": "220113c0f269ddbf",
+      "kind": "code",
+      "line": 1785,
+      "path": "backend/app/services/governance/governance_runtime_service.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"message\": \"Play-service story runtime reports legacy default registry posture (should not occur in current version).\","
+    },
+    {
+      "fingerprint": "06c149721116ef33",
+      "kind": "test",
+      "line": 4,
+      "path": "backend/tests/test_admin_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "This module ensures that the Backend API maintains compatibility with the"
+    },
+    {
+      "fingerprint": "d3a4211b0893a412",
+      "kind": "test",
+      "line": 9,
+      "path": "backend/tests/test_admin_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "4. Admin action/audit trail compatibility"
+    },
+    {
+      "fingerprint": "31bc7c18b00d23dc",
+      "kind": "test",
+      "line": 95,
+      "path": "backend/tests/test_admin_logs.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy /dashboard/api/logs removed; non-admin JWT on /api/v1/admin/logs returns 403.\"\"\""
+    },
+    {
+      "fingerprint": "c2a43b4331c79ea4",
+      "kind": "test",
+      "line": 331,
+      "path": "backend/tests/test_admin_security.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy dashboard path removed; admin reads same resource via public GET + JWT.\"\"\""
+    },
+    {
+      "fingerprint": "56c7111046ca251b",
+      "kind": "test",
+      "line": 217,
+      "path": "backend/tests/test_admin_tool_backend_proxy_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test version compatibility between frontend and backend.\"\"\""
+    },
+    {
+      "fingerprint": "a849cb6a6ac43730",
+      "kind": "test",
+      "line": 226,
+      "path": "backend/tests/test_admin_tool_backend_proxy_contracts.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"\"\"Frontend gracefully handles deprecated endpoint responses.\"\"\""
+    },
+    {
+      "fingerprint": "94311cbcfc7590e4",
+      "kind": "test",
+      "line": 263,
+      "path": "backend/tests/test_database_upgrades.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Verify migrations don't break backward compatibility.\"\"\""
+    },
+    {
+      "fingerprint": "488aa0a316751d22",
+      "kind": "test",
+      "line": 169,
+      "path": "backend/tests/test_data_import_service.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"_parse_datetime_if_needed() returns None on parse error (for database compatibility).\"\"\""
+    },
+    {
+      "fingerprint": "b64e92ec671c8708",
+      "kind": "test",
+      "line": 3,
+      "path": "backend/tests/test_narrow_followup.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "Focus: News auto-suggestions (implemented), contextual discussion enrichment, and backward compatibility."
+    },
+    {
+      "fingerprint": "ad04a1efba482e24",
+      "kind": "test",
+      "line": 161,
+      "path": "backend/tests/test_narrow_followup.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"GET /api/v1/news/<slug> returns valid news data (backward compatibility).\"\"\""
+    },
+    {
+      "fingerprint": "c49338e4f5d43b08",
+      "kind": "test",
+      "line": 204,
+      "path": "backend/tests/test_narrow_followup.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"GET /api/v1/news returns list of published news (backward compatibility).\"\"\""
+    },
+    {
+      "fingerprint": "3c4f13f3962ba2a2",
+      "kind": "test",
+      "line": 110,
+      "path": "backend/tests/test_world_engine_backend_api_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test engine data format compatibility with backend storage.\"\"\""
+    },
+    {
+      "fingerprint": "80cd76d79a7d1a32",
+      "kind": "test",
+      "line": 171,
+      "path": "backend/tests/test_world_engine_backend_api_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test WebSocket message format compatibility between engine and backend.\"\"\""
+    },
+    {
+      "fingerprint": "73a80242d0a545eb",
+      "kind": "test",
+      "line": 276,
+      "path": "backend/tests/test_world_engine_backend_api_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test timestamp format compatibility between engine and backend.\"\"\""
+    },
+    {
+      "fingerprint": "d48e9b7d3045f76e",
+      "kind": "test",
+      "line": 12,
+      "path": "backend/tests/runtime/doc_test_paths.py",
+      "pattern": "\\blegacy\\b",
+      "text": "_ARCHIVED_ARCHITECTURE = REPO_ROOT / \"docs\" / \"archive\" / \"architecture-legacy\""
+    },
+    {
+      "fingerprint": "7c388c848ec7d138",
+      "kind": "test",
+      "line": 385,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"MockStoryAIAdapter returns legacy format when request_role_structured_output=False.\"\"\""
+    },
+    {
+      "fingerprint": "800942e7102973db",
+      "kind": "test",
+      "line": 398,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Verify legacy structure"
+    },
+    {
+      "fingerprint": "7922fe02d8423817",
+      "kind": "test",
+      "line": 427,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "This ensures the payload is recognized as role-structured format, not legacy."
+    },
+    {
+      "fingerprint": "70b82e384fec698e",
+      "kind": "test",
+      "line": 448,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Verify it's not legacy format (no legacy-specific keys as top level)"
+    },
+    {
+      "fingerprint": "d5140a1cf771007b",
+      "kind": "test",
+      "line": 449,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert \"detected_triggers\" not in payload  # Legacy format has this at top level"
+    },
+    {
+      "fingerprint": "faa832c6b62a91ef",
+      "kind": "test",
+      "line": 450,
+      "path": "backend/tests/runtime/test_ai_adapter.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert \"proposed_deltas\" not in payload    # Legacy format has this at top level"
+    },
+    {
+      "fingerprint": "e976e0b1e3008d3f",
+      "kind": "test",
+      "line": 85,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy ParsedAIDecision only \u2192 role fields = None.\"\"\""
+    },
+    {
+      "fingerprint": "9cc0bac680f39f35",
+      "kind": "test",
+      "line": 101,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "role_aware_decision=None,  # Legacy path"
+    },
+    {
+      "fingerprint": "09d084648db039c6",
+      "kind": "test",
+      "line": 107,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert log.interpreter_output is None  # Legacy \u2192 None"
+    },
+    {
+      "fingerprint": "eb6c52dd29713921",
+      "kind": "test",
+      "line": 108,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert log.director_output is None     # Legacy \u2192 None"
+    },
+    {
+      "fingerprint": "96653bd7c954e028",
+      "kind": "test",
+      "line": 109,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert log.responder_output is None    # Legacy \u2192 None"
+    },
+    {
+      "fingerprint": "60817687b3328e55",
+      "kind": "test",
+      "line": 350,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy decisions (ParsedAIDecision only) work unchanged.\"\"\""
+    },
+    {
+      "fingerprint": "f85ce848a0971784",
+      "kind": "test",
+      "line": 367,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "role_aware_decision=None,  # Legacy path"
+    },
+    {
+      "fingerprint": "e7900cf187cc18dd",
+      "kind": "test",
+      "line": 376,
+      "path": "backend/tests/runtime/test_ai_decision_logging.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy logs have no role fields"
+    },
+    {
+      "fingerprint": "87c74fb8e2666ad8",
+      "kind": "test",
+      "line": 184,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"New bounded clone path matches legacy full deepcopy guard verdict semantics.\"\"\""
+    },
+    {
+      "fingerprint": "3361875d2c16d5fd",
+      "kind": "test",
+      "line": 211,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "legacy = _legacy_preview_with_full_deepcopy("
+    },
+    {
+      "fingerprint": "7751e1505992a162",
+      "kind": "test",
+      "line": 218,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert result.guard_outcome == legacy.guard_outcome.value"
+    },
+    {
+      "fingerprint": "538dfc23706d569d",
+      "kind": "test",
+      "line": 219,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert result.accepted_delta_count == len(legacy.accepted_deltas)"
+    },
+    {
+      "fingerprint": "ffa3fdf526b24f3a",
+      "kind": "test",
+      "line": 220,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert result.rejected_delta_count == len(legacy.rejected_deltas)"
+    },
+    {
+      "fingerprint": "2b0ced7057febd9e",
+      "kind": "test",
+      "line": 221,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert sorted(result.accepted_deltas) == sorted([d.target_path for d in legacy.accepted_deltas])"
+    },
+    {
+      "fingerprint": "500939b98cfe49ab",
+      "kind": "test",
+      "line": 222,
+      "path": "backend/tests/runtime/test_preview_delta.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert sorted(result.rejected_deltas) == sorted([d.target_path for d in legacy.rejected_deltas])"
+    },
+    {
+      "fingerprint": "9ab37376d7a68deb",
+      "kind": "code",
+      "line": 241,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used: bool = False"
+    },
+    {
+      "fingerprint": "65e5546dab8534b1",
+      "kind": "code",
+      "line": 262,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": self.legacy_blob_used,"
+    },
+    {
+      "fingerprint": "8b618610ec0f5095",
+      "kind": "code",
+      "line": 582,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used=False,"
+    },
+    {
+      "fingerprint": "e9d323b4f7e75184",
+      "kind": "code",
+      "line": 642,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used=False,"
+    },
+    {
+      "fingerprint": "a4af052c4913602d",
+      "kind": "code",
+      "line": 874,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used=False,"
+    },
+    {
+      "fingerprint": "fb9c37123cdca096",
+      "kind": "code",
+      "line": 909,
+      "path": "ai_stack/live_dramatic_scene_simulator.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": ldss_output.legacy_blob_used,"
+    },
+    {
+      "fingerprint": "b36d9aa981fa3390",
+      "kind": "code",
+      "line": 16,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "diff against the legacy ``transition_from_previous`` block."
+    },
+    {
+      "fingerprint": "3cd29cf8df4426d5",
+      "kind": "code",
+      "line": 659,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "against the prior persisted snapshot \u2014 same semantics as the legacy"
+    },
+    {
+      "fingerprint": "dfb1f3b4f58ff69a",
+      "kind": "code",
+      "line": 747,
+      "path": "ai_stack/actor_tracking/projection.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "summary and a compatibility ``derived_actor_locations`` map. Raw persisted"
+    },
+    {
+      "fingerprint": "09932468a657bf96",
+      "kind": "code",
+      "line": 157,
+      "path": "ai_stack/capabilities/capability_selector.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Return a normalized semantic capability name or raise on legacy keys.\"\"\""
+    },
+    {
+      "fingerprint": "6430e17acdfb268a",
+      "kind": "code",
+      "line": 162,
+      "path": "ai_stack/capabilities/capability_selector.py",
+      "pattern": "\\blegacy\\b",
+      "text": "raise ValueError(f\"Capability selector keys must be semantic, not legacy labels: {text!r}\")"
+    },
+    {
+      "fingerprint": "389343775c55ffd4",
+      "kind": "code",
+      "line": 4,
+      "path": "ai_stack/contracts/genre_awareness_contracts.py",
+      "pattern": "\\blegacy\\b",
+      "text": "evidence. It does not judge generated prose and it never uses legacy Pi labels"
+    },
+    {
+      "fingerprint": "1375b2f15b961e53",
+      "kind": "code",
+      "line": 316,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = coerce_dict_rows(raw_plan.get(\"npc_initiatives\"))"
+    },
+    {
+      "fingerprint": "9e394b0165a39d50",
+      "kind": "code",
+      "line": 317,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "if not legacy_rows:"
+    },
+    {
+      "fingerprint": "a02c95a333b8ade0",
+      "kind": "code",
+      "line": 318,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = coerce_dict_rows(raw_plan.get(\"initiatives\"))"
+    },
+    {
+      "fingerprint": "bf05d3cea7bbb834",
+      "kind": "code",
+      "line": 320,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "raw_row_actor_ids = dedupe_strings([row.get(\"actor_id\") for row in legacy_rows])"
+    },
+    {
+      "fingerprint": "9a604ad6309fe9b9",
+      "kind": "code",
+      "line": 373,
+      "path": "ai_stack/contracts/npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "for row in legacy_rows"
+    },
+    {
+      "fingerprint": "5bdf3320ac5c6e2e",
+      "kind": "code",
+      "line": 154,
+      "path": "ai_stack/contracts/relationship_state_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Validation result over schema bounds and structured event compatibility.\"\"\""
+    },
+    {
+      "fingerprint": "e88b37cea3010e0c",
+      "kind": "code",
+      "line": 45,
+      "path": "ai_stack/contracts/scene_plan_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "description=\"Compatibility alias for pressure-oriented target data; advisory until validation/commit.\","
+    },
+    {
+      "fingerprint": "ad24ed5afc9784f2",
+      "kind": "code",
+      "line": 238,
+      "path": "ai_stack/contracts/silence_negative_space_contract.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Normalize legacy silence payloads into the silence-negative-space contract.\"\"\""
+    },
+    {
+      "fingerprint": "bbc7ed25c6c3240d",
+      "kind": "code",
+      "line": 250,
+      "path": "ai_stack/langchain/bridges.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy callers can keep using ``narrative_response``."
+    },
+    {
+      "fingerprint": "26d9c5f9a29a2d7e",
+      "kind": "code",
+      "line": 8135,
+      "path": "ai_stack/langgraph/langgraph_runtime_executor.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_default_registry_path\": not governed,"
+    },
+    {
+      "fingerprint": "51b7cecd52a29fb0",
+      "kind": "code",
+      "line": 72,
+      "path": "ai_stack/mcp/mcp_canonical_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "permission_legacy: str"
+    },
+    {
+      "fingerprint": "ab37793f57a26e39",
+      "kind": "code",
+      "line": 130,
+      "path": "ai_stack/mcp/mcp_canonical_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "def _derive_permission_legacy(tool_class: McpToolClass, name: str) -> str:"
+    },
+    {
+      "fingerprint": "4515360e6aacff1a",
+      "kind": "code",
+      "line": 220,
+      "path": "ai_stack/mcp/mcp_canonical_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "permission_legacy=_derive_permission_legacy(tool_class, name),"
+    },
+    {
+      "fingerprint": "0228f6c31474c6cc",
+      "kind": "code",
+      "line": 9,
+      "path": "ai_stack/rag/fastembed_compat.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "It is a repository-controlled offline compatibility backend for deterministic retrieval/indexing"
+    },
+    {
+      "fingerprint": "db6e64ef966560c3",
+      "kind": "code",
+      "line": 163,
+      "path": "ai_stack/rag/fastembed_compat.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Tiny compatibility surface mirroring the constructor and ``embed`` generator.\"\"\""
+    },
+    {
+      "fingerprint": "914d2d30b9c5b2c0",
+      "kind": "code",
+      "line": 57,
+      "path": "ai_stack/rag/rag_constants.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy single-weight hybrid (superseded by profile maps; kept for tests/import stability)."
+    },
+    {
+      "fingerprint": "e73e92149124bf88",
+      "kind": "docs",
+      "line": 7,
+      "path": "ai_stack/rag/RETRIEVAL_QUALITY_TASK2.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- **`RETRIEVAL_PIPELINE_VERSION`** (`task2_hybrid_v2`): logical label for ranking/packing behavior. It is **not** `INDEX_VERSION` (corpus JSON / storage compatibility stays on `c1_next_hybrid_v1`)."
+    },
+    {
+      "fingerprint": "18aeb5c34ccc3c8a",
+      "kind": "code",
+      "line": 16,
+      "path": "ai_stack/story_runtime/block_stream_dual_mode.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "Typewriter compatibility:"
+    },
+    {
+      "fingerprint": "ec1b56f1fc461e3a",
+      "kind": "code",
+      "line": 234,
+      "path": "ai_stack/story_runtime/block_stream_dual_mode.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# \u2500\u2500 Typewriter compatibility shim \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "fingerprint": "39cc551c267e915c",
+      "kind": "code",
+      "line": 26,
+      "path": "ai_stack/story_runtime/opening_shape_normalizer.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Flatten ``narration_summary`` for legacy string-only consumers (effects, gates).\"\"\""
+    },
+    {
+      "fingerprint": "39f3eda1c0a18d87",
+      "kind": "code",
+      "line": 189,
+      "path": "ai_stack/story_runtime/player_narrative_cards.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Backward compatibility keys (kept for existing dashboards/tests)"
+    },
+    {
+      "fingerprint": "ba7751669c110454",
+      "kind": "code",
+      "line": 773,
+      "path": "ai_stack/story_runtime/runtime_aspect_ledger.py",
+      "pattern": "\\blegacy\\b",
+      "text": "When disabled, final session readiness fields must match legacy/seam evaluation"
+    },
+    {
+      "fingerprint": "dd46288b9487d5d4",
+      "kind": "code",
+      "line": 43,
+      "path": "ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_branch_outcomes.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy structural/meta failures map to empty-fluency style hard"
+    },
+    {
+      "fingerprint": "6df977d2d8a29463",
+      "kind": "code",
+      "line": 75,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute opening prose.\"\"\""
+    },
+    {
+      "fingerprint": "7c6ccf41c005fa2e",
+      "kind": "code",
+      "line": 80,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute room prose.\"\"\""
+    },
+    {
+      "fingerprint": "bc57acdbe7f01e79",
+      "kind": "code",
+      "line": 90,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute role-anchor prose.\"\"\""
+    },
+    {
+      "fingerprint": "87842291fb6eaf3c",
+      "kind": "code",
+      "line": 95,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: explicit fallback only, never substitute NPC dialogue.\"\"\""
+    },
+    {
+      "fingerprint": "0bf4b68acad5cbdb",
+      "kind": "code",
+      "line": 424,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility API: no deterministic NPC-line replacement is allowed.\"\"\""
+    },
+    {
+      "fingerprint": "c20ed9650069c215",
+      "kind": "code",
+      "line": 16,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Runtime / slice scene identifiers \u2192 legacy-compatible phase guidance keys."
+    },
+    {
+      "fingerprint": "a3d6f33cf0f403be",
+      "kind": "code",
+      "line": 165,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py",
+      "pattern": "\\blegacy_",
+      "text": "stance = {\"legacy_stance_summary\": _clean(raw)}"
+    },
+    {
+      "fingerprint": "b05371798cda1924",
+      "kind": "code",
+      "line": 186,
+      "path": "ai_stack/story_runtime/god_of_carnage/god_of_carnage_souffleuse.py",
+      "pattern": "\\blegacy_",
+      "text": "return {\"legacy_guidance_summary\": _clean(raw)}"
+    },
+    {
+      "fingerprint": "b4cfc5c814b7da9e",
+      "kind": "code",
+      "line": 132,
+      "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_shift = clean_text(social.get(\"social_pressure_shift\") or social.get(\"pressure_shift\"))"
+    },
+    {
+      "fingerprint": "1028d382893a21c3",
+      "kind": "code",
+      "line": 139,
+      "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
+      "pattern": "\\blegacy_",
+      "text": "if legacy_shift:"
+    },
+    {
+      "fingerprint": "6818fb6fe6fbcd85",
+      "kind": "code",
+      "line": 140,
+      "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
+      "pattern": "\\blegacy_",
+      "text": "reason_codes.append(\"legacy_social_pressure_shift\")"
+    },
+    {
+      "fingerprint": "7434d1da82eea927",
+      "kind": "code",
+      "line": 151,
+      "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
+      "pattern": "\\blegacy_",
+      "text": "if legacy_shift:"
+    },
+    {
+      "fingerprint": "101b9b4531911909",
+      "kind": "code",
+      "line": 155,
+      "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
+      "pattern": "\\blegacy_",
+      "text": "\"value\": legacy_shift,"
+    },
+    {
+      "fingerprint": "0dabd98b5cdc04db",
+      "kind": "code",
+      "line": 80,
+      "path": "ai_stack/story_runtime/semantic_planner/god_of_carnage_roadmap_semantic_surface.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# --- routing_labels \u2014 primary route reason codes (``RouteReasonCode``, including legacy) ---"
+    },
+    {
+      "fingerprint": "288a9e74b88d05dd",
+      "kind": "code",
+      "line": 504,
+      "path": "ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Graph tests without actor_lane_context keep the legacy staging line on non-opening turns."
+    },
+    {
+      "fingerprint": "61f6ded2f53cf28c",
+      "kind": "code",
+      "line": 887,
+      "path": "ai_stack/story_runtime/turn/validation_authority_bridge.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_seam_status\": seam_status.get(\"status\"),"
+    },
+    {
+      "fingerprint": "87a6c0a43e6a0fef",
+      "kind": "code",
+      "line": 888,
+      "path": "ai_stack/story_runtime/turn/validation_authority_bridge.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_seam_reason\": seam_status.get(\"reason\"),"
+    },
+    {
+      "fingerprint": "00da8cb5bfd994b9",
+      "kind": "code",
+      "line": 902,
+      "path": "ai_stack/story_runtime/turn/validation_authority_bridge.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_canonical_authority\": CO_AUTHORITY_LEGACY_SEAM,"
+    },
+    {
+      "fingerprint": "2abab118d2390e73",
+      "kind": "code",
+      "line": 1,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Actor-survival telemetry: canonical vitality telemetry + compatibility surfaces."
+    },
+    {
+      "fingerprint": "ca40c2ebae0aa609",
+      "kind": "code",
+      "line": 638,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Build canonical vitality telemetry plus compatibility views."
+    },
+    {
+      "fingerprint": "6f5fe108a438e95d",
+      "kind": "code",
+      "line": 656,
+      "path": "ai_stack/telemetry/actor_survival_telemetry.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Compatibility surface for existing consumers/tests."
+    },
+    {
+      "fingerprint": "447af264e5ae2283",
+      "kind": "code",
+      "line": 568,
+      "path": "ai_stack/telemetry/diagnostics_envelope.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": bool(scene_ldss_diag.get(\"legacy_blob_used\", False)),"
+    },
+    {
+      "fingerprint": "854c6f0e3d9568cd",
+      "kind": "code",
+      "line": 752,
+      "path": "ai_stack/telemetry/diagnostics_envelope.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used: bool = False,"
+    },
+    {
+      "fingerprint": "33b1d3072857cc58",
+      "kind": "code",
+      "line": 794,
+      "path": "ai_stack/telemetry/diagnostics_envelope.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": legacy_blob_used,"
+    },
+    {
+      "fingerprint": "e2448db931aa615d",
+      "kind": "test",
+      "line": 274,
+      "path": "ai_stack/tests/test_actor_lane_absence_governance.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"projection_version should be render_support.v1 for merge compatibility\""
+    },
+    {
+      "fingerprint": "44fc9b6d99e360c4",
+      "kind": "test",
+      "line": 328,
+      "path": "ai_stack/tests/test_actor_lane_absence_governance.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Verify rendered story entries use canonical structure, not legacy audit-log projection.\"\"\""
+    },
+    {
+      "fingerprint": "2e2d8be234cf6935",
+      "kind": "test",
+      "line": 156,
+      "path": "ai_stack/tests/test_canonical_prompt_catalog.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Runtime prompts should guide actor-level exchange plus compatibility fields.\"\"\""
+    },
+    {
+      "fingerprint": "648c50cab73d918d",
+      "kind": "test",
+      "line": 270,
+      "path": "ai_stack/tests/test_capability_selector.py",
+      "pattern": "\\blegacy_",
+      "text": "for legacy_name in (\"pi14\", \"pi_14\", \"Pi14\", \"\u03a014\"):"
+    },
+    {
+      "fingerprint": "ae068f2f6fe5eab9",
+      "kind": "test",
+      "line": 272,
+      "path": "ai_stack/tests/test_capability_selector.py",
+      "pattern": "\\blegacy_",
+      "text": "validate_semantic_capability_name(legacy_name)"
+    },
+    {
+      "fingerprint": "4556eeb24ae2eb68",
+      "kind": "test",
+      "line": 309,
+      "path": "ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py",
+      "pattern": "\\blegacy\\b",
+      "text": "assert \"point\" not in step, f\"{step_path.name} still uses legacy descriptive point block\""
+    },
+    {
+      "fingerprint": "c7e92d00a38807e2",
+      "kind": "test",
+      "line": 41,
+      "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
+      "pattern": "_legacy\\b",
+      "text": "_derive_permission_legacy,"
+    },
+    {
+      "fingerprint": "f716c9ad0838694e",
+      "kind": "test",
+      "line": 492,
+      "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
+      "pattern": "_legacy\\b",
+      "text": "# Tests for _derive_permission_legacy()"
+    },
+    {
+      "fingerprint": "45f1d5f01e3c3b4e",
+      "kind": "test",
+      "line": 497,
+      "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
+      "pattern": "_legacy\\b",
+      "text": "perm = _derive_permission_legacy(McpToolClass.read_only, \"any_name\")"
+    },
+    {
+      "fingerprint": "ce21d4c8bbeb56e0",
+      "kind": "test",
+      "line": 502,
+      "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
+      "pattern": "_legacy\\b",
+      "text": "perm = _derive_permission_legacy(McpToolClass.review_bound, \"any_name\")"
+    },
+    {
+      "fingerprint": "21db74aac11958a1",
+      "kind": "test",
+      "line": 507,
+      "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
+      "pattern": "_legacy\\b",
+      "text": "perm = _derive_permission_legacy(McpToolClass.write_capable, \"any_name\")"
+    },
+    {
+      "fingerprint": "b627e974bb28f6ce",
+      "kind": "test",
+      "line": 3,
+      "path": "ai_stack/tests/test_narrative_aspect_contracts.py",
+      "pattern": "\\blegacy\\b",
+      "text": "ADR-0039 scope: `table_b_refs` values are legacy fixture metadata only; pass/fail"
+    },
+    {
+      "fingerprint": "fbe03733d38085df",
+      "kind": "test",
+      "line": 179,
+      "path": "ai_stack/tests/test_narrative_runtime_agent.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = sample_agent_input.npc_agency_plan[\"initiatives\"]"
+    },
+    {
+      "fingerprint": "0d27014cd5ea82dc",
+      "kind": "test",
+      "line": 180,
+      "path": "ai_stack/tests/test_narrative_runtime_agent.py",
+      "pattern": "\\blegacy_",
+      "text": "actor_ids = [row[\"actor_id\"] for row in legacy_rows]"
+    },
+    {
+      "fingerprint": "682dd20c491966c2",
+      "kind": "test",
+      "line": 192,
+      "path": "ai_stack/tests/test_narrative_runtime_agent.py",
+      "pattern": "\\blegacy_",
+      "text": "for row in legacy_rows"
+    },
+    {
+      "fingerprint": "2c8c5500649b00ce",
+      "kind": "test",
+      "line": 199,
+      "path": "ai_stack/tests/test_narrative_runtime_agent.py",
+      "pattern": "\\blegacy_",
+      "text": "expected_remaining = len([row for row in legacy_rows if not row[\"resolved\"]])"
+    },
+    {
+      "fingerprint": "3f91a5e0678672e5",
+      "kind": "test",
+      "line": 202,
+      "path": "ai_stack/tests/test_narrative_runtime_agent.py",
+      "pattern": "\\blegacy_",
+      "text": "row[\"actor_id\"] for row in legacy_rows if not row[\"resolved\"]"
+    },
+    {
+      "fingerprint": "539ab4e2777c942e",
+      "kind": "test",
+      "line": 1,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Tests for shared Pi7 NPC agency contracts and compatibility adapters.\"\"\""
+    },
+    {
+      "fingerprint": "d00fea5b61d4cf66",
+      "kind": "test",
+      "line": 24,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_rows = ["
+    },
+    {
+      "fingerprint": "ea952d04088da8e6",
+      "kind": "test",
+      "line": 39,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "normalized = normalize_npc_agency_plan({\"initiatives\": legacy_rows})"
+    },
+    {
+      "fingerprint": "d8b68277ecf29661",
+      "kind": "test",
+      "line": 47,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "assert [row[\"actor_id\"] for row in normalized_rows] == [row[\"actor_id\"] for row in legacy_rows]"
+    },
+    {
+      "fingerprint": "826eb652444822be",
+      "kind": "test",
+      "line": 48,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "assert [row[\"intent\"] for row in normalized_rows] == [row[\"initiative_type\"] for row in legacy_rows]"
+    },
+    {
+      "fingerprint": "56a19ddcfced3df4",
+      "kind": "test",
+      "line": 49,
+      "path": "ai_stack/tests/test_npc_agency_contracts.py",
+      "pattern": "\\blegacy_",
+      "text": "assert [row[\"resolved\"] for row in normalized_rows] == [row[\"resolved\"] for row in legacy_rows]"
+    },
+    {
+      "fingerprint": "6000df58baf2d006",
+      "kind": "test",
+      "line": 10,
+      "path": "ai_stack/tests/test_phase2_dual_mode.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "* typewriter compatibility shim"
+    },
+    {
+      "fingerprint": "af52ca4d176e2409",
+      "kind": "test",
+      "line": 267,
+      "path": "ai_stack/tests/test_phase2_dual_mode.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# \u2500\u2500 Typewriter compatibility shim \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "fingerprint": "36125481ddf0fe22",
+      "kind": "test",
+      "line": 970,
+      "path": "ai_stack/tests/test_phase2_ws_session_loop.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# No legacy Pi/\u03a0 runtime keys."
+    },
+    {
+      "fingerprint": "89f27857b47e466d",
+      "kind": "test",
+      "line": 1,
+      "path": "ai_stack/tests/test_semantic_planner_graph_authority.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Authority boundaries: single graph path, legacy planner state non-sovereign.\"\"\""
+    },
+    {
+      "fingerprint": "c5c61e52308ee551",
+      "kind": "test",
+      "line": 13,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- ``where_summary.location_changed`` mirrors the legacy"
+    },
+    {
+      "fingerprint": "cc36da8a0cc102de",
+      "kind": "test",
+      "line": 733,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# the legacy transition flag that prev != current => location_changed True."
+    },
+    {
+      "fingerprint": "1930fcc4815ab723",
+      "kind": "test",
+      "line": 736,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_transition_location_changed = True"
+    },
+    {
+      "fingerprint": "acbf287381d87eba",
+      "kind": "test",
+      "line": 738,
+      "path": "ai_stack/tests/test_w5_actor_tracking_projection.py",
+      "pattern": "\\blegacy_",
+      "text": "assert proj.where_summary[\"location_changed\"] == legacy_transition_location_changed"
+    },
+    {
+      "fingerprint": "3ea77c4513406fa1",
+      "kind": "test",
+      "line": 10,
+      "path": "ai_stack/tests/test_wave2_actor_truth_preservation.py",
+      "pattern": "\\blegacy\\b",
+      "text": "7. Healthy actor lanes + thin prose not rejected due to legacy empty-fluency path"
+    },
+    {
+      "fingerprint": "1b2cd127702a8a46",
+      "kind": "test",
+      "line": 236,
+      "path": "ai_stack/tests/test_wave2_actor_truth_preservation.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Verify actor-lane fluency override applies BEFORE legacy alignment check.\"\"\""
+    },
+    {
+      "fingerprint": "f128da423153055d",
+      "kind": "code",
+      "line": 1,
+      "path": "story_runtime_core/language_adapter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Compatibility import for the AI-stack language I/O adapter."
+    },
+    {
+      "fingerprint": "44e408fce536330d",
+      "kind": "code",
+      "line": 17,
+      "path": "story_runtime_core/model_registry.py",
+      "pattern": "\\bdeprecated\\b",
+      "text": "# Deprecated aliases \u2014 normalized internally; do not emit from new code paths."
+    },
+    {
+      "fingerprint": "3b87332be02ff0de",
+      "kind": "code",
+      "line": 98,
+      "path": "story_runtime_core/branching/decision_point.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Keep permissive storage for legacy/evaluation harnesses that may define"
+    },
+    {
+      "fingerprint": "f037e28e6514b613",
+      "kind": "code",
+      "line": 363,
+      "path": "world-engine/app/main.py",
+      "pattern": "\\blegacy_",
+      "text": "def legacy_engine_page(request: Request):"
+    },
+    {
+      "fingerprint": "b36e19f982795606",
+      "kind": "code",
+      "line": 451,
+      "path": "world-engine/app/main.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Legacy ops health view; requires authenticated UI session (no public diagnostics).\"\"\""
+    },
+    {
+      "fingerprint": "ce83a8173f44e608",
+      "kind": "code",
+      "line": 274,
+      "path": "world-engine/app/observability/langfuse_adapter.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Default-environment client (backward compatibility).\"\"\""
+    },
+    {
+      "fingerprint": "07f7afd6555fd5cf",
+      "kind": "code",
+      "line": 110,
+      "path": "world-engine/app/runtime/branching_turn_executor.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# Compatibility with evaluation harnesses that submit explicit option ids"
+    },
+    {
+      "fingerprint": "75020697dbe21ecf",
+      "kind": "code",
+      "line": 13,
+      "path": "world-engine/app/story_runtime/module_turn_hooks.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Resolve legacy short role ids through the GoC content character documents.\"\"\""
+    },
+    {
+      "fingerprint": "3af51e07d735f5ae",
+      "kind": "code",
+      "line": 36,
+      "path": "world-engine/app/story_runtime/module_turn_hooks.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "This is an explicit module compatibility shim. Generic runtime code should"
+    },
+    {
+      "fingerprint": "06ad68690b0dc659",
+      "kind": "code",
+      "line": 276,
+      "path": "world-engine/app/story_runtime/runtime_world.py",
+      "pattern": "\\blegacy\\b",
+      "text": "This is intentionally not the legacy ``RuntimeInstance`` path. It keeps"
+    },
+    {
+      "fingerprint": "a8129d1923693d1c",
+      "kind": "code",
+      "line": 205,
+      "path": "world-engine/app/story_runtime/manager/diagnostics_api.py",
+      "pattern": "\\blegacy_",
+      "text": "last_legacy_blob = bool(fc.get(\"legacy_blob_used\"))"
+    },
+    {
+      "fingerprint": "924cd1fe3ba46d85",
+      "kind": "code",
+      "line": 216,
+      "path": "world-engine/app/story_runtime/manager/diagnostics_api.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_blob_used=last_legacy_blob,"
+    },
+    {
+      "fingerprint": "0d2c46d4ee90e7cf",
+      "kind": "code",
+      "line": 130,
+      "path": "world-engine/app/story_runtime/manager/live_scene_turn_envelope.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": False,"
+    },
+    {
+      "fingerprint": "54803ac281c593d4",
+      "kind": "code",
+      "line": 232,
+      "path": "world-engine/app/story_runtime/manager/opening_fallback_observability.py",
+      "pattern": "\\blegacy\\b",
+      "text": "projection as a primary actor-situation input while the legacy"
+    },
+    {
+      "fingerprint": "b79f54101f773c0e",
+      "kind": "code",
+      "line": 24,
+      "path": "world-engine/app/story_runtime/manager/player_input_scene_blocks.py",
+      "pattern": "\\blegacy\\b",
+      "text": "Without a human actor id (legacy / non-solo), a single ``player_input`` block"
+    },
+    {
+      "fingerprint": "4bd5174bff4f1257",
+      "kind": "code",
+      "line": 171,
+      "path": "world-engine/app/story_runtime/manager/runtime_config.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_default_registry_path\": src == \"default_registry\","
+    },
+    {
+      "fingerprint": "0b7bdc8d438b7a43",
+      "kind": "code",
+      "line": 170,
+      "path": "world-engine/app/story_runtime/manager/session_loop_governance.py",
+      "pattern": "\\blegacy\\b",
+      "text": "Returns None when actor ownership is absent (non-solo or legacy sessions)."
+    },
+    {
+      "fingerprint": "3cc15a35df8df50e",
+      "kind": "code",
+      "line": 45,
+      "path": "world-engine/app/story_runtime/manager/session_memory_policies.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# ADR-0063: legacy payloads without W5 fields default to [] / None."
+    },
+    {
+      "fingerprint": "3e67b9c97d96b384",
+      "kind": "code",
+      "line": 35,
+      "path": "world-engine/app/story_runtime/manager/w5_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "legacy behavior. The turn is not failed in Phase 2."
+    },
+    {
+      "fingerprint": "4d03c6ba71bc1968",
+      "kind": "code",
+      "line": 5,
+      "path": "world-engine/app/story_runtime/manager/__init__.py",
+      "pattern": "\\blegacy_",
+      "text": "_MODULE_NAMES = ['._deps', '.content_language', '.scripted_speech_contracts', '.recoverable_aspect_ledger', '.no_dead_end_recovery', '.session_payloads', '.session_memory_policies', '.visible_projection_opening', '.visible_projection_goc_ac"
+    },
+    {
+      "fingerprint": "941c8bd465c7f44b",
+      "kind": "code",
+      "line": 199,
+      "path": "world-engine/app/story_runtime/manager/_legacy_sources/method___finalize_committed_turn_000.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_default_registry_path\": r_src == \"default_registry\","
+    },
+    {
+      "fingerprint": "40c548c478c878a7",
+      "kind": "code",
+      "line": 54,
+      "path": "world-engine/app/story_runtime/manager/_legacy_sources/_emit_langfuse_evidence_observations_001.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# ``opening_contract_pass`` is kept as a compatibility alias to opening_shape_contract_pass."
+    },
+    {
+      "fingerprint": "7b5db9f69dba35f3",
+      "kind": "test",
+      "line": 5,
+      "path": "world-engine/tests/test_api_advanced_contracts.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "idempotency, versioning compatibility, caching, ETags, and compression support."
+    },
+    {
+      "fingerprint": "9470f366f03c03d2",
+      "kind": "test",
+      "line": 269,
+      "path": "world-engine/tests/test_backend_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test field name and structure compatibility between services.\"\"\""
+    },
+    {
+      "fingerprint": "5a0fd179689de70d",
+      "kind": "test",
+      "line": 533,
+      "path": "world-engine/tests/test_backend_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Test version compatibility between backend and world-engine.\"\"\""
+    },
+    {
+      "fingerprint": "866bbe4622cc35b2",
+      "kind": "test",
+      "line": 560,
+      "path": "world-engine/tests/test_backend_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Extra fields in ticket payload are preserved for forward compatibility.\"\"\""
+    },
+    {
+      "fingerprint": "ae6f31bc5cf5e5ba",
+      "kind": "test",
+      "line": 580,
+      "path": "world-engine/tests/test_backend_bridge_contract.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"\"\"Timestamp fields iat and exp must always be present for version compatibility.\"\"\""
+    },
+    {
+      "fingerprint": "69b2cf8292901b77",
+      "kind": "test",
+      "line": 7,
+      "path": "world-engine/tests/test_extended_backend_bridge.py",
+      "pattern": "\\bcompatibility\\b",
+      "text": "3. Permission/role mapping compatibility"
+    },
+    {
+      "fingerprint": "79a57f3a288463c2",
+      "kind": "test",
+      "line": 240,
+      "path": "world-engine/tests/test_mvp3_ldss_integration.py",
+      "pattern": "\\blegacy_",
+      "text": "assert diag[\"legacy_blob_used\"] is False"
+    },
+    {
+      "fingerprint": "804ef558aaa81033",
+      "kind": "test",
+      "line": 261,
+      "path": "world-engine/tests/test_mvp3_ldss_integration.py",
+      "pattern": "\\blegacy_",
+      "text": "assert diag[\"legacy_blob_used\"] is False"
+    },
+    {
+      "fingerprint": "ab5e56b52801a92f",
+      "kind": "test",
+      "line": 68,
+      "path": "world-engine/tests/test_mvp3_narrative_agent_orchestration.py",
+      "pattern": "\\blegacy_",
+      "text": "\"legacy_blob_used\": False,"
+    },
+    {
+      "fingerprint": "9903fff00b6b9919",
+      "kind": "test",
+      "line": 14,
+      "path": "world-engine/tests/test_story_runtime_w5_narrator_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- When ``w5_latest_snapshot`` is malformed, the helper falls back to legacy"
+    },
+    {
+      "fingerprint": "61fc89c06755d1c0",
+      "kind": "test",
+      "line": 174,
+      "path": "world-engine/tests/test_story_runtime_w5_narrator_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy fields preserved exactly."
+    },
+    {
+      "fingerprint": "2578545b60f39c07",
+      "kind": "test",
+      "line": 210,
+      "path": "world-engine/tests/test_story_runtime_w5_narrator_projection.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy fields stay in place as fallback."
+    },
+    {
+      "fingerprint": "591eabe3231c2d03",
+      "kind": "test",
+      "line": 6,
+      "path": "world-engine/tests/test_story_session_w5_round_trip.py",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy payloads without W5 fields default to ``[]`` / ``None``."
+    },
+    {
+      "fingerprint": "5aef1b784b52c2a8",
+      "kind": "test",
+      "line": 111,
+      "path": "world-engine/tests/test_story_session_w5_round_trip.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_payload = {"
+    },
+    {
+      "fingerprint": "f724c310818783a1",
+      "kind": "test",
+      "line": 135,
+      "path": "world-engine/tests/test_story_session_w5_round_trip.py",
+      "pattern": "\\blegacy_",
+      "text": "restored = story_session_from_payload(legacy_payload)"
+    },
+    {
+      "fingerprint": "bdb4cd58db19a8f1",
+      "kind": "test",
+      "line": 2067,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy_",
+      "text": "legacy_ui_beats = {\"premise\", \"scene_setup\", \"role_anchor\"}"
+    },
+    {
+      "fingerprint": "5ffa50cd19c8591f",
+      "kind": "test",
+      "line": 2070,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy_",
+      "text": "assert beat not in legacy_ui_beats"
+    },
+    {
+      "fingerprint": "de70e2e77e8909a5",
+      "kind": "test",
+      "line": 3254,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "Documents the known semantic gap: fallback_model_called (legacy) is True because it"
+    },
+    {
+      "fingerprint": "b308f7e1507032da",
+      "kind": "test",
+      "line": 3271,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"fallback_model_called\": True,   # legacy field: True because fallback_used=True"
+    },
+    {
+      "fingerprint": "315b027b01072f15",
+      "kind": "test",
+      "line": 3285,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"fallback_model_called stays True (legacy broad semantic: SC set fallback_used)\""
+    },
+    {
+      "fingerprint": "1da673c2dc13bc7d",
+      "kind": "test",
+      "line": 3371,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "After LDSS fires, path_summary[\"parser_error\"] (legacy, reads FINAL generation's"
+    },
+    {
+      "fingerprint": "3c43a03d56525acd",
+      "kind": "test",
+      "line": 3397,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy field: LDSS does not propagate langchain_parser_error \u2192 None"
+    },
+    {
+      "fingerprint": "dcae94463d4ed71b",
+      "kind": "test",
+      "line": 3418,
+      "path": "world-engine/tests/test_trace_middleware.py",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy field is None (LDSS trace \u2014 expected, not a bug)"
+    },
+    {
+      "fingerprint": "dd1f8d41496f9063",
+      "kind": "config",
+      "line": 1054,
+      "path": "frontend/package-lock.json",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"deprecated\": \"Use your platform's native atob() and btoa() methods instead\","
+    },
+    {
+      "fingerprint": "353ab7454e8e7965",
+      "kind": "config",
+      "line": 1740,
+      "path": "frontend/package-lock.json",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"deprecated\": \"Use your platform's native DOMException instead\","
+    },
+    {
+      "fingerprint": "25d873625fd693c4",
+      "kind": "config",
+      "line": 2169,
+      "path": "frontend/package-lock.json",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"deprecated\": \"Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by c"
+    },
+    {
+      "fingerprint": "9795f092e4fe6d72",
+      "kind": "config",
+      "line": 2365,
+      "path": "frontend/package-lock.json",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"deprecated\": \"This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\","
+    },
+    {
+      "fingerprint": "e88bf4c93e816cbc",
+      "kind": "config",
+      "line": 4277,
+      "path": "frontend/package-lock.json",
+      "pattern": "\\bdeprecated\\b",
+      "text": "\"deprecated\": \"Use @exodus/bytes instead for a more spec-conformant and faster implementation\","
+    },
+    {
+      "fingerprint": "6dff2fdf0e40b19a",
+      "kind": "code",
+      "line": 23,
+      "path": "tools/mcp_server/call_tool_result.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Extract inner tool dict from ``CallToolResult``; support legacy bare dict.\"\"\""
+    },
+    {
+      "fingerprint": "b8d9d52df2617ae1",
+      "kind": "docs",
+      "line": 255,
+      "path": "tools/mcp_server/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy `permission` is compatibility metadata only; policy enforcement is class/profile-based"
+    },
+    {
+      "fingerprint": "b3f0c9d15644b919",
+      "kind": "code",
+      "line": 52,
+      "path": "tools/mcp_server/tools_registry.py",
+      "pattern": "_legacy\\b",
+      "text": "\"\"\"Tool metadata: canonical strand + handler (permission_legacy for older clients).\"\"\""
+    },
+    {
+      "fingerprint": "5cda3e086688ae6e",
+      "kind": "code",
+      "line": 69,
+      "path": "tools/mcp_server/tools_registry.py",
+      "pattern": "_legacy\\b",
+      "text": "self.permission = descriptor.permission_legacy"
+    },
+    {
+      "fingerprint": "9fcf015e889ecfb9",
+      "kind": "code",
+      "line": 128,
+      "path": "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+      "pattern": "\\blegacy\\b",
+      "text": "\"\"\"Map legacy evaluator labels to current rubric tokens (case-insensitive).\"\"\""
+    },
+    {
+      "fingerprint": "3ed8196b133d1e8f",
+      "kind": "test",
+      "line": 41,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert health_tool.descriptor.permission_legacy == \"read\""
+    },
+    {
+      "fingerprint": "e6fc18e8fdbfc1c9",
+      "kind": "test",
+      "line": 46,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert session_get.descriptor.permission_legacy == \"read\""
+    },
+    {
+      "fingerprint": "519c041a561cb2a4",
+      "kind": "test",
+      "line": 52,
+      "path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
+      "pattern": "_legacy\\b",
+      "text": "assert session_create.descriptor.permission_legacy == \"write\""
+    },
+    {
+      "fingerprint": "a84455a95b511e53",
+      "kind": "test",
+      "line": 43,
+      "path": "tools/mcp_server/tests/test_tools_registry_aliases.py",
+      "pattern": "_legacy\\b",
+      "text": "permission_legacy=\"read\","
+    },
+    {
+      "fingerprint": "d713e2e6162d0231",
+      "kind": "docs",
+      "line": 19,
+      "path": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Supersedes ADR-0021 (stub, moved to `docs/ADR/legacy/`)."
+    },
+    {
+      "fingerprint": "6539c66b28c95cd8",
+      "kind": "docs",
+      "line": 63,
+      "path": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "- Transitional backend paths must be **explicitly labeled** deprecated until removed."
+    },
+    {
+      "fingerprint": "c11e678156cb375d",
+      "kind": "docs",
+      "line": 99,
+      "path": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `docs/archive/architecture-legacy/runtime_authority_decision.md` (archived original)"
+    },
+    {
+      "fingerprint": "57eba340b0fdbf7b",
+      "kind": "docs",
+      "line": 36,
+      "path": "docs/ADR/adr-0002-backend-session-surface-quarantine.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "2. **Classify** each entry point as: **retire** (remove when no caller), **quarantine** (explicit non-authoritative labeling, narrow compatibility window), or **compat** (documented operator-only surface with no player truth claims)."
+    },
+    {
+      "fingerprint": "548efb7a6f65aa37",
+      "kind": "docs",
+      "line": 1,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "# ADR-0003: Scene Identity Compatibility Surface Across Compile, AI Guidance, and Commit"
+    },
+    {
+      "fingerprint": "8595b8a67d5cd150",
+      "kind": "docs",
+      "line": 8,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "**Implemented as a bounded compatibility surface.**"
+    },
+    {
+      "fingerprint": "52edce8f6cef560a",
+      "kind": "docs",
+      "line": 10,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py` is the sole legacy-compatible definition"
+    },
+    {
+      "fingerprint": "bb2b3226dd18ad02",
+      "kind": "docs",
+      "line": 43,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\blegacy\\b",
+      "text": "2. **Single owned compatibility resolver:** [`ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py`](../../ai_stack/story_runtime/god_of_carnage/god_of_carnage_scene_identity.py) is the only place that defines legacy runti"
+    },
+    {
+      "fingerprint": "dcc21a66df2abb63",
+      "kind": "docs",
+      "line": 51,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "6. The compatibility resolver does **not** authorize phase-helper fallback."
+    },
+    {
+      "fingerprint": "f940fadec8925571",
+      "kind": "docs",
+      "line": 65,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "A bounded compatibility resolver feeds compiler projection, commit resolver,"
+    },
+    {
+      "fingerprint": "4c0fcb50f2ec2ef6",
+      "kind": "docs",
+      "line": 71,
+      "path": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "M[god_of_carnage_scene_identity.py \u2014 compatibility resolver]"
+    },
+    {
+      "fingerprint": "0d5d70b530bfb004",
+      "kind": "docs",
+      "line": 10,
+      "path": "docs/ADR/adr-0018-role-aware-aidecisionlog.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `backend/app/runtime/ai_decision_logging.py`: `construct_ai_decision_log()` populates `AIDecisionLog` with `parsed_decision`, `interpreter_output`, `director_output`, `responder_output` from `ParsedRoleAwareDecision` when present; falls b"
+    },
+    {
+      "fingerprint": "53634c772b72ff65",
+      "kind": "docs",
+      "line": 13,
+      "path": "docs/ADR/adr-0018-role-aware-aidecisionlog.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Backward compatibility maintained: when `role_aware_decision=None`, role fields are `None` and legacy `raw_output` path is used."
+    },
+    {
+      "fingerprint": "5a2602a2b6216f20",
+      "kind": "docs",
+      "line": 41,
+      "path": "docs/ADR/adr-0018-role-aware-aidecisionlog.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Backward compatibility: when role-aware fields are absent, systems fall back to legacy raw outputs."
+    },
+    {
+      "fingerprint": "780a4aec293e20eb",
+      "kind": "docs",
+      "line": 5,
+      "path": "docs/ADR/adr-0021-runtime-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy \u2014 superseded by [ADR-0001](../adr-0001-runtime-authority-in-world-engine.md)"
+    },
+    {
+      "fingerprint": "fa7e92f16f05967d",
+      "kind": "docs",
+      "line": 13,
+      "path": "docs/ADR/adr-0021-runtime-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Moved to `docs/ADR/legacy/` \u2014 do not extend or amend this file."
+    },
+    {
+      "fingerprint": "5e9940b692fcd97e",
+      "kind": "docs",
+      "line": 39,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy removal governance is executed through the `delagecy` fy-suite:"
+    },
+    {
+      "fingerprint": "fa017c710c065a24",
+      "kind": "docs",
+      "line": 40,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Newly found legacy surfaces must be entered in `delagecy_registry.json` and reported before removal begins."
+    },
+    {
+      "fingerprint": "00712a6a578a67b9",
+      "kind": "docs",
+      "line": 42,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy is not active compatibility: if the current system still requires the behavior, preserve it and canonicalize the name or contract instead of deleting it."
+    },
+    {
+      "fingerprint": "a67128586e62c048",
+      "kind": "docs",
+      "line": 43,
+      "path": "docs/ADR/adr-0029-residue-removal-policy.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- UI, route, test, docs, diagnostics, compatibility aliases, and hidden compatibility blocks are residue until removed or reclassified as active canonical behavior with evidence."
+    },
+    {
+      "fingerprint": "a612b503cbc9a96c",
+      "kind": "docs",
+      "line": 14,
+      "path": "docs/ADR/adr-0030-docker-up-complete-bootstrap.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Langfuse bootstrap is optional import (credentials from `.env` only if both keys present); not governed by legacy `LANGFUSE_ENABLED` flag."
+    },
+    {
+      "fingerprint": "2fd2f3d4a0dde005",
+      "kind": "docs",
+      "line": 131,
+      "path": "docs/ADR/adr-0030-docker-up-complete-bootstrap.md",
+      "pattern": "\\blegacy\\b",
+      "text": "It does not rely on a legacy `LANGFUSE_ENABLED` environment toggle."
+    },
+    {
+      "fingerprint": "09c2b11b85edb90d",
+      "kind": "docs",
+      "line": 16,
+      "path": "docs/ADR/adr-0031-env-configuration-governance.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- No `LANGFUSE_ENABLED` legacy toggle exists; the old model is explicitly prohibited in this ADR."
+    },
+    {
+      "fingerprint": "90231bc9f130356e",
+      "kind": "docs",
+      "line": 44,
+      "path": "docs/ADR/adr-0031-env-configuration-governance.md",
+      "pattern": "\\blegacy\\b",
+      "text": "2. Langfuse is not governed by a legacy mandatory `LANGFUSE_ENABLED` switch."
+    },
+    {
+      "fingerprint": "3cef45d8572fc4d2",
+      "kind": "docs",
+      "line": 106,
+      "path": "docs/ADR/adr-0031-env-configuration-governance.md",
+      "pattern": "\\blegacy\\b",
+      "text": "### 2. Runtime-managed settings must not be reduced to legacy env toggles"
+    },
+    {
+      "fingerprint": "b30edc03824e5363",
+      "kind": "docs",
+      "line": 164,
+      "path": "docs/ADR/adr-0031-env-configuration-governance.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- automated backend connection tests must exercise `test_observability_connection()` / `verify_langfuse_runtime_connectivity()` against that backend-managed config, not legacy `code` fields, `observability_config_id` credential joins, or di"
+    },
+    {
+      "fingerprint": "dfedc1c3136797f0",
+      "kind": "docs",
+      "line": 78,
+      "path": "docs/ADR/adr-0032-mvp4-live-runtime-setup-requirements.md",
+      "pattern": "\\blegacy\\b",
+      "text": "World-Engine story-session payloads, not legacy opening stubs without canonical"
+    },
+    {
+      "fingerprint": "e915b46affa55234",
+      "kind": "docs",
+      "line": 691,
+      "path": "docs/ADR/adr-0033-live-runtime-commit-semantics.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Required behavior (operator / legacy Backend proxy turn):** For `POST /api/v1/sessions/<session_id>/turns` ([`backend/app/api/v1/session_routes.py`](../../backend/app/api/v1/session_routes.py) `execute_session_turn`), the same `backend.tu"
+    },
+    {
+      "fingerprint": "1015d5db8f4b792a",
+      "kind": "docs",
+      "line": 814,
+      "path": "docs/ADR/adr-0033-live-runtime-commit-semantics.md",
+      "pattern": "\\blegacy\\b",
+      "text": "2. **Mark final committed adapter explicitly.** The replacement metadata sets `final_adapter = \"ldss_fallback\"`, `final_adapter_invocation_mode = \"ldss_fallback_after_live_opening_failure\"`, `fallback_reason` (mirrors `live_opening_failure_"
+    },
+    {
+      "fingerprint": "240d7b5e7a6e90d1",
+      "kind": "docs",
+      "line": 19,
+      "path": "docs/ADR/adr-0034-player-facing-narrative-shell-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy fallback: if `typewriter_slice_start_index` absent, last block is animated (pre-2026-05 behavior preserved)."
+    },
+    {
+      "fingerprint": "a386c3f3a9cc4767",
+      "kind": "docs",
+      "line": 70,
+      "path": "docs/ADR/adr-0034-player-facing-narrative-shell-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **`visual_emphasis` (optional):** Separate from `narration_beat` \u2014 e.g. `dramatic_moment` drives card chrome via `scene-block--visual-emphasis-*`, not the legacy opening index hack."
+    },
+    {
+      "fingerprint": "2a96b18f5dd6ab20",
+      "kind": "docs",
+      "line": 78,
+      "path": "docs/ADR/adr-0034-player-facing-narrative-shell-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "7. **Cumulative blocks + typewriter slice (HTTP):** `visible_scene_output.blocks` remains the **full committed transcript** (cumulative across `story_window.entries` when each entry carries `scene_blocks`). To animate **only the newly commi"
+    },
+    {
+      "fingerprint": "6213cc45115b01f5",
+      "kind": "docs",
+      "line": 168,
+      "path": "docs/ADR/adr-0034-player-facing-narrative-shell-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Frontend: Jest \u2014 `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; `typewriter_slice_start_index` sequential delivery when present; **deferred slice DOM mount** + `revealAll` / acce"
+    },
+    {
+      "fingerprint": "e7d6925193b9331c",
+      "kind": "docs",
+      "line": 171,
+      "path": "docs/ADR/adr-0034-player-facing-narrative-shell-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- World-Engine: `world-engine/tests/test_trace_middleware.py::test_opening_scene_blocks_do_not_force_legacy_ui_narration_beat_tags` (no legacy opening UI beat names on `scene_blocks[].narration_beat`)."
+    },
+    {
+      "fingerprint": "d45ddd01286e68f1",
+      "kind": "docs",
+      "line": 26,
+      "path": "docs/ADR/adr-0037-content-locale-story-runtime.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "remains a compatibility import only."
+    },
+    {
+      "fingerprint": "e76ad2044ffb9fdb",
+      "kind": "docs",
+      "line": 70,
+      "path": "docs/ADR/adr-0037-content-locale-story-runtime.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- GoC legacy keyword scene candidates"
+    },
+    {
+      "fingerprint": "c75b8102c9a22230",
+      "kind": "docs",
+      "line": 75,
+      "path": "docs/ADR/adr-0037-content-locale-story-runtime.md",
+      "pattern": "\\blegacy_",
+      "text": "`legacy_keyword_scene_candidates_used`, are compatibility diagnostics only and"
+    },
+    {
+      "fingerprint": "e7e8194878e40926",
+      "kind": "docs",
+      "line": 67,
+      "path": "docs/ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Semantic names are allowed in production when they are contract-backed. Tests must distinguish forbidden Pi-number usage from valid semantic runtime surfaces. When a new Capability Matrix row gains implementation code, update `tests/gates/t"
+    },
+    {
+      "fingerprint": "37db88779665005a",
+      "kind": "docs",
+      "line": 71,
+      "path": "docs/ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md",
+      "pattern": "\\blegacy\\b",
+      "text": "ADR-0039 applies to every test file that references a Pi / \u03a0 capability label, including tests that use Table-B metadata only as fixture data. Those tests must be covered by `tests/gates/test_adr_0039_pi_scope.py`, and any new Pi-labeled te"
+    },
+    {
+      "fingerprint": "ae66dcb0ea9720b9",
+      "kind": "docs",
+      "line": 130,
+      "path": "docs/ADR/adr-0040-quality-lab-mcp-runtime-diagnostics.md",
+      "pattern": "\\blegacy\\b",
+      "text": "LLM-as-a-Judge Definition Table - Judges.csv   # legacy export, frozen"
+    },
+    {
+      "fingerprint": "94a0ffb13c139d95",
+      "kind": "docs",
+      "line": 228,
+      "path": "docs/ADR/adr-0040-quality-lab-mcp-runtime-diagnostics.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "the wire for Cursor compatibility"
+    },
+    {
+      "fingerprint": "cdc8206fc113dea1",
+      "kind": "docs",
+      "line": 514,
+      "path": "docs/ADR/adr-0040-quality-lab-mcp-runtime-diagnostics.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| `docs/llm-as-a-judge/` (per-judge `.md` directory + index) | Canonical evaluator definitions; CSV is legacy |"
+    },
+    {
+      "fingerprint": "24cba5bfbead71c7",
+      "kind": "docs",
+      "line": 15,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "ADR-0041 should be treated as **Controlled Runtime Capability Authority**, not an observability-only sidecar. **Intended end state:** ADR-0041 becomes a central runtime mechanism that (1) classifies the current runtime situation, (2) select"
+    },
+    {
+      "fingerprint": "2a154b89e5d76fc8",
+      "kind": "docs",
+      "line": 17,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Today:** projection, dry-run dispatch, opt-in plan-enforced sidecar, authority bridge, preview, and handoff-candidate policy are temporary safety phases; they are not the target end state. The current scoped step is `scoped_co_authority`:"
+    },
+    {
+      "fingerprint": "d65d9315cb4fa797",
+      "kind": "docs",
+      "line": 37,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Runtime readiness consumer contract (veto-only, flag-gated) | Implemented locally / backend bundle only | `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` plus the same upstream ADR-0041 flags may influence **only** `runtime_session_read"
+    },
+    {
+      "fingerprint": "a40360dd7c58c217",
+      "kind": "docs",
+      "line": 68,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **`authoritative_action_resolution_surface`** remains **`seam_owned`** in the bridge catalog for legacy compatibility; the player-turn graph no longer routes through `authoritative_action_resolution` (superseded by ADR-0062 thin-path capa"
+    },
+    {
+      "fingerprint": "2c4c2ecb5c14ba6c",
+      "kind": "docs",
+      "line": 69,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **`npc_conflict_turn`**: fixture dispatch must include non-empty **`proposed_state_effects`** (legacy alignment minimum), valid scene-energy contract inputs, and (for tests) **`voice_validation_mode=schema_only`** with **`voice_profiles=["
+    },
+    {
+      "fingerprint": "4e5fa86977c8deed",
+      "kind": "docs",
+      "line": 209,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `run_validation_seam` remains legacy canonical authority, fallback authority,"
+    },
+    {
+      "fingerprint": "0d534899c414ed5c",
+      "kind": "docs",
+      "line": 614,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- ADR-0039 compatibility is explicit."
+    },
+    {
+      "fingerprint": "cea9d6aa777622cd",
+      "kind": "docs",
+      "line": 635,
+      "path": "docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Pi / \u03a0 labels re-enter production logic | ADR-0039 gates and selector manifest review must reject active legacy keys. |"
+    },
+    {
+      "fingerprint": "f0e413f5213e6510",
+      "kind": "docs",
+      "line": 22,
+      "path": "docs/ADR/adr-0042-meta-narrative-awareness-opt-in.md",
+      "pattern": "\\blegacy\\b",
+      "text": "ADR-0039 also requires that legacy Pi / \u03a0 labels remain historical index"
+    },
+    {
+      "fingerprint": "bb536fe14b5b2033",
+      "kind": "docs",
+      "line": 54,
+      "path": "docs/ADR/adr-0046-typewriter-cinematic-direction.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Historical problem (pre-implementation):** constant 44 cps, unused beat metadata, dead legacy `.block-typewriter::after` cursor CSS, and hard-cut slice transitions."
+    },
+    {
+      "fingerprint": "bc88982b7f9dd56b",
+      "kind": "docs",
+      "line": 32,
+      "path": "docs/ADR/adr-0050-security-governance-browser-mutation-boundaries.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- backend compatibility web routes can receive a backend Flask `session` cookie and rely on Flask-WTF CSRF when `WTF_CSRF_ENABLED=True`"
+    },
+    {
+      "fingerprint": "9fba15daa2e1528f",
+      "kind": "docs",
+      "line": 48,
+      "path": "docs/ADR/adr-0050-security-governance-browser-mutation-boundaries.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- backend legacy web routes: backend `session` cookie, Flask-WTF CSRF when enabled"
+    },
+    {
+      "fingerprint": "7b6f19a40a1736f8",
+      "kind": "docs",
+      "line": 16,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- `pressure_target` remains as a compatibility alias for pressure-specific target data; the broader concept is now `scene_target`."
+    },
+    {
+      "fingerprint": "f97e7c6fb8b9c222",
+      "kind": "docs",
+      "line": 17,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- The legacy `director_select_dramatic_parameters` path can call the planner after AI semantic move, social state, responder, character-mind, and pacing decisions are available. The ADR-0062 thin path does not visit that node for ordinary p"
+    },
+    {
+      "fingerprint": "ecb6aaf56a1d3ad1",
+      "kind": "docs",
+      "line": 22,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Validation and commit seams remain authoritative; planner output is advisory until validation/commit whenever the legacy planner path is used."
+    },
+    {
+      "fingerprint": "79311a3d29028cee",
+      "kind": "docs",
+      "line": 23,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Scene-function and responder selection no longer use legacy keyword scene candidates or raw actor-name matching. Missing semantic move input degrades through `semantic_move_required`."
+    },
+    {
+      "fingerprint": "02387643fed193cb",
+      "kind": "docs",
+      "line": 31,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy\\b",
+      "text": "contract tests and graph-authority tests that assert the thin path keeps legacy"
+    },
+    {
+      "fingerprint": "c8bc155ba595aa7a",
+      "kind": "docs",
+      "line": 119,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- `pressure_target` as a compatibility alias for pressure-oriented target data"
+    },
+    {
+      "fingerprint": "f0ea6bc9ffb584f4",
+      "kind": "docs",
+      "line": 158,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy\\b",
+      "text": "17. Legacy keyword routing is removed. Compatibility diagnostics may preserve"
+    },
+    {
+      "fingerprint": "a712f508bf10d72b",
+      "kind": "docs",
+      "line": 159,
+      "path": "docs/ADR/adr-0053-bounded-semantic-scene-planner.md",
+      "pattern": "\\blegacy_",
+      "text": "historical field names, but `legacy_keyword_scene_candidates_used` must not"
+    },
+    {
+      "fingerprint": "c317d6eca50aacd0",
+      "kind": "docs",
+      "line": 71,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\blegacy\\b",
+      "text": "`normalized_internal_text` (legacy field name `normalized_english_text` may"
+    },
+    {
+      "fingerprint": "7b9dfea9e113b4f4",
+      "kind": "docs",
+      "line": 72,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "remain for GoC/English compatibility), semantic labels such as `action_kind` and"
+    },
+    {
+      "fingerprint": "5edfd66385a4c840",
+      "kind": "docs",
+      "line": 137,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\blegacy\\b",
+      "text": "keyword-based legacy path."
+    },
+    {
+      "fingerprint": "88cae3f93708c72b",
+      "kind": "docs",
+      "line": 181,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "language contract. `story_runtime_core/language_adapter.py` is a compatibility"
+    },
+    {
+      "fingerprint": "086fdbedee0d06f9",
+      "kind": "docs",
+      "line": 201,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "English-authored compatibility paths)."
+    },
+    {
+      "fingerprint": "d46df9e91aa27aa1",
+      "kind": "docs",
+      "line": 205,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` no longer imports legacy keyword scene"
+    },
+    {
+      "fingerprint": "874b6265ac646456",
+      "kind": "docs",
+      "line": 212,
+      "path": "docs/ADR/adr-0054-session-input-language-english-internal-resolution.md",
+      "pattern": "\\blegacy\\b",
+      "text": "`backend_semantic_translation_preview` before its legacy structural preview"
+    },
+    {
+      "fingerprint": "d30218a7fae657d7",
+      "kind": "docs",
+      "line": 60,
+      "path": "docs/ADR/adr-0055-semantic-player-input-translation-ingress.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- optional normalized internal-language text (legacy"
+    },
+    {
+      "fingerprint": "581a5dc7c594b0d2",
+      "kind": "docs",
+      "line": 66,
+      "path": "docs/ADR/adr-0056-souffleuse-player-guidance-lane.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "The prompt store may keep compatibility keys such as"
+    },
+    {
+      "fingerprint": "f4e233f34f22e35f",
+      "kind": "docs",
+      "line": 93,
+      "path": "docs/ADR/adr-0057-canon-safe-player-freedom-and-affordance-inference.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Director-Pause is **not** Player-Hold. Player-Hold is the legacy \"the player must wait\" reading; Director-Pause inverts it: the gathering waits while the player remains free. The two read sites differ \u2014 Player-Hold reads at `world-engine/"
+    },
+    {
+      "fingerprint": "e27139b3536ed1d7",
+      "kind": "docs",
+      "line": 191,
+      "path": "docs/ADR/adr-0058-director-driven-pulse-and-block-stream-bus.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "### 9. `gathering_paused` compatibility"
+    },
+    {
+      "fingerprint": "e1aa693fa86f59ec",
+      "kind": "docs",
+      "line": 230,
+      "path": "docs/ADR/adr-0060-souffleuse-inner-voice-composition.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- Shadow path compatibility means Souffleuse pressure escalation is diagnosable"
+    },
+    {
+      "fingerprint": "80319d3cdfde0676",
+      "kind": "docs",
+      "line": 50,
+      "path": "docs/ADR/adr-0062-director-realization-thin-path.md",
+      "pattern": "\\blegacy\\b",
+      "text": "9. **`build_synthetic_generation_for_action_resolution`** remains in the repository for legacy/tests but is **not** called from the player-turn graph."
+    },
+    {
+      "fingerprint": "93ed12772688f657",
+      "kind": "docs",
+      "line": 105,
+      "path": "docs/ADR/adr-0063-w5-actor-situation-tracker.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Phase 5: legacy localization / actor-location helpers replaced by W5 projections."
+    },
+    {
+      "fingerprint": "9cfec9aabb4245f7",
+      "kind": "docs",
+      "line": 133,
+      "path": "docs/ADR/adr-0063-w5-actor-situation-tracker.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Legacy-default tests: a payload without `w5_history` / `w5_latest_snapshot` loads as `[]` / `None`."
+    },
+    {
+      "fingerprint": "be40d5ad7738c5a1",
+      "kind": "docs",
+      "line": 9,
+      "path": "docs/ADR/migration_from_archive_2026-04-17.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `docs/archive/architecture-legacy/runtime_authority_decision.md` \u2192 [`adr-0001-runtime-authority-in-world-engine.md`](adr-0001-runtime-authority-in-world-engine.md)"
+    },
+    {
+      "fingerprint": "410d248126eb14b9",
+      "kind": "docs",
+      "line": 18,
+      "path": "docs/ADR/migration_from_archive_2026-04-17.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `docs/archive/superpowers-legacy-execution-2026/specs/2026-03-29-w2-4-4-role-diagnostics.md`"
+    },
+    {
+      "fingerprint": "dd8804e07d26b61c",
+      "kind": "docs",
+      "line": 19,
+      "path": "docs/ADR/migration_from_archive_2026-04-17.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `docs/archive/superpowers-legacy-execution-2026/specs/2026-03-28-w2-2-2-mutation-policy-design.md`"
+    },
+    {
+      "fingerprint": "b7deb71ca14831a3",
+      "kind": "docs",
+      "line": 7,
+      "path": "docs/ADR/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Legacy ADRs** (fully superseded by newer records) live in [`legacy/`](legacy/). Do not amend legacy files \u2014 create or amend active ADRs instead."
+    },
+    {
+      "fingerprint": "a96efa445531319d",
+      "kind": "docs",
+      "line": 16,
+      "path": "docs/ADR/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| **Legacy** | Entirely superseded by a newer ADR; moved to `legacy/` |"
+    },
+    {
+      "fingerprint": "bdbe58de2f5691ae",
+      "kind": "docs",
+      "line": 81,
+      "path": "docs/ADR/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "## Legacy ADRs"
+    },
+    {
+      "fingerprint": "65a8f99d487dd521",
+      "kind": "docs",
+      "line": 83,
+      "path": "docs/ADR/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "These ADRs are fully superseded by newer records. They live in [`legacy/`](legacy/) for historical reference only. Do not amend them."
+    },
+    {
+      "fingerprint": "dfb81118d4be6275",
+      "kind": "docs",
+      "line": 87,
+      "path": "docs/ADR/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| [ADR-0021](legacy/adr-0021-runtime-authority.md) | Runtime authority (early consolidation stub) | [ADR-0001](adr-0001-runtime-authority-in-world-engine.md) |"
+    },
+    {
+      "fingerprint": "49d4f658915dcdab",
+      "kind": "docs",
+      "line": 5,
+      "path": "docs/ADR/legacy/adr-0021-runtime-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy \u2014 superseded by [ADR-0001](../adr-0001-runtime-authority-in-world-engine.md)"
+    },
+    {
+      "fingerprint": "c13d4ad0ecbd4a98",
+      "kind": "docs",
+      "line": 13,
+      "path": "docs/ADR/legacy/adr-0021-runtime-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Moved to `docs/ADR/legacy/` \u2014 do not extend or amend this file."
+    },
+    {
+      "fingerprint": "7f792e122dc6e15d",
+      "kind": "docs",
+      "line": 1,
+      "path": "docs/ADR/legacy/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy ADRs"
+    },
+    {
+      "fingerprint": "a7bf866e04879267",
+      "kind": "docs",
+      "line": 34,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp1-001-experience-identity.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- `visitor` must never be reintroduced in any role, prompt, lobby seat, or compatibility fallback (FIX-007 validates all surfaces)"
+    },
+    {
+      "fingerprint": "3af6e905982ca8ae",
+      "kind": "docs",
+      "line": 17,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp1-005-canonical-content-authority.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "The current authored story spine is **not** `scenes.yaml`. Directed story truth lives in `canonical_path/index.yaml` and the numbered `canonical_path/*.yaml` step files. `scene_graph.yaml` is retained only as a runtime/compatibility node in"
+    },
+    {
+      "fingerprint": "10566618a63f4f00",
+      "kind": "docs",
+      "line": 31,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp1-005-canonical-content-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "module shape intentionally omits legacy standalone `endings.yaml`; tests"
+    },
+    {
+      "fingerprint": "df16b6796cf32dee",
+      "kind": "docs",
+      "line": 55,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp1-005-canonical-content-authority.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- Foundation gates must verify the active content shape (`canonical_path/` plus `scene_graph.yaml`) and must not require legacy flat story files such as `scenes.yaml`, `transitions.yaml`, `triggers.yaml`, or `endings.yaml`."
+    },
+    {
+      "fingerprint": "bf4e84d8cd5a9dc0",
+      "kind": "docs",
+      "line": 44,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-007-minimum-agency-baseline-superseded.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy \u201cone NPC line\u201d floor is replaced by **LDSS**: **passivity**, **dramatic mass**, and **`NPCAgencyPlan`** gates before commit."
+    },
+    {
+      "fingerprint": "0b6f8969458ec25d",
+      "kind": "docs",
+      "line": 25,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md",
+      "pattern": "\\blegacy_",
+      "text": "6. **LDSS diagnostics status**: The diagnostics field `diagnostics.live_dramatic_scene_simulator.status` reports the active LDSS outcome. Direct canonical-step LDSS envelope builds report `\"approved\"` when the authored canonical path step p"
+    },
+    {
+      "fingerprint": "c325bc1fc0e9fb9b",
+      "kind": "docs",
+      "line": 27,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md",
+      "pattern": "\\blegacy\\b",
+      "text": "7. **Legacy blob rejection**: The response packager must not use legacy text blobs as final output. `legacy_blob_used` must be `false` in diagnostics."
+    },
+    {
+      "fingerprint": "3254bf3c67a43a37",
+      "kind": "docs",
+      "line": 48,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md",
+      "pattern": "\\blegacy\\b",
+      "text": "After validation/commit, **`_build_ldss_scene_envelope`** emits **`SceneTurnEnvelope.v2`** with typed **`SceneBlock`**s and **evidenced** diagnostics \u2014 no legacy blob as final truth."
+    },
+    {
+      "fingerprint": "81900d9c992b5570",
+      "kind": "docs",
+      "line": 41,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `ai_stack/story_runtime/narrative_runtime_agent.py` \u2014 ruhepunkt pressure analysis reads the v1 `npc_initiatives` contract and remains backward-compatible with legacy `initiatives`."
+    },
+    {
+      "fingerprint": "8a3ce195fe675f32",
+      "kind": "docs",
+      "line": 48,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- `ai_stack/tests/test_npc_agency_contracts.py` \u2014 adapter normalization, required realization, NPC-to-NPC target, and human/visitor exclusion coverage for compatibility surfaces."
+    },
+    {
+      "fingerprint": "f066caae06d32ac8",
+      "kind": "docs",
+      "line": 53,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "As of the 2026-05-15 Pi7 long-horizon runtime slice, this ADR has an implementation-ready deterministic long-horizon path, but not a full live-staging closure claim. The current primary contract is `npc_agency_simulation.v1`; `npc_agency_pl"
+    },
+    {
+      "fingerprint": "ed449863e41f867d",
+      "kind": "docs",
+      "line": 102,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-001-observability-diagnostics.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "### Backward Compatibility"
+    },
+    {
+      "fingerprint": "a30cc88d9730a33f",
+      "kind": "docs",
+      "line": 205,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-002-langfuse-integration.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "### Backward Compatibility"
+    },
+    {
+      "fingerprint": "a7bbb36f6f3ac460",
+      "kind": "docs",
+      "line": 299,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-003-evaluation-pipeline.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "### Backward Compatibility"
+    },
+    {
+      "fingerprint": "672a3cb0e06e4180",
+      "kind": "docs",
+      "line": 329,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-004-narrative-gov-panels.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "### Backward Compatibility"
+    },
+    {
+      "fingerprint": "daea28dcd7d4c820",
+      "kind": "docs",
+      "line": 21,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-010-narrative-gov-operator-truth-surface.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `frontend_render_contract_health` \u2014 are scene blocks present and legacy blob absent?"
+    },
+    {
+      "fingerprint": "40c8c35b274b6173",
+      "kind": "docs",
+      "line": 262,
+      "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp5-003-accessibility-mode-implementation.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "## Browser Compatibility"
+    },
+    {
+      "fingerprint": "0e733d0d41f802f0",
+      "kind": "docs",
+      "line": 52,
+      "path": "docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy env/default paths may remain only as documented bootstrap or emergency fallback seams and must never silently override resolved governance values during normal operation."
+    },
+    {
+      "fingerprint": "7baf034ca5ef30ba",
+      "kind": "docs",
+      "line": 56,
+      "path": "docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Navigation:** the administration header exposes **AI Runtime Governance** as the single nav label for this surface (no duplicate \u201cOperational Governance\u201d row). Legacy URLs under `/manage/operational-governance/\u2026` remain registered and r"
+    },
+    {
+      "fingerprint": "cdf3130df18bbddb",
+      "kind": "docs",
+      "line": 37,
+      "path": "docs/operations/RUNBOOK.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `FRONTEND_URL=http://127.0.0.1:5002` (legacy redirect compatibility)"
+    },
+    {
+      "fingerprint": "74a0da865b7e57e3",
+      "kind": "docs",
+      "line": 89,
+      "path": "docs/operations/RUNBOOK.md",
+      "pattern": "\\blegacy\\b",
+      "text": "### Legacy redirect compatibility"
+    },
+    {
+      "fingerprint": "36d9fc473f82cb3c",
+      "kind": "docs",
+      "line": 157,
+      "path": "docs/operations/RUNBOOK.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- If legacy paths still render HTML from backend: confirm `backend/app/web/routes.py` is redirect-only compatibility"
+    },
+    {
+      "fingerprint": "b301ebd5892a882b",
+      "kind": "docs",
+      "line": 26,
+      "path": "docs/technical/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "## Legacy location"
+    },
+    {
+      "fingerprint": "5fc4465c68169532",
+      "kind": "docs",
+      "line": 28,
+      "path": "docs/technical/README.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Older files formerly under `docs/architecture/` are either **moved here**, **archived** under [`docs/archive/architecture-legacy/`](../archive/architecture-legacy/), or superseded by a single canonical page per topic (see [`../archive/docum"
+    },
+    {
+      "fingerprint": "ba89394a62b91ed8",
+      "kind": "docs",
+      "line": 35,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/area2_operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |"
+    },
+    {
+      "fingerprint": "0eec0464a5d8ff0f",
+      "kind": "docs",
+      "line": 126,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "## Appendix: legacy filenames and archived planning language"
+    },
+    {
+      "fingerprint": "d98444c2beb0a45c",
+      "kind": "docs",
+      "line": 132,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Archived milestone docs** (task IDs, gate tables, closure reports) live under `docs/archive/architecture-legacy/` for historical traceability only. **Canonical routing behavior** is defined by the current Python modules listed in the tabl"
+    },
+    {
+      "fingerprint": "479064a3e0eea6e9",
+      "kind": "docs",
+      "line": 140,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 \u2014 tables [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.m"
+    },
+    {
+      "fingerprint": "cec8d6845af6ea2c",
+      "kind": "docs",
+      "line": 142,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 \u2014 [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_practical_convergence_closure_report."
+    },
+    {
+      "fingerprint": "67970c4be7dd89e6",
+      "kind": "docs",
+      "line": 144,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 \u2014 [`area2_workstream_b_gates.md`](../../archive/architecture-legacy/area2_workstream_b_gates.md), [`area2_reproducibility_closure_report.md`](../../a"
+    },
+    {
+      "fingerprint": "bc881be73af45769",
+      "kind": "docs",
+      "line": 146,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 \u2014 [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md), [`area2_registry_routing_converg"
+    },
+    {
+      "fingerprint": "fc5409f3522d10b6",
+      "kind": "docs",
+      "line": 148,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 \u2014 `compact_operator_comparison` grammar version **`area2_operator_comparison_v1`**; tables [`area2_task3_closure_gates.md`](../../archive"
+    },
+    {
+      "fingerprint": "481a572cd586ba9c",
+      "kind": "docs",
+      "line": 150,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 \u2014 [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md), [`area2_validation_hardening_closure"
+    },
+    {
+      "fingerprint": "bd25f76a58c4a622",
+      "kind": "docs",
+      "line": 152,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 \u2014 [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md), [`area2_final_"
+    },
+    {
+      "fingerprint": "870260fe16d203fe",
+      "kind": "docs",
+      "line": 154,
+      "path": "docs/technical/ai/llm-slm-role-stratification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Dual workstream rollup:** G-A-01 \u2026 G-A-07 and G-B-01 \u2026 G-B-07 cross-reference \u2014 [`area2_dual_workstream_closure_report.md`](../../archive/architecture-legacy/area2_dual_workstream_closure_report.md)."
+    },
+    {
+      "fingerprint": "df4ab14a05623382",
+      "kind": "docs",
+      "line": 237,
+      "path": "docs/technical/ai/RAG.md",
+      "pattern": "\\blegacy\\b",
+      "text": "## Legacy verification and archived material"
+    },
+    {
+      "fingerprint": "a753b4c24c40ef9f",
+      "kind": "docs",
+      "line": 239,
+      "path": "docs/technical/ai/RAG.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Embedding hardening notes and older evaluation write-ups live under `docs/archive/rag-task-legacy/` with cross-references in consolidation docs. **Canonical behavior** is always `ai_stack/rag/__init__.py` plus the call sites above."
+    },
+    {
+      "fingerprint": "13f8da47a023feeb",
+      "kind": "docs",
+      "line": 19,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Runtime**: The canonical in-process AI path (`execute_turn_with_ai`) runs **Task 1 multi-stage orchestration** by default (`backend/app/runtime/runtime_ai_stages.py`): **preflight** (SLM-first `cheap_preflight`), **signal / consistency*"
+    },
+    {
+      "fingerprint": "df909725303b4a52",
+      "kind": "docs",
+      "line": 31,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Area 2 Task 4 formal closure (G-T4-01 \u2026 G-T4-08):** [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md) \u2014 binding terms and gate table. **Closure report:** [`area2_validation_hardening_closure_"
+    },
+    {
+      "fingerprint": "240968b8844aa5a4",
+      "kind": "docs",
+      "line": 33,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Seam map (what was strong vs weak):** [`task4_validation_seam_map.md`](../../archive/architecture-legacy/task4_validation_seam_map.md)"
+    },
+    {
+      "fingerprint": "4a6c35784d4c57be",
+      "kind": "docs",
+      "line": 34,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Explicit gate table (reviewable contract):** [`task4_hardening_gates.md`](../../archive/architecture-legacy/task4_hardening_gates.md)"
+    },
+    {
+      "fingerprint": "ce175fb1a9e56e19",
+      "kind": "docs",
+      "line": 35,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Closure report (PASS/FAIL, commands, residual risks):** [`task4_maturity_hardening_closure_report.md`](../../archive/architecture-legacy/task4_maturity_hardening_closure_report.md)"
+    },
+    {
+      "fingerprint": "86513c7cf905d9a3",
+      "kind": "docs",
+      "line": 37,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**What tests now prove (high level):** staged Runtime success, SLM-only, degraded skip/parse-forced synthesis, orchestration-preempted audit shape (schema version and preempted timeline entry), legacy single-pass, tool-loop continuation aft"
+    },
+    {
+      "fingerprint": "58ff1b889bb452cb",
+      "kind": "docs",
+      "line": 41,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Canonical Task 2A paths expose a single importable **authority map** (`area2_routing_authority` \u2014 see [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py)), deterministic **operational sta"
+    },
+    {
+      "fingerprint": "17fde191ee4957cc",
+      "kind": "docs",
+      "line": 45,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Final gates enforce **reproducible bootstrap** (named profiles), **healthy canonical paths** under `testing_bootstrap_on`, **authority convergence** in registry + summary text, **no-eligible non-normalization**, **operator legibility**, **c"
+    },
+    {
+      "fingerprint": "efb2f1b41da9e0da",
+      "kind": "docs",
+      "line": 49,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**`compact_operator_comparison`** under **`operator_audit.area2_operator_truth`** provides a stable, cross-surface comparison grammar (`grammar_version` **`area2_operator_comparison_v1`**) for operator-first reading: policy/execution postur"
+    },
+    {
+      "fingerprint": "e430d887f3b6b607",
+      "kind": "docs",
+      "line": 53,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Named closure over **registry/routing operational truth** for canonical Runtime, Writers-Room, and Improvement paths. Gate table: [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md). Closure repo"
+    },
+    {
+      "fingerprint": "378213bc1085f064",
+      "kind": "docs",
+      "line": 57,
+      "path": "docs/technical/architecture/ai_story_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Workstream A** (practical convergence) and **Workstream B** (reproducibility) gates with separate enforcement. Tables: [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_workstream_b_ga"
+    },
+    {
+      "fingerprint": "e00180be74f116de",
+      "kind": "docs",
+      "line": 13,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "- **In-process** `RuntimeManager` / `RuntimeEngine` / `JsonRunStore` are a **deprecated transitional mirror** for unit tests and local experiments only. They are **not** mounted on the production Flask app."
+    },
+    {
+      "fingerprint": "ddb85e1ec0b40795",
+      "kind": "docs",
+      "line": 14,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "- **W2-style** `SessionState` flows (`session_start`, `session_store`, `turn_dispatcher`, `turn_executor`, AI path) are **deprecated transitional** simulation/test tooling\u2014not a mounted player or operator session API."
+    },
+    {
+      "fingerprint": "85540bf0678513f8",
+      "kind": "docs",
+      "line": 40,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "from `scene_graph.yaml` are not backfilled as compatibility aliases in this"
+    },
+    {
+      "fingerprint": "d2bdf38ae1a4e346",
+      "kind": "docs",
+      "line": 51,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "not a compatibility shim for legacy GoC `endings.yaml`."
+    },
+    {
+      "fingerprint": "d516635c2995189a",
+      "kind": "docs",
+      "line": 53,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "### 2. Deprecated transitional logic"
+    },
+    {
+      "fingerprint": "6c0b3ca2e20cc1b4",
+      "kind": "docs",
+      "line": 64,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "### 3. Dead / legacy logic (removed in this gate)"
+    },
+    {
+      "fingerprint": "6018320c217d0342",
+      "kind": "docs",
+      "line": 70,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "| `runtime/w2_models.py` | Star-export compatibility shim with **zero** importers; removed. |"
+    },
+    {
+      "fingerprint": "877db8a1dec6db52",
+      "kind": "docs",
+      "line": 72,
+      "path": "docs/technical/architecture/backend-runtime-classification.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| `app/api/v1/player_routes.py` | Removed legacy player facade; canonical player turns use `/api/v1/game/player-sessions/<run_id>/turns`. |"
+    },
+    {
+      "fingerprint": "44103fc31c66bbc5",
+      "kind": "docs",
+      "line": 45,
+      "path": "docs/technical/architecture/canonical-player-flow-contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "`turn_aspect_ledger`. Legacy opening stubs without those fields are bridge"
+    },
+    {
+      "fingerprint": "34408bee0a649d71",
+      "kind": "docs",
+      "line": 10,
+      "path": "docs/technical/architecture/canonical_runtime_contract.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "2. **No ambiguous dual shapes:** Deprecated flat-only run envelopes (e.g. create responses with only top-level `run_id` and no `run`) are **not** supported. Consumers parse V1 only."
+    },
+    {
+      "fingerprint": "415ca61247374ec6",
+      "kind": "docs",
+      "line": 25,
+      "path": "docs/technical/architecture/canonical_runtime_contract.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "**Deprecated / removed:** Top-level `run_id` on this response (use `run.id` only)."
+    },
+    {
+      "fingerprint": "b325787f2a0cd8cc",
+      "kind": "docs",
+      "line": 73,
+      "path": "docs/technical/architecture/canonical_runtime_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "**Legacy alias:** `DELETE /api/runs/{run_id}` (internal key) returns the same terminate envelope V1 (with default empty audit fields). Prefer `POST .../terminate` for structured audit."
+    },
+    {
+      "fingerprint": "8713bdbe93114f9d",
+      "kind": "docs",
+      "line": 75,
+      "path": "docs/technical/architecture/canonical_runtime_contract.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "**Deprecated:** Using a fictional `status: \"terminated\"` (or similar) as the sole success signal without `terminated: true` \u2014 removed in favor of the boolean above."
+    },
+    {
+      "fingerprint": "9b94de06b1f48dfa",
+      "kind": "docs",
+      "line": 93,
+      "path": "docs/technical/architecture/canonical_runtime_contract.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "For **world-engine** story sessions (`POST /api/story/sessions`), the `runtime_projection` payload is the cross-service contract between the **backend content compiler** and the **narrative commit resolver**. Each scene row in `runtime_proj"
+    },
+    {
+      "fingerprint": "558931472d40618b",
+      "kind": "docs",
+      "line": 10,
+      "path": "docs/technical/architecture/service-boundaries.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- Does **not** own canonical player marketing HTML; see compatibility redirects below."
+    },
+    {
+      "fingerprint": "c3ffd51a3d6e4e72",
+      "kind": "docs",
+      "line": 28,
+      "path": "docs/technical/architecture/service-boundaries.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "## Compatibility redirect layer (`backend`)"
+    },
+    {
+      "fingerprint": "b4a9b41d4f7ef612",
+      "kind": "docs",
+      "line": 30,
+      "path": "docs/technical/architecture/service-boundaries.md",
+      "pattern": "\\blegacy\\b",
+      "text": "`backend/app/web/routes.py` implements legacy redirects: `GET /` goes to `/backend` (technical backend home), not the player frontend. Other legacy paths may `302` to `FRONTEND_URL` when configured, else return `410` JSON. Canonical public "
+    },
+    {
+      "fingerprint": "e0fa5b8c3e537c11",
+      "kind": "docs",
+      "line": 19,
+      "path": "docs/technical/architecture/session_runtime_contract.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "contract_version:            Version of this contract document (for compatibility)"
+    },
+    {
+      "fingerprint": "f2d11a9ceb4db54f",
+      "kind": "docs",
+      "line": 41,
+      "path": "docs/technical/content/canonical_authored_content_model.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "## Compatibility"
+    },
+    {
+      "fingerprint": "abd569916194e7bd",
+      "kind": "docs",
+      "line": 102,
+      "path": "docs/technical/content/god_of_carnage_structured_content.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- `continuity.hooks`: named compatibility hooks that may run after canonical"
+    },
+    {
+      "fingerprint": "23b5e49f30159a37",
+      "kind": "docs",
+      "line": 90,
+      "path": "docs/technical/operations/observability-and-governance.md",
+      "pattern": "\\blegacy\\b",
+      "text": "than environment-only or legacy model fields."
+    },
+    {
+      "fingerprint": "39507b34c71ff4ec",
+      "kind": "docs",
+      "line": 5,
+      "path": "docs/technical/reference/model_inventory_seam_map.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "**Area 2 authority classification (machine-readable):** each component is classified exactly once in [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py) (`AREA2_AUTHORITY_REGISTRY`). Cano"
+    },
+    {
+      "fingerprint": "117077dd4b560f31",
+      "kind": "docs",
+      "line": 9,
+      "path": "docs/technical/reference/model_inventory_seam_map.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- **Legacy map**: adapter name \u2192 `StoryAIAdapter` (`register_adapter`, `get_adapter`)."
+    },
+    {
+      "fingerprint": "1660774eb26d7e5c",
+      "kind": "docs",
+      "line": 18,
+      "path": "docs/technical/reference/model_inventory_seam_map.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Runtime legacy single-pass ([`ai_turn_executor.py`](../../backend/app/runtime/ai_turn_executor.py)) | `iter_model_specs()` | Same |"
+    },
+    {
+      "fingerprint": "b55432b00b1f01ec",
+      "kind": "docs",
+      "line": 23,
+      "path": "docs/technical/runtime/a1_free_input_primary_runtime_path.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "## Command compatibility"
+    },
+    {
+      "fingerprint": "6021f694b4ae2b98",
+      "kind": "docs",
+      "line": 218,
+      "path": "docs/technical/runtime/player_input_interpretation_contract.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "## Command compatibility policy"
+    },
+    {
+      "fingerprint": "ab82cb3412c46def",
+      "kind": "docs",
+      "line": 245,
+      "path": "docs/technical/runtime/player_input_interpretation_contract.md",
+      "pattern": "\\blegacy\\b",
+      "text": "echo and audit evidence. Legacy `normalized_english_text` remains the field"
+    },
+    {
+      "fingerprint": "58f42545fdc170f6",
+      "kind": "docs",
+      "line": 100,
+      "path": "docs/technical/runtime/relationship_state_machine_contract.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "actor-lane compatibility for any structured `relationship_dynamics_events`."
+    },
+    {
+      "fingerprint": "10fa5ee71e7afe45",
+      "kind": "docs",
+      "line": 117,
+      "path": "docs/technical/runtime/social_pressure_contract.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "`social_risk_band` remains the compatibility and categorical source surface."
+    },
+    {
+      "fingerprint": "7818e745138a844d",
+      "kind": "docs",
+      "line": 17,
+      "path": "docs/technical/runtime/world_engine_authoritative_narrative_commit.md",
+      "pattern": "\\blegacy\\b",
+      "text": "3. **Player input token scan** \u2014 first token matching a known scene id (legacy NL hint path)."
+    },
+    {
+      "fingerprint": "e15fce644732184b",
+      "kind": "docs",
+      "line": 295,
+      "path": "docs/technical/runtime/world_engine_authoritative_runtime_and_system_interactions.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "- **Relationship state:** derives bounded durable `relationship_state_record` and `relationship_dynamics_target` from canonical relationships, structured social state, social pressure, NPC initiative-pressure edges, continuity evidence, and"
+    },
+    {
+      "fingerprint": "99c055faafed1bb8",
+      "kind": "docs",
+      "line": 335,
+      "path": "docs/technical/runtime/world_engine_authoritative_runtime_and_system_interactions.md",
+      "pattern": "\\bdeprecated\\b",
+      "text": "- **Classification:** Flask in-process `SessionState` and W2 turn paths are **deprecated / volatile** for live authority\u2014see [`backend-runtime-classification.md`](../architecture/backend-runtime-classification.md)."
+    },
+    {
+      "fingerprint": "63f509316739b775",
+      "kind": "docs",
+      "line": 50,
+      "path": "docs/testing/DOCS_TRUTH_POLICY.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- `docs/archive/architecture-legacy/` \u2014 obsolete architecture docs"
+    },
+    {
+      "fingerprint": "51717ba0a1372e63",
+      "kind": "docs",
+      "line": 74,
+      "path": "docs/testing/DOCS_TRUTH_POLICY.md",
+      "pattern": "\\blegacy\\b",
+      "text": "do not contain prohibited legacy content."
+    },
+    {
+      "fingerprint": "aef22de427f302dd",
+      "kind": "docs",
+      "line": 1,
+      "path": "docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md",
+      "pattern": "\\blegacy\\b",
+      "text": "# Legacy Test Quarantine Policy"
+    },
+    {
+      "fingerprint": "05b9456d496980fa",
+      "kind": "docs",
+      "line": 9,
+      "path": "docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md",
+      "pattern": "\\blegacy\\b",
+      "text": "Legacy tests must not remain in primary gates. They must be deleted, rewritten, or explicitly"
+    },
+    {
+      "fingerprint": "276392c66a0dbb37",
+      "kind": "docs",
+      "line": 22,
+      "path": "docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md",
+      "pattern": "\\blegacy\\b",
+      "text": "5. The test name includes `legacy`, `compat`, or `quarantine` to signal its status."
+    },
+    {
+      "fingerprint": "56d26a55d2687cd6",
+      "kind": "docs",
+      "line": 44,
+      "path": "docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md",
+      "pattern": "\\blegacy_",
+      "text": "1. Move the test file to `tests/legacy_quarantine/`."
+    },
+    {
+      "fingerprint": "7531e0cd9f59d161",
+      "kind": "docs",
+      "line": 45,
+      "path": "docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md",
+      "pattern": "\\blegacy_",
+      "text": "2. Prefix the filename with `legacy_` or `compat_`."
+    },
+    {
+      "fingerprint": "e2f716e17b14654b",
+      "kind": "docs",
+      "line": 217,
+      "path": "docs/testing/QUALITY_GATES.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "**Purpose**: Validates cross-service contracts and API compatibility"
+    },
+    {
+      "fingerprint": "f51894aa0f1ebde7",
+      "kind": "docs",
+      "line": 16,
+      "path": "docs/testing/TEST_SUITE_CONTRACT.md",
+      "pattern": "\\blegacy\\b",
+      "text": "root-level `run_tests.py` are legacy artifacts and must be absent from the repository root."
+    },
+    {
+      "fingerprint": "00383508fbf7af4b",
+      "kind": "docs",
+      "line": 74,
+      "path": "docs/testing/TEST_SUITE_CONTRACT.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Legacy visitor role validation | FORBIDDEN |"
+    },
+    {
+      "fingerprint": "da4ae9ab7453fb77",
+      "kind": "docs",
+      "line": 483,
+      "path": "docs/testing/WORLD_ENGINE_TARGET_TEST_MATRIX.md",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\u2502   \u251c\u2500\u2500 test_compatibility_contracts.py       # Layer 7: Compatibility (contract)"
+    },
+    {
+      "fingerprint": "729cc785514aec93",
+      "kind": "docs",
+      "line": 21,
+      "path": "docs/security/PROVIDER_CREDENTIAL_GOVERNANCE.md",
+      "pattern": "\\blegacy\\b",
+      "text": "| Readiness names the source | Operator readiness reports `provider_credential_source=backend_governance_or_secret_manager` and derives live capability from governed credentials | `world-engine/app/api/http.py`, `world-engine/tests/test_api"
+    },
+    {
+      "fingerprint": "5504d9b387138bf2",
+      "kind": "docs",
+      "line": 232,
+      "path": "docs/governance/gate_oracle_tightness_inventory.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- The Table B anti-hardcoding gate now covers the re-audited legacy control ids `pi_1` through `pi_13` / `\u03a01` through `\u03a013`, not only the previously covered `pi_11`."
+    },
+    {
+      "fingerprint": "ca9a16309925826b",
+      "kind": "docs",
+      "line": 233,
+      "path": "docs/governance/gate_oracle_tightness_inventory.md",
+      "pattern": "\\blegacy\\b",
+      "text": "- A production scan found no active code hits for \u03a01-\u03a013 legacy labels in `ai_stack`, backend/frontend runtime roots, `story_runtime_core`, MCP, or World-Engine app code."
+    }
+  ],
+  "scanned_file_count": 5454,
+  "schema_version": "delagecy.scan.v1"
+}

@@ -1,4 +1,4 @@
-"""Tests for shared Pi7 NPC agency contracts and compatibility adapters."""
+"""Tests for shared Pi7 NPC agency contracts and input adapters."""
 
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ def _actor_fixture() -> dict[str, str]:
     }
 
 
-def test_normalize_accepts_legacy_initiatives_without_upgrading_status() -> None:
+def test_normalize_accepts_initiatives_alias_without_upgrading_status() -> None:
     actors = _actor_fixture()
-    legacy_rows = [
+    initiative_rows = [
         {
             "actor_id": actors["primary"],
             "initiative_type": "press_scene_pressure",
@@ -36,7 +36,7 @@ def test_normalize_accepts_legacy_initiatives_without_upgrading_status() -> None
         },
     ]
 
-    normalized = normalize_npc_agency_plan({"initiatives": legacy_rows})
+    normalized = normalize_npc_agency_plan({"initiatives": initiative_rows})
 
     assert normalized is not None
     normalized_rows = normalized["npc_initiatives"]
@@ -44,9 +44,9 @@ def test_normalize_accepts_legacy_initiatives_without_upgrading_status() -> None
     assert normalized["contract_status"] == NPC_AGENCY_PLAN_PARTIAL_STATUS
     assert normalized["implementation_status"] == NPC_AGENCY_PLAN_PARTIAL_STATUS
     assert normalized["not_full_multi_agent_simulation"] is True
-    assert [row["actor_id"] for row in normalized_rows] == [row["actor_id"] for row in legacy_rows]
-    assert [row["intent"] for row in normalized_rows] == [row["initiative_type"] for row in legacy_rows]
-    assert [row["resolved"] for row in normalized_rows] == [row["resolved"] for row in legacy_rows]
+    assert [row["actor_id"] for row in normalized_rows] == [row["actor_id"] for row in initiative_rows]
+    assert [row["intent"] for row in normalized_rows] == [row["initiative_type"] for row in initiative_rows]
+    assert [row["resolved"] for row in normalized_rows] == [row["resolved"] for row in initiative_rows]
 
 
 def test_normalize_excludes_human_and_visitor_from_planned_npc_actors() -> None:

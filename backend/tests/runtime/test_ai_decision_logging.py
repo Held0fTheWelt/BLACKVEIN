@@ -81,8 +81,8 @@ def test_ai_decision_log_accepts_role_fields():
     assert log.guard_outcome == GuardOutcome.ACCEPTED
 
 
-def test_construct_log_legacy_parsing_has_none_role_fields():
-    """Legacy ParsedAIDecision only → role fields = None."""
+def test_construct_log_unstructured_parsing_has_none_role_fields():
+    """ParsedAIDecision without a role payload leaves role fields as None."""
     parsed_decision = ParsedAIDecision(
         scene_interpretation="Scene interpretation",
         detected_triggers=["trigger1"],
@@ -98,15 +98,15 @@ def test_construct_log_legacy_parsing_has_none_role_fields():
         turn_number=1,
         parsed_decision=parsed_decision,
         raw_output="raw output",
-        role_aware_decision=None,  # Legacy path
+        role_aware_decision=None,  # Unstructured parse path
         guard_outcome=GuardOutcome.ACCEPTED,
     )
 
     assert log.session_id == "sess1"
     assert log.turn_number == 1
-    assert log.interpreter_output is None  # Legacy → None
-    assert log.director_output is None     # Legacy → None
-    assert log.responder_output is None    # Legacy → None
+    assert log.interpreter_output is None
+    assert log.director_output is None
+    assert log.responder_output is None
     assert log.guard_outcome == GuardOutcome.ACCEPTED
 
 
@@ -346,8 +346,8 @@ def test_guard_outcome_remains_canonical():
         assert log.guard_outcome == guard_outcome
 
 
-def test_backward_compatibility_legacy_decisions_still_work():
-    """Legacy decisions (ParsedAIDecision only) work unchanged."""
+def test_unstructured_decisions_still_work():
+    """ParsedAIDecision without role payload works unchanged."""
     parsed_decision = ParsedAIDecision(
         scene_interpretation="Scene",
         detected_triggers=[],
@@ -364,7 +364,7 @@ def test_backward_compatibility_legacy_decisions_still_work():
         turn_number=1,
         parsed_decision=parsed_decision,
         raw_output="raw",
-        role_aware_decision=None,  # Legacy path
+        role_aware_decision=None,  # Unstructured parse path
         guard_outcome=GuardOutcome.ACCEPTED,
     )
 
@@ -373,7 +373,7 @@ def test_backward_compatibility_legacy_decisions_still_work():
     assert log.session_id == "sess1"
     assert log.turn_number == 1
 
-    # Legacy logs have no role fields
+    # Unstructured logs have no role fields
     assert log.interpreter_output is None
     assert log.director_output is None
     assert log.responder_output is None

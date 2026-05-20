@@ -313,11 +313,11 @@ def normalize_npc_agency_plan(
     turn_number: Any = None,
 ) -> dict[str, Any] | None:
     raw_plan = plan if isinstance(plan, dict) else {}
-    legacy_rows = coerce_dict_rows(raw_plan.get("npc_initiatives"))
-    if not legacy_rows:
-        legacy_rows = coerce_dict_rows(raw_plan.get("initiatives"))
+    initiative_rows = coerce_dict_rows(raw_plan.get("npc_initiatives"))
+    if not initiative_rows:
+        initiative_rows = coerce_dict_rows(raw_plan.get("initiatives"))
 
-    raw_row_actor_ids = dedupe_strings([row.get("actor_id") for row in legacy_rows])
+    raw_row_actor_ids = dedupe_strings([row.get("actor_id") for row in initiative_rows])
     selected_secondary = coerce_string_list(selected_secondary_responder_ids or [])
     plan_secondary = coerce_string_list(raw_plan.get("secondary_responder_ids"))
 
@@ -370,7 +370,7 @@ def normalize_npc_agency_plan(
 
     row_by_actor = {
         clean_text(row.get("actor_id")): row
-        for row in legacy_rows
+        for row in initiative_rows
         if clean_text(row.get("actor_id"))
     }
     initiatives: list[NPCInitiative] = []

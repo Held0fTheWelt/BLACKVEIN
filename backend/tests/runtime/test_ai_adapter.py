@@ -381,8 +381,8 @@ class TestMockAdapterRoleStructured:
         assert "state_change_candidates" in payload["responder"]
         assert "trigger_assertions" in payload["responder"]
 
-    def test_mock_adapter_returns_legacy_format_when_not_requested(self):
-        """MockStoryAIAdapter returns legacy format when request_role_structured_output=False."""
+    def test_mock_adapter_returns_unstructured_format_when_not_requested(self):
+        """MockStoryAIAdapter returns unstructured format when request_role_structured_output=False."""
         adapter = MockStoryAIAdapter()
         request = AdapterRequest(
             session_id="sess1",
@@ -395,7 +395,7 @@ class TestMockAdapterRoleStructured:
 
         response = adapter.generate(request)
 
-        # Verify legacy structure
+        # Verify unstructured structure
         payload = response.structured_payload
         assert payload is not None
         assert "detected_triggers" in payload
@@ -424,7 +424,7 @@ class TestMockAdapterRoleStructured:
 
         When request_role_structured_output=True, structured_payload must contain
         exactly these top-level keys: interpreter, director, responder.
-        This ensures the payload is recognized as role-structured format, not legacy.
+        This ensures the payload is recognized as role-structured format, not the unstructured shape.
         """
         adapter = MockStoryAIAdapter()
         request = AdapterRequest(
@@ -445,9 +445,9 @@ class TestMockAdapterRoleStructured:
         assert "director" in payload
         assert "responder" in payload
 
-        # Verify it's not legacy format (no legacy-specific keys as top level)
-        assert "detected_triggers" not in payload  # Legacy format has this at top level
-        assert "proposed_deltas" not in payload    # Legacy format has this at top level
+        # Verify it is not the unstructured format.
+        assert "detected_triggers" not in payload
+        assert "proposed_deltas" not in payload
 
 
 class TestTokenUsageNormalization:

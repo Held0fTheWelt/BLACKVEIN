@@ -99,7 +99,7 @@ def construct_ai_decision_log(
 
     Type detection:
     - If role_aware_decision is present, extract and populate interpreter/director/responder fields
-    - If role_aware_decision is None, leave role fields as None (legacy path)
+    - If role_aware_decision is None, leave role fields as None (unstructured parse path)
 
     Args:
         session_id: Parent session identifier.

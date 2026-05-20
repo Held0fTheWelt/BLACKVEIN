@@ -1,0 +1,69 @@
+{
+  "hits": [
+    {
+      "fingerprint": "c31fd05e1de5c37e",
+      "kind": "config",
+      "line": 588,
+      "path": "backend/app/var/improvement/recommendations/recommendation_0c95552486884972807f381825a433c9.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "9735ae1bf6a8ecbf",
+      "kind": "config",
+      "line": 576,
+      "path": "backend/app/var/improvement/recommendations/recommendation_1bd7044d4b1f41a38821dd11c34e6ef5.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "b7d5fa08a110f5a5",
+      "kind": "config",
+      "line": 588,
+      "path": "backend/app/var/improvement/recommendations/recommendation_44eb47204006475ab31eeb119eb774b3.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "32be38057758751e",
+      "kind": "config",
+      "line": 585,
+      "path": "backend/app/var/improvement/recommendations/recommendation_691fa23760314b8c8b2797a9248c585e.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "4a092835336f365b",
+      "kind": "config",
+      "line": 588,
+      "path": "backend/app/var/improvement/recommendations/recommendation_6cf86f54a70642dab0ea4434d31cf3cb.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "af1a839d38f3f662",
+      "kind": "config",
+      "line": 588,
+      "path": "backend/app/var/improvement/recommendations/recommendation_8b1362178dc84516bc50ec352ba770e9.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "7e25214fe2bf764d",
+      "kind": "config",
+      "line": 576,
+      "path": "backend/app/var/improvement/recommendations/recommendation_9ae35c68404b4507b8dd96e8697d13e6.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    },
+    {
+      "fingerprint": "a2ea04078869d4d1",
+      "kind": "config",
+      "line": 567,
+      "path": "backend/app/var/improvement/recommendations/recommendation_d6cff5f5df024de69df3959c3342f371.json",
+      "pattern": "\\bcompatibility\\b",
+      "text": "\"canonical_authority_summary\": \"Authoritative Task 2A policy: app.runtime.model_routing.route_model. Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement use writers_room_model_routing (story_runtime_core."
+    }
+  ],
+  "unregistered_count": 8
+}

@@ -12,7 +12,7 @@ from app.runtime.turn_executor import execute_turn
 from app.runtime.runtime_models import DeltaType
 
 
-def _legacy_preview_with_full_deepcopy(
+def _reference_preview_with_full_deepcopy(
     session,
     module,
     current_turn: int,
@@ -178,10 +178,10 @@ def test_preview_is_side_effect_free_on_canonical_state(
     assert session.turn_counter == before_turn
 
 
-def test_preview_equivalence_with_legacy_full_deepcopy_path(
+def test_preview_equivalence_with_reference_full_deepcopy_path(
     god_of_carnage_module_with_state, god_of_carnage_module
 ):
-    """New bounded clone path matches legacy full deepcopy guard verdict semantics."""
+    """Bounded clone path matches full deepcopy guard verdict semantics."""
     session = god_of_carnage_module_with_state
     session.canonical_state.setdefault("characters", {}).setdefault(
         "veronique", {"emotional_state": 50}
@@ -208,18 +208,18 @@ def test_preview_equivalence_with_legacy_full_deepcopy_path(
         current_turn=session.turn_counter + 1,
         request=request,
     )
-    legacy = _legacy_preview_with_full_deepcopy(
+    reference = _reference_preview_with_full_deepcopy(
         session=session,
         module=god_of_carnage_module,
         current_turn=session.turn_counter + 1,
         request=request,
     )
 
-    assert result.guard_outcome == legacy.guard_outcome.value
-    assert result.accepted_delta_count == len(legacy.accepted_deltas)
-    assert result.rejected_delta_count == len(legacy.rejected_deltas)
-    assert sorted(result.accepted_deltas) == sorted([d.target_path for d in legacy.accepted_deltas])
-    assert sorted(result.rejected_deltas) == sorted([d.target_path for d in legacy.rejected_deltas])
+    assert result.guard_outcome == reference.guard_outcome.value
+    assert result.accepted_delta_count == len(reference.accepted_deltas)
+    assert result.rejected_delta_count == len(reference.rejected_deltas)
+    assert sorted(result.accepted_deltas) == sorted([d.target_path for d in reference.accepted_deltas])
+    assert sorted(result.rejected_deltas) == sorted([d.target_path for d in reference.rejected_deltas])
 
 
 def test_preview_many_calls_remain_side_effect_free(

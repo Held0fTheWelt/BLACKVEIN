@@ -129,15 +129,15 @@ def _social_pressure_signal(social_state_record: dict[str, Any] | None) -> dict[
         if isinstance(social.get("relationship_pressure_codes"), list)
         else []
     )
-    legacy_shift = clean_text(social.get("social_pressure_shift") or social.get("pressure_shift"))
+    pressure_shift = clean_text(social.get("social_pressure_shift") or social.get("pressure_shift"))
     risk_band = clean_text(social.get("social_risk_band"))
     asymmetry = clean_text(social.get("responder_asymmetry_code"))
     pressure_state = clean_text(social.get("scene_pressure_state"))
     continuity_status = clean_text(social.get("social_continuity_status"))
 
     reason_codes: list[str] = list(relationship_codes)
-    if legacy_shift:
-        reason_codes.append("legacy_social_pressure_shift")
+    if pressure_shift:
+        reason_codes.append("social_pressure_shift")
     if risk_band == "high":
         reason_codes.append("risk:high")
     if asymmetry and asymmetry != "neutral":
@@ -148,11 +148,11 @@ def _social_pressure_signal(social_state_record: dict[str, Any] | None) -> dict[
         reason_codes.append("continuity:social_state_shifted")
     reason_codes = dedupe_strings(reason_codes)
 
-    if legacy_shift:
+    if pressure_shift:
         return {
             "present": True,
             "field": "social_pressure_shift",
-            "value": legacy_shift,
+            "value": pressure_shift,
             "reason_codes": reason_codes,
         }
     if relationship_codes:

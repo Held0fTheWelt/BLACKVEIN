@@ -59,7 +59,7 @@ _CANONICAL_TASK2A_AUTHORITY_SUMMARY = (
     "Authoritative Task 2A policy: app.runtime.model_routing.route_model. "
     "Runtime uses adapter_registry model specs when specs=None; Writers-Room and Improvement "
     "use writers_room_model_routing (story_runtime_core.model_registry rows). "
-    "ai_stack LangGraph RoutingPolicy is compatibility-only, not canonical for these HTTP paths."
+    "ai_stack LangGraph RoutingPolicy is non-authoritative for these HTTP paths."
 )
 
 

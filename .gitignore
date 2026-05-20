@@ -85,3 +85,6 @@ __init__.cpython-310.pyc
 /tests/reports/*.xml
 .mcp.json
 /tmp
+/backend/app/var/improvement/recommendations
+/backend/app/var/improvement
+/backend/app/var/improvement
