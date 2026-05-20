@@ -129,7 +129,7 @@ def _social_pressure_signal(social_state_record: dict[str, Any] | None) -> dict[
         if isinstance(social.get("relationship_pressure_codes"), list)
         else []
     )
-    pressure_shift = clean_text(social.get("social_pressure_shift") or social.get("pressure_shift"))
+    pressure_shift = clean_text(social.get("social_pressure_shift"))
     risk_band = clean_text(social.get("social_risk_band"))
     asymmetry = clean_text(social.get("responder_asymmetry_code"))
     pressure_state = clean_text(social.get("scene_pressure_state"))

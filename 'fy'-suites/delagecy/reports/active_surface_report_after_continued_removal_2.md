@@ -65,7 +65,7 @@
 | docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md | 8 |
 | docs/ADR/adr-0053-bounded-semantic-scene-planner.md | 8 |
 | docs/technical/architecture/backend-runtime-classification.md | 8 |
-| backend/app/runtime/area2_operator_truth.py | 7 |
+| backend/app/runtime/operator_truth.py | 7 |
 | backend/tests/runtime/test_preview_delta.py | 7 |
 | docs/ADR/adr-0003-scene-identity-canonical-surface.md | 7 |
 | docs/ADR/adr-0054-session-input-language-english-internal-resolution.md | 7 |
@@ -85,7 +85,7 @@
 | docs/technical/architecture/canonical_runtime_contract.md | 5 |
 | docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md | 5 |
 | backend/app/runtime/ai_adapter.py | 4 |
-| backend/app/runtime/area2_routing_authority.py | 4 |
+| backend/app/runtime/routing_authority.py | 4 |
 
 ## Scope Warnings
 

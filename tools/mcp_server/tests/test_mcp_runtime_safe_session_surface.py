@@ -38,18 +38,18 @@ class TestG_MCP_10_01_DescriptorDerivation:
         # Check that read_only tools have read-only posture
         health_tool = reg.get("wos.system.health")
         assert health_tool.tool_class == McpToolClass.read_only
-        assert health_tool.descriptor.permission_legacy == "read"
+        assert health_tool.descriptor.permission_scope == "read"
 
         # Check that session.get is now read_only
         session_get = reg.get("wos.session.get")
         assert session_get.tool_class == McpToolClass.read_only
-        assert session_get.descriptor.permission_legacy == "read"
+        assert session_get.descriptor.permission_scope == "read"
         assert session_get.descriptor.implementation_status == McpImplementationStatus.implemented
 
         # Check that write_capable tools have write permission
         session_create = reg.get("wos.session.create")
         assert session_create.tool_class == McpToolClass.write_capable
-        assert session_create.descriptor.permission_legacy == "write"
+        assert session_create.descriptor.permission_scope == "write"
 
     def test_derivation_helper_functions_produce_consistent_tokens(self):
         """Test that derivation helpers produce expected tokens."""

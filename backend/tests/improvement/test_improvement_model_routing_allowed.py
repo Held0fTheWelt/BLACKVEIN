@@ -307,8 +307,8 @@ class TestEnrichImprovementPackage:
         audit = package_response["operator_audit"]
         assert "audit_schema_version" in audit
 
-    def test_enrich_sets_area2_truth_key(self):
-        """Enrich populates governance_truth (Area2)."""
+    def test_enrich_sets_operator_truth_key(self):
+        """Enrich populates operator routing truth."""
         # Use forced spec that supports all phases and kinds
         specs = [
             AdapterModelSpec(
@@ -329,7 +329,7 @@ class TestEnrichImprovementPackage:
         adapters = {"stub_adapter": StubModelAdapter()}
 
         package_response: dict[str, Any] = {
-            "recommendation_summary": "Area2 test",
+            "recommendation_summary": "operator truth test",
         }
 
         enrich_improvement_package_with_task2a_routing(
@@ -341,7 +341,7 @@ class TestEnrichImprovementPackage:
             specs=specs,
         )
 
-        # operator_audit is set which includes area2 truth enrichment
+        # operator_audit is set which includes operator truth enrichment.
         assert "operator_audit" in package_response
 
     def test_enrich_with_empty_adapters_still_produces_valid_output(self):

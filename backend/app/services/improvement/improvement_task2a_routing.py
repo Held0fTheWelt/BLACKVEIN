@@ -15,12 +15,12 @@ from app.runtime.model_routing_contracts import (
     WorkflowPhase,
 )
 from app.runtime.model_routing_evidence import attach_stage_routing_evidence
-from app.runtime.area2_operator_truth import (
+from app.runtime.operator_truth import (
     bounded_traces_from_task_2a_routing,
-    enrich_operator_audit_with_area2_truth,
+    enrich_operator_audit_with_operator_truth,
     resolve_routing_bootstrap_enabled,
 )
-from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
+from app.runtime.routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
 from app.runtime.operator_audit import build_bounded_surface_operator_audit
 from app.services.governance.governed_provider_adapter_service import build_governed_provider_adapters
 from app.services.writers_room.writers_room_model_routing import build_writers_room_model_route_specs
@@ -207,7 +207,7 @@ def enrich_improvement_package_with_task2a_routing(
                 "synthesis_excerpt_nonempty": bool(syn_excerpt.strip()),
             },
         )
-        enrich_operator_audit_with_area2_truth(
+        enrich_operator_audit_with_operator_truth(
             package_response["operator_audit"],
             surface="improvement",
             authority_source=AUTHORITY_SOURCE_IMPROVEMENT,

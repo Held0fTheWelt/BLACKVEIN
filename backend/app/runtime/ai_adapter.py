@@ -40,9 +40,8 @@ class AdapterRequest(BaseModel):
         input_interpretation: Deterministic pre-AI diagnostic envelope (Task 1A); not authoritative state.
         continuity_context: Task 1C/1D — JSON-safe snapshots from ``session.context_layers``
             only (W2.3 layers plus ``active_narrative_threads``; no raw history or metadata dumps).
-        request_role_structured_output: If True, request output as AIRoleContract shape (W2.4.2+).
-                                        Defaults to False for existing in-process callers.
-                                        W2.4.3 will update default to True when normalization is ready.
+        request_role_structured_output: Normal turn output uses AIRoleContract shape (W2.4.2+).
+                                        Stage metadata may request stage-specific structured payloads.
         metadata: Extensible metadata dict for future use
     """
 
@@ -54,7 +53,7 @@ class AdapterRequest(BaseModel):
     operator_input: str | None = None
     input_interpretation: InputInterpretationEnvelope | None = None
     continuity_context: dict[str, Any] | None = None
-    request_role_structured_output: bool = Field(default=False)
+    request_role_structured_output: bool = Field(default=True)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -238,10 +237,12 @@ class MockStoryAIAdapter(StoryAIAdapter):
     Always returns stable, predictable output based on request fields.
     Useful for unit tests that need reproducible behavior without calling a real model.
 
-    Output structure:
+    Normal output structure:
     - raw_output: "[mock] turn={turn_number} scene={scene_id}"
-    - structured_payload: Contains detected_triggers, proposed_deltas, narrative_text
+    - structured_payload: AIRoleContract sections (interpreter, director, responder)
     - backend_metadata: Marks itself as mock and deterministic
+
+    Runtime-stage requests return their stage-specific structured payloads.
     """
 
     @property
@@ -252,14 +253,14 @@ class MockStoryAIAdapter(StoryAIAdapter):
     def generate(self, request: AdapterRequest) -> AdapterResponse:
         """Generate deterministic mock output from request.
 
-        If request.request_role_structured_output is True, returns output in AIRoleContract shape
-        (interpreter, director, responder). Otherwise, returns the unstructured decision shape.
+        Normal turn requests return AIRoleContract shape (interpreter, director, responder).
+        Runtime-stage requests return their stage-specific structured payloads.
 
         Args:
             request: AdapterRequest (fields used to construct deterministic output)
 
         Returns:
-            AdapterResponse with role-structured or unstructured mock data
+            AdapterResponse with role-structured or stage-specific mock data
         """
         raw = (
             f"[mock adapter] turn={request.turn_number} "
@@ -333,18 +334,7 @@ class MockStoryAIAdapter(StoryAIAdapter):
                 error=None,
             )
 
-        # If role-structured output requested, return AIRoleContract shape
-        if request.request_role_structured_output:
-            structured_payload = _create_mock_role_contract()
-        else:
-            # Unstructured output for callers that have not requested role contracts.
-            structured_payload = {
-                "detected_triggers": [],
-                "proposed_deltas": [],
-                "proposed_scene_id": None,
-                "narrative_text": "[mock narrative - no real AI involved]",
-                "rationale": "[mock rationale]",
-            }
+        structured_payload = _create_mock_role_contract()
 
         return AdapterResponse(
             raw_output=raw,
@@ -353,7 +343,7 @@ class MockStoryAIAdapter(StoryAIAdapter):
                 "adapter": "mock",
                 "deterministic": True,
                 "latency_ms": 0,
-                "role_structured": request.request_role_structured_output,
+                "role_structured": True,
             },
             error=None,
         )

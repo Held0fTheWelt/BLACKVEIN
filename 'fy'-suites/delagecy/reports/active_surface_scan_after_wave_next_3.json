@@ -109,7 +109,7 @@
       "fingerprint": "0e57b78793da272b",
       "kind": "code",
       "line": 39,
-      "path": "backend/app/runtime/area2_no_eligible_operator_meaning.py",
+      "path": "backend/app/runtime/no_eligible_operator_meaning.py",
       "pattern": "\\blegacy\\b",
       "text": "\"\"\"Same keys/shape as legacy ``_no_eligible_operator_meaning`` (operator_audit contract).\"\"\""
     },
@@ -117,7 +117,7 @@
       "fingerprint": "5affd8e0ba1abc17",
       "kind": "code",
       "line": 62,
-      "path": "backend/app/runtime/area2_operator_truth.py",
+      "path": "backend/app/runtime/operator_truth.py",
       "pattern": "\\bcompatibility\\b",
       "text": "\"ai_stack LangGraph RoutingPolicy is compatibility-only, not canonical for these HTTP paths.\""
     },
@@ -125,7 +125,7 @@
       "fingerprint": "185eecdd3920386c",
       "kind": "code",
       "line": 6,
-      "path": "backend/app/runtime/area2_routing_authority.py",
+      "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\bcompatibility\\b",
       "text": "Translation, compatibility, and non-authoritative support layers may coexist **only**"
     },
@@ -133,7 +133,7 @@
       "fingerprint": "11eef9d86a4bcadd",
       "kind": "code",
       "line": 109,
-      "path": "backend/app/runtime/area2_routing_authority.py",
+      "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\blegacy\\b",
       "text": "description=\"Registry snapshots, validate_surface_coverage, legacy setup classifiers.\","
     },
@@ -141,7 +141,7 @@
       "fingerprint": "6ffd15e7b740ebd0",
       "kind": "code",
       "line": 176,
-      "path": "backend/app/runtime/area2_routing_authority.py",
+      "path": "backend/app/runtime/routing_authority.py",
       "pattern": "_legacy\\b",
       "text": "component_id=\"story_runtime_core_routing_policy_legacy\","
     },
@@ -149,7 +149,7 @@
       "fingerprint": "84afc08b815f9384",
       "kind": "code",
       "line": 179,
-      "path": "backend/app/runtime/area2_routing_authority.py",
+      "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\blegacy\\b",
       "text": "description=\"Legacy choose() API used by ai_stack LangGraph; Writers-Room canonical HTTP path uses route_model instead.\","
     },
@@ -2799,7 +2799,7 @@
       "line": 35,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/area2_operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |"
+      "text": "| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |"
     },
     {
       "fingerprint": "0eec0464a5d8ff0f",
@@ -2823,7 +2823,7 @@
       "line": 140,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 \u2014 tables [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.m"
+      "text": "**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 \u2014 tables [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.m"
     },
     {
       "fingerprint": "cec8d6845af6ea2c",
@@ -2831,7 +2831,7 @@
       "line": 142,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 \u2014 [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_practical_convergence_closure_report."
+      "text": "**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 \u2014 [`workstream_a_gates.md`](../../archive/architecture-legacy/workstream_a_gates.md), [`practical_convergence_closure_report."
     },
     {
       "fingerprint": "67970c4be7dd89e6",
@@ -2839,7 +2839,7 @@
       "line": 144,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 \u2014 [`area2_workstream_b_gates.md`](../../archive/architecture-legacy/area2_workstream_b_gates.md), [`area2_reproducibility_closure_report.md`](../../a"
+      "text": "**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 \u2014 [`workstream_b_gates.md`](../../archive/architecture-legacy/workstream_b_gates.md), [`reproducibility_closure_report.md`](../../a"
     },
     {
       "fingerprint": "bc881be73af45769",
@@ -2847,7 +2847,7 @@
       "line": 146,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 \u2014 [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md), [`area2_registry_routing_converg"
+      "text": "**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 \u2014 [`task2_closure_gates.md`](../../archive/architecture-legacy/task2_closure_gates.md), [`registry_routing_converg"
     },
     {
       "fingerprint": "fc5409f3522d10b6",
@@ -2855,7 +2855,7 @@
       "line": 148,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 \u2014 `compact_operator_comparison` grammar version **`area2_operator_comparison_v1`**; tables [`area2_task3_closure_gates.md`](../../archive"
+      "text": "**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 \u2014 `compact_operator_comparison` grammar version **`operator_comparison_v1`**; tables [`task3_closure_gates.md`](../../archive"
     },
     {
       "fingerprint": "481a572cd586ba9c",
@@ -2863,7 +2863,7 @@
       "line": 150,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 \u2014 [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md), [`area2_validation_hardening_closure"
+      "text": "**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 \u2014 [`task4_closure_gates.md`](../../archive/architecture-legacy/task4_closure_gates.md), [`validation_hardening_closure"
     },
     {
       "fingerprint": "bd25f76a58c4a622",
@@ -2871,7 +2871,7 @@
       "line": 152,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 \u2014 [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md), [`area2_final_"
+      "text": "**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 \u2014 [`final_closure_gates.md`](../../archive/architecture-legacy/final_closure_gates.md), [`final_"
     },
     {
       "fingerprint": "870260fe16d203fe",
@@ -2879,7 +2879,7 @@
       "line": 154,
       "path": "docs/technical/ai/llm-slm-role-stratification.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Dual workstream rollup:** G-A-01 \u2026 G-A-07 and G-B-01 \u2026 G-B-07 cross-reference \u2014 [`area2_dual_workstream_closure_report.md`](../../archive/architecture-legacy/area2_dual_workstream_closure_report.md)."
+      "text": "**Dual workstream rollup:** G-A-01 \u2026 G-A-07 and G-B-01 \u2026 G-B-07 cross-reference \u2014 [`dual_workstream_closure_report.md`](../../archive/architecture-legacy/dual_workstream_closure_report.md)."
     },
     {
       "fingerprint": "df4ab14a05623382",
@@ -2911,7 +2911,7 @@
       "line": 31,
       "path": "docs/technical/architecture/ai_story_contract.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Area 2 Task 4 formal closure (G-T4-01 \u2026 G-T4-08):** [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md) \u2014 binding terms and gate table. **Closure report:** [`area2_validation_hardening_closure_"
+      "text": "**routing governance Task 4 formal closure (G-T4-01 \u2026 G-T4-08):** [`task4_closure_gates.md`](../../archive/architecture-legacy/task4_closure_gates.md) \u2014 binding terms and gate table. **Closure report:** [`validation_hardening_closure_"
     },
     {
       "fingerprint": "240968b8844aa5a4",
@@ -2951,7 +2951,7 @@
       "line": 41,
       "path": "docs/technical/architecture/ai_story_contract.md",
       "pattern": "\\blegacy\\b",
-      "text": "Canonical Task 2A paths expose a single importable **authority map** (`area2_routing_authority` \u2014 see [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py)), deterministic **operational sta"
+      "text": "Canonical Task 2A paths expose a single importable **authority map** (`routing_authority` \u2014 see [`backend/app/runtime/routing_authority.py`](../../backend/app/runtime/routing_authority.py)), deterministic **operational sta"
     },
     {
       "fingerprint": "17fde191ee4957cc",
@@ -2967,7 +2967,7 @@
       "line": 49,
       "path": "docs/technical/architecture/ai_story_contract.md",
       "pattern": "\\blegacy\\b",
-      "text": "**`compact_operator_comparison`** under **`operator_audit.area2_operator_truth`** provides a stable, cross-surface comparison grammar (`grammar_version` **`area2_operator_comparison_v1`**) for operator-first reading: policy/execution postur"
+      "text": "**`compact_operator_comparison`** under **`operator_audit.operator_truth`** provides a stable, cross-surface comparison grammar (`grammar_version` **`operator_comparison_v1`**) for operator-first reading: policy/execution postur"
     },
     {
       "fingerprint": "e430d887f3b6b607",
@@ -2975,7 +2975,7 @@
       "line": 53,
       "path": "docs/technical/architecture/ai_story_contract.md",
       "pattern": "\\blegacy\\b",
-      "text": "Named closure over **registry/routing operational truth** for canonical Runtime, Writers-Room, and Improvement paths. Gate table: [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md). Closure repo"
+      "text": "Named closure over **registry/routing operational truth** for canonical Runtime, Writers-Room, and Improvement paths. Gate table: [`task2_closure_gates.md`](../../archive/architecture-legacy/task2_closure_gates.md). Closure repo"
     },
     {
       "fingerprint": "378213bc1085f064",
@@ -2983,7 +2983,7 @@
       "line": 57,
       "path": "docs/technical/architecture/ai_story_contract.md",
       "pattern": "\\blegacy\\b",
-      "text": "**Workstream A** (practical convergence) and **Workstream B** (reproducibility) gates with separate enforcement. Tables: [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_workstream_b_ga"
+      "text": "**Workstream A** (practical convergence) and **Workstream B** (reproducibility) gates with separate enforcement. Tables: [`workstream_a_gates.md`](../../archive/architecture-legacy/workstream_a_gates.md), [`workstream_b_ga"
     },
     {
       "fingerprint": "e00180be74f116de",
@@ -3159,7 +3159,7 @@
       "line": 5,
       "path": "docs/technical/reference/model_inventory_seam_map.md",
       "pattern": "\\bcompatibility\\b",
-      "text": "**Area 2 authority classification (machine-readable):** each component is classified exactly once in [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py) (`AREA2_AUTHORITY_REGISTRY`). Cano"
+      "text": "**routing governance authority classification (machine-readable):** each component is classified exactly once in [`backend/app/runtime/routing_authority.py`](../../backend/app/runtime/routing_authority.py) (`ROUTING_AUTHORITY_REGISTRY`). Cano"
     },
     {
       "fingerprint": "117077dd4b560f31",

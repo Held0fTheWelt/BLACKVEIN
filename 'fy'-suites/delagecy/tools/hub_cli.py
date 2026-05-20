@@ -8,7 +8,17 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-from delagecy.tools.registry import approve, load_registry, mark_removed, registered_fingerprints, register_hit, save_registry, tracker_markdown
+from delagecy.tools.registry import (
+    CANONICALIZED_STATUS,
+    approve,
+    load_registry,
+    mark_canonicalized,
+    mark_removed,
+    registered_fingerprints,
+    register_hit,
+    save_registry,
+    tracker_markdown,
+)
 from delagecy.tools.reporting import render_scan_report
 from delagecy.tools.repo_paths import default_tracker_path, registry_path, repo_root
 from delagecy.tools.scanner import scan
@@ -28,6 +38,7 @@ def _print_help() -> None:
         "  register-batch  Register all unregistered scan hits.\n"
         "  approve         Mark a finding approved for removal.\n"
         "  mark-removed    Mark an approved finding removed after verification.\n"
+        "  mark-canonicalized  Mark active non-previous-version behavior as canonicalized.\n"
         "  check           Gate: no unregistered hits and no removed residue.\n"
         "  report          Write a readable Markdown scan report.\n"
         "  export-tracker  Write legacy_removal_tracker.md.\n"
@@ -121,6 +132,22 @@ def cmd_mark_removed(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mark_canonicalized(args: argparse.Namespace) -> int:
+    root = repo_root(start=Path.cwd())
+    path = registry_path(root)
+    registry = load_registry(path)
+    row = mark_canonicalized(
+        registry,
+        args.id,
+        compatibility_scope=args.compatibility_scope,
+        reason=args.reason,
+        evidence=args.evidence,
+    )
+    save_registry(path, registry)
+    print(json.dumps(row, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     root = repo_root(start=Path.cwd())
     registry = load_registry(registry_path(root))
@@ -133,14 +160,19 @@ def cmd_check(args: argparse.Namespace) -> int:
         row for row in registry.get("findings", [])
         if row.get("status") == "removed" and row.get("fingerprint") in active_fps
     ]
+    canonicalized_residue = [
+        row for row in registry.get("findings", [])
+        if row.get("status") == CANONICALIZED_STATUS and row.get("fingerprint") in active_fps
+    ]
     approved_ui = [
         row for row in registry.get("findings", [])
         if row.get("status") == "approved_for_removal" and row.get("kind") == "ui"
     ]
     result = {
-        "ok": not unregistered and not removed_residue,
+        "ok": not unregistered and not removed_residue and not canonicalized_residue,
         "unregistered_count": len(unregistered),
         "removed_residue_count": len(removed_residue),
+        "canonicalized_residue_count": len(canonicalized_residue),
         "approved_ui_pending_count": len(approved_ui),
         "discussion_required": [
             row for row in registry.get("findings", [])
@@ -193,7 +225,9 @@ def cmd_policy(_args: argparse.Namespace) -> int:
         "2. Remove only after explicit approval.\n"
         "3. Remove code, route, docs, tests, data, and UI residue together.\n"
         "4. Discuss blockers and integrity risks before continuing.\n"
-        "5. Verify with scan + targeted tests before marking removed."
+        "5. Compatibility with earlier repo/product versions is removed; it is not retained.\n"
+        "6. Compatibility for active alternative usage, such as providers/adapters, may be canonicalized.\n"
+        "7. Verify with scan + targeted tests before marking removed."
     )
     return 0
 
@@ -227,6 +261,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_rm = sub.add_parser("mark-removed")
     p_rm.add_argument("--id", required=True)
     p_rm.add_argument("--verification", required=True)
+    p_can = sub.add_parser("mark-canonicalized")
+    p_can.add_argument("--id", required=True)
+    p_can.add_argument("--compatibility-scope", required=True)
+    p_can.add_argument("--reason", required=True)
+    p_can.add_argument("--evidence", required=True)
     p_check = sub.add_parser("check")
     p_check.add_argument("--scan-json", required=True)
     p_report = sub.add_parser("report")

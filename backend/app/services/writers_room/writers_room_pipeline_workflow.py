@@ -31,11 +31,19 @@ class _WritersRoomWorkflow:
 _WORKFLOW: _WritersRoomWorkflow | None = None
 
 
+def _repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "backend" / "app").is_dir():
+            return parent
+    return current.parents[4]
+
+
 def _get_workflow() -> _WritersRoomWorkflow:
     global _WORKFLOW
     if _WORKFLOW is not None:
         return _WORKFLOW
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = _repo_root()
     retriever, assembler, _corpus = build_runtime_retriever(repo_root)
     capability_registry = create_default_capability_registry(
         retriever=retriever,

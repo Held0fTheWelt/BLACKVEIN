@@ -71,7 +71,7 @@
 | docs/ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md | 8 |
 | docs/ADR/adr-0053-bounded-semantic-scene-planner.md | 8 |
 | docs/technical/architecture/backend-runtime-classification.md | 8 |
-| backend/app/runtime/area2_operator_truth.py | 7 |
+| backend/app/runtime/operator_truth.py | 7 |
 | backend/app/services/ai_engineer_suite_service.py | 7 |
 | backend/app/services/inspector_projection_coverage_health_distribution.py | 7 |
 | backend/app/services/inspector_turn_projection_sections_gate_payload.py | 7 |

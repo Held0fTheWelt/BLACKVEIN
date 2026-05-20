@@ -228,7 +228,7 @@ class TestMockStoryAIAdapter:
         assert "final_scene" in response.raw_output
 
     def test_mock_generate_structured_payload_has_expected_keys(self):
-        """MockStoryAIAdapter structured_payload includes required keys."""
+        """MockStoryAIAdapter structured_payload includes role contract keys."""
         adapter = MockStoryAIAdapter()
         request = AdapterRequest(
             session_id="sess1",
@@ -241,9 +241,9 @@ class TestMockStoryAIAdapter:
         response = adapter.generate(request)
 
         assert response.structured_payload is not None
-        assert "detected_triggers" in response.structured_payload
-        assert "proposed_deltas" in response.structured_payload
-        assert "narrative_text" in response.structured_payload
+        assert "interpreter" in response.structured_payload
+        assert "director" in response.structured_payload
+        assert "responder" in response.structured_payload
 
 
 class TestAdapterContractCoherence:
@@ -315,11 +315,8 @@ class TestAdapterContractCoherence:
 class TestAdapterRequestRoleStructured:
     """Test role-structured output request field."""
 
-    def test_adapter_request_role_structured_defaults_to_false(self):
-        """AdapterRequest.request_role_structured_output defaults to False (backward compat).
-
-        W2.4.3 will update default to True when normalization is ready.
-        """
+    def test_adapter_request_role_structured_defaults_to_true(self):
+        """AdapterRequest.request_role_structured_output defaults to the role contract."""
         request = AdapterRequest(
             session_id="sess1",
             turn_number=1,
@@ -327,7 +324,7 @@ class TestAdapterRequestRoleStructured:
             canonical_state={},
             recent_events=[],
         )
-        assert request.request_role_structured_output is False
+        assert request.request_role_structured_output is True
 
     def test_adapter_request_role_structured_can_be_set_true(self):
         """AdapterRequest.request_role_structured_output can be set to True to opt-in to new format."""
@@ -381,8 +378,8 @@ class TestMockAdapterRoleStructured:
         assert "state_change_candidates" in payload["responder"]
         assert "trigger_assertions" in payload["responder"]
 
-    def test_mock_adapter_returns_unstructured_format_when_not_requested(self):
-        """MockStoryAIAdapter returns unstructured format when request_role_structured_output=False."""
+    def test_mock_adapter_returns_role_contract_even_when_false_is_passed(self):
+        """False flag no longer re-enables the old normal-turn payload shape."""
         adapter = MockStoryAIAdapter()
         request = AdapterRequest(
             session_id="sess1",
@@ -395,13 +392,13 @@ class TestMockAdapterRoleStructured:
 
         response = adapter.generate(request)
 
-        # Verify unstructured structure
         payload = response.structured_payload
         assert payload is not None
-        assert "detected_triggers" in payload
-        assert "proposed_deltas" in payload
-        assert "proposed_scene_id" in payload
-        assert "narrative_text" in payload
+        assert "interpreter" in payload
+        assert "director" in payload
+        assert "responder" in payload
+        assert "detected_triggers" not in payload
+        assert "proposed_deltas" not in payload
 
     def test_mock_adapter_metadata_reflects_role_structured_flag(self):
         """MockStoryAIAdapter backend_metadata includes role_structured flag."""

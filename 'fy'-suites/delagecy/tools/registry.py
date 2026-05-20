@@ -9,6 +9,21 @@ from typing import Any
 
 SCHEMA_VERSION = "delagecy.registry.v1"
 REMOVAL_ALLOWED_STATUSES = {"approved_for_removal", "removal_in_progress"}
+CANONICALIZATION_ALLOWED_STATUSES = {
+    "reported",
+    "blocked",
+    "retained",
+    "approved_for_removal",
+    "removal_in_progress",
+    "removed",
+}
+CANONICALIZED_STATUS = "canonicalized_active_behavior"
+CANONICALIZATION_COMPATIBILITY_SCOPES = {
+    "current_required_behavior",
+    "alternative_use",
+    "provider_or_adapter_variation",
+}
+REJECTED_CANONICALIZATION_SCOPES = {"previous_version", "old_version", "backward_compatibility"}
 
 
 def utc_now() -> str:
@@ -27,6 +42,8 @@ def empty_registry() -> dict[str, Any]:
             "problems_require_user_discussion": True,
             "legacy_is_not_active_compatibility": True,
             "active_behavior_must_be_preserved": True,
+            "previous_version_compatibility_must_be_removed": True,
+            "alternative_usage_compatibility_may_be_canonicalized": True,
         },
         "findings": [],
     }
@@ -139,6 +156,39 @@ def mark_removed(data: dict[str, Any], finding_id: str, *, verification: str) ->
     return row
 
 
+def mark_canonicalized(
+    data: dict[str, Any],
+    finding_id: str,
+    *,
+    compatibility_scope: str,
+    reason: str,
+    evidence: str,
+) -> dict[str, Any]:
+    """Mark a finding as canonicalized active behavior, not true removal."""
+    scope = compatibility_scope.strip()
+    if scope in REJECTED_CANONICALIZATION_SCOPES:
+        raise ValueError(
+            f"{finding_id} describes previous-version compatibility; remove it instead of marking canonicalized"
+        )
+    if scope not in CANONICALIZATION_COMPATIBILITY_SCOPES:
+        allowed = ", ".join(sorted(CANONICALIZATION_COMPATIBILITY_SCOPES))
+        raise ValueError(f"compatibility_scope must be one of: {allowed}")
+    row = find_by_id(data, finding_id)
+    if row is None:
+        raise KeyError(f"unknown finding id: {finding_id}")
+    if row.get("status") not in CANONICALIZATION_ALLOWED_STATUSES:
+        raise ValueError(f"{finding_id} cannot be marked canonicalized from status {row.get('status')}")
+    row["status"] = CANONICALIZED_STATUS
+    row["canonicalization"] = {
+        "canonicalized_at": utc_now(),
+        "compatibility_scope": scope,
+        "reason": reason,
+        "evidence": evidence,
+    }
+    row["removal"] = None
+    return row
+
+
 def tracker_markdown(data: dict[str, Any]) -> str:
     """Render the human tracker markdown."""
     lines = [
@@ -152,7 +202,9 @@ def tracker_markdown(data: dict[str, Any]) -> str:
         "- Removal requires explicit approval.",
         "- UI residue must be removed with the code path.",
         "- Legacy is not active compatibility.",
-        "- Active, required behavior is preserved and canonicalized; it is not deleted as legacy.",
+        "- Compatibility with earlier repo/product versions is removed, not preserved.",
+        "- Compatibility for active alternative usage, such as provider or adapter variation, may be preserved and canonicalized.",
+        "- Active, required behavior is preserved and canonicalized; it is not marked as true removal.",
         "- Ambiguity or breakage risk must be discussed before continuing.",
         "",
         "## Findings",

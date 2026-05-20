@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from ai_stack.contracts.npc_agency_contracts import (
-    NPC_AGENCY_PLAN_PARTIAL_STATUS,
-    NPC_AGENCY_PLAN_SCHEMA_VERSION,
     normalize_npc_agency_plan,
 )
 from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
@@ -19,18 +17,18 @@ def _actor_fixture() -> dict[str, str]:
     }
 
 
-def test_normalize_accepts_initiatives_alias_without_upgrading_status() -> None:
+def test_normalize_rejects_old_initiatives_alias() -> None:
     actors = _actor_fixture()
     initiative_rows = [
         {
             "actor_id": actors["primary"],
-            "initiative_type": "press_scene_pressure",
+            "intent": "press_scene_pressure",
             "resolved": False,
             "motivation_intensity": 0.8,
         },
         {
             "actor_id": actors["secondary"],
-            "initiative_type": "counter_scene_pressure",
+            "intent": "counter_scene_pressure",
             "resolved": True,
             "motivation_intensity": 0.4,
         },
@@ -38,15 +36,7 @@ def test_normalize_accepts_initiatives_alias_without_upgrading_status() -> None:
 
     normalized = normalize_npc_agency_plan({"initiatives": initiative_rows})
 
-    assert normalized is not None
-    normalized_rows = normalized["npc_initiatives"]
-    assert normalized["contract"] == NPC_AGENCY_PLAN_SCHEMA_VERSION
-    assert normalized["contract_status"] == NPC_AGENCY_PLAN_PARTIAL_STATUS
-    assert normalized["implementation_status"] == NPC_AGENCY_PLAN_PARTIAL_STATUS
-    assert normalized["not_full_multi_agent_simulation"] is True
-    assert [row["actor_id"] for row in normalized_rows] == [row["actor_id"] for row in initiative_rows]
-    assert [row["intent"] for row in normalized_rows] == [row["initiative_type"] for row in initiative_rows]
-    assert [row["resolved"] for row in normalized_rows] == [row["resolved"] for row in initiative_rows]
+    assert normalized is None
 
 
 def test_normalize_excludes_human_and_visitor_from_planned_npc_actors() -> None:

@@ -27,7 +27,11 @@ def _repo_root() -> Path:
     configured = (current_app.config.get("WOS_REPO_ROOT") or os.getenv("WOS_REPO_ROOT") or "").strip()
     if configured:
         return Path(configured)
-    return Path(__file__).resolve().parents[3]
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "backend" / "app").is_dir() and (parent / "prompts").is_dir():
+            return parent
+    return current.parents[4]
 
 
 def default_prompt_seed_root() -> Path:

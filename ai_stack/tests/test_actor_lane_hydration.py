@@ -109,7 +109,7 @@ def test_hydration_satisfies_scene_energy_and_npc_initiative_counts() -> None:
     npc_plan = {
         "required_actor_ids": ["michel_longstreet"],
         "npc_initiatives": [
-            {"actor_id": "michel_longstreet", "required": True, "initiative_type": "seize"},
+            {"actor_id": "michel_longstreet", "required": True, "intent": "seize"},
         ],
     }
     hydrated, changed = hydrate_actor_lanes(

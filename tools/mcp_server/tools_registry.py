@@ -49,7 +49,7 @@ def cursor_safe_name(name: str) -> str:
 
 
 class ToolDefinition:
-    """Tool metadata: canonical strand + handler (permission_legacy for older clients)."""
+    """Tool metadata: canonical strand + handler."""
 
     def __init__(
         self,
@@ -66,7 +66,7 @@ class ToolDefinition:
         self.tool_class = descriptor.tool_class
         self.authority_source = descriptor.authority_source
         self.implementation_status = descriptor.implementation_status
-        self.permission = descriptor.permission_legacy
+        self.permission = descriptor.permission_scope
 
     def to_dict(self) -> dict[str, Any]:
         meta = descriptor_to_public_metadata(self.descriptor)

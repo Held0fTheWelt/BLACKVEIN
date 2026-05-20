@@ -231,7 +231,6 @@ def forbidden_planned_actor_ids(
             *[
                 row.get("actor_id")
                 for row in coerce_dict_rows(plan.get("npc_initiatives"))
-                or coerce_dict_rows(plan.get("initiatives"))
             ],
         ]
     )
@@ -314,8 +313,6 @@ def normalize_npc_agency_plan(
 ) -> dict[str, Any] | None:
     raw_plan = plan if isinstance(plan, dict) else {}
     initiative_rows = coerce_dict_rows(raw_plan.get("npc_initiatives"))
-    if not initiative_rows:
-        initiative_rows = coerce_dict_rows(raw_plan.get("initiatives"))
 
     raw_row_actor_ids = dedupe_strings([row.get("actor_id") for row in initiative_rows])
     selected_secondary = coerce_string_list(selected_secondary_responder_ids or [])
@@ -410,7 +407,7 @@ def normalize_npc_agency_plan(
         initiative = NPCInitiative(
             actor_id=actor_id,
             role=role,
-            intent=clean_text(row.get("intent")) or clean_text(row.get("initiative_type")) or fallback_intent,
+            intent=clean_text(row.get("intent")) or fallback_intent,
             allowed_block_types=tuple(coerce_string_list(row.get("allowed_block_types")) or DEFAULT_ALLOWED_BLOCK_TYPES),
             allowed_output_lanes=tuple(coerce_string_list(row.get("allowed_output_lanes")) or DEFAULT_ALLOWED_OUTPUT_LANES),
             target_actor_id=clean_text(row.get("target_actor_id") or row.get("target_id")) or None,

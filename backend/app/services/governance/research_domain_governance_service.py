@@ -52,11 +52,14 @@ def _resolve_repo_root() -> Path | None:
     if env:
         p = Path(env).expanduser().resolve()
         return p if p.is_dir() else None
-    # backend/app/services -> parents[3] == repository root
     try:
-        return Path(__file__).resolve().parents[3]
+        current = Path(__file__).resolve()
+        for parent in current.parents:
+            if (parent / "backend" / "app").is_dir():
+                return parent
     except (OSError, ValueError):
         return None
+    return None
 
 
 def _count_docs_under(path: Path, pattern: str = "*.md") -> int:

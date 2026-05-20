@@ -52,16 +52,16 @@ def sample_runtime_state():
 def sample_npc_agency_plan():
     """Sample NPCAgencyPlan with initiatives."""
     return {
-        "initiatives": [
+        "npc_initiatives": [
             {
                 "actor_id": "annette",
-                "initiative_type": "challenge_authority",
+                "intent": "challenge_authority",
                 "resolved": False,
                 "motivation_intensity": 0.8,
             },
             {
                 "actor_id": "alain",
-                "initiative_type": "strategic_defense",
+                "intent": "strategic_defense",
                 "resolved": False,
                 "motivation_intensity": 0.6,
             },
@@ -163,10 +163,10 @@ class TestMotivationAnalysis:
 
     def test_analyze_motivation_pressure_zero_when_all_resolved(self, narrator_agent, sample_agent_input):
         """Remaining initiatives is zero when all resolved."""
-        sample_agent_input.npc_agency_plan["initiatives"] = [
+        sample_agent_input.npc_agency_plan["npc_initiatives"] = [
             {
                 "actor_id": "annette",
-                "initiative_type": "challenge_authority",
+                "intent": "challenge_authority",
                 "resolved": True,
                 "motivation_intensity": 0.8,
             },
@@ -176,7 +176,7 @@ class TestMotivationAnalysis:
 
     def test_analyze_motivation_pressure_reads_v1_npc_initiatives(self, narrator_agent, sample_agent_input):
         """Motivation analysis reads the Pi7 v1 npc_initiatives contract."""
-        initiative_rows = sample_agent_input.npc_agency_plan["initiatives"]
+        initiative_rows = sample_agent_input.npc_agency_plan["npc_initiatives"]
         actor_ids = [row["actor_id"] for row in initiative_rows]
         sample_agent_input.npc_agency_plan = normalize_npc_agency_plan(
             {
@@ -185,7 +185,7 @@ class TestMotivationAnalysis:
                 "npc_initiatives": [
                     {
                         "actor_id": row["actor_id"],
-                        "intent": row["initiative_type"],
+                        "intent": row["intent"],
                         "resolved": row["resolved"],
                         "motivation_intensity": row["motivation_intensity"],
                     }
@@ -319,7 +319,7 @@ class TestEdgeCases:
         ]
         agent_input = NarrativeRuntimeAgentInput(
             runtime_state={"scene_id": "test"},
-            npc_agency_plan={"initiatives": many_initiatives},
+            npc_agency_plan={"npc_initiatives": many_initiatives},
             dramatic_signature={},
             narrative_threads=[],
             session_id="test",
@@ -609,7 +609,7 @@ class TestPhase6TracingOptional:
         """When tracing enabled, should NOT emit trace scaffold events."""
         agent_input = NarrativeRuntimeAgentInput(
             runtime_state={"scene_id": "test"},
-            npc_agency_plan={"initiatives": [
+            npc_agency_plan={"npc_initiatives": [
                 {"actor_id": "npc1", "resolved": False},
             ]},
             dramatic_signature={},
@@ -696,7 +696,7 @@ class TestMVP3Phase6Gate:
         # When tracing enabled, no scaffolds
         agent_input_enabled = NarrativeRuntimeAgentInput(
             runtime_state={"scene_id": "test"},
-            npc_agency_plan={"initiatives": [{"actor_id": "npc1", "resolved": False}]},
+            npc_agency_plan={"npc_initiatives": [{"actor_id": "npc1", "resolved": False}]},
             dramatic_signature={},
             narrative_threads=[],
             session_id="test",

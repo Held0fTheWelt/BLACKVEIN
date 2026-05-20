@@ -12,11 +12,11 @@ from app.runtime.ai_turn_routing_builders import (
     build_model_routing_trace_dict,
     build_runtime_routing_request,
 )
-from app.runtime.area2_operator_truth import (
-    enrich_operator_audit_with_area2_truth,
+from app.runtime.operator_truth import (
+    enrich_operator_audit_with_operator_truth,
     resolve_routing_bootstrap_enabled,
 )
-from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_RUNTIME
+from app.runtime.routing_authority import AUTHORITY_SOURCE_RUNTIME
 from app.runtime.model_routing import route_model
 from app.runtime.operator_audit import build_runtime_operator_audit
 from app.runtime.runtime_ai_stages import StagedGenerationResult, run_runtime_staged_generation
@@ -132,7 +132,7 @@ def build_operator_audit_for_turn(
         )
     if isinstance(operator_audit_for_log, dict):
         _specs_rt = list(iter_model_specs())
-        enrich_operator_audit_with_area2_truth(
+        enrich_operator_audit_with_operator_truth(
             operator_audit_for_log,
             surface="runtime",
             authority_source=AUTHORITY_SOURCE_RUNTIME,

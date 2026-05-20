@@ -429,8 +429,16 @@ def build_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[str
     return assemble_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
 
 
+def _backend_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "app" / "services").is_dir():
+            return parent
+    return current.parents[3]
+
+
 def _latest_writers_room_review() -> dict[str, Any] | None:
-    root = Path(__file__).resolve().parents[2] / "var" / "writers_room" / "reviews"
+    root = _backend_root() / "var" / "writers_room" / "reviews"
     if not root.exists():
         return None
     files = sorted(root.glob("*.json"), key=lambda path: path.stat().st_mtime_ns, reverse=True)

@@ -80,7 +80,7 @@
 | docs/technical/architecture/canonical_runtime_contract.md | 5 |
 | docs/testing/LEGACY_TEST_QUARANTINE_POLICY.md | 5 |
 | backend/app/runtime/ai_adapter.py | 4 |
-| backend/app/runtime/area2_routing_authority.py | 4 |
+| backend/app/runtime/routing_authority.py | 4 |
 | ai_stack/tests/test_w5_actor_tracking_projection.py | 4 |
 | world-engine/tests/test_backend_bridge_contract.py | 4 |
 | docs/ADR/adr-0029-residue-removal-policy.md | 4 |

@@ -94,7 +94,7 @@ def client(app):
 
 @pytest.fixture
 def app_bootstrap_on():
-    """Application with ``ROUTING_REGISTRY_BOOTSTRAP=True`` for Area 2 final-gate HTTP proofs."""
+    """Application with ``ROUTING_REGISTRY_BOOTSTRAP=True`` for routing governance HTTP proofs."""
     application = create_app(TestingConfigWithRoutingBootstrap)
     with application.app_context():
         db.session.execute(db.text("PRAGMA foreign_keys = ON"))

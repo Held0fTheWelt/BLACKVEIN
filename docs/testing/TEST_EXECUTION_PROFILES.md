@@ -184,6 +184,26 @@ cd world-engine && python -m pytest tests/test_ws*.py -v
 
 ## Multi-Suite Test Execution
 
+### Modular Backend Service Blocks
+
+Use these from the repository root when changes are limited to one split package under `backend/app/services/`:
+
+```bash
+python tests/run_tests.py --suite backend_service_activity --quick
+python tests/run_tests.py --suite backend_service_ai_stack --quick
+python tests/run_tests.py --suite backend_service_content --quick
+python tests/run_tests.py --suite backend_service_data --quick
+python tests/run_tests.py --suite backend_service_game --quick
+python tests/run_tests.py --suite backend_service_governance --quick
+python tests/run_tests.py --suite backend_service_identity --quick
+python tests/run_tests.py --suite backend_service_inspector --quick
+python tests/run_tests.py --suite backend_service_story_runtime --quick
+python tests/run_tests.py --suite backend_service_system --quick
+python tests/run_tests.py --suite backend_service_writers_room --quick
+```
+
+`backend_services` still runs the flat `backend/tests/services/` directory, while these package slices also pick up relevant top-level service tests.
+
 ### Modular AI Stack Blocks
 
 Run AI stack blocks from the repository root through the orchestrator; this avoids shadowing the installed external `langgraph` package with the local `ai_stack/langgraph` directory:
@@ -199,6 +219,20 @@ python tests/run_tests.py --suite ai_stack_rest --quick
 ```
 
 The full `ai_stack` suite remains the merge-oriented gate.
+
+For the reorganized `ai_stack/` package layout, use the smaller package-aligned slices when the touched code is narrow:
+
+```bash
+python tests/run_tests.py --suite ai_stack_langgraph --quick
+python tests/run_tests.py --suite ai_stack_rag --quick
+python tests/run_tests.py --suite ai_stack_research --quick
+python tests/run_tests.py --suite ai_stack_mcp --quick
+python tests/run_tests.py --suite ai_stack_quality_lab --quick
+python tests/run_tests.py --suite ai_stack_actor_tracking --quick
+python tests/run_tests.py --suite ai_stack_story_runtime_turn --quick
+python tests/run_tests.py --suite ai_stack_story_runtime_god_of_carnage --quick
+python tests/run_tests.py --suite ai_stack_story_runtime_semantic_planner --quick
+```
 
 ### Run All Tests Across All Suites
 

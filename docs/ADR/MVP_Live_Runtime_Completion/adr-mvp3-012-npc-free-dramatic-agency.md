@@ -38,7 +38,7 @@ A passive NPC that only responds when directly addressed violates the live drama
 - `ai_stack/story_runtime/story_runtime_playability.py` — recoverable rewrite feedback for missing required NPC initiative without allowing degraded commit to hide it.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — model-visible current NPC agency simulation projection, bounded initiative directives, validation-aspect wiring, and self-correction trigger surface.
 - `ai_stack/telemetry/actor_survival_telemetry.py` — vitality telemetry projection of candidate, planned, realized, missing, required, and carry-forward NPC initiatives.
-- `ai_stack/story_runtime/narrative_runtime_agent.py` — ruhepunkt pressure analysis reads the v1 `npc_initiatives` contract and remains backward-compatible with legacy `initiatives`.
+- `ai_stack/story_runtime/narrative_runtime_agent.py` — ruhepunkt pressure analysis reads the v1 `npc_initiatives` contract.
 - `world-engine/app/story_runtime/commit_models.py` — persists `npc_agency_simulation`, long-horizon state, private plans, conflict resolution, `npc_agency_closure`, and unresolved carry-forward rows in committed planner truth.
 - `world-engine/app/story_runtime/manager.py` — rehydrates carry-forward planner truth and emits Langfuse NPC agency spans and deterministic scores.
 - `backend/app/services/operator_turn_history_service.py` — exposes operator-facing NPC agency breakdowns from telemetry, aspect ledger, and committed closure truth.

@@ -17,13 +17,21 @@ from typing import Any
 from app.utils.time_utils import utc_now_iso as _utc_now
 
 
+def _backend_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "app" / "services").is_dir():
+            return parent
+    return current.parents[3]
+
+
 @dataclass
 class ImprovementStore:
     root: Path
 
     @classmethod
     def default(cls) -> "ImprovementStore":
-        root = Path(__file__).resolve().parents[2] / "var" / "improvement"
+        root = _backend_root() / "var" / "improvement"
         return cls(root=root)
 
     def ensure_dirs(self) -> None:

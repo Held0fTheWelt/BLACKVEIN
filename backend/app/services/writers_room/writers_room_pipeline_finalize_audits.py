@@ -9,12 +9,12 @@ from app.contracts.writers_room_artifact_class import (
     WritersRoomArtifactClass,
     build_writers_room_artifact_record,
 )
-from app.runtime.area2_operator_truth import (
+from app.runtime.operator_truth import (
     bounded_traces_from_task_2a_routing,
-    enrich_operator_audit_with_area2_truth,
+    enrich_operator_audit_with_operator_truth,
     resolve_routing_bootstrap_enabled,
 )
-from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_WRITERS_ROOM
+from app.runtime.routing_authority import AUTHORITY_SOURCE_WRITERS_ROOM
 from app.runtime.model_routing_contracts import AdapterModelSpec
 from app.runtime.operator_audit import build_bounded_surface_operator_audit
 
@@ -40,7 +40,7 @@ def build_finalize_audits_and_governance_truth(
             "executed_provider": generation.get("provider"),
         },
     )
-    enrich_operator_audit_with_area2_truth(
+    enrich_operator_audit_with_operator_truth(
         operator_audit_wr,
         surface="writers_room",
         authority_source=AUTHORITY_SOURCE_WRITERS_ROOM,

@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from delagecy.tools.registry import registered_fingerprints
+from delagecy.tools.registry import CANONICALIZED_STATUS, registered_fingerprints
 
 SCOPE_HINTS = (
     (
@@ -104,6 +104,10 @@ def render_scan_report(
         row for row in findings
         if row.get("status") == "removed" and row.get("fingerprint") in active_fps
     ]
+    canonicalized_residue = [
+        row for row in findings
+        if row.get("status") == CANONICALIZED_STATUS and row.get("fingerprint") in active_fps
+    ]
     approved_ui = [
         row for row in findings
         if (
@@ -116,7 +120,7 @@ def render_scan_report(
         row for row in findings
         if row.get("status") == "blocked" or row.get("discussion_required")
     ]
-    gate_ok = not unregistered_count and not removed_residue
+    gate_ok = not unregistered_count and not removed_residue and not canonicalized_residue
 
     kind_counts = Counter(str(hit.get("kind") or "unknown") for hit in scan_hits)
     path_counts = Counter(str(hit.get("path") or "") for hit in scan_hits)
@@ -136,6 +140,7 @@ def render_scan_report(
         f"- Registered findings: {len(known)}",
         f"- Unregistered findings: {unregistered_count}",
         f"- Removed residue still visible: {len(removed_residue)}",
+        f"- Canonicalized residue still visible: {len(canonicalized_residue)}",
         f"- Approved UI removals still pending: {len(approved_ui)}",
         f"- Discussion-required findings: {len(discussion_required)}",
         "",
@@ -152,8 +157,9 @@ def render_scan_report(
         "2. Removal requires explicit approval.",
         "3. Code, routes, tests, docs, data, and UI residue are removed together.",
         "4. Integrity risks, ownership conflicts, or ambiguous removals must be discussed before work continues.",
-        "5. Legacy is not active compatibility; required active behavior must be preserved and canonicalized, not deleted.",
-        "6. A finding is only marked removed after a clean scan and targeted verification.",
+        "5. Compatibility with earlier repo/product versions is removed; it is not retained as active behavior.",
+        "6. Compatibility for active alternative usage, such as provider or adapter variation, may be preserved and canonicalized.",
+        "7. A finding is only marked removed after true removal, a clean scan, and targeted verification.",
         "",
         "## Counts By Surface",
         "",
@@ -193,6 +199,8 @@ def render_scan_report(
         )
     if removed_residue:
         lines.append("- Re-open removed findings that still appear in the scan; they are not cleanly removed.")
+    if canonicalized_residue:
+        lines.append("- Finish canonicalization for findings whose original fingerprints still appear in the scan.")
     if approved_ui:
         lines.append("- Verify approved UI removals remove visible, hidden, route, and static residue together.")
     if discussion_required:

@@ -40,7 +40,7 @@ def _make_descriptor(name: str) -> McpCanonicalToolDescriptor:
         tool_class=McpToolClass.read_only,
         authority_source="mcp_surface_meta",
         implementation_status=McpImplementationStatus.implemented,
-        permission_legacy="read",
+        permission_scope="read",
         narrative_mutation_risk="none_read_only",
         governance=McpToolGovernanceView(
             published_vs_draft="published",

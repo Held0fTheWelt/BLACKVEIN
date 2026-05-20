@@ -57,8 +57,16 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex[:12]}"
 
 
+def _repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "backend" / "app").is_dir():
+            return parent
+    return current.parents[4]
+
+
 def _compiled_module_root(module_id: str) -> Path:
-    return Path(__file__).resolve().parents[3] / "content" / "compiled_packages" / module_id
+    return _repo_root() / "content" / "compiled_packages" / module_id
 
 
 def _load_json_file(path: Path) -> dict[str, object]:

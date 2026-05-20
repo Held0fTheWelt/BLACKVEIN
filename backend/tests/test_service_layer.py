@@ -662,9 +662,9 @@ class TestServiceLevel:
             assert get_area_by_id("abc") is None
 
             # Update
-            area2, err = update_area(area.id, name="Updated Area SVC")
-            assert area2 is not None
-            assert area2.name == "Updated Area SVC"
+            updated_area, err = update_area(area.id, name="Updated Area SVC")
+            assert updated_area is not None
+            assert updated_area.name == "Updated Area SVC"
 
             # Update not found
             _, err = update_area(99999, name="X")

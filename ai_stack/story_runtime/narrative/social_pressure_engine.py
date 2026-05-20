@@ -171,7 +171,7 @@ def _candidate(
 
 def _pressure_shift(prior_planner_truth: dict[str, Any] | None) -> str:
     prior = prior_planner_truth if isinstance(prior_planner_truth, dict) else {}
-    return _clean_key(prior.get("social_pressure_shift") or prior.get("pressure_shift"))
+    return _clean_key(prior.get("social_pressure_shift"))
 
 
 def derive_social_pressure(

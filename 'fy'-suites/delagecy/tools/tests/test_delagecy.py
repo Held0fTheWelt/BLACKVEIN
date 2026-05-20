@@ -45,6 +45,71 @@ def test_cli_register_approve_and_mark_removed(tmp_path: Path, monkeypatch, caps
     assert "DLG-001" in out
 
 
+def test_cli_mark_canonicalized_records_active_behavior_scope(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "repo"
+    suite = root / "'fy'-suites" / "delagecy"
+    src = root / "app.py"
+    suite.mkdir(parents=True)
+    (root / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    src.write_text("# compatibility for alternate provider\n", encoding="utf-8")
+    monkeypatch.chdir(root)
+
+    scan_json = suite / "scan.json"
+    assert main(["scan", "--out", str(scan_json)]) == 0
+    payload = json.loads(scan_json.read_text(encoding="utf-8"))
+    fp = payload["hits"][0]["fingerprint"]
+
+    assert main(["register", "--scan-json", str(scan_json), "--fingerprint", fp, "--title", "provider variant"]) == 0
+    assert main(
+        [
+            "mark-canonicalized",
+            "--id",
+            "DLG-001",
+            "--compatibility-scope",
+            "provider_or_adapter_variation",
+            "--reason",
+            "provider variant remains active",
+            "--evidence",
+            "test evidence",
+        ]
+    ) == 0
+
+    registry = json.loads((suite / "delagecy_registry.json").read_text(encoding="utf-8"))
+    row = registry["findings"][0]
+    assert row["status"] == "canonicalized_active_behavior"
+    assert row["canonicalization"]["compatibility_scope"] == "provider_or_adapter_variation"
+
+
+def test_cli_mark_canonicalized_rejects_previous_version_scope(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "repo"
+    suite = root / "'fy'-suites" / "delagecy"
+    src = root / "app.py"
+    suite.mkdir(parents=True)
+    (root / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    src.write_text("# legacy path\n", encoding="utf-8")
+    monkeypatch.chdir(root)
+
+    scan_json = suite / "scan.json"
+    assert main(["scan", "--out", str(scan_json)]) == 0
+    payload = json.loads(scan_json.read_text(encoding="utf-8"))
+    fp = payload["hits"][0]["fingerprint"]
+
+    assert main(["register", "--scan-json", str(scan_json), "--fingerprint", fp, "--title", "old version"]) == 0
+    assert main(
+        [
+            "mark-canonicalized",
+            "--id",
+            "DLG-001",
+            "--compatibility-scope",
+            "previous_version",
+            "--reason",
+            "old clients",
+            "--evidence",
+            "none",
+        ]
+    ) == 2
+
+
 def test_scanner_can_scan_delagecy_internal_selftest_area(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     internal = root / "'fy'-suites" / "delagecy" / "internal"

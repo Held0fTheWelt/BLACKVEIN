@@ -88,6 +88,38 @@ def test_ai_stack_blocks_run_from_repo_root_and_have_rest_slice() -> None:
     assert mod.marker_filter_for_suite("ai_stack_graph", "contracts") is None
 
 
+def test_ai_stack_domain_suites_follow_reorganized_packages() -> None:
+    mod = _load_runner_module()
+    expected = {
+        "ai_stack_actor_tracking",
+        "ai_stack_langgraph",
+        "ai_stack_rag",
+        "ai_stack_research",
+        "ai_stack_story_runtime_god_of_carnage",
+        "ai_stack_story_runtime_turn",
+    }
+    assert expected.issubset(set(mod.AI_STACK_DOMAIN_SUITES))
+    assert expected.issubset(set(mod.AI_STACK_SUITE_FAMILY))
+
+    for suite in mod.AI_STACK_DOMAIN_SUITES:
+        cfg = mod.SUITE_CONFIGS[suite]
+        assert cfg.kind == "pytest"
+        assert cfg.cwd == mod.PROJECT_ROOT
+        assert cfg.supports_coverage is False
+        for target in _suite_targets(cfg):
+            assert target.startswith("ai_stack/tests/")
+
+    assert "ai_stack/tests/test_langgraph_runtime.py" in _suite_targets(mod.SUITE_CONFIGS["ai_stack_langgraph"])
+    assert "ai_stack/tests/test_rag.py" in _suite_targets(mod.SUITE_CONFIGS["ai_stack_rag"])
+    assert "ai_stack/tests/test_research_store_extended.py" in _suite_targets(mod.SUITE_CONFIGS["ai_stack_research"])
+    assert "ai_stack/tests/test_god_of_carnage_narrator_path.py" in _suite_targets(
+        mod.SUITE_CONFIGS["ai_stack_story_runtime_god_of_carnage"]
+    )
+    assert "ai_stack/tests/test_validation_authority_bridge.py" in _suite_targets(
+        mod.SUITE_CONFIGS["ai_stack_story_runtime_turn"]
+    )
+
+
 def test_backend_play_block_is_subtracted_from_backend_rest() -> None:
     mod = _load_runner_module()
     cfg = mod.SUITE_CONFIGS["backend_play"]
@@ -96,3 +128,42 @@ def test_backend_play_block_is_subtracted_from_backend_rest() -> None:
     assert cfg.supports_coverage is False
     assert "tests/test_world_engine_backend_api_contracts.py" in _suite_targets(cfg)
     assert set(mod.BACKEND_PLAY_TARGETS).issubset(set(mod.SUITE_CONFIGS["backend_rest"].ignore_paths))
+
+
+def test_backend_service_slices_follow_services_package_split() -> None:
+    mod = _load_runner_module()
+    expected = {
+        "backend_service_ai_stack",
+        "backend_service_game",
+        "backend_service_governance",
+        "backend_service_identity",
+        "backend_service_inspector",
+        "backend_service_story_runtime",
+        "backend_service_system",
+        "backend_service_writers_room",
+    }
+    assert expected.issubset(set(mod.BACKEND_SERVICE_SUITES))
+    assert expected.issubset(set(mod.BACKEND_SUITE_FAMILY))
+
+    for suite in mod.BACKEND_SERVICE_SUITES:
+        cfg = mod.SUITE_CONFIGS[suite]
+        assert cfg.kind == "pytest"
+        assert cfg.cwd == mod.BACKEND_DIR
+        assert cfg.supports_scope is True
+        assert cfg.supports_coverage is False
+        for target in _suite_targets(cfg):
+            assert target.startswith("tests/")
+
+    assert "tests/services/test_ai_stack_evidence_service.py" in _suite_targets(
+        mod.SUITE_CONFIGS["backend_service_ai_stack"]
+    )
+    assert "tests/services/test_game_service.py" in _suite_targets(
+        mod.SUITE_CONFIGS["backend_service_game"]
+    )
+    assert "tests/services/test_inspector_turn_projection_service.py" in _suite_targets(
+        mod.SUITE_CONFIGS["backend_service_inspector"]
+    )
+    assert "tests/services/test_play_service_control_service.py" in _suite_targets(
+        mod.SUITE_CONFIGS["backend_service_story_runtime"]
+    )
+    assert set(mod.BACKEND_SERVICE_BLOCK_TARGETS).issubset(set(mod.SUITE_CONFIGS["backend_rest"].ignore_paths))

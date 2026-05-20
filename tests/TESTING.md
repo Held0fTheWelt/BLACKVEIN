@@ -96,6 +96,27 @@ These select **strict subsets** of `backend/tests/` for iteration speed. They us
 
 `writers_room` and `improvement` remain dedicated component suites; their tests are also collected under full `backend`.
 
+The split `backend/app/services/` tree also has package-aligned service slices. They overlap with `backend_services`, `writers_room`, `improvement`, and some top-level service tests, but make narrow service work easier to verify:
+
+| CLI name | Focus |
+|----------|-------|
+| `backend_service_activity` | `app/services/activity/` audit and activity-log service coverage. |
+| `backend_service_ai_stack` | `app/services/ai_stack/` closure cockpit, evidence, release-readiness and AI-engineer service tests. |
+| `backend_service_analytics` | `app/services/analytics/` analytics and metrics service tests. |
+| `backend_service_common` | `app/services/common/` log/search utility tests. |
+| `backend_service_content` | `app/services/content/` area, economy, forum, news, slogan and wiki service tests. |
+| `backend_service_data` | `app/services/data/` import/export and persistence service tests. |
+| `backend_service_game` | `app/services/game/` play-service, game content/profile and game service tests. |
+| `backend_service_governance` | `app/services/governance/` narrative, observability, research and operational governance service tests. |
+| `backend_service_identity` | `app/services/identity/` user, role, token, mail and encryption service tests. |
+| `backend_service_improvement` | `app/services/improvement/` improvement-loop service tests. |
+| `backend_service_inspector` | `app/services/inspector/` inspector projection and turn projection service tests. |
+| `backend_service_mcp` | `app/services/mcp/` MCP operation service tests. |
+| `backend_service_prompts` | `app/services/prompts/` prompt-store service tests. |
+| `backend_service_story_runtime` | `app/services/story_runtime/` play-control, operator history and experience service tests. |
+| `backend_service_system` | `app/services/system/` system diagnosis service tests. |
+| `backend_service_writers_room` | `app/services/writers_room/` pipeline and Writers-Room service tests. |
+
 ### World-engine block suites
 
 These select explicit files under `world-engine/tests/`. `engine_rest` runs the remaining world-engine tests after subtracting the focused blocks.
@@ -123,6 +144,33 @@ These run from the repository root. That is intentional: running from `ai_stack/
 | `ai_stack_retrieval_research` | RAG, semantic embedding, retrieval governance/runtime planner and research golden cases. |
 | `ai_stack_quality` | Quality Lab, Langfuse, MCP surface, runtime readiness/aspect/authority and package/config checks. |
 | `ai_stack_rest` | Remaining `ai_stack/tests` files not listed in the focused blocks. |
+
+The reorganized `ai_stack/` source tree also has package-aligned slices. These overlap the broader scenario blocks above, but are smaller when you want to validate one package after moving code.
+
+| CLI name | Focus |
+|----------|-------|
+| `ai_stack_core` | Core package/config/readiness smoke. |
+| `ai_stack_actor_tracking` | `actor_tracking/` W5 extraction, projection, validation, diagnostics. |
+| `ai_stack_contracts` | `contracts/` data and behavioral contract surfaces. |
+| `ai_stack_langchain` | `langchain/` bridge and reviver compatibility. |
+| `ai_stack_langfuse` | `langfuse/` evaluator catalog and evidence helpers. |
+| `ai_stack_langgraph` | `langgraph/` runtime, state, orchestrator and agent nodes. |
+| `ai_stack_language_io` | `language_io/` visible attribution and narrative language surfaces. |
+| `ai_stack_mcp` | `mcp/` canonical surface, static catalog and agent interface. |
+| `ai_stack_prompt_store` | `prompt_store/` canonical prompt catalog. |
+| `ai_stack_quality_lab` | `quality_lab/` interpreters, evaluator catalog and production judge. |
+| `ai_stack_rag` | `rag/` retrieval, embedding and governance helpers. |
+| `ai_stack_research` | `research/` claims, exploration, store and golden cases. |
+| `ai_stack_story_runtime_canonical_path` | `story_runtime/canonical_path/` canonical path and LDSS step coverage. |
+| `ai_stack_story_runtime_director` | `story_runtime/director/` director/capability/scenedirection slices. |
+| `ai_stack_story_runtime_dramatic_effect` | `story_runtime/dramatic_effect/` gates and hold-effect contracts. |
+| `ai_stack_story_runtime_god_of_carnage` | `story_runtime/god_of_carnage/` module-specific runtime and roadmap contracts. |
+| `ai_stack_story_runtime_narrative` | `story_runtime/narrative/` narrative engine family. |
+| `ai_stack_story_runtime_narrator` | `story_runtime/narrator/` narrator path and opening/narrator consequence contracts. |
+| `ai_stack_story_runtime_npc_agency` | `story_runtime/npc_agency/` NPC agency, voice, character mind and vitality. |
+| `ai_stack_story_runtime_semantic_planner` | `story_runtime/semantic_planner/` semantic scene/move/planner surfaces. |
+| `ai_stack_story_runtime_turn` | `story_runtime/turn/` action resolution and validation authority. |
+| `ai_stack_telemetry` | `telemetry/` and runtime telemetry/aspect surfaces. |
 
 ---
 
@@ -161,8 +209,10 @@ Example fast lanes:
 ```bash
 python tests/run_tests.py --suite backend_observability --quick
 python tests/run_tests.py --suite backend_runtime --quick
+python tests/run_tests.py --suite backend_service_identity backend_service_content --quick
 python tests/run_tests.py --suite engine_runtime --quick
 python tests/run_tests.py --suite ai_stack_graph --quick
+python tests/run_tests.py --suite ai_stack_langgraph ai_stack_story_runtime_turn --quick
 ```
 
 ---

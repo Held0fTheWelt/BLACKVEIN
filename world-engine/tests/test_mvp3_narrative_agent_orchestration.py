@@ -60,8 +60,8 @@ def sample_ldss_output():
         "npc_agency_plan": {
             "primary_responder_id": "annette",
             "secondary_responder_ids": ["alain"],
-            "initiatives": [
-                {"actor_id": "alain", "initiative_type": "challenge", "resolved": False},
+            "npc_initiatives": [
+                {"actor_id": "alain", "intent": "challenge", "resolved": False},
             ],
         },
         "ldss_invoked": True,
@@ -78,7 +78,7 @@ class TestNarrativeAgentOrchestration:
             manager=story_manager,
             session_id="test_session_001",
             ldss_output={
-                "npc_agency_plan": {"initiatives": [{"actor_id": "npc1", "resolved": False}]}
+                "npc_agency_plan": {"npc_initiatives": [{"actor_id": "npc1", "resolved": False}]}
             },
             runtime_state={"scene_id": "test"},
             dramatic_signature={"primary_tension": "conflict"},

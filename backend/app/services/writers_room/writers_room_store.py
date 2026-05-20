@@ -8,13 +8,21 @@ from pathlib import Path
 from typing import Any
 
 
+def _backend_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "app" / "services").is_dir():
+            return parent
+    return current.parents[3]
+
+
 @dataclass
 class WritersRoomStore:
     root: Path
 
     @classmethod
     def default(cls) -> "WritersRoomStore":
-        root = Path(__file__).resolve().parents[2] / "var" / "writers_room"
+        root = _backend_root() / "var" / "writers_room"
         return cls(root=root)
 
     def ensure_dirs(self) -> None:

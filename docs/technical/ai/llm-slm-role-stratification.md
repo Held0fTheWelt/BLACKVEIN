@@ -32,7 +32,7 @@ This document explains **how the backend chooses which registered model adapter*
 | Writers’ Room specs | `backend/app/services/writers_room_model_routing.py` | Maps product model rows to `AdapterModelSpec` |
 | Improvement recommendation routing | `backend/app/services/improvement_task2a_routing.py` | Bounded preflight + synthesis stages for recommendation packages (see appendix for filename history) |
 | Staged runtime orchestration | `backend/app/runtime/runtime_ai_stages.py`, `backend/app/runtime/ai_turn_executor.py` | Preflight → signal → ranking → conditional synthesis |
-| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/area2_operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |
+| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |
 
 ---
 
@@ -85,7 +85,7 @@ flowchart TB
 
 **Authority note:** This backend path is **not** the same executable path as world-engine’s `RuntimeTurnGraphExecutor`, which applies routing **inside** the LangGraph turn graph via `story_runtime_core` (`ai_stack/langgraph/langgraph_runtime.py`). Which surface is **primary** for live play is a product/deployment concern; the code keeps both paths explicit.
 
-For the **importable map** of which backend surface owns “primary routing authority” vs translation layers, see `backend/app/runtime/area2_routing_authority.py` (`AREA2_AUTHORITY_REGISTRY`). Plain-language: it prevents two competing routing policies from silently applying to the same canonical HTTP handler.
+For the **importable map** of which backend surface owns “primary routing authority” vs translation layers, see `backend/app/runtime/routing_authority.py` (`ROUTING_AUTHORITY_REGISTRY`). Plain-language: it prevents two competing routing policies from silently applying to the same canonical HTTP handler.
 
 ### Writers’ Room
 
@@ -125,33 +125,33 @@ Routing here is **cross-adapter** selection: which registered model handles whic
 
 ## Appendix: legacy filenames and archived planning language
 
-Some Python modules still use **internal delivery-era filenames** (`area2_*`, `improvement_task2a_*`). Those strings are **not** operational vocabulary for new contributors: treat them as **repository anchors** only.
+Some Python modules still use **internal delivery-era filenames** (`*`, `improvement_task2a_*`). Those strings are **not** operational vocabulary for new contributors: treat them as **repository anchors** only.
 
-**Routing authority registry:** `backend/app/runtime/area2_routing_authority.py` — maps canonical backend surfaces (runtime, Writers’ Room, improvement) to authoritative vs supporting routing layers. The module docstring may still mention old planning IDs; **behavior** is defined by `AREA2_AUTHORITY_REGISTRY` and its dataclasses.
+**Routing authority registry:** `backend/app/runtime/routing_authority.py` — maps canonical backend surfaces (runtime, Writers’ Room, improvement) to authoritative vs supporting routing layers. The module docstring may still mention old planning IDs; **behavior** is defined by `ROUTING_AUTHORITY_REGISTRY` and its dataclasses.
 
 **Archived milestone docs** (task IDs, gate tables, closure reports) live under `docs/archive/architecture-legacy/` for historical traceability only. **Canonical routing behavior** is defined by the current Python modules listed in the tables above.
 
 ---
 
-## Area 2 gate traceability (executable doc contracts)
+## routing governance gate traceability (executable doc contracts)
 
-The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`area2_validation_commands.py`](../../backend/app/runtime/area2_validation_commands.py). They do not change routing policy.
+The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`validation_commands.py`](../../backend/app/runtime/validation_commands.py). They do not change routing policy.
 
-**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.md), [`area2_evolution_closure_report.md`](../../archive/architecture-legacy/area2_evolution_closure_report.md). **Authority map (code):** `area2_routing_authority` in [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py).
+**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.md), [`evolution_closure_report.md`](../../archive/architecture-legacy/evolution_closure_report.md). **Authority map (code):** `routing_authority` in [`backend/app/runtime/routing_authority.py`](../../backend/app/runtime/routing_authority.py).
 
-**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 — [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_practical_convergence_closure_report.md`](../../archive/architecture-legacy/area2_practical_convergence_closure_report.md).
+**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 — [`workstream_a_gates.md`](../../archive/architecture-legacy/workstream_a_gates.md), [`practical_convergence_closure_report.md`](../../archive/architecture-legacy/practical_convergence_closure_report.md).
 
-**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 — [`area2_workstream_b_gates.md`](../../archive/architecture-legacy/area2_workstream_b_gates.md), [`area2_reproducibility_closure_report.md`](../../archive/architecture-legacy/area2_reproducibility_closure_report.md). **Command tuples:** `area2_validation_commands` (`AREA2_DUAL_CLOSURE_PYTEST_MODULES`, `area2_dual_closure_pytest_invocation`).
+**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 — [`workstream_b_gates.md`](../../archive/architecture-legacy/workstream_b_gates.md), [`reproducibility_closure_report.md`](../../archive/architecture-legacy/reproducibility_closure_report.md). **Command tuples:** `validation_commands` (`DUAL_CLOSURE_PYTEST_MODULES`, `dual_closure_pytest_invocation`).
 
-**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 — [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md), [`area2_registry_routing_convergence_closure_report.md`](../../archive/architecture-legacy/area2_registry_routing_convergence_closure_report.md), [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.md), [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md).
+**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 — [`task2_closure_gates.md`](../../archive/architecture-legacy/task2_closure_gates.md), [`registry_routing_convergence_closure_report.md`](../../archive/architecture-legacy/registry_routing_convergence_closure_report.md), [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.md), [`final_closure_gates.md`](../../archive/architecture-legacy/final_closure_gates.md).
 
-**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 — `compact_operator_comparison` grammar version **`area2_operator_comparison_v1`**; tables [`area2_task3_closure_gates.md`](../../archive/architecture-legacy/area2_task3_closure_gates.md), [`area2_operator_comparison_closure_report.md`](../../archive/architecture-legacy/area2_operator_comparison_closure_report.md).
+**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 — `compact_operator_comparison` grammar version **`operator_comparison_v1`**; tables [`task3_closure_gates.md`](../../archive/architecture-legacy/task3_closure_gates.md), [`operator_comparison_closure_report.md`](../../archive/architecture-legacy/operator_comparison_closure_report.md).
 
-**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 — [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md), [`area2_validation_hardening_closure_report.md`](../../archive/architecture-legacy/area2_validation_hardening_closure_report.md). **Setup:** [`docs/testing-setup.md`](../../testing-setup.md) (Task 4 section embeds `area2_task4_full_closure_pytest_invocation()` from `area2_validation_commands`).
+**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 — [`task4_closure_gates.md`](../../archive/architecture-legacy/task4_closure_gates.md), [`validation_hardening_closure_report.md`](../../archive/architecture-legacy/validation_hardening_closure_report.md). **Setup:** [`docs/testing-setup.md`](../../testing-setup.md) (Task 4 section embeds `task4_full_closure_pytest_invocation()` from `validation_commands`).
 
-**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 — [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md), [`area2_final_operational_closure_report.md`](../../archive/architecture-legacy/area2_final_operational_closure_report.md).
+**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 — [`final_closure_gates.md`](../../archive/architecture-legacy/final_closure_gates.md), [`final_operational_closure_report.md`](../../archive/architecture-legacy/final_operational_closure_report.md).
 
-**Dual workstream rollup:** G-A-01 … G-A-07 and G-B-01 … G-B-07 cross-reference — [`area2_dual_workstream_closure_report.md`](../../archive/architecture-legacy/area2_dual_workstream_closure_report.md).
+**Dual workstream rollup:** G-A-01 … G-A-07 and G-B-01 … G-B-07 cross-reference — [`dual_workstream_closure_report.md`](../../archive/architecture-legacy/dual_workstream_closure_report.md).
 
 ---
 

@@ -21,9 +21,17 @@ EXPECTED_GATE_ORDER: tuple[str, ...] = (
     "G10",
 )
 
-_SERVICE_ROOT = Path(__file__).resolve().parents[3]
-_DOCS_AUDIT_ROOT = _SERVICE_ROOT / "docs" / "audit"
-_EVIDENCE_ROOT = _SERVICE_ROOT / "tests" / "reports" / "evidence"
+def _repo_root() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "backend" / "app").is_dir() and (parent / "docs").is_dir():
+            return parent
+    return current.parents[4]
+
+
+_REPO_ROOT = _repo_root()
+_DOCS_AUDIT_ROOT = _REPO_ROOT / "docs" / "audit"
+_EVIDENCE_ROOT = _REPO_ROOT / "tests" / "reports" / "evidence"
 
 GATE_MATRIX_PATH = _DOCS_AUDIT_ROOT / "gate_summary_matrix.md"
 CLOSURE_LEVEL_PATH = _DOCS_AUDIT_ROOT / "closure_level_classification_summary.md"

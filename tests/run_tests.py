@@ -93,6 +93,24 @@ BACKEND_BLOCK_SUITES: tuple[str, ...] = (
     "backend_play",
     "backend_rest",
 )
+BACKEND_SERVICE_SUITES: tuple[str, ...] = (
+    "backend_service_activity",
+    "backend_service_ai_stack",
+    "backend_service_analytics",
+    "backend_service_common",
+    "backend_service_content",
+    "backend_service_data",
+    "backend_service_game",
+    "backend_service_governance",
+    "backend_service_identity",
+    "backend_service_improvement",
+    "backend_service_inspector",
+    "backend_service_mcp",
+    "backend_service_prompts",
+    "backend_service_story_runtime",
+    "backend_service_system",
+    "backend_service_writers_room",
+)
 ENGINE_BLOCK_SUITES: tuple[str, ...] = (
     "engine_foundation",
     "engine_http_ws",
@@ -111,9 +129,39 @@ AI_STACK_BLOCK_SUITES: tuple[str, ...] = (
     "ai_stack_quality",
     "ai_stack_rest",
 )
-BACKEND_SUITE_FAMILY: tuple[str, ...] = ("backend", *BACKEND_BLOCK_SUITES, "writers_room", "improvement")
+AI_STACK_DOMAIN_SUITES: tuple[str, ...] = (
+    "ai_stack_core",
+    "ai_stack_actor_tracking",
+    "ai_stack_contracts",
+    "ai_stack_langchain",
+    "ai_stack_langfuse",
+    "ai_stack_langgraph",
+    "ai_stack_language_io",
+    "ai_stack_mcp",
+    "ai_stack_prompt_store",
+    "ai_stack_quality_lab",
+    "ai_stack_rag",
+    "ai_stack_research",
+    "ai_stack_story_runtime_canonical_path",
+    "ai_stack_story_runtime_director",
+    "ai_stack_story_runtime_dramatic_effect",
+    "ai_stack_story_runtime_god_of_carnage",
+    "ai_stack_story_runtime_narrative",
+    "ai_stack_story_runtime_narrator",
+    "ai_stack_story_runtime_npc_agency",
+    "ai_stack_story_runtime_semantic_planner",
+    "ai_stack_story_runtime_turn",
+    "ai_stack_telemetry",
+)
+BACKEND_SUITE_FAMILY: tuple[str, ...] = (
+    "backend",
+    *BACKEND_BLOCK_SUITES,
+    *BACKEND_SERVICE_SUITES,
+    "writers_room",
+    "improvement",
+)
 ENGINE_SUITE_FAMILY: tuple[str, ...] = ("engine", *ENGINE_BLOCK_SUITES)
-AI_STACK_SUITE_FAMILY: tuple[str, ...] = ("ai_stack", *AI_STACK_BLOCK_SUITES)
+AI_STACK_SUITE_FAMILY: tuple[str, ...] = ("ai_stack", *AI_STACK_BLOCK_SUITES, *AI_STACK_DOMAIN_SUITES)
 
 BACKEND_PLAY_TARGETS: tuple[str, ...] = (
     "tests/test_backend_playservice_integration.py",
@@ -129,6 +177,130 @@ BACKEND_PLAY_TARGETS: tuple[str, ...] = (
     "tests/test_world_engine_backend_api_contracts.py",
     "tests/test_world_engine_console_routes.py",
     "tests/test_world_engine_control_center.py",
+)
+
+
+def _backend_tests(*names: str) -> tuple[str, ...]:
+    """Return backend-cwd-relative pytest targets."""
+    return tuple(f"tests/{name}" for name in names)
+
+
+def _ai_stack_tests(*names: str) -> tuple[str, ...]:
+    """Return repo-root-relative ai_stack pytest targets."""
+    return tuple(f"ai_stack/tests/{name}" for name in names)
+
+
+BACKEND_SERVICE_ACTIVITY_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_activity_log_sql_injection.py",
+    "test_activity_logging_audit.py",
+    "test_admin_logs.py",
+)
+BACKEND_SERVICE_AI_STACK_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_ai_engineer_suite_service_phase3.py",
+    "test_m11_ai_stack_observability.py",
+    "services/test_ai_stack_closure_cockpit_parsing.py",
+    "services/test_ai_stack_evidence_service.py",
+    "services/test_ai_stack_evidence_session_bundle.py",
+)
+BACKEND_SERVICE_ANALYTICS_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_analytics_service.py",
+    "test_metrics_dashboard.py",
+)
+BACKEND_SERVICE_COMMON_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_log_utils_and_error_handler.py",
+    "test_search_stability.py",
+    "test_search_utils_and_csv_safe.py",
+)
+BACKEND_SERVICE_CONTENT_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_area_service.py",
+    "test_economy_service.py",
+    "test_forum_service.py",
+    "test_news_service.py",
+    "test_slogans.py",
+    "test_suggestion_discussion.py",
+    "test_wiki_service.py",
+)
+BACKEND_SERVICE_DATA_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_data_export_service_generated.py",
+    "test_data_import_service.py",
+    "test_data_import_service_generated.py",
+    "test_session_persistence.py",
+)
+BACKEND_SERVICE_GAME_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_backend_playservice_integration.py",
+    "test_game_content_service.py",
+    "test_game_profile_service.py",
+    "test_game_service_play_http.py",
+    "test_play_service_client.py",
+    "services/test_game_service.py",
+)
+BACKEND_SERVICE_GOVERNANCE_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_governance_secret_crypto_service.py",
+    "test_narrative_governance_service.py",
+    "test_observability/test_admin_config.py",
+    "test_observability/test_langfuse_cloud_connection.py",
+    "test_observability/test_langfuse_integration.py",
+    "test_operational_governance_mvp.py",
+    "test_research_domain_governance_service.py",
+)
+BACKEND_SERVICE_IDENTITY_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_email_normalization.py",
+    "test_encryption_service.py",
+    "test_mail_service.py",
+    "test_password_complexity.py",
+    "test_password_reuse_prevention.py",
+    "test_role_service.py",
+    "test_token_service.py",
+    "test_user_service.py",
+    "services/test_user_service_update_guards.py",
+)
+BACKEND_SERVICE_IMPROVEMENT_TARGETS: tuple[str, ...] = _backend_tests(
+    "improvement",
+)
+BACKEND_SERVICE_INSPECTOR_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_inspector_turn_projection.py",
+    "services/test_inspector_turn_projection_assembly_helpers.py",
+    "services/test_inspector_turn_projection_sections_semantic.py",
+    "services/test_inspector_turn_projection_service.py",
+)
+BACKEND_SERVICE_MCP_TARGETS: tuple[str, ...] = _backend_tests(
+    "mcp",
+    "test_mcp_operations_cockpit.py",
+)
+BACKEND_SERVICE_PROMPTS_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_prompt_store.py",
+)
+BACKEND_SERVICE_STORY_RUNTIME_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_play_service_control.py",
+    "services/test_operator_turn_history_service.py",
+    "services/test_play_service_control_service.py",
+    "services/test_story_runtime_experience_service.py",
+)
+BACKEND_SERVICE_SYSTEM_TARGETS: tuple[str, ...] = _backend_tests(
+    "test_system_diagnosis.py",
+    "services/test_system_diagnosis_service.py",
+)
+BACKEND_SERVICE_WRITERS_ROOM_TARGETS: tuple[str, ...] = _backend_tests(
+    "writers_room",
+    "services/test_writers_room_pipeline_generation_synthesis.py",
+)
+BACKEND_SERVICE_BLOCK_TARGETS: tuple[str, ...] = (
+    *BACKEND_SERVICE_ACTIVITY_TARGETS,
+    *BACKEND_SERVICE_AI_STACK_TARGETS,
+    *BACKEND_SERVICE_ANALYTICS_TARGETS,
+    *BACKEND_SERVICE_COMMON_TARGETS,
+    *BACKEND_SERVICE_CONTENT_TARGETS,
+    *BACKEND_SERVICE_DATA_TARGETS,
+    *BACKEND_SERVICE_GAME_TARGETS,
+    *BACKEND_SERVICE_GOVERNANCE_TARGETS,
+    *BACKEND_SERVICE_IDENTITY_TARGETS,
+    *BACKEND_SERVICE_IMPROVEMENT_TARGETS,
+    *BACKEND_SERVICE_INSPECTOR_TARGETS,
+    *BACKEND_SERVICE_MCP_TARGETS,
+    *BACKEND_SERVICE_PROMPTS_TARGETS,
+    *BACKEND_SERVICE_STORY_RUNTIME_TARGETS,
+    *BACKEND_SERVICE_SYSTEM_TARGETS,
+    *BACKEND_SERVICE_WRITERS_ROOM_TARGETS,
 )
 
 ENGINE_FOUNDATION_TARGETS: tuple[str, ...] = (
@@ -207,7 +379,7 @@ ENGINE_RUNTIME_TARGETS: tuple[str, ...] = (
     "tests/test_turn_execution.py",
 )
 ENGINE_OPENING_CONTRACT_TARGETS: tuple[str, ...] = (
-    "tests/test_god_of_carnage_narrator_path_opening.py",
+    "tests/test_goc_narrator_path_opening.py",
     "tests/test_goc_player_input_greeting_imperative.py",
     "tests/test_ldss_opening_fallback_actor_lane.py",
     "tests/test_mvp1_experience_identity.py",
@@ -300,7 +472,7 @@ AI_STACK_GOC_TARGETS: tuple[str, ...] = (
     "ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py",
     "ai_stack/tests/test_god_of_carnage_transcript_shell_validation.py",
     "ai_stack/tests/test_human_input_attribution_visible_render.py",
-    "ai_stack/tests/test_legacy_actor_lane_hydration.py",
+    "ai_stack/tests/test_actor_lane_hydration.py",
     "ai_stack/tests/test_opening_narrator_contract.py",
     "ai_stack/tests/test_opening_sequence_bundle.py",
     "ai_stack/tests/test_opening_shape_normalizer.py",
@@ -449,6 +621,203 @@ AI_STACK_BLOCK_TARGETS: tuple[str, ...] = (
     *AI_STACK_QUALITY_TARGETS,
 )
 
+AI_STACK_CORE_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_ai_config.py",
+    "test_ai_stack_package_exports.py",
+    "test_module_runtime_policy.py",
+    "test_operational_profile.py",
+    "test_runtime_readiness_consumer.py",
+    "test_with_ai_reasoning_decorator.py",
+    "test_wos_vsl_mvp_closure.py",
+)
+AI_STACK_ACTOR_TRACKING_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_actor_tracking_diagnostics.py",
+    "test_w5_actor_tracking_extractor.py",
+    "test_w5_actor_tracking_models.py",
+    "test_w5_actor_tracking_projection.py",
+    "test_w5_actor_tracking_validation.py",
+)
+AI_STACK_CONTRACTS_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_active_listening_contracts.py",
+    "test_callback_web_contracts.py",
+    "test_canon_improvement_contract.py",
+    "test_consequence_cascade_contracts.py",
+    "test_dramatic_effect_contract.py",
+    "test_environment_state_contracts.py",
+    "test_free_player_action_resolution_contract.py",
+    "test_hierarchical_memory_contracts.py",
+    "test_narrative_aspect_contracts.py",
+    "test_narrator_consequence_contract.py",
+    "test_npc_agency_contracts.py",
+    "test_pr_b_canonical_path_hold_effect_contract.py",
+    "test_pr_b_narrator_consequence_realization_contract.py",
+    "test_semantic_planner_contracts.py",
+    "test_visible_narrative_contract.py",
+)
+AI_STACK_LANGCHAIN_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_langchain_integration.py",
+    "test_langchain_reviver_compat.py",
+)
+AI_STACK_LANGFUSE_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_langfuse_evaluator_catalog.py",
+    "test_langfuse_evidence.py",
+)
+AI_STACK_LANGGRAPH_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_langgraph_agent_nodes.py",
+    "test_langgraph_orchestrator.py",
+    "test_langgraph_runtime.py",
+    "test_langgraph_state_schema.py",
+)
+AI_STACK_LANGUAGE_IO_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_human_input_attribution_visible_render.py",
+    "test_visible_narrative_contract.py",
+)
+AI_STACK_MCP_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_mcp_agent_interface.py",
+    "test_mcp_canonical_surface.py",
+    "test_mcp_canonical_surface_extended.py",
+    "test_mcp_static_catalog.py",
+    "test_mcp_suite_map_complete.py",
+)
+AI_STACK_PROMPT_STORE_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_canonical_prompt_catalog.py",
+)
+AI_STACK_QUALITY_LAB_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_quality_lab_evaluator_catalog.py",
+    "test_quality_lab_judgment_interpreter.py",
+    "test_quality_lab_mcp_exchange_interpreter.py",
+    "test_quality_lab_pattern_and_planning.py",
+    "test_quality_lab_trace_interpreter.py",
+    "test_runtime_quality_semantics.py",
+    "test_souffleuse_production_judge.py",
+)
+AI_STACK_RAG_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_rag.py",
+    "test_retrieval_governance_summary.py",
+    "test_retrieval_governance_wiring.py",
+    "test_retrieval_runtime_planner.py",
+    "test_semantic_embedding.py",
+)
+AI_STACK_RESEARCH_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_canon_improvement_contract.py",
+    "test_research_aspect_golden.py",
+    "test_research_canon_improvement_golden.py",
+    "test_research_claims.py",
+    "test_research_contract_enforcement.py",
+    "test_research_exploration_bounded.py",
+    "test_research_exploration_golden.py",
+    "test_research_intake_golden.py",
+    "test_research_langgraph_extended.py",
+    "test_research_review_bundle_golden.py",
+    "test_research_store_extended.py",
+    "test_research_verification_golden.py",
+)
+AI_STACK_STORY_RUNTIME_CANONICAL_PATH_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_canonical_path_resolver.py",
+    "test_canonical_step_ldss_output.py",
+    "test_ldss_canonical_step_integration.py",
+)
+AI_STACK_STORY_RUNTIME_DIRECTOR_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_director_capability_manager.py",
+    "test_god_of_carnage_director_surface_hints_yaml.py",
+    "test_god_of_carnage_scene_director_extended.py",
+    "test_phase2_director_pulse.py",
+    "test_scene_direction_subdecision_matrix.py",
+)
+AI_STACK_STORY_RUNTIME_DRAMATIC_EFFECT_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_dramatic_effect_contract.py",
+    "test_dramatic_effect_gate.py",
+    "test_pr_b_canonical_path_hold_effect_contract.py",
+)
+AI_STACK_STORY_RUNTIME_GOD_OF_CARNAGE_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_god_of_carnage_character_mind.py",
+    "test_god_of_carnage_closure_residuals.py",
+    "test_god_of_carnage_director_surface_hints_yaml.py",
+    "test_god_of_carnage_dramatic_alignment.py",
+    "test_god_of_carnage_experience_acceptance_roadmap_scenarios.py",
+    "test_god_of_carnage_field_initialization_envelope.py",
+    "test_god_of_carnage_frozen_vocabulary.py",
+    "test_god_of_carnage_gate_evaluation.py",
+    "test_god_of_carnage_knowledge_runtime_gates.py",
+    "test_god_of_carnage_narrator_path.py",
+    "test_god_of_carnage_npc_transcript_projection.py",
+    "test_god_of_carnage_opening_transition.py",
+    "test_god_of_carnage_roadmap_semantic_surface.py",
+    "test_god_of_carnage_runtime_graph_seams_and_diagnostics.py",
+    "test_god_of_carnage_scene_director_extended.py",
+    "test_god_of_carnage_scene_identity.py",
+    "test_god_of_carnage_scripted_continuation.py",
+    "test_god_of_carnage_semantic_move_interpretation.py",
+    "test_god_of_carnage_social_state.py",
+    "test_god_of_carnage_souffleuse.py",
+    "test_god_of_carnage_structured_setting_knowledge.py",
+    "test_god_of_carnage_transcript_shell_validation.py",
+)
+AI_STACK_STORY_RUNTIME_NARRATIVE_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_context_synthesis_engine.py",
+    "test_context_synthesis_retry_loop.py",
+    "test_dramatic_irony_runtime.py",
+    "test_expectation_variation_engine.py",
+    "test_genre_awareness_engine.py",
+    "test_improvisational_coherence_engine.py",
+    "test_information_disclosure_contracts.py",
+    "test_meta_narrative_awareness_engine.py",
+    "test_narrative_momentum_engine.py",
+    "test_narrative_runtime_agent.py",
+    "test_pacing_rhythm_engine.py",
+    "test_relationship_state_machine.py",
+    "test_scene_energy_engine.py",
+    "test_sensory_context_engine.py",
+    "test_social_pressure_engine.py",
+    "test_symbolic_object_resonance_engine.py",
+    "test_temporal_control_engine.py",
+    "test_tonal_consistency_engine.py",
+)
+AI_STACK_STORY_RUNTIME_NARRATOR_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_god_of_carnage_narrator_path.py",
+    "test_narrator_consequence_contract.py",
+    "test_opening_narrator_contract.py",
+    "test_opening_sequence_bundle.py",
+    "test_opening_shape_normalizer.py",
+    "test_pr_b_narrator_consequence_realization_contract.py",
+)
+AI_STACK_STORY_RUNTIME_NPC_AGENCY_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_character_mind_data_driven.py",
+    "test_character_voice_runtime_enforcement.py",
+    "test_god_of_carnage_character_mind.py",
+    "test_god_of_carnage_npc_transcript_projection.py",
+    "test_npc_agency_long_horizon_claim_readiness.py",
+    "test_npc_agency_planner.py",
+    "test_npc_mundane_action_bridge.py",
+    "test_wave1_closure_actor_contract.py",
+    "test_wave2_actor_truth_preservation.py",
+    "test_wave3_multi_actor_vitality.py",
+)
+AI_STACK_STORY_RUNTIME_SEMANTIC_PLANNER_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_god_of_carnage_roadmap_semantic_surface.py",
+    "test_god_of_carnage_semantic_move_interpretation.py",
+    "test_god_of_carnage_social_state.py",
+    "test_semantic_planner_contracts.py",
+    "test_semantic_planner_graph_authority.py",
+    "test_semantic_scene_planner.py",
+)
+AI_STACK_STORY_RUNTIME_TURN_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_action_resolution_interact_fallback.py",
+    "test_free_player_action_resolution_contract.py",
+    "test_p0_action_resolution_regression.py",
+    "test_player_action_intent_surface.py",
+    "test_player_action_resolution.py",
+    "test_return_movement_resolution.py",
+    "test_validation_authority_bridge.py",
+)
+AI_STACK_TELEMETRY_TARGETS: tuple[str, ...] = _ai_stack_tests(
+    "test_actor_tracking_diagnostics.py",
+    "test_langfuse_evidence.py",
+    "test_runtime_aspect_ledger.py",
+    "test_runtime_authority_aspects.py",
+    "test_vitality_telemetry_v1.py",
+)
+
 # Human-readable titles for each component (English)
 SUITE_DISPLAY_NAMES: dict[str, str] = {
     "backend": "Backend (Flask API and services)",
@@ -485,6 +854,23 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "backend_mcp": "Backend MCP server tests",
     "backend_play": "Backend play/session and world-engine bridge contracts",
     "backend_rest": "Backend remainder (top-level + uncategorized tests/)",
+    # Backend service slices aligned with app/services/* packages.
+    "backend_service_activity": "Backend service: activity",
+    "backend_service_ai_stack": "Backend service: ai_stack",
+    "backend_service_analytics": "Backend service: analytics",
+    "backend_service_common": "Backend service: common utilities",
+    "backend_service_content": "Backend service: content",
+    "backend_service_data": "Backend service: data",
+    "backend_service_game": "Backend service: game/play",
+    "backend_service_governance": "Backend service: governance",
+    "backend_service_identity": "Backend service: identity",
+    "backend_service_improvement": "Backend service: improvement",
+    "backend_service_inspector": "Backend service: inspector",
+    "backend_service_mcp": "Backend service: MCP operations",
+    "backend_service_prompts": "Backend service: prompt store",
+    "backend_service_story_runtime": "Backend service: story runtime",
+    "backend_service_system": "Backend service: system diagnosis",
+    "backend_service_writers_room": "Backend service: writers room",
     # World-engine focused blocks. These are iteration lanes; ``engine`` remains the
     # full-suite gate with coverage.
     "engine_foundation": "World engine foundation/config/security contracts",
@@ -503,6 +889,29 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "ai_stack_retrieval_research": "AI stack retrieval and research lanes",
     "ai_stack_quality": "AI stack quality, observability, and MCP surfaces",
     "ai_stack_rest": "AI stack remainder (tests not in focused blocks)",
+    # Package-aligned ai_stack slices for the reorganized source tree.
+    "ai_stack_core": "AI stack core package/config/readiness checks",
+    "ai_stack_actor_tracking": "AI stack actor_tracking package",
+    "ai_stack_contracts": "AI stack contracts package",
+    "ai_stack_langchain": "AI stack langchain package",
+    "ai_stack_langfuse": "AI stack langfuse package",
+    "ai_stack_langgraph": "AI stack langgraph package",
+    "ai_stack_language_io": "AI stack language_io package",
+    "ai_stack_mcp": "AI stack mcp package",
+    "ai_stack_prompt_store": "AI stack prompt_store package",
+    "ai_stack_quality_lab": "AI stack quality_lab package",
+    "ai_stack_rag": "AI stack rag package",
+    "ai_stack_research": "AI stack research package",
+    "ai_stack_story_runtime_canonical_path": "AI stack story_runtime/canonical_path package",
+    "ai_stack_story_runtime_director": "AI stack story_runtime/director package",
+    "ai_stack_story_runtime_dramatic_effect": "AI stack story_runtime/dramatic_effect package",
+    "ai_stack_story_runtime_god_of_carnage": "AI stack story_runtime/god_of_carnage package",
+    "ai_stack_story_runtime_narrative": "AI stack story_runtime/narrative package",
+    "ai_stack_story_runtime_narrator": "AI stack story_runtime/narrator package",
+    "ai_stack_story_runtime_npc_agency": "AI stack story_runtime/npc_agency package",
+    "ai_stack_story_runtime_semantic_planner": "AI stack story_runtime/semantic_planner package",
+    "ai_stack_story_runtime_turn": "AI stack story_runtime/turn package",
+    "ai_stack_telemetry": "AI stack telemetry package",
 }
 
 # CLI --scope value -> pytest ``-m`` marker name (must exist in that component's pytest.ini)
@@ -733,6 +1142,88 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
         kind="pytest", cwd=BACKEND_DIR, target="tests/services",
         supports_scope=True, supports_coverage=False,
     ),
+    # Package-aligned backend service slices. The broad ``backend_services`` suite
+    # remains available, while these mirror the split app/services/* layout.
+    "backend_service_activity": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_ACTIVITY_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_ai_stack": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_AI_STACK_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_analytics": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_ANALYTICS_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_common": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_COMMON_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_content": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_CONTENT_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_data": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_DATA_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_game": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_GAME_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_governance": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_GOVERNANCE_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_identity": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_IDENTITY_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_improvement": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_IMPROVEMENT_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_inspector": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_INSPECTOR_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_mcp": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_MCP_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_prompts": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_PROMPTS_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_story_runtime": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_STORY_RUNTIME_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_system": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_SYSTEM_TARGETS,
+        supports_scope=True,
+    ),
+    "backend_service_writers_room": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_SERVICE_WRITERS_ROOM_TARGETS,
+        supports_scope=True,
+    ),
     "backend_content": SuiteConfig(
         kind="pytest", cwd=BACKEND_DIR, target="tests/content",
         supports_scope=True, supports_coverage=False,
@@ -771,6 +1262,7 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
             "tests/test_observability.py",
             "tests/test_m11_ai_stack_observability.py",
             *BACKEND_PLAY_TARGETS,
+            *BACKEND_SERVICE_BLOCK_TARGETS,
         ),
     ),
     # --- World-engine focused blocks ---
@@ -826,6 +1318,58 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
         targets=("ai_stack/tests",),
         ignore_paths=AI_STACK_BLOCK_TARGETS,
     ),
+    # Package-aligned ai_stack slices. These intentionally coexist with the broader
+    # ai_stack_* blocks above: the small package slices are for focused iteration after
+    # the ai_stack source tree reorganization; the broad blocks remain scenario gates.
+    "ai_stack_core": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_CORE_TARGETS),
+    "ai_stack_actor_tracking": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_ACTOR_TRACKING_TARGETS),
+    "ai_stack_contracts": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_CONTRACTS_TARGETS),
+    "ai_stack_langchain": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_LANGCHAIN_TARGETS),
+    "ai_stack_langfuse": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_LANGFUSE_TARGETS),
+    "ai_stack_langgraph": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_LANGGRAPH_TARGETS),
+    "ai_stack_language_io": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_LANGUAGE_IO_TARGETS),
+    "ai_stack_mcp": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_MCP_TARGETS),
+    "ai_stack_prompt_store": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_PROMPT_STORE_TARGETS),
+    "ai_stack_quality_lab": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_QUALITY_LAB_TARGETS),
+    "ai_stack_rag": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_RAG_TARGETS),
+    "ai_stack_research": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_RESEARCH_TARGETS),
+    "ai_stack_story_runtime_canonical_path": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_CANONICAL_PATH_TARGETS,
+    ),
+    "ai_stack_story_runtime_director": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_DIRECTOR_TARGETS,
+    ),
+    "ai_stack_story_runtime_dramatic_effect": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_DRAMATIC_EFFECT_TARGETS,
+    ),
+    "ai_stack_story_runtime_god_of_carnage": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_GOD_OF_CARNAGE_TARGETS,
+    ),
+    "ai_stack_story_runtime_narrative": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_NARRATIVE_TARGETS,
+    ),
+    "ai_stack_story_runtime_narrator": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_NARRATOR_TARGETS,
+    ),
+    "ai_stack_story_runtime_npc_agency": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_NPC_AGENCY_TARGETS,
+    ),
+    "ai_stack_story_runtime_semantic_planner": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_SEMANTIC_PLANNER_TARGETS,
+    ),
+    "ai_stack_story_runtime_turn": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=AI_STACK_STORY_RUNTIME_TURN_TARGETS,
+    ),
+    "ai_stack_telemetry": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_TELEMETRY_TARGETS),
     # Optional external lanes
     "playwright_e2e": SuiteConfig(kind="external", cwd=PROJECT_ROOT / "tests" / "e2e", target="npx playwright test"),
     "compose_smoke": SuiteConfig(
@@ -1763,10 +2307,14 @@ Examples (from repository root):
   python tests/run_tests.py --suite improvement
   python tests/run_tests.py --suite frontend
   python tests/run_tests.py --suite backend --scope contracts
+  python tests/run_tests.py --suite backend_service_identity backend_service_content --quick
+  python tests/run_tests.py --suite backend_service_story_runtime backend_service_inspector --quick
   python tests/run_tests.py --suite administration --scope security
   python tests/run_tests.py --suite engine --scope integration
   python tests/run_tests.py --suite engine_runtime engine_opening_contracts --quick
   python tests/run_tests.py --suite ai_stack_graph ai_stack_goc --quick --continue-on-failure
+  python tests/run_tests.py --suite ai_stack_langgraph ai_stack_story_runtime_turn --quick
+  python tests/run_tests.py --suite ai_stack_rag ai_stack_research --quick
   python tests/run_tests.py --suite writers_room improvement --quick
   python tests/run_tests.py --suite ai_stack --quick
   python tests/run_tests.py --suite all --coverage
