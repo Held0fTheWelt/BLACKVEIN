@@ -62,7 +62,7 @@ The backend calls the play service using `PLAY_SERVICE_*` environment variables 
 
 ## Backend volatile session registry (transitional)
 
-For **in-process** operator/MCP/test flows, the backend keeps a **process-local**, **non-durable** map `session_id → RuntimeSession` in [`backend/app/runtime/session_store.py`](../../../backend/app/runtime/session_store.py). It is **not** the World Engine session authority; entries vanish on process restart.
+For **in-process** operator/MCP/test flows, the backend keeps a **process-local**, **non-durable** map `session_id → RuntimeSession` in [`backend/app/runtime/session/session_store.py`](../../../backend/app/runtime/session/session_store.py). It is **not** the World Engine session authority; entries vanish on process restart.
 
 - **API:** Use `create_session`, `get_session`, `update_session`, `delete_session`, or the `RuntimeSessionRegistry` accessor `get_runtime_session_registry()` — do not rely on a raw module-level dict.
 - **Concurrency:** The registry is an ordinary in-memory dict without locking; assume single-threaded use per worker consistent with typical Flask request handling unless you add external synchronization.

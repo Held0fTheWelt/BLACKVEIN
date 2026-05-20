@@ -1,6 +1,6 @@
 """Resolve historical `docs/architecture/<name>` references to the current doc tree.
 
-Area 2 gate markdown moved under the archived architecture folder; stratification and
+routing-governance gate markdown moved under the archived architecture folder; stratification and
 story contract live under `docs/technical/`.
 """
 

@@ -12,7 +12,7 @@ from app.runtime.runtime_models import SessionState
 
 # Import decision policy if available; fallback to empty dict if not
 try:
-    from app.runtime.decision_policy import ACTIVE_TRIGGER_RULES, GUARD_POLICIES
+    from app.runtime.validation.decision_policy import ACTIVE_TRIGGER_RULES, GUARD_POLICIES
 except ImportError:
     ACTIVE_TRIGGER_RULES = {
         "escalation_detected": {

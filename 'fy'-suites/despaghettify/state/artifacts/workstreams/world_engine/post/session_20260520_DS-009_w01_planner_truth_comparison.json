@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-009",
+  "wave_id": "w01",
+  "session_date": "20260520",
+  "workstream": "world_engine",
+  "pre": {
+    "primary_symbol": "_planner_truth_from_graph_state",
+    "path": "world-engine/app/story_runtime/commit_models.py",
+    "lines": 540,
+    "nest_depth": 6,
+    "total_functions": 10731,
+    "count_over_50_lines": 857,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 25
+  },
+  "post": {
+    "primary_symbol": "_planner_truth_from_graph_state",
+    "path": "world-engine/app/story_runtime/commit_models.py",
+    "wrapper_preserved": true,
+    "wrapper_lines": 9,
+    "wrapper_nest_depth": 0,
+    "extracted_module": "world-engine/app/story_runtime/planner_truth_projection.py",
+    "extracted_orchestrator": {
+      "symbol": "build_planner_truth_payload",
+      "lines": 133,
+      "nest_depth": 1
+    },
+    "total_functions": 10747,
+    "count_over_50_lines": 858,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 24,
+    "top_longest_contains_primary_symbol": false,
+    "top_nesting_contains_primary_symbol": false
+  },
+  "gates": [
+    {
+      "command": "python -m compileall -q world-engine/app/story_runtime world-engine/app/api",
+      "status": "passed"
+    },
+    {
+      "command": "INTERNAL_RUNTIME_CONFIG_TOKEN= pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py::test_planner_truth_populated_from_graph_state world-engine/tests/test_planner_truth_and_runtime_surfaces.py::test_planner_truth_persists_current_npc_agency_closure world-engine/tests/test_validator_lane_truth.py::test_planner_truth_validator_layers_from_live_seam -q --tb=short",
+      "status": "passed",
+      "summary": "3 passed"
+    },
+    {
+      "command": "pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py world-engine/tests/test_validator_lane_truth.py world-engine/tests/test_story_runtime_narrative_commit.py -q --tb=short",
+      "status": "passed_before_final_helper_compaction",
+      "summary": "33 passed"
+    },
+    {
+      "command": "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\"",
+      "status": "passed",
+      "summary": "report 2026-05-20T22:02:19Z"
+    }
+  ],
+  "broad_suite_caveats": [
+    {
+      "command": "python tests/run_tests.py --suite engine_runtime --quick",
+      "status": "blocked_unrelated",
+      "summary": "world-engine/tests/test_story_runtime_api.py::test_story_session_lifecycle_and_nl_interpretation expected interpreted_input.kind mixed, got speech"
+    }
+  ]
+}

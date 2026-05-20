@@ -13,7 +13,7 @@ from app.content.models import ExperienceKind, ParticipantMode
 from app.runtime.engine import RuntimeEngine
 from app.runtime.manager import RuntimeManager
 from app.runtime.models import LobbySeatState, ParticipantState, PropState, RunStatus, RuntimeInstance, TranscriptEntry
-from app.runtime.store import JsonRunStore
+from app.runtime.session.store import JsonRunStore
 from app.runtime.visibility import RuntimeVisibilityPolicy
 from app.utils.html_sanitizer import sanitize_wiki_html
 

@@ -6,7 +6,7 @@ import pytest
 from app.content.module_models import ContentModule, ModuleMetadata
 from app.runtime.adapter_registry import clear_registry, register_adapter_model
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
-from app.runtime.ai_turn_executor import execute_turn_with_ai
+from app.runtime.ai_turn.ai_turn_executor import execute_turn_with_ai
 from app.runtime.model_routing_contracts import (
     AdapterModelSpec,
     CostClass,

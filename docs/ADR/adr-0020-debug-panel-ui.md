@@ -7,7 +7,7 @@ Accepted
 
 **Implemented — collapsible debug panel driven by `DebugPanelOutput`.**
 
-- `backend/app/runtime/debug_presenter.py`: `present_debug_panel(session_state)` → `DebugPanelOutput` (primary_diagnostic, recent_pattern_context, degradation_markers, full_diagnostics).
+- `backend/app/runtime/presentation/debug_presenter.py`: `present_debug_panel(session_state)` → `DebugPanelOutput` (primary_diagnostic, recent_pattern_context, degradation_markers, full_diagnostics).
 - Session UI renders the panel via `<details>/<summary>` HTML elements; summary always visible, diagnostics collapsed by default.
 - Strict schema contract: panel data flows only through `DebugPanelOutput`; no ad hoc diagnostic injection.
 - `backend/tests/runtime/test_debug_presenter.py`: comprehensive coverage including presence, collapsed default, graceful degradation when short-term context is missing.

@@ -1,5 +1,5 @@
 import pytest
-from app.runtime.mutation_policy import MutationPolicyDecision, MutationPolicy
+from app.runtime.validation.mutation_policy import MutationPolicyDecision, MutationPolicy
 
 def test_mutation_policy_decision_allowed():
     """MutationPolicyDecision represents allowed mutation."""
@@ -202,7 +202,7 @@ class TestMutationPolicyIntegration:
     def test_validate_delta_rejects_blocked_path(self):
         """Blocked mutations are rejected in validation pipeline."""
         from app.runtime.runtime_models import ProposedStateDelta
-        from app.runtime.validators import _validate_delta
+        from app.runtime.validation.validators import _validate_delta
 
         delta = ProposedStateDelta(
             target="session.id",
@@ -226,7 +226,7 @@ class TestMutationPolicyIntegration:
     def test_validate_delta_accepts_allowed_path(self):
         """Allowed mutations are accepted in validation pipeline."""
         from app.runtime.runtime_models import ProposedStateDelta
-        from app.runtime.validators import _validate_delta
+        from app.runtime.validation.validators import _validate_delta
 
         delta = ProposedStateDelta(
             target="characters.veronique.emotional_state",

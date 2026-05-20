@@ -17,16 +17,16 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
-from app.runtime.ai_failure_recovery import RestorePolicy
-from app.runtime.ai_decision import ParsedAIDecision
-from app.runtime.ai_output import ProposedDelta, StructuredAIStoryOutput
-from app.runtime.ai_turn_executor import (
+from app.runtime.ai.ai_failure_recovery import RestorePolicy
+from app.runtime.ai.ai_decision import ParsedAIDecision
+from app.runtime.ai.ai_output import ProposedDelta, StructuredAIStoryOutput
+from app.runtime.ai_turn.ai_turn_executor import (
     build_adapter_request,
     decision_from_parsed,
     _make_parse_failure_result,
     execute_turn_with_ai,
 )
-from app.runtime.operator_audit import AUDIT_SCHEMA_VERSION
+from app.runtime.routing.operator_audit import AUDIT_SCHEMA_VERSION
 from app.runtime.input_interpreter import InputPrimaryMode
 from app.runtime.runtime_models import (
     AIValidationOutcome,
@@ -136,7 +136,7 @@ DELTA_PAYLOAD = {
 
 def test_convert_proposed_delta_to_state_delta():
     """Convert runtime delta to StateDelta for decision logging."""
-    from app.runtime.ai_turn_executor import _convert_proposed_delta_to_state_delta
+    from app.runtime.ai_turn.ai_turn_executor import _convert_proposed_delta_to_state_delta
     from app.runtime.runtime_models import StateDelta
 
     proposed = ProposedStateDelta(
@@ -616,7 +616,7 @@ class TestExecuteTurnWithAI:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Direct execute_turn call (mock path) is untouched."""
-        from app.runtime.turn_executor import execute_turn
+        from app.runtime.turn.turn_executor import execute_turn
 
         session = god_of_carnage_module_with_state
         mock_decision = MockDecision(
@@ -756,9 +756,9 @@ class TestAIDecisionLogOutcomes:
         """Test that GuardOutcome.REJECTED maps to AIValidationOutcome.REJECTED (the bugfix)."""
         # This test verifies the fix: all-rejected deltas should produce REJECTED, not PARTIAL.
         # We use direct unit test instead of integration to avoid adapter complexities.
-        from app.runtime.ai_turn_executor import _create_decision_log
+        from app.runtime.ai_turn.ai_turn_executor import _create_decision_log
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
         session = god_of_carnage_module_with_state
 
@@ -810,9 +810,9 @@ class TestAIDecisionLogOutcomes:
         self, god_of_carnage_module, god_of_carnage_module_with_state
     ):
         """Test that guard_notes is normalized with error count and outcome label."""
-        from app.runtime.ai_turn_executor import _create_decision_log
+        from app.runtime.ai_turn.ai_turn_executor import _create_decision_log
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
         session = god_of_carnage_module_with_state
 
@@ -875,7 +875,7 @@ class TestAIDecisionLogOutcomes:
         self, god_of_carnage_module, god_of_carnage_module_with_state
     ):
         """Test that error-path TurnExecutionResult carries guard_outcome=STRUCTURALLY_INVALID."""
-        from app.runtime.ai_turn_executor import _make_parse_failure_result
+        from app.runtime.ai_turn.ai_turn_executor import _make_parse_failure_result
         from datetime import datetime, timezone
 
         session = god_of_carnage_module_with_state
@@ -897,7 +897,7 @@ class TestAIDecisionLogOutcomes:
         self, god_of_carnage_module, god_of_carnage_module_with_state
     ):
         """Test that error-path AIDecisionLog has validation_outcome=ERROR (consistent with guard_outcome=STRUCTURALLY_INVALID)."""
-        from app.runtime.ai_turn_executor import _create_error_decision_log
+        from app.runtime.ai_turn.ai_turn_executor import _create_error_decision_log
 
         session = god_of_carnage_module_with_state
 
@@ -925,7 +925,7 @@ class TestAIDecisionLogOutcomes:
         - AIDecisionLog.validation_outcome = ERROR (canonical mapping for STRUCTURALLY_INVALID)
         - Both surfaces tell the same story about failed turn
         """
-        from app.runtime.ai_turn_executor import _make_parse_failure_result, _create_error_decision_log
+        from app.runtime.ai_turn.ai_turn_executor import _make_parse_failure_result, _create_error_decision_log
         from datetime import datetime, timezone
 
         session = god_of_carnage_module_with_state

@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.content.module_models import ContentModule, EndingCondition, ModuleMetadata, PhaseTransition, ScenePhase
-from app.runtime.reference_policy import ReferencePolicyDecision, ReferencePolicy
-from app.runtime.validators import _validate_delta, validate_decision
+from app.runtime.validation.reference_policy import ReferencePolicyDecision, ReferencePolicy
+from app.runtime.validation.validators import _validate_delta, validate_decision
 from app.runtime.runtime_models import ProposedStateDelta, SessionState, SessionStatus
 
 
@@ -185,7 +185,7 @@ class TestReferenceValidationIntegration:
 
     def test_delta_with_unknown_character_rejected(self, god_of_carnage_module, god_of_carnage_module_with_state):
         """Delta targeting unknown character is rejected through canonical validator."""
-        from app.runtime.validators import _validate_delta
+        from app.runtime.validation.validators import _validate_delta
         from app.runtime.runtime_models import ProposedStateDelta
 
         delta = ProposedStateDelta(target="characters.ghost_character.emotional_state", next_value=70)
@@ -195,7 +195,7 @@ class TestReferenceValidationIntegration:
 
     def test_delta_with_valid_character_no_reference_error(self, god_of_carnage_module, god_of_carnage_module_with_state):
         """Delta targeting valid character produces no reference error."""
-        from app.runtime.validators import _validate_delta
+        from app.runtime.validation.validators import _validate_delta
         from app.runtime.runtime_models import ProposedStateDelta
 
         delta = ProposedStateDelta(target="characters.veronique.emotional_state", next_value=70)
@@ -205,7 +205,7 @@ class TestReferenceValidationIntegration:
 
     def test_delta_with_unknown_relationship_rejected(self, god_of_carnage_module, god_of_carnage_module_with_state):
         """Delta targeting unknown relationship axis is rejected."""
-        from app.runtime.validators import _validate_delta
+        from app.runtime.validation.validators import _validate_delta
         from app.runtime.runtime_models import ProposedStateDelta
 
         delta = ProposedStateDelta(target="relationships.ghost_relationship.value", next_value=50)
@@ -215,7 +215,7 @@ class TestReferenceValidationIntegration:
 
     def test_proposed_scene_unknown_rejected_via_reference_policy(self, god_of_carnage_module, god_of_carnage_module_with_state):
         """Unknown proposed_scene_id is rejected via ReferencePolicy."""
-        from app.runtime.validators import validate_decision
+        from app.runtime.validation.validators import validate_decision
         from app.runtime.runtime_models import MockDecision
 
         decision = MockDecision(proposed_scene_id="nonexistent_scene_xyz")
@@ -225,7 +225,7 @@ class TestReferenceValidationIntegration:
 
     def test_action_structure_trigger_assertion_unknown_trigger_rejected(self, god_of_carnage_module):
         """TRIGGER_ASSERTION with unknown trigger ID is rejected."""
-        from app.runtime.validators import validate_action_structure
+        from app.runtime.validation.validators import validate_action_structure
 
         is_valid, errors = validate_action_structure(
             "TRIGGER_ASSERTION",
@@ -237,7 +237,7 @@ class TestReferenceValidationIntegration:
 
     def test_action_structure_dialogue_impulse_unknown_character_rejected(self, god_of_carnage_module):
         """DIALOGUE_IMPULSE with unknown character is rejected."""
-        from app.runtime.validators import validate_action_structure
+        from app.runtime.validation.validators import validate_action_structure
 
         is_valid, errors = validate_action_structure(
             "DIALOGUE_IMPULSE",

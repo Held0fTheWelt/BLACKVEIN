@@ -2,7 +2,7 @@
 
 This document lists the final operational closure gate identifiers for routing governance.
 The canonical routing authority is `routing_authority` in
-`backend/app/runtime/routing_authority.py`.
+`backend/app/runtime/routing/routing_authority.py`.
 
 ## Final Gate Table
 

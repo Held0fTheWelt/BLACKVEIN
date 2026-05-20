@@ -3,7 +3,7 @@
 This report documents combined closure of routing governance Workstream A (practical convergence)
 and Workstream B (reproducibility) gates.
 The canonical routing authority is `routing_authority` in
-`backend/app/runtime/routing_authority.py`.
+`backend/app/runtime/routing/routing_authority.py`.
 
 ## Workstream A Summary (G-A-01 … G-A-07)
 

@@ -45,7 +45,7 @@ A passive NPC that only responds when directly addressed violates the live drama
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — exposes NPC agency deterministic scores and matrix columns through MCP Langfuse verification.
 - `tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py` — `test_mvp3_gate_npcs_act_without_direct_address`, `test_mvp3_gate_multiple_npcs_can_participate`, `test_mvp3_gate_responder_candidates_exclude_human_and_visitor`
 - `ai_stack/tests/test_npc_agency_planner.py` — current simulation, independent roster planning, durable carry-forward, and closure coverage.
-- `ai_stack/tests/test_npc_agency_contracts.py` — adapter normalization, required realization, NPC-to-NPC target, and human/visitor exclusion coverage for compatibility surfaces.
+- `ai_stack/tests/test_npc_agency_contracts.py` — adapter normalization, required realization, NPC-to-NPC target, and human/visitor exclusion coverage for current contract surfaces.
 - `ai_stack/tests/test_narrative_runtime_agent.py` — coverage that `NarrativeRuntimeAgent` consumes v1 `npc_initiatives`.
 
 ## Current Implementation Status (Pi7 Long-Horizon Runtime Slice)

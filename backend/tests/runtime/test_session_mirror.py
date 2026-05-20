@@ -5,7 +5,7 @@ from pathlib import Path
 # Add parent directory to path to allow imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.runtime.session_mirror import SessionMirror
+from app.runtime.session.session_mirror import SessionMirror
 
 
 class TestSessionMirror:

@@ -659,6 +659,50 @@ def test_player_shell_projection_does_not_leak_other_player_private_facts() -> N
     assert "conceal_embarrassment" not in repr(proj.to_dict())
 
 
+def test_player_shell_projection_does_not_center_npc_when_player_actor_missing() -> None:
+    michel_private_why = _fact(
+        fact_id="w5f_michel_private_why",
+        actor_id="michel",
+        dimension=W5Dimension.WHY,
+        key="motive",
+        value="avoid_blame",
+        source=W5Source.CHARACTER_MIND_RECORD,
+        truth=W5TruthLevel.INFERRED,
+        visibility=W5VisibilityScope.PRIVATE_TO_ACTOR,
+        actor_knowledge_scope=("annette",),
+    )
+    michel = W5ActorSituation(
+        actor_id="michel",
+        actor_type=W5ActorType.NPC,
+        where=(
+            _fact(
+                fact_id="w5f_michel_where",
+                actor_id="michel",
+                dimension=W5Dimension.WHERE,
+                key="scene_location",
+                value="salon",
+                source=W5Source.PARTICIPANT_STATE_MOVE,
+                truth=W5TruthLevel.OBSERVED,
+            ),
+        ),
+        why=(michel_private_why,),
+        freshness_status=W5FreshnessStatus.FRESH,
+        last_confirmed_turn=TURN,
+    )
+    snap = W5Snapshot(
+        snapshot_id="w5s_player_missing_actor",
+        story_session_id="sess_proj_test",
+        turn_number=TURN,
+        created_at=f"w5:turn:{TURN}",
+        actors={"michel": michel},
+    )
+    proj = build_w5_projection_for_player_shell(snap, player_actor_id="annette")
+    assert proj.actor_id is None
+    assert proj.where_summary["facts"] == {}
+    assert "current_visible_location" not in proj.where_summary
+    assert "avoid_blame" not in repr(proj.to_dict())
+
+
 def test_projection_centers_requested_actor_not_sorted_fallback() -> None:
     """A multi-actor snapshot must honor the requested narrator actor.
 

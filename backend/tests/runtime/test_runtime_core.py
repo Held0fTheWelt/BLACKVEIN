@@ -22,8 +22,8 @@ from app.runtime.models import (
     RuntimeSnapshot,
     TranscriptEntry,
 )
-from app.runtime.npc_behaviors import RuntimeNpcDirector
-from app.runtime.store import JsonRunStore, SqlAlchemyRunStore, build_run_store
+from app.runtime.narrative.npc_behaviors import RuntimeNpcDirector
+from app.runtime.session.store import JsonRunStore, SqlAlchemyRunStore, build_run_store
 
 
 class _FakeVisibilityPolicy:

@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_dramatic_alignment.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_dramatic_alignment.py`, `ai_stack/story_runtime/god_of_carnage/god_of_carnage_yaml_authority.py`, `backend/app/runtime/ai/role_contract.py`, `backend/app/runtime/narrative/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -72,7 +72,7 @@ This is useful, but it is still not a true dramatic-effect evaluator.
 
 ### 2.6 Backend role separation exists, but is not yet the runtime semantic core
 
-`backend/app/runtime/role_contract.py` already distinguishes between:
+`backend/app/runtime/ai/role_contract.py` already distinguishes between:
 
 - `interpreter`
 - `director`
@@ -82,7 +82,7 @@ This is valuable, but in the present system it should be understood as a structu
 
 ### 2.7 Bounded continuity substrate already exists
 
-`backend/app/runtime/narrative_threads.py` already provides bounded, derived continuity threads. Those threads are explicitly non-authoritative and remain downstream of canonical commit.
+`backend/app/runtime/narrative/narrative_threads.py` already provides bounded, derived continuity threads. Those threads are explicitly non-authoritative and remain downstream of canonical commit.
 
 This is exactly the right posture. It means the planner can become smarter without moving truth authority away from commit.
 

@@ -795,6 +795,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:23+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
+      },
       "discussion_required": false,
       "fingerprint": "4419b4baaf431e26",
       "id": "DLG-038",
@@ -804,13 +810,10 @@
       "notes": [],
       "path": "backend/app/runtime/ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:20+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/ai_decision_logging.py:102"
     },
     {
@@ -861,6 +864,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:25+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "backend/app/runtime/routing_authority.py classifies RoutingPolicy as adapter_layer with no Task 2A canonical surfaces; backend/app/runtime/operator_truth.py names it non-authoritative for those HTTP paths.",
+        "reason": "LangGraph/story_runtime_core routing remains an active non-authoritative parallel graph surface, while Task 2A HTTP routing is canonicalized to route_model."
+      },
       "discussion_required": false,
       "fingerprint": "5affd8e0ba1abc17",
       "id": "DLG-041",
@@ -870,13 +879,10 @@
       "notes": [],
       "path": "backend/app/runtime/operator_truth.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:21+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/operator_truth.py:62"
     },
     {
@@ -1011,6 +1017,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:25+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "backend/app/runtime/routing_authority.py classifies RoutingPolicy as adapter_layer with no Task 2A canonical surfaces; backend/app/runtime/operator_truth.py names it non-authoritative for those HTTP paths.",
+        "reason": "LangGraph/story_runtime_core routing remains an active non-authoritative parallel graph surface, while Task 2A HTTP routing is canonicalized to route_model."
+      },
       "discussion_required": false,
       "fingerprint": "185eecdd3920386c",
       "id": "DLG-048",
@@ -1020,13 +1032,10 @@
       "notes": [],
       "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\bcompatibility\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:21+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/routing_authority.py:6"
     },
     {
@@ -1034,6 +1043,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:25+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "backend/app/runtime/routing_authority.py classifies RoutingPolicy as adapter_layer with no Task 2A canonical surfaces; backend/app/runtime/operator_truth.py names it non-authoritative for those HTTP paths.",
+        "reason": "LangGraph/story_runtime_core routing remains an active non-authoritative parallel graph surface, while Task 2A HTTP routing is canonicalized to route_model."
       },
       "discussion_required": false,
       "fingerprint": "11eef9d86a4bcadd",
@@ -1044,13 +1059,10 @@
       "notes": [],
       "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:21+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/routing_authority.py:109"
     },
     {
@@ -1058,6 +1070,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:25+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "backend/app/runtime/routing_authority.py classifies RoutingPolicy as adapter_layer with no Task 2A canonical surfaces; backend/app/runtime/operator_truth.py names it non-authoritative for those HTTP paths.",
+        "reason": "LangGraph/story_runtime_core routing remains an active non-authoritative parallel graph surface, while Task 2A HTTP routing is canonicalized to route_model."
       },
       "discussion_required": false,
       "fingerprint": "6ffd15e7b740ebd0",
@@ -1068,13 +1086,10 @@
       "notes": [],
       "path": "backend/app/runtime/routing_authority.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:21+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/routing_authority.py:176"
     },
     {
@@ -1082,6 +1097,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:26+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "backend/app/runtime/routing_authority.py classifies RoutingPolicy as adapter_layer with no Task 2A canonical surfaces; backend/app/runtime/operator_truth.py names it non-authoritative for those HTTP paths.",
+        "reason": "LangGraph/story_runtime_core routing remains an active non-authoritative parallel graph surface, while Task 2A HTTP routing is canonicalized to route_model."
       },
       "discussion_required": false,
       "fingerprint": "84afc08b815f9384",
@@ -1092,13 +1113,10 @@
       "notes": [],
       "path": "backend/app/runtime/routing_authority.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:22+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code backend/app/runtime/routing_authority.py:179"
     },
     {
@@ -4989,6 +5007,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:23+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
+      },
       "discussion_required": false,
       "fingerprint": "e976e0b1e3008d3f",
       "id": "DLG-236",
@@ -4998,13 +5022,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:24+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:85"
     },
     {
@@ -5012,6 +5033,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:23+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "9cc0bac680f39f35",
@@ -5022,13 +5049,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:24+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:101"
     },
     {
@@ -5036,6 +5060,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:23+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "09d084648db039c6",
@@ -5046,13 +5076,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:24+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:107"
     },
     {
@@ -5060,6 +5087,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:24+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "eb6c52dd29713921",
@@ -5070,13 +5103,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:24+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:108"
     },
     {
@@ -5084,6 +5114,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:24+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "96653bd7c954e028",
@@ -5094,13 +5130,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:25+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:109"
     },
     {
@@ -5108,6 +5141,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:24+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "60817687b3328e55",
@@ -5118,13 +5157,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:25+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:350"
     },
     {
@@ -5132,6 +5168,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:24+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "f85ce848a0971784",
@@ -5142,13 +5184,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:25+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:367"
     },
     {
@@ -5156,6 +5195,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:25+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/app/runtime/ai_decision_logging.py keeps role_aware_decision=None as a typed current path; backend/tests/runtime/test_ai_decision_logging.py verifies role fields stay None.",
+        "reason": "Decision logging still has a current no-role-payload path for active recovery/error and unstructured parse records; old legacy wording was removed without deleting the active log contract."
       },
       "discussion_required": false,
       "fingerprint": "e7900cf187cc18dd",
@@ -5166,13 +5211,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_ai_decision_logging.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:25+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:376"
     },
     {
@@ -5307,6 +5349,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:26+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
+      },
       "discussion_required": false,
       "fingerprint": "87c74fb8e2666ad8",
       "id": "DLG-250",
@@ -5316,13 +5364,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:26+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:184"
     },
     {
@@ -5330,6 +5375,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:26+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "3361875d2c16d5fd",
@@ -5340,13 +5391,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:26+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:211"
     },
     {
@@ -5354,6 +5402,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:26+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "7751e1505992a162",
@@ -5364,13 +5418,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:26+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:218"
     },
     {
@@ -5378,6 +5429,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:27+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "538dfc23706d569d",
@@ -5388,13 +5445,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:26+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:219"
     },
     {
@@ -5402,6 +5456,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:27+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "ffa3fdf526b24f3a",
@@ -5412,13 +5472,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:26+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:220"
     },
     {
@@ -5426,6 +5483,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:27+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "2b0ced7057febd9e",
@@ -5436,13 +5499,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:27+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:221"
     },
     {
@@ -5450,6 +5510,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:27+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "backend/tests/runtime/test_preview_delta.py uses _reference_preview_with_full_deepcopy and verifies guard verdict equivalence.",
+        "reason": "Preview delta full-deepcopy comparison is retained as a current reference oracle for bounded-clone semantics; legacy naming was canonicalized to reference terminology."
       },
       "discussion_required": false,
       "fingerprint": "500939b98cfe49ab",
@@ -5460,13 +5526,10 @@
       "notes": [],
       "path": "backend/tests/runtime/test_preview_delta.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:27+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test backend/tests/runtime/test_preview_delta.py:222"
     },
     {
@@ -9801,6 +9864,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:27+00:00",
+        "compatibility_scope": "alternative_use",
+        "evidence": "ai_stack/langchain/bridges.py documents narrative_response as an alternate caller surface; world-engine runtime output models and tests still consume narrative_response.",
+        "reason": "narrative_response is still an active runtime output field for alternate callers; old legacy wording was canonicalized while the field remains current."
+      },
       "discussion_required": false,
       "fingerprint": "bbc7ed25c6c3240d",
       "id": "DLG-463",
@@ -9810,13 +9879,10 @@
       "notes": [],
       "path": "ai_stack/langchain/bridges.py",
       "pattern": "\\blegacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:27+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/langchain/bridges.py:250"
     },
     {
@@ -11148,6 +11214,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:28+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
+      },
       "discussion_required": false,
       "fingerprint": "51b7cecd52a29fb0",
       "id": "DLG-527",
@@ -11157,13 +11229,10 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:27+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:72"
     },
     {
@@ -11171,6 +11240,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:28+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "ab37793f57a26e39",
@@ -11181,13 +11256,10 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:28+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:130"
     },
     {
@@ -11195,6 +11267,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:28+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "4515360e6aacff1a",
@@ -11205,13 +11283,10 @@
       "notes": [],
       "path": "ai_stack/mcp/mcp_canonical_surface.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:28+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:220"
     },
     {
@@ -11745,6 +11820,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:16+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/contracts/npc_agency_contracts.py reads raw_plan['npc_initiatives'] into initiative_rows and no longer reads the old initiatives alias.",
+        "reason": "The v1 npc_initiatives contract remains active; only the misleading legacy_rows naming was canonicalized to initiative_rows."
+      },
       "discussion_required": false,
       "fingerprint": "84cfa848a07ce700",
       "id": "DLG-555",
@@ -11757,7 +11838,7 @@
       "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:316"
     },
     {
@@ -11796,10 +11877,13 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T22:25:21+00:00",
+        "verification": "Old initiatives input fallback removed from NPC agency normalization; current code reads only npc_initiatives."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:318"
     },
     {
@@ -11874,6 +11958,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:19+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py reads social_pressure_shift without accepting prior pressure_shift input.",
+        "reason": "Social pressure signal handling remains active under social_pressure_shift; only the legacy_shift variable naming was canonicalized."
+      },
       "discussion_required": false,
       "fingerprint": "1028d382893a21c3",
       "id": "DLG-561",
@@ -11883,13 +11973,10 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:28+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139"
     },
     {
@@ -11922,6 +12009,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:19+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py reads social_pressure_shift without accepting prior pressure_shift input.",
+        "reason": "Social pressure signal handling remains active under social_pressure_shift; only the legacy_shift variable naming was canonicalized."
+      },
       "discussion_required": false,
       "fingerprint": "7434d1da82eea927",
       "id": "DLG-563",
@@ -11931,13 +12024,10 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:29+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151"
     },
     {
@@ -11945,6 +12035,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:19+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py reads social_pressure_shift without accepting prior pressure_shift input.",
+        "reason": "Social pressure signal handling remains active under social_pressure_shift; only the legacy_shift variable naming was canonicalized."
       },
       "discussion_required": false,
       "fingerprint": "101b9b4531911909",
@@ -11955,13 +12051,10 @@
       "notes": [],
       "path": "ai_stack/story_runtime/npc_agency/npc_agency_planner.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:29+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155"
     },
     {
@@ -12663,6 +12756,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:28+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
+      },
       "discussion_required": false,
       "fingerprint": "c7e92d00a38807e2",
       "id": "DLG-598",
@@ -12672,13 +12771,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:29+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:41"
     },
     {
@@ -12686,6 +12782,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:29+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "f716c9ad0838694e",
@@ -12696,13 +12798,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:29+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:492"
     },
     {
@@ -12710,6 +12809,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:29+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "45f1d5f01e3c3b4e",
@@ -12720,13 +12825,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:30+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:497"
     },
     {
@@ -12734,6 +12836,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:29+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "ce21d4c8bbeb56e0",
@@ -12744,13 +12852,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:30+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:502"
     },
     {
@@ -12758,6 +12863,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:22:29+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/mcp/mcp_canonical_surface.py exposes permission_scope internally; tools/mcp_server/tools_registry.py maps it to the public permission metadata key.",
+        "reason": "MCP permission derivation remains active metadata but the internal name was canonicalized from permission_legacy to permission_scope."
       },
       "discussion_required": false,
       "fingerprint": "21db74aac11958a1",
@@ -12768,13 +12879,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_mcp_canonical_surface_extended.py",
       "pattern": "_legacy\\b",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:30+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:507"
     },
     {
@@ -12804,6 +12912,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:17+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
+      },
       "discussion_required": false,
       "fingerprint": "fbe03733d38085df",
       "id": "DLG-604",
@@ -12813,13 +12927,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:30+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:179"
     },
     {
@@ -12827,6 +12938,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:17+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
       },
       "discussion_required": false,
       "fingerprint": "0d27014cd5ea82dc",
@@ -12837,13 +12954,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:30+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:180"
     },
     {
@@ -12851,6 +12965,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:18+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
       },
       "discussion_required": false,
       "fingerprint": "682dd20c491966c2",
@@ -12861,13 +12981,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:31+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:192"
     },
     {
@@ -12875,6 +12992,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:18+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
       },
       "discussion_required": false,
       "fingerprint": "2c8c5500649b00ce",
@@ -12885,13 +13008,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:31+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:199"
     },
     {
@@ -12899,6 +13019,12 @@
         "approved_at": "2026-05-20T18:00:41+00:00",
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:18+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
       },
       "discussion_required": false,
       "fingerprint": "3f91a5e0678672e5",
@@ -12909,13 +13035,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_narrative_runtime_agent.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:31+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:202"
     },
     {
@@ -12948,6 +13071,12 @@
         "approved_by": "user removal request 2026-05-20",
         "note": "User requested execution of legacy removal on 2026-05-20; removal still stops for integrity risks."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:18+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/tests/test_narrative_runtime_agent.py uses npc_initiatives and initiative_rows for the active ruhepunkt pressure analysis tests.",
+        "reason": "Narrative runtime tests still cover current npc_initiatives behavior; old legacy_rows wording and old input shape were canonicalized to the v1 contract."
+      },
       "discussion_required": false,
       "fingerprint": "d00fea5b61d4cf66",
       "id": "DLG-610",
@@ -12957,13 +13086,10 @@
       "notes": [],
       "path": "ai_stack/tests/test_npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:31+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:24"
     },
     {
@@ -19041,10 +19167,13 @@
       "notes": [],
       "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T22:25:21+00:00",
+        "verification": "ADR text no longer claims backward compatibility with legacy initiatives."
+      },
       "reported_at": "2026-05-20T18:00:41+00:00",
       "reported_to": "user removal request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41"
     },
     {
@@ -21468,6 +21597,12 @@
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:16+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/contracts/npc_agency_contracts.py reads raw_plan['npc_initiatives'] into initiative_rows and no longer reads the old initiatives alias.",
+        "reason": "The v1 npc_initiatives contract remains active; only the misleading legacy_rows naming was canonicalized to initiative_rows."
+      },
       "discussion_required": false,
       "fingerprint": "1375b2f15b961e53",
       "id": "DLG-1015",
@@ -21477,13 +21612,10 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:33+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:316"
     },
     {
@@ -21491,6 +21623,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:16+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/contracts/npc_agency_contracts.py reads raw_plan['npc_initiatives'] into initiative_rows and no longer reads the old initiatives alias.",
+        "reason": "The v1 npc_initiatives contract remains active; only the misleading legacy_rows naming was canonicalized to initiative_rows."
       },
       "discussion_required": false,
       "fingerprint": "9e394b0165a39d50",
@@ -21501,13 +21639,10 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:33+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:317"
     },
     {
@@ -21540,6 +21675,12 @@
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:17+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/contracts/npc_agency_contracts.py reads raw_plan['npc_initiatives'] into initiative_rows and no longer reads the old initiatives alias.",
+        "reason": "The v1 npc_initiatives contract remains active; only the misleading legacy_rows naming was canonicalized to initiative_rows."
+      },
       "discussion_required": false,
       "fingerprint": "bf05d3cea7bbb834",
       "id": "DLG-1018",
@@ -21549,13 +21690,10 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:33+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:320"
     },
     {
@@ -21563,6 +21701,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:17+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "ai_stack/contracts/npc_agency_contracts.py reads raw_plan['npc_initiatives'] into initiative_rows and no longer reads the old initiatives alias.",
+        "reason": "The v1 npc_initiatives contract remains active; only the misleading legacy_rows naming was canonicalized to initiative_rows."
       },
       "discussion_required": false,
       "fingerprint": "9a604ad6309fe9b9",
@@ -21573,13 +21717,10 @@
       "notes": [],
       "path": "ai_stack/contracts/npc_agency_contracts.py",
       "pattern": "\\blegacy_",
-      "removal": {
-        "removed_at": "2026-05-20T21:02:33+00:00",
-        "verification": "Removed in next-wave cleanup; verified absent from active_surface_scan_after_wave_next_4.json and targeted tests passed."
-      },
+      "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "removed",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:373"
     },
     {
@@ -22134,6 +22275,12 @@
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:19+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
+      },
       "discussion_required": false,
       "fingerprint": "b3f0c9d15644b919",
       "id": "DLG-1046",
@@ -22146,7 +22293,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code tools/mcp_server/tools_registry.py:52"
     },
     {
@@ -22154,6 +22301,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:19+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
       },
       "discussion_required": false,
       "fingerprint": "5cda3e086688ae6e",
@@ -22167,7 +22320,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: code tools/mcp_server/tools_registry.py:69"
     },
     {
@@ -22197,6 +22350,12 @@
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
       },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:20+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
+      },
       "discussion_required": false,
       "fingerprint": "3ed8196b133d1e8f",
       "id": "DLG-1049",
@@ -22209,7 +22368,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:41"
     },
     {
@@ -22217,6 +22376,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:20+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
       },
       "discussion_required": false,
       "fingerprint": "e6fc18e8fdbfc1c9",
@@ -22230,7 +22395,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:46"
     },
     {
@@ -22238,6 +22403,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:20+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
       },
       "discussion_required": false,
       "fingerprint": "519c041a561cb2a4",
@@ -22251,7 +22422,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:52"
     },
     {
@@ -22259,6 +22430,12 @@
         "approved_at": "2026-05-20T19:24:16+00:00",
         "approved_by": "user continuation request 2026-05-20",
         "note": "User requested continued legacy removal on 2026-05-20; active required behavior must be preserved and canonicalized, ambiguous removals stop for discussion."
+      },
+      "canonicalization": {
+        "canonicalized_at": "2026-05-20T22:25:20+00:00",
+        "compatibility_scope": "current_required_behavior",
+        "evidence": "tools/mcp_server/tools_registry.py reads descriptor.permission_scope; MCP tests assert permission_scope and public permission metadata.",
+        "reason": "MCP permission metadata remains active; the internal descriptor/test surface was canonicalized to permission_scope while the public permission key remains current metadata."
       },
       "discussion_required": false,
       "fingerprint": "a84455a95b511e53",
@@ -22272,7 +22449,7 @@
       "removal": null,
       "reported_at": "2026-05-20T19:24:16+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "canonicalized_active_behavior",
       "title": "Post-audit legacy removal: test tools/mcp_server/tests/test_tools_registry_aliases.py:43"
     },
     {
@@ -22941,10 +23118,13 @@
       "notes": [],
       "path": "docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md",
       "pattern": "\\blegacy\\b",
-      "removal": null,
+      "removal": {
+        "removed_at": "2026-05-20T22:25:21+00:00",
+        "verification": "ADR text no longer claims backward compatibility with legacy initiatives."
+      },
       "reported_at": "2026-05-20T20:09:24+00:00",
       "reported_to": "user continuation request 2026-05-20",
-      "status": "approved_for_removal",
+      "status": "removed",
       "title": "Post-continuation legacy removal v2: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41"
     },
     {

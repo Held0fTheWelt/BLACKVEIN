@@ -14,13 +14,13 @@ import tempfile
 import asyncio
 from pathlib import Path
 from app.services.data.persistence_service import save_session, load_session
-from app.runtime.session_start import start_session
-from app.runtime.session_store import (
+from app.runtime.session.session_start import start_session
+from app.runtime.session.session_store import (
     create_session as register_session,
     delete_session,
     get_session as get_stored_session,
 )
-from app.runtime.turn_dispatcher import dispatch_turn
+from app.runtime.turn.turn_dispatcher import dispatch_turn
 
 
 def create_session(module_id: str):

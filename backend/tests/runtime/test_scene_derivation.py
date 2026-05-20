@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.lore_direction_context import LoreDirectionContext
-from app.runtime.progression_summary import ProgressionSummary
-from app.runtime.relationship_context import RelationshipAxisContext
+from app.runtime.narrative.lore_direction_context import LoreDirectionContext
+from app.runtime.narrative.progression_summary import ProgressionSummary
+from app.runtime.narrative.relationship_context import RelationshipAxisContext
 from app.runtime.runtime_models import MockDecision, ProposedStateDelta
-from app.runtime.turn_executor import execute_turn
+from app.runtime.turn.turn_executor import execute_turn
 from app.runtime.runtime_models import SessionState
 
 

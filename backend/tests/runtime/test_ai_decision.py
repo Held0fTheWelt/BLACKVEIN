@@ -13,7 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.runtime.ai_adapter import AdapterResponse
-from app.runtime.ai_decision import (
+from app.runtime.ai.ai_decision import (
     ParseResult,
     ParsedAIDecision,
     parse_adapter_response,
@@ -21,7 +21,7 @@ from app.runtime.ai_decision import (
     normalize_structured_output,
     process_adapter_response,
 )
-from app.runtime.ai_output import (
+from app.runtime.ai.ai_output import (
     ConflictVector,
     DialogueImpulse,
     ProposedDelta,

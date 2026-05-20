@@ -12,7 +12,7 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import attach_stage_routing_evidence
+from app.runtime.routing.model_routing_evidence import attach_stage_routing_evidence
 
 
 def run_writers_room_generation_preflight(

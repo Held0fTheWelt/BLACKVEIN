@@ -8,7 +8,7 @@ Accepted
 **Implemented — matches ADR (inventory complete; retirement ongoing).**
 
 - Backend transitional session surfaces are inventoried and classified; documented in `docs/technical/architecture/backend-runtime-classification.md`.
-- `backend/app/api/v1/session_routes.py`, `backend/app/runtime/session_store.py`, and `backend/app/services/session_service.py` are classified and labeled non-authoritative per the ADR.
+- `backend/app/api/v1/session_routes.py`, `backend/app/runtime/session/session_store.py`, and `backend/app/services/session_service.py` are classified and labeled non-authoritative per the ADR.
 - Governance investigation confirms `CTR-ADR-0002-BACKEND-SESSION-QUARANTINE` is implemented; validated by `backend/tests/test_session_routes.py` and `backend/tests/test_world_engine_console_routes.py`.
 - One open gap: the ADR cites "Appendix A" (normative surface list) as a living artifact — retirement timeline for remaining transitional shims is intentionally unresolved (`CNF-RUNTIME-SPINE-TRANSITIONAL-RETIREMENT`). No action required before marking Accepted; tracking continues in governance audit.
 

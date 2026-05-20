@@ -125,7 +125,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 **Plain:** Smaller or cheaper models handle classification-like or preflight work when policy allows.
 
-**Technical:** `TASK_ROUTING_MODE` marks several task kinds as **SLM-first** (e.g. `classification`, `cheap_preflight`, `ranking`). Staged orchestration in `backend/app/runtime/runtime_ai_stages.py` (from `execute_turn_with_ai` in `backend/app/runtime/ai_turn_executor.py`) runs preflight → signal → ranking → conditional synthesis with explicit traces when stages skip or degrade. Session metadata can disable staging (`runtime_staged_orchestration`).
+**Technical:** `TASK_ROUTING_MODE` marks several task kinds as **SLM-first** (e.g. `classification`, `cheap_preflight`, `ranking`). Staged orchestration in `backend/app/runtime/ai_turn/runtime_ai_stages.py` (from `execute_turn_with_ai` in `backend/app/runtime/ai_turn/ai_turn_executor.py`) runs preflight → signal → ranking → conditional synthesis with explicit traces when stages skip or degrade. Session metadata can disable staging (`runtime_staged_orchestration`).
 
 **Why WoS:** Cost, latency, and predictable bounded calls matter at scale.
 

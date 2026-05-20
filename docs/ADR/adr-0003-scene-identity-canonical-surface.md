@@ -49,8 +49,8 @@ Authored narrative modules are consumed by more than one component (content comp
    aliases, location aliases, or scene candidates. Those meanings must come
    from authored content IDs and AI semantic resolution.
 6. The compatibility resolver does **not** authorize phase-helper fallback.
-   Backend transitional helpers such as `app.runtime.next_situation` and
-   `app.runtime.reference_policy` remain strict over
+   Backend transitional helpers such as `app.runtime.narrative.next_situation` and
+   `app.runtime.validation.reference_policy` remain strict over
    `ContentModule.scene_phases`: a `SessionState.current_scene_id` that names
    only a `scene_graph.yaml` node is rejected instead of being silently
    remapped to a phase id. Even scene self-reference checks first require the

@@ -7,7 +7,7 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import build_routing_evidence, routing_overview_for_reason_code
+from app.runtime.routing.model_routing_evidence import build_routing_evidence, routing_overview_for_reason_code
 
 
 def _assert_task2f_diagnostics_shape(ev: dict) -> None:

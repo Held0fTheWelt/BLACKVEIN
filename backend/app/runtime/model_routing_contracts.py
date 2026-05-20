@@ -198,5 +198,5 @@ class RoutingDecision(BaseModel):
 # --- Roadmap G2 names (docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md §6.2): aliases only, no parallel schema ---
 ModelCapabilityRecord = AdapterModelSpec
 RoutingPolicyRecord = RoutingRequest
-# Observation dicts are assembled by ``app.runtime.model_routing_evidence.build_routing_evidence``.
+# Observation dicts are assembled by ``app.runtime.routing.model_routing_evidence.build_routing_evidence``.
 RoutingObservationRecord = dict[str, Any]

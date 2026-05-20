@@ -2,7 +2,7 @@
 
 This document lists the closure gates for routing governance Task 2 (registry/routing convergence).
 The canonical routing authority implementation is `routing_authority` in
-`backend/app/runtime/routing_authority.py`.
+`backend/app/runtime/routing/routing_authority.py`.
 
 ## Gate Table
 
@@ -20,4 +20,4 @@ The canonical routing authority implementation is `routing_authority` in
 ## Authority Reference
 
 All routing policy is governed by `routing_authority` (`ROUTING_AUTHORITY_REGISTRY`).
-See `backend/app/runtime/routing_authority.py`.
+See `backend/app/runtime/routing/routing_authority.py`.

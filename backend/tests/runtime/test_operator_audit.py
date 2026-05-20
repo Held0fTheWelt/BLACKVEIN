@@ -9,8 +9,8 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import build_routing_evidence
-from app.runtime.operator_audit import (
+from app.runtime.routing.model_routing_evidence import build_routing_evidence
+from app.runtime.routing.operator_audit import (
     AUDIT_SCHEMA_VERSION,
     build_audit_timeline_entry,
     build_bounded_surface_operator_audit,

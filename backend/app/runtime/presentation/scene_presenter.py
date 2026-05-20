@@ -1,0 +1,218 @@
+"""W3.4.1 — Canonical character and conflict presenter mapping.
+
+Maps bounded, canonical SessionState data to typed UI-facing output models.
+All fields derive strictly from canonical runtime sources; no invented state.
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+from app.runtime.runtime_models import SessionState
+from app.runtime.presentation.scene_presenter_conflict_models import ConflictPanelOutput, ConflictTrendSignal
+
+
+class RelationshipMovement(BaseModel):
+    """A single salient relationship change tied to a character."""
+
+    other_character_id: str
+    """The character this relationship is with."""
+
+    signal_type: str
+    """Classification: 'tension', 'alliance', 'instability', 'stable'."""
+
+    recent_change: str
+    """Trend: 'escalating', 'stable', 'de-escalating'."""
+
+    salience_score: float
+    """Relevance 0.0–1.0; how much this relationship matters now."""
+
+
+class CharacterPanelOutput(BaseModel):
+    """Bounded character panel output for UI display."""
+
+    character_id: str
+    """Character identifier from canonical state."""
+
+    character_name: Optional[str] = None
+    """Character name if available in canonical_state.characters[id].name."""
+
+    overall_trajectory: str
+    """Relationship trend for this character: 'escalating', 'stable', 'de-escalating', 'mixed', 'unknown'.
+    Derived only from axes in relationship_axis_context where this character is involved.
+    """
+
+    top_relationship_movements: list[RelationshipMovement] = Field(default_factory=list)
+    """Up to 2 most salient relationship movements involving this character, sorted by salience_score."""
+
+
+def present_character_panel(
+    session_state: SessionState,
+    character_id: str,
+) -> CharacterPanelOutput:
+    """Map canonical session data to character panel output.
+
+    Extracts character name and relationship trajectory from SessionState.
+    All fields derive strictly from canonical sources.
+
+    Args:
+        session_state: The active SessionState.
+        character_id: The character to present.
+
+    Returns:
+        CharacterPanelOutput with bounded, canonical-derived fields.
+
+    Logic:
+        1. Extract character_name from canonical_state.characters[character_id].name if present.
+        2. Filter relationship_axis_context.salient_axes to only those involving character_id.
+        3. Classify overall_trajectory from filtered axes:
+           - All escalating → 'escalating'
+           - All stable → 'stable'
+           - All de-escalating → 'de-escalating'
+           - Mixed → 'mixed'
+           - None or missing context → 'unknown'
+        4. Sort filtered axes by salience_score; take top 2 as RelationshipMovement objects.
+        5. Return CharacterPanelOutput.
+    """
+    # Step 1: Extract character_name
+    character_name = None
+    if session_state.canonical_state:
+        characters = session_state.canonical_state.get("characters", {})
+        if isinstance(characters, dict) and character_id in characters:
+            char_data = characters[character_id]
+            if isinstance(char_data, dict):
+                character_name = char_data.get("name")
+
+    # Step 2: Filter salient_axes for this character
+    filtered_axes = []
+    if (
+        session_state.context_layers
+        and session_state.context_layers.relationship_axis_context
+    ):
+        for axis in session_state.context_layers.relationship_axis_context.salient_axes:
+            if axis.character_a == character_id or axis.character_b == character_id:
+                filtered_axes.append(axis)
+
+    # Step 3: Classify overall_trajectory
+    if not filtered_axes:
+        overall_trajectory = "unknown"
+    else:
+        # Collect all change directions from filtered axes
+        change_directions = {axis.recent_change_direction for axis in filtered_axes}
+
+        if change_directions == {"escalating"}:
+            overall_trajectory = "escalating"
+        elif change_directions == {"stable"}:
+            overall_trajectory = "stable"
+        elif change_directions == {"de-escalating"}:
+            overall_trajectory = "de-escalating"
+        else:
+            # Mixed directions
+            overall_trajectory = "mixed"
+
+    # Step 4: Sort by salience_score and take top 2
+    sorted_axes = sorted(filtered_axes, key=lambda a: a.salience_score, reverse=True)
+    top_two = sorted_axes[:2]
+
+    top_relationship_movements = [
+        RelationshipMovement(
+            other_character_id=axis.character_b
+            if axis.character_a == character_id
+            else axis.character_a,
+            signal_type=axis.signal_type,
+            recent_change=axis.recent_change_direction,
+            salience_score=axis.salience_score,
+        )
+        for axis in top_two
+    ]
+
+    # Step 5: Return CharacterPanelOutput
+    return CharacterPanelOutput(
+        character_id=character_id,
+        character_name=character_name,
+        overall_trajectory=overall_trajectory,
+        top_relationship_movements=top_relationship_movements,
+    )
+
+
+def present_conflict_panel(
+    session_state: SessionState,
+) -> ConflictPanelOutput:
+    """Map canonical session data to conflict panel output.
+
+    Extracts conflict pressure, escalation status, and trend signals from SessionState.
+    All fields derive strictly from canonical sources.
+
+    Args:
+        session_state: The active SessionState.
+
+    Returns:
+        ConflictPanelOutput with bounded, canonical-derived fields.
+
+    Logic:
+        1. Extract current_pressure from short_term_context.conflict_pressure or
+           canonical_state.conflict_state.pressure. Keep as None if absent.
+        2. Derive current_escalation_status:
+           - If pressure is None → 'unknown'
+           - Else: 0–33 → 'low', 34–66 → 'medium', 67–100 → 'high'
+        3. Derive recent_trend from canonical sources using priority rule:
+           - Priority 1: If guard_outcomes show more rejections → 'escalating'
+           - Priority 2: If relationship escalation markers present → 'escalating'
+           - Priority 3: If relationship stability signal == 'de-escalating' → 'de-escalating'
+           - Priority 4: If relationship stability signal == 'stable' → 'stable'
+           - Fallback: 'uncertain'
+           - source_basis lists all sources that contributed.
+           - If context layers missing → None
+        4. Derive turning_point_risk:
+           - True if relationship_axis_context.has_escalation_markers is True
+           - False otherwise
+           - None if context layers missing
+        5. Return ConflictPanelOutput.
+    """
+    from app.runtime.presentation.scene_presenter_conflict_sections import build_conflict_panel_from_session
+
+    return build_conflict_panel_from_session(session_state)
+
+
+def present_all_characters(
+    session_state: SessionState,
+) -> list[CharacterPanelOutput]:
+    """Map all characters in play to bounded character panel outputs.
+
+    Collects all characters from canonical_state, orders deterministically,
+    calls present_character_panel for each, handles all edge cases gracefully.
+
+    Args:
+        session_state: The active SessionState.
+
+    Returns:
+        List of CharacterPanelOutput for all characters in play, deterministically ordered.
+        Empty list if no characters in canonical_state or canonical_state is missing.
+
+    Logic:
+        1. Extract character_ids from canonical_state.characters (empty dict if not present)
+        2. Order deterministically by character_id
+        3. For each character_id, call present_character_panel(session_state, character_id)
+        4. Collect results into list
+        5. Return list (may be empty)
+    """
+    # Step 1: Extract character_ids from canonical_state
+    character_ids = []
+    if session_state.canonical_state:
+        characters = session_state.canonical_state.get("characters", {})
+        if isinstance(characters, dict):
+            character_ids = list(characters.keys())
+
+    # Step 2: Order deterministically by character_id
+    character_ids.sort()
+
+    # Step 3 & 4: For each character_id, call present_character_panel and collect results
+    results = [
+        present_character_panel(session_state, char_id)
+        for char_id in character_ids
+    ]
+
+    # Step 5: Return list
+    return results

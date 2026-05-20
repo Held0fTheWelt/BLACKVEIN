@@ -1,7 +1,7 @@
 # routing governance Registry/Routing Convergence Closure Report
 
 This report documents closure of routing governance Task 2 registry and routing convergence gates.
-The canonical routing authority is `routing_authority` in `backend/app/runtime/routing_authority.py`.
+The canonical routing authority is `routing_authority` in `backend/app/runtime/routing/routing_authority.py`.
 
 ## Closure Status
 

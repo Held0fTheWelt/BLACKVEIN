@@ -44,7 +44,7 @@ This document is **not** a replacement for [`state/EXECUTION_GOVERNANCE.md`](../
 | **DS-006** | `repo_governance_rollout` | `world_engine` scan tree, despaghettify config | **CLOSED** 2026-05-20 |
 | **DS-007** | `backend_runtime_services` | — | **CLOSED** 2026-05-20 |
 | **DS-008** | `ai_stack` | — | **CLOSED** 2026-05-20 |
-| **DS-009** | `world_engine` | — | **OPEN** — 2026-05-20 scan |
+| **DS-009** | `world_engine` | — | **CLOSED** 2026-05-20 |
 | **DS-010** | `ai_stack` | `backend_runtime_services` | **OPEN** — 2026-05-20 scan |
 | **DS-011** | `ai_stack` | `story_runtime_core`, `backend_runtime_services` | **OPEN** — 2026-05-20 scan |
 
@@ -88,35 +88,35 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 
 | Field | **Trigger v2** (0–100; advisory) | **Anteil %** (vs. bars / `M7_ref`; **M7** row = `m7_anteil_pct_gewichtet`) |
 |-------|-------------------------------------|-------------------------------------|
-| **As of (date & time)** | — | **2026-05-20 19:32:19 (UTC)** |
+| **As of (date & time)** | — | **2026-05-20 22:02:19 (UTC)** |
 | Spaghetti scan command | — | `python "./'fy'-suites/despaghettify/tools/spaghetti_ast_scan.py"` (ROOTS = *measurement scope*) |
 | Measurement scope (ROOTS) | — | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` from `fy-manifest.yaml` |
-| **M7** — gewichtete 7-Kategorien-Summe | **55.34** | **4.66** |
-| C1: Circular dependencies | **12.52** | **1.52** |
-| C2: Nesting depth | **63.21** | **2.00** |
+| **M7** — gewichtete 7-Kategorien-Summe | **55.21** | **4.65** |
+| C1: Circular dependencies | **12.52** | **1.46** |
+| C2: Nesting depth | **61.71** | **2.00** |
 | C3: Long functions + complexity | **99.94** | **2.19** |
-| C4: Multi-responsibility modules | **76.25** | **7.99** |
-| C5: Magic numbers + global state | **41.94** | **1.06** |
-| C6: Missing abstractions / duplication | **58.35** | **15.07** |
-| C7: Confusing control flow | **64.96** | **7.95** |
-| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | — | **10731** / **857** / **235** / **25** |
+| C4: Multi-responsibility modules | **76.24** | **7.98** |
+| C5: Magic numbers + global state | **41.93** | **1.06** |
+| C6: Missing abstractions / duplication | **58.30** | **15.11** |
+| C7: Confusing control flow | **64.96** | **7.97** |
+| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | — | **10747** / **858** / **235** / **24** |
 | Extra check builtins | — | **0** matches for `def build_god_of_carnage_solo` in `**/builtins.py`; `story_runtime_core/goc_solo_builtin_template.py` still owns the definition |
 | Extra check runtime | — | **`ds005_runtime_import_check.py`** exit **0**; grep `TYPE_CHECKING` / `avoid circular` / `circular dependency` under `backend/app/runtime`: **0** hits |
-| **Open hotspots** | — | **Trigger policy still fires by composite:** `M7_anteil` **4.66** ≥ `M7_ref` **4.24**. **DS-008** removed the validation leaders: `_build_runtime_aspect_validation` and `_validate_seam` no longer appear in top longest/nesting rankings. Remaining firing conditions are **C4/C7** (`ai_stack/langgraph/langgraph_runtime_executor.py` still has context/action leaders `_build_dramatic_generation_packet` **562L/depth 2**, `_assemble_model_context` **562L/depth 4**, `_interpret_input` **387L/depth 6**, `_resolve_player_action` **385L/depth 5**; `world-engine/app/story_runtime/commit_models.py:_planner_truth_from_graph_state` **540L/depth 6**; `world-engine/app/api/story_ws.py:story_session_stream` **391L/depth 8**; `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` has **1013L** / **754L** leaders), **C5** (`ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context` remains the literal-heavy LangGraph context target), and **C6** (broad duplicate names include `to_dict`, `to_runtime_dict`, `generate`, `_as_list`, `_json_safe`). Residual C1 cycles are advisory only: narrative thread helpers and game/governance service coupling. |
+| **Open hotspots** | — | **Trigger policy still fires by composite:** `M7_anteil` **4.65** ≥ `M7_ref` **4.24**. **DS-009** removed the world-engine leaders: `_planner_truth_from_graph_state` and `story_session_stream` no longer appear in top longest/nesting rankings. Remaining firing conditions are **C4/C7** (`ai_stack/langgraph/langgraph_runtime_executor.py` still has context/action leaders `_build_dramatic_generation_packet` **562L/depth 2**, `_assemble_model_context` **562L/depth 4**, `_interpret_input` **387L/depth 6**, `_resolve_player_action` **385L/depth 5**; `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` has **1013L** / **754L** leaders), **C5** (`ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context` remains the literal-heavy LangGraph context target), and **C6** (broad duplicate names include `to_dict`, `to_runtime_dict`, `generate`, `_as_list`, `_json_safe`). Residual C1 cycles are advisory only: narrative thread helpers and game/governance service coupling. |
 
 ### Score *M7* — inputs, weights, and calculation
 
 | Symbol | Meaning | **Trigger v2** (0–100) | **Anteil %** |
 |--------|---------|------------------------|--------------|
-| **M7** | Gewichtete Summe | **55.34** | **4.66** |
-| **C1** | Circular dependencies | **12.52** | **1.52** |
-| **C2** | Nesting depth | **63.21** | **2.00** |
+| **M7** | Gewichtete Summe | **55.21** | **4.65** |
+| **C1** | Circular dependencies | **12.52** | **1.46** |
+| **C2** | Nesting depth | **61.71** | **2.00** |
 | **C3** | Long functions + complexity | **99.94** | **2.19** |
-| **C4** | Multi-responsibility modules | **76.25** | **7.99** |
-| **C5** | Magic numbers + global state | **41.94** | **1.06** |
-| **C6** | Missing abstractions / duplication | **58.35** | **15.07** |
-| **C7** | Confusing control flow | **64.96** | **7.95** |
-| **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | — | **10731** / **857** / **235** / **25** |
+| **C4** | Multi-responsibility modules | **76.24** | **7.98** |
+| **C5** | Magic numbers + global state | **41.93** | **1.06** |
+| **C6** | Missing abstractions / duplication | **58.30** | **15.11** |
+| **C7** | Confusing control flow | **64.96** | **7.97** |
+| **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | — | **10747** / **858** / **235** / **24** |
 
 **Formeln:** **Trigger:** `M7_trigger = Σ weight_i × trigger_v2(Ci)` aus **`metrics_bundle.m7`** / **`score`**. **Anteil:** `M7_anteil = Σ weight_i × anteil_pct(Ci)` aus **`score.m7_anteil_pct_gewichtet`**. **Weights:** [spaghetti-setup.md](../spaghetti-setup.md) § *M7 category weights*.
 
@@ -143,11 +143,10 @@ Each **open** row: **ID**, **pattern** (lead with **C1..C7** from [spaghetti-set
 
 | ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
 |----|---------|--------------------|-------------------------|----------------------------|----------------|
-| **DS-009** | **C4 · C7 ·** World-engine story runtime flow split | `world-engine/app/story_runtime/commit_models.py`, `world-engine/app/api/story_ws.py` | `_planner_truth_from_graph_state` **540L/depth 6** and `story_session_stream` **391L/depth 8** remain top product leaders. | Separate projection assembly and websocket stream phases into named helpers/modules while preserving public API behavior. | Can run independently after DS-008 closure if no shared contract shape changes. |
-| **DS-010** | **C4 · C5 ·** Literal-heavy LangGraph/product context functions / migration policy | `ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context`, `ai_stack/langgraph/langgraph_runtime_executor.py:_build_dramatic_generation_packet`, `backend/app/services/governance_runtime_service.py:test_provider_connection`, backend migrations | Product-side scan after DS-008 still shows LangGraph context/action leaders (`_build_dramatic_generation_packet` **562L**, `_assemble_model_context` **562L**, `_interpret_input` **387L**, `_resolve_player_action` **385L**) and `_assemble_model_context` remains the literal-heavy target. Migrations also dominate raw C5. | Promote meaningful literals to named constants/config and split remaining LangGraph context packet/action assembly only where it clarifies boundaries; document or exclude one-way migration data where constants would reduce clarity. | Follows DS-008 validation seam extraction; avoid reopening `langgraph_runtime_validation.py` unless tests show contract drift. |
-| **DS-011** | **C6 ·** Duplicate-name proxy triage | `ai_stack/contracts`, `story_runtime_core`, backend/runtime adapter surfaces | Broad duplicate proxy is **23.7835%**; common names include `to_dict`, `generate`, `to_runtime_dict`, `_as_list`, `_json_safe`. | Keep intentional protocol/dunder names, but consolidate or rename local helper families where duplicate names hide different semantics. | Low-value churn risk; run after DS-006 so generated/vendored noise is removed and after DS-008/010 settle helper boundaries. |
+| **DS-010** | **C4 · C5 ·** Literal-heavy LangGraph/product context functions / migration policy | `ai_stack/langgraph/langgraph_runtime_executor.py:_assemble_model_context`, `ai_stack/langgraph/langgraph_runtime_executor.py:_build_dramatic_generation_packet`, `backend/app/services/governance_runtime_service.py:test_provider_connection`, backend migrations | Product-side scan after DS-009 still shows LangGraph context/action leaders (`_build_dramatic_generation_packet` **562L**, `_assemble_model_context` **562L**, `_interpret_input` **387L**, `_resolve_player_action` **385L**) and `_assemble_model_context` remains the literal-heavy target. Migrations also dominate raw C5. | Promote meaningful literals to named constants/config and split remaining LangGraph context packet/action assembly only where it clarifies boundaries; document or exclude one-way migration data where constants would reduce clarity. | Follows DS-008 validation seam extraction and DS-009 world-engine split; avoid reopening `langgraph_runtime_validation.py` unless tests show contract drift. |
+| **DS-011** | **C6 ·** Duplicate-name proxy triage | `ai_stack/contracts`, `story_runtime_core`, backend/runtime adapter surfaces | Broad duplicate-name proxy is **15.1112%**; common names include `to_dict`, `generate`, `to_runtime_dict`, `_as_list`, `_json_safe`. | Keep intentional protocol/dunder names, but consolidate or rename local helper families where duplicate names hide different semantics. | Low-value churn risk; run after DS-006 so generated/vendored noise is removed and after DS-008/010 settle helper boundaries. |
 
-*Open **DS-*** rows above come from the refreshed 2026-05-20 `check --with-metrics` run after DS-007 closure; do not hand-copy closed rows back here.*
+*Open **DS-*** rows above come from the refreshed 2026-05-20 `check --with-metrics` run after DS-009 closure; do not hand-copy closed rows back here.*
 
 ### Closed (archived)
 
@@ -162,24 +161,21 @@ Prioritised **phases** for **open** **DS-*** only — aligned with § *Open* in 
 
 | Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
 |------------------|----------|-------------|----------------------|----------------------------|
-| 1 | **DS-009** | Split world-engine planner projection and websocket flow independently from AI executor work. | `world_engine` | DS-008 is closed; gate with world-engine story runtime/API tests. |
-| 2 | **DS-010** | Extract or justify remaining LangGraph context/literal clusters after validation boundaries settled. | `ai_stack` | Include affected AI stack tests for `_assemble_model_context` / context packet changes; backend service tests for governance service constants. |
-| 3 | **DS-011** | Triage duplicate-name proxy after helper boundaries are clear. | `ai_stack` | Avoid renaming protocol/dunder methods by default; gate contract serialization tests across `ai_stack` and `story_runtime_core`. |
+| 1 | **DS-010** | Extract or justify remaining LangGraph context/literal clusters after validation and world-engine boundaries settled. | `ai_stack` | Include affected AI stack tests for `_assemble_model_context` / context packet changes; backend service tests for governance service constants. |
+| 2 | **DS-011** | Triage duplicate-name proxy after helper boundaries are clear. | `ai_stack` | Avoid renaming protocol/dunder methods by default; gate contract serialization tests across `ai_stack` and `story_runtime_core`. |
 
 ```mermaid
 flowchart TB
-  P1["1 · DS-009 · world-engine runtime"]
-  P2["2 · DS-010 · constants"]
-  P3["3 · DS-011 · duplicate names"]
+  P1["1 · DS-010 · constants"]
+  P2["2 · DS-011 · duplicate names"]
   P1 --> P2
-  P2 --> P3
 ```
 
 ### Closed phases (archived)
 
 See [despaghettification_completed_log.md](despaghettification_completed_log.md).
 
-**Current order:** phase table above covers every open **DS-*** after DS-008 closure. DS-009 is next; later phases join after world-engine runtime split settles.
+**Current order:** phase table above covers every open **DS-*** after DS-009 closure. DS-010 is next; DS-011 follows after helper boundaries settle.
 
 **Implementation:** invoke [spaghetti-solve-task.md](../spaghetti-solve-task.md) with **one** **DS-ID** per run.
 ## Active progress (in-flight only)

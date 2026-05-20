@@ -10,7 +10,7 @@ import pytest
 
 from app.runtime.adapter_registry import clear_registry
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
-from app.runtime.turn_dispatcher import dispatch_turn
+from app.runtime.turn.turn_dispatcher import dispatch_turn
 from .staged_test_payloads import maybe_staged_prelude_response
 from app.runtime.runtime_models import MockDecision
 

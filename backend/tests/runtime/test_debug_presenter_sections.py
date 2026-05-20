@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.runtime.debug_presenter_sections import (
+from app.runtime.presentation.debug_presenter_sections import (
     degradation_marker_values,
     empty_short_term_panel_output,
     full_diagnostics_from_short_term,

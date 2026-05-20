@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from app.runtime.narrative_state_transfer_dto import (
+from app.runtime.narrative.narrative_state_transfer_dto import (
     NarrativeCommitEvent,
     ThreadUpdateInput,
     ThreadUpdateResult,

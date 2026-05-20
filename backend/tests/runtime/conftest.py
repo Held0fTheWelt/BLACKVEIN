@@ -5,7 +5,7 @@ import pytest
 from pathlib import Path
 
 from app.content.module_loader import load_module
-from app.runtime.session_start import start_session
+from app.runtime.session.session_start import start_session
 from app.runtime.runtime_models import SessionState
 
 

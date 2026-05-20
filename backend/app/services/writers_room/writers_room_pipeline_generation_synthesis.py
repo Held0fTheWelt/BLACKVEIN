@@ -13,7 +13,7 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import attach_stage_routing_evidence
+from app.runtime.routing.model_routing_evidence import attach_stage_routing_evidence
 
 
 def _norm_wr_adapter(name: str | None) -> str:

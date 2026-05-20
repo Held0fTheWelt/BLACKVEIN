@@ -186,8 +186,7 @@ def test_default_registry_lists_only_cursor_safe_names():
 
 
 def test_default_registry_canonical_names_resolve_via_dotted_or_underscored():
-    """Every canonical descriptor must be reachable via BOTH forms — that's
-    the backward-compat half of the alias contract."""
+    """Every canonical descriptor must be reachable via both supported wire forms."""
     registry = create_default_registry()
     for desc in CANONICAL_MCP_TOOL_DESCRIPTORS:
         canonical = desc.name

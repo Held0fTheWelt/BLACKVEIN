@@ -934,7 +934,7 @@ def _select_player_actor_id(
     for actor_id in sorted(snapshot.actors.keys()):
         if snapshot.actors[actor_id].actor_type is W5ActorType.HUMAN:
             return actor_id
-    return sorted(snapshot.actors.keys())[0] if snapshot.actors else None
+    return None
 
 
 def _player_visible_scene_location(

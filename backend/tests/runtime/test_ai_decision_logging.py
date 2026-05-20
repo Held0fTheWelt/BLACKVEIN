@@ -1,14 +1,14 @@
 """Tests for W2.4.4 AI decision logging with role diagnostics."""
 
 import pytest
-from app.runtime.ai_decision import ParsedAIDecision
-from app.runtime.ai_decision_logging import construct_ai_decision_log
-from app.runtime.role_contract import (
+from app.runtime.ai.ai_decision import ParsedAIDecision
+from app.runtime.ai.ai_decision_logging import construct_ai_decision_log
+from app.runtime.ai.role_contract import (
     DirectorSection,
     InterpreterSection,
     ResponderSection,
 )
-from app.runtime.role_structured_decision import ParsedRoleAwareDecision
+from app.runtime.ai.role_structured_decision import ParsedRoleAwareDecision
 from app.runtime.runtime_models import (
     AIDecisionLog,
     AIValidationOutcome,
@@ -384,7 +384,7 @@ def test_unstructured_decisions_still_work():
 
 def test_parsed_ai_decision_fields_unchanged():
     """Verify ParsedAIDecision model was not modified by W2.4.4."""
-    from app.runtime.ai_decision import ParsedAIDecision
+    from app.runtime.ai.ai_decision import ParsedAIDecision
 
     # Expected fields from W2.1.3 spec (should not change in W2.4.4)
     expected_fields = {

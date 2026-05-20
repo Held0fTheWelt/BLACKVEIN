@@ -23,7 +23,12 @@ app talks to it via ``game_service``, not via this package as a second runtime.
   to which layer (enforced by tests).
 """
 
-from app.runtime.scene_presenter import (
+from __future__ import annotations
+
+import importlib
+from typing import Any
+
+from app.runtime.presentation.scene_presenter import (
     CharacterPanelOutput,
     ConflictPanelOutput,
     ConflictTrendSignal,
@@ -32,6 +37,15 @@ from app.runtime.scene_presenter import (
     present_conflict_panel,
     present_all_characters,
 )
+from app.runtime.package_classification import _ALL_RUNTIME_MODULE_NAMES, runtime_module_import_path
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _ALL_RUNTIME_MODULE_NAMES:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = importlib.import_module(runtime_module_import_path(name))
+    globals()[name] = module
+    return module
 
 __all__ = [
     "CharacterPanelOutput",
@@ -41,4 +55,5 @@ __all__ = [
     "present_character_panel",
     "present_conflict_panel",
     "present_all_characters",
+    *_ALL_RUNTIME_MODULE_NAMES,
 ]

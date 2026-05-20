@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.runtime.ai_turn_routing_builders import (
+from app.runtime.ai_turn.ai_turn_routing_builders import (
     build_model_routing_trace_dict,
     build_runtime_routing_request,
 )
@@ -224,7 +224,7 @@ class TestBuildModelRoutingTraceDict:
     def test_build_trace_dict_resolved_via_get_adapter(self, mock_components):
         """Test trace dict when resolved via get_adapter."""
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 
@@ -247,7 +247,7 @@ class TestBuildModelRoutingTraceDict:
     def test_build_trace_dict_fallback_to_passed_adapter(self, mock_components):
         """Test trace dict when falling back to passed adapter."""
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 
@@ -267,7 +267,7 @@ class TestBuildModelRoutingTraceDict:
         mock_components["routing_decision"].escalation_applied = True
 
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 
@@ -286,7 +286,7 @@ class TestBuildModelRoutingTraceDict:
         mock_components["routing_decision"].degradation_applied = True
 
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 
@@ -303,7 +303,7 @@ class TestBuildModelRoutingTraceDict:
     def test_build_trace_dict_model_dump_called(self, mock_components):
         """Test that model_dump is called with json mode."""
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {}
 
@@ -325,7 +325,7 @@ class TestBuildModelRoutingTraceDict:
     def test_build_trace_dict_evidence_building(self, mock_components):
         """Test that routing evidence is built with correct parameters."""
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 
@@ -353,7 +353,7 @@ class TestBuildModelRoutingTraceDict:
     def test_build_trace_dict_contains_all_keys(self, mock_components):
         """Test that trace dict contains all required keys."""
         with patch(
-            "app.runtime.model_routing_evidence.build_routing_evidence"
+            "app.runtime.routing.model_routing_evidence.build_routing_evidence"
         ) as mock_evidence:
             mock_evidence.return_value = {"evidence": "data"}
 

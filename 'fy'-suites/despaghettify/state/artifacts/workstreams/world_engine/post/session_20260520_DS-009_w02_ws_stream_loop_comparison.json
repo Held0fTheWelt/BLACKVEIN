@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "ds_id": "DS-009",
+  "wave_id": "w02",
+  "session_date": "20260520",
+  "workstream": "world_engine",
+  "pre": {
+    "primary_symbol": "story_session_stream",
+    "path": "world-engine/app/api/story_ws.py",
+    "lines": 391,
+    "nest_depth": 8,
+    "total_functions": 10731,
+    "count_over_50_lines": 857,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 25
+  },
+  "post": {
+    "primary_symbol": "story_session_stream",
+    "path": "world-engine/app/api/story_ws.py",
+    "lines": 229,
+    "nest_depth": 5,
+    "extracted_helper": {
+      "symbol": "_run_autonomous_followup_after_turn",
+      "path": "world-engine/app/api/story_ws.py",
+      "lines": 181,
+      "nest_depth": 6
+    },
+    "total_functions": 10747,
+    "count_over_50_lines": 858,
+    "count_over_100_lines": 235,
+    "count_nesting_ge_6": 24,
+    "top_longest_contains_primary_symbol": false,
+    "top_nesting_contains_primary_symbol": false
+  },
+  "gates": [
+    {
+      "command": "python -m compileall -q world-engine/app/story_runtime world-engine/app/api",
+      "status": "passed"
+    },
+    {
+      "command": "INTERNAL_RUNTIME_CONFIG_TOKEN= pytest world-engine/tests/test_phase2_ws_session_loop_endpoint.py world-engine/tests/test_mvp3_narrative_streaming_endpoint.py -q --tb=short",
+      "status": "passed",
+      "summary": "60 passed"
+    },
+    {
+      "command": "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli wave-plan-validate --file \"'fy'-suites/despaghettify/state/artifacts/workstreams/world_engine/pre/session_20260520_DS-009_wave_plan.json\" --check-primary-paths",
+      "status": "passed"
+    },
+    {
+      "command": "PYTHONPATH=\"'fy'-suites\" DESPAG_SKIP_ARCHIVE_SYNC=1 python -m despaghettify.tools.hub_cli check --with-metrics --out \"'fy'-suites/despaghettify/reports/latest_check_with_metrics.json\"",
+      "status": "passed",
+      "summary": "report 2026-05-20T22:02:19Z"
+    },
+    {
+      "command": "git diff --check -- world-engine/app/api/story_ws.py world-engine/app/story_runtime/planner_truth_projection.py world-engine/app/story_runtime/manager/recoverable_aspect_ledger.py world-engine/app/story_runtime/manager/external_imports_core.py world-engine/app/story_runtime/manager/_imports_00.py world-engine/tests/test_mvp3_narrative_streaming_endpoint.py world-engine/tests/test_mvp3_narrative_agent_orchestration.py world-engine/tests/test_mvp3_complete_integration.py",
+      "status": "passed"
+    }
+  ],
+  "broad_suite_caveats": [
+    {
+      "command": "python tests/run_tests.py --suite engine_http_ws --quick",
+      "status": "stopped_over_broad",
+      "summary": "stopped after a long generic HTTP run; no DS-009 failure had surfaced at the stop point"
+    }
+  ]
+}

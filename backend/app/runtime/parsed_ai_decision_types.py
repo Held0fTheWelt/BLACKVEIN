@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from app.runtime.ai_output import ConflictVector, DialogueImpulse, ProposedDelta
+from app.runtime.ai.ai_output import ConflictVector, DialogueImpulse, ProposedDelta
 
 
 class ParsedAIDecision(BaseModel):

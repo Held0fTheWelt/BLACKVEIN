@@ -1,13 +1,13 @@
 """Tests for W2.4.3 role-structured parsing and normalization."""
 
 import pytest
-from app.runtime.ai_decision import ParsedAIDecision
-from app.runtime.role_structured_decision import (
+from app.runtime.ai.ai_decision import ParsedAIDecision
+from app.runtime.ai.role_structured_decision import (
     ParsedRoleAwareDecision,
     _is_role_structured_payload,
     parse_role_contract,
 )
-from app.runtime.role_contract import (
+from app.runtime.ai.role_contract import (
     InterpreterSection,
     DirectorSection,
     ResponderSection,

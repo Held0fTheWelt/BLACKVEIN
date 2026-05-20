@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.runtime.pipeline_decision_guards import (
+from app.runtime.validation.pipeline_decision_guards import (
     DecisionValidationResult,
     validate_decision_gates,
     _apply_delta_safely,
@@ -233,7 +233,7 @@ class TestApplyDeltaSafely:
         deltas = [delta]
 
         with patch(
-            "app.runtime.turn_executor_decision_delta.apply_deltas"
+            "app.runtime.turn.turn_executor_decision_delta.apply_deltas"
         ) as mock_apply:
             mock_apply.return_value = {"key": "new_value"}
 
@@ -310,7 +310,7 @@ class TestApplyDeltaSafely:
         deltas = [delta]
 
         with patch(
-            "app.runtime.turn_executor_decision_delta.apply_deltas"
+            "app.runtime.turn.turn_executor_decision_delta.apply_deltas"
         ) as mock_apply:
             mock_apply.side_effect = Exception("Application failed")
 
@@ -336,7 +336,7 @@ class TestApplyDeltaSafely:
         deltas = [delta1, delta2]
 
         with patch(
-            "app.runtime.turn_executor_decision_delta.apply_deltas"
+            "app.runtime.turn.turn_executor_decision_delta.apply_deltas"
         ) as mock_apply:
             mock_apply.return_value = {"a": 10, "b": 20}
 

@@ -2,7 +2,7 @@
 
 This document lists the convergence gate identifiers for routing governance routing and registry
 operational truth. The canonical authority implementation is `routing_authority`
-in `backend/app/runtime/routing_authority.py`.
+in `backend/app/runtime/routing/routing_authority.py`.
 
 ## Gate Table
 

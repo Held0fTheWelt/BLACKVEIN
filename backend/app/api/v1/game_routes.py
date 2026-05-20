@@ -483,7 +483,11 @@ def _player_shell_state_view(
         w5_player_diag = committed.get("w5_player_view_diagnostics")
     if isinstance(w5_player_diag, dict):
         runtime_world = state.get("runtime_world") if isinstance(state.get("runtime_world"), dict) else {}
-        current_room_id = str(runtime_world.get("current_room_id") or "").strip() or None
+        current_room_id = (
+            str(w5_player_diag.get("current_room_fallback_value") or "").strip()
+            or str(runtime_world.get("current_room_id") or "").strip()
+            or None
+        )
         if isinstance(w5_player_view, dict):
             where = w5_player_view.get("where_summary") if isinstance(w5_player_view.get("where_summary"), dict) else {}
             current_room_id = (
@@ -499,6 +503,9 @@ def _player_shell_state_view(
             view["w5_player_view"] = w5_player_view
         view["current_room_id"] = current_room_id
         view["current_room_source"] = w5_player_diag.get("current_room_source") or "fallback_current_room"
+        view["current_room_fallback_value"] = w5_player_diag.get("current_room_fallback_value")
+        view["current_room_w5_value"] = w5_player_diag.get("current_room_w5_value")
+        view["current_room_mismatch"] = bool(w5_player_diag.get("current_room_mismatch"))
         feature_flags = state.get("feature_flags") if isinstance(state.get("feature_flags"), dict) else {}
         view["feature_flags"] = {
             "W5_AST_FRONTEND_PLAYER_VIEW_ENABLED": bool(

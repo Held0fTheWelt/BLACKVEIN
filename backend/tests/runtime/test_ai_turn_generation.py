@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from app.runtime.ai_failure_recovery import AIFailureClass
-from app.runtime.ai_turn_generation import run_adapter_generation_with_retry
+from app.runtime.ai.ai_failure_recovery import AIFailureClass
+from app.runtime.ai_turn.ai_turn_generation import run_adapter_generation_with_retry
 
 
 class TestRunAdapterGenerationWithRetry:
@@ -38,7 +38,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_callbacks["build_request"].return_value = MagicMock()
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.return_value = success_response
 
@@ -64,7 +64,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_callbacks["build_request"].return_value = MagicMock()
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.side_effect = [error_response, success_response]
 
@@ -90,7 +90,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_callbacks["build_request"].return_value = MagicMock()
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.side_effect = [empty_response, success_response]
 
@@ -123,7 +123,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.is_retryable_failure.side_effect = is_retryable
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.side_effect = [timeout_response, success_response]
 
@@ -146,7 +146,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.is_retryable_failure.return_value = False
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.return_value = error_response
 
@@ -172,7 +172,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.MAX_RETRIES = 3
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.return_value = error_response
 
@@ -195,7 +195,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_callbacks["build_request"].return_value = MagicMock()
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.return_value = success_response
 
@@ -226,7 +226,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.is_retryable_failure.return_value = True
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.side_effect = [error1, error2, success]
 
@@ -251,7 +251,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.is_retryable_failure.return_value = True
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             mock_generate.side_effect = [null_response, success_response]
 
@@ -277,7 +277,7 @@ class TestRunAdapterGenerationWithRetry:
         mock_retry_policy.is_retryable_failure.return_value = True
 
         with patch(
-            "app.runtime.ai_turn_generation.generate_with_timeout"
+            "app.runtime.ai_turn.ai_turn_generation.generate_with_timeout"
         ) as mock_generate:
             error_response = MagicMock(error="Error", raw_output="")
             mock_generate.side_effect = [error_response, success_response]

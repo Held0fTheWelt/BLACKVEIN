@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from app.runtime.adapter_registry import clear_registry, register_adapter
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
-from app.runtime.turn_dispatcher import dispatch_turn
+from app.runtime.turn.turn_dispatcher import dispatch_turn
 from app.runtime.runtime_models import SessionState
 
 

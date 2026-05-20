@@ -14,12 +14,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.relationship_context import (
+from app.runtime.narrative.relationship_context import (
     RelationshipAxisContext,
     SalientRelationshipAxis,
     derive_relationship_axis_context,
 )
-from app.runtime.session_history import HistoryEntry, SessionHistory
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
 
 
 class TestRelationshipAxisExtraction:

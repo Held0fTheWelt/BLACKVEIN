@@ -5,16 +5,16 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from app.runtime.scene_presenter import (
+from app.runtime.presentation.scene_presenter import (
     CharacterPanelOutput,
     ConflictPanelOutput,
     ConflictTrendSignal,
     RelationshipMovement,
 )
 from app.runtime.runtime_models import SessionState, SessionContextLayers
-from app.runtime.short_term_context import ShortTermTurnContext
-from app.runtime.progression_summary import ProgressionSummary
-from app.runtime.relationship_context import RelationshipAxisContext, SalientRelationshipAxis
+from app.runtime.narrative.short_term_context import ShortTermTurnContext
+from app.runtime.narrative.progression_summary import ProgressionSummary
+from app.runtime.narrative.relationship_context import RelationshipAxisContext, SalientRelationshipAxis
 
 
 class TestRelationshipMovementModel:
@@ -203,14 +203,14 @@ class TestConflictPanelOutputModel:
         assert data["recent_trend"]["signal"] == "stable"
 
 
-from app.runtime.scene_presenter import (
+from app.runtime.presentation.scene_presenter import (
     present_character_panel,
 )
 from app.runtime.runtime_models import (
     SessionState,
     SessionContextLayers,
 )
-from app.runtime.relationship_context import (
+from app.runtime.narrative.relationship_context import (
     RelationshipAxisContext,
     SalientRelationshipAxis,
 )
@@ -384,9 +384,9 @@ class TestPresentCharacterPanel:
         assert result.overall_trajectory == "escalating"
 
 
-from app.runtime.scene_presenter import present_conflict_panel
-from app.runtime.progression_summary import ProgressionSummary
-from app.runtime.short_term_context import ShortTermTurnContext
+from app.runtime.presentation.scene_presenter import present_conflict_panel
+from app.runtime.narrative.progression_summary import ProgressionSummary
+from app.runtime.narrative.short_term_context import ShortTermTurnContext
 
 
 class TestPresentConflictPanel:
@@ -748,7 +748,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_empty_canonical_state(self):
         """present_all_characters returns empty list when canonical_state is missing."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",
@@ -765,7 +765,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_single_character_with_full_data(self):
         """present_all_characters returns list with one CharacterPanelOutput for single character."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         salient_axis = SalientRelationshipAxis(
             character_a="protagonist",
@@ -805,7 +805,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_multiple_characters_deterministic_order(self):
         """present_all_characters orders characters deterministically by character_id."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",
@@ -829,7 +829,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_missing_name_uses_character_id(self):
         """present_all_characters falls back to character_id when name is missing."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",
@@ -855,7 +855,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_missing_relationships(self):
         """present_all_characters handles missing relationships gracefully."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",
@@ -885,7 +885,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_missing_context_layers(self):
         """present_all_characters returns characters even with empty context layers."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",
@@ -911,7 +911,7 @@ class TestPresentAllCharacters:
 
     def test_present_all_characters_empty_characters_dict(self):
         """present_all_characters returns empty list when characters dict is empty."""
-        from app.runtime.scene_presenter import present_all_characters
+        from app.runtime.presentation.scene_presenter import present_all_characters
 
         session_state = SessionState(
             session_id="test-session",

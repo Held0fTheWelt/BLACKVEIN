@@ -8,7 +8,9 @@ Generated from `delagecy_registry.json`.
 - Removal requires explicit approval.
 - UI residue must be removed with the code path.
 - Legacy is not active compatibility.
-- Active, required behavior is preserved and canonicalized; it is not deleted as legacy.
+- Compatibility with earlier repo/product versions is removed, not preserved.
+- Compatibility for active alternative usage, such as provider or adapter variation, may be preserved and canonicalized.
+- Active, required behavior is preserved and canonicalized; it is not marked as true removal.
 - Ambiguity or breakage risk must be discussed before continuing.
 
 ## Findings
@@ -52,20 +54,20 @@ Generated from `delagecy_registry.json`.
 | DLG-035 | removed | code | `backend/app/runtime/ai_adapter.py:256` | Active legacy removal: code backend/app/runtime/ai_adapter.py:256 |
 | DLG-036 | removed | code | `backend/app/runtime/ai_adapter.py:262` | Active legacy removal: code backend/app/runtime/ai_adapter.py:262 |
 | DLG-037 | removed | code | `backend/app/runtime/ai_adapter.py:340` | Active legacy removal: code backend/app/runtime/ai_adapter.py:340 |
-| DLG-038 | removed | code | `backend/app/runtime/ai_decision_logging.py:102` | Active legacy removal: code backend/app/runtime/ai_decision_logging.py:102 |
+| DLG-038 | canonicalized_active_behavior | code | `backend/app/runtime/ai_decision_logging.py:102` | Active legacy removal: code backend/app/runtime/ai_decision_logging.py:102 |
 | DLG-039 | approved_for_removal | code | `backend/app/runtime/ai_turn_generation.py:21` | Active legacy removal: code backend/app/runtime/ai_turn_generation.py:21 |
 | DLG-040 | approved_for_removal | code | `backend/app/runtime/no_eligible_operator_meaning.py:39` | Active legacy removal: code backend/app/runtime/no_eligible_operator_meaning.py:39 |
-| DLG-041 | removed | code | `backend/app/runtime/operator_truth.py:62` | Active legacy removal: code backend/app/runtime/operator_truth.py:62 |
+| DLG-041 | canonicalized_active_behavior | code | `backend/app/runtime/operator_truth.py:62` | Active legacy removal: code backend/app/runtime/operator_truth.py:62 |
 | DLG-042 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:146` | Active legacy removal: code backend/app/runtime/operator_truth.py:146 |
 | DLG-043 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:215` | Active legacy removal: code backend/app/runtime/operator_truth.py:215 |
 | DLG-044 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:224` | Active legacy removal: code backend/app/runtime/operator_truth.py:224 |
 | DLG-045 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:234` | Active legacy removal: code backend/app/runtime/operator_truth.py:234 |
 | DLG-046 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:238` | Active legacy removal: code backend/app/runtime/operator_truth.py:238 |
 | DLG-047 | approved_for_removal | code | `backend/app/runtime/operator_truth.py:247` | Active legacy removal: code backend/app/runtime/operator_truth.py:247 |
-| DLG-048 | removed | code | `backend/app/runtime/routing_authority.py:6` | Active legacy removal: code backend/app/runtime/routing_authority.py:6 |
-| DLG-049 | removed | code | `backend/app/runtime/routing_authority.py:109` | Active legacy removal: code backend/app/runtime/routing_authority.py:109 |
-| DLG-050 | removed | code | `backend/app/runtime/routing_authority.py:176` | Active legacy removal: code backend/app/runtime/routing_authority.py:176 |
-| DLG-051 | removed | code | `backend/app/runtime/routing_authority.py:179` | Active legacy removal: code backend/app/runtime/routing_authority.py:179 |
+| DLG-048 | canonicalized_active_behavior | code | `backend/app/runtime/routing_authority.py:6` | Active legacy removal: code backend/app/runtime/routing_authority.py:6 |
+| DLG-049 | canonicalized_active_behavior | code | `backend/app/runtime/routing_authority.py:109` | Active legacy removal: code backend/app/runtime/routing_authority.py:109 |
+| DLG-050 | canonicalized_active_behavior | code | `backend/app/runtime/routing_authority.py:176` | Active legacy removal: code backend/app/runtime/routing_authority.py:176 |
+| DLG-051 | canonicalized_active_behavior | code | `backend/app/runtime/routing_authority.py:179` | Active legacy removal: code backend/app/runtime/routing_authority.py:179 |
 | DLG-052 | approved_for_removal | code | `backend/app/runtime/engine.py:1` | Active legacy removal: code backend/app/runtime/engine.py:1 |
 | DLG-053 | approved_for_removal | code | `backend/app/runtime/input_interpreter.py:19` | Active legacy removal: code backend/app/runtime/input_interpreter.py:19 |
 | DLG-054 | approved_for_removal | code | `backend/app/runtime/input_interpreter.py:23` | Active legacy removal: code backend/app/runtime/input_interpreter.py:23 |
@@ -250,27 +252,27 @@ Generated from `delagecy_registry.json`.
 | DLG-233 | removed | test | `backend/tests/runtime/test_ai_adapter.py:448` | Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:448 |
 | DLG-234 | removed | test | `backend/tests/runtime/test_ai_adapter.py:449` | Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:449 |
 | DLG-235 | removed | test | `backend/tests/runtime/test_ai_adapter.py:450` | Active legacy removal: test backend/tests/runtime/test_ai_adapter.py:450 |
-| DLG-236 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:85` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:85 |
-| DLG-237 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:101` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:101 |
-| DLG-238 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:107` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:107 |
-| DLG-239 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:108` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:108 |
-| DLG-240 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:109` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:109 |
-| DLG-241 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:350` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:350 |
-| DLG-242 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:367` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:367 |
-| DLG-243 | removed | test | `backend/tests/runtime/test_ai_decision_logging.py:376` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:376 |
+| DLG-236 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:85` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:85 |
+| DLG-237 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:101` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:101 |
+| DLG-238 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:107` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:107 |
+| DLG-239 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:108` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:108 |
+| DLG-240 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:109` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:109 |
+| DLG-241 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:350` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:350 |
+| DLG-242 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:367` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:367 |
+| DLG-243 | canonicalized_active_behavior | test | `backend/tests/runtime/test_ai_decision_logging.py:376` | Active legacy removal: test backend/tests/runtime/test_ai_decision_logging.py:376 |
 | DLG-244 | approved_for_removal | test | `backend/tests/runtime/test_model_routing.py:411` | Active legacy removal: test backend/tests/runtime/test_model_routing.py:411 |
 | DLG-245 | approved_for_removal | test | `backend/tests/runtime/test_model_routing.py:418` | Active legacy removal: test backend/tests/runtime/test_model_routing.py:418 |
 | DLG-246 | approved_for_removal | test | `backend/tests/runtime/test_model_routing.py:420` | Active legacy removal: test backend/tests/runtime/test_model_routing.py:420 |
 | DLG-247 | approved_for_removal | test | `backend/tests/runtime/test_operator_audit.py:148` | Active legacy removal: test backend/tests/runtime/test_operator_audit.py:148 |
 | DLG-248 | approved_for_removal | test | `backend/tests/runtime/test_operator_audit.py:149` | Active legacy removal: test backend/tests/runtime/test_operator_audit.py:149 |
 | DLG-249 | approved_for_removal | test | `backend/tests/runtime/test_operator_audit.py:155` | Active legacy removal: test backend/tests/runtime/test_operator_audit.py:155 |
-| DLG-250 | removed | test | `backend/tests/runtime/test_preview_delta.py:184` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:184 |
-| DLG-251 | removed | test | `backend/tests/runtime/test_preview_delta.py:211` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:211 |
-| DLG-252 | removed | test | `backend/tests/runtime/test_preview_delta.py:218` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:218 |
-| DLG-253 | removed | test | `backend/tests/runtime/test_preview_delta.py:219` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:219 |
-| DLG-254 | removed | test | `backend/tests/runtime/test_preview_delta.py:220` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:220 |
-| DLG-255 | removed | test | `backend/tests/runtime/test_preview_delta.py:221` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:221 |
-| DLG-256 | removed | test | `backend/tests/runtime/test_preview_delta.py:222` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:222 |
+| DLG-250 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:184` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:184 |
+| DLG-251 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:211` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:211 |
+| DLG-252 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:218` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:218 |
+| DLG-253 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:219` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:219 |
+| DLG-254 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:220` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:220 |
+| DLG-255 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:221` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:221 |
+| DLG-256 | canonicalized_active_behavior | test | `backend/tests/runtime/test_preview_delta.py:222` | Active legacy removal: test backend/tests/runtime/test_preview_delta.py:222 |
 | DLG-257 | approved_for_removal | test | `backend/tests/services/test_inspector_turn_projection_assembly_helpers.py:74` | Active legacy removal: test backend/tests/services/test_inspector_turn_projection_assembly_helpers.py:74 |
 | DLG-258 | approved_for_removal | test | `backend/tests/services/test_inspector_turn_projection_assembly_helpers.py:85` | Active legacy removal: test backend/tests/services/test_inspector_turn_projection_assembly_helpers.py:85 |
 | DLG-259 | approved_for_removal | test | `backend/tests/test_observability/test_langfuse_integration.py:439` | Active legacy removal: test backend/tests/test_observability/test_langfuse_integration.py:439 |
@@ -477,7 +479,7 @@ Generated from `delagecy_registry.json`.
 | DLG-460 | approved_for_removal | code | `ai_stack/actor_situation/validation.py:431` | Active legacy removal: code ai_stack/actor_situation/validation.py:431 |
 | DLG-461 | approved_for_removal | code | `ai_stack/capabilities/capability_selector.py:157` | Active legacy removal: code ai_stack/capabilities/capability_selector.py:157 |
 | DLG-462 | approved_for_removal | code | `ai_stack/capabilities/capability_selector.py:162` | Active legacy removal: code ai_stack/capabilities/capability_selector.py:162 |
-| DLG-463 | removed | code | `ai_stack/langchain/bridges.py:250` | Active legacy removal: code ai_stack/langchain/bridges.py:250 |
+| DLG-463 | canonicalized_active_behavior | code | `ai_stack/langchain/bridges.py:250` | Active legacy removal: code ai_stack/langchain/bridges.py:250 |
 | DLG-464 | approved_for_removal | code | `ai_stack/langchain/bridges.py:350` | Active legacy removal: code ai_stack/langchain/bridges.py:350 |
 | DLG-465 | approved_for_removal | code | `ai_stack/langchain/bridges.py:354` | Active legacy removal: code ai_stack/langchain/bridges.py:354 |
 | DLG-466 | approved_for_removal | code | `ai_stack/langchain/bridges.py:369` | Active legacy removal: code ai_stack/langchain/bridges.py:369 |
@@ -541,9 +543,9 @@ Generated from `delagecy_registry.json`.
 | DLG-524 | approved_for_removal | code | `ai_stack/langgraph/langgraph_runtime_executor.py:10200` | Active legacy removal: code ai_stack/langgraph/langgraph_runtime_executor.py:10200 |
 | DLG-525 | approved_for_removal | code | `ai_stack/langgraph/langgraph_runtime_executor.py:10203` | Active legacy removal: code ai_stack/langgraph/langgraph_runtime_executor.py:10203 |
 | DLG-526 | approved_for_removal | code | `ai_stack/langgraph/langgraph_runtime_executor.py:10204` | Active legacy removal: code ai_stack/langgraph/langgraph_runtime_executor.py:10204 |
-| DLG-527 | removed | code | `ai_stack/mcp/mcp_canonical_surface.py:72` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:72 |
-| DLG-528 | removed | code | `ai_stack/mcp/mcp_canonical_surface.py:130` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:130 |
-| DLG-529 | removed | code | `ai_stack/mcp/mcp_canonical_surface.py:220` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:220 |
+| DLG-527 | canonicalized_active_behavior | code | `ai_stack/mcp/mcp_canonical_surface.py:72` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:72 |
+| DLG-528 | canonicalized_active_behavior | code | `ai_stack/mcp/mcp_canonical_surface.py:130` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:130 |
+| DLG-529 | canonicalized_active_behavior | code | `ai_stack/mcp/mcp_canonical_surface.py:220` | Active legacy removal: code ai_stack/mcp/mcp_canonical_surface.py:220 |
 | DLG-530 | approved_for_removal | code | `ai_stack/npc_agency/__init__.py:1` | Active legacy removal: code ai_stack/npc_agency/__init__.py:1 |
 | DLG-531 | approved_for_removal | code | `ai_stack/rag/fastembed_compat.py:9` | Active legacy removal: code ai_stack/rag/fastembed_compat.py:9 |
 | DLG-532 | approved_for_removal | code | `ai_stack/rag/fastembed_compat.py:163` | Active legacy removal: code ai_stack/rag/fastembed_compat.py:163 |
@@ -569,16 +571,16 @@ Generated from `delagecy_registry.json`.
 | DLG-552 | approved_for_removal | code | `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:44` | Active legacy removal: code ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:44 |
 | DLG-553 | approved_for_removal | code | `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:60` | Active legacy removal: code ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:60 |
 | DLG-554 | approved_for_removal | code | `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:61` | Active legacy removal: code ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate_evaluate_core.py:61 |
-| DLG-555 | approved_for_removal | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:316` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:316 |
+| DLG-555 | canonicalized_active_behavior | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:316` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:316 |
 | DLG-556 | approved_for_removal | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:317` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:317 |
-| DLG-557 | approved_for_removal | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:318` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:318 |
+| DLG-557 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:318` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:318 |
 | DLG-558 | approved_for_removal | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:320` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:320 |
 | DLG-559 | approved_for_removal | code | `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:373` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_contracts.py:373 |
 | DLG-560 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:132` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:132 |
-| DLG-561 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139 |
+| DLG-561 | canonicalized_active_behavior | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:139 |
 | DLG-562 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:140` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:140 |
-| DLG-563 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151 |
-| DLG-564 | removed | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155 |
+| DLG-563 | canonicalized_active_behavior | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:151 |
+| DLG-564 | canonicalized_active_behavior | code | `ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155` | Active legacy removal: code ai_stack/story_runtime/npc_agency/npc_agency_planner.py:155 |
 | DLG-565 | approved_for_removal | code | `ai_stack/story_runtime/semantic_planner/goc_roadmap_semantic_surface.py:80` | Active legacy removal: code ai_stack/story_runtime/semantic_planner/goc_roadmap_semantic_surface.py:80 |
 | DLG-566 | approved_for_removal | code | `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py:45` | Active legacy removal: code ai_stack/story_runtime/semantic_planner/scene_plan_contract.py:45 |
 | DLG-567 | approved_for_removal | code | `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py:100` | Active legacy removal: code ai_stack/story_runtime/semantic_planner/scene_plan_contract.py:100 |
@@ -612,19 +614,19 @@ Generated from `delagecy_registry.json`.
 | DLG-595 | approved_for_removal | test | `ai_stack/tests/test_legacy_actor_lane_hydration.py:19` | Active legacy removal: test ai_stack/tests/test_legacy_actor_lane_hydration.py:19 |
 | DLG-596 | approved_for_removal | test | `ai_stack/tests/test_legacy_actor_lane_hydration.py:20` | Active legacy removal: test ai_stack/tests/test_legacy_actor_lane_hydration.py:20 |
 | DLG-597 | approved_for_removal | test | `ai_stack/tests/test_legacy_actor_lane_hydration.py:87` | Active legacy removal: test ai_stack/tests/test_legacy_actor_lane_hydration.py:87 |
-| DLG-598 | removed | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:41` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:41 |
-| DLG-599 | removed | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:492` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:492 |
-| DLG-600 | removed | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:497` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:497 |
-| DLG-601 | removed | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:502` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:502 |
-| DLG-602 | removed | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:507` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:507 |
+| DLG-598 | canonicalized_active_behavior | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:41` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:41 |
+| DLG-599 | canonicalized_active_behavior | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:492` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:492 |
+| DLG-600 | canonicalized_active_behavior | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:497` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:497 |
+| DLG-601 | canonicalized_active_behavior | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:502` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:502 |
+| DLG-602 | canonicalized_active_behavior | test | `ai_stack/tests/test_mcp_canonical_surface_extended.py:507` | Active legacy removal: test ai_stack/tests/test_mcp_canonical_surface_extended.py:507 |
 | DLG-603 | approved_for_removal | test | `ai_stack/tests/test_narrative_aspect_contracts.py:3` | Active legacy removal: test ai_stack/tests/test_narrative_aspect_contracts.py:3 |
-| DLG-604 | removed | test | `ai_stack/tests/test_narrative_runtime_agent.py:179` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:179 |
-| DLG-605 | removed | test | `ai_stack/tests/test_narrative_runtime_agent.py:180` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:180 |
-| DLG-606 | removed | test | `ai_stack/tests/test_narrative_runtime_agent.py:192` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:192 |
-| DLG-607 | removed | test | `ai_stack/tests/test_narrative_runtime_agent.py:199` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:199 |
-| DLG-608 | removed | test | `ai_stack/tests/test_narrative_runtime_agent.py:202` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:202 |
+| DLG-604 | canonicalized_active_behavior | test | `ai_stack/tests/test_narrative_runtime_agent.py:179` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:179 |
+| DLG-605 | canonicalized_active_behavior | test | `ai_stack/tests/test_narrative_runtime_agent.py:180` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:180 |
+| DLG-606 | canonicalized_active_behavior | test | `ai_stack/tests/test_narrative_runtime_agent.py:192` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:192 |
+| DLG-607 | canonicalized_active_behavior | test | `ai_stack/tests/test_narrative_runtime_agent.py:199` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:199 |
+| DLG-608 | canonicalized_active_behavior | test | `ai_stack/tests/test_narrative_runtime_agent.py:202` | Active legacy removal: test ai_stack/tests/test_narrative_runtime_agent.py:202 |
 | DLG-609 | removed | test | `ai_stack/tests/test_npc_agency_contracts.py:1` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:1 |
-| DLG-610 | removed | test | `ai_stack/tests/test_npc_agency_contracts.py:24` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:24 |
+| DLG-610 | canonicalized_active_behavior | test | `ai_stack/tests/test_npc_agency_contracts.py:24` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:24 |
 | DLG-611 | removed | test | `ai_stack/tests/test_npc_agency_contracts.py:39` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:39 |
 | DLG-612 | removed | test | `ai_stack/tests/test_npc_agency_contracts.py:47` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:47 |
 | DLG-613 | removed | test | `ai_stack/tests/test_npc_agency_contracts.py:48` | Active legacy removal: test ai_stack/tests/test_npc_agency_contracts.py:48 |
@@ -913,7 +915,7 @@ Generated from `delagecy_registry.json`.
 | DLG-896 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:25` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:25 |
 | DLG-897 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:27` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:27 |
 | DLG-898 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:48` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-011-live-dramatic-scene-simulator.md:48 |
-| DLG-899 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41 |
+| DLG-899 | removed | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41 |
 | DLG-900 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:48` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:48 |
 | DLG-901 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:53` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:53 |
 | DLG-902 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-001-observability-diagnostics.md:102` | Active legacy removal: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp4-001-observability-diagnostics.md:102 |
@@ -1029,11 +1031,11 @@ Generated from `delagecy_registry.json`.
 | DLG-1012 | approved_for_removal | code | `ai_stack/actor_tracking/validation.py:431` | Post-audit legacy removal: code ai_stack/actor_tracking/validation.py:431 |
 | DLG-1013 | approved_for_removal | code | `ai_stack/contracts/dramatic_effect_contract.py:96` | Post-audit legacy removal: code ai_stack/contracts/dramatic_effect_contract.py:96 |
 | DLG-1014 | approved_for_removal | code | `ai_stack/contracts/genre_awareness_contracts.py:4` | Post-audit legacy removal: code ai_stack/contracts/genre_awareness_contracts.py:4 |
-| DLG-1015 | removed | code | `ai_stack/contracts/npc_agency_contracts.py:316` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:316 |
-| DLG-1016 | removed | code | `ai_stack/contracts/npc_agency_contracts.py:317` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:317 |
+| DLG-1015 | canonicalized_active_behavior | code | `ai_stack/contracts/npc_agency_contracts.py:316` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:316 |
+| DLG-1016 | canonicalized_active_behavior | code | `ai_stack/contracts/npc_agency_contracts.py:317` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:317 |
 | DLG-1017 | removed | code | `ai_stack/contracts/npc_agency_contracts.py:318` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:318 |
-| DLG-1018 | removed | code | `ai_stack/contracts/npc_agency_contracts.py:320` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:320 |
-| DLG-1019 | removed | code | `ai_stack/contracts/npc_agency_contracts.py:373` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:373 |
+| DLG-1018 | canonicalized_active_behavior | code | `ai_stack/contracts/npc_agency_contracts.py:320` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:320 |
+| DLG-1019 | canonicalized_active_behavior | code | `ai_stack/contracts/npc_agency_contracts.py:373` | Post-audit legacy removal: code ai_stack/contracts/npc_agency_contracts.py:373 |
 | DLG-1020 | approved_for_removal | code | `ai_stack/contracts/relationship_state_contracts.py:154` | Post-audit legacy removal: code ai_stack/contracts/relationship_state_contracts.py:154 |
 | DLG-1021 | approved_for_removal | code | `ai_stack/contracts/scene_plan_contract.py:45` | Post-audit legacy removal: code ai_stack/contracts/scene_plan_contract.py:45 |
 | DLG-1022 | approved_for_removal | code | `ai_stack/contracts/scene_plan_contract.py:100` | Post-audit legacy removal: code ai_stack/contracts/scene_plan_contract.py:100 |
@@ -1060,13 +1062,13 @@ Generated from `delagecy_registry.json`.
 | DLG-1043 | approved_for_removal | test | `ai_stack/tests/test_w5_actor_tracking_validation.py:515` | Post-audit legacy removal: test ai_stack/tests/test_w5_actor_tracking_validation.py:515 |
 | DLG-1044 | approved_for_removal | code | `tools/mcp_server/call_tool_result.py:23` | Post-audit legacy removal: code tools/mcp_server/call_tool_result.py:23 |
 | DLG-1045 | approved_for_removal | docs | `tools/mcp_server/README.md:255` | Post-audit legacy removal: docs tools/mcp_server/README.md:255 |
-| DLG-1046 | approved_for_removal | code | `tools/mcp_server/tools_registry.py:52` | Post-audit legacy removal: code tools/mcp_server/tools_registry.py:52 |
-| DLG-1047 | approved_for_removal | code | `tools/mcp_server/tools_registry.py:69` | Post-audit legacy removal: code tools/mcp_server/tools_registry.py:69 |
+| DLG-1046 | canonicalized_active_behavior | code | `tools/mcp_server/tools_registry.py:52` | Post-audit legacy removal: code tools/mcp_server/tools_registry.py:52 |
+| DLG-1047 | canonicalized_active_behavior | code | `tools/mcp_server/tools_registry.py:69` | Post-audit legacy removal: code tools/mcp_server/tools_registry.py:69 |
 | DLG-1048 | approved_for_removal | code | `tools/mcp_server/tools_registry_handlers_langfuse_verify.py:128` | Post-audit legacy removal: code tools/mcp_server/tools_registry_handlers_langfuse_verify.py:128 |
-| DLG-1049 | approved_for_removal | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:41` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:41 |
-| DLG-1050 | approved_for_removal | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:46` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:46 |
-| DLG-1051 | approved_for_removal | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:52` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:52 |
-| DLG-1052 | approved_for_removal | test | `tools/mcp_server/tests/test_tools_registry_aliases.py:43` | Post-audit legacy removal: test tools/mcp_server/tests/test_tools_registry_aliases.py:43 |
+| DLG-1049 | canonicalized_active_behavior | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:41` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:41 |
+| DLG-1050 | canonicalized_active_behavior | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:46` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:46 |
+| DLG-1051 | canonicalized_active_behavior | test | `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:52` | Post-audit legacy removal: test tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py:52 |
+| DLG-1052 | canonicalized_active_behavior | test | `tools/mcp_server/tests/test_tools_registry_aliases.py:43` | Post-audit legacy removal: test tools/mcp_server/tests/test_tools_registry_aliases.py:43 |
 | DLG-1053 | approved_for_removal | docs | `docs/ADR/adr-0003-scene-identity-canonical-surface.md:10` | Post-audit legacy removal: docs docs/ADR/adr-0003-scene-identity-canonical-surface.md:10 |
 | DLG-1054 | approved_for_removal | docs | `docs/ADR/adr-0003-scene-identity-canonical-surface.md:43` | Post-audit legacy removal: docs docs/ADR/adr-0003-scene-identity-canonical-surface.md:43 |
 | DLG-1055 | approved_for_removal | docs | `docs/ADR/adr-0003-scene-identity-canonical-surface.md:71` | Post-audit legacy removal: docs docs/ADR/adr-0003-scene-identity-canonical-surface.md:71 |
@@ -1098,7 +1100,7 @@ Generated from `delagecy_registry.json`.
 | DLG-1081 | approved_for_removal | code | `ai_stack/telemetry/diagnostics_envelope.py:794` | Post-continuation legacy removal v2: code ai_stack/telemetry/diagnostics_envelope.py:794 |
 | DLG-1082 | approved_for_removal | docs | `docs/ADR/adr-0003-scene-identity-canonical-surface.md:10` | Post-continuation legacy removal v2: docs docs/ADR/adr-0003-scene-identity-canonical-surface.md:10 |
 | DLG-1083 | approved_for_removal | docs | `docs/ADR/adr-0003-scene-identity-canonical-surface.md:43` | Post-continuation legacy removal v2: docs docs/ADR/adr-0003-scene-identity-canonical-surface.md:43 |
-| DLG-1084 | approved_for_removal | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41` | Post-continuation legacy removal v2: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41 |
+| DLG-1084 | removed | docs | `docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41` | Post-continuation legacy removal v2: docs docs/ADR/MVP_Live_Runtime_Completion/adr-mvp3-012-npc-free-dramatic-agency.md:41 |
 | DLG-1085 | approved_for_removal | code | `backend/app/services/__init__.py:1` | Next wave legacy removal: code backend/app/services/__init__.py:1 |
 | DLG-1086 | approved_for_removal | code | `backend/app/services/data/data_import_preflight.py:161` | Next wave legacy removal: code backend/app/services/data/data_import_preflight.py:161 |
 | DLG-1087 | approved_for_removal | code | `backend/app/services/data/data_import_service.py:5` | Next wave legacy removal: code backend/app/services/data/data_import_service.py:5 |

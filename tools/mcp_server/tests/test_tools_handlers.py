@@ -16,7 +16,7 @@ def test_tools_list_includes_all_canonical_tools(registry):
     assert len(tools) == len(CANONICAL_MCP_TOOL_DESCRIPTORS)
 
 
-def test_tools_list_has_tool_class_and_legacy_permission():
+def test_tools_list_has_tool_class_and_permission_metadata():
     with patch("tools.mcp_server.tools_registry.BackendClient"):
         with patch("tools.mcp_server.tools_registry.FileSystemTools"):
             reg = create_default_registry()

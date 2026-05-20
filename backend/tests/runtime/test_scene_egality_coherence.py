@@ -14,9 +14,9 @@ from app.content.module_models import (
     PhaseTransition,
     ScenePhase,
 )
-from app.runtime.next_situation import derive_next_situation
+from app.runtime.narrative.next_situation import derive_next_situation
 from app.runtime.scene_legality import SceneTransitionLegality, SceneLegalityDecision
-from app.runtime.validators import validate_decision
+from app.runtime.validation.validators import validate_decision
 from app.runtime.runtime_models import SessionState, SessionStatus
 
 
@@ -434,7 +434,7 @@ class TestTurnExecutorLegalityEnforcement:
         """execute_turn applies scene transition when canonical legality check passes."""
         import asyncio
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_executor import execute_turn
+        from app.runtime.turn.turn_executor import execute_turn
 
         # Propose transition s2->s3 with required trigger detected
         decision = MockDecision(
@@ -455,7 +455,7 @@ class TestTurnExecutorLegalityEnforcement:
         """execute_turn blocks scene transition when canonical legality check fails."""
         import asyncio
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_executor import execute_turn
+        from app.runtime.turn.turn_executor import execute_turn
 
         # Propose transition s2->s3 WITHOUT required trigger
         decision = MockDecision(
@@ -483,7 +483,7 @@ class TestTurnExecutorLegalityEnforcement:
         """
         import asyncio
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_executor import execute_turn
+        from app.runtime.turn.turn_executor import execute_turn
 
         # This transition is now legal at both validation time and execution time
         # because the validator uses the actual detected_triggers from the decision
@@ -494,7 +494,7 @@ class TestTurnExecutorLegalityEnforcement:
         )
 
         # Validator now accepts this (uses actual triggers)
-        from app.runtime.validators import validate_decision
+        from app.runtime.validation.validators import validate_decision
         validation = validate_decision(decision, session_s2, conditional_module)
         assert validation.is_valid  # Validator accepts (coherent with executor)
 
@@ -509,7 +509,7 @@ class TestTurnExecutorLegalityEnforcement:
         """Turn execution checks ending legality and includes it in result."""
         import asyncio
         from app.runtime.runtime_models import MockDecision
-        from app.runtime.turn_executor import execute_turn
+        from app.runtime.turn.turn_executor import execute_turn
         from app.content.module_models import EndingCondition
 
         # Create module with unconditional ending

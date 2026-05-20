@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.runtime.history_presenter import (
+from app.runtime.presentation.history_presenter import (
     HistoryPanelOutput,
     HistorySummary,
     RecentHistoryEntry,

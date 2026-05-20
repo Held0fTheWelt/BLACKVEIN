@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.session_history import HistoryEntry, SessionHistory
-from app.runtime.short_term_context import ShortTermTurnContext, build_short_term_context
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
+from app.runtime.narrative.short_term_context import ShortTermTurnContext, build_short_term_context
 from app.runtime.runtime_models import GuardOutcome, MockDecision, ProposedStateDelta
-from app.runtime.turn_executor import execute_turn
+from app.runtime.turn.turn_executor import execute_turn
 
 
 class TestHistoryEntry:

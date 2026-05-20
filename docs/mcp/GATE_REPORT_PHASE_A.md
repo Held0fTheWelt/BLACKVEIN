@@ -137,7 +137,7 @@ This confirms A1.3 endpoints are **fully implemented, no stubs**.
 - `backend/app/api/v1/__init__.py` — Trace middleware
 - `backend/app/api/v1/session_routes.py` — Export endpoint
 - `backend/app/web/routes.py` — Web trace middleware
-- `backend/app/runtime/turn_dispatcher.py` — turn.execute logging
+- `backend/app/runtime/turn/turn_dispatcher.py` — turn.execute logging
 - `backend/tests/test_session_api_contracts.py` — Updated expectations (renamed from `test_session_api_closure.py`)
 
 ---

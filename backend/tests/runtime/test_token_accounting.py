@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
-from app.runtime.supervisor_orchestrator import SupervisorOrchestrator
+from app.runtime.supervisor.supervisor_orchestrator import SupervisorOrchestrator
 
 
 class TokenAccountingAdapter(StoryAIAdapter):

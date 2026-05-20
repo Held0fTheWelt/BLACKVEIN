@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.progression_summary import ProgressionSummary, derive_progression_summary
-from app.runtime.session_history import HistoryEntry, SessionHistory
+from app.runtime.narrative.progression_summary import ProgressionSummary, derive_progression_summary
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
 
 
 class TestProgressionSummaryDerivation:

@@ -10,8 +10,8 @@ Verifies that:
 from types import SimpleNamespace
 
 import pytest
-from app.runtime.decision_policy import AIActionType, AIDecisionPolicy
-from app.runtime.validators import validate_action_type, validate_action_structure
+from app.runtime.validation.decision_policy import AIActionType, AIDecisionPolicy
+from app.runtime.validation.validators import validate_action_type, validate_action_structure
 
 
 class TestActionTypeEnum:
@@ -239,11 +239,11 @@ class TestValidateActionStructureExtraBranches:
 
 class TestGetActionDescription:
     def test_unknown_action_type_message(self):
-        from app.runtime.decision_policy import AIDecisionPolicy
+        from app.runtime.validation.decision_policy import AIDecisionPolicy
         assert "Unknown" in AIDecisionPolicy.get_action_description("not_a_real_type")
 
     def test_known_type_uses_doc_or_fallback(self):
-        from app.runtime.decision_policy import AIDecisionPolicy, AIActionType
+        from app.runtime.validation.decision_policy import AIDecisionPolicy, AIActionType
         for at in AIActionType:
             desc = AIDecisionPolicy.get_action_description(at.value)
             assert desc

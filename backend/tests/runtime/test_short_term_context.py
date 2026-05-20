@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.short_term_context import (
+from app.runtime.narrative.short_term_context import (
     ShortTermTurnContext,
     build_short_term_context,
 )
 from app.runtime.runtime_models import MockDecision, ProposedStateDelta
-from app.runtime.turn_executor import execute_turn
+from app.runtime.turn.turn_executor import execute_turn
 
 
 class TestShortTermContextBuilding:
@@ -56,7 +56,7 @@ class TestShortTermContextBuilding:
             turn_number=1,
         )
 
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         result = TurnExecutionResult(
@@ -90,7 +90,7 @@ class TestShortTermContextBuilding:
     def test_build_from_rejected_turn(self, god_of_carnage_module_with_state):
         """Invalid reference decision → guard_outcome=='rejected'."""
         from app.runtime.runtime_models import GuardOutcome, StateDelta, DeltaType, DeltaValidationStatus
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(
@@ -143,7 +143,7 @@ class TestShortTermContextBuilding:
     def test_build_from_empty_decision(self):
         """Empty proposed_deltas → guard_outcome=='structurally_invalid'."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(
@@ -180,7 +180,7 @@ class TestShortTermContextBuilding:
     def test_scene_id_populated(self):
         """result.updated_scene_id is captured in context.scene_id."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -212,7 +212,7 @@ class TestShortTermContextBuilding:
     def test_detected_triggers_captured(self):
         """decision.detected_triggers appear in context.detected_triggers."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(
@@ -253,7 +253,7 @@ class TestShortTermContextSceneTransition:
     def test_scene_changed_when_prior_differs(self):
         """prior_scene_id != updated_scene_id → scene_changed=True."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -286,7 +286,7 @@ class TestShortTermContextSceneTransition:
     def test_scene_unchanged_when_same(self):
         """prior_scene_id == updated_scene_id → scene_changed=False."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -319,7 +319,7 @@ class TestShortTermContextSceneTransition:
     def test_no_scene_change_without_prior(self):
         """prior_scene_id=None → scene_changed=False."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -356,7 +356,7 @@ class TestShortTermContextBounds:
     def test_no_full_canonical_state(self):
         """Context has no canonical_state or updated_canonical_state field."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -389,7 +389,7 @@ class TestShortTermContextBounds:
     def test_delta_targets_are_strings_not_objects(self):
         """accepted_delta_targets is list[str], not list[StateDelta]."""
         from app.runtime.runtime_models import GuardOutcome, StateDelta, DeltaType, DeltaValidationStatus
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -434,7 +434,7 @@ class TestShortTermContextBounds:
     def test_context_bounded_to_single_turn(self):
         """No field references multiple turns or contains history list."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -497,7 +497,7 @@ class TestShortTermContextIntegration:
     def test_conflict_pressure_extraction(self):
         """If canonical_state has conflict_state.pressure, it appears in context."""
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
         from datetime import datetime
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
@@ -533,7 +533,7 @@ class TestBuildShortTermContextSessionState:
     def _base_result(self):
         from datetime import datetime
         from app.runtime.runtime_models import GuardOutcome
-        from app.runtime.turn_execution_types import TurnExecutionResult
+        from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
         decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
         return TurnExecutionResult(

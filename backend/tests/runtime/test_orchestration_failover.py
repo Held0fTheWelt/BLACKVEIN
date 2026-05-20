@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from app.runtime.agent_registry import AgentBudgetProfile, AgentConfig, AgentRegistry, SupervisorTurnPolicy
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
-from app.runtime.supervisor_orchestrator import SupervisorOrchestrator
+from app.runtime.supervisor.supervisor_orchestrator import SupervisorOrchestrator
 
 
 class FailoverAdapter(StoryAIAdapter):

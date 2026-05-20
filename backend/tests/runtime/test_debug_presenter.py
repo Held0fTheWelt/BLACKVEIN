@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.runtime.debug_presenter import (
+from app.runtime.presentation.debug_presenter import (
     DebugDetailedSection,
     DebugPanelOutput,
     DebugSummarySection,

@@ -7,8 +7,8 @@ Accepted
 
 **Partially implemented — AIDecisionLog persists via session metadata; TurnExecutionResult persistence is incomplete.**
 
-- `backend/app/runtime/ai_turn_recovery_paths.py`: `store_decision_log()` persists `AIDecisionLog` entries to `session.metadata["ai_decision_logs"]`.
-- `backend/app/runtime/debug_presenter.py`: `present_debug_panel()` exposes diagnostics via `DebugPanelOutput`; `full_diagnostics` field populated from `short_term_context`.
+- `backend/app/runtime/ai_turn/ai_turn_recovery_paths.py`: `store_decision_log()` persists `AIDecisionLog` entries to `session.metadata["ai_decision_logs"]`.
+- `backend/app/runtime/presentation/debug_presenter.py`: `present_debug_panel()` exposes diagnostics via `DebugPanelOutput`; `full_diagnostics` field populated from `short_term_context`.
 - Gap noted in `debug_presenter.py` docstring (W3.5.1 limitation): "Does not include TurnExecutionResult fields (validation outcomes, failure reasons, timing) ... TurnExecutionResult and AIDecisionLog are not persisted in SessionState [directly]... Deferred to W3.5.2".
 - Debug panel renders diagnostics via `<details>/<summary>` in session UI (ADR-0020 implemented).
 - Diagnostics retrieved via session inspection endpoints — partial; richer field coverage deferred.

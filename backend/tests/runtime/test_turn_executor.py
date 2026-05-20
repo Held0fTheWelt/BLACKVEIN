@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.runtime.validators import validate_decision, ValidationStatus, ValidationOutcome
-from app.runtime.turn_executor import (
+from app.runtime.validation.validators import validate_decision, ValidationStatus, ValidationOutcome
+from app.runtime.turn.turn_executor import (
     DeltaApplicationError,
     _accumulate_turn_context,
     _compute_guard_outcome,
@@ -24,8 +24,8 @@ from app.runtime.turn_executor import (
     extract_entity_id,
     infer_delta_type,
 )
-from app.runtime.ai_turn_executor import execute_turn_with_ai
-from app.runtime.session_history import SessionHistory
+from app.runtime.ai_turn.ai_turn_executor import execute_turn_with_ai
+from app.runtime.session.session_history import SessionHistory
 from app.runtime.runtime_models import (
     AIDecisionAction,
     AIActionType,
@@ -39,7 +39,7 @@ from app.runtime.runtime_models import (
     SessionState,
     StateDelta,
 )
-from app.runtime.turn_execution_types import TurnExecutionResult
+from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
 
 class TestTurnExecutorBasics:
@@ -233,7 +233,7 @@ class TestSceneLegalityCoherence:
 
         W2.2.4: Validation time should be trigger-aware for scene transitions.
         """
-        from app.runtime.validators import validate_decision, ValidationStatus
+        from app.runtime.validation.validators import validate_decision, ValidationStatus
 
         session = god_of_carnage_module_with_state
 
@@ -260,7 +260,7 @@ class TestSceneLegalityCoherence:
 
         For unconditional transitions or scenes without trigger requirements.
         """
-        from app.runtime.validators import validate_decision, ValidationStatus
+        from app.runtime.validation.validators import validate_decision, ValidationStatus
 
         session = god_of_carnage_module_with_state
 
@@ -288,7 +288,7 @@ class TestSceneLegalityCoherence:
         For scenes with no conditional triggers, validation-time and execution-time
         should produce the same decision (both with and without triggers).
         """
-        from app.runtime.validators import validate_decision, ValidationStatus
+        from app.runtime.validation.validators import validate_decision, ValidationStatus
 
         session = god_of_carnage_module_with_state
 
@@ -318,7 +318,7 @@ class TestSceneLegalityCoherence:
 
         Ending validation should be trigger-aware at validation time, same as execution time.
         """
-        from app.runtime.validators import validate_decision, ValidationStatus
+        from app.runtime.validation.validators import validate_decision, ValidationStatus
 
         session = god_of_carnage_module_with_state
 
@@ -577,8 +577,8 @@ def test_compute_guard_outcome_non_success_status():
 
 @pytest.mark.asyncio
 async def test_execute_turn_system_error_path(god_of_carnage_module_with_state, god_of_carnage_module, monkeypatch):
-    from app.runtime import turn_executor as te
-    from app.runtime import turn_executor_validated_pipeline_apply as vpa
+    from app.runtime.turn import turn_executor as te
+    from app.runtime.turn import turn_executor_validated_pipeline_apply as vpa
 
     session = god_of_carnage_module_with_state
     decision = MockDecision(
@@ -719,4 +719,3 @@ def test_derive_runtime_context_returns_when_history_empty(
     session.context_layers.lore_direction_context = None
     _derive_runtime_context(session, god_of_carnage_module)
     assert session.context_layers.progression_summary is None
-

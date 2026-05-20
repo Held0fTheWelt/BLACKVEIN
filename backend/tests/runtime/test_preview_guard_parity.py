@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 
-from app.runtime.preview_delta import preview_delta_dry_run
-from app.runtime.preview_models import PreviewDeltaRequest
+from app.runtime.presentation.preview_delta import preview_delta_dry_run
+from app.runtime.presentation.preview_models import PreviewDeltaRequest
 from app.runtime.runtime_models import MockDecision, ProposedStateDelta
-from app.runtime.turn_executor import execute_turn
+from app.runtime.turn.turn_executor import execute_turn
 
 
 def _decision_from_preview_request(request: PreviewDeltaRequest) -> MockDecision:

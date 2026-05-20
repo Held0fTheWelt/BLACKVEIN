@@ -20,7 +20,7 @@ from app.runtime.runtime_models import (
     SessionStatus,
 )
 from app.runtime.scene_legality import SceneTransitionLegality
-from app.runtime.turn_executor import commit_turn_result, execute_turn
+from app.runtime.turn.turn_executor import commit_turn_result, execute_turn
 
 
 @pytest.fixture
@@ -237,7 +237,7 @@ def test_commit_turn_result_appends_single_narrative_log_entry(
         authoritative_reason="fixture",
         canonical_consequences=[f"scene_continue:{scene}"],
     )
-    from app.runtime.turn_execution_types import TurnExecutionResult
+    from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
     result = TurnExecutionResult(
         turn_number=1,

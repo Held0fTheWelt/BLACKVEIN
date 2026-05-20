@@ -10,13 +10,13 @@ from unittest.mock import MagicMock, AsyncMock
 from datetime import datetime, timezone
 from copy import deepcopy
 
-from app.runtime.ai_turn_executor import execute_turn_with_ai
+from app.runtime.ai_turn.ai_turn_executor import execute_turn_with_ai
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
 from app.runtime.runtime_models import (
     DegradedMarker,
     ExecutionFailureReason,
 )
-from app.runtime.ai_failure_recovery import RetryPolicy
+from app.runtime.ai.ai_failure_recovery import RetryPolicy
 
 
 class DeterministicAIAdapter(StoryAIAdapter):
@@ -62,7 +62,7 @@ class TestReducedContextIntegration:
         call_count = 0
         original_build = None
 
-        from app.runtime import ai_turn_executor
+        from app.runtime.ai_turn import ai_turn_executor
 
         original_build = ai_turn_executor.build_adapter_request
 

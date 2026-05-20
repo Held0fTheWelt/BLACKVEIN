@@ -8,7 +8,7 @@ from app.content.module_models import (
     PhaseTransition,
     ScenePhase,
 )
-from app.runtime.next_situation import NextSituation, derive_next_situation
+from app.runtime.narrative.next_situation import NextSituation, derive_next_situation
 from app.runtime.runtime_models import SessionState, SessionStatus
 
 
@@ -490,7 +490,7 @@ class TestLogSituationOutcome:
 
     def test_log_continuation_creates_event(self):
         """Scene continuation generates scene_continued event."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="phase_1",
@@ -509,7 +509,7 @@ class TestLogSituationOutcome:
 
     def test_log_transition_creates_event(self):
         """Scene transition generates scene_transitioned event."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="phase_2",
@@ -527,7 +527,7 @@ class TestLogSituationOutcome:
 
     def test_log_ending_creates_event(self):
         """Ending reached generates ending_reached event."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         outcome = {"ending_name": "bittersweet_resolution", "score": 75}
         situation = NextSituation(
@@ -550,7 +550,7 @@ class TestLogSituationOutcome:
 
     def test_log_outcome_event_has_derivation_reason(self):
         """All outcome events include derivation reason in payload."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="phase_1",
@@ -564,7 +564,7 @@ class TestLogSituationOutcome:
 
     def test_log_outcome_events_independent_sessions(self):
         """Outcome events correctly distinguish different sessions."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="phase_1",
@@ -579,7 +579,7 @@ class TestLogSituationOutcome:
 
     def test_log_outcome_empty_ending_outcome_handled(self):
         """Ending outcome None is converted to empty dict in payload."""
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="phase_1",
@@ -599,7 +599,7 @@ class TestApplySituationOutcome:
 
     def test_apply_continuation_preserves_scene(self):
         """Continuation outcome preserves current scene."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
 
         session = SessionState(
             module_id="test",
@@ -623,7 +623,7 @@ class TestApplySituationOutcome:
 
     def test_apply_transition_updates_scene(self):
         """Transition outcome updates current scene."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
 
         session = SessionState(
             module_id="test",
@@ -645,7 +645,7 @@ class TestApplySituationOutcome:
 
     def test_apply_ending_sets_terminal_status(self):
         """Ending outcome updates session status to ENDED."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
         from app.runtime.runtime_models import SessionStatus
 
         session = SessionState(
@@ -670,7 +670,7 @@ class TestApplySituationOutcome:
 
     def test_apply_outcome_updates_timestamp_on_terminal(self):
         """Terminal outcome updates session timestamp."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
         from datetime import datetime
         import time
 
@@ -698,7 +698,7 @@ class TestApplySituationOutcome:
 
     def test_apply_outcome_immutability(self):
         """Apply outcome does not modify original session."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
 
         session = SessionState(
             module_id="test",
@@ -723,7 +723,7 @@ class TestApplySituationOutcome:
 
     def test_apply_transition_and_ending_scene_change_plus_status(self):
         """Combined transition + ending outcome handles both scene and status."""
-        from app.runtime.next_situation import apply_situation_outcome
+        from app.runtime.narrative.next_situation import apply_situation_outcome
 
         session = SessionState(
             module_id="test",
@@ -785,7 +785,7 @@ class TestNextSituationHelpersDirect:
 
     def test_check_ending_unconditional_and_conditional(self, bare_session):
         from app.content.module_models import EndingCondition
-        from app.runtime.next_situation import _check_ending_condition
+        from app.runtime.narrative.next_situation import _check_ending_condition
 
         unconditional = EndingCondition(
             id="e1",
@@ -809,7 +809,7 @@ class TestNextSituationHelpersDirect:
 
     def test_check_transition_target_missing_and_conditions(self, bare_session, tiny_module):
         from app.content.module_models import PhaseTransition
-        from app.runtime.next_situation import _check_transition_condition
+        from app.runtime.narrative.next_situation import _check_transition_condition
 
         bad_target = PhaseTransition(
             from_phase="scene_a",
@@ -834,7 +834,7 @@ class TestNextSituationHelpersDirect:
         assert _check_transition_condition(cond, bare_session, tiny_module, ["x"]) is True
 
     def test_log_situation_outcome_unknown_status_empty(self):
-        from app.runtime.next_situation import log_situation_outcome
+        from app.runtime.narrative.next_situation import log_situation_outcome
 
         situation = NextSituation(
             current_scene_id="x",

@@ -8,7 +8,7 @@ from .narrator_output_prompts import _NarratorOutputPromptsMixin
 from .narrator_output_realization import _NarratorOutputRealizationMixin
 from .souffleuse_output_realization import _SouffleuseOutputRealizationMixin
 from .opening_fallback_observability import _OpeningFallbackObservabilityMixin
-from .w5_projection import _W5ProjectionMixin
+from .actor_tracking.w5_projection import _W5ProjectionMixin
 from .scripted_continuation import _ScriptedContinuationMixin
 from .opening_execution import _OpeningExecutionMixin
 from .session_lifecycle import _SessionLifecycleMixin

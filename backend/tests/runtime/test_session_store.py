@@ -10,7 +10,7 @@ Tests verify:
 
 import pytest
 from datetime import datetime, timezone
-from app.runtime.session_store import (
+from app.runtime.session.session_store import (
     RuntimeSession,
     clear_registry,
     create_session,

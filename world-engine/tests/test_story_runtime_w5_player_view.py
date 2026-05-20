@@ -1,4 +1,4 @@
-"""StoryRuntimeManager W5 player-shell projection wiring tests (Phase 5A)."""
+"""StoryRuntimeManager W5 player-shell projection wiring tests (Phase 5A/5B)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ def _fact(
     source: str = "committed_action",
     truth: str = "observed",
     visibility: str = "public",
+    status: str = "active",
 ) -> dict[str, Any]:
     return {
         "schema_version": "w5_fact.v1",
@@ -37,79 +38,111 @@ def _fact(
         "last_confirmed_turn": 3,
         "visibility": visibility,
         "actor_knowledge_scope": [],
-        "status": "active",
+        "status": status,
         "superseded_by_fact_id": None,
         "contradicted_by_fact_id": None,
     }
 
 
-def _snapshot(location: str = "salon_w5") -> dict[str, Any]:
+def _snapshot(
+    location: str = "salon_w5",
+    *,
+    include_player: bool = True,
+    player_where_status: str = "active",
+    include_visible_npc: bool = False,
+) -> dict[str, Any]:
+    actors: dict[str, Any] = {}
+    if include_player:
+        actors["annette"] = {
+            "actor_id": "annette",
+            "actor_type": "human",
+            "actor_role_in_scene": "player",
+            "involvement_type": "primary",
+            "where": [
+                _fact(
+                    "w5f_where_annette",
+                    actor_id="annette",
+                    dim="where",
+                    key="scene_location",
+                    value=location,
+                    source="participant_state_move",
+                    status=player_where_status,
+                )
+            ],
+            "what": [
+                _fact(
+                    "w5f_what_annette",
+                    actor_id="annette",
+                    dim="what",
+                    key="current_action",
+                    value="listens",
+                )
+            ],
+            "how": [
+                _fact(
+                    "w5f_how_annette",
+                    actor_id="annette",
+                    dim="how",
+                    key="tone",
+                    value="strained",
+                )
+            ],
+            "why": [
+                _fact(
+                    "w5f_why_annette",
+                    actor_id="annette",
+                    dim="why",
+                    key="motive",
+                    value="keep_the_peace",
+                    source="character_mind_record",
+                    truth="inferred",
+                    visibility="private_to_actor",
+                )
+            ],
+            "freshness_status": "fresh",
+            "last_confirmed_turn": 3,
+        }
+    if include_visible_npc:
+        actors["michel"] = {
+            "actor_id": "michel",
+            "actor_type": "npc",
+            "where": [
+                _fact(
+                    "w5f_where_michel",
+                    actor_id="michel",
+                    dim="where",
+                    key="scene_location",
+                    value=location,
+                    source="participant_state_move",
+                )
+            ],
+            "what": [],
+            "how": [],
+            "why": [],
+            "freshness_status": "fresh",
+            "last_confirmed_turn": 3,
+        }
     return {
         "schema_version": "w5_snapshot.v1",
         "snapshot_id": "w5s_player_shell_003",
         "story_session_id": "sess_player_view",
         "turn_number": 3,
-        "actors": {
-            "annette": {
-                "actor_id": "annette",
-                "actor_type": "human",
-                "actor_role_in_scene": "player",
-                "involvement_type": "primary",
-                "where": [
-                    _fact(
-                        "w5f_where_annette",
-                        actor_id="annette",
-                        dim="where",
-                        key="scene_location",
-                        value=location,
-                        source="participant_state_move",
-                    )
-                ],
-                "what": [
-                    _fact(
-                        "w5f_what_annette",
-                        actor_id="annette",
-                        dim="what",
-                        key="current_action",
-                        value="listens",
-                    )
-                ],
-                "how": [
-                    _fact(
-                        "w5f_how_annette",
-                        actor_id="annette",
-                        dim="how",
-                        key="tone",
-                        value="strained",
-                    )
-                ],
-                "why": [
-                    _fact(
-                        "w5f_why_annette",
-                        actor_id="annette",
-                        dim="why",
-                        key="motive",
-                        value="keep_the_peace",
-                        source="character_mind_record",
-                        truth="inferred",
-                        visibility="private_to_actor",
-                    )
-                ],
-                "freshness_status": "fresh",
-                "last_confirmed_turn": 3,
-            }
-        },
+        "actors": actors,
         "conflicts": [],
         "derived_from_event_ids": ["ct_003"],
         "created_at": "w5:turn:3",
     }
 
 
-def _session(*, w5_latest: dict[str, Any] | None) -> StorySession:
+def _session(
+    *,
+    w5_latest: dict[str, Any] | None,
+    runtime_projection: dict[str, Any] | None = None,
+) -> StorySession:
     return StorySession(
         session_id="sess_player_view",
         module_id="god_of_carnage",
-        runtime_projection={"human_actor_id": "annette"},
+        runtime_projection=runtime_projection or {"human_actor_id": "annette"},
         created_at=datetime(2026, 5, 20, 12, 0, 0, tzinfo=timezone.utc),
         updated_at=datetime(2026, 5, 20, 12, 0, 5, tzinfo=timezone.utc),
         turn_counter=3,
@@ -166,9 +199,41 @@ def test_player_view_flag_enabled_adds_w5_projection_and_derives_location(
     assert diag["w5_player_view_used"] is True
     assert diag["w5_player_view_source"] == "w5_projection"
     assert diag["current_room_source"] == "w5_player_view"
+    assert diag["current_room_fallback_value"] == "fallback_salon"
+    assert diag["current_room_w5_value"] == "salon_w5"
+    assert diag["current_room_mismatch"] is True
+    assert diag["w5_player_view_fallback_reason"] is None
     assert diag["w5_player_view_has_how"] is True
     assert diag["w5_player_view_has_inferred_why"] is True
     assert state["committed_state"]["w5_player_view"]["where_summary"]["scene_location"]["value"] == "salon_w5"
+
+
+def test_player_view_matching_w5_and_fallback_location_reports_no_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(_session(w5_latest=_snapshot("fallback_salon")))
+    diag = state["w5_player_view_diagnostics"]
+    assert state["w5_player_view"]["where_summary"]["current_visible_location"] == "fallback_salon"
+    assert diag["current_room_source"] == "w5_player_view"
+    assert diag["current_room_fallback_value"] == "fallback_salon"
+    assert diag["current_room_w5_value"] == "fallback_salon"
+    assert diag["current_room_mismatch"] is False
+
+
+def test_player_view_missing_snapshot_falls_back_to_fallback_current_room(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(_session(w5_latest=None))
+    assert state["w5_player_view"] is None
+    diag = state["w5_player_view_diagnostics"]
+    assert diag["w5_player_view_used"] is False
+    assert diag["w5_player_view_fallback_reason"] == "missing_w5_latest_snapshot"
+    assert diag["current_room_source"] == "fallback_current_room"
+    assert diag["current_room_fallback_value"] == "fallback_salon"
+    assert diag["current_room_w5_value"] is None
+    assert diag["current_room_mismatch"] is False
 
 
 def test_player_view_malformed_snapshot_falls_back_to_fallback_current_room(
@@ -182,4 +247,67 @@ def test_player_view_malformed_snapshot_falls_back_to_fallback_current_room(
     assert diag["w5_player_view_used"] is False
     assert diag["w5_player_view_source"] == "fallback"
     assert diag["current_room_source"] == "fallback_current_room"
-    assert diag["fallback_current_room_id"] == "fallback_salon"
+    assert diag["w5_player_view_fallback_reason"]
+    assert diag["current_room_fallback_value"] == "fallback_salon"
+    assert diag["current_room_w5_value"] is None
+    assert diag["current_room_mismatch"] is False
+
+
+def test_player_view_actor_has_no_active_location_falls_back_to_fallback_current_room(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(_session(w5_latest=_snapshot(player_where_status="stale")))
+    assert state["w5_player_view"] is None
+    diag = state["w5_player_view_diagnostics"]
+    assert diag["w5_player_view_failed"] == "missing_player_visible_location"
+    assert diag["w5_player_view_fallback_reason"] == "missing_player_visible_location"
+    assert diag["current_room_source"] == "fallback_current_room"
+    assert diag["current_room_fallback_value"] == "fallback_salon"
+
+
+def test_player_view_unknown_player_actor_uses_human_fallback_without_failing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(
+        _session(
+            w5_latest=_snapshot("salon_w5"),
+            runtime_projection={"human_actor_id": "unknown_player"},
+        )
+    )
+    view = state["w5_player_view"]
+    assert view["actor_id"] == "annette"
+    assert view["where_summary"]["current_visible_location"] == "salon_w5"
+    assert state["w5_player_view_diagnostics"]["w5_player_view_used"] is True
+
+
+def test_player_view_missing_player_actor_with_only_npc_falls_back_without_private_leak(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(
+        _session(
+            w5_latest=_snapshot("salon_w5", include_player=False, include_visible_npc=True),
+            runtime_projection={"human_actor_id": "annette"},
+        )
+    )
+    assert state["w5_player_view"] is None
+    diag = state["w5_player_view_diagnostics"]
+    assert diag["w5_player_view_used"] is False
+    assert diag["w5_player_view_fallback_reason"] == "missing_player_visible_location"
+    assert diag["current_room_source"] == "fallback_current_room"
+    assert diag["current_room_w5_value"] is None
+
+
+def test_player_view_multi_actor_visible_scene_is_compact_and_semantic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED", "true")
+    state = _state(_session(w5_latest=_snapshot("salon_w5", include_visible_npc=True)))
+    where = state["w5_player_view"]["where_summary"]
+    assert where["current_visible_location"] == "salon_w5"
+    assert where["nearby_interactable_actors"] == [
+        {"actor_id": "michel", "actor_type": "npc", "scene_location": "salon_w5"}
+    ]
+    assert "w5_history" not in state["w5_player_view"]

@@ -21,7 +21,7 @@ from app.content.builtins import load_builtin_templates
 from app.content.models import ExperienceKind, ExperienceTemplate, JoinPolicy, ParticipantMode, RoleTemplate
 from app.runtime.engine import RuntimeEngine
 from app.runtime.models import LobbySeatState, ParticipantState, PropState, PublicRunSummary, RunStatus, RuntimeInstance
-from app.runtime.store import RunStore, build_run_store
+from app.runtime.session.store import RunStore, build_run_store
 
 
 class RuntimeManager:

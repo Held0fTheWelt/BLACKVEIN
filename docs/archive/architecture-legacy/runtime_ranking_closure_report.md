@@ -1,6 +1,6 @@
-# Area 2 Runtime Ranking Closure Report
+# Runtime Ranking Closure Report
 
-This report documents closure of Area 2 canonical runtime ranking gates (G-CANON-RANK-01 … G-CANON-RANK-08).
+This report documents closure of canonical runtime ranking gates (G-CANON-RANK-01 … G-CANON-RANK-08).
 
 ## Closure Status
 
@@ -19,7 +19,7 @@ All canonical ranking gates are closed.
 
 ## Key Implementation Reference
 
-`build_ranking_routing_request` in `backend/app/runtime/runtime_ai_stages.py` is the
+`build_ranking_routing_request` in `backend/app/runtime/ai_turn/runtime_ai_stages.py` is the
 canonical routing request builder for the ranking stage.
 
 Ranking is a first-class canonical stage — it is non-canonical to treat it as

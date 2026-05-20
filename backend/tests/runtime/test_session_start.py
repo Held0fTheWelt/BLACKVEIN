@@ -3,7 +3,7 @@
 import pytest
 from pathlib import Path
 
-from app.runtime.session_start import (
+from app.runtime.session.session_start import (
     SessionStartError,
     SessionStartResult,
     start_session,

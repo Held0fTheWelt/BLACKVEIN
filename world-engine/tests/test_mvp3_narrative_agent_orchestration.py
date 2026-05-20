@@ -22,7 +22,12 @@ from ai_stack.story_runtime.narrative import NarrativeEventKind, NarrativeRuntim
 @pytest.fixture
 def story_manager():
     """Create StoryRuntimeManager for testing."""
-    return StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    return StoryRuntimeManager(
+        registry=ModelRegistry(),
+        adapters={},
+        retriever=MagicMock(),
+        context_assembler=MagicMock(),
+    )
 
 
 @pytest.fixture

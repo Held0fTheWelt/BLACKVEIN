@@ -65,7 +65,7 @@ TASK_TYPES: Final[frozenset[str]] = frozenset(
 # --- model_roles — coarse adapter class labels (``LLMOrSLM``) ---
 MODEL_ROLES: Final[frozenset[str]] = frozenset({"llm", "slm"})
 
-# --- decision_classes — AI action taxonomy (``app.runtime.decision_policy.AIActionType``) ---
+# --- decision_classes — AI action taxonomy (``app.runtime.validation.decision_policy.AIActionType``) ---
 DECISION_CLASSES: Final[frozenset[str]] = frozenset(
     {
         "state_update",

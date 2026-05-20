@@ -2,7 +2,7 @@
 
 import pytest
 from app.runtime.runtime_models import MockDecision, ProposalSource, ProposedStateDelta, GuardOutcome
-from app.runtime.turn_executor import execute_turn
+from app.runtime.turn.turn_executor import execute_turn
 
 
 def test_mock_decision_requires_proposal_source():
@@ -151,15 +151,15 @@ async def test_execute_turn_allows_non_responder_when_enforcement_disabled(god_o
 async def test_role_structured_responder_candidates_marked_responder_derived():
     """Responder candidates extracted from role-structured decision must be marked RESPONDER_DERIVED."""
     # Setup: import required classes for role-structured decision
-    from app.runtime.role_contract import (
+    from app.runtime.ai.role_contract import (
         InterpreterSection,
         DirectorSection,
         ResponderSection,
         StateChangeCandidate,
     )
-    from app.runtime.role_structured_decision import ParsedRoleAwareDecision
-    from app.runtime.ai_decision import ParsedAIDecision
-    from app.runtime.ai_turn_executor import process_role_structured_decision
+    from app.runtime.ai.role_structured_decision import ParsedRoleAwareDecision
+    from app.runtime.ai.ai_decision import ParsedAIDecision
+    from app.runtime.ai_turn.ai_turn_executor import process_role_structured_decision
 
     # Create components for role-structured decision
     parsed_decision = ParsedAIDecision(
@@ -209,13 +209,13 @@ async def test_role_structured_responder_candidates_marked_responder_derived():
 
 def test_interpreter_output_cannot_affect_execution():
     """Interpreter output is diagnostic-only, cannot feed execution path."""
-    from app.runtime.role_contract import (
+    from app.runtime.ai.role_contract import (
         InterpreterSection,
         DirectorSection,
         ResponderSection,
     )
-    from app.runtime.role_structured_decision import ParsedRoleAwareDecision
-    from app.runtime.ai_decision import ParsedAIDecision
+    from app.runtime.ai.role_structured_decision import ParsedRoleAwareDecision
+    from app.runtime.ai.ai_decision import ParsedAIDecision
 
     # Create role-structured decision with interpreter content only
     parsed_decision = ParsedAIDecision(
@@ -255,13 +255,13 @@ def test_interpreter_output_cannot_affect_execution():
 
 def test_director_output_cannot_affect_execution():
     """Director output is diagnostic-only, cannot feed execution path."""
-    from app.runtime.role_contract import (
+    from app.runtime.ai.role_contract import (
         InterpreterSection,
         DirectorSection,
         ResponderSection,
     )
-    from app.runtime.role_structured_decision import ParsedRoleAwareDecision
-    from app.runtime.ai_decision import ParsedAIDecision
+    from app.runtime.ai.role_structured_decision import ParsedRoleAwareDecision
+    from app.runtime.ai.ai_decision import ParsedAIDecision
 
     # Create role-structured decision with director content only
     parsed_decision = ParsedAIDecision(
@@ -302,14 +302,14 @@ def test_director_output_cannot_affect_execution():
 
 def test_only_responder_proposals_enter_guarded_path():
     """Only responder-derived state_change_candidates become proposed_deltas."""
-    from app.runtime.role_contract import (
+    from app.runtime.ai.role_contract import (
         InterpreterSection,
         DirectorSection,
         ResponderSection,
         StateChangeCandidate,
     )
-    from app.runtime.role_structured_decision import ParsedRoleAwareDecision
-    from app.runtime.ai_decision import ParsedAIDecision
+    from app.runtime.ai.role_structured_decision import ParsedRoleAwareDecision
+    from app.runtime.ai.ai_decision import ParsedAIDecision
 
     # Create role-structured decision where ONLY responder has proposals
     parsed_decision = ParsedAIDecision(

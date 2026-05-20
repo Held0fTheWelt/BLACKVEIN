@@ -20,7 +20,7 @@ from app.content.models import (
     ExperienceTemplate,
 )
 from app.runtime.models import CommandResult, ParticipantState, RunStatus, RuntimeEvent, RuntimeInstance, RuntimeSnapshot, TranscriptEntry
-from app.runtime.npc_behaviors import RuntimeNpcDirector
+from app.runtime.narrative.npc_behaviors import RuntimeNpcDirector
 from app.runtime.visibility import RuntimeVisibilityPolicy
 
 

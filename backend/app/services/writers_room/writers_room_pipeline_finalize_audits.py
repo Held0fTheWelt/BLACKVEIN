@@ -9,14 +9,14 @@ from app.contracts.writers_room_artifact_class import (
     WritersRoomArtifactClass,
     build_writers_room_artifact_record,
 )
-from app.runtime.operator_truth import (
+from app.runtime.routing.operator_truth import (
     bounded_traces_from_task_2a_routing,
     enrich_operator_audit_with_operator_truth,
     resolve_routing_bootstrap_enabled,
 )
-from app.runtime.routing_authority import AUTHORITY_SOURCE_WRITERS_ROOM
+from app.runtime.routing.routing_authority import AUTHORITY_SOURCE_WRITERS_ROOM
 from app.runtime.model_routing_contracts import AdapterModelSpec
-from app.runtime.operator_audit import build_bounded_surface_operator_audit
+from app.runtime.routing.operator_audit import build_bounded_surface_operator_audit
 
 
 def build_finalize_audits_and_governance_truth(

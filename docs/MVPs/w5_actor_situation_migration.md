@@ -161,9 +161,15 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - [x] Frontend room helpers prefer `w5_player_view.where_summary.scene_location.value` / current visible location when the flag is enabled, then fall back to legacy `current_room`.
 - [x] `snapshot.current_room` and legacy localization fields remain compatibility aliases/fallbacks. No legacy localization removal occurs in this phase.
 
-### Phase 5B — Legacy frontend/current-room fallback hardening (planned)
+### Phase 5B — Legacy frontend/current-room fallback hardening (complete)
 
-- Audit every player-facing current-room/current-location consumer and ensure W5-first behavior is covered before removal work starts.
+- [x] Keep `W5_AST_FRONTEND_PLAYER_VIEW_ENABLED` fail-closed: disabled/unset leaves player-facing room selection on legacy `current_room` / `current_room_id`.
+- [x] When the flag is enabled and `w5_player_view` has a valid player-visible location, W5 is the preferred player-facing location source.
+- [x] When W5 is missing, malformed, or lacks an active player-visible location, runtime payloads fall back to legacy `current_room` without failing the turn.
+- [x] W5/legacy location disagreement is explicit in diagnostics via `current_room_legacy_value`, `current_room_w5_value`, and `current_room_mismatch`.
+- [x] Frontend room helpers and WebSocket live snapshot rendering tolerate missing nested W5 fields and do not render Why/private inferred text.
+- [x] World-Engine W5 manager helpers live under `world-engine/app/story_runtime/manager/actor_tracking/`; core W5 files live under `ai_stack/actor_tracking/`.
+- [x] No legacy localization fields, `current_room`, `actor_locations`, `complete_actor_locations_for_gathering`, `gathering_scene_id`, or projection fallbacks are removed in this phase.
 
 ### Phase 6 — Legacy localization decommission (planned)
 

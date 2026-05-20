@@ -1,7 +1,7 @@
 """Unit tests for Task 1 runtime stage contracts (deterministic gates and hints)."""
 
 from app.runtime.model_routing_contracts import EscalationHint
-from app.runtime.runtime_ai_stages import (
+from app.runtime.ai_turn.runtime_ai_stages import (
     PreflightStageOutput,
     SignalStageOutput,
     compute_needs_llm_synthesis,

@@ -17,8 +17,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from app.runtime.decision_policy import AIActionType
-from app.runtime.role_contract import ResponderSection
+from app.runtime.validation.decision_policy import AIActionType
+from app.runtime.ai.role_contract import ResponderSection
 
 
 # ===== Session Models =====

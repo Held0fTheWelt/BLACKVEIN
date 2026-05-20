@@ -2,7 +2,7 @@
 
 This report documents closure of routing governance routing and registry evolution.
 The canonical routing authority is `routing_authority` in
-`backend/app/runtime/routing_authority.py`.
+`backend/app/runtime/routing/routing_authority.py`.
 
 ## Closure Status
 

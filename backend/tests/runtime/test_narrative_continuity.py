@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.runtime.ai_turn_executor import build_adapter_request
-from app.runtime.lore_direction_context import derive_lore_direction_context
-from app.runtime.progression_summary import ProgressionSummary, derive_progression_summary
-from app.runtime.relationship_context import derive_relationship_axis_context
+from app.runtime.ai_turn.ai_turn_executor import build_adapter_request
+from app.runtime.narrative.lore_direction_context import derive_lore_direction_context
+from app.runtime.narrative.progression_summary import ProgressionSummary, derive_progression_summary
+from app.runtime.narrative.relationship_context import derive_relationship_axis_context
 from app.runtime.runtime_models import (
     ExecutionFailureReason,
     GuardOutcome,
     MockDecision,
     NarrativeCommitRecord,
 )
-from app.runtime.session_history import HistoryEntry, SessionHistory
-from app.runtime.short_term_context import ShortTermTurnContext, build_short_term_context
-from app.runtime.turn_execution_types import TurnExecutionResult
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
+from app.runtime.narrative.short_term_context import ShortTermTurnContext, build_short_term_context
+from app.runtime.turn.turn_execution_types import TurnExecutionResult
 
 
 def _minimal_result(
@@ -252,7 +252,7 @@ def test_lore_direction_rationale_responds_to_progression_momentum(
     god_of_carnage_module, content_modules_root
 ):
     """GoC momentum is a continuity signal, not an inferred ending preview."""
-    from app.runtime.session_start import start_session
+    from app.runtime.session.session_start import start_session
 
     started = start_session("god_of_carnage", root_path=content_modules_root)
     session = started.session
@@ -314,7 +314,7 @@ def test_lore_direction_rationale_responds_to_progression_momentum(
 def test_build_adapter_request_includes_continuity_without_diagnostic_blobs(
     god_of_carnage_module, content_modules_root
 ):
-    from app.runtime.session_start import start_session
+    from app.runtime.session.session_start import start_session
 
     session = start_session("god_of_carnage", root_path=content_modules_root).session
     st = ShortTermTurnContext(

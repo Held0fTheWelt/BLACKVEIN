@@ -16,7 +16,7 @@ This document explains **how the backend chooses which registered model adapter*
 - **Applies deterministic policy** (`route_model`) with inspectable reason codes, fallback chains, and flags such as `escalation_applied` / `degradation_applied`.
 - **Feeds shared evidence shapes** (`routing_evidence`, operator-facing rollups) consumed by backend-orchestrated runtime, Writers’ Room, and improvement HTTP paths.
 
-**Anchors:** `backend/app/runtime/model_routing_contracts.py`, `backend/app/runtime/model_routing.py`, `backend/app/runtime/adapter_registry.py`, `backend/app/runtime/model_routing_evidence.py`.
+**Anchors:** `backend/app/runtime/model_routing_contracts.py`, `backend/app/runtime/model_routing.py`, `backend/app/runtime/adapter_registry.py`, `backend/app/runtime/routing/model_routing_evidence.py`.
 
 ---
 
@@ -28,11 +28,11 @@ This document explains **how the backend chooses which registered model adapter*
 | Policy | `backend/app/runtime/model_routing.py` | `TASK_ROUTING_MODE`, `route_model()` |
 | Registry | `backend/app/runtime/adapter_registry.py` | Adapter instances and specs; `register_adapter_model` |
 | Bootstrap | `backend/app/runtime/routing_registry_bootstrap.py` | Registers in-repo specs (for example mock) at app startup when enabled |
-| Inventory checks | `backend/app/runtime/model_inventory_contract.py`, `model_inventory_report.py` | Coverage tuples per surface; deterministic reports |
+| Inventory checks | `backend/app/runtime/routing/model_inventory_contract.py`, `model_inventory_report.py` | Coverage tuples per surface; deterministic reports |
 | Writers’ Room specs | `backend/app/services/writers_room_model_routing.py` | Maps product model rows to `AdapterModelSpec` |
 | Improvement recommendation routing | `backend/app/services/improvement_task2a_routing.py` | Bounded preflight + synthesis stages for recommendation packages (see appendix for filename history) |
-| Staged runtime orchestration | `backend/app/runtime/runtime_ai_stages.py`, `backend/app/runtime/ai_turn_executor.py` | Preflight → signal → ranking → conditional synthesis |
-| Operator audit rollups | `backend/app/runtime/operator_audit.py`, `backend/app/runtime/operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |
+| Staged runtime orchestration | `backend/app/runtime/ai_turn/runtime_ai_stages.py`, `backend/app/runtime/ai_turn/ai_turn_executor.py` | Preflight → signal → ranking → conditional synthesis |
+| Operator audit rollups | `backend/app/runtime/routing/operator_audit.py`, `backend/app/runtime/routing/operator_truth.py` | Timelines and legibility fields derived from traces (implementation filenames retain a legacy prefix; see appendix) |
 
 ---
 
@@ -79,13 +79,13 @@ flowchart TB
 
 ### Backend-orchestrated runtime (`execute_turn_with_ai`)
 
-`execute_turn_with_ai` in `backend/app/runtime/ai_turn_executor.py` may run **multi-stage** orchestration via `runtime_ai_stages.py` when `runtime_staged_orchestration` is enabled in session metadata. Stages issue separate `RoutingRequest` values; traces record explicit skips (for example ranking not required when signal allows SLM-only). Setting `runtime_staged_orchestration: false` restores a simpler single-route path for regressions.
+`execute_turn_with_ai` in `backend/app/runtime/ai_turn/ai_turn_executor.py` may run **multi-stage** orchestration via `runtime_ai_stages.py` when `runtime_staged_orchestration` is enabled in session metadata. Stages issue separate `RoutingRequest` values; traces record explicit skips (for example ranking not required when signal allows SLM-only). Setting `runtime_staged_orchestration: false` restores a simpler single-route path for regressions.
 
-**Anchors:** `backend/app/runtime/ai_turn_executor.py`, `backend/app/runtime/runtime_ai_stages.py`.
+**Anchors:** `backend/app/runtime/ai_turn/ai_turn_executor.py`, `backend/app/runtime/ai_turn/runtime_ai_stages.py`.
 
 **Authority note:** This backend path is **not** the same executable path as world-engine’s `RuntimeTurnGraphExecutor`, which applies routing **inside** the LangGraph turn graph via `story_runtime_core` (`ai_stack/langgraph/langgraph_runtime.py`). Which surface is **primary** for live play is a product/deployment concern; the code keeps both paths explicit.
 
-For the **importable map** of which backend surface owns “primary routing authority” vs translation layers, see `backend/app/runtime/routing_authority.py` (`ROUTING_AUTHORITY_REGISTRY`). Plain-language: it prevents two competing routing policies from silently applying to the same canonical HTTP handler.
+For the **importable map** of which backend surface owns “primary routing authority” vs translation layers, see `backend/app/runtime/routing/routing_authority.py` (`ROUTING_AUTHORITY_REGISTRY`). Plain-language: it prevents two competing routing policies from silently applying to the same canonical HTTP handler.
 
 ### Writers’ Room
 
@@ -99,7 +99,7 @@ For the **importable map** of which backend surface owns “primary routing auth
 
 ## Shared `routing_evidence`
 
-Built by `build_routing_evidence` in `backend/app/runtime/model_routing_evidence.py`:
+Built by `build_routing_evidence` in `backend/app/runtime/routing/model_routing_evidence.py`:
 
 - Requested phase/task, selected adapter/provider/model, `route_reason_code`, `fallback_chain`, escalation/degradation flags
 - Optional compact diagnostics (`diagnostics_overview`, `diagnostics_flags`, `diagnostics_causes`) — deterministic indexes over the same facts, not a second policy engine
@@ -109,7 +109,7 @@ Built by `build_routing_evidence` in `backend/app/runtime/model_routing_evidence
 
 ## Not the same as `role_contract.py`
 
-`backend/app/runtime/role_contract.py` defines **interpreter / director / responder** sections inside **one** structured adapter output (intra-call shape).
+`backend/app/runtime/ai/role_contract.py` defines **interpreter / director / responder** sections inside **one** structured adapter output (intra-call shape).
 
 Routing here is **cross-adapter** selection: which registered model handles which **routing request**. Keep the two concepts separate.
 
@@ -127,7 +127,7 @@ Routing here is **cross-adapter** selection: which registered model handles whic
 
 Some Python modules still use **internal delivery-era filenames** (`*`, `improvement_task2a_*`). Those strings are **not** operational vocabulary for new contributors: treat them as **repository anchors** only.
 
-**Routing authority registry:** `backend/app/runtime/routing_authority.py` — maps canonical backend surfaces (runtime, Writers’ Room, improvement) to authoritative vs supporting routing layers. The module docstring may still mention old planning IDs; **behavior** is defined by `ROUTING_AUTHORITY_REGISTRY` and its dataclasses.
+**Routing authority registry:** `backend/app/runtime/routing/routing_authority.py` — maps canonical backend surfaces (runtime, Writers’ Room, improvement) to authoritative vs supporting routing layers. The module docstring may still mention old planning IDs; **behavior** is defined by `ROUTING_AUTHORITY_REGISTRY` and its dataclasses.
 
 **Archived milestone docs** (task IDs, gate tables, closure reports) live under `docs/archive/architecture-legacy/` for historical traceability only. **Canonical routing behavior** is defined by the current Python modules listed in the tables above.
 
@@ -137,7 +137,7 @@ Some Python modules still use **internal delivery-era filenames** (`*`, `improve
 
 The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`validation_commands.py`](../../backend/app/runtime/validation_commands.py). They do not change routing policy.
 
-**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.md), [`evolution_closure_report.md`](../../archive/architecture-legacy/evolution_closure_report.md). **Authority map (code):** `routing_authority` in [`backend/app/runtime/routing_authority.py`](../../backend/app/runtime/routing_authority.py).
+**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`convergence_gates.md`](../../archive/architecture-legacy/convergence_gates.md), [`evolution_closure_report.md`](../../archive/architecture-legacy/evolution_closure_report.md). **Authority map (code):** `routing_authority` in [`backend/app/runtime/routing/routing_authority.py`](../../backend/app/runtime/routing/routing_authority.py).
 
 **Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 — [`workstream_a_gates.md`](../../archive/architecture-legacy/workstream_a_gates.md), [`practical_convergence_closure_report.md`](../../archive/architecture-legacy/practical_convergence_closure_report.md).
 

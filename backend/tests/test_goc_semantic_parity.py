@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.runtime.decision_policy import AIActionType
+from app.runtime.validation.decision_policy import AIActionType
 from app.runtime.model_routing_contracts import LLMOrSLM, RouteReasonCode, TaskKind
 
 from ai_stack.story_runtime.semantic_planner.god_of_carnage_roadmap_semantic_surface import (

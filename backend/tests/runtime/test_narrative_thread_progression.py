@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.runtime.ai_turn_executor import build_adapter_request
-from app.runtime.narrative_threads import (
+from app.runtime.ai_turn.ai_turn_executor import build_adapter_request
+from app.runtime.narrative.narrative_threads import (
     NarrativeThreadSet,
     NarrativeThreadState,
     coerce_narrative_thread_set,
@@ -14,8 +14,8 @@ from app.runtime.narrative_threads import (
     sync_narrative_thread_set,
     update_narrative_threads_from_commit,
 )
-from app.runtime.progression_summary import ProgressionSummary
-from app.runtime.relationship_context import RelationshipAxisContext
+from app.runtime.narrative.progression_summary import ProgressionSummary
+from app.runtime.narrative.relationship_context import RelationshipAxisContext
 from app.runtime.runtime_models import (
     GuardOutcome,
     MockDecision,
@@ -23,10 +23,10 @@ from app.runtime.runtime_models import (
     SessionContextLayers,
     SessionState,
 )
-from app.runtime.session_history import HistoryEntry, SessionHistory
-from app.runtime.short_term_context import ShortTermTurnContext
-from app.runtime.turn_execution_types import TurnExecutionResult
-from app.runtime.turn_executor import _derive_runtime_context
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
+from app.runtime.narrative.short_term_context import ShortTermTurnContext
+from app.runtime.turn.turn_execution_types import TurnExecutionResult
+from app.runtime.turn.turn_executor import _derive_runtime_context
 
 
 def _nc(
@@ -479,7 +479,7 @@ def test_compact_adapter_payload_json_safe_bounded():
 def test_build_adapter_request_active_narrative_threads_from_context_layers_only(
     god_of_carnage_module, content_modules_root
 ):
-    from app.runtime.session_start import start_session
+    from app.runtime.session.session_start import start_session
 
     session = start_session("god_of_carnage", root_path=content_modules_root).session
 

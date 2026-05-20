@@ -15,7 +15,7 @@ from app.runtime.agent_registry import (
     build_default_agent_registry,
 )
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
-from app.runtime.supervisor_orchestrator import SupervisorOrchestrator
+from app.runtime.supervisor.supervisor_orchestrator import SupervisorOrchestrator
 
 
 class RecordingSupervisorAdapter(StoryAIAdapter):

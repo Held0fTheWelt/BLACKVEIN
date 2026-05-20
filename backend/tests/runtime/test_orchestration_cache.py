@@ -1,6 +1,6 @@
 """Focused tests for orchestration per-turn cache behavior."""
 
-from app.runtime.orchestration_cache import OrchestrationTurnCache
+from app.runtime.cache.orchestration_cache import OrchestrationTurnCache
 
 
 def test_turn_cache_records_hits_and_misses():

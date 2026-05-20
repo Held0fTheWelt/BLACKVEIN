@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 
 # W2.4.2: Import role contract (W2.4.1)
 from app.runtime.input_interpreter import InputInterpretationEnvelope
-from app.runtime.role_contract import AIRoleContract
+from app.runtime.ai.role_contract import AIRoleContract
 from app.runtime.runtime_models import TokenUsageRecord
 
 

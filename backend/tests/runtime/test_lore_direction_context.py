@@ -24,14 +24,14 @@ from app.content.module_models import (
     ScenePhase,
     TriggerDefinition,
 )
-from app.runtime.lore_direction_context import (
+from app.runtime.narrative.lore_direction_context import (
     LoreDirectionContext,
     ModuleGuidanceUnit,
     derive_lore_direction_context,
 )
-from app.runtime.progression_summary import ProgressionSummary
-from app.runtime.relationship_context import RelationshipAxisContext, SalientRelationshipAxis
-from app.runtime.session_history import HistoryEntry, SessionHistory
+from app.runtime.narrative.progression_summary import ProgressionSummary
+from app.runtime.narrative.relationship_context import RelationshipAxisContext, SalientRelationshipAxis
+from app.runtime.session.session_history import HistoryEntry, SessionHistory
 
 
 @pytest.fixture

@@ -14,14 +14,14 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import attach_stage_routing_evidence
-from app.runtime.operator_truth import (
+from app.runtime.routing.model_routing_evidence import attach_stage_routing_evidence
+from app.runtime.routing.operator_truth import (
     bounded_traces_from_task_2a_routing,
     enrich_operator_audit_with_operator_truth,
     resolve_routing_bootstrap_enabled,
 )
-from app.runtime.routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
-from app.runtime.operator_audit import build_bounded_surface_operator_audit
+from app.runtime.routing.routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
+from app.runtime.routing.operator_audit import build_bounded_surface_operator_audit
 from app.services.governance.governed_provider_adapter_service import build_governed_provider_adapters
 from app.services.writers_room.writers_room_model_routing import build_writers_room_model_route_specs
 

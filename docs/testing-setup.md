@@ -334,7 +334,7 @@ def test_example(app, test_user, auth_headers):
 **What it is:** Tests run with `ROUTING_REGISTRY_BOOTSTRAP = True`, simulating production-like routing initialization. Uses the same in-memory database and test fixtures, but enables routing registry bootstrap.
 
 **When to use:**
-- Validating Area 2 convergence and final closure gates
+- Validating routing-governance convergence and final closure gates
 - Testing HTTP proofs that depend on routing initialization
 - Verifying production-like configuration behavior
 
@@ -411,7 +411,7 @@ This runs ~140 tests covering:
 - Content module YAML is valid and internally consistent
 - Core API endpoints respond
 
-**Not covered by smoke:** Area 2 dual-workstream closure gates (**G-A-01** … **G-A-07**, **G-B-01** … **G-B-07**) and the full `backend/tests/runtime` convergence suites — run those explicitly from `backend/` (see below).
+**Not covered by smoke:** routing-governance dual-workstream closure gates (**G-A-01** … **G-A-07**, **G-B-01** … **G-B-07**) and the full `backend/tests/runtime` convergence suites — run those explicitly from `backend/` (see below).
 
 ---
 
@@ -585,7 +585,7 @@ To validate that the repository can be tested in a fresh environment:
    python -m pytest tests/ -v --tb=short
    ```
 
-For Area 2 operational closure, also run the **Area 2 dual-workstream** command from the [`Area 2 dual-workstream validation (canonical)`](#area-2-dual-workstream-validation-canonical) section (same install prerequisites; **`cd backend`** and **`--no-cov`**).
+For routing-governance operational closure, also run the **routing-governance dual-workstream** command from the [`routing-governance dual-workstream validation (canonical)`](#routing-governance-dual-workstream-validation-canonical) section (same install prerequisites; **`cd backend`** and **`--no-cov`**).
 
 If smoke and backend suites pass, the environment is valid for those scopes. If tests fail, check:
 - All required packages are in requirements files

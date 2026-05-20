@@ -10,9 +10,9 @@ import pytest
 
 from app.runtime.adapter_registry import clear_registry
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
-from app.runtime.ai_turn_executor import execute_turn_with_ai
+from app.runtime.ai_turn.ai_turn_executor import execute_turn_with_ai
 from .staged_test_payloads import maybe_staged_prelude_response
-from app.runtime.tool_loop import (
+from app.runtime.turn.tool_loop import (
     HostToolContext,
     ToolCallStatus,
     ToolLoopPolicy,
