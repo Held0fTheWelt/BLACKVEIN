@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from ai_stack.goc_turn_seams import repro_metadata_complete
+from ai_stack.story_runtime.turn.goc_turn_seams import repro_metadata_complete
 
 GateOutcome = Literal["pass", "fail", "conditional_pass"]
 

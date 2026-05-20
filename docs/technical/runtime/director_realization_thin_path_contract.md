@@ -32,7 +32,7 @@ Nodes **not** visited on this default player path include `retrieve_context`, `g
 
 ### `realization_plan.v1`
 
-Produced by `compose_realization_plan` in `ai_stack/director/director_realization_composer.py`.
+Produced by `compose_realization_plan` in `ai_stack/story_runtime/director/director_realization_composer.py`.
 
 | Field | Type | Notes |
 |-------|------|-------|

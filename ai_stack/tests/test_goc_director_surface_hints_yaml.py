@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.goc_turn_seams import run_visible_render
+from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
 from ai_stack.goc_yaml_authority import (
     clear_goc_yaml_slice_cache,
     load_goc_director_surface_hints_yaml,

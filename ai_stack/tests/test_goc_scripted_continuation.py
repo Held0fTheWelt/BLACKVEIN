@@ -11,7 +11,7 @@ Validates that ``build_goc_scripted_continuation`` correctly:
 
 from __future__ import annotations
 
-from ai_stack.narrator.goc_narrator_path import (
+from ai_stack.story_runtime.narrator.goc_narrator_path import (
     PLAYER_STATUS_BLOCKED,
     SCRIPTED_CONTINUATION_CONTRACT,
     SCRIPTED_STEP_MODES,

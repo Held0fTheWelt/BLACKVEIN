@@ -95,7 +95,7 @@ The roadmap and PR-0 PIV cite several `file:line` anchors. PR-A re-verified the 
 | Plan §1.5, PR-0 §2 | `ai_stack/player_action_resolution.py` `resolve_player_action()` def | [`ai_stack/player_action_resolution.py:502`](../../ai_stack/player_action_resolution.py) | Matches. |
 | PR-0 §2 | `ai_stack/module_runtime_policy.py:413` | Verified — `canonical_path_control` projection lives at [`ai_stack/module_runtime_policy.py:410-416`](../../ai_stack/module_runtime_policy.py) (`player_freedom` dict). | Matches with one-line tolerance. |
 | PR-0 §2 | `ai_stack/langgraph/langgraph_runtime_executor.py:3996` `_build_npc_agency_plan_projection` def, call at `:4279`; `canonical_path_control` block at `:4703` | All three remain stable. Additionally verified `_resolve_player_action` node def at [`:6260`](../../ai_stack/langgraph/langgraph_runtime_executor.py) and the call to `resolve_player_action` at [`:6280`](../../ai_stack/langgraph/langgraph_runtime_executor.py). | Matches. |
-| PR-0 §2 | `ai_stack/director/scene_director_goc.py:655` `_build_responder_set` def, call at `:911` | Matches. PR-A does not touch this surface. | Matches. |
+| PR-0 §2 | `ai_stack/story_runtime/director/scene_director_goc.py:655` `_build_responder_set` def, call at `:911` | Matches. PR-A does not touch this surface. | Matches. |
 | PR-0 §2 | `world-engine/app/story_runtime/manager.py:8683-8687` `_turn_holds_canonical_path_for_free_player_action` def, `:8746` gate | Matches. PR-A does not touch this surface. | Matches. |
 | PR-0 §2 | `content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml:36` `named_characters: [veronique, michel, annette, alain]` | Verified line 36. | Matches. |
 | ADR-0062 / ADR-0057 | `world-engine/app/api/http.py` thin-path-summary endpoint | Verified at [`:1061-1075`](../../world-engine/app/api/http.py); manager impl at [`world-engine/app/story_runtime/manager.py:14164`](../../world-engine/app/story_runtime/manager.py). | Matches. |
@@ -117,13 +117,13 @@ PR-A's discipline is **reuse, do not rebuild**.
 
 Hard constraints. PR-A's diff stays inside this guardrail; tests above enforce the negatives.
 
-- **`ai_stack/narrator/narrator_consequence_contracts.py`** — owned by PR-B (`narrator_consequence_realization.v1`).
-- **`ai_stack/canonical_path/canonical_path_resolver.py`** — owned by canonical-path loading; unchanged.
-- **`ai_stack/director/scene_director_goc.py`** — owned by PR-C (Director composition and `gathering_paused` gate).
+- **`ai_stack/story_runtime/narrator/narrator_consequence_contracts.py`** — owned by PR-B (`narrator_consequence_realization.v1`).
+- **`ai_stack/story_runtime/canonical_path/canonical_path_resolver.py`** — owned by canonical-path loading; unchanged.
+- **`ai_stack/story_runtime/director/scene_director_goc.py`** — owned by PR-C (Director composition and `gathering_paused` gate).
 - **`ai_stack/langgraph/langgraph_runtime_executor.py`** lines around `_resolve_player_action` (no executor logic change; the contract rides inside the frame), `_build_npc_agency_plan_projection`, and the `canonical_path_control` block (PR-B / PR-C own those).
 - **`ai_stack/live_dramatic_scene_simulator.py`** — LDSS and mandatory-beat consumption stay unchanged.
 - **`ai_stack/runtime_aspect_ledger.py`** — `ASPECT_KEYS` unchanged; no Director-Pause aspect row added.
-- **`ai_stack/narrator/goc_narrator_path.py`** — Turn 0 narrator path unchanged.
+- **`ai_stack/story_runtime/narrator/goc_narrator_path.py`** — Turn 0 narrator path unchanged.
 - **`ai_stack/goc_souffleuse.py`** — Souffleuse path unchanged.
 - **`ai_stack/runtime_diagnostic_snapshot_contracts.py`** — PR-0 stub stays uncoupled from production; PR-A does **not** import it from `ai_stack/player_action_resolution.py` or any other production module (enforced by `tests/test_npc_interactivity_piv_baseline.py::test_runtime_diagnostic_snapshot_stub_is_not_imported_by_production_code`).
 - **`world-engine/app/story_runtime/manager.py`** — `_turn_holds_canonical_path_for_free_player_action`, `_build_langfuse_path_summary`, `get_thin_path_summary`, commit / readiness, all unchanged. PR-A does not modify the manager.

@@ -438,7 +438,7 @@ def test_actor_lane_validation_runs_before_response_packaging():
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
 
-    from ai_stack.goc_turn_seams import run_commit_seam, run_validation_seam, run_visible_render
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam, run_validation_seam, run_visible_render
 
     # Generation where AI speaks for the human actor (annette)
     generation_with_human_line = {
@@ -603,7 +603,7 @@ def test_actor_lane_validation_runs_before_commit():
     if repo_root not in sys.path:
         sys.path.insert(0, repo_root)
 
-    from ai_stack.goc_turn_seams import run_commit_seam, run_validation_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam, run_validation_seam
 
     generation_human_line = {
         "success": True,

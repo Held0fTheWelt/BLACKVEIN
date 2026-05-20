@@ -192,9 +192,9 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes these as semantic capability inputs (ADR-0058/0059)
-    "ai_stack/director/director_pulse_contracts.py",
-    "ai_stack/director/director_pulse_shadow.py",
-    "ai_stack/npc_agency/npc_motivation_score_engine.py",
+    "ai_stack/story_runtime/director/director_pulse_contracts.py",
+    "ai_stack/story_runtime/director/director_pulse_shadow.py",
+    "ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
     "ai_stack/stream_readiness.py",
     # Phase 2 Stage M — Follow-up composition consumes scene_energy as a
@@ -245,9 +245,9 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director consumes narrative_momentum as semantic input (ADR-0058/0059)
-    "ai_stack/director/director_pulse_contracts.py",
-    "ai_stack/director/director_pulse_shadow.py",
-    "ai_stack/npc_agency/npc_motivation_score_engine.py",
+    "ai_stack/story_runtime/director/director_pulse_contracts.py",
+    "ai_stack/story_runtime/director/director_pulse_shadow.py",
+    "ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
     "ai_stack/stream_readiness.py",
 }
@@ -267,8 +267,8 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager/",
     # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
-    "ai_stack/director/director_pulse_contracts.py",
-    "ai_stack/director/director_pulse_shadow.py",
+    "ai_stack/story_runtime/director/director_pulse_contracts.py",
+    "ai_stack/story_runtime/director/director_pulse_shadow.py",
     # Phase 2 Stage E — Autonomous Director tick consults pacing_rhythm for cooldown
     "ai_stack/autonomous_tick.py",
     # Phase 2 Stage F — Director policy/source classifier reads pacing_rhythm policy
@@ -401,7 +401,7 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     "ai_stack/langchain/bridges.py": "Schema descriptions include GoC-flavored examples.",
     "ai_stack/live_dramatic_scene_simulator.py": "LDSS fallback/opening data is still GoC-specific.",
     "ai_stack/narrative_runtime_agent.py": "Narrator validation examples still mention GoC actors.",
-    "ai_stack/narrator/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",
+    "ai_stack/story_runtime/narrator/narrator_consequence_contracts.py": "Local context fallback still names a GoC location.",
     "ai_stack/opening_shape_normalizer.py": "Opening-shape compatibility shim still names GoC.",
     "ai_stack/research/research_fixtures.py": "Research fixture data is intentionally GoC-specific.",
     "ai_stack/visible_narrative_contract.py": "Visible sanitizer still has GoC actor fallback tokens.",
@@ -448,7 +448,9 @@ def _known_module_literal_debt_reason(rel: str) -> str | None:
             "code must remain isolated to reviewed manager modules."
         )
     filename = Path(rel).name
-    if rel.startswith("ai_stack/goc_") or rel.startswith("ai_stack/semantic_planner/goc_") or (
+    if rel.startswith("ai_stack/goc_") or (
+        rel.startswith("ai_stack/story_runtime/") and filename.startswith("goc_")
+    ) or (
         rel.startswith("ai_stack/") and filename.endswith("_goc.py")
     ):
         return "GoC-specific ai_stack module; generic Table B code must not depend on it."

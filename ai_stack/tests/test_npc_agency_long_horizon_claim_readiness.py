@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
-from ai_stack.npc_agency.npc_agency_contracts import (
+from ai_stack.story_runtime.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS,
     NPC_AGENCY_CLAIM_FULL_LONG_HORIZON_READY_STATUS,
     NPC_AGENCY_CLAIM_READINESS_SCHEMA_VERSION,
@@ -15,9 +15,9 @@ from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
     NPC_PRIVATE_PLAN_SCHEMA_VERSION,
 )
-from ai_stack.npc_agency.npc_agency_long_horizon import build_npc_long_horizon_state
-from ai_stack.npc_agency.npc_agency_planner import build_npc_agency_simulation
-from ai_stack.npc_agency.npc_agency_realization import (
+from ai_stack.story_runtime.npc_agency.npc_agency_long_horizon import build_npc_long_horizon_state
+from ai_stack.story_runtime.npc_agency.npc_agency_planner import build_npc_agency_simulation
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import (
     build_npc_agency_closure,
     validate_npc_initiative_realization,
 )

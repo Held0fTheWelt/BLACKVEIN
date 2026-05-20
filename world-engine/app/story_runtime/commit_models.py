@@ -11,9 +11,9 @@ import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-from ai_stack.npc_agency.npc_agency_realization import build_npc_agency_closure
-from ai_stack.semantic_planner.social_state_contract import SocialStateRecord
-from ai_stack.semantic_planner.social_state_goc import social_state_fingerprint
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import build_npc_agency_closure
+from ai_stack.story_runtime.semantic_planner.social_state_contract import SocialStateRecord
+from ai_stack.story_runtime.semantic_planner.social_state_goc import social_state_fingerprint
 
 logger = logging.getLogger(__name__)
 

@@ -48,7 +48,7 @@ from story_runtime_core import RoutingPolicy, interpret_player_input  # noqa: E4
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult  # noqa: E402
 from story_runtime_core.model_registry import build_default_registry  # noqa: E402
 
-from ai_stack.goc_turn_seams import build_roadmap_dramatic_turn_record  # noqa: E402
+from ai_stack.story_runtime.turn.goc_turn_seams import build_roadmap_dramatic_turn_record  # noqa: E402
 from ai_stack.goc_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml  # noqa: E402
 from ai_stack.langgraph.langgraph_runtime import RuntimeTurnGraphExecutor  # noqa: E402
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline  # noqa: E402

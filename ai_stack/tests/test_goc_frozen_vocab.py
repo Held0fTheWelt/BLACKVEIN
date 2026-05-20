@@ -17,7 +17,7 @@ from ai_stack.goc_frozen_vocab import (
     assert_scene_function,
     assert_transition_pattern,
 )
-from ai_stack.director.scene_director_goc import select_single_scene_function as sd_select
+from ai_stack.story_runtime.director.scene_director_goc import select_single_scene_function as sd_select
 
 
 def test_scene_function_count_matches_freeze() -> None:

@@ -58,7 +58,7 @@ Quelle: vier Trace-JSONs (siehe `\trace-ff646a6c…`, `\trace-fe778b…`, `\trac
 
 ### 1.5 Was *fehlt* (Architektur-Lücke)
 
-- **Director ist im Player-Turn nicht eingebunden.** Heutige Director-Logik (`ai_stack/director/scene_director_goc.py`) läuft für NPC-Auswahl und Szenen-Direction, *nicht* als Realization-Composer für Spieler-Aktionen.
+- **Director ist im Player-Turn nicht eingebunden.** Heutige Director-Logik (`ai_stack/story_runtime/director/scene_director_goc.py`) läuft für NPC-Auswahl und Szenen-Direction, *nicht* als Realization-Composer für Spieler-Aktionen.
 - **`full_pipeline` ist monolithisch.** Capabilities werden nicht vom Director komponiert, sondern als feste Knoten-Folge konsumiert.
 - **Keine direkte Resolver→Director→Narrator-Achse** für mundane Player-Aktionen.
 
@@ -107,7 +107,7 @@ Visible Blocks
 | Vertrag | Pflichtfelder | Datei |
 |---|---|---|
 | `semantic_resolution_output.v1` | `semantic_action`, `player_input_kind`, `resolved_target_type/id`, `possibility`, `kanon_break: bool`, `kanon_break_reason: str\|null` | `ai_stack/player_action_resolution.py` (Erweiterung; Glück in `outcome_disposition` des Directors) |
-| `realization_plan.v1` | `realization_owner ∈ {narrator, actor_line, narrator+actor_line}`, `capabilities_selected: [str]`, `outcome_disposition: {success\|partial\|fail, reason}`, `language_target`, `visibility_constraints: [str]` | neu: `ai_stack/director/director_realization_composer.py` |
+| `realization_plan.v1` | `realization_owner ∈ {narrator, actor_line, narrator+actor_line}`, `capabilities_selected: [str]`, `outcome_disposition: {success\|partial\|fail, reason}`, `language_target`, `visibility_constraints: [str]` | neu: `ai_stack/story_runtime/director/director_realization_composer.py` |
 | `kanon_break_check.v1` | nur ein Feld: `is_kanon_break: bool` + `reason: str`. Definition: `is_kanon_break = true` nur wenn die Aktion das **Weiterspielen unmöglich macht** (physisch unmöglich, kriminell/böse, irreversibel verheerend). Reversible Veränderung ≠ Bruch. | Resolver-Output, Director-Konsum |
 
 ### 2.3 Was bleibt vom heutigen Stack
@@ -142,7 +142,7 @@ Was *gelöscht* wird: `_route_after_resolve_player_action`, `_authoritative_acti
 **Eingriffe (verbindlich):**
 
 - [x] **A-1** Resolver-Output um `kanon_break: bool` + `kanon_break_reason` erweitern.
-- [x] **A-2** `ai_stack/director/director_realization_composer.py` + `compose_realization_plan` → `realization_plan.v1` (PR-A deterministisch; LLM-Compose in PR-A.2/3).
+- [x] **A-2** `ai_stack/story_runtime/director/director_realization_composer.py` + `compose_realization_plan` → `realization_plan.v1` (PR-A deterministisch; LLM-Compose in PR-A.2/3).
 - [x] **A-3** Graph-Knoten `director_compose_realization`; Edge `resolve_player_action → director_compose_realization`.
 - [x] **A-4** Graph-Knoten `realize_via_capabilities`; LLM-Realisierung in `session_output_language`.
 - [x] **A-5** Edges `director_compose_realization → realize_via_capabilities → route_model → … → commit`.
@@ -253,7 +253,7 @@ Anzeige-Standort: `narrative_systems.html` (siehe NPC_INTERACTION-Plan §3.5 Sta
 | # | Schritt | Status | Notiz |
 |---|---|---|---|
 | A-1 | Resolver-Output: `kanon_break` + `kanon_break_reason` | ✓ done | `story_runtime_core/language_adapter.py:300-302` (Contract), `ai_stack/player_action_resolution.py:200-217` (helper), `:747-757` (Return). `glück_disposition_input` aus Resolver gestrichen — Glück gehört ganz in den Director. |
-| A-2 | `ai_stack/director/director_realization_composer.py` neu | ✓ done | `realization_plan.v1` mit `realization_owner`, `capabilities_selected`, `outcome_disposition`, `language_target`, `visibility_constraints`, `decision_reason`. PR-A deterministisch (Bewegung→Narrator-Location-Transition, kanon_break→Refusal, uncertain→Clarification). Semantischer LLM-Call kommt in PR-A.2/3. |
+| A-2 | `ai_stack/story_runtime/director/director_realization_composer.py` neu | ✓ done | `realization_plan.v1` mit `realization_owner`, `capabilities_selected`, `outcome_disposition`, `language_target`, `visibility_constraints`, `decision_reason`. PR-A deterministisch (Bewegung→Narrator-Location-Transition, kanon_break→Refusal, uncertain→Clarification). Semantischer LLM-Call kommt in PR-A.2/3. |
 | A-3 | Graph-Knoten `director_compose_realization` | ✓ done | `langgraph_runtime_executor.py:6383-6400` Methode, `:4869` add_node, `:4900` add_edge |
 | A-4 | Graph-Knoten `realize_via_capabilities` | ✓ done | `langgraph_runtime_executor.py:6402-6464` Methode. Baut Narrator-Prompt aus `realization_plan.capabilities_selected[0]`. Reicht `state.model_prompt` an existierendes `route_model`/`invoke_model` weiter. |
 | A-5 | Edges `resolve_player_action → composer → realize → route_model` | ✓ done | `langgraph_runtime_executor.py:4900-4902`. Alte conditional_edge nach `resolve_player_action` entfernt. Player-Turns gehen NICHT mehr durch `retrieve_context`/`derive_*`/`assemble_model_context`. Graph kompiliert; bestehende Tests brechen (per A-9). |
@@ -306,11 +306,11 @@ Eröffnet nach Abschluss PR-A.3.
 | Technical contract | `docs/technical/runtime/director_realization_thin_path_contract.md` |
 | Translate-Ingress | `ai_stack/langgraph/langgraph_runtime_executor.py:405-438` |
 | Resolver (Player) | `ai_stack/player_action_resolution.py` |
-| Director composer | `ai_stack/director/director_realization_composer.py` |
+| Director composer | `ai_stack/story_runtime/director/director_realization_composer.py` |
 | Graph thin path | `ai_stack/langgraph/langgraph_runtime_executor.py:4947-4991` (`director_compose_realization`, `realize_via_capabilities`) |
 | Thin-path state | `ai_stack/langgraph/langgraph_runtime_state.py:216-220` |
 | Thin-path summary API | `world-engine/app/api/http.py` (`/thin-path-summary`), `manager.py:14164` |
-| LDSS scene director (nicht auf Player-Pfad) | `ai_stack/director/scene_director_goc.py` |
+| LDSS scene director (nicht auf Player-Pfad) | `ai_stack/story_runtime/director/scene_director_goc.py` |
 | Validator dramatic_irony | `ai_stack/dramatic_irony_runtime.py:668-701` |
 | Karten-Fold | `world-engine/app/story_runtime/manager.py:7756-7845` |
 | UI Diagnose | `world-engine/app/web/templates/ui/narrative_systems.html`, `ui_narrative_systems.js` |

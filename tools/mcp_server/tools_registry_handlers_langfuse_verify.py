@@ -40,7 +40,7 @@ from ai_stack.langfuse.langfuse_evidence import (
     ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
     WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME,
 )
-from ai_stack.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+from ai_stack.story_runtime.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
 

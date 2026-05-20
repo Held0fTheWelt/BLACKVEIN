@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.semantic_planner.semantic_planner_effect_surface import (
+from ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface import (
     resolve_dramatic_effect_evaluator,
     support_level_for_module,
 )
@@ -81,13 +81,13 @@ def build_provenance_entries(*, last: dict[str, Any], bundle: dict[str, Any]) ->
             "field": "semantic_planner_support_level",
             "value": support_level,
             "source_kind": "capability_metadata",
-            "source_ref": "ai_stack.semantic_planner.semantic_planner_effect_surface.support_level_for_module",
+            "source_ref": "ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface.support_level_for_module",
         },
         {
             "field": "dramatic_effect_evaluator_class",
             "value": evaluator_class,
             "source_kind": "capability_metadata",
-            "source_ref": "ai_stack.semantic_planner.semantic_planner_effect_surface.resolve_dramatic_effect_evaluator",
+            "source_ref": "ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface.resolve_dramatic_effect_evaluator",
         },
         {
             "field": "fallback_path_taken",

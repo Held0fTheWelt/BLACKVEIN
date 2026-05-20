@@ -5,7 +5,7 @@ from __future__ import annotations
 import ai_stack.capabilities.capability_validator_dispatch as capability_validator_dispatch
 import ai_stack.runtime_aspect_ledger as runtime_aspect_ledger
 from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
-from ai_stack.goc_seam_mirror_validator_adapters import (
+from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import (
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     adapter_dramatic_effect_gate_mirror_contract,
 )
@@ -31,7 +31,7 @@ from ai_stack.tests.test_capability_validator_registry import (
     _opening_dispatch_context,
     _player_dispatch_context,
 )
-from ai_stack.validation_authority_bridge import (
+from ai_stack.story_runtime.turn.validation_authority_bridge import (
     VALIDATION_AUTHORITY_BRIDGE_SCHEMA_VERSION,
     VALIDATION_CO_AUTHORITY_DECISION_SCHEMA_VERSION,
     build_readiness_aggregation_decision,
@@ -1189,7 +1189,7 @@ def test_readiness_preview_unavailable_validator_not_eligible() -> None:
         validation_authority_preview=preview,
         selected_turn_class="opening_scene",
     )
-    from ai_stack.validation_authority_bridge import build_readiness_co_authority_preview
+    from ai_stack.story_runtime.turn.validation_authority_bridge import build_readiness_co_authority_preview
 
     readiness = build_readiness_co_authority_preview(
         validation_authority_bridge=bridge,
@@ -1232,7 +1232,7 @@ def test_readiness_enforcement_unavailable_validator_blocks() -> None:
             "mirror_fidelity_gate_passed": True,
         },
     }
-    from ai_stack.validation_authority_bridge import build_readiness_co_authority_enforcement
+    from ai_stack.story_runtime.turn.validation_authority_bridge import build_readiness_co_authority_enforcement
 
     enforcement = build_readiness_co_authority_enforcement(
         readiness_co_authority_preview=preview,

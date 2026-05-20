@@ -11,7 +11,7 @@ from ai_stack.expectation_variation_contracts import (
 )
 from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_SCHEMA_VERSION
 from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
-from ai_stack.npc_agency.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
 from ai_stack.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,

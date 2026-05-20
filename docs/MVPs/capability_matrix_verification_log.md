@@ -338,7 +338,7 @@ The full backend suite was also run during parallel Quality Lab work and finishe
 
 Latest local verification recorded for the current NPC agency long-horizon, private-plan, closure, operator, and scoring work:
 
-- `python -m py_compile ai_stack/npc_agency/npc_agency_contracts.py ai_stack/npc_agency/npc_agency_long_horizon.py ai_stack/npc_agency/npc_agency_claim_readiness.py ai_stack/npc_agency/npc_agency_realization.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py backend/app/services/operator_turn_history_service.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
+- `python -m py_compile ai_stack/story_runtime/npc_agency/npc_agency_contracts.py ai_stack/story_runtime/npc_agency/npc_agency_long_horizon.py ai_stack/story_runtime/npc_agency/npc_agency_claim_readiness.py ai_stack/story_runtime/npc_agency/npc_agency_realization.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py backend/app/services/operator_turn_history_service.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
 - `pytest ai_stack/tests/test_npc_agency_long_horizon_claim_readiness.py ai_stack/tests/test_npc_agency_planner.py ai_stack/tests/test_npc_agency_contracts.py -q --tb=short` → 18 passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py world-engine/tests/test_story_runtime_narrative_threads.py::test_prior_planner_truth_passed_to_graph_from_committed_truth -q --tb=short` → 8 passed.
 - `pytest ai_stack/tests/test_runtime_aspect_ledger.py -q --tb=short` → 3 passed.
@@ -369,7 +369,7 @@ The tests assert structure, provenance, authority boundaries, diagnostics, and g
 
 Latest local verification recorded for the bounded runtime voice-consistency work:
 
-- `python -m py_compile ai_stack/npc_agency/character/character_voice_contract.py ai_stack/npc_agency/character/character_voice_goc.py ai_stack/npc_agency/character/character_voice_semantic_classifier.py ai_stack/npc_agency/character/character_voice_validation.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py ai_stack/story_runtime/story_runtime_playability.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
+- `python -m py_compile ai_stack/story_runtime/npc_agency/character/character_voice_contract.py ai_stack/story_runtime/npc_agency/character/character_voice_goc.py ai_stack/story_runtime/npc_agency/character/character_voice_semantic_classifier.py ai_stack/story_runtime/npc_agency/character/character_voice_validation.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/runtime_aspect_ledger.py ai_stack/story_runtime/story_runtime_playability.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` → passed.
 - `python -m pytest ai_stack/tests/test_character_voice_runtime_enforcement.py -q` → 10 passed.
 - `python -m pytest ai_stack/tests/test_character_voice_runtime_enforcement.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_story_runtime_playability.py -q` → 21 passed.
 - `python -m pytest ai_stack/tests/test_langgraph_runtime.py ai_stack/tests/test_semantic_planner_graph_authority.py ai_stack/tests/test_semantic_planner_golden_cases.py -q` → 26 passed.
@@ -418,7 +418,7 @@ ADR-0039 discipline for this slice: tests derive positive semantic evidence from
 
 Latest local verification recorded for the bounded GoC silence / negative-space implementation:
 
-- `python -m py_compile ai_stack/silence_negative_space_contract.py ai_stack/director/scene_director_goc.py ai_stack/semantic_planner/semantic_move_interpretation_goc.py ai_stack/semantic_planner/semantic_move_contract.py ai_stack/goc_dramatic_alignment.py ai_stack/langgraph/langgraph_runtime_executor.py story_runtime_core/input_interpreter.py backend/app/runtime/input_interpreter.py` -> passed.
+- `python -m py_compile ai_stack/silence_negative_space_contract.py ai_stack/story_runtime/director/scene_director_goc.py ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py ai_stack/story_runtime/semantic_planner/semantic_move_contract.py ai_stack/goc_dramatic_alignment.py ai_stack/langgraph/langgraph_runtime_executor.py story_runtime_core/input_interpreter.py backend/app/runtime/input_interpreter.py` -> passed.
 - `python -m pytest ai_stack/tests/test_pi14_silence_negative_space.py -q` -> 6 passed.
 - `python -m pytest ai_stack/tests/test_semantic_planner_golden_cases.py ai_stack/tests/test_semantic_move_interpretation_goc.py ai_stack/tests/test_goc_dramatic_alignment.py -q` -> 61 passed.
 - `python -m pytest ai_stack/tests/test_scene_director_goc_extended.py -q` -> 176 passed.
@@ -434,7 +434,7 @@ ADR-0039 discipline for this slice: tests assert `silence_negative_space.v1`, fr
 
 Latest local verification recorded for the bounded durable environment-state implementation:
 
-- `python -m py_compile ai_stack/environment_state_contracts.py ai_stack/player_action_resolution.py ai_stack/langgraph/langgraph_synthetic_action_resolution.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/langgraph/langgraph_runtime_package_output.py ai_stack/goc_turn_seams.py world-engine/app/story_runtime/manager.py world-engine/app/story_runtime_shell_readout.py backend/app/api/v1/game_routes.py` -> passed.
+- `python -m py_compile ai_stack/environment_state_contracts.py ai_stack/player_action_resolution.py ai_stack/langgraph/langgraph_synthetic_action_resolution.py ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/langgraph/langgraph_runtime_package_output.py ai_stack/story_runtime/turn/goc_turn_seams.py world-engine/app/story_runtime/manager.py world-engine/app/story_runtime_shell_readout.py backend/app/api/v1/game_routes.py` -> passed.
 - `python -m pytest ai_stack/tests/test_environment_state_contracts.py ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_return_movement_resolution.py ai_stack/tests/test_narrator_consequence_contract.py ai_stack/tests/test_langgraph_runtime.py::test_runtime_turn_graph_emits_player_action_resolution_surface` -> 38 passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine python -m pytest world-engine/tests/test_story_runtime_environment_state.py world-engine/tests/test_story_runtime_shell_readout.py world-engine/tests/test_runtime_engine.py` -> 29 passed.
 - `python -m pytest ai_stack/tests/test_goc_structured_setting_knowledge.py backend/tests/content/test_content_compiler.py backend/tests/content/test_module_loader.py` -> 43 passed.
@@ -476,7 +476,7 @@ ADR-0039 discipline for this slice: tests load cadence profiles from normalized 
 
 Latest local verification recorded for the bounded surface-vs-intent subtext implementation:
 
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/semantic_planner/semantic_move_contract.py ai_stack/semantic_planner/goc_subtext_policy.py ai_stack/semantic_planner/semantic_move_interpretation_goc.py ai_stack/director/scene_director_goc.py ai_stack/langgraph/langgraph_runtime_executor.py world-engine/app/story_runtime/manager.py backend/app/services/inspector_turn_projection_assembly_helpers.py backend/app/services/operator_turn_history_service.py` -> passed.
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/story_runtime/semantic_planner/semantic_move_contract.py ai_stack/story_runtime/semantic_planner/goc_subtext_policy.py ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py ai_stack/story_runtime/director/scene_director_goc.py ai_stack/langgraph/langgraph_runtime_executor.py world-engine/app/story_runtime/manager.py backend/app/services/inspector_turn_projection_assembly_helpers.py backend/app/services/operator_turn_history_service.py` -> passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_scene_director_goc_extended.py ai_stack/tests/test_wave3_multi_actor_vitality.py ai_stack/tests/test_semantic_planner_golden_cases.py ai_stack/tests/test_semantic_planner_graph_authority.py -q --tb=short` -> 227 passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_semantic_move_interpretation_goc.py -q --tb=short` -> 27 passed.
 - `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows python -m pytest world-engine/tests/test_goc_knowledge_runtime_path_summary.py world-engine/tests/test_return_movement_diagnostics.py world-engine/tests/test_trace_middleware.py::test_langfuse_path_spans_include_intent_semantic_director_fields world-engine/tests/test_trace_middleware.py::test_langfuse_scores_include_intent_surface_contract_evidence world-engine/tests/test_trace_middleware.py::test_langfuse_scores_use_shared_extended_intent_contract -q --tb=short` -> 5 passed.
@@ -548,7 +548,7 @@ Latest local verification recorded for bounded Meta/OOC input handling:
 
 - Git SHA at verification time: `7aee14eb` on `master` (dirty worktree).
 - Environment scope: local py_compile/pytest/docs check; no live-provider or staging claim.
-- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py ai_stack/language_io/language_adapter.py story_runtime_core/language_adapter.py ai_stack/player_action_resolution.py ai_stack/runtime_turn_contracts.py ai_stack/langgraph/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph/langgraph_runtime_executor.py` -> passed.
+- `PYTHONPATH=. python -m py_compile story_runtime_core/player_input_intent_contract.py ai_stack/language_io/language_adapter.py story_runtime_core/language_adapter.py ai_stack/player_action_resolution.py ai_stack/story_runtime/turn/runtime_turn_contracts.py ai_stack/langgraph/langgraph_runtime_package_output_repro.py ai_stack/runtime_quality_semantics.py ai_stack/langgraph/langgraph_runtime_executor.py` -> passed.
 - `PYTHONPATH=. pytest story_runtime_core/tests/test_input_interpreter.py ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_langgraph_runtime.py -q -s` -> 38 passed.
 - `git diff --check` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only.
 

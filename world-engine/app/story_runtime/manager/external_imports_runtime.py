@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.narrator.goc_narrator_path import (
+from ai_stack.story_runtime.narrator.goc_narrator_path import (
     NARRATOR_PATH_ADAPTER,
     NARRATOR_PATH_INVOCATION_MODE,
     build_goc_narrator_path_opening,
@@ -18,7 +18,7 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_knowledge_path_summary,
     build_narrator_packet,
 )
-from ai_stack.semantic_planner.semantic_move_contract import SEMANTIC_MOVE_TYPES
+from ai_stack.story_runtime.semantic_planner.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.visible_narrative_contract import (
     _goc_visible_lane_text_fold,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.goc_turn_seams import _detect_npc_narrated_player_action_violation
+from ai_stack.story_runtime.turn.goc_turn_seams import _detect_npc_narrated_player_action_violation
 
 
 def test_detect_npc_echoes_physical_player_input():

@@ -785,7 +785,7 @@ Anything else — including missing, empty string, `None`, `"unknown"`, `"reject
 
 ### 13.9 Langfuse score metadata: canonical degradation vs operator causation chain
 
-**Problem:** Operators need **why** a turn degraded beyond a single canonical token (for example only `non_factual_staging` on `score.metadata.degradation_signals`). Diagnostics envelopes and operator history aggregate **canonical** degradation signals (`ai_stack/runtime_turn_contracts.py::DEGRADATION_SIGNAL_VALUES`). Langfuse score metadata must preserve that contract **and** expose a richer operator surface without changing live-gate numeric semantics.
+**Problem:** Operators need **why** a turn degraded beyond a single canonical token (for example only `non_factual_staging` on `score.metadata.degradation_signals`). Diagnostics envelopes and operator history aggregate **canonical** degradation signals (`ai_stack/story_runtime/turn/runtime_turn_contracts.py::DEGRADATION_SIGNAL_VALUES`). Langfuse score metadata must preserve that contract **and** expose a richer operator surface without changing live-gate numeric semantics.
 
 **Required behavior (World-Engine, `LangfuseAdapter.add_score` metadata from `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager.py`):**
 

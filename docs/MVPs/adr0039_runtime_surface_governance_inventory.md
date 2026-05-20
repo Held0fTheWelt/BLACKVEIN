@@ -22,7 +22,7 @@ surfaces:
 
   - surface_id: ai_stack_goc_validation_seam
     primary_files:
-      - ai_stack/goc_turn_seams.py
+      - ai_stack/story_runtime/turn/goc_turn_seams.py
     symbols:
       - run_validation_seam
     runtime_role: Canonical GoC validation outcome for proposals

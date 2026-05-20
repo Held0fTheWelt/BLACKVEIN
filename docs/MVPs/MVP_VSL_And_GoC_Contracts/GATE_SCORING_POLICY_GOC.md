@@ -69,7 +69,7 @@ Designed for a **small team** and **AI-accelerated** workflow (short cycles, exp
 
 ### 5.1 Shared data basis
 
-**Shared data basis:** Runtime output including **`graph_diagnostics`** as set by `_package_output`: `graph_name`, `graph_version`, `nodes_executed`, `node_outcomes`, `fallback_path_taken`, `execution_health`, `errors`, `capability_audit`, `repro_metadata`, `operational_cost_hints`, plus **`diagnostics_refs`** and canonical turn fields on `RuntimeTurnState`. For a **single compact operator record**, use **`build_operator_canonical_turn_record(state)`** from `ai_stack/goc_turn_seams.py` (post-`package_output` state) — same underlying data, no second truth surface.
+**Shared data basis:** Runtime output including **`graph_diagnostics`** as set by `_package_output`: `graph_name`, `graph_version`, `nodes_executed`, `node_outcomes`, `fallback_path_taken`, `execution_health`, `errors`, `capability_audit`, `repro_metadata`, `operational_cost_hints`, plus **`diagnostics_refs`** and canonical turn fields on `RuntimeTurnState`. For a **single compact operator record**, use **`build_operator_canonical_turn_record(state)`** from `ai_stack/story_runtime/turn/goc_turn_seams.py` (post-`package_output` state) — same underlying data, no second truth surface.
 
 **Read modes:** **Filtered views** on the same basis — no second conflicting truth. Expanded mode adds dramatic fields from the canonical turn (`scene_assessment`, `selected_scene_function`, `visible_output_bundle`, continuity).
 

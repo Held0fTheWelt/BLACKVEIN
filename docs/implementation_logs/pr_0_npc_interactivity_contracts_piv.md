@@ -24,7 +24,7 @@ PR-0 establishes the contract and verification baseline that PR-A, PR-B, and PR-
 | Hold-effect read at commit | [`world-engine/app/story_runtime/manager/dramatic_context_authority.py:229`](../../world-engine/app/story_runtime/manager/dramatic_context_authority.py) `_turn_holds_canonical_path_for_free_player_action()` | Returns `True` iff `player_action_frame.canonical_path_effect == "hold_current_step"`. | PR-B will ensure the effect string lands consistently in `graph_state` after every mundane inference; the read site stays. |
 | Hold-effect gate against pointer advance | [`world-engine/app/story_runtime/manager/ldss_narrative_queue.py:61`](../../world-engine/app/story_runtime/manager/ldss_narrative_queue.py) | Gates `session.canonical_step_id` advance when the hold returns `True`. | No change in PR-0; PR-B uses this gate as the acceptance probe. |
 | Canonical-path control block in graph state | [`ai_stack/langgraph/langgraph_runtime_executor.py:4703`](../../ai_stack/langgraph/langgraph_runtime_executor.py) | Constructs the `canonical_path_control` projection block in graph_state from policy. | PR-B will extend the block with `until_condition` and `source` fields from `canonical_path_hold_effect.v1`. |
-| NPC agency / responder selection | [`ai_stack/director/scene_director_goc.py:655`](../../ai_stack/director/scene_director_goc.py) `_build_responder_set()` definition; call site at [`:911`](../../ai_stack/director/scene_director_goc.py) | Selects NPC responders for the current beat. | PR-C wraps this with a `gathering_paused` gate: when paused, mandatory-beat consumption is suppressed (no responder selection drives a step advance). |
+| NPC agency / responder selection | [`ai_stack/story_runtime/director/scene_director_goc.py:655`](../../ai_stack/story_runtime/director/scene_director_goc.py) `_build_responder_set()` definition; call site at [`:911`](../../ai_stack/story_runtime/director/scene_director_goc.py) | Selects NPC responders for the current beat. | PR-C wraps this with a `gathering_paused` gate: when paused, mandatory-beat consumption is suppressed (no responder selection drives a step advance). |
 | NPC agency plan projection | [`ai_stack/langgraph/langgraph_runtime_executor.py:3996`](../../ai_stack/langgraph/langgraph_runtime_executor.py) `_build_npc_agency_plan_projection()` definition; call site at [`:4279`](../../ai_stack/langgraph/langgraph_runtime_executor.py) | Builds the NPC agency plan that the LDSS consumes. | PR-C consults `director_gathering_state.v1` here so paused gatherings short-circuit mandatory-beat consumption without removing NPC mundane-action freedom. |
 | Named-characters predicate (content) | [`content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml:36`](../../content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml) `named_characters: [...]` | Declares which actors must be co-present for the step to consume mandatory beats. | PR-C reads this as the source of `presence_required_for_step` in `director_gathering_state.v1`. |
 | Runtime aspect ledger keys | [`ai_stack/runtime_aspect_ledger.py:128-163`](../../ai_stack/runtime_aspect_ledger.py) `ASPECT_KEYS` | Enumerates the persisted runtime-aspect rows. No Director-Pause row exists today. | PR-C will either reuse an existing aspect (e.g. `npc_agency` companion field) or, if a new aspect row is required, that addition is scoped in PR-C with its own ADR-0061 evidence — **not** in PR-0. |
@@ -71,7 +71,7 @@ The plan file cites several `file:line` anchors. The following were verified aga
 | `manager.py:8703-8717` for `_turn_holds_canonical_path_for_free_player_action()` | `world-engine/app/story_runtime/manager/dramatic_context_authority.py:229` (def) and `world-engine/app/story_runtime/manager/ldss_narrative_queue.py:61` (call site) | Runtime manager is now package-based; the semantic read site and pointer-advance gate are unchanged. |
 | `langgraph_runtime_executor.py:4276-4335` for `_build_npc_agency_plan_projection()` | `ai_stack/langgraph/langgraph_runtime_executor.py:3996` (def) and `:4279` (call site at the cited block) | Definition lives ~280 lines above the cited range; call site is at the lower bound. |
 | `langgraph_runtime_executor.py:4681-4718` for `canonical_path_control` block | `ai_stack/langgraph/langgraph_runtime_executor.py:4703` (block opens at this line) | Block exists; opening line ~22 lines later than plan's lower bound. |
-| `scene_director_goc.py:911-943` for `_build_responder_set()` | `ai_stack/director/scene_director_goc.py:655` (def) and `:911` (call site) | Plan's range was the call site; the function definition is much earlier. |
+| `scene_director_goc.py:911-943` for `_build_responder_set()` | `ai_stack/story_runtime/director/scene_director_goc.py:655` (def) and `:911` (call site) | Plan's range was the call site; the function definition is much earlier. |
 | `005_statement_reading.yaml:36` `named_characters: [veronique, michel, annette, alain]` | Verified at line 36. | Matches. |
 
 These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are opened.
@@ -80,17 +80,17 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 
 - `ai_stack/player_action_resolution.py:502` — PR-A adds the contract fields enumerated in `free_player_action_resolution.v1`.
 - `ai_stack/langgraph/langgraph_runtime_executor.py:4703` — PR-B extends the `canonical_path_control` block with `canonical_path_hold_effect.v1` fields.
-- `ai_stack/narrator/narrator_consequence_contracts.py` — PR-B adds `narrator_consequence_realization.v1` realization-evidence fields.
-- `ai_stack/director/scene_director_goc.py:655` / `ai_stack/langgraph/langgraph_runtime_executor.py:3996` — PR-C introduces the `gathering_paused` gate around mandatory-beat consumption.
+- `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py` — PR-B adds `narrator_consequence_realization.v1` realization-evidence fields.
+- `ai_stack/story_runtime/director/scene_director_goc.py:655` / `ai_stack/langgraph/langgraph_runtime_executor.py:3996` — PR-C introduces the `gathering_paused` gate around mandatory-beat consumption.
 - `world-engine/app/story_runtime/manager/dramatic_context_authority.py:229` — PR-B uses this read site as its acceptance probe (no signature change).
 - `world-engine/app/web/templates/ui/narrative_systems.html` and the `thin-path-summary` operator endpoint — PR-A/B/C extend the existing surface with the snapshot fields PR-0 envelopes. No new page family.
 
 ## 8. What must not be touched in PR-0
 
 - `ai_stack/player_action_resolution.py` — no change. Resolver behavior is unchanged.
-- `ai_stack/narrator/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
-- `ai_stack/canonical_path/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
-- `ai_stack/director/scene_director_goc.py` — no change. Director / responder selection is unchanged.
+- `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py` — no change. Narrator consequence logic is unchanged.
+- `ai_stack/story_runtime/canonical_path/canonical_path_resolver.py` — no change. Canonical path loading is unchanged.
+- `ai_stack/story_runtime/director/scene_director_goc.py` — no change. Director / responder selection is unchanged.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — no change. Graph nodes, routing, and `canonical_path_control` block are unchanged.
 - `ai_stack/live_dramatic_scene_simulator.py` — no change. LDSS / mandatory-beat consumption is unchanged.
 - `ai_stack/module_runtime_policy.py` — no change. Policy projection is unchanged.
@@ -98,7 +98,7 @@ These corrections must propagate into PR-A/B/C PIV artifacts when those PRs are 
 - `world-engine/app/web/templates/ui/**` — no change. No diagnostic UI page is introduced.
 - `world-engine/app/api/**` — no change. No operator endpoint is added.
 - `ai_stack/runtime_aspect_ledger.py` — no change. `ASPECT_KEYS` is unchanged; no Director-Pause aspect row is added.
-- `ai_stack/narrator/goc_narrator_path.py` — no change. Narrator path (Turn 0) is unchanged.
+- `ai_stack/story_runtime/narrator/goc_narrator_path.py` — no change. Narrator path (Turn 0) is unchanged.
 - `ai_stack/goc_souffleuse.py` — no change. Souffleuse production is unchanged.
 - `frontend/static/play_typewriter_engine.js` — no change. Block streaming and cut-in semantics are unchanged.
 - Any schema/database migration — none introduced.

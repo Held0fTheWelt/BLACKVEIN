@@ -1,6 +1,6 @@
 import json
 
-from ai_stack.narrator.goc_narrator_path import build_goc_narrator_path_opening
+from ai_stack.story_runtime.narrator.goc_narrator_path import build_goc_narrator_path_opening
 from ai_stack.goc_souffleuse import (
     SOUFFLEUSE_INTERNAL_LANGUAGE,
     SOUFFLEUSE_OPENING_ROLE_ORIENTATION,

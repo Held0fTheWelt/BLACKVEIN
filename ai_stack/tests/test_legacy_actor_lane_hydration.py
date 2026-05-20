@@ -11,7 +11,7 @@ from ai_stack.legacy_actor_lane_hydration import (
     should_hydrate_legacy_actor_lanes,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.npc_agency.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.scene_energy_engine import derive_scene_energy, validate_scene_energy_realization
 
 

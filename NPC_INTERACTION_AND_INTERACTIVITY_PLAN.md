@@ -43,13 +43,13 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 ### 1.1 Canonical Path
 
 - Source of truth: `content/modules/god_of_carnage/canonical_path/001…038*.yaml`
-- Resolver: `ai_stack/canonical_path/canonical_path_resolver.py:104-205`
+- Resolver: `ai_stack/story_runtime/canonical_path/canonical_path_resolver.py:104-205`
 - 38 Steps, `opening_001_parc_montsouris_edge` … `opening_038_handoff_or_terminal` (`ai_stack/tests/test_canonical_path_resolver.py:54-65`)
 - Steps 001–003: `narrator_only_prologue`; 004: `narrator_perception_transition`; 005: `scripted_mandatory_dialog` (**Veronique liest** — gewollter Testpunkt); 006: `scripted_with_player_window`.
 
 ### 1.2 Narrator-Pfad / Opening (Turn 0)
 
-- Aufbau: `ai_stack/narrator/goc_narrator_path.py:417-499`
+- Aufbau: `ai_stack/story_runtime/narrator/goc_narrator_path.py:417-499`
 - Manager-Projektion: `world-engine/app/story_runtime/manager.py:10370+` setzt `director_path_mode="narrator_path"` und `narrator_path.canonical_step_ids` (Mehrzahl). Turn 0 läuft an LDSS vorbei (`manager.py:7152, 7159, 7393, 7400` — Selektor an `turn_number==0`).
 - **Bewusst so gewollt.** Diese Stelle nicht „reparieren".
 
@@ -61,7 +61,7 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 
 ### 1.4 Director / Scene-Planner
 
-- NPC-Auswahl: `ai_stack/director/scene_director_goc.py:911-943` `_build_responder_set()`
+- NPC-Auswahl: `ai_stack/story_runtime/director/scene_director_goc.py:911-943` `_build_responder_set()`
 - NPC-Agency-Projektion: `ai_stack/langgraph/langgraph_runtime_executor.py:4276-4335` `_build_npc_agency_plan_projection()`
 - Vertrag „Director ist advisory, kein Wahrheits-Autor": `docs/ADR/adr-0053-bounded-semantic-scene-planner.md`
 - Charaktermaterial: `characters/definitions/*.yaml`, `characters/details/{actor_pressure_profiles,interaction_patterns,relationships}.yaml`, `characters/voices/character_voice_*.yaml`
@@ -75,7 +75,7 @@ Faktentreue Bestandsaufnahme; nur die heute relevanten Anker.
 - Modul-Schalter: `content/modules/god_of_carnage/module.yaml:183-188` `runtime_intelligence.player_freedom`
 - Runtime-Aufnahme: `ai_stack/module_runtime_policy.py:327-417`
 - Resolution: `ai_stack/player_action_resolution.py` (modifiziert) — `ai_semantic_resolution.plausible_inference` mit `canon_safety`, `canonical_risk`
-- Narrator-Konsequenz (mundan-inferiert): `ai_stack/narrator/narrator_consequence_contracts.py` (modifiziert) — `source: ai_semantic_plausible_inference`, `requires_model_realization: True`
+- Narrator-Konsequenz (mundan-inferiert): `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py` (modifiziert) — `source: ai_semantic_plausible_inference`, `requires_model_realization: True`
 - Canonical-Anker: `ai_stack/langgraph/langgraph_runtime_executor.py:4681-4718` Block `canonical_path_control` (Vertrag: committed player movement/perception/wait/object-interaction darf den Pfad **nicht** vorrücken)
 - Hold-Mechanik: `manager.py:8703-8717` `_turn_holds_canonical_path_for_free_player_action()`
 
@@ -193,7 +193,7 @@ Spielsession lokal hochfahren (`docker-up.py`), Session-Sprache DE, Spielfigur A
 **Beobachtungspunkte im Code:**
 
 - Resolution: `ai_stack/player_action_resolution.py` — `resolve_player_action()` Rückgabe inspizieren (Langfuse-Trace, oder lokal stdout instrumentieren)
-- Narrator-Konsequenz: `ai_stack/narrator/narrator_consequence_contracts.py` — `source`-Feld und `requires_model_realization` im commit-Frame
+- Narrator-Konsequenz: `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py` — `source`-Feld und `requires_model_realization` im commit-Frame
 - Hold-Wirkung: `manager.py:8703-8717` — `_turn_holds_canonical_path_for_free_player_action(graph_state)` muss `True` zurückgeben → Pointer rückt nicht.
 
 **Akzeptanz Phase 1:** Alle sechs Smoke-Inputs erzeugen sichtbares, kanon-sicheres Verhalten *und* der Canonical-Pointer bleibt auf 005.
@@ -204,7 +204,7 @@ Frage: Wenn `ai_semantic_resolution.plausible_inference` einen mundanen `commit_
 
 **Was zu verifizieren ist (semantische Suche, dann Live-Smoke):**
 
-1. Wer im Graph konsumiert `narrator_consequence_packet` mit `source: ai_semantic_plausible_inference`? (Anker: `ai_stack/narrator/narrator_consequence_contracts.py` Konsumenten suchen.)
+1. Wer im Graph konsumiert `narrator_consequence_packet` mit `source: ai_semantic_plausible_inference`? (Anker: `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py` Konsumenten suchen.)
 2. Wird der Block dann auch in den committed `blocks`-Vertrag geschrieben — oder fällt er irgendwo wegen fehlendem `actor_response_present` aus dem Vertrag?
 3. Existieren Validator-/Judge-Gates, die hier *fälschlich* greifen, weil sie Actor-Sprache erwarten?
 
@@ -253,7 +253,7 @@ Der Discriminator wohnt **im Director**, gefüttert aus dem *physischen* Resolve
 **Sub-Phasen für (d):**
 
 - **1.d.0 — Resolver-Vertrag schließen (Vorbedingung).** Der semantische Resolution-Pfad muss bei jeder als Bewegung klassifizierten Aktion **zuverlässig** `resolved_target_type: "location"` + `resolved_target_id: <room_id>` produzieren. Die Klassifikation passiert *semantisch* durch den LLM-Prompt, **nicht** über eine Verb-Whitelist im Code. Wenn der Resolver unsicher ist, gibt er `affordance_status: unknown_target` zurück (Klärungsweg), niemals einen stillen `null`-Fallback. Tests müssen paraphrasierte Bewegungs-Eingaben aus verschiedenen Sprachregistern abdecken (umgangssprachlich, formell, elliptisch) und auf Pfad-Eigenschaften prüfen — keine String-Fixtures.
-- **1.d.1 — Director-State-Achse einführen.** Reines Datenfeld pro Session: `director_state.gathering_paused = { step_id, missing_actor_ids, since_turn } | None`. Anker: `ai_stack/director/scene_director_goc.py`. Kein Enum-Set, kein Modus-Diagramm.
+- **1.d.1 — Director-State-Achse einführen.** Reines Datenfeld pro Session: `director_state.gathering_paused = { step_id, missing_actor_ids, since_turn } | None`. Anker: `ai_stack/story_runtime/director/scene_director_goc.py`. Kein Enum-Set, kein Modus-Diagramm.
 - **1.d.2 — Reine Vergleichsfunktion im Director.** `compute_gathering_state(actor_locations, current_step_named_characters, current_step_scene_id) -> { paused: bool, missing: [actor_ids] }`. Datenquelle für `actor_locations`: `ai_stack/environment_state_contracts.py` (existiert) plus `runtime_world`. Keine Listen, keine Verben — reiner Mengen-Vergleich auf `actor_locations` gegen `named_characters` + `scene_id`.
 - **1.d.3 — Beat-Konsum-Gate im LDSS/NPC-Agency-Builder.** Wenn `gathering_paused`, werden **keine** Mandatory-Beats konsumiert. Anker: `ai_stack/live_dramatic_scene_simulator.py`. Der Builder fragt den Director-State und überspringt den Konsum — eine Bedingung, kein Schalter-Schwall.
 - **1.d.4 — Narrator-Reaktions-Hook für den Pause-Übergang.** Beim Wechsel `gathering_paused: false → true` darf der Narrator *einen* Reaktionsblock emittieren („die Versammlung hält inne"), Inhalt content-geleitet aus `characters/details/actor_pressure_profiles.yaml` und `interaction_patterns.yaml`. **Kein** hardcoded Textbaustein. In Phase 1 reicht ein zusammenfassender Block; pro-NPC-Reaktion wartet auf Phase 2 (Pulse).
@@ -566,7 +566,7 @@ Die Souffleuse spricht **immer im Wortschatz und Register des aktuell gespielten
 8. `content/modules/god_of_carnage/module.yaml`
 9. `content/modules/god_of_carnage/knowledge/player_freedom_policy.yaml`
 10. `content/modules/god_of_carnage/canonical_path/004_*.yaml`, `005_*.yaml`, `006_*.yaml`
-11. `ai_stack/canonical_path/canonical_path_resolver.py`, `ai_stack/narrator/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/narrator/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
+11. `ai_stack/story_runtime/canonical_path/canonical_path_resolver.py`, `ai_stack/story_runtime/narrator/goc_narrator_path.py`, `ai_stack/goc_souffleuse.py`, `ai_stack/story_runtime/director/scene_director_goc.py`, `ai_stack/player_action_resolution.py`, `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py`, `ai_stack/module_runtime_policy.py`
 12. `world-engine/app/story_runtime/manager.py` (heiße Zonen: 7123–7172, 8703–8731, 9777–9817, 10370–10440)
 13. `frontend/static/play_typewriter_engine.js`
 14. **`docs/MVPs/capability_matrix_status_and_adr_relations.md`** (Capability-Matrix Table B — Quelle für die vom Director arrangierbaren Capabilities; insbesondere Π1, Π7, Π8, Π11, Π14, Π16, Π18, Π19, Π22, Π23, Π27, Π31)

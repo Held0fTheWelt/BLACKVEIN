@@ -1,6 +1,6 @@
 """Hard validation: NPC spoken/action lane row cap (configurable via story_runtime_experience)."""
 
-from ai_stack.goc_turn_seams import (
+from ai_stack.story_runtime.turn.goc_turn_seams import (
     GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT,
     run_validation_seam,
 )

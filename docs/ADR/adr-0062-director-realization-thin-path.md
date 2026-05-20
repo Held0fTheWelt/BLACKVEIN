@@ -28,7 +28,7 @@ The product requirement is fixed: **Resolver classifies and translates; Director
 1. **Replace the player-turn router** `_route_after_resolve_player_action` and node `authoritative_action_resolution` with a mandatory thin path:
    - `resolve_player_action` → `director_compose_realization` → `realize_via_capabilities` → `route_model` → `invoke_model` → `proposal_normalize` → `validate_seam` → `commit_seam` → `render_visible` → `package_output`.
 
-2. **Introduce `realization_plan.v1`** composed by `ai_stack/director/director_realization_composer.py` (`compose_realization_plan`). PR-A (movement) uses deterministic composition; PR-A.2/3 add semantic LLM composition and richer capabilities.
+2. **Introduce `realization_plan.v1`** composed by `ai_stack/story_runtime/director/director_realization_composer.py` (`compose_realization_plan`). PR-A (movement) uses deterministic composition; PR-A.2/3 add semantic LLM composition and richer capabilities.
 
 3. **Capability vocabulary (semantic names, not Π-IDs):**
    - `narrator.location_transition.describe` — movement to a known location.

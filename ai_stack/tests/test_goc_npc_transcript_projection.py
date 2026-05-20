@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.goc_npc_transcript_projection import (
+from ai_stack.story_runtime.npc_agency.goc_npc_transcript_projection import (
     compile_goc_line_speaker_prefix_pattern,
     goc_spoken_line_row_suspects_multiple_speakers,
     goc_spoken_lines_multi_speaker_row_markers,

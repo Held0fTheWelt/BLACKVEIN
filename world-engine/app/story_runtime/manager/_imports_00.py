@@ -191,7 +191,7 @@ from ai_stack.visible_origin_contracts import (
     preserve_folded_origin_metadata,
     visible_origin_from_block,
 )
-from ai_stack.runtime_turn_contracts import (
+from ai_stack.story_runtime.turn.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
     DEGRADATION_SIGNAL_FALLBACK_USED,
@@ -228,7 +228,7 @@ from ai_stack.runtime_cost_attribution import (
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 from ai_stack.goc_yaml_authority import goc_actor_identity
-from ai_stack.npc_agency.goc_npc_transcript_projection import (
+from ai_stack.story_runtime.npc_agency.goc_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
 )

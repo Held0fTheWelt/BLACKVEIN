@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
-from ai_stack.npc_agency.npc_agency_realization import build_npc_initiative_realization
-from ai_stack.runtime_turn_contracts import (
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import build_npc_initiative_realization
+from ai_stack.story_runtime.turn.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
     DEGRADATION_SIGNAL_FALLBACK_USED,
     DEGRADATION_SIGNAL_RETRY_EXHAUSTED,

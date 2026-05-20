@@ -26,7 +26,7 @@ from ai_stack.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
-from ai_stack.canonical_path.canonical_path_hold_effect_contracts import (
+from ai_stack.story_runtime.canonical_path.canonical_path_hold_effect_contracts import (
     build_canonical_path_hold_effect,
 )
 from ai_stack.free_player_action_resolution_contracts import (

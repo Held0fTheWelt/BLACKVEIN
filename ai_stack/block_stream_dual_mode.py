@@ -38,7 +38,7 @@ import os
 import uuid
 from typing import Any
 
-from ai_stack.director.director_pulse_contracts import (
+from ai_stack.story_runtime.director.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_ACTION,
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,
@@ -54,7 +54,7 @@ from ai_stack.director.director_pulse_contracts import (
     build_director_tick_decision,
     build_npc_motivation_score,
 )
-from ai_stack.director.director_pulse_shadow import evaluate_director_tick
+from ai_stack.story_runtime.director.director_pulse_shadow import evaluate_director_tick
 
 # ── Feature flags ─────────────────────────────────────────────────────────────
 # Dual mode: block_stream_events produced in parallel with bundle (shadow only).

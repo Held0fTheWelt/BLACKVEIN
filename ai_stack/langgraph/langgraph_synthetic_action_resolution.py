@@ -11,8 +11,8 @@ from typing import Any
 
 from ai_stack.language_io.language_adapter import resolve_string
 
-from ai_stack.runtime_turn_contracts import ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION
-from ai_stack.narrator.narrator_consequence_contracts import (
+from ai_stack.story_runtime.turn.runtime_turn_contracts import ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION
+from ai_stack.story_runtime.narrator.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
     build_updated_player_local_context,

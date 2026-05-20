@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.npc_agency_contracts import (
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
     NPC_AGENCY_PLAN_PARTIAL_STATUS,
@@ -11,17 +11,17 @@ from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
     npc_actor_ids_from_context,
 )
-from ai_stack.npc_agency.npc_agency_planner import (
+from ai_stack.story_runtime.npc_agency.npc_agency_planner import (
     NPC_AGENCY_PLANNER_CONTRACT,
     NPC_AGENCY_SIMULATION_PLANNER_CONTRACT,
     build_npc_agency_plan,
     build_npc_agency_simulation,
 )
-from ai_stack.npc_agency.npc_agency_realization import (
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import (
     build_npc_agency_closure,
     validate_npc_initiative_realization,
 )
-from ai_stack.semantic_planner.social_state_goc import build_social_state_record
+from ai_stack.story_runtime.semantic_planner.social_state_goc import build_social_state_record
 from ai_stack.actor_situation import (
     W5ActorSituation,
     W5ActorType,

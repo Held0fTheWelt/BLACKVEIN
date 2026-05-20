@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ai_stack.canonical_path.canonical_path_resolver import (
+from ai_stack.story_runtime.canonical_path.canonical_path_resolver import (
     CanonicalPath,
     CanonicalStep,
     ResolvedBeat,

@@ -810,10 +810,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **`ai_stack/director/scene_director_goc.py`**: Earlier Phase 5 heuristic trace and nudge work; this behavior was later superseded by semantic move payload routing.
+- **`ai_stack/story_runtime/director/scene_director_goc.py`**: Earlier Phase 5 heuristic trace and nudge work; this behavior was later superseded by semantic move payload routing.
 - **`ai_stack/langgraph/langgraph_runtime.py`**: `graph_diagnostics.dramatic_review.director_heuristic_trace` and review explanation hook.
 - **`ai_stack/goc_dramatic_alignment.py`**: Meta-commentary rejection (`dramatic_alignment_meta_commentary`).
-- **`ai_stack/goc_turn_seams.py`**: Responder-first in-scene beat line on committed successful renders.
+- **`ai_stack/story_runtime/turn/goc_turn_seams.py`**: Responder-first in-scene beat line on committed successful renders.
 
 ### Tests
 
@@ -854,8 +854,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **`ai_stack/director/scene_director_goc.py`**: Earlier deterministic move-recognition expansion for the GoC MVP slice; later superseded by semantic move payload routing while retaining frozen scene-function vocabulary.
-- **`ai_stack/goc_turn_seams.py`**: Earlier bounded continuity-on-commit expansion; later semantic contracts replaced raw-text keyword carry.
+- **`ai_stack/story_runtime/director/scene_director_goc.py`**: Earlier deterministic move-recognition expansion for the GoC MVP slice; later superseded by semantic move payload routing while retaining frozen scene-function vocabulary.
+- **`ai_stack/story_runtime/turn/goc_turn_seams.py`**: Earlier bounded continuity-on-commit expansion; later semantic contracts replaced raw-text keyword carry.
 - **`ai_stack/goc_dramatic_alignment.py`**: Strengthened anti-seductive rejection with additional commentary-like boilerplate phrase guards.
 - **`ai_stack/langgraph/langgraph_runtime.py`**: Enriched `graph_diagnostics.dramatic_review` with explicit operator fields (`run_classification`, pressure/alliance shift indicators, continuity-class snapshots, weak-run explanation) for fast pass/fail/degraded interpretation.
 
@@ -881,8 +881,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **`ai_stack/goc_yaml_authority.py`**: Added **`scene_guidance_snippets()`** and **`goc_character_profile_snippet()`** for read-only YAML-backed phase/character snippets used by runtime diagnostics and render supplements.
-- **`ai_stack/director/scene_director_goc.py`**: Extended YAML-aware responder tie-breaks (`michel` / `annette` / `alain`) under continuity pressure and scene-function context; added guidance snippets to scene assessment for operator legibility.
-- **`ai_stack/goc_turn_seams.py`**: Improved commit-aligned visible output with optional responder register and phase-pressure staging lines derived from canonical YAML snippets without introducing new world facts.
+- **`ai_stack/story_runtime/director/scene_director_goc.py`**: Extended YAML-aware responder tie-breaks (`michel` / `annette` / `alain`) under continuity pressure and scene-function context; added guidance snippets to scene assessment for operator legibility.
+- **`ai_stack/story_runtime/turn/goc_turn_seams.py`**: Improved commit-aligned visible output with optional responder register and phase-pressure staging lines derived from canonical YAML snippets without introducing new world facts.
 - **`ai_stack/langgraph/langgraph_runtime.py`**: Added optional **`prior_dramatic_signature`** input, richer render context wiring, deterministic **`dramatic_signature`** and pattern-fatigue flags, and expanded **`graph_diagnostics.dramatic_review.review_explanations`**.
 
 ### Tests
@@ -908,8 +908,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **`ai_stack/goc_yaml_authority.py`**: **`load_goc_yaml_slice_bundle()`** (cached), merged multi-document **`scene_guidance.yaml`**, **`thin_edge_staging_line_from_guidance`**, **`scene_assessment_phase_hints`**, **`clear_goc_yaml_slice_cache()`**.
-- **`ai_stack/director/scene_director_goc.py`**: Prior continuity in **`scene_assessment`**, YAML-default responder asymmetry, **`thin_edge` / `containment` / `multi_pressure`** pacing reachability, **`withhold_or_evade`**, **`multi_pressure_resolution`** record, **`prior_continuity_classes`** helper.
-- **`ai_stack/goc_turn_seams.py`**: **`run_validation_seam(..., director_context=...)`**, **`build_goc_continuity_impacts_on_commit`**, **`run_visible_render(..., render_context=...)`** with YAML staging + **`bounded_ambiguity`** when supplement applies.
+- **`ai_stack/story_runtime/director/scene_director_goc.py`**: Prior continuity in **`scene_assessment`**, YAML-default responder asymmetry, **`thin_edge` / `containment` / `multi_pressure`** pacing reachability, **`withhold_or_evade`**, **`multi_pressure_resolution`** record, **`prior_continuity_classes`** helper.
+- **`ai_stack/story_runtime/turn/goc_turn_seams.py`**: **`run_validation_seam(..., director_context=...)`**, **`build_goc_continuity_impacts_on_commit`**, **`run_visible_render(..., render_context=...)`** with YAML staging + **`bounded_ambiguity`** when supplement applies.
 - **`ai_stack/langgraph/langgraph_runtime.py`**: State for **`prior_continuity_impacts`**, **`goc_yaml_slice`**; **`run()`** accepts prior continuity; wires director context into validation, commit continuity builder, visible **`proposed_narrative_excerpt`**; **`graph_diagnostics.dramatic_review`** and extended **`gate_review_hints`**.
 - **`ai_stack/tests/test_goc_phase1_runtime_gate.py`**: Narrative fixture aligned with dramatic validation; clears YAML slice cache in fixture.
 - **`world-engine/app/story_runtime/manager.py`**: **`StorySession.prior_continuity_impacts`**; passes carry-forward into **`RuntimeTurnGraphExecutor.run`**; appends committed continuity (capped).
@@ -940,8 +940,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **`ai_stack/goc_frozen_vocab.py`**: Frozen controlled vocabulary (scene function, pacing, silence/brevity, continuity, visibility, failure, transition pattern, gate families) aligned with **`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`** §5 and related freeze artifacts.
 - **`ai_stack/goc_yaml_authority.py`**: Loads canonical **`content/modules/god_of_carnage/module.yaml`**; detects builtin template title mismatch vs YAML → **`scope_breach`** marker.
-- **`ai_stack/director/scene_director_goc.py`**: Deterministic **`scene_assessment`**, **`selected_responder_set`**, **`selected_scene_function`**, **`pacing_mode`**, **`silence_brevity_decision`** (including multi-pressure §3.5 resolution).
-- **`ai_stack/goc_turn_seams.py`**: Proposal normalization hooks, **`validation_outcome`**, **`committed_result`**, **`visible_output_bundle`**, **`build_diagnostics_refs`**, **`repro_metadata_complete`** (gate §5.2 / §5.4 support).
+- **`ai_stack/story_runtime/director/scene_director_goc.py`**: Deterministic **`scene_assessment`**, **`selected_responder_set`**, **`selected_scene_function`**, **`pacing_mode`**, **`silence_brevity_decision`** (including multi-pressure §3.5 resolution).
+- **`ai_stack/story_runtime/turn/goc_turn_seams.py`**: Proposal normalization hooks, **`validation_outcome`**, **`committed_result`**, **`visible_output_bundle`**, **`build_diagnostics_refs`**, **`repro_metadata_complete`** (gate §5.2 / §5.4 support).
 - **`ai_stack/tests/test_goc_frozen_vocab.py`**, **`ai_stack/tests/test_goc_phase1_runtime_gate.py`**: Vocabulary parity, non-preview GoC path, builtin/YAML conflict, §3.6 strip, repro completeness.
 
 ### Changed

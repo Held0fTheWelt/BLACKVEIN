@@ -350,7 +350,7 @@ def test_default_goc_boundary_includes_all_protected():
 
 def test_commit_seam_rejects_protected_state_mutation():
     """Protected path mutation is rejected at commit seam before any write."""
-    from ai_stack.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
 
     approved_validation = {"status": "approved"}
     protected_delta = [{"path": "selected_player_role", "operation": "replace", "value": "alain"}]
@@ -367,7 +367,7 @@ def test_commit_seam_rejects_protected_state_mutation():
 
 
 def test_commit_seam_rejects_human_actor_id_mutation():
-    from ai_stack.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
 
     result = run_commit_seam(
         module_id="god_of_carnage",
@@ -380,7 +380,7 @@ def test_commit_seam_rejects_human_actor_id_mutation():
 
 
 def test_commit_seam_rejects_actor_lanes_mutation():
-    from ai_stack.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
 
     result = run_commit_seam(
         module_id="god_of_carnage",
@@ -392,7 +392,7 @@ def test_commit_seam_rejects_actor_lanes_mutation():
 
 
 def test_commit_seam_allows_safe_runtime_delta():
-    from ai_stack.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
 
     result = run_commit_seam(
         module_id="god_of_carnage",
@@ -405,7 +405,7 @@ def test_commit_seam_allows_safe_runtime_delta():
 
 def test_commit_seam_no_deltas_works_as_before():
     """Existing commit seam behavior unchanged when no deltas supplied."""
-    from ai_stack.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
 
     result = run_commit_seam(
         module_id="god_of_carnage",

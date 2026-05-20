@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.dramatic_effect.dramatic_effect_contract import SemanticPlannerSupportLevel
-from ai_stack.semantic_planner.semantic_planner_effect_surface import (
+from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import SemanticPlannerSupportLevel
+from ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface import (
     resolve_dramatic_effect_evaluator,
     support_level_for_module,
 )

@@ -43,7 +43,7 @@ Transitions `paused: false → true` and `paused: true → false` each emit exac
 
 ### 2. Composition function — `compute_gathering_state`
 
-Pure function in the Director (the canonical surface will live in `ai_stack/director/scene_director_goc.py`; the function is introduced by PR-C, not PR-0).
+Pure function in the Director (the canonical surface will live in `ai_stack/story_runtime/director/scene_director_goc.py`; the function is introduced by PR-C, not PR-0).
 
 Signature (informal):
 
@@ -79,7 +79,7 @@ The contract field `presence_breaks_gathering` in `free_player_action_resolution
 
 When `paused == true`:
 
-- The NPC-agency / mandatory-beat-consumption path (canonical surface around `ai_stack/director/scene_director_goc.py:655` `_build_responder_set()` and `ai_stack/langgraph/langgraph_runtime_executor.py:3996` `_build_npc_agency_plan_projection()`) is consulted with a `gathering_paused` gate. The gate **does not** suppress NPC mundane action; it only suppresses mandatory-beat consumption tied to the missing co-presence.
+- The NPC-agency / mandatory-beat-consumption path (canonical surface around `ai_stack/story_runtime/director/scene_director_goc.py:655` `_build_responder_set()` and `ai_stack/langgraph/langgraph_runtime_executor.py:3996` `_build_npc_agency_plan_projection()`) is consulted with a `gathering_paused` gate. The gate **does not** suppress NPC mundane action; it only suppresses mandatory-beat consumption tied to the missing co-presence.
 - The canonical-step pointer does **not** advance while paused. This is observable at `world-engine/app/story_runtime/manager.py:8683-8687` (`_turn_holds_canonical_path_for_free_player_action`) and at `:8746` (the gate against `session.canonical_step_id` advance).
 
 ### 6. Player remains free

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.director.director_pulse_contracts import (
+from ai_stack.story_runtime.director.director_pulse_contracts import (
     CUT_KIND_EM_DASH,
     CUT_KIND_NO_ACTIVE_BLOCK,
     CUT_KIND_SKIP_TO_END,

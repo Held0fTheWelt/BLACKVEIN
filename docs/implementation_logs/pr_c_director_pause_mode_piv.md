@@ -15,7 +15,7 @@
 |------|------|---------------------|
 | `ai_stack/free_player_action_resolution_contracts.py` | 44 | SCHEMA_VERSION constant; contract builder |
 | `ai_stack/player_action_resolution.py` | 32 | Imports `build_free_player_action_resolution` |
-| `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py` | 170 | Reads the `.v1` dict as input to build hold-effect |
+| `ai_stack/story_runtime/canonical_path/canonical_path_hold_effect_contracts.py` | 170 | Reads the `.v1` dict as input to build hold-effect |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 6308–6315 | Lifts `canonical_path_hold_effect` into graph state |
 | `ai_stack/runtime_diagnostic_snapshot_contracts.py` | 63–67 | `ResolverOutputPlaceholder` — reserves payload slot |
 | `ai_stack/tests/test_free_player_action_resolution_contract.py` | passim | Contract tests |
@@ -24,7 +24,7 @@
 
 | File | Line | Consumer description |
 |------|------|---------------------|
-| `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py` | 48 | SCHEMA_VERSION constant; contract builder |
+| `ai_stack/story_runtime/canonical_path/canonical_path_hold_effect_contracts.py` | 48 | SCHEMA_VERSION constant; contract builder |
 | `ai_stack/player_action_resolution.py` | 29–31 | Imports builder |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 6308–6315 | Lifts into graph state as top-level key |
 | `world-engine/app/story_runtime/manager.py` | 8706–8710 | `_turn_holds_canonical_path_for_free_player_action` reads frame literal |
@@ -37,8 +37,8 @@
 |------|------|-------------|
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 7324–7337 | `phase_beat_candidates` + `select_beat_candidate` |
 | `ai_stack/langgraph/langgraph_runtime_executor.py` | 3999–4029 | `_build_npc_agency_plan_projection` — responder ids |
-| `ai_stack/director/scene_director_goc.py` | 655–741 | `_build_responder_set` — primary + secondary + interrupter |
-| `ai_stack/director/scene_director_goc.py` | 744–943 | `build_responder_and_function` — full director resolution |
+| `ai_stack/story_runtime/director/scene_director_goc.py` | 655–741 | `_build_responder_set` — primary + secondary + interrupter |
+| `ai_stack/story_runtime/director/scene_director_goc.py` | 744–943 | `build_responder_and_function` — full director resolution |
 | `ai_stack/beat_lifecycle_contracts.py` | 1–165 | Beat lifecycle schema, `phase_beat_candidates`, `select_beat_candidate` |
 
 ### 1.4 Current diagnostic exposure path
@@ -95,13 +95,13 @@ No code path today suppresses mandatory-beat consumption when `named_characters`
 | `ai_stack/free_player_action_resolution_contracts.py:44` — SCHEMA_VERSION | ✓ |
 | `ai_stack/free_player_action_resolution_contracts.py:445–449` — presence_evidence triple | ✓ |
 | `ai_stack/free_player_action_resolution_contracts.py:460` — `presence_breaks_gathering: False` | ✓ |
-| `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py:48` — SCHEMA_VERSION | ✓ |
-| `ai_stack/canonical_path/canonical_path_hold_effect_contracts.py:78–90` — UNTIL_CONDITIONS including `presence_restored` | ✓ |
-| `ai_stack/narrator/narrator_consequence_realization_contracts.py:181–269` — builder | ✓ |
+| `ai_stack/story_runtime/canonical_path/canonical_path_hold_effect_contracts.py:48` — SCHEMA_VERSION | ✓ |
+| `ai_stack/story_runtime/canonical_path/canonical_path_hold_effect_contracts.py:78–90` — UNTIL_CONDITIONS including `presence_restored` | ✓ |
+| `ai_stack/story_runtime/narrator/narrator_consequence_realization_contracts.py:181–269` — builder | ✓ |
 | `ai_stack/runtime_diagnostic_snapshot_contracts.py:70–77` — DirectorGatheringStatePlaceholder | ✓ |
 | `ai_stack/runtime_diagnostic_snapshot_contracts.py:136` — envelope slot | ✓ |
-| `ai_stack/director/scene_director_goc.py:655–741` — `_build_responder_set` | ✓ |
-| `ai_stack/director/scene_director_goc.py:744–943` — `build_responder_and_function` | ✓ |
+| `ai_stack/story_runtime/director/scene_director_goc.py:655–741` — `_build_responder_set` | ✓ |
+| `ai_stack/story_runtime/director/scene_director_goc.py:744–943` — `build_responder_and_function` | ✓ |
 | `ai_stack/langgraph/langgraph_runtime_executor.py:7324–7337` — beat selection | ✓ |
 | `ai_stack/langgraph/langgraph_runtime_executor.py:3999–4029` — `_build_npc_agency_plan_projection` | ✓ |
 | `ai_stack/langgraph/langgraph_runtime_executor.py:6308–6315` — hold-effect lift to graph state | ✓ |

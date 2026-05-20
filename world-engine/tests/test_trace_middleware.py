@@ -24,7 +24,7 @@ from app.story_runtime.manager import (
     _opening_block_contract_satisfied,
 )
 from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
-from ai_stack.npc_agency.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
@@ -3908,7 +3908,7 @@ def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session()
 
 
 def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch):
-    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
@@ -3967,7 +3967,7 @@ def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch
 
 
 def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
-    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True
@@ -4021,7 +4021,7 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
 
 
 def test_langfuse_scores_use_shared_extended_intent_contract(monkeypatch):
-    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     adapter = MagicMock()
     adapter.is_enabled.return_value = True

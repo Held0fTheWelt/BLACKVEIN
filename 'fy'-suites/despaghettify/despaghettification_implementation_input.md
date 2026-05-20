@@ -71,7 +71,7 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 | **Information input list** | Per **DS-***: maintain columns; **pattern** starts with **C1..C7** (`**C3 ·**` …) per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; mark completed waves briefly. |
 | **§ Latest structure scan** | After measurable change: **main table** — **Trigger v2** + **Anteil %** for **M7** / **C1..C7** from **`metrics_bundle.score`** via `check --with-metrics` ([spaghetti-check-task.md](../spaghetti-check-task.md) §1); telemetry **N / L₅₀ / L₁₀₀ / D₆** from `spaghetti_ast_scan`; § *Score M7* **same** dual columns + **AST telemetry** row **under C7**; optional **extra checks**; **open hotspots** (**prune** solved items). For runtime edges `despaghettify/tools/ds005_runtime_import_check.py`. Rankings: script output only. |
 | **§ Recommended implementation order** | Update when priority, dependency, or phase changes; **mandatory** Mermaid `flowchart` below the phase table on every [spaghetti-check-task.md](../spaghetti-check-task.md) pass that fills phases (see that doc §3). |
-| **§ Progress / work log** | Optional **one** new row: DS-ID(s), short summary, gates/tests, pre/post paths (or “see PR”). |
+| **§ Active progress** | **In-flight only** (partial sub-waves, open DS): at most **3** rows; see [despaghettification_completed_log.md](despaghettification_completed_log.md) when a **DS-ID** is **CLOSED** or a pass is done. |
 | **DS-ID → workstream table** | Place new or moved **DS-*** here; note co-involved workstreams. |
 
 **Governance:** `despaghettify/state/artifacts/workstreams/<slug>/pre|post/` and `WORKSTREAM_*_STATE.md` remain **formal** evidence; this file is the **compact** working and review map.
@@ -139,7 +139,7 @@ Each row: **ID**, **pattern** (lead with **C1..C7** from [spaghetti-setup.md](..
 | ~~**DS-002**~~ **CLOSED** | **C4 ·** Multi-responsibility hotspots | `backend/app/runtime`, `backend/app/services` (see AST top-12) | **Done:** Writers Room pipeline stages, narrative commit phases, evidence/inspector section modules | Split orchestration vs IO; narrow public surfaces per module | — |
 | ~~**DS-003**~~ **CLOSED** | **C6 ·** Duplication / missing shared abstractions | `ai_stack/tests`, `ai_stack/research/research_*`, shared helpers | **Done:** `ai_stack/rag/*` package split; `goc_yaml_cache_fixtures` autouse; research pipeline phases | Extract shared fixtures/builders; dedupe repeated setup | — |
 | ~~**DS-004**~~ **CLOSED** | **C5 ·** Magic numbers + global-ish state | `backend/app/services`, configuration edges | **Done:** `backend/app/config/route_constants.py` + integration tests (16 passed) | Named constants, settings objects, fewer module-level singletons | — |
-| ~~**DS-005**~~ **CLOSED** | **C7 ·** Confusing control flow | `ai_stack/goc_turn_seams_validation.py`, `backend/app/runtime/relationship_context_derive.py` | **Done:** validation seam extracted; relationship derive already phased; seam tests 27 passed | Guard clauses, smaller branches, extract decision tables | — |
+| ~~**DS-005**~~ **CLOSED** | **C7 ·** Confusing control flow | `ai_stack/story_runtime/turn/goc_turn_seams_validation.py`, `backend/app/runtime/relationship_context_derive.py` | **Done:** validation seam extracted; relationship derive already phased; seam tests 27 passed | Guard clauses, smaller branches, extract decision tables | — |
 
 **New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); **pattern** starts with **C1..C7** per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; briefly justify the topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
 
@@ -169,16 +169,21 @@ flowchart TB
 
 **Implementation:** invoke [spaghetti-solve-task.md](../spaghetti-solve-task.md) with **one** **DS-ID** per run (e.g. `run spaghetti-solve-task DS-016`); sub-waves and autonomous closure per that doc (completion gate each sub-wave).
 
-## Progress / work log (optional, in addition to mandatory maintenance above)
+## Active progress (in-flight only)
 
-Implementers may **briefly** record visible progress (for reviewers and the next iteration). **Mandatory** for structural waves remains **updating the input table, § structure scan, and — if needed — this log** (see coordination § *Maintaining this file*). **Additionally**, new waves add **pre/post files** under `despaghettify/state/artifacts/…` (see `EXECUTION_GOVERNANCE.md`); older session artefacts may be missing if intentionally cleaned — proof then via Git/CI/PR. Not a substitute for issues/PRs.
+**Completed waves** live in **[despaghettification_completed_log.md](despaghettification_completed_log.md)** — append there when a **DS-ID** is **CLOSED** or a check/reset pass is finished; do **not** grow this table with closed work.
+
+Use this section only for:
+
+- **Partial** solve runs (`k < N` sub-waves; resume anchor),
+- **Open** DS waves before final closure,
+- At most **3** rows — archive older **closed** rows to the completed log.
 
 | date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
 |------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
-| 2026-05-20 | DS-001–DS-005 | Closed all five phases in recommended order; DS-005 added `ai_stack/goc_turn_seams_validation.py`. Gates: `ds005` exit 0; `backend_runtime` 1112 passed (quick); `backend_services` quick; DS-004 16 passed; ai_stack goc/retrieval quick; 27 seam tests. | — | `state/artifacts/workstreams/backend_runtime_services/post/session_20260520_DS-001-005_pre_post_comparison.json`, `state/artifacts/workstreams/ai_stack/post/session_20260520_DS-003-005_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_SERVICES_STATE.md`, `WORKSTREAM_AI_STACK_STATE.md` | working tree |
-| 2026-04-12 | — | `spaghetti-reset-task` + one **`spaghetti-check`**: workstreams wiped, EMPTY → live input, metrics from `check --with-metrics` (same timestamps as § *Latest structure scan*). | — | — | — | Evidence: `despaghettify/reports/reset_check_with_metrics.json`, `despaghettify/reports/reset_ast_scan_capture.txt` |
+| — | — | — | — | — | — | — |
 
-**New rows:** chronologically (**newest first** recommended); **DS-ID(s)**, gates/tests run, pre/post paths as in [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md); for scan/docs-only updates note briefly. Longer history: Git, PRs, `WORKSTREAM_*_STATE.md`.
+**Rules:** [`despaghettification_completed_log.md`](despaghettification_completed_log.md) § *When to append here*; formal evidence still under `despaghettify/state/artifacts/…` per [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md).
 
 ## Canonical technical reading paths (after refactor)
 

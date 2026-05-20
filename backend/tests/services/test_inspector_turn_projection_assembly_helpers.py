@@ -51,7 +51,7 @@ def test_build_validation_projection_data_falls_back_to_interpreted_input() -> N
 
 
 def test_build_validation_projection_data_includes_observability_contract_flags() -> None:
-    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     rule = rule_spec_for_subtext("probe_inquiry")
     validation = {}
@@ -91,7 +91,7 @@ def test_build_validation_projection_data_includes_observability_contract_flags(
 
 
 def test_build_decision_trace_data_includes_intent_surface_evidence() -> None:
-    from ai_stack.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+    from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
 
     rule = rule_spec_for_subtext("direct_accusation")
     out = build_decision_trace_data(

@@ -7,7 +7,7 @@ fallback map from character keys to actor ids.
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.character.character_mind_goc import (
+from ai_stack.story_runtime.npc_agency.character.character_mind_goc import (
     build_character_mind_records_for_goc,
     resolve_runtime_actor_id,
 )

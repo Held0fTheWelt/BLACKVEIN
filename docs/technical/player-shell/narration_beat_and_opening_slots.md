@@ -25,7 +25,7 @@ Presentation + typewriter metadata **on that block only**.
 
 | Source | Typical value | Shell / typewriter |
 |--------|---------------|-------------------|
-| **GoC narrator-path** | Canonical mandatory beat id, e.g. `park_edge_establishing_image`, `stick_strikes_face` | `ai_stack/narrator/goc_narrator_path.py` sets `narration_beat` to beat id → typewriter `default` profile unless id matches a profile key |
+| **GoC narrator-path** | Canonical mandatory beat id, e.g. `park_edge_establishing_image`, `stick_strikes_face` | `ai_stack/story_runtime/narrator/goc_narrator_path.py` sets `narration_beat` to beat id → typewriter `default` profile unless id matches a profile key |
 | **Runtime bootstrap** | `boot` | `play_runtime_bootstrap.js` → `boot` profile |
 | **Explicit dramaturgy** (rare) | `role_anchor`, `tension`, `dialogue`, `action`, `reflection` | Matching entry in `TYPEWRITER_BEAT_PROFILES`; `role_anchor` adds `scene-block--narrator-role-anchor` (sweep CSS) |
 | **Dramatic emphasis** | Use `visual_emphasis.kind` (e.g. `dramatic_moment`) | `scene-block--visual-emphasis-*` — **not** `narration_beat` |
@@ -110,7 +110,7 @@ Need to show NPC direct speech embedded in prose?
 
 ## Code pointers
 
-- Canonical opening blocks: `ai_stack/narrator/goc_narrator_path.py` (`build_goc_narrator_path_opening`)
+- Canonical opening blocks: `ai_stack/story_runtime/narrator/goc_narrator_path.py` (`build_goc_narrator_path_opening`)
 - Narrated actor speech realization: `world-engine/app/story_runtime/manager.py` (`_realize_npc_speak_block`)
 - Embedded-speech responder detection: `world-engine/app/story_runtime/manager.py` (`_build_live_scene_turn_envelope`)
 - gm_narration slots: `ai_stack/goc_opening_transition.py` (`enforce_opening_transition_on_beats`)

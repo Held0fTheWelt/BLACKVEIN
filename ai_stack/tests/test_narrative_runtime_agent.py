@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.narrative_runtime_agent import (
     NarrativeRuntimeAgent,
     NarrativeRuntimeAgentInput,

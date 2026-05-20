@@ -258,7 +258,7 @@ flowchart LR
 
 ### Technical precision
 
-- **Inside the graph:** `validate_seam` → `commit_seam` (GoC slice seams; `ai_stack/goc_turn_seams.py` and contract docs).
+- **Inside the graph:** `validate_seam` → `commit_seam` (GoC slice seams; `ai_stack/story_runtime/turn/goc_turn_seams.py` and contract docs).
 - **Host after `run()`:** `resolve_narrative_commit` builds `StoryNarrativeCommitRecord` (`world-engine/app/story_runtime/commit_models.py`).
 - **Backend `ai_turn_executor`:** Documented as **transitional** for in-process `SessionState` loops—not a parallel live runtime to world-engine.
 

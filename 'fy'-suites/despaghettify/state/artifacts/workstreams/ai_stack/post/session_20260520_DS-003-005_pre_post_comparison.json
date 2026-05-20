@@ -13,6 +13,6 @@
       "ai_stack/tests/goc_yaml_cache_fixtures.py",
       "ai_stack/research/research_langgraph_run_pipeline_phases.py"
     ],
-    "DS-005": ["ai_stack/goc_turn_seams_validation.py", "ai_stack/goc_turn_seams.py re-export"]
+    "DS-005": ["ai_stack/story_runtime/turn/goc_turn_seams_validation.py", "ai_stack/story_runtime/turn/goc_turn_seams.py re-export"]
   }
 }

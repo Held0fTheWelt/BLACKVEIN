@@ -130,7 +130,7 @@ MVP 4 consumes LDSS live path, scene blocks, simulator diagnostics scaffold, tra
 - `world-engine/app/api/http.py` — HTTP turn route, request/response models.
 - `world-engine/app/runtime/manager.py` — story turn execution and commit seam.
 - `ai_stack/langgraph/langgraph_runtime.py` — graph construction and story turn path.
-- `ai_stack/goc_turn_seams.py` — `run_visible_render()`, proposal packaging, passivity guard seam.
+- `ai_stack/story_runtime/turn/goc_turn_seams.py` — `run_visible_render()`, proposal packaging, passivity guard seam.
 - `ai_stack/live_dramatic_scene_simulator.py` or create equivalent — LDSS implementation.
 - `ai_stack/validators/narrator*` or create equivalent — NarratorVoiceValidation.
 - `ai_stack/validators/affordance*` or create equivalent — affordance validation.
@@ -370,7 +370,7 @@ Valid block types: `narrator`, `actor_line`, `actor_action`, `environment_intera
 }
 ```
 
-Current Pi7 runtime support treats `npc_agency_simulation.v1` as the primary NPC agency surface. `ai_stack/npc_agency/npc_agency_planner.py` builds an independent bounded roster plan from actor-lane, responder, mind, and carry-forward evidence; `ai_stack/npc_agency/npc_agency_realization.py` records planned/realized/missing required NPC initiative and builds `npc_agency_closure.v1`; committed planner truth carries unresolved required initiatives into the next turn; Langfuse/operator/MCP surfaces score planned vs. realized NPC initiative. The older `npc_agency_plan.v1` shape may still appear as an internal adapter, but it is not the current proof target.
+Current Pi7 runtime support treats `npc_agency_simulation.v1` as the primary NPC agency surface. `ai_stack/story_runtime/npc_agency/npc_agency_planner.py` builds an independent bounded roster plan from actor-lane, responder, mind, and carry-forward evidence; `ai_stack/story_runtime/npc_agency/npc_agency_realization.py` records planned/realized/missing required NPC initiative and builds `npc_agency_closure.v1`; committed planner truth carries unresolved required initiatives into the next turn; Langfuse/operator/MCP surfaces score planned vs. realized NPC initiative. The older `npc_agency_plan.v1` shape may still appear as an internal adapter, but it is not the current proof target.
 
 ### EnvironmentInteraction
 
@@ -917,7 +917,7 @@ Inspect first:
 world-engine/app/api/http.py
 world-engine/app/runtime/manager.py
 ai_stack/langgraph/langgraph_runtime.py
-ai_stack/goc_turn_seams.py
+ai_stack/story_runtime/turn/goc_turn_seams.py
 ai_stack/live_dramatic_scene_simulator.py
 world-engine/app/runtime/actor_lane.py
 world-engine/app/runtime/object_admission.py

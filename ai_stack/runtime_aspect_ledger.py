@@ -50,7 +50,7 @@ from ai_stack.capabilities.capability_validator_registry import (
     build_system_transition_enforced_semantic_validator_registry,
     goc_seam_mirror_plan_validator_ids_for_turn_class,
 )
-from ai_stack.validation_authority_bridge import (
+from ai_stack.story_runtime.turn.validation_authority_bridge import (
     build_readiness_aggregation_decision,
     build_readiness_co_authority_enforcement,
     build_readiness_co_authority_preview,
@@ -657,7 +657,7 @@ def build_adr0041_validation_authority_preview(
                 "passed_validator_ids": passed_ids,
             },
             "drift_vs_validation_seam": drift,
-            "canonical_commitment_seam": "ai_stack.goc_turn_seams.run_validation_seam",
+            "canonical_commitment_seam": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
             "affects_commit": False,
             "affects_readiness": False,
             "proof_level": "local_only",
@@ -822,7 +822,7 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     semantic_validator_dispatch_report = report_obj.to_runtime_projection()["validator_dispatch_report"]
     seam_summary = graph_bundle.get("validation_seam_summary")
     visibility: dict[str, Any] = {
-        "canonical_commitment_seam": "ai_stack.goc_turn_seams.run_validation_seam",
+        "canonical_commitment_seam": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
         "adr0041_runtime_sidecar": (
             "ai_stack.runtime_aspect_ledger / ADR-0041 plan_enforced local validators"
         ),
@@ -1172,7 +1172,7 @@ def _build_adr0041_plan_projection_sibling(
     }
 
     drift = {
-        "production_validation_seam_symbol": "ai_stack.goc_turn_seams.run_validation_seam",
+        "production_validation_seam_symbol": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
         "adr0041_dispatch_projection_symbol": (
             "ai_stack.runtime_aspect_ledger.build_semantic_validator_dispatch_report_projection"
         ),

@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/semantic_planner/semantic_move_contract.py`, `ai_stack/semantic_planner/semantic_move_interpretation_goc.py`, `ai_stack/semantic_planner/goc_subtext_policy.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py`, `ai_stack/story_runtime/semantic_planner/goc_subtext_policy.py`, `ai_stack/story_runtime/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -62,7 +62,7 @@ That means the target architecture should evolve **inside** these seams rather t
 
 ### 2.4 Director logic exists, but remains heuristic
 
-`ai_stack/director/scene_director_goc.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
+`ai_stack/story_runtime/director/scene_director_goc.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
 
 ### 2.5 Dramatic alignment exists, but remains surface-oriented
 
@@ -290,7 +290,7 @@ This layer is planner-facing and derived. It is not the same as canonical world 
 
 **Owns:** short-horizon dramatic direction for the current turn and immediate scene progression.
 
-**Current basis:** `ai_stack/director/scene_director_goc.py`
+**Current basis:** `ai_stack/story_runtime/director/scene_director_goc.py`
 
 **New MVP responsibility:**
 
@@ -732,16 +732,16 @@ This phase is explicitly post-MVP.
 
 Recommended new modules:
 
-- `ai_stack/semantic_planner/semantic_move_contract.py`
-- `ai_stack/npc_agency/character/character_mind_contract.py`
-- `ai_stack/semantic_planner/social_state_contract.py`
-- `ai_stack/semantic_planner/scene_plan_contract.py`
-- `ai_stack/semantic_planner/semantic_scene_planner.py`
-- `ai_stack/dramatic_effect/dramatic_effect_gate.py`
+- `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`
+- `ai_stack/story_runtime/npc_agency/character/character_mind_contract.py`
+- `ai_stack/story_runtime/semantic_planner/social_state_contract.py`
+- `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py`
+- `ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py`
+- `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate.py`
 
 Recommended migration posture:
 
-- keep `ai_stack/director/scene_director_goc.py` as a façade during migration,
+- keep `ai_stack/story_runtime/director/scene_director_goc.py` as a façade during migration,
 - move existing heuristics behind explicit contracts step by step,
 - do not break existing operator or closure surfaces in one jump.
 

@@ -38,7 +38,7 @@
 - Requires: Langgraph node signature changes to accept `actor_lane_context` parameter
 
 **Seam 2: Late Validation (Response packaging seam)**
-- `run_validation_seam()` in `ai_stack/goc_turn_seams.py` scans structured output
+- `run_validation_seam()` in `ai_stack/story_runtime/turn/goc_turn_seams.py` scans structured output
 - Validation fires **before** response packaging and **before** commit
 - Catches any violations that escape early seam
 - Requires: `actor_lane_context` dict parameter to `run_validation_seam()`
@@ -371,7 +371,7 @@ function saveStateDeltaBoundary() {
 - `world-engine/app/runtime/actor_lane.py` — must create or update for P02/P03
 - `world-engine/app/runtime/object_admission.py` — must create or update for P05
 - `world-engine/app/runtime/state_delta.py` — must create or update for P06
-- `ai_stack/goc_turn_seams.py` — must update P02 and P06 seams
+- `ai_stack/story_runtime/turn/goc_turn_seams.py` — must update P02 and P06 seams
 - `administration-tool/templates/manage/runtime_settings.html` — new sections for P05/P06 admin
 - `administration-tool/static/manage_runtime_settings.js` — new functions for P05/P06 admin
 - `tests/run_tests.py` — must register all MVP 2 tests under `--suite mvp2`

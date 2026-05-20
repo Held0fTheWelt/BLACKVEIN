@@ -29,11 +29,11 @@ A passive NPC that only responds when directly addressed violates the live drama
 ## Affected Services/Files
 
 - `ai_stack/live_dramatic_scene_simulator.py` — `NPCAgencyPlan`, `NPCInitiative`, `validate_responder_candidates()`, `_select_primary_responder()`, `build_deterministic_ldss_output()`
-- `ai_stack/npc_agency/npc_agency_contracts.py` — shared runtime contract normalization for the current `npc_agency_simulation.v1` surface, durable closure constants, human/visitor exclusion, and the internal `npc_agency_plan.v1` adapter.
-- `ai_stack/npc_agency/npc_agency_planner.py` — deterministic independent NPC roster planner for `npc_agency_simulation.v1`, including candidate scoring, carry-forward pressure, and NPC-to-NPC target graph projection.
-- `ai_stack/npc_agency/npc_agency_long_horizon.py` — deterministic `npc_long_horizon_state.v1`, `npc_intention_thread.v1`, `npc_private_plan.v1`, and `npc_plan_conflict_resolution.v1` builders.
-- `ai_stack/npc_agency/npc_agency_claim_readiness.py` — evidence gate for bounded, live-staging-ready, and full long-horizon claim states.
-- `ai_stack/npc_agency/npc_agency_realization.py` — shared realization, validation, and durable closure helpers for `npc_initiative_realization_v1`, `npc_initiative_validation_v1`, and `npc_agency_closure.v1`.
+- `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py` — shared runtime contract normalization for the current `npc_agency_simulation.v1` surface, durable closure constants, human/visitor exclusion, and the internal `npc_agency_plan.v1` adapter.
+- `ai_stack/story_runtime/npc_agency/npc_agency_planner.py` — deterministic independent NPC roster planner for `npc_agency_simulation.v1`, including candidate scoring, carry-forward pressure, and NPC-to-NPC target graph projection.
+- `ai_stack/story_runtime/npc_agency/npc_agency_long_horizon.py` — deterministic `npc_long_horizon_state.v1`, `npc_intention_thread.v1`, `npc_private_plan.v1`, and `npc_plan_conflict_resolution.v1` builders.
+- `ai_stack/story_runtime/npc_agency/npc_agency_claim_readiness.py` — evidence gate for bounded, live-staging-ready, and full long-horizon claim states.
+- `ai_stack/story_runtime/npc_agency/npc_agency_realization.py` — shared realization, validation, and durable closure helpers for `npc_initiative_realization_v1`, `npc_initiative_validation_v1`, and `npc_agency_closure.v1`.
 - `ai_stack/runtime_aspect_ledger.py` — `npc_agency` runtime aspect projection for candidate, planned, realized, missing, carry-forward, closure, and scoring evidence.
 - `ai_stack/story_runtime/story_runtime_playability.py` — recoverable rewrite feedback for missing required NPC initiative without allowing degraded commit to hide it.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — model-visible current NPC agency simulation projection, bounded initiative directives, validation-aspect wiring, and self-correction trigger surface.

@@ -563,7 +563,7 @@ def test_legacy_location_changed_parity_with_transition_from_previous() -> None:
 
 
 def test_location_changed_parity_with_goc_narrator_path_fixture() -> None:
-    from ai_stack.narrator.goc_narrator_path import build_goc_narrator_path_opening
+    from ai_stack.story_runtime.narrator.goc_narrator_path import build_goc_narrator_path_opening
 
     narrator_path = build_goc_narrator_path_opening(session_output_language="de")
     blocks = [

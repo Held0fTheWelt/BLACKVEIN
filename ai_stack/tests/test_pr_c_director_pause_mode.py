@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.director.director_gathering_state_contracts import (
+from ai_stack.story_runtime.director.director_gathering_state_contracts import (
     PAUSE_REASON_ACTOR_NOT_AT_SCENE,
     PAUSE_REASON_PARTICIPATION_BROKEN,
     PAUSE_REASON_VISIBILITY_LOST,
@@ -353,26 +353,26 @@ class TestGuardrails:
     """Guardrail tests — PR-C must not introduce prohibited patterns."""
 
     def test_no_npc_pulse_in_module(self):
-        import ai_stack.director.director_gathering_state_contracts as mod
+        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         assert "npc_pulse" not in source.lower()
         assert "pulse_tick" not in source.lower()
         assert "motivation_score" not in source.lower()
 
     def test_no_block_stream_bus_in_module(self):
-        import ai_stack.director.director_gathering_state_contracts as mod
+        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         assert "block_stream_bus" not in source.lower()
         assert "event_stream" not in source.lower()
 
     def test_no_step_mode_switch_in_module(self):
-        import ai_stack.director.director_gathering_state_contracts as mod
+        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         assert "step.mode" not in source
         assert "step_mode" not in source.lower()
 
     def test_no_active_pi_keys_in_module(self):
-        import ai_stack.director.director_gathering_state_contracts as mod
+        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         pi_patterns = [
             re.compile(r"\bPi\d+\b"),
@@ -383,7 +383,7 @@ class TestGuardrails:
             assert not pattern.search(source), f"Found Pi/Π runtime key: {pattern.pattern}"
 
     def test_no_verb_room_action_whitelist(self):
-        import ai_stack.director.director_gathering_state_contracts as mod
+        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         whitelist_patterns = [
             re.compile(r"verb_whitelist|action_whitelist|room_whitelist", re.IGNORECASE),

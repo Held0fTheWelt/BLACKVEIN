@@ -188,7 +188,7 @@ def story_turn_node(state: dict) -> dict:
 ### Task 2.2: P02 — Actor-Lane Validator Seam 2 (Response Packaging)
 
 **Owner**: AI Stack Lead (same)  
-**Files**: `ai_stack/goc_turn_seams.py`
+**Files**: `ai_stack/story_runtime/turn/goc_turn_seams.py`
 
 **Deliverables**:
 - [ ] `run_validation_seam()` accepts `actor_lane_context` parameter
@@ -197,7 +197,7 @@ def story_turn_node(state: dict) -> dict:
 
 **Implementation**:
 ```python
-# ai_stack/goc_turn_seams.py
+# ai_stack/story_runtime/turn/goc_turn_seams.py
 def run_validation_seam(
     *,
     module_id: str,
@@ -513,7 +513,7 @@ def validate_state_delta(
     
     return StateDeltaValidationResult(status="approved", path=path)
 
-# ai_stack/goc_turn_seams.py — commit seam enforcement
+# ai_stack/story_runtime/turn/goc_turn_seams.py — commit seam enforcement
 def run_commit_seam(
     *,
     module_id: str,

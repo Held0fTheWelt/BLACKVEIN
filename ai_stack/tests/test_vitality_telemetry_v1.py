@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
-from ai_stack.npc_agency.npc_agency_contracts import (
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
 )
-from ai_stack.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS, VITALITY_TELEMETRY_SCHEMA_VERSION
+from ai_stack.story_runtime.turn.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS, VITALITY_TELEMETRY_SCHEMA_VERSION
 
 
 def _base_state() -> dict:

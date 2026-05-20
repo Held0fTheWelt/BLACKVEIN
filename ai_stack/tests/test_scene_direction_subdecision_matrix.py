@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.director.scene_direction_subdecision_matrix import (
+from ai_stack.story_runtime.director.scene_direction_subdecision_matrix import (
     MATRIX_CONTRACT_VERSION,
     SCENE_DIRECTION_SUBDECISION_ROWS,
     assert_matrix_aligned_with_roadmap_registry,

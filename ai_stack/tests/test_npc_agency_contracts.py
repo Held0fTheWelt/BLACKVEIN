@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.npc_agency_contracts import (
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_PLAN_PARTIAL_STATUS,
     NPC_AGENCY_PLAN_SCHEMA_VERSION,
     normalize_npc_agency_plan,
 )
-from ai_stack.npc_agency.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.story_runtime.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 
 
 def _actor_fixture() -> dict[str, str]:

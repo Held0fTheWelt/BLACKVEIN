@@ -1,4 +1,4 @@
-"""Tests for ai_stack.canonical_path.canonical_path_resolver."""
+"""Tests for ai_stack.story_runtime.canonical_path.canonical_path_resolver."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.canonical_path.canonical_path_resolver import (
+from ai_stack.story_runtime.canonical_path.canonical_path_resolver import (
     CanonicalPathResolveError,
     clear_resolver_cache,
     load_canonical_path,

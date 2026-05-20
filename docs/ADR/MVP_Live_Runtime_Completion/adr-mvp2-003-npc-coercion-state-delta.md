@@ -35,7 +35,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 
 8. **`validate_state_delta()`** in `world-engine/app/runtime/state_delta.py` rejects any delta whose path matches or is under a protected path. Error codes: `protected_state_mutation_rejected`, `state_delta_boundary_violation`.
 
-9. **`run_commit_seam()`** in `ai_stack/goc_turn_seams.py` accepts `candidate_deltas` and `state_delta_boundary`. The live executor `_commit_seam()` forwards these fields from `RuntimeTurnState`, so protected path mutations are rejected at the commit seam before any write occurs.
+9. **`run_commit_seam()`** in `ai_stack/story_runtime/turn/goc_turn_seams.py` accepts `candidate_deltas` and `state_delta_boundary`. The live executor `_commit_seam()` forwards these fields from `RuntimeTurnState`, so protected path mutations are rejected at the commit seam before any write occurs.
 
 10. Protected paths include: `canonical_scene_order`, `canonical_characters`, `canonical_relationships`, `canonical_content_truth`, `content_module_id`, `selected_player_role`, `human_actor_id`, `actor_lanes`.
 
@@ -48,7 +48,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 - `world-engine/app/runtime/models.py` — `StateDeltaBoundary`, `StateDeltaValidationResult`
 - `world-engine/app/runtime/actor_lane.py` — `validate_npc_action_coercion()`, `_COERCIVE_ACTION_TYPES`, `_ALLOWED_PRESSURE_VERBS`
 - `world-engine/app/runtime/state_delta.py` — `validate_state_delta()`, `validate_state_deltas()`, `build_default_goc_boundary()`
-- `ai_stack/goc_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
+- `ai_stack/story_runtime/turn/goc_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
 - `ai_stack/capabilities/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — live authority-aspect and commit-seam wiring
 - `ai_stack/story_runtime/story_runtime_playability.py` — retry/degraded-commit policy for coercion failures

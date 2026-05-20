@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import re
 
-from ai_stack.npc_agency.character.character_voice_semantic_classifier import SEMANTIC_DIMENSIONS, STOPWORDS
-from ai_stack.npc_agency.character.character_voice_goc import build_character_voice_profiles_for_goc
-from ai_stack.npc_agency.character.character_voice_validation import validate_voice_consistency
+from ai_stack.story_runtime.npc_agency.character.character_voice_semantic_classifier import SEMANTIC_DIMENSIONS, STOPWORDS
+from ai_stack.story_runtime.npc_agency.character.character_voice_goc import build_character_voice_profiles_for_goc
+from ai_stack.story_runtime.npc_agency.character.character_voice_validation import validate_voice_consistency
 from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
 from ai_stack.langgraph.langgraph_runtime_executor import RuntimeTurnGraphExecutor, _build_runtime_aspect_validation
 from ai_stack.runtime_aspect_ledger import (

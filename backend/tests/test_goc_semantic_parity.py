@@ -5,7 +5,7 @@ from __future__ import annotations
 from app.runtime.decision_policy import AIActionType
 from app.runtime.model_routing_contracts import LLMOrSLM, RouteReasonCode, TaskKind
 
-from ai_stack.semantic_planner.goc_roadmap_semantic_surface import (
+from ai_stack.story_runtime.semantic_planner.goc_roadmap_semantic_surface import (
     DECISION_CLASSES,
     MODEL_ROLES,
     ROUTING_LABELS,

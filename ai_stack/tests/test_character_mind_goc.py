@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency.character.character_mind_goc import build_character_mind_records_for_goc
+from ai_stack.story_runtime.npc_agency.character.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
 
 

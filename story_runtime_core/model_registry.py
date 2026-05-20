@@ -6,7 +6,7 @@ from dataclasses import dataclass
 ROUTE_REASON_ROLE_MATRIX_PRIMARY = "role_matrix_primary"
 ROUTE_REASON_FALLBACK_ONLY = "fallback_only"
 
-# Canonical ``TaskKind``-style strings (see ``ai_stack.semantic_planner.goc_roadmap_semantic_surface.TASK_TYPES``).
+# Canonical ``TaskKind``-style strings (see ``ai_stack.story_runtime.semantic_planner.goc_roadmap_semantic_surface.TASK_TYPES``).
 _SLM_FIRST_TASKS = frozenset(
     {
         "classification",

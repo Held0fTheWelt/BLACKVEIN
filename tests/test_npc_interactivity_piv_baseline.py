@@ -96,7 +96,7 @@ def test_pr_0_piv_artifact_required_sections() -> None:
         "world-engine/app/story_runtime/manager/dramatic_context_authority.py:229",
         "ai_stack/langgraph/langgraph_runtime_executor.py:3996",
         "ai_stack/langgraph/langgraph_runtime_executor.py:4703",
-        "ai_stack/director/scene_director_goc.py:655",
+        "ai_stack/story_runtime/director/scene_director_goc.py:655",
         "content/modules/god_of_carnage/canonical_path/005_statement_reading.yaml:36",
     ):
         assert verified_anchor in text, (
@@ -350,14 +350,14 @@ PR_A_B_C_FORBIDDEN_RUNTIME_SYMBOLS = (
 
 RUNTIME_FILES_UNTOUCHED_BY_PR_0 = (
     "ai_stack/player_action_resolution.py",
-    "ai_stack/narrator/narrator_consequence_contracts.py",
-    "ai_stack/canonical_path/canonical_path_resolver.py",
-    "ai_stack/director/scene_director_goc.py",
+    "ai_stack/story_runtime/narrator/narrator_consequence_contracts.py",
+    "ai_stack/story_runtime/canonical_path/canonical_path_resolver.py",
+    "ai_stack/story_runtime/director/scene_director_goc.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "ai_stack/live_dramatic_scene_simulator.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
-    "ai_stack/narrator/goc_narrator_path.py",
+    "ai_stack/story_runtime/narrator/goc_narrator_path.py",
     "ai_stack/goc_souffleuse.py",
     "world-engine/app/story_runtime/manager/dramatic_context_authority.py",
     "world-engine/app/story_runtime/manager/ldss_narrative_queue.py",

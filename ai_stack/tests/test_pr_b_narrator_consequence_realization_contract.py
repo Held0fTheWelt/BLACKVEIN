@@ -27,7 +27,7 @@ import re
 
 import pytest
 
-from ai_stack.narrator.narrator_consequence_realization_contracts import (
+from ai_stack.story_runtime.narrator.narrator_consequence_realization_contracts import (
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,
     BLOCK_TYPE_NARRATOR,
     NON_REALIZATION_REASON_BUNDLE_MISSING,
@@ -282,7 +282,11 @@ def test_narrator_realization_does_not_require_actor_speech() -> None:
 
 
 _REALIZATION_MODULE_PATH = (
-    REPO_ROOT / "ai_stack" / "narrator" / "narrator_consequence_realization_contracts.py"
+    REPO_ROOT
+    / "ai_stack"
+    / "story_runtime"
+    / "narrator"
+    / "narrator_consequence_realization_contracts.py"
 )
 
 _ACTIVE_PI_TOKEN_RE = re.compile(

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_stack.canonical_path.canonical_path_resolver import clear_resolver_cache, load_canonical_path
+from ai_stack.story_runtime.canonical_path.canonical_path_resolver import clear_resolver_cache, load_canonical_path
 from ai_stack.canonical_step_renderer import render_canonical_step
 from ai_stack.live_dramatic_scene_simulator import (
     LDSSInput,

@@ -8,7 +8,7 @@ proposed output.
 from __future__ import annotations
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
-from ai_stack.goc_turn_seams import run_validation_seam
+from ai_stack.story_runtime.turn.goc_turn_seams import run_validation_seam
 from ai_stack.actor_situation import (
     W5ActorSituation,
     W5ActorType,

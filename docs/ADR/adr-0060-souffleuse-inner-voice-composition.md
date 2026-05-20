@@ -240,7 +240,7 @@ explicit future work and are not part of Phase 2 closure.
 ## Implementation
 
 - `ai_stack/goc_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
-- `ai_stack/director/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
+- `ai_stack/story_runtime/director/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
   and `CUT_KIND_SKIP_TO_END` constants define the Souffleuse's stream position.
 - `ai_stack/ws_session_loop.py` — Stage M follow-up composition
   dispatcher (`_compose_npc_follow_up`, `_compose_template_render_follow_up`,

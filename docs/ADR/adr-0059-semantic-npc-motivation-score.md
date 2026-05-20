@@ -219,7 +219,7 @@ threshold. The director tick decision carries
 
 ## Implementation
 
-- `ai_stack/npc_agency/npc_motivation_score_engine.py` — `compute_npc_motivation_scores()` and
+- `ai_stack/story_runtime/npc_agency/npc_motivation_score_engine.py` — `compute_npc_motivation_scores()` and
   `select_initiative_actor()`.
 - `ai_stack/stream_readiness.py` —
   `classify_motivation_component_sources()` and

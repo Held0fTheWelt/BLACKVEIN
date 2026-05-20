@@ -90,7 +90,7 @@ _CANONICAL_PATH = None
 def _canonical_path():
     global _CANONICAL_PATH
     if _CANONICAL_PATH is None:
-        from ai_stack.canonical_path.canonical_path_resolver import load_canonical_path
+        from ai_stack.story_runtime.canonical_path.canonical_path_resolver import load_canonical_path
 
         _CANONICAL_PATH = load_canonical_path(_GOC_MODULE_ROOT)
     return _CANONICAL_PATH

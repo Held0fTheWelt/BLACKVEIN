@@ -220,7 +220,7 @@ Current verification uses structured/content-derived assertions:
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary
 - `ai_stack/goc_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
 - `ai_stack/goc_opening_handover.py` — opening handover diagnostics and block-level normalization support
-- `ai_stack/narrator/goc_narrator_path.py` — canonical narrator-path projection from
+- `ai_stack/story_runtime/narrator/goc_narrator_path.py` — canonical narrator-path projection from
   mandatory beats; no localized prose database
 - `ai_stack/goc_souffleuse.py` — content-timed player guidance source blocks
   with English internal resolution and output-module realization for non-English

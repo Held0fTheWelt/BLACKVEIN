@@ -18,8 +18,8 @@ import pytest
 from typing import Any
 
 from ai_stack.story_runtime.story_runtime_playability import decide_playability_recovery, build_rewrite_instruction
-from ai_stack.dramatic_effect.dramatic_effect_gate_evaluate_core import evaluate_dramatic_effect_gate
-from ai_stack.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
+from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_core import evaluate_dramatic_effect_gate
+from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import DramaticEffectEvaluationContext
 
 
 class TestPlayabilityRecoveryPreserveActorLanes:
@@ -280,7 +280,7 @@ class TestProposedEffectActorLaneCount:
 
 	def test_actor_lane_count_on_narrative_effect(self):
 		"""Actor line count should appear on proposed effect metadata."""
-		from ai_stack.goc_turn_seams import structured_output_to_proposed_effects
+		from ai_stack.story_runtime.turn.goc_turn_seams import structured_output_to_proposed_effects
 
 		structured = {
 			"narration_summary": "The room tightens.",
@@ -300,7 +300,7 @@ class TestProposedEffectActorLaneCount:
 
 	def test_no_actor_lane_count_when_no_lines(self):
 		"""actor_lane_count should not appear if no spoken/action lines."""
-		from ai_stack.goc_turn_seams import structured_output_to_proposed_effects
+		from ai_stack.story_runtime.turn.goc_turn_seams import structured_output_to_proposed_effects
 
 		structured = {
 			"narration_summary": "The room tightens.",
@@ -314,7 +314,7 @@ class TestProposedEffectActorLaneCount:
 
 	def test_state_effect_value_becomes_validation_description(self):
 		"""state_effects.value should be narrative evidence for dramatic validation."""
-		from ai_stack.goc_turn_seams import structured_output_to_proposed_effects
+		from ai_stack.story_runtime.turn.goc_turn_seams import structured_output_to_proposed_effects
 
 		structured = {
 			"state_effects": [

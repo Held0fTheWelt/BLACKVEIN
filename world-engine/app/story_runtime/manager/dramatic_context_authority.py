@@ -169,7 +169,7 @@ def _resolve_canonical_path_for_session(session: "StorySession") -> Any | None:
     unavailable. The resolver caches by module_root so repeated calls are cheap.
     """
     try:
-        from ai_stack.canonical_path.canonical_path_resolver import (
+        from ai_stack.story_runtime.canonical_path.canonical_path_resolver import (
             load_canonical_path,
             CanonicalPathResolveError,
         )

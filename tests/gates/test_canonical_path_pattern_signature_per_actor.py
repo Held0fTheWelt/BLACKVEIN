@@ -38,7 +38,7 @@ BEAT_LIBRARY_DIR = GOC_MODULE_ROOT / "direction" / "beat_library"
 
 @pytest.fixture(scope="module")
 def canonical_path():
-    from ai_stack.canonical_path.canonical_path_resolver import (
+    from ai_stack.story_runtime.canonical_path.canonical_path_resolver import (
         clear_resolver_cache,
         load_canonical_path,
     )

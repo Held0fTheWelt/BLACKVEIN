@@ -17,7 +17,7 @@ from ai_stack.capabilities.capability_validator_registry import (
     build_player_turn_enforced_semantic_validator_registry,
 )
 from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
-from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_aspect_ledger import (
     ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV,
     ADR0041_RUNTIME_GRAPH_DISPATCH_CONTEXT_KEY,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
-from ai_stack.goc_turn_seams import run_visible_render
+from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
 
 
 def test_run_visible_render_skips_reacts_immediately_when_player_input_present() -> None:

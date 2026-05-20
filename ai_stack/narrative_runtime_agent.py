@@ -23,7 +23,7 @@ from enum import Enum
 from typing import Any, Generator, Optional
 from uuid import uuid4
 
-from ai_stack.npc_agency.npc_agency_contracts import npc_initiatives_from_plan
+from ai_stack.story_runtime.npc_agency.npc_agency_contracts import npc_initiatives_from_plan
 from ai_stack.runtime_cost_attribution import build_deterministic_phase_cost
 
 logger = logging.getLogger(__name__)

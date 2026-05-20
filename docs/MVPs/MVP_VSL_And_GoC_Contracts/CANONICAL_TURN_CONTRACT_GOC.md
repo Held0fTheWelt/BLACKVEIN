@@ -26,7 +26,7 @@ FREEZE §10.1 applies verbatim: nothing player-visible may precede committed tru
 | Commit | Engine seam | `commit_seam` | `validation_outcome`, `proposed_state_effects` | `committed_result`, bounded `continuity_impacts` (GoC) | yes | indirectly |
 | Visible render | Presentation seam | `render_visible` | `committed_result`, `validation_outcome`, `generation`, `transition_pattern` | `visible_output_bundle`, `visibility_class_markers` | no | yes |
 
-**Diagnostics:** `package_output` sets `graph_diagnostics`, `diagnostics_refs`, and `experiment_preview` per `GATE_SCORING_POLICY_GOC.md`. **Operator compact view:** `build_operator_canonical_turn_record(state)` in `ai_stack/goc_turn_seams.py` (post-`package_output` state).
+**Diagnostics:** `package_output` sets `graph_diagnostics`, `diagnostics_refs`, and `experiment_preview` per `GATE_SCORING_POLICY_GOC.md`. **Operator compact view:** `build_operator_canonical_turn_record(state)` in `ai_stack/story_runtime/turn/goc_turn_seams.py` (post-`package_output` state).
 
 ### 2.2 Semantics per seam (binding)
 
@@ -315,7 +315,7 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 
 ## 8. Mapping `RuntimeTurnState` → canonical model (informative)
 
-`RuntimeTurnState` is the execution transport. After `package_output`, canonical dramatic fields listed in §4–§5 are populated on the same state object (no duplicate runtime truth). For operators and CI artifacts, **`build_operator_canonical_turn_record(state)`** (`ai_stack/goc_turn_seams.py`) returns a single JSON-serializable dict: turn metadata (including turn-basis host fields when supplied), `interpreted_move`, director fields, proposal/validation/commit/visible summaries, continuity, markers, `experiment_preview`, `transition_pattern`, `routing` (G2-aligned observation summary from the graph), **`dramatic_turn_record`** (roadmap §6.3 six-block projection; see §8.1), and a shallow `graph_diagnostics` summary (`graph_name`, `graph_version`, `nodes_executed`, `execution_health`, `fallback_path_taken`, `repro_complete`).
+`RuntimeTurnState` is the execution transport. After `package_output`, canonical dramatic fields listed in §4–§5 are populated on the same state object (no duplicate runtime truth). For operators and CI artifacts, **`build_operator_canonical_turn_record(state)`** (`ai_stack/story_runtime/turn/goc_turn_seams.py`) returns a single JSON-serializable dict: turn metadata (including turn-basis host fields when supplied), `interpreted_move`, director fields, proposal/validation/commit/visible summaries, continuity, markers, `experiment_preview`, `transition_pattern`, `routing` (G2-aligned observation summary from the graph), **`dramatic_turn_record`** (roadmap §6.3 six-block projection; see §8.1), and a shallow `graph_diagnostics` summary (`graph_name`, `graph_version`, `nodes_executed`, `execution_health`, `fallback_path_taken`, `repro_complete`).
 
 ### 8.1 Roadmap G3 projection and `goc_uninitialized_field_envelope_v1`
 

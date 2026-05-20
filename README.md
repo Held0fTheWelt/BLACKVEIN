@@ -101,8 +101,8 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 **Implementation entry points**
 
 - `ai_stack/langgraph/langgraph_runtime.py` — `RuntimeTurnGraphExecutor`, nodes through `package_output`
-- `ai_stack/director/scene_director_goc.py` — deterministic GoC scene director
-- `ai_stack/goc_turn_seams.py` — validation, commit, visible render, `diagnostics_refs`
+- `ai_stack/story_runtime/director/scene_director_goc.py` — deterministic GoC scene director
+- `ai_stack/story_runtime/turn/goc_turn_seams.py` — validation, commit, visible render, `diagnostics_refs`
 - `ai_stack/goc_yaml_authority.py` — canonical YAML load for GoC slice surfaces
 
 **Representative tests** (current filenames; legacy “phase*” modules were renamed or folded into these surfaces)
