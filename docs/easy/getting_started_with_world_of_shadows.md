@@ -359,7 +359,7 @@ Set expectations: **there is no single “pick my model” screen in the player 
 - **Environment variables that matter:**
   - **`OPENAI_API_KEY`** — required for OpenAI calls; if missing, the OpenAI adapter returns failure metadata (`adapters.py`).
   - **`OLLAMA_BASE_URL`** — defaults to `http://127.0.0.1:11434` for local Ollama (`OllamaAdapter`).
-- **Routing:** `RoutingPolicy.choose(task_type=...)` picks **SLM-first** tasks vs **LLM** tasks using the registry (`model_registry.py`). The running graph records **`selected_provider`** in routing diagnostics (`ai_stack/langgraph_runtime.py`).
+- **Routing:** `RoutingPolicy.choose(task_type=...)` picks **SLM-first** tasks vs **LLM** tasks using the registry (`model_registry.py`). The running graph records **`selected_provider`** in routing diagnostics (`ai_stack/langgraph/langgraph_runtime.py`).
 
 ### What this means in the actual repository
 
@@ -388,7 +388,7 @@ flowchart TB
   G --> OUT[turn_payload_routing_generation]
 ```
 
-**Seams:** `story_runtime_core/model_registry.py`, `story_runtime_core/adapters.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`.
+**Seams:** `story_runtime_core/model_registry.py`, `story_runtime_core/adapters.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
 
 **What to notice:** **Environment** keys enable real providers; **mock** is always available for deterministic tests.
 
@@ -424,7 +424,7 @@ Reach a **God of Carnage**-backed flow—the repo’s **MVP vertical slice** (`R
 
 - **CORS or network errors** — backend URL wrong in frontend env.
 - **Play errors** — `PLAY_SERVICE_INTERNAL_URL` / secrets mismatch between backend and world-engine.
-- **Model errors** — generation degrades or errors if **`OPENAI_API_KEY`** missing while routing selects OpenAI; check turn diagnostics for `adapter_not_registered` or `missing_openai_api_key` patterns from `ai_stack/langgraph_runtime.py` / `adapters.py`.
+- **Model errors** — generation degrades or errors if **`OPENAI_API_KEY`** missing while routing selects OpenAI; check turn diagnostics for `adapter_not_registered` or `missing_openai_api_key` patterns from `ai_stack/langgraph/langgraph_runtime.py` / `adapters.py`.
 
 ### First play flow — request walkthrough
 

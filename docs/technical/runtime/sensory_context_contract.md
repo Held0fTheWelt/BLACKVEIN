@@ -238,8 +238,8 @@ that a specific story sentence has the correct sensory quality.
 - `ai_stack/sensory_context_contracts.py`
 - `ai_stack/sensory_context_engine.py`
 - `ai_stack/module_runtime_policy.py`
-- `ai_stack/langgraph_runtime_state.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_state.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `ai_stack/story_runtime_playability.py`
 - `world-engine/app/story_runtime/commit_models.py`

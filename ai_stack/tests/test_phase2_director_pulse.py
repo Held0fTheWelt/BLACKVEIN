@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     ACTION_KINDS,
     ACTION_SILENCE,
     ACTION_SPEAK,
@@ -50,8 +50,8 @@ from ai_stack.director_pulse_contracts import (
     build_player_cut_in_event,
     resolve_cut_kind_for_block_type,
 )
-from ai_stack.director_pulse_shadow import evaluate_director_tick
-from ai_stack.npc_motivation_score_engine import (
+from ai_stack.director.director_pulse_shadow import evaluate_director_tick
+from ai_stack.npc_agency.npc_motivation_score_engine import (
     compute_npc_motivation_scores,
     select_initiative_actor,
 )
@@ -871,41 +871,41 @@ class TestADR0039Guardrails:
             )
 
     def test_no_pi_keys_in_director_pulse_contracts(self):
-        self._assert_no_pi("ai_stack.director_pulse_contracts")
+        self._assert_no_pi("ai_stack.director.director_pulse_contracts")
 
     def test_no_pi_keys_in_npc_motivation_score_engine(self):
-        self._assert_no_pi("ai_stack.npc_motivation_score_engine")
+        self._assert_no_pi("ai_stack.npc_agency.npc_motivation_score_engine")
 
     def test_no_pi_keys_in_director_pulse_shadow(self):
-        self._assert_no_pi("ai_stack.director_pulse_shadow")
+        self._assert_no_pi("ai_stack.director.director_pulse_shadow")
 
     def test_no_hardcoded_npc_ids_in_contracts_module(self):
-        source = self._source("ai_stack.director_pulse_contracts")
+        source = self._source("ai_stack.director.director_pulse_contracts")
         for literal in ("veronique", "michel", "annette", "alain"):
             assert literal not in source, f"Hardcoded NPC ID '{literal}' in contracts module"
 
     def test_no_hardcoded_npc_ids_in_engine_module(self):
-        source = self._source("ai_stack.npc_motivation_score_engine")
+        source = self._source("ai_stack.npc_agency.npc_motivation_score_engine")
         for literal in ("veronique", "michel", "annette", "alain"):
             assert literal not in source, f"Hardcoded NPC ID '{literal}' in engine module"
 
     def test_no_hardcoded_npc_ids_in_shadow_module(self):
-        source = self._source("ai_stack.director_pulse_shadow")
+        source = self._source("ai_stack.director.director_pulse_shadow")
         for literal in ("veronique", "michel", "annette", "alain"):
             assert literal not in source, f"Hardcoded NPC ID '{literal}' in shadow module"
 
     def test_no_verb_or_room_whitelist_in_contracts(self):
-        source = self._source("ai_stack.director_pulse_contracts")
+        source = self._source("ai_stack.director.director_pulse_contracts")
         for term in ("verb_whitelist", "action_whitelist", "room_whitelist"):
             assert term not in source.lower()
 
     def test_no_fixed_speaker_queue_in_contracts(self):
-        source = self._source("ai_stack.director_pulse_contracts")
+        source = self._source("ai_stack.director.director_pulse_contracts")
         for term in ("speaker_queue", "roundtable", "turn_order", "fixed_roster"):
             assert term not in source.lower()
 
     def test_no_speaker_queue_in_engine(self):
-        source = self._source("ai_stack.npc_motivation_score_engine")
+        source = self._source("ai_stack.npc_agency.npc_motivation_score_engine")
         for term in ("speaker_queue", "roundtable", "turn_order", "fixed_roster"):
             assert term not in source.lower()
 
@@ -924,7 +924,7 @@ class TestADR0039Guardrails:
 
     def test_gathering_state_contracts_unchanged(self):
         """Phase-2 concepts must not appear in the PR-C director_gathering_state_contracts module."""
-        import ai_stack.director_gathering_state_contracts as mod
+        import ai_stack.director.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         for term in ("npc_pulse", "pulse_tick", "motivation_score",
                      "block_stream_bus", "event_stream"):

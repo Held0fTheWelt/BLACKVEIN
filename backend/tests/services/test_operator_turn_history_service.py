@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
+from ai_stack.npc_agency.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from app.services.operator_turn_history_service import (
     build_turn_history_summary_for_session,
     operator_diagnostics_surface,

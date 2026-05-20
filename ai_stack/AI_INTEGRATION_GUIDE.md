@@ -31,7 +31,7 @@ Response + AI Diagnostics
 Compiles and runs the LangGraph reasoning pipeline.
 
 ```python
-from ai_stack.langgraph_orchestrator import GameOrchestrator
+from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
 from ai_stack.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
@@ -315,7 +315,7 @@ pytest ai_stack/tests/test_ai_integration_with_session.py -v
 
 ```python
 from ai_stack.tests.test_ai_integration_with_session import MockSessionService
-from ai_stack.langgraph_orchestrator import GameOrchestrator
+from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
 
 # Create a mock world-engine story-session gateway
 mock_session = MockSessionService()

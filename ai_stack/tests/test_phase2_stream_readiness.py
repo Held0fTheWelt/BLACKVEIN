@@ -27,12 +27,12 @@ from ai_stack.block_stream_dual_mode import (
     PHASE2_BLOCK_STREAM_PRIMARY_ENABLED,
     is_primary_enabled,
 )
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     CUT_KIND_EM_DASH,
     CUT_KIND_NO_ACTIVE_BLOCK,
     CUT_KIND_SKIP_TO_END,
 )
-from ai_stack.phase2_stream_readiness import (
+from ai_stack.stream_readiness import (
     PROOF_LEVEL_CANDIDATE,
     PROOF_LEVEL_LOCAL_ONLY,
     PROOF_LEVEL_NONE,

@@ -30,12 +30,12 @@ from typing import Any
 
 import pytest
 
-from ai_stack.phase2_autonomous_tick import (
+from ai_stack.autonomous_tick import (
     AutonomousTickInputs,
     evaluate_autonomous_tick,
 )
-from ai_stack.phase2_off_stage_updates import SAFETY_GATE_RESULTS
-from ai_stack.phase2_stream_readiness import (
+from ai_stack.off_stage_updates import SAFETY_GATE_RESULTS
+from ai_stack.stream_readiness import (
     COMPONENT_SOURCE_MISSING,
     COMPONENT_SOURCE_MODULE_POLICY_DEFAULT,
     COMPONENT_SOURCE_REAL_RUNTIME,
@@ -514,16 +514,16 @@ class TestStageFADR0039Discipline:
     _FORBIDDEN_NPC_LITERALS = ("veronique", "michel", "annette", "alain")
 
     def test_no_pi_keys_in_stage_f_modules(self):
-        from ai_stack import phase2_off_stage_updates, phase2_stream_readiness
-        for mod in (phase2_off_stage_updates, phase2_stream_readiness):
+        from ai_stack import off_stage_updates, stream_readiness
+        for mod in (off_stage_updates, stream_readiness):
             with open(mod.__file__, "r", encoding="utf-8") as fh:
                 src = fh.read()
             for pat in self._PI_PATTERNS:
                 assert not pat.search(src), f"Pi/Π in {mod.__name__}: {pat.pattern}"
 
     def test_no_hardcoded_actor_ids_in_stage_f_modules(self):
-        from ai_stack import phase2_off_stage_updates, phase2_stream_readiness
-        for mod in (phase2_off_stage_updates, phase2_stream_readiness):
+        from ai_stack import off_stage_updates, stream_readiness
+        for mod in (off_stage_updates, stream_readiness):
             with open(mod.__file__, "r", encoding="utf-8") as fh:
                 src = fh.read().lower()
             for literal in self._FORBIDDEN_NPC_LITERALS:

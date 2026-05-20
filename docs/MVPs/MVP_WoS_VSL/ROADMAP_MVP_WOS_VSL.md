@@ -206,7 +206,7 @@ Purpose: Hold authoritative session truth and commit legal state changes.
 Purpose: Interpret input, retrieve context, build dramatic framing, generate candidate output, validate, and commit.
 
 **Existing basis:**
-- `ai_stack/langgraph_runtime.py`
+- `ai_stack/langgraph/langgraph_runtime.py`
 - semantic move interpretation
 - dramatic effect gate
 - scene director logic

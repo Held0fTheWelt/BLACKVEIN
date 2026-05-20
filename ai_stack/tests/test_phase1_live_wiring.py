@@ -24,13 +24,65 @@ from ai_stack.langgraph.langgraph_runtime_executor import (
     _derive_director_subject_actor_id,
     _derive_named_characters_from_state,
     complete_actor_locations_for_gathering,
+    complete_actor_locations_for_gathering_with_optional_w5_projection,
 )
 from ai_stack.langgraph.langgraph_runtime_package_output import package_runtime_graph_output
-from ai_stack.director_gathering_state_contracts import (
+from ai_stack.director.director_gathering_state_contracts import (
     SCHEMA_VERSION,
     compute_gathering_state,
     should_suppress_mandatory_beat_consumption,
 )
+from ai_stack.actor_situation import (
+    W5ActorSituation,
+    W5ActorType,
+    W5Dimension,
+    W5Fact,
+    W5FactStatus,
+    W5FreshnessStatus,
+    W5Snapshot,
+    W5Source,
+    W5TruthLevel,
+    W5VisibilityScope,
+)
+
+
+def _w5_where_fact(actor_id: str, location_id: str, *, turn: int = 4) -> W5Fact:
+    return W5Fact(
+        fact_id=f"w5f_{actor_id}_where",
+        actor_id=actor_id,
+        dimension=W5Dimension.WHERE,
+        key="scene_location",
+        value=location_id,
+        source=W5Source.PARTICIPANT_STATE_MOVE,
+        truth_level=W5TruthLevel.OBSERVED,
+        valid_from_turn=turn,
+        last_confirmed_turn=turn,
+        visibility=W5VisibilityScope.PUBLIC,
+        status=W5FactStatus.ACTIVE,
+    )
+
+
+def _w5_snapshot_for_actor_locations(
+    actor_locations: dict[str, str],
+    *,
+    turn: int = 4,
+) -> dict[str, Any]:
+    return W5Snapshot(
+        snapshot_id=f"w5s_phase3a_{turn}",
+        story_session_id="sess_phase3a",
+        turn_number=turn,
+        created_at=f"w5:turn:{turn}",
+        actors={
+            actor_id: W5ActorSituation(
+                actor_id=actor_id,
+                actor_type=W5ActorType.HUMAN if actor_id == "human_a" else W5ActorType.NPC,
+                where=(_w5_where_fact(actor_id, location_id, turn=turn),),
+                freshness_status=W5FreshnessStatus.FRESH,
+                last_confirmed_turn=turn,
+            )
+            for actor_id, location_id in actor_locations.items()
+        },
+    ).to_dict()
 
 
 class TestDeriveNamedCharactersFromState:
@@ -855,6 +907,214 @@ class TestDirectorPauseWithActorLaneFallback:
         # Topology already flagged human_a as absent — still paused.
         assert result["paused"] is True
         assert "human_a" in result["missing_actor_ids"]
+
+
+class TestW5DirectorProjectionPhase3AParity:
+    def _actor_lane_context(self) -> dict[str, Any]:
+        return {
+            "human_actor_id": "human_a",
+            "npc_actor_ids": ["npc_x", "npc_y"],
+        }
+
+    def _completion_from_w5(
+        self,
+        *,
+        w5_actor_locations: dict[str, str] | None,
+        legacy_actor_locations: dict[str, str] | None = None,
+        free_player_action_resolution: dict[str, Any] | None = None,
+        turn: int = 4,
+    ) -> dict[str, Any]:
+        snapshot = (
+            _w5_snapshot_for_actor_locations(w5_actor_locations, turn=turn)
+            if w5_actor_locations is not None
+            else None
+        )
+        return complete_actor_locations_for_gathering_with_optional_w5_projection(
+            actor_locations=legacy_actor_locations or {},
+            actor_lane_context=self._actor_lane_context(),
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution=free_player_action_resolution
+            or {"action_commit_policy": "commit_action"},
+            environment_current_room_id="gathering_room",
+            w5_latest_snapshot=snapshot,
+            w5_director_projection_enabled=True,
+        )
+
+    def _gathering_state(
+        self,
+        completion: dict[str, Any],
+        *,
+        participation_relevance: str | None = None,
+        visibility_audibility: str | None = None,
+        previous_state: dict[str, Any] | None = None,
+        turn: int = 4,
+    ) -> dict[str, Any]:
+        location_completion = completion["location_completion"]
+        return compute_gathering_state(
+            actor_locations=location_completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id=location_completion["gathering_scene_id"],
+            participation_relevance=participation_relevance,
+            visibility_audibility=visibility_audibility,
+            subject_actor_id="human_a",
+            current_turn_number=turn,
+            previous_state=previous_state,
+        )
+
+    def test_w5_projection_produces_same_actor_locations_as_legacy_completion(self):
+        legacy = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context=self._actor_lane_context(),
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+            environment_current_room_id="gathering_room",
+        )
+        w5 = self._completion_from_w5(
+            w5_actor_locations={"human_a": "gathering_room"},
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+        )
+        assert w5["diagnostics"]["w5_director_projection_used"] is True
+        assert w5["diagnostics"]["derived_actor_locations_source"] == "w5_projection"
+        assert w5["location_completion"]["actor_locations"] == legacy["actor_locations"]
+        assert w5["location_completion"]["gathering_scene_id"] == legacy["gathering_scene_id"]
+
+    def test_w5_and_legacy_feed_compute_gathering_state_with_same_pause_result(self):
+        action = {"target_location": "other_room", "action_commit_policy": "commit_action"}
+        legacy_completion = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context=self._actor_lane_context(),
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution=action,
+            environment_current_room_id="gathering_room",
+        )
+        w5_completion = self._completion_from_w5(
+            w5_actor_locations={"human_a": "gathering_room"},
+            free_player_action_resolution=action,
+        )
+        previous = {
+            "schema_version": SCHEMA_VERSION,
+            "paused": True,
+            "step_id": "gathering_room",
+            "missing_actor_ids": ["human_a"],
+            "since_turn": 2,
+            "presence_required_for_step": ["human_a", "npc_x", "npc_y"],
+            "reason": "required_actor_not_at_scene_location",
+            "source": "actor_topology_derived",
+        }
+        legacy_state = compute_gathering_state(
+            actor_locations=legacy_completion["actor_locations"],
+            current_step_named_characters=["human_a", "npc_x", "npc_y"],
+            current_step_scene_id=legacy_completion["gathering_scene_id"],
+            current_turn_number=4,
+            previous_state=previous,
+        )
+        w5_state = self._gathering_state(w5_completion, previous_state=previous, turn=4)
+        assert w5_state["paused"] == legacy_state["paused"] is True
+        assert w5_state["missing_actor_ids"] == legacy_state["missing_actor_ids"] == ["human_a"]
+        assert w5_state["since_turn"] == legacy_state["since_turn"] == 2
+
+    def test_same_room_participation_break_still_pauses_with_w5_projection(self):
+        completion = self._completion_from_w5(
+            w5_actor_locations={
+                "human_a": "gathering_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            }
+        )
+        result = self._gathering_state(completion, participation_relevance="broken")
+        assert result["paused"] is True
+        assert result["reason"] == "participation_relevance_broken"
+        assert result["missing_actor_ids"] == ["human_a"]
+
+    def test_same_room_visibility_audibility_break_still_pauses_with_w5_projection(self):
+        completion = self._completion_from_w5(
+            w5_actor_locations={
+                "human_a": "gathering_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            }
+        )
+        result = self._gathering_state(completion, visibility_audibility="not_audible")
+        assert result["paused"] is True
+        assert result["reason"] == "visibility_audibility_lost"
+        assert result["missing_actor_ids"] == ["human_a"]
+
+    def test_actor_absence_still_pauses_with_w5_projection(self):
+        completion = self._completion_from_w5(
+            w5_actor_locations={
+                "human_a": "other_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            }
+        )
+        result = self._gathering_state(completion)
+        assert result["paused"] is True
+        assert result["reason"] == "required_actor_not_at_scene_location"
+        assert result["missing_actor_ids"] == ["human_a"]
+
+    def test_actor_return_still_clears_pause_with_w5_projection(self):
+        completion = self._completion_from_w5(
+            w5_actor_locations={
+                "human_a": "gathering_room",
+                "npc_x": "gathering_room",
+                "npc_y": "gathering_room",
+            },
+            turn=6,
+        )
+        previous = {
+            "schema_version": SCHEMA_VERSION,
+            "paused": True,
+            "step_id": "gathering_room",
+            "missing_actor_ids": ["human_a"],
+            "since_turn": 4,
+            "presence_required_for_step": ["human_a", "npc_x", "npc_y"],
+            "reason": "required_actor_not_at_scene_location",
+            "source": "actor_topology_derived",
+        }
+        result = self._gathering_state(completion, previous_state=previous, turn=6)
+        assert result["paused"] is False
+        assert result["missing_actor_ids"] == []
+
+    def test_malformed_missing_w5_snapshot_falls_back_to_legacy_and_records_diagnostic(self):
+        result = self._completion_from_w5(
+            w5_actor_locations=None,
+            legacy_actor_locations={"human_a": "gathering_room", "npc_x": "gathering_room"},
+        )
+        assert result["diagnostics"]["w5_director_projection_used"] is False
+        assert result["diagnostics"]["w5_director_projection_failed"] == "missing_w5_latest_snapshot"
+        assert result["diagnostics"]["derived_actor_locations_source"] == "legacy"
+        assert result["diagnostics"]["gathering_pause_source"] == "legacy"
+        assert result["location_completion"]["actor_locations"] == {
+            "human_a": "gathering_room",
+            "npc_x": "gathering_room",
+            "npc_y": "gathering_room",
+        }
+
+    def test_w5_director_projection_disabled_is_legacy_identical(self):
+        legacy = complete_actor_locations_for_gathering(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context=self._actor_lane_context(),
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+            environment_current_room_id="gathering_room",
+        )
+        result = complete_actor_locations_for_gathering_with_optional_w5_projection(
+            actor_locations={"human_a": "gathering_room"},
+            actor_lane_context=self._actor_lane_context(),
+            current_step_scene_id="gathering_room",
+            selected_human_actor_id="human_a",
+            free_player_action_resolution={"action_commit_policy": "commit_action"},
+            environment_current_room_id="gathering_room",
+            w5_latest_snapshot={"malformed": "ignored_when_disabled"},
+            w5_director_projection_enabled=False,
+        )
+        assert result["location_completion"] == legacy
+        assert result["diagnostics"] == {}
+        assert result["w5_projection"] is None
 
 
 class TestPhase1DiagnosticExposure:

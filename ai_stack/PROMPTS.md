@@ -227,7 +227,7 @@ Invalid prompts raise `ValueError` on validation, preventing corruption.
 ### Usage Pattern
 
 ```python
-from ai_stack.langgraph_agent_nodes import initialize_state, reason_decision
+from ai_stack.langgraph.langgraph_agent_nodes import initialize_state, reason_decision
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
 catalog = CanonicalPromptCatalog()
@@ -316,5 +316,5 @@ except ValueError as e:
 
 - **Implementation:** `ai_stack/canonical_prompt_catalog.py`
 - **Tests:** `ai_stack/tests/test_canonical_prompt_catalog.py`
-- **LangGraph Integration:** `ai_stack/langgraph_agent_nodes.py`
-- **Orchestrator:** `ai_stack/langgraph_orchestrator.py`
+- **LangGraph Integration:** `ai_stack/langgraph/langgraph_agent_nodes.py`
+- **Orchestrator:** `ai_stack/langgraph/langgraph_orchestrator.py`

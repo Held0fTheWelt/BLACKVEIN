@@ -11,12 +11,12 @@
 
 | Piece | Location |
 |-------|----------|
-| Turn graph executor | `ai_stack/langgraph_runtime.py` |
+| Turn graph executor | `ai_stack/langgraph/langgraph_runtime.py` |
 | GoC (God of Carnage) YAML / seams | `ai_stack/goc_yaml_authority.py`, `goc_turn_seams.py`, `scene_director_goc.py` |
 | RAG | `ai_stack/rag/__init__.py` |
 | LangChain bridge | `ai_stack/langchain_integration/` |
 | Capabilities | `ai_stack/capabilities.py` |
-| Research / canon improvement | `ai_stack/research_langgraph.py`, `research_store.py`, `canon_improvement_engine.py` |
+| Research / canon improvement | `ai_stack/langgraph/research_langgraph.py`, `research_store.py`, `canon_improvement_engine.py` |
 | MCP operator server | `tools/mcp_server/server.py`, `ai_stack/mcp_canonical_surface.py` |
 
 **Normative slice contracts:** [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from ai_stack.npc_agency_contracts import dedupe_strings, is_forbidden_actor_id
+from ai_stack.npc_agency.npc_agency_contracts import dedupe_strings, is_forbidden_actor_id
 from ai_stack.relationship_state_contracts import (
     RELATIONSHIP_STATE_FAILURE_CODES,
     RELATIONSHIP_STATE_SCHEMA_VERSION,

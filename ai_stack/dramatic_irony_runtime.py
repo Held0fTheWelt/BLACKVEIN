@@ -25,7 +25,7 @@ from ai_stack.dramatic_irony_contracts import (
     KnowledgeFact,
     normalize_dramatic_irony_policy,
 )
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     canonical_actor_id,
     coerce_dict_rows,
     dedupe_strings,

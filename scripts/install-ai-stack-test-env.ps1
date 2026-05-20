@@ -20,7 +20,7 @@ Write-Host "Repo:  $Root"
 & $Python -m pip install -e "./ai_stack[test]"
 
 Write-Host "Verifying heavy stack (same imports as langgraph_runtime)..."
-& $Python -c "import langchain_core, langgraph; import ai_stack.langgraph_runtime; print('OK: langchain_core, langgraph, ai_stack.langgraph_runtime')"
+& $Python -c "import langchain_core, langgraph; import ai_stack.langgraph.langgraph_runtime; print('OK: langchain_core, langgraph, ai_stack.langgraph.langgraph_runtime')"
 
 Write-Host ""
 Write-Host "Run tests:"

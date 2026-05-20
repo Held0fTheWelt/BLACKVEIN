@@ -1,6 +1,6 @@
 """Phase 2 — WebSocket Session Loop pure-helper tests.
 
-Tests for ai_stack/phase2_ws_session_loop.py:
+Tests for ai_stack/ws_session_loop.py:
 * feature-flag is_ws_session_loop_enabled (fail-closed)
 * WSSessionLoopState transitions
 * apply_cut_in semantics per block type (em_dash / skip_to_end / no_active_block)
@@ -8,7 +8,7 @@ Tests for ai_stack/phase2_ws_session_loop.py:
 * cut_in_state_for_kind mapping
 
 No WebSocket transport in these tests — that lives in
-world-engine/tests/test_phase2_ws_session_loop_endpoint.py.
+world-engine/tests/test_ws_session_loop_endpoint.py.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_ACTION,
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,
@@ -36,7 +36,7 @@ from ai_stack.director_pulse_contracts import (
     SCHEMA_PLAYER_CUT_IN_EVENT,
     build_block_stream_event,
 )
-from ai_stack.phase2_ws_session_loop import (
+from ai_stack.ws_session_loop import (
     CLIENT_MSG_CUT_IN,
     CLIENT_MSG_PING,
     CLIENT_MSG_START_TURN,
@@ -973,9 +973,9 @@ class TestAdr0039Discipline:
         assert "Π" not in flat
 
     def test_no_fixed_speaker_routing_terms_in_module_source(self):
-        from ai_stack import phase2_ws_session_loop
+        from ai_stack import ws_session_loop
 
-        with open(phase2_ws_session_loop.__file__, "r", encoding="utf-8") as fh:
+        with open(ws_session_loop.__file__, "r", encoding="utf-8") as fh:
             source = fh.read().lower()
         for term in ("speaker_queue", "round_robin", "turn_order", "fixed_roster"):
             assert term not in source

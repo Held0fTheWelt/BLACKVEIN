@@ -145,7 +145,7 @@ def assert_profile_contains_no_story_truth(profile_dict: dict) -> bool:
 ### Task 2.1: P02 — Actor-Lane Validator Seam 1 (Langgraph)
 
 **Owner**: AI Stack Lead  
-**Files**: `ai_stack/langgraph_runtime.py`, `langgraph_runtime_executor.py`
+**Files**: `ai_stack/langgraph/langgraph_runtime.py`, `langgraph_runtime_executor.py`
 
 **Deliverables**:
 - [ ] `ActorLaneContext` passed through langgraph node signatures
@@ -154,7 +154,7 @@ def assert_profile_contains_no_story_truth(profile_dict: dict) -> bool:
 
 **Implementation**:
 ```python
-# ai_stack/langgraph_runtime.py — node signature
+# ai_stack/langgraph/langgraph_runtime.py — node signature
 def story_turn_node(state: dict) -> dict:
     """AI turn generation with early actor-lane enforcement."""
     actor_lane_context = state.get("actor_lane_context")  # Threaded from bootstrap

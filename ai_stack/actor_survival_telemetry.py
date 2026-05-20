@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
-from ai_stack.npc_agency_realization import build_npc_initiative_realization
+from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency.npc_agency_realization import build_npc_initiative_realization
 from ai_stack.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
     DEGRADATION_SIGNAL_FALLBACK_USED,

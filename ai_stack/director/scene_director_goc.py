@@ -23,7 +23,7 @@ from ai_stack.goc_yaml_authority import (
     scene_assessment_phase_hints,
     scene_guidance_snippets,
 )
-from ai_stack.scene_direction_subdecision_matrix import assert_subdecision_label_in_matrix
+from ai_stack.director.scene_direction_subdecision_matrix import assert_subdecision_label_in_matrix
 from ai_stack.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from ai_stack.silence_negative_space_contract import (
     build_silence_negative_space_decision,

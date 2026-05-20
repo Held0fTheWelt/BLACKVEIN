@@ -8,7 +8,7 @@
 
 MVP1 established that the player selects `annette` or `alain` and that the unselected canonical characters become NPC dramatic actors. However, there was no mechanism preventing the AI from generating lines, actions, emotional states, or decisions for the selected human actor. The AI had authority over all actor output slots, including the human player's slot.
 
-Additionally, the responder nomination seam (`build_responder_and_function()` in `ai_stack/scene_director_goc.py`) had no guard preventing the human actor from being nominated as a scene responder — an AI-generated response that would silently puppet the player.
+Additionally, the responder nomination seam (`build_responder_and_function()` in `ai_stack/director/scene_director_goc.py`) had no guard preventing the human actor from being nominated as a scene responder — an AI-generated response that would silently puppet the player.
 
 ## Decision
 
@@ -33,7 +33,7 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 - `world-engine/app/runtime/models.py` — `ActorLaneContext`, `ActorLaneValidationResult`
 - `world-engine/app/runtime/actor_lane.py` — `build_actor_lane_context()`, `validate_actor_lane_output()`, `validate_responder_plan()`
 - `ai_stack/goc_turn_seams.py` — `_check_human_actor_violations()`, `run_validation_seam()` extended with `actor_lane_context`
-- `ai_stack/scene_director_goc.py` — `build_responder_and_function()` (responder nomination seam — receives validation in MVP3)
+- `ai_stack/director/scene_director_goc.py` — `build_responder_and_function()` (responder nomination seam — receives validation in MVP3)
 
 ## Consequences
 

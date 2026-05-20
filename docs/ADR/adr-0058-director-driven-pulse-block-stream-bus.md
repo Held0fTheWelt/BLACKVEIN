@@ -243,7 +243,7 @@ over the WS session loop (Stage D), the Director MAY emit *one*
 autonomous NPC block when motivation scoring promotes an initiative
 actor. Stage E does **not** replace Stage D; it composes on top.
 
-**New module:** `ai_stack/phase2_autonomous_tick.py`
+**New module:** `ai_stack/autonomous_tick.py`
 
 - `AutonomousTickInputs` — pure inputs (trigger kind, NPCs, capability
   outputs, pacing policy, gathering_paused, cooldown timestamp).
@@ -390,7 +390,7 @@ Stage F preserves every Stage E surface and gate. It adds three things:
    supplied this tick.
 
 3. **Off-stage update scaffold.** A new pure module
-   `ai_stack/phase2_off_stage_updates.py` builds *candidate*
+   `ai_stack/off_stage_updates.py` builds *candidate*
    relationship and hierarchical-memory updates from autonomous ticks
    that target an NPC outside the visible scene. The scaffold:
 
@@ -447,10 +447,10 @@ names.
 - ADR-0039 — No Pi/Π runtime keys
 - ADR-0059 — Semantic NPC Motivation Score
 - ADR-0060 — Souffleuse Inner Voice Composition
-- Table B anti-hardcoding gate — `phase2_stream_readiness.py`,
+- Table B anti-hardcoding gate — `stream_readiness.py`,
   `block_stream_dual_mode.py`, `npc_motivation_score_engine.py`,
   `director_pulse_contracts.py`, `director_pulse_shadow.py`,
-  `phase2_ws_session_loop.py`, `phase2_autonomous_tick.py` registered as
+  `ws_session_loop.py`, `autonomous_tick.py` registered as
   canonical surfaces for `scene_energy`, `narrative_momentum`, and
   `pacing_rhythm` aspects
 - Stage D anti-hardcoding: cut-in semantics are block-type-driven via
@@ -504,7 +504,7 @@ names.
   semantic provider returns text only — the safety gates are owned
   by this module; no hardcoded actor IDs, NPC lines, or assistant
   phrasing anywhere in the dispatcher
-- Stage M canonical-surface registration: `phase2_ws_session_loop.py`
+- Stage M canonical-surface registration: `ws_session_loop.py`
   is the registered Stage-M canonical surface in
   `SCENE_ENERGY_CANONICAL_SURFACES` and
   `INFORMATION_DISCLOSURE_CANONICAL_SURFACES`
@@ -526,7 +526,7 @@ preview scaffold. Stage F still produces every candidate; Stage G adds the
 mechanics that route an accepted candidate to the existing safe
 relationship-state / hierarchical-memory commit surfaces.
 
-**New entry points:** `ai_stack/phase2_off_stage_updates.py`
+**New entry points:** `ai_stack/off_stage_updates.py`
 
 - `OffStageCommitInputs` — per-call policy + targets. Plain data only;
   the caller (autonomous-tick coordinator or test) supplies the
@@ -582,7 +582,7 @@ loop step still passes the Stage-E pre-check, the cooldown clock has
 advanced enough between iterations, and no player cut-in has been
 queued.
 
-**New entry points:** `ai_stack/phase2_autonomous_tick.py`
+**New entry points:** `ai_stack/autonomous_tick.py`
 
 - `AutonomousPauseLoopInputs` — pure inputs (`tick_inputs`,
   `loop_trigger_kind`, optional `max_ticks_per_pause` override,
@@ -627,7 +627,7 @@ without mutating mid-turn graph state. Stage I is the "future events only"
 boundary that mid-turn graph mutation (a future-work item) will need to
 respect.
 
-**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+**New entry points:** `ai_stack/ws_session_loop.py`
 
 - `build_replanning_request(...)` — `replanning_request.v1`. Captures
   the delivery boundary at the cut moment (committed event IDs,
@@ -676,7 +676,7 @@ Stage K adds the immediate Director handoff that promotes a queued
 player cut-in into the next turn's authoritative trigger, while pausing
 any in-progress autonomous-pause loop.
 
-**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+**New entry points:** `ai_stack/ws_session_loop.py`
 
 - `build_player_cut_in_handoff(...)` — `player_cut_in_handoff.v1`.
   Carries `handoff_id`, the originating `cut_in_id`, the
@@ -711,7 +711,7 @@ silence is the right answer). It also constructs the future-only follow-up
 event that the WS transport then streams (Stage L+M jointly own the
 follow-up event shape).
 
-**New entry points:** `ai_stack/phase2_ws_session_loop.py`
+**New entry points:** `ai_stack/ws_session_loop.py`
 
 - `build_post_cut_in_replanning_decision(...)` —
   `post_cut_in_replanning_decision.v1`. Carries the source handoff

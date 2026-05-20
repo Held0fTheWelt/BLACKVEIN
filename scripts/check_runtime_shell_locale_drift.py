@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
     ROOT / "world-engine" / "app" / "story_runtime" / "manager.py",
-    ROOT / "ai_stack" / "langgraph_runtime_executor.py",
+    ROOT / "ai_stack" / "langgraph" / "langgraph_runtime_executor.py",
 ]
 # Phrases that previously lived inline and must now come only from content/modules/.../locale/
 BANNED = [

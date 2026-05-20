@@ -3,7 +3,7 @@ Explicit scene-direction subdecision matrix for GoC (roadmap §4.2, gate
 G4).
 
 Machine-readable source of truth for frozen subdecision labels and G4
-seam metadata. Must stay consistent with ``ai_stack.scene_director_goc``
+seam metadata. Must stay consistent with ``ai_stack.director.scene_director_goc``
 and ``ai_stack.goc_frozen_vocab``.
 """
 
@@ -157,22 +157,22 @@ SCENE_DIRECTION_SUBDECISION_ROWS: Final[list[dict[str, Any]]] = (
     _rows_for_frozen_set(
         category="scene_function",
         members=SCENE_FUNCTIONS,
-        impl_ref="ai_stack.scene_director_goc:build_responder_and_function",
+        impl_ref="ai_stack.director.scene_director_goc:build_responder_and_function",
     )
     + _rows_for_frozen_set(
         category="pacing_mode",
         members=PACING_MODES,
-        impl_ref="ai_stack.scene_director_goc:build_pacing_and_silence",
+        impl_ref="ai_stack.director.scene_director_goc:build_pacing_and_silence",
     )
     + _rows_for_frozen_set(
         category="silence_brevity_mode",
         members=SILENCE_BREVITY_MODES,
-        impl_ref="ai_stack.scene_director_goc:build_pacing_and_silence",
+        impl_ref="ai_stack.director.scene_director_goc:build_pacing_and_silence",
     )
     + _rows_for_frozen_set(
         category="continuity_class",
         members=CONTINUITY_CLASSES,
-        impl_ref="ai_stack.scene_director_goc:prior_continuity_classes,build_responder_and_function",
+        impl_ref="ai_stack.director.scene_director_goc:prior_continuity_classes,build_responder_and_function",
     )
     + _rows_for_frozen_set(
         category="visibility_class",

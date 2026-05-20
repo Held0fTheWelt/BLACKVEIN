@@ -86,7 +86,7 @@ MVP 3 consumes runtime state provenance, human/NPC actor lanes, canonical conten
 - `world-engine/app/runtime/object_admission.py` or create equivalent — object/source-kind validator.
 - `world-engine/app/runtime/state_delta.py` or create equivalent — protected path and whitelist enforcement.
 - `ai_stack/goc_turn_seams.py` — visible output/proposal packaging seam.
-- `ai_stack/langgraph_runtime.py` — graph construction and story turn path.
+- `ai_stack/langgraph/langgraph_runtime.py` — graph construction and story turn path.
 - `world-engine/app/story/scene_director_goc.py` or equivalent — responder nomination call site.
 - `tests/` — existing runtime, ai_stack, and world-engine tests.
 
@@ -710,7 +710,7 @@ world-engine/app/runtime/manager.py
 world-engine/app/runtime/models.py
 world-engine/app/api/http.py
 ai_stack/goc_turn_seams.py
-ai_stack/langgraph_runtime.py
+ai_stack/langgraph/langgraph_runtime.py
 world-engine/app/story/scene_director_goc.py
 tests/run_tests.py
 .github/workflows/*.yml

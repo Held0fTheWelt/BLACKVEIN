@@ -24,7 +24,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     ACTION_SILENCE,
     ACTION_SPEAK,
     CAPABILITY_NAME_ACTOR_PRESSURE_PROFILES,
@@ -48,7 +48,7 @@ from ai_stack.director_pulse_contracts import (
     resolve_cut_kind_for_block_type,
     CUT_KIND_EM_DASH,
 )
-from ai_stack.npc_motivation_score_engine import (
+from ai_stack.npc_agency.npc_motivation_score_engine import (
     compute_npc_motivation_scores,
     select_initiative_actor,
 )

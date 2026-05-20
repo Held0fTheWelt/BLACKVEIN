@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
 )

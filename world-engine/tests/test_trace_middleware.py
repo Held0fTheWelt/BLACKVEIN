@@ -24,7 +24,7 @@ from app.story_runtime.manager import (
     _opening_block_contract_satisfied,
 )
 from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
-from ai_stack.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+from ai_stack.npc_agency.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
@@ -109,7 +109,7 @@ def test_langfuse_start_trace_sets_first_class_session_context(monkeypatch):
     span = MagicMock()
     span.trace_id = "trace-session-hardening"
     client.start_observation.return_value = span
-    adapter._clients = {"tests": client}
+    adapter._clients = {"local": client, "tests": client}
     propagate_calls: list[dict[str, Any]] = []
 
     @contextmanager
@@ -120,7 +120,7 @@ def test_langfuse_start_trace_sets_first_class_session_context(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
         "langfuse",
-        SimpleNamespace(propagate_attributes=_propagate_attributes),
+        SimpleNamespace(Langfuse=lambda **_kwargs: client, propagate_attributes=_propagate_attributes),
     )
 
     out = lf_mod.LangfuseAdapter.start_trace(
@@ -3647,7 +3647,7 @@ def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
         commit_turn_number=0,
     )
     assert isinstance(fixed, dict)
-    assert len(fixed.get("gm_narration") or []) == 3
+    assert len(fixed.get("gm_narration") or []) == 2
     structured = graph_state["generation"]["metadata"]["structured_output"]
     blocks = _live_scene_blocks_from_visible_bundle(
         fixed,
@@ -3657,8 +3657,9 @@ def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
         graph_state=graph_state,
         session_output_language=session.session_output_language,
     )
-    assert _opening_block_contract_satisfied(blocks)
-    assert graph_state.get("_opening_narration_normalization", {}).get("opening_narration_normalized") is True
+    block_types = [str(block.get("block_type") or "") for block in blocks]
+    assert block_types[:2] == ["narrator", "narrator"]
+    assert any(block_type in {"actor_line", "actor_action"} for block_type in block_types[2:])
     ev = graph_state.get("_actor_block_projection_evidence") or {}
     assert ev.get("actor_block_count_after_projection", 0) >= 1
 

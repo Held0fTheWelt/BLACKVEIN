@@ -119,9 +119,9 @@ Evidence:
 - Backend service calls world-engine `/api/story/sessions/{session_id}/turns`, in `backend/app/services/game_service.py`, lines 370-387.
 - World-engine route calls `manager.execute_turn`, in `world-engine/app/api/http.py`, lines 540-627.
 - `StoryRuntimeManager._execute_turn_locked` calls `self.turn_graph.run(...)` and passes `actor_lane_context=self._extract_actor_lane_context(session)`, in `world-engine/app/story_runtime/manager.py`, lines 2318-2365.
-- `RuntimeTurnGraphExecutor` defines the graph nodes from input interpretation through retrieval, model invocation, validation, commit, render, and package output, in `ai_stack/langgraph_runtime_executor.py`, lines 999-1038.
-- The graph invokes the compiled LangGraph with `self._graph.invoke(initial_state)`, in `ai_stack/langgraph_runtime_executor.py`, line 1156.
-- The model invocation uses `invoke_runtime_adapter_with_langchain` only if a provider adapter is registered, in `ai_stack/langgraph_runtime_executor.py`, lines 1885-1920; otherwise it records `adapter_not_registered:<provider>` and does not call LangChain, in lines 1950-1958.
+- `RuntimeTurnGraphExecutor` defines the graph nodes from input interpretation through retrieval, model invocation, validation, commit, render, and package output, in `ai_stack/langgraph/langgraph_runtime_executor.py`, lines 999-1038.
+- The graph invokes the compiled LangGraph with `self._graph.invoke(initial_state)`, in `ai_stack/langgraph/langgraph_runtime_executor.py`, line 1156.
+- The model invocation uses `invoke_runtime_adapter_with_langchain` only if a provider adapter is registered, in `ai_stack/langgraph/langgraph_runtime_executor.py`, lines 1885-1920; otherwise it records `adapter_not_registered:<provider>` and does not call LangChain, in lines 1950-1958.
 - The LangChain bridge calls `adapter.generate(...)` and parses the structured output, in `ai_stack/langchain_integration/bridges.py`, lines 241-323.
 
 ---
@@ -186,9 +186,9 @@ Diagnostics must expose why output is missing. Empty output must not be represen
 | Frontend opening render | Render opening if present | Renders `story_entries`; if empty, shows placeholder | `frontend/templates/session_shell.html` 51-135 | `implemented` |
 | Create response opening render | Use opening returned by create-session | Frontend ignores create response content and redirects only by run id | `frontend/app/routes_play.py` 881-885 | `opening-returned-not-rendered-at-create` |
 | First player turn | Reach manager execute_turn | Source path reaches manager if backend/world-engine calls succeed | `backend/app/api/v1/game_routes.py` 651-658; `world-engine/app/api/http.py` 602-627 | `implemented-by-source` |
-| Runtime graph execution | Graph runs and calls model | Player turns call graph; model call depends on registered adapter | `world-engine/app/story_runtime/manager.py` 2346-2365; `ai_stack/langgraph_runtime_executor.py` 1885-1958 | `partial-live / provider-unproven` |
-| Model/provider call | Real provider adapter selected | Code calls LangChain only if adapter is registered; otherwise adapter-not-registered path | `ai_stack/langgraph_runtime_executor.py` 1885-1920, 1950-1958 | `unproven` |
-| Validation/commit | AI proposal validated before commit | Graph contains validation and commit seams | `ai_stack/langgraph_runtime_executor.py` 2297-2309, 2404-2440 | `implemented-by-source` |
+| Runtime graph execution | Graph runs and calls model | Player turns call graph; model call depends on registered adapter | `world-engine/app/story_runtime/manager.py` 2346-2365; `ai_stack/langgraph/langgraph_runtime_executor.py` 1885-1958 | `partial-live / provider-unproven` |
+| Model/provider call | Real provider adapter selected | Code calls LangChain only if adapter is registered; otherwise adapter-not-registered path | `ai_stack/langgraph/langgraph_runtime_executor.py` 1885-1920, 1950-1958 | `unproven` |
+| Validation/commit | AI proposal validated before commit | Graph contains validation and commit seams | `ai_stack/langgraph/langgraph_runtime_executor.py` 2297-2309, 2404-2440 | `implemented-by-source` |
 | Response render | Return committed visible output to frontend | Backend returns `story_entries` from state; JS renders them | `backend/app/api/v1/game_routes.py` 249-280; `frontend/static/play_shell.js` 415-425 | `implemented-if-state-has-entries` |
 
 ---
@@ -205,7 +205,7 @@ Diagnostics must expose why output is missing. Empty output must not be represen
 | D-006 | `FRONTEND_EMPTY_RENDER` / `RESPONSE_PACKAGING_EMPTY` | `HIGH` | Frontend/backend shell | `backend/app/api/v1/game_routes.py` 267-270; `frontend/templates/session_shell.html` 133-135; `frontend/static/play_shell.js` 275-278 | `_player_session_bundle`, `session_shell.html`, `renderEntries` | Backend marks `runtime_session_ready=True` and `can_execute=True` even if `story_entries` is empty; frontend displays placeholder | Empty opening must block live-ready status or surface a hard diagnostic, not a playable shell | Shell appears live but empty | Compute readiness from `story_window.entry_count > 0` for new sessions; expose empty-output reason | Gate that empty `story_entries` cannot return `can_execute=True` on new GoC session |
 | D-007 | `BACKEND_WORLD_ENGINE_BOUNDARY_BROKEN` | `BLOCKER` | Backend service payload | `backend/app/services/game_service.py` 353-360, 377-380 | `create_story_session`, `execute_story_turn` | Session create sends no explicit actor state; turn execution sends only `player_input` | Story session create must carry runtime profile/actor state; turn may rely on stored session only if stored session is complete | Story runtime cannot know human/NPC lanes if create payload was thin | Enrich create payload/projection; verify stored session projection | Integration test captures outbound `/api/story/sessions` payload |
 | D-008 | `LDSS_NOT_WIRED` | `MEDIUM` | Narrative streaming | `world-engine/app/story_runtime/manager.py` 2022-2051; `frontend/static/play_narrative_stream.js` 17-19, 254-279; `frontend/app/routes_play.py` 998-1009 | `_orchestrate_narrative_agent`, `detectNarratorStreamingFromResponse`, `play_execute` | World-engine turn may set `narrator_streaming`, but frontend JSON response does not include it; SSE endpoint path is `/api/story/...` on frontend origin and is not proxied by `/api/v1` proxy | If narrator streaming is part of live mode, backend/frontend must forward `narrator_streaming` and route SSE to world-engine correctly | Live narrator stream cannot start from normal player turn response | Add backend bundle surface for `narrator_streaming`; add frontend proxy or public play-service URL usage | Browser test that player turn with `narrator_streaming` opens correct EventSource URL |
-| D-009 | `PROVIDER_ROUTE_DISABLED` | `HIGH` | AI stack / governed config | `world-engine/app/story_runtime/manager.py` 1279-1327; `ai_stack/langgraph_runtime_executor.py` 1885-1958 | `_apply_runtime_components`, `_invoke_model` | Missing/invalid governed config blocks live execution; missing provider adapter skips LangChain and records adapter-not-registered | Live path must have enabled provider/model or fail clearly | Could appear as no live AI output or 503 depending path | Verify resolved runtime config and provider health in running stack | Gate that runtime config has enabled non-mock provider/model for live route, or fails closed with visible error |
+| D-009 | `PROVIDER_ROUTE_DISABLED` | `HIGH` | AI stack / governed config | `world-engine/app/story_runtime/manager.py` 1279-1327; `ai_stack/langgraph/langgraph_runtime_executor.py` 1885-1958 | `_apply_runtime_components`, `_invoke_model` | Missing/invalid governed config blocks live execution; missing provider adapter skips LangChain and records adapter-not-registered | Live path must have enabled provider/model or fail clearly | Could appear as no live AI output or 503 depending path | Verify resolved runtime config and provider health in running stack | Gate that runtime config has enabled non-mock provider/model for live route, or fails closed with visible error |
 | D-010 | `TEST_FALSE_GREEN` | `HIGH` | Tests | `frontend/tests/test_routes_extended.py` 367-489; `world-engine/tests/test_story_window_projection.py` 6-93; `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` 595-615 | Mock rendering tests, projection tests, structural tests | Tests prove mocked entries or source strings, not live create→opening→render | Tests must exercise real frontend→backend→world-engine path with non-empty committed opening | Green tests do not protect live runtime | Add true gate after repair; label existing tests accurately | E2E test from `/play/start` through `/play/<run_id>` with real story window |
 | D-011 | `VISITOR_LEGACY_LEAK` | `LOW` | Residual local world-engine web UI | `world-engine/app/web/static/app.js` 289-293; `world-engine/app/web/templates/index.html` 26-33 | Local web bootstrap placeholders | Local demo UI still contains `char:hollywood:visitor` placeholder | Visitor must not appear in story actor, runtime actor, prompt participant, or lobby seat; cosmetic demo placeholders should also be cleaned to avoid confusion | Confusing legacy artifact; not proven to affect canonical player path | Remove/rename demo placeholders; keep canonical live path visitor-free | Static grep gate for visitor in live UI/launch paths, with explicit allowlist if needed |
 | D-012 | `DOC_STALE` | `MEDIUM` | Docs/reports/tests comments | `backend/tests/test_e2e_god_of_carnage_full_lifecycle.py` 1-17; `world-engine/tests/test_mvp4_diagnostics_integration.py` 1-5 | Test docstrings | Some claims say real runtime/full lifecycle while tests use legacy in-process services or mocks | Docs/tests must describe what they actually prove | Audits get misled by green tests | Update docs after code repair; do not treat these claims as proof now | Doc drift gate comparing claims to actual covered route |
@@ -270,12 +270,12 @@ No live profile-path evidence shows `visitor` being mapped as a story actor. The
 | World-engine route receives | `/api/story/sessions/{session_id}/turns` calls `manager.execute_turn` | `world-engine/app/api/http.py` 602-627 | `implemented` |
 | Manager executes | `StoryRuntimeManager._execute_turn_locked` calls `self.turn_graph.run` | `world-engine/app/story_runtime/manager.py` 2346-2365 | `implemented-by-source` |
 | Actor context passed | Manager passes `_extract_actor_lane_context(session)` | `world-engine/app/story_runtime/manager.py` 2364 | `broken-if-projection-missing-actor-fields` |
-| Graph runs | Graph node chain includes interpret, retrieve, route, invoke, validate, commit, render, package | `ai_stack/langgraph_runtime_executor.py` 999-1038 | `implemented-by-source` |
-| Model adapter called | Only if provider adapter is registered | `ai_stack/langgraph_runtime_executor.py` 1885-1920 | `provider-unproven` |
+| Graph runs | Graph node chain includes interpret, retrieve, route, invoke, validate, commit, render, package | `ai_stack/langgraph/langgraph_runtime_executor.py` 999-1038 | `implemented-by-source` |
+| Model adapter called | Only if provider adapter is registered | `ai_stack/langgraph/langgraph_runtime_executor.py` 1885-1920 | `provider-unproven` |
 | LangChain bridge called | Bridge calls adapter and parser | `ai_stack/langchain_integration/bridges.py` 241-323 | `implemented-if-adapter-registered` |
-| Adapter missing | Records `adapter_not_registered` and does not call LangChain | `ai_stack/langgraph_runtime_executor.py` 1950-1958 | `fallback/degraded-risk` |
-| Validation | Actor lane context passed into `run_validation_seam` only if present | `ai_stack/langgraph_runtime_executor.py` 2297-2309 | `partial` |
-| Commit/render | Commit and visible render nodes exist | `ai_stack/langgraph_runtime_executor.py` 2404-2514 | `implemented-by-source` |
+| Adapter missing | Records `adapter_not_registered` and does not call LangChain | `ai_stack/langgraph/langgraph_runtime_executor.py` 1950-1958 | `fallback/degraded-risk` |
+| Validation | Actor lane context passed into `run_validation_seam` only if present | `ai_stack/langgraph/langgraph_runtime_executor.py` 2297-2309 | `partial` |
+| Commit/render | Commit and visible render nodes exist | `ai_stack/langgraph/langgraph_runtime_executor.py` 2404-2514 | `implemented-by-source` |
 | Frontend render | JSON turn response renders returned `story_entries` | `frontend/static/play_shell.js` 415-425 | `implemented-if-response-nonempty` |
 
 **Live turn verdict:** `partial-live`. The source path reaches `RuntimeTurnGraphExecutor` for player turns, but the live model call is unproven without runtime config/provider health, and actor-lane context is broken if the backend continues sending a content-only runtime projection.
@@ -370,7 +370,7 @@ The most important drift found in source-adjacent docs/test docstrings is that t
 
 ### 6. Governed runtime config/provider may block model-backed live turns
 
-- **Evidence:** Missing/invalid governed config sets `live_execution_blocked=True`, in `world-engine/app/story_runtime/manager.py`, lines 1279-1327. Model invocation calls LangChain only if provider adapter exists, in `ai_stack/langgraph_runtime_executor.py`, lines 1885-1958.
+- **Evidence:** Missing/invalid governed config sets `live_execution_blocked=True`, in `world-engine/app/story_runtime/manager.py`, lines 1279-1327. Model invocation calls LangChain only if provider adapter exists, in `ai_stack/langgraph/langgraph_runtime_executor.py`, lines 1885-1958.
 - **Confidence:** Medium without live config/logs.
 - **How to verify:** Call `/api/internal/story/runtime/config-status`, inspect provider/model route, and inspect turn diagnostics for `selected_provider`, `selected_model`, `adapter_invocation_mode`, `adapter_not_registered`, or fallback markers.
 - **Likely repair direction:** Repair runtime config/provider route health and enforce non-empty live output gates.
@@ -536,7 +536,7 @@ curl -i "http://localhost:8001/api/story/sessions/$RUNTIME_SESSION_ID/stream-nar
 ### Wave 4 — Runtime graph/live turn output repair
 
 - **Goal:** Ensure first player turn reaches graph, provider/model, validation, commit, and visible output.
-- **Likely files touched:** governed config loader/routes, `ai_stack/langgraph_runtime_executor.py`, model adapter config.
+- **Likely files touched:** governed config loader/routes, `ai_stack/langgraph/langgraph_runtime_executor.py`, model adapter config.
 - **Tests needed later:** live turn gate with provider/mock policy explicitly declared; fail on diagnostics-only output.
 - **Done criteria:** Diagnostics show graph nodes, provider/model, parser, validation, commit, and non-empty visible output.
 
@@ -609,7 +609,7 @@ The required searches were run under `/mnt/data/repo_frontend`. The highest-sign
 - `world-engine/app/main.py`
 - `world-engine/app/runtime/profiles.py`
 - `world-engine/app/story_runtime/manager.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/langchain_integration/bridges.py`
 - `ai_stack/live_dramatic_scene_simulator.py`
 - `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py`

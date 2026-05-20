@@ -159,9 +159,9 @@ exactly three labels:
 | `module_policy_default` | No structured runtime output was supplied for this component, but the module policy provided a usable default (e.g. weight values from `module.yaml.runtime_intelligence.npc_motivation_score.score_weights`, or actor pressure markers from `actor_pressure_profiles.yaml`). |
 | `missing_signal` | Neither a structured runtime output nor a module-policy default was available; the engine fell back to a neutral mid-range constant (`0.50`). |
 
-Implementation: `ai_stack/phase2_stream_readiness.classify_motivation_component_sources()`.
+Implementation: `ai_stack/stream_readiness.classify_motivation_component_sources()`.
 The autonomous-tick coordinator
-(`ai_stack/phase2_autonomous_tick.AutonomousTickOutcome`) surfaces:
+(`ai_stack/autonomous_tick.AutonomousTickOutcome`) surfaces:
 
 - `motivation_score_component_sources: dict[str, str]` — one label per
   component (`scene_energy`, `social_pressure`,
@@ -219,13 +219,13 @@ threshold. The director tick decision carries
 
 ## Implementation
 
-- `ai_stack/npc_motivation_score_engine.py` — `compute_npc_motivation_scores()` and
+- `ai_stack/npc_agency/npc_motivation_score_engine.py` — `compute_npc_motivation_scores()` and
   `select_initiative_actor()`.
-- `ai_stack/phase2_stream_readiness.py` —
+- `ai_stack/stream_readiness.py` —
   `classify_motivation_component_sources()` and
   `classify_capability_availability()` (Stage F three-tier source
   labelling).
-- `ai_stack/phase2_autonomous_tick.py` — surfaces
+- `ai_stack/autonomous_tick.py` — surfaces
   `motivation_score_component_sources`,
   `capability_outputs_used`, and `capability_outputs_missing` on
   every `AutonomousTickOutcome`.

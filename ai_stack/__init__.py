@@ -116,7 +116,7 @@ except ImportError:
     pass
 
 try:
-    from .langgraph_runtime import (
+    from .langgraph.langgraph_runtime import (
         RuntimeTurnGraphExecutor,
         build_seed_improvement_graph,
         build_seed_writers_room_graph,

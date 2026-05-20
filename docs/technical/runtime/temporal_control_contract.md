@@ -129,8 +129,8 @@ Forbidden primary oracles:
 - `ai_stack/temporal_control_contracts.py`
 - `ai_stack/temporal_control_engine.py`
 - `ai_stack/module_runtime_policy.py`
-- `ai_stack/langgraph_runtime_state.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_state.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `ai_stack/story_runtime_playability.py`
 - `world-engine/app/story_runtime/commit_models.py`

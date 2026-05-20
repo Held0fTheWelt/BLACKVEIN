@@ -10,10 +10,10 @@ import copy
 
 import pytest
 
-from ai_stack.w5_actor_situation.extractor import (
+from ai_stack.actor_situation.extractor import (
     extract_w5_snapshot_from_committed_event,
 )
-from ai_stack.w5_actor_situation.models import (
+from ai_stack.actor_situation.models import (
     W5Dimension,
     W5Source,
     W5TruthLevel,
@@ -173,7 +173,7 @@ def test_observed_what_only_when_event_committed() -> None:
 
 
 def _empty():
-    from ai_stack.w5_actor_situation.models import (
+    from ai_stack.actor_situation.models import (
         W5ActorSituation,
         W5ActorType,
         W5FreshnessStatus,

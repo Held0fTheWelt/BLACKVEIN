@@ -1,5 +1,5 @@
 """
-``ai_stack/langgraph_runtime_executor.py`` — expand purpose, primary
+``ai_stack/langgraph/langgraph_runtime_executor.py`` — expand purpose, primary
 entrypoints, and invariants for maintainers.
 """
 from __future__ import annotations
@@ -124,7 +124,7 @@ from ai_stack.dramatic_irony_runtime import (
     validate_dramatic_irony_realization,
 )
 from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
-from ai_stack.director_capability_manager import executable_capabilities_from_manager_plan
+from ai_stack.director.director_capability_manager import executable_capabilities_from_manager_plan
 from ai_stack.dramatic_capability_contracts import (
     AI_CONTROLLED_HUMAN_ACTOR_REASON,
     NPC_ACTION_GESTURE_OPTIONAL,
@@ -159,7 +159,7 @@ from ai_stack.narrator_consequence_contracts import (
 from ai_stack.narrator_consequence_realization_contracts import (
     build_narrator_consequence_realization,
 )
-from ai_stack.director_gathering_state_contracts import (
+from ai_stack.director.director_gathering_state_contracts import (
     DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
     DIAGNOSTIC_BLOCKER_MISSING_NAMED_CHARACTERS,
     DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
@@ -167,7 +167,10 @@ from ai_stack.director_gathering_state_contracts import (
     gathering_pause_is_transition,
     should_suppress_mandatory_beat_consumption,
 )
-from ai_stack.w5_actor_situation import build_w5_projection_for_director
+from ai_stack.actor_situation import (
+    build_w5_projection_for_director,
+    build_w5_projection_for_npc,
+)
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -185,15 +188,15 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
 )
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_CLOSED_STATUS,
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     npc_actor_ids_from_context,
 )
-from ai_stack.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
+from ai_stack.npc_agency.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
 from ai_stack.legacy_actor_lane_hydration import apply_legacy_structured_hydration
-from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.information_disclosure_engine import (
     derive_information_disclosure,
     validate_information_disclosure_realization,
@@ -268,7 +271,7 @@ from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
 from ai_stack.character_voice_validation import validate_voice_consistency
-from ai_stack.scene_director_goc import (
+from ai_stack.director.scene_director_goc import (
     build_pacing_and_silence,
     build_responder_and_function,
     build_scene_assessment,
@@ -301,7 +304,7 @@ from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 from ai_stack.prompt_store import render_prompt, render_prompt_lines
 from ai_stack.player_action_resolution import resolve_player_action
-from ai_stack.director_realization_composer import (
+from ai_stack.director.director_realization_composer import (
     CAPABILITY_ACTOR_SPEECH,
     CAPABILITY_NARRATOR_CLARIFICATION,
     CAPABILITY_NARRATOR_DEFERRED,
@@ -4006,6 +4009,92 @@ def _preferred_reaction_order_ids_from_responders(responders: list[Any]) -> list
     return ordered
 
 
+def w5_ast_npc_projection_enabled() -> bool:
+    """Fail-closed Phase 3B flag for actor-specific NPC W5 projections."""
+
+    raw = (os.environ.get("W5_AST_NPC_PROJECTION_ENABLED") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _w5_npc_projection_has_inferred_why(projection_payload: dict[str, Any]) -> bool:
+    truth = (
+        projection_payload.get("truth_attribution")
+        if isinstance(projection_payload.get("truth_attribution"), dict)
+        else {}
+    )
+    return any(
+        str(path).startswith("why_summary.") and value == "inferred"
+        for path, value in truth.items()
+    )
+
+
+def _build_w5_npc_projection_inputs(
+    *,
+    state: RuntimeTurnState,
+    npc_actor_ids: list[str],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    if not w5_ast_npc_projection_enabled():
+        return {}, []
+
+    actor_ids: list[str] = []
+    for raw_actor_id in npc_actor_ids:
+        actor_id = str(raw_actor_id or "").strip()
+        if actor_id and actor_id not in actor_ids:
+            actor_ids.append(actor_id)
+    if not actor_ids:
+        return {}, []
+
+    latest_snapshot = state.get("w5_latest_snapshot")
+    projections: dict[str, dict[str, Any]] = {}
+    diagnostics: list[dict[str, Any]] = []
+    for actor_id in actor_ids:
+        diagnostic: dict[str, Any] = {
+            "w5_npc_projection_used": False,
+            "w5_npc_projection_failed": None,
+            "w5_snapshot_id": None,
+            "npc_actor_id": actor_id,
+            "npc_projection_source": "legacy",
+            "npc_projection_has_how": False,
+            "npc_projection_has_inferred_why": False,
+        }
+        try:
+            if latest_snapshot is None:
+                raise ValueError("missing_w5_latest_snapshot")
+            projection = build_w5_projection_for_npc(
+                latest_snapshot,
+                actor_id=actor_id,
+            )
+            payload = projection.to_dict()
+            where_summary = (
+                payload.get("where_summary")
+                if isinstance(payload.get("where_summary"), dict)
+                else {}
+            )
+            how_summary = (
+                payload.get("how_summary")
+                if isinstance(payload.get("how_summary"), dict)
+                else {}
+            )
+            diagnostic.update(
+                {
+                    "w5_npc_projection_used": True,
+                    "w5_snapshot_id": where_summary.get("w5_snapshot_id"),
+                    "npc_projection_source": "w5_projection",
+                    "npc_projection_has_how": bool(
+                        isinstance(how_summary.get("facts"), dict)
+                        and how_summary.get("facts")
+                    ),
+                    "npc_projection_has_inferred_why": _w5_npc_projection_has_inferred_why(payload),
+                }
+            )
+            projections[actor_id] = payload
+        except Exception as exc:
+            text = str(exc).strip()
+            diagnostic["w5_npc_projection_failed"] = text or type(exc).__name__
+        diagnostics.append(diagnostic)
+    return projections, diagnostics
+
+
 def _build_npc_agency_plan_projection(
     *,
     state: RuntimeTurnState,
@@ -4013,9 +4102,14 @@ def _build_npc_agency_plan_projection(
     responder_ids: list[str],
     npc_actor_ids: list[str],
     compact_minds: list[dict[str, Any]],
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+) -> tuple[
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+    list[dict[str, Any]],
+]:
     if not responder_ids and not npc_actor_ids:
-        return None, None, None
+        return None, None, None, []
 
     character_mind_records = (
         state.get("character_mind_records")
@@ -4036,6 +4130,10 @@ def _build_npc_agency_plan_projection(
         False
         if interpreted_input.get("npc_response_expected") is False or navigation_command
         else None
+    )
+    npc_w5_situations, npc_w5_diagnostics = _build_w5_npc_projection_inputs(
+        state=state,
+        npc_actor_ids=npc_actor_ids or responder_ids,
     )
     simulation = build_npc_agency_simulation(
         selected_responder_set=responders,
@@ -4060,6 +4158,7 @@ def _build_npc_agency_plan_projection(
         npc_context_bundle=state.get("npc_context_bundle")
         if isinstance(state.get("npc_context_bundle"), dict)
         else None,
+        npc_w5_situations=npc_w5_situations,
     )
     plan = (
         simulation.get("npc_agency_plan")
@@ -4088,9 +4187,10 @@ def _build_npc_agency_plan_projection(
             npc_context_bundle=state.get("npc_context_bundle")
             if isinstance(state.get("npc_context_bundle"), dict)
             else None,
+            npc_w5_situations=npc_w5_situations,
         )
     if not plan:
-        return None, None, None
+        return None, None, None, npc_w5_diagnostics
     required_actor_ids = list(plan.get("required_actor_ids") or [])
     secondary_ids = list(plan.get("secondary_responder_ids") or [])
     full_simulation = isinstance(simulation, dict)
@@ -4142,7 +4242,7 @@ def _build_npc_agency_plan_projection(
             "initiative_events alone do not close required NPC initiative."
         ),
     }
-    return plan, directives, simulation
+    return plan, directives, simulation, npc_w5_diagnostics
 
 
 def _packet_strings(values: Any, *, limit: int) -> list[str]:
@@ -4289,7 +4389,12 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             }
         )
 
-    npc_agency_plan, npc_initiative_directives, npc_agency_simulation = _build_npc_agency_plan_projection(
+    (
+        npc_agency_plan,
+        npc_initiative_directives,
+        npc_agency_simulation,
+        w5_npc_projection_diagnostics,
+    ) = _build_npc_agency_plan_projection(
         state=state,
         responders=responders,
         responder_ids=responder_ids,
@@ -4790,6 +4895,8 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
     # Collapse to None when all values are empty/None (avoid prompt noise)
     if any(v for v in _pit.values() if v):
         packet["prior_initiative_truth"] = _pit
+    if w5_npc_projection_diagnostics:
+        packet["w5_npc_projection_diagnostics"] = w5_npc_projection_diagnostics
     return packet
 
 
@@ -6788,15 +6895,6 @@ class RuntimeTurnGraphExecutor:
                             "w5_director_projection": _w5_diag_payload,
                         }
                     )
-                if False:
-                    _pr_c_location_completion = complete_actor_locations_for_gathering(
-                    actor_locations=_pr_c_actor_locations_raw,
-                    actor_lane_context=_pr_c_alc,
-                    current_step_scene_id=_pr_c_scene_id,
-                    selected_human_actor_id=_pr_c_subject_actor_id,
-                    free_player_action_resolution=free_player_resolution,
-                    environment_current_room_id=_pr_c_env_current_room_id,
-                    )
                 # --- end actor_locations source resolution ---
                 # gathering_scene_id is room-level, derived from NPC locations.
                 # NPCs do not move in Phase 1 → their location IS the gathering
@@ -8688,7 +8786,7 @@ class RuntimeTurnGraphExecutor:
                 }
             )
 
-        _, _, npc_agency_simulation = _build_npc_agency_plan_projection(
+        _, _, npc_agency_simulation, w5_npc_projection_diagnostics = _build_npc_agency_plan_projection(
             state=state,
             responders=responders,
             responder_ids=responder_ids,
@@ -8697,6 +8795,10 @@ class RuntimeTurnGraphExecutor:
         )
         if isinstance(npc_agency_simulation, dict):
             update["npc_agency_simulation"] = npc_agency_simulation
+        if w5_npc_projection_diagnostics:
+            update.setdefault("graph_diagnostics", {}).update(
+                {"w5_npc_projection": w5_npc_projection_diagnostics}
+            )
 
         scene_plan = (
             dict(state.get("scene_plan_record"))

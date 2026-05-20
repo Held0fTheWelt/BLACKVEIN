@@ -41,7 +41,7 @@ Accepted
   not the implicit runtime default.
 
 **Not yet implemented:**
-- `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
+- `ai_stack/langgraph/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
 - See ADR-0036 Follow-ups section for full list.
 
 ## Date
@@ -200,7 +200,7 @@ Both errors are returned in the standard game API error response format (see `ba
   `session_output_language`; static German story prose in YAML prompts must not
   contradict an English session and must not bypass the output module for German
   sessions.
-- Graph prompt injection: `ai_stack/langgraph_runtime_executor.py` — mirror language directive into all turn prompts, not only the opening prompt (currently only `_build_opening_prompt()` injects it).
+- Graph prompt injection: `ai_stack/langgraph/langgraph_runtime_executor.py` — mirror language directive into all turn prompts, not only the opening prompt (currently only `_build_opening_prompt()` injects it).
 - Langfuse `update_user` verification: confirm `session_output_language` appears on User objects in Langfuse dashboard after live session create.
 
 ## Diagrams
@@ -282,7 +282,7 @@ flowchart TD
 - `world-engine/app/story_runtime/manager.py` — pass language to `_build_opening_prompt()` and downstream consumers
 
 ### AI Stack
-- `ai_stack/langgraph_runtime_executor.py` — inject language directive into prompt context
+- `ai_stack/langgraph/langgraph_runtime_executor.py` — inject language directive into prompt context
 - `ai_stack/diagnostics_envelope.py` — mirror `session_output_language` in diagnostics for observability
 
 ### Observability

@@ -1,7 +1,7 @@
 """Extended tests for scene_director_goc.py — decision paths and edge cases (95%+ coverage)."""
 
 import pytest
-from ai_stack.scene_director_goc import (
+from ai_stack.director.scene_director_goc import (
     GOC_SCENE_ASSESSMENT_MINIMAL_KEYS,
     build_pacing_and_silence,
     build_responder_and_function,
@@ -119,12 +119,12 @@ class TestSeverityIndex:
         """Valid continuity class returns correct index."""
         # First class in severity order
         first_class = CONTINUITY_CLASS_SEVERITY_ORDER[0]
-        from ai_stack.scene_director_goc import _severity_index
+        from ai_stack.director.scene_director_goc import _severity_index
         assert _severity_index(first_class) == 0
 
     def test_severity_index_invalid_class(self):
         """Invalid class returns len(CONTINUITY_CLASS_SEVERITY_ORDER) (line 48)."""
-        from ai_stack.scene_director_goc import _severity_index
+        from ai_stack.director.scene_director_goc import _severity_index
         result = _severity_index("nonexistent_class_xyz")
         assert result == len(CONTINUITY_CLASS_SEVERITY_ORDER)
 
@@ -537,7 +537,7 @@ class TestSemanticRequiredSceneFallback:
     """Scene candidates are driven by semantic move payloads, not keyword lists."""
 
     def test_missing_semantic_move_record_defaults_neutral(self):
-        from ai_stack.scene_director_goc import build_responder_and_function
+        from ai_stack.director.scene_director_goc import build_responder_and_function
 
         _responders, scene_fn, implied, resolution = build_responder_and_function(
             player_input="arbitrary player language",
@@ -553,7 +553,7 @@ class TestSemanticRequiredSceneFallback:
         assert resolution["legacy_keyword_scene_candidates_used"] is False
 
     def test_containment_pacing_still_routes_to_scene_pivot_without_keyword_scan(self):
-        from ai_stack.scene_director_goc import build_responder_and_function
+        from ai_stack.director.scene_director_goc import build_responder_and_function
 
         _responders, scene_fn, implied, resolution = build_responder_and_function(
             player_input="arbitrary player language",
@@ -572,7 +572,7 @@ class TestGocPrimaryResponderFromContext:
 
     def test_responder_from_actor_hint(self):
         """Actor selected from semantic hint (lines 467-470)."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+        from ai_stack.director.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
             text="",
@@ -588,7 +588,7 @@ class TestGocPrimaryResponderFromContext:
 
     def test_raw_player_text_no_longer_selects_responder_by_name(self):
         """Target actors must arrive through semantic_target_actor_hint."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+        from ai_stack.director.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
             text="annette you are wrong",
@@ -603,7 +603,7 @@ class TestGocPrimaryResponderFromContext:
         assert reason != "named_in_player_move"
 
     def test_semantic_hint_selects_veronique(self):
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+        from ai_stack.director.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
             text="véronique what do you think",
@@ -619,7 +619,7 @@ class TestGocPrimaryResponderFromContext:
 
     def test_responder_from_dignity_injury_bias(self):
         """Dignity injury bias applies (lines 486-487)."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+        from ai_stack.director.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
             text="",
@@ -635,7 +635,7 @@ class TestGocPrimaryResponderFromContext:
 
     def test_responder_from_alliance_shift_bias(self):
         """Alliance shift bias applies (lines 488-489)."""
-        from ai_stack.scene_director_goc import _goc_primary_responder_from_context
+        from ai_stack.director.scene_director_goc import _goc_primary_responder_from_context
 
         actor, reason = _goc_primary_responder_from_context(
             text="",
@@ -800,7 +800,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_repair_attempt_continuity(self):
         """Repair attempt continuity selects alain (lines 169-170)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -812,7 +812,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_blame_pressure_continuity(self):
         """Blame pressure continuity selects michel (lines 171-172)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -824,7 +824,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_revealed_fact_continuity(self):
         """Revealed fact continuity selects annette (lines 173-174)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -836,7 +836,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_repair_or_stabilize_function(self):
         """repair_or_stabilize function selects alain (lines 175-176)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -848,7 +848,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_probe_motive_function(self):
         """probe_motive function selects annette (lines 177-178)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -860,7 +860,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_phase_key_extraction(self):
         """Phase key extracted from scene_id (lines 167-168)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -873,7 +873,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_default_phase_2_moral_negotiation(self):
         """Default phase is phase_2_moral_negotiation (line 167)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -886,7 +886,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_phase_key_conditions(self):
         """Phase key conditions are evaluated (lines 179-182)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         # Test with a scene that will evaluate phase keys
         actor, reason = _yaml_default_responder(
@@ -900,7 +900,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_default_fallback(self):
         """Default fallback selects annette (line 184)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -912,7 +912,7 @@ class TestYamlDefaultResponder:
 
     def test_responder_with_character_voice_yaml(self):
         """Character voice extracted from yaml_slice (lines 151-166)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         yaml_slice = {
             "character_voice": {
@@ -1595,7 +1595,7 @@ class TestYamlDefaultResponderMoreVariations:
 
     def test_responder_default_actor_fallback(self):
         """Default actor fallback when no conditions match (line 184)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         actor, reason = _yaml_default_responder(
             yaml_slice=None,
@@ -1608,7 +1608,7 @@ class TestYamlDefaultResponderMoreVariations:
 
     def test_responder_custom_character_voice_roles(self):
         """Character voice roles are extracted (lines 157-166)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         yaml_slice = {
             "character_voice": {
@@ -1630,7 +1630,7 @@ class TestYamlDefaultResponderMoreVariations:
 
     def test_responder_invalid_character_voice_format(self):
         """Invalid character voice format falls back gracefully (line 157)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         yaml_slice = {
             "character_voice": {
@@ -1647,7 +1647,7 @@ class TestYamlDefaultResponderMoreVariations:
 
     def test_responder_characters_yaml_loaded(self):
         """Characters yaml is loaded (line 156)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         yaml_slice = {
             "characters": {
@@ -1666,7 +1666,7 @@ class TestYamlDefaultResponderMoreVariations:
 
     def test_responder_missing_formal_role_uses_default(self):
         """Missing formal_role uses default role (lines 161-166)."""
-        from ai_stack.scene_director_goc import _yaml_default_responder
+        from ai_stack.director.scene_director_goc import _yaml_default_responder
 
         yaml_slice = {
             "character_voice": {

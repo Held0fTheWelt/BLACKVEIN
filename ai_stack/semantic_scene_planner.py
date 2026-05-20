@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from ai_stack.director_capability_manager import (
+from ai_stack.director.director_capability_manager import (
     DIRECTOR_CAPABILITY_MANAGER_PLAN_SCHEMA_VERSION,
     audit_director_capability_paths,
 )

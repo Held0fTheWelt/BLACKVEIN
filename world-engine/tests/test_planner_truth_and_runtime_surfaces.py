@@ -18,7 +18,7 @@ from __future__ import annotations
 from story_runtime_core import ModelRegistry
 
 from ai_stack.dramatic_irony_runtime import build_dramatic_irony_record
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
     NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,

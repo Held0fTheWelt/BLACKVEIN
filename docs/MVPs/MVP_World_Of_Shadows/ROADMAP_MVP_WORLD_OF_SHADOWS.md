@@ -58,7 +58,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
 ### 3.1 Already implemented or materially present
 
 - **Authoritative runtime direction** documented in `docs/ADR/adr-0001-runtime-authority-in-world-engine.md`
-- **LangGraph-based turn runtime** in `ai_stack/langgraph_runtime.py`
+- **LangGraph-based turn runtime** in `ai_stack/langgraph/langgraph_runtime.py`
 - **Bounded dramatic slice contracts** in:
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
@@ -68,7 +68,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `ai_stack/rag.py`
   - `ai_stack/retrieval_governance_summary.py`
 - **Scene direction and dramatic parameter logic** in:
-  - `ai_stack/scene_director_goc.py`
+  - `ai_stack/director/scene_director_goc.py`
   - `ai_stack/semantic_move_interpretation_goc.py`
   - `ai_stack/dramatic_effect_gate.py`
   - `ai_stack/social_state_goc.py`
@@ -291,7 +291,7 @@ Owns:
 Primary implementation anchors:
 
 - `world-engine`
-- `ai_stack/langgraph_runtime.py`
+- `ai_stack/langgraph/langgraph_runtime.py`
 - validation / commit / render seams
 
 #### C. Dramatic orchestration layer

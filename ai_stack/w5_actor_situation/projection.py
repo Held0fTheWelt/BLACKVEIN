@@ -1,4 +1,4 @@
-"""W5 Actor Situation Tracker — typed projection builders (Phase 2/3A).
+"""W5 Actor Situation Tracker — typed projection builders (Phase 2/3A/3B).
 
 This module is the single legal place where consumers obtain a typed,
 prompt-ready ``W5Projection`` derived from a ``W5Snapshot``. Raw persisted
@@ -25,6 +25,7 @@ from typing import Any
 from ai_stack.w5_actor_situation.models import (
     W5_PROJECTION_SCHEMA_VERSION,
     W5ActorSituation,
+    W5ActorType,
     W5Dimension,
     W5Fact,
     W5FactStatus,
@@ -32,6 +33,7 @@ from ai_stack.w5_actor_situation.models import (
     W5ProjectionConsumer,
     W5Snapshot,
     W5TruthLevel,
+    W5VisibilityScope,
     why_truth_level_is_admitted,
 )
 
@@ -299,6 +301,102 @@ def _why_summary(
             path=f"why_summary.facts.{key}",
             fact=chosen,
         )
+    return summary
+
+
+def _npc_can_read_fact(
+    *,
+    fact: W5Fact,
+    situation: W5ActorSituation,
+    target_actor_id: str,
+    is_target_actor: bool,
+) -> bool:
+    if fact.visibility is W5VisibilityScope.PUBLIC:
+        return True
+    if fact.visibility in {W5VisibilityScope.GM_ONLY, W5VisibilityScope.DIRECTOR_ONLY}:
+        return False
+    if is_target_actor:
+        return fact.visibility is W5VisibilityScope.PRIVATE_TO_ACTOR
+    if situation.actor_type is W5ActorType.HUMAN:
+        # Player-private facts never leak into NPC projections.
+        return False
+    return (
+        fact.visibility is W5VisibilityScope.PRIVATE_TO_ACTOR
+        and target_actor_id in set(fact.actor_knowledge_scope)
+    )
+
+
+def _npc_dimension_summary(
+    *,
+    dimension_name: str,
+    target_actor_id: str,
+    target_situation: W5ActorSituation,
+    all_situations: Mapping[str, W5ActorSituation],
+    source_attribution: dict[str, str],
+    truth_attribution: dict[str, str],
+) -> dict[str, Any]:
+    own_facts = _active_facts(getattr(target_situation, dimension_name))
+    summary: dict[str, Any] = {"actor_id": target_actor_id, "facts": {}}
+    seen: set[str] = set()
+    for fact in own_facts:
+        if fact.key in seen:
+            continue
+        chosen = _pick_strongest(own_facts, fact.key)
+        if chosen is None:
+            continue
+        if dimension_name == "why" and not why_truth_level_is_admitted(chosen.truth_level):
+            continue
+        if not _npc_can_read_fact(
+            fact=chosen,
+            situation=target_situation,
+            target_actor_id=target_actor_id,
+            is_target_actor=True,
+        ):
+            continue
+        seen.add(chosen.key)
+        summary["facts"][chosen.key] = chosen.value
+        _record_attribution(
+            source_attribution=source_attribution,
+            truth_attribution=truth_attribution,
+            path=f"{dimension_name}_summary.facts.{chosen.key}",
+            fact=chosen,
+        )
+
+    known_actors: dict[str, Any] = {}
+    for actor_id in sorted(all_situations.keys()):
+        if actor_id == target_actor_id:
+            continue
+        situation = all_situations[actor_id]
+        active = _active_facts(getattr(situation, dimension_name))
+        facts: dict[str, Any] = {}
+        seen_other: set[str] = set()
+        for fact in active:
+            if fact.key in seen_other:
+                continue
+            chosen = _pick_strongest(active, fact.key)
+            if chosen is None:
+                continue
+            if dimension_name == "why" and not why_truth_level_is_admitted(chosen.truth_level):
+                continue
+            if not _npc_can_read_fact(
+                fact=chosen,
+                situation=situation,
+                target_actor_id=target_actor_id,
+                is_target_actor=False,
+            ):
+                continue
+            seen_other.add(chosen.key)
+            facts[chosen.key] = chosen.value
+            _record_attribution(
+                source_attribution=source_attribution,
+                truth_attribution=truth_attribution,
+                path=f"{dimension_name}_summary.known_actors.{actor_id}.facts.{chosen.key}",
+                fact=chosen,
+            )
+        if facts:
+            known_actors[actor_id] = {"actor_id": actor_id, "facts": facts}
+    if known_actors:
+        summary["known_actors"] = known_actors
     return summary
 
 
@@ -610,7 +708,92 @@ def build_w5_projection_for_director(
     )
 
 
+def build_w5_projection_for_npc(
+    snapshot: W5Snapshot | Mapping[str, Any] | None,
+    *,
+    actor_id: str,
+) -> W5Projection:
+    """Build an actor-specific NPC-facing W5 projection.
+
+    The target NPC receives its own W5 facts plus only those other-actor facts
+    visible to it through public visibility or explicit ``actor_knowledge_scope``.
+    Raw persisted dicts are coerced through ``W5Snapshot.from_dict`` before any
+    field is read.
+    """
+
+    target_actor_id = str(actor_id or "").strip()
+    if not target_actor_id:
+        raise ValueError("build_w5_projection_for_npc requires a non-empty actor_id")
+    typed_snapshot = _coerce_snapshot(snapshot)
+    if typed_snapshot is None or target_actor_id not in typed_snapshot.actors:
+        raise ValueError(f"npc_actor_not_found_in_w5_snapshot:{target_actor_id}")
+    target = typed_snapshot.actors[target_actor_id]
+    if target.actor_type is not W5ActorType.NPC:
+        raise ValueError(f"w5_npc_projection_target_not_npc:{target_actor_id}")
+
+    source_attribution: dict[str, str] = {}
+    truth_attribution: dict[str, str] = {}
+
+    who_summary = _who_summary(
+        target,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+    _record_structural_attribution(
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+        path="where_summary.w5_snapshot_id",
+    )
+    where_summary = _npc_dimension_summary(
+        dimension_name="where",
+        target_actor_id=target_actor_id,
+        target_situation=target,
+        all_situations=typed_snapshot.actors,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+    where_summary["w5_snapshot_id"] = typed_snapshot.snapshot_id
+    what_summary = _npc_dimension_summary(
+        dimension_name="what",
+        target_actor_id=target_actor_id,
+        target_situation=target,
+        all_situations=typed_snapshot.actors,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+    how_summary = _npc_dimension_summary(
+        dimension_name="how",
+        target_actor_id=target_actor_id,
+        target_situation=target,
+        all_situations=typed_snapshot.actors,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+    why_summary = _npc_dimension_summary(
+        dimension_name="why",
+        target_actor_id=target_actor_id,
+        target_situation=target,
+        all_situations=typed_snapshot.actors,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+
+    return W5Projection(
+        schema_version=W5_PROJECTION_SCHEMA_VERSION,
+        target_consumer=W5ProjectionConsumer.NPC,
+        actor_id=target_actor_id,
+        who_summary=who_summary,
+        where_summary=where_summary,
+        what_summary=what_summary,
+        how_summary=how_summary,
+        why_summary=why_summary,
+        source_attribution=source_attribution,
+        truth_attribution=truth_attribution,
+    )
+
+
 __all__ = [
     "build_w5_projection_for_director",
     "build_w5_projection_for_narrator",
+    "build_w5_projection_for_npc",
 ]

@@ -259,9 +259,23 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     blocks = opening["visible_output_bundle"]["scene_blocks"]
     narrator_blocks = [block for block in blocks if block["block_type"] == "narrator"]
     souffleuse_blocks = [block for block in blocks if block["block_type"] == "souffleuse"]
+    narrated_speech_blocks = [
+        block
+        for block in blocks
+        if block.get("composition_kind") == "narrated_actor_speech"
+    ]
 
     assert narrator_blocks[0]["text"] == "Synthetisierte Erzählung 1."
     assert narrator_blocks[0]["source"] == "narrator_path_synthesis_module"
+    assert narrated_speech_blocks
+    assert not any(str(block.get("text") or "").startswith("[") for block in blocks)
+    assert any("„" in block["text"] and "Véronique" in block["text"] for block in narrated_speech_blocks)
+    assert any(
+        span.get("actor_id") == "veronique_vallon"
+        for block in narrated_speech_blocks
+        for span in block.get("embedded_speech_spans", [])
+        if isinstance(span, dict)
+    )
     assert len(souffleuse_blocks) == 1
     assert "Du bist" not in souffleuse_blocks[0]["text"]
     assert "Michel" in souffleuse_blocks[0]["text"]
@@ -284,3 +298,43 @@ def test_goc_opening_de_uses_output_module_for_visible_text() -> None:
     ]
     assert souffleuse_realization["status"] == "realized"
     assert souffleuse_realization["session_output_language"] == "de"
+
+
+def test_goc_scripted_continuation_after_statement_keeps_alain_speech_authority() -> None:
+    manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            **_projection(),
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+        session_output_language="de",
+        skip_graph_opening_on_create=True,
+    )
+
+    continuation = manager._build_scripted_continuation(
+        session=session,
+        after_step_id="opening_005_statement_reading",
+        opening_block_count=0,
+        trace_id="0123456789abcdef0123456789abcdef",
+    )
+
+    blocks = continuation["scene_blocks"]
+    alain_blocks = [
+        block
+        for block in blocks
+        for span in block.get("embedded_speech_spans", [])
+        if isinstance(span, dict) and span.get("actor_id") == "alain_reille"
+    ]
+    assert alain_blocks
+    assert all(block.get("composition_kind") == "narrated_actor_speech" for block in alain_blocks)
+    assert any("bewaffnet" in block["text"].lower() for block in alain_blocks)
+    assert not any("annette_reille" == span.get("actor_id") for block in blocks for span in block.get("embedded_speech_spans", []) if isinstance(span, dict))

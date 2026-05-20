@@ -43,7 +43,7 @@ Large-scale statistical experiment grids, dedicated triage UI, and full database
 
 - `ai_stack/research_contract.py` — statuses, exploration enums, issue/proposal taxonomies, legal state transitions.
 - `ai_stack/research_store.py` — JSON persistence under `.wos/research/research_store.json`
-- `ai_stack/research_langgraph.py` — `run_research_pipeline`, `build_review_bundle`, helpers (`inspect_source`, `exploration_graph`, …). **Note:** orchestration here is **sequential Python**, not a compiled LangGraph `StateGraph` (see `research_langgraph.py` module docstring).
+- `ai_stack/langgraph/research_langgraph.py` — `run_research_pipeline`, `build_review_bundle`, helpers (`inspect_source`, `exploration_graph`, …). **Note:** orchestration here is **sequential Python**, not a compiled LangGraph `StateGraph` (see `research_langgraph.py` module docstring).
 - `ai_stack/research_ingestion.py`, `research_aspect_extraction.py`, `research_exploration.py`, `research_validation.py`
 - `ai_stack/canon_improvement_engine.py` — deterministic issue/proposal derivation from validated claims
 
@@ -59,7 +59,7 @@ Large-scale statistical experiment grids, dedicated triage UI, and full database
 
 ### Diagram: research pipeline vs sandbox improvement
 
-*Anchors:* `ai_stack/research_langgraph.py`, `backend/app/api/v1/improvement_routes.py`.
+*Anchors:* `ai_stack/langgraph/research_langgraph.py`, `backend/app/api/v1/improvement_routes.py`.
 
 ```mermaid
 flowchart TB

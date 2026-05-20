@@ -12,8 +12,8 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 
 ## Technical precision
 
-- **Public surface:** `ai_stack/langgraph_runtime.py` exports `RuntimeTurnGraphExecutor`.
-- **Graph wiring implementation:** `ai_stack/langgraph_runtime_executor.py` — class `RuntimeTurnGraphExecutor`, method `_build_graph`.
+- **Public surface:** `ai_stack/langgraph/langgraph_runtime.py` exports `RuntimeTurnGraphExecutor`.
+- **Graph wiring implementation:** `ai_stack/langgraph/langgraph_runtime_executor.py` — class `RuntimeTurnGraphExecutor`, method `_build_graph`.
 - **Compiled graph:** a single `StateGraph` over `RuntimeTurnState` (typed dict fields for inputs, retrieval, routing, generation, diagnostics, seam outcomes).
 - **Conditional edge:** after `interpret_input`, `_route_after_interpret_input` routes `player_input_kind=meta` to `meta_control_turn`; all story-play input continues to `resolve_player_action`.
 - **Player-turn path (ADR-0062):** after `resolve_player_action`, every story-play turn follows the **Director realization thin path** — `director_compose_realization` → `realize_via_capabilities` → `route_model` → `invoke_model` → seams. The removed `authoritative_action_resolution` deterministic short path and `_route_after_resolve_player_action` router are no longer used.
@@ -26,7 +26,7 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 2. `interpret_input` — interpreter output and task hint (`classification` vs `narrative_formulation`).
 3. `meta_control_turn` — deterministic non-story branch for Meta/OOC input; skips story action resolution, retrieval, model invocation, `validate_seam`, and `commit_seam`, then goes directly to `package_output`.
 4. `resolve_player_action` — story/action interpretation and affordance framing for normal story-play input.
-5. `director_compose_realization` — composes `realization_plan.v1` (`ai_stack/director_realization_composer.py`).
+5. `director_compose_realization` — composes `realization_plan.v1` (`ai_stack/director/director_realization_composer.py`).
 6. `realize_via_capabilities` — builds narrator/actor prompt from selected capability; sets `model_prompt` for routing.
 7. `route_model` — selects adapter via `story_runtime_core` routing policy (thin path: immediately after `realize_via_capabilities`).
 8. `invoke_model` — structured invocation via LangChain bridge when configured (`invoke_runtime_adapter_with_langchain`).
@@ -41,7 +41,7 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 
 **Meta/OOC control markers:** `meta_control_turn` sets `generation_required=false`, `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, and `commit_not_applicable=true`. These are diagnostics and repro fields, not story truth.
 
-**Anchors:** `ai_stack/langgraph_runtime.py` (public graph surface), `ai_stack/langgraph_runtime_executor.py` (graph wiring), `ai_stack/runtime_turn_contracts.py` (turn state and health fields), `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
+**Anchors:** `ai_stack/langgraph/langgraph_runtime.py` (public graph surface), `ai_stack/langgraph/langgraph_runtime_executor.py` (graph wiring), `ai_stack/runtime_turn_contracts.py` (turn state and health fields), `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
 
 ## Why this matters in World of Shadows
 
@@ -50,7 +50,7 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 ## What LangGraph is not
 
 - **Not** the session host: `StoryRuntimeManager` in world-engine increments counters, appends history, runs `resolve_narrative_commit`, and owns persistence after `run()` returns (`world-engine/app/story_runtime/manager.py`).
-- **Not** the research pipeline: `ai_stack/research_langgraph.py` sequences research stages in **plain Python**; the filename is historical—the research path does **not** compile a LangGraph `StateGraph` for production orchestration.
+- **Not** the research pipeline: `ai_stack/langgraph/research_langgraph.py` sequences research stages in **plain Python**; the filename is historical—the research path does **not** compile a LangGraph `StateGraph` for production orchestration.
 - **Not** a durable replay engine by default: checkpoint persistence is explicitly deferred; traces and deterministic fallback take precedence in the current design (verify before assuming checkpoint replay in a given deployment).
 
 ## Neighbors
@@ -63,7 +63,7 @@ Turn debugging depends on **node-level outcomes**, not only final text. The grap
 
 ## Diagram: runtime turn graph (implementation order)
 
-*Anchored in:* `RuntimeTurnGraphExecutor._build_graph` in `ai_stack/langgraph_runtime_executor.py`.
+*Anchored in:* `RuntimeTurnGraphExecutor._build_graph` in `ai_stack/langgraph/langgraph_runtime_executor.py`.
 
 ```mermaid
 flowchart LR
@@ -97,7 +97,7 @@ flowchart LR
 
 ## Diagram: LangGraph vs LangChain in this repository
 
-*Anchored in:* `ai_stack/langgraph_runtime.py` (graph), `ai_stack/langchain_integration/bridges.py` (invoke and retriever bridges).
+*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py` (graph), `ai_stack/langchain_integration/bridges.py` (invoke and retriever bridges).
 
 ```mermaid
 flowchart TB
@@ -125,7 +125,7 @@ Minimal **seed** graphs for product experiments—not the canonical play path:
 - `build_seed_writers_room_graph()` — Writers’ Room workflow seed.
 - `build_seed_improvement_graph()` — improvement workflow seed.
 
-**Anchors:** `ai_stack/langgraph_runtime.py` (functions near file end).
+**Anchors:** `ai_stack/langgraph/langgraph_runtime.py` (functions near file end).
 
 ---
 

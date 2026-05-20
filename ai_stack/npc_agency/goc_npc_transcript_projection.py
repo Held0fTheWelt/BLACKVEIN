@@ -1,8 +1,8 @@
 """Roster-driven segmentation for God of Carnage NPC transcript projection.
 
 Builds speaker-prefix matchers from ``runtime_projection`` (NPC roster) and
-``canonicalize_goc_actor_id`` / alias expansion — no hardcoded ``Veronique|…``
-union in the world-engine split path.
+``canonicalize_goc_actor_id`` / alias expansion instead of a hardcoded
+character-name union in the world-engine split path.
 
 Cardinality of projected blocks follows content + policy, not a fixed count.
 """

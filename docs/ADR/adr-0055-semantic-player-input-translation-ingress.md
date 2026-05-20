@@ -127,7 +127,7 @@ The authoritative result remains the World-Engine turn graph output.
 
 Implemented on 2026-05-18:
 
-- `ai_stack/langgraph_runtime_executor.py` defines `translate_player_input` as
+- `ai_stack/langgraph/langgraph_runtime_executor.py` defines `translate_player_input` as
   the LangGraph entry point before `interpret_input`.
 - `translate_player_input` builds the semantic resolution contract, calls the
   configured adapter, parses bounded JSON payloads, and writes
@@ -136,7 +136,7 @@ Implemented on 2026-05-18:
   `semantic_move`, and `normalized_english_text` before action resolution.
 - Runtime retrieval prefers `normalized_english_text` and keeps raw player input
   as audit/context evidence.
-- `ai_stack/langgraph_runtime_state.py` carries `input_translation` and
+- `ai_stack/langgraph/langgraph_runtime_state.py` carries `input_translation` and
   `semantic_resolution_contract`.
 - `backend/app/api/v1/session_routes.py` exposes a non-authoritative
   `backend_semantic_translation_preview` and forwards session input/output
@@ -149,7 +149,7 @@ Implemented on 2026-05-18:
 
 Targeted verification on 2026-05-18:
 
-- `python -m py_compile ai_stack/langgraph_runtime_executor.py ai_stack/langgraph_runtime_state.py`
+- `python -m py_compile ai_stack/langgraph/langgraph_runtime_executor.py ai_stack/langgraph/langgraph_runtime_state.py`
 - `python -m py_compile backend/app/api/v1/session_routes.py`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine pytest ai_stack/tests/test_langgraph_runtime.py -q --tb=short`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine pytest ai_stack/tests/test_player_action_resolution.py ai_stack/tests/test_p0_action_resolution_regression.py story_runtime_core/tests/test_player_input_semantics_de.py story_runtime_core/tests/test_player_input_semantics_en.py story_runtime_core/tests/test_german_semantic_resolution_contracts.py story_runtime_core/tests/test_language_adapter.py story_runtime_core/tests/test_input_interpreter.py -q --tb=short`

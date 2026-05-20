@@ -200,8 +200,8 @@ Tests may assert that evidence fields name structured sources such as `narrative
 - `story_runtime_core/callbacks/callback_web.py`
 - `story_runtime_core/callbacks/__init__.py`
 - `ai_stack/callback_web_contracts.py`
-- `ai_stack/langgraph_runtime_state.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_state.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`

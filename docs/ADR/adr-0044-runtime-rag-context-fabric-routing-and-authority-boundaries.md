@@ -35,7 +35,7 @@ Retrieval-augmented generation (RAG) is wired into runtime turns via `RetrievalD
 3. **ADR-0041** surfaces (selector, validator plan, bridge, readiness aggregation) accidentally consuming **unverified** retrieved prose as if it were seam evidence.
 4. **Frontend** inferring readiness or canon from diagnostic or retrieved strings.
 
-The codebase already separates **authored canon**, **committed runtime state**, and **retrieved hints** at a high level (`docs/technical/ai/RAG.md`, `run_validation_seam` / `run_commit_seam` in `ai_stack/langgraph_runtime_executor.py`). This ADR **normatively** completes that separation for **product-scale** Narrator, NPC/multi-agent, and ADR-0041 synergy.
+The codebase already separates **authored canon**, **committed runtime state**, and **retrieved hints** at a high level (`docs/technical/ai/RAG.md`, `run_validation_seam` / `run_commit_seam` in `ai_stack/langgraph/langgraph_runtime_executor.py`). This ADR **normatively** completes that separation for **product-scale** Narrator, NPC/multi-agent, and ADR-0041 synergy.
 
 ## Decision
 
@@ -121,7 +121,7 @@ flowchart TD
 
 - [docs/technical/ai/RAG.md](../technical/ai/RAG.md)
 - [docs/technical/ai/rag_runtime_integration.md](../technical/ai/rag_runtime_integration.md)
-- `ai_stack/langgraph_runtime_executor.py` — validation/commit seams, retrieval.
+- `ai_stack/langgraph/langgraph_runtime_executor.py` — validation/commit seams, retrieval.
 - `ai_stack/capability_selector.py`, `ai_stack/capability_validator_registry.py` — selection and validator plans.
 - `ai_stack/validation_authority_bridge.py`, `ai_stack/runtime_readiness_consumer.py` — ADR-0041 bridge and veto-only readiness overlay.
 - `backend/app/api/v1/game_routes.py` — player session bundle readiness source.

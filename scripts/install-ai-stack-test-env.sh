@@ -29,7 +29,7 @@ $PY -m pip install -e "./story_runtime_core"
 $PY -m pip install -e "./ai_stack[test]"
 
 echo "Verifying heavy stack (same imports as langgraph_runtime)..."
-$PY -c "import langchain_core, langgraph; import ai_stack.langgraph_runtime; print('OK: langchain_core, langgraph, ai_stack.langgraph_runtime')"
+$PY -c "import langchain_core, langgraph; import ai_stack.langgraph.langgraph_runtime; print('OK: langchain_core, langgraph, ai_stack.langgraph.langgraph_runtime')"
 
 echo ""
 echo "Run tests (from repo root, PYTHONPATH optional if packages are installed editable):"

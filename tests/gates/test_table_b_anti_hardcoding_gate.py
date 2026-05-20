@@ -177,10 +177,10 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
     "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
-    "ai_stack/langgraph_runtime_package_output_sections.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_dramatic_review.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/runtime_aspect_ledger.py",
@@ -192,14 +192,14 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
     # Phase 2 Pulse-MVP — Director consumes these as semantic capability inputs (ADR-0058/0059)
-    "ai_stack/director_pulse_contracts.py",
-    "ai_stack/director_pulse_shadow.py",
-    "ai_stack/npc_motivation_score_engine.py",
+    "ai_stack/director/director_pulse_contracts.py",
+    "ai_stack/director/director_pulse_shadow.py",
+    "ai_stack/npc_agency/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
-    "ai_stack/phase2_stream_readiness.py",
+    "ai_stack/stream_readiness.py",
     # Phase 2 Stage M — Follow-up composition consumes scene_energy as a
     # semantic capability input for the NPC reply provider (ADR-0058 §Stage M).
-    "ai_stack/phase2_ws_session_loop.py",
+    "ai_stack/ws_session_loop.py",
 }
 
 INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
@@ -208,22 +208,22 @@ INFORMATION_DISCLOSURE_CANONICAL_SURFACES = {
     "ai_stack/capability_validator_plan.py",
     "ai_stack/information_disclosure_contracts.py",
     "ai_stack/information_disclosure_engine.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
     "world-engine/app/story_runtime/manager.py",
     # Phase 2 Stage M — Follow-up composition enforces information_disclosure
     # gate on generated NPC reply text (ADR-0058 §Stage M).
-    "ai_stack/phase2_ws_session_loop.py",
+    "ai_stack/ws_session_loop.py",
 }
 
 EXPECTATION_VARIATION_CANONICAL_SURFACES = {
     "ai_stack/expectation_variation_contracts.py",
     "ai_stack/expectation_variation_engine.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/runtime_aspect_ledger.py",
@@ -234,8 +234,8 @@ EXPECTATION_VARIATION_CANONICAL_SURFACES = {
 }
 
 NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/narrative_momentum_engine.py",
@@ -245,18 +245,18 @@ NARRATIVE_MOMENTUM_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
     # Phase 2 Pulse-MVP — Director consumes narrative_momentum as semantic input (ADR-0058/0059)
-    "ai_stack/director_pulse_contracts.py",
-    "ai_stack/director_pulse_shadow.py",
-    "ai_stack/npc_motivation_score_engine.py",
+    "ai_stack/director/director_pulse_contracts.py",
+    "ai_stack/director/director_pulse_shadow.py",
+    "ai_stack/npc_agency/npc_motivation_score_engine.py",
     "ai_stack/block_stream_dual_mode.py",
-    "ai_stack/phase2_stream_readiness.py",
+    "ai_stack/stream_readiness.py",
 }
 
 PACING_RHYTHM_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_package_output_dramatic_review.py",
-    "ai_stack/langgraph_runtime_package_output_sections.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_dramatic_review.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/pacing_rhythm_contracts.py",
@@ -267,12 +267,12 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "world-engine/app/story_runtime/commit_models.py",
     "world-engine/app/story_runtime/manager.py",
     # Phase 2 Pulse-MVP — Director composition_inputs include pacing_rhythm (ADR-0058)
-    "ai_stack/director_pulse_contracts.py",
-    "ai_stack/director_pulse_shadow.py",
+    "ai_stack/director/director_pulse_contracts.py",
+    "ai_stack/director/director_pulse_shadow.py",
     # Phase 2 Stage E — Autonomous Director tick consults pacing_rhythm for cooldown
-    "ai_stack/phase2_autonomous_tick.py",
+    "ai_stack/autonomous_tick.py",
     # Phase 2 Stage F — Director policy/source classifier reads pacing_rhythm policy
-    "ai_stack/phase2_stream_readiness.py",
+    "ai_stack/stream_readiness.py",
 }
 
 SENSORY_CONTEXT_CANONICAL_SURFACES = {
@@ -280,8 +280,8 @@ SENSORY_CONTEXT_CANONICAL_SURFACES = {
     "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/langchain_integration/bridges.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/sensory_context_contracts.py",
@@ -297,8 +297,8 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
     "ai_stack/capability_validator_dispatch.py",
     "ai_stack/capability_validator_plan.py",
     "ai_stack/consequence_cascade_contracts.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "story_runtime_core/consequences/__init__.py",
@@ -312,8 +312,8 @@ CONSEQUENCE_CASCADE_CANONICAL_SURFACES = {
 }
 
 TEMPORAL_CONTROL_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/story_runtime_playability.py",
@@ -327,8 +327,8 @@ TEMPORAL_CONTROL_CANONICAL_SURFACES = {
 IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
     "ai_stack/improvisational_coherence_contracts.py",
     "ai_stack/improvisational_coherence_engine.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
@@ -336,8 +336,8 @@ IMPROVISATIONAL_COHERENCE_CANONICAL_SURFACES = {
 }
 
 META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/meta_narrative_awareness_contracts.py",
     "ai_stack/meta_narrative_awareness_engine.py",
     "ai_stack/module_runtime_policy.py",
@@ -346,8 +346,8 @@ META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
 }
 
 SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/symbolic_object_resonance_contracts.py",
@@ -361,8 +361,8 @@ GENRE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
     "ai_stack/genre_awareness_contracts.py",
     "ai_stack/genre_awareness_engine.py",
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/story_runtime_playability.py",
@@ -372,9 +372,9 @@ GENRE_AWARENESS_CANONICAL_SURFACES = {
 }
 
 TONAL_CONSISTENCY_CANONICAL_SURFACES = {
-    "ai_stack/langgraph_runtime_executor.py",
-    "ai_stack/langgraph_runtime_package_output_sections.py",
-    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_package_output_sections.py",
+    "ai_stack/langgraph/langgraph_runtime_state.py",
     "ai_stack/live_runtime_commit_semantics.py",
     "ai_stack/module_runtime_policy.py",
     "ai_stack/runtime_aspect_ledger.py",

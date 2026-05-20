@@ -30,7 +30,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     ACTION_SILENCE,
     ACTION_SPEAK,
     BLOCK_TYPE_ACTOR_LINE,

@@ -64,7 +64,7 @@ A **single authoritative runtime host** for live narrative execution is an expli
 
 ### What it is not
 
-- **Not** “just a chat UI on top of an API.” Chat-shaped UX may exist, but **commit authority** is a separate concern (`world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`).
+- **Not** “just a chat UI on top of an API.” Chat-shaped UX may exist, but **commit authority** is a separate concern (`world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`).
 - **Not** a single monolith that happens to call OpenAI once. The repo is **several deployable apps** with clear seams (`docs/technical/architecture/service-boundaries.md`).
 
 ---
@@ -205,7 +205,7 @@ Someone has to be the **referee** for a live session: “Did that move count? Wh
 
 ### What this means in the actual system
 
-The engine is a **FastAPI** app that hosts **`RuntimeManager`** (template/lobby/run experiences) and **`StoryRuntimeManager`** (guided story sessions), wired in `world-engine/app/main.py`. Story turns invoke graph execution (`ai_stack/langgraph_runtime.py`) and then **narrative commit resolution**—see `world-engine/app/story_runtime/manager.py` and the easy runbook [`world_engine_runbook_easy.md`](world_engine_runbook_easy.md).
+The engine is a **FastAPI** app that hosts **`RuntimeManager`** (template/lobby/run experiences) and **`StoryRuntimeManager`** (guided story sessions), wired in `world-engine/app/main.py`. Story turns invoke graph execution (`ai_stack/langgraph/langgraph_runtime.py`) and then **narrative commit resolution**—see `world-engine/app/story_runtime/manager.py` and the easy runbook [`world_engine_runbook_easy.md`](world_engine_runbook_easy.md).
 
 ### Why this matters
 
@@ -245,7 +245,7 @@ flowchart LR
 
 The connected reference describes **three AI-related planes** that share libraries but serve different jobs: **runtime play AI**, **research/improvement AI**, and **operator/control-plane AI** (`docs/ai/ai_system_in_world_of_shadows.md`). Across them: **models and graphs propose**; **validation, commit rules, and the session host** decide live truth.
 
-**Anchors:** `ai_stack/langgraph_runtime.py`, `ai_stack/research_langgraph.py`, `tools/mcp_server/server.py`.
+**Anchors:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langgraph/research_langgraph.py`, `tools/mcp_server/server.py`.
 
 ### Why this matters
 
@@ -424,7 +424,7 @@ This section names the **most tempting shortcuts** and why the repository refuse
 
 ### Why not “frontend talks directly to the model”?
 
-**Simple** and **opaque**: you lose **server-side rules**, **consistent commits**, and **auditable diagnostics**. The implemented path routes play through **`world-engine`** with graph stages and seams (`ai_stack/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py`).
+**Simple** and **opaque**: you lose **server-side rules**, **consistent commits**, and **auditable diagnostics**. The implemented path routes play through **`world-engine`** with graph stages and seams (`ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py`).
 
 ### Why not “backend stores everything and is enough”?
 

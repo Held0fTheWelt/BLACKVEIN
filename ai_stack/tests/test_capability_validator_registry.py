@@ -33,7 +33,7 @@ from ai_stack.player_turn_validator_evaluation import (
     evaluate_player_intent_contract,
 )
 from ai_stack.goc_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.tests.test_capability_validator_dispatch_plan_enforced import _opening_plan
 
 

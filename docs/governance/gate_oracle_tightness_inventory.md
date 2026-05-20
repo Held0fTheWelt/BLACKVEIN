@@ -255,7 +255,7 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 
 **Test results (authoritative targeted run after Π16 implementation):**
 
-- `python -m py_compile ai_stack/dramatic_irony_contracts.py ai_stack/dramatic_irony_runtime.py ai_stack/story_runtime_playability.py ai_stack/module_runtime_policy.py ai_stack/langgraph_runtime_executor.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — **passed**.
+- `python -m py_compile ai_stack/dramatic_irony_contracts.py ai_stack/dramatic_irony_runtime.py ai_stack/story_runtime_playability.py ai_stack/module_runtime_policy.py ai_stack/langgraph/langgraph_runtime_executor.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — **passed**.
 - `python -m pytest ai_stack/tests/test_dramatic_irony_runtime.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_story_runtime_playability.py -q --tb=short` — **24 passed**.
 - `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py::test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary -q --tb=short` — **1 passed**.
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` — **7 passed**.

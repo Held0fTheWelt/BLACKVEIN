@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from ai_stack.dramatic_capability_contracts import NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
-from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.story_runtime_playability import (
     build_rewrite_instruction,
     decide_playability_recovery,

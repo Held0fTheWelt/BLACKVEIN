@@ -18,14 +18,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     CUT_KIND_EM_DASH,
     CUT_KIND_NO_ACTIVE_BLOCK,
     CUT_KIND_SKIP_TO_END,
     CUT_KINDS,
     resolve_cut_kind_for_block_type,
 )
-from ai_stack.phase2_ws_session_loop import is_ws_session_loop_enabled
+from ai_stack.ws_session_loop import is_ws_session_loop_enabled
 
 # ── Readiness proof levels ────────────────────────────────────────────────────
 

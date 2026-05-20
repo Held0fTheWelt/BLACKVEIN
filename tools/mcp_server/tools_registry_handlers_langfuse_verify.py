@@ -33,14 +33,14 @@ from ai_stack.langfuse_evaluator_catalog import (
     judge_names_for_scope as _judge_names_for_scope,
     normalize_judge_category_label as _normalize_judge_category_label,
 )
-from ai_stack.adr0041_langfuse_evidence import (
+from ai_stack.langfuse_evidence import (
     ADR0041_LANGFUSE_SCORE_PARENT_PRESENT,
     ADR0041_LANGFUSE_SCORE_PLAN_ENFORCED,
     ADR0041_LANGFUSE_SCORE_READINESS_AGG,
     ADR0041_LANGFUSE_SCORE_READINESS_PREVIEW,
     WOS_ADR0041_RUNTIME_INTELLIGENCE_OBSERVATION_NAME,
 )
-from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+from ai_stack.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
 

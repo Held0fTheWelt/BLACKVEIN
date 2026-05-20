@@ -25,7 +25,7 @@ The active runtime derives three semantic aspect records:
   inferences. It must not mutate commit gates, readiness gates, or validation
   outcomes.
 
-`ai_stack/langgraph_runtime_executor.py` places these records into the
+`ai_stack/langgraph/langgraph_runtime_executor.py` places these records into the
 dramatic generation packet and model prompt, then writes them to
 `RuntimeAspectLedger` as `broad_nlu_listening`, `conversational_memory`, and
 `prompt_authority`.
@@ -56,7 +56,7 @@ LLM-as-a-judge claims are not valid pass/fail evidence.
 Primary implementation anchors:
 
 - `ai_stack/active_listening_contracts.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `ai_stack/capability_selector.py`
 - `ai_stack/capability_validator_plan.py`

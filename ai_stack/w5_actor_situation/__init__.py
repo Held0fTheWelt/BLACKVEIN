@@ -38,6 +38,7 @@ from ai_stack.w5_actor_situation.extractor import (
 from ai_stack.w5_actor_situation.projection import (
     build_w5_projection_for_director,
     build_w5_projection_for_narrator,
+    build_w5_projection_for_npc,
 )
 
 __all__ = [
@@ -62,6 +63,7 @@ __all__ = [
     "W5VisibilityScope",
     "build_w5_projection_for_director",
     "build_w5_projection_for_narrator",
+    "build_w5_projection_for_npc",
     "extract_w5_snapshot_from_committed_event",
     "why_truth_level_is_admitted",
 ]

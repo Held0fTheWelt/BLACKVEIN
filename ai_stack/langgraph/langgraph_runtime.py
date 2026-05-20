@@ -1,5 +1,5 @@
 """
-``ai_stack/langgraph_runtime.py`` — public surface of this module; see exports and call sites for contracts.
+``ai_stack/langgraph/langgraph_runtime.py`` — public surface of this module; see exports and call sites for contracts.
 """
 from __future__ import annotations
 

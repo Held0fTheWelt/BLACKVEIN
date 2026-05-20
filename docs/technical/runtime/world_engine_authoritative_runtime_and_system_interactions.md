@@ -488,7 +488,7 @@ Writers’ Room and improvement flows may share adapters/routing patterns (`ai-s
 
 **Model provider credentials** policy outside its env configuration; **training data** governance; **external LLM account** billing.
 
-**Repository anchors:** `ai_stack/langgraph_runtime.py` (graph definition), `world-engine/app/story_runtime/manager.py`, `story_runtime_core` package root.
+**Repository anchors:** `ai_stack/langgraph/langgraph_runtime.py` (graph definition), `world-engine/app/story_runtime/manager.py`, `story_runtime_core` package root.
 
 ---
 

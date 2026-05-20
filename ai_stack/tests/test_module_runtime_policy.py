@@ -433,7 +433,7 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         repo / "ai_stack" / "hierarchical_memory_contracts.py",
         repo / "ai_stack" / "runtime_aspect_ledger.py",
         repo / "ai_stack" / "runtime_dramatic_capabilities.py",
-        repo / "ai_stack" / "langgraph_runtime_executor.py",
+        repo / "ai_stack" / "langgraph" / "langgraph_runtime_executor.py",
         repo / "world-engine" / "app" / "story_runtime" / "manager.py",
         repo / "tools" / "mcp_server" / "tools_registry_handlers_langfuse_verify.py",
     ]

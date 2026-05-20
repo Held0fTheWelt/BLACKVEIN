@@ -114,7 +114,7 @@ Invariants:
 
 ### Contract 2 — `director_gathering_state.v1`
 
-Produced atomically per tick by the Director (the canonical surface lives in `ai_stack/scene_director_goc.py` once PR-C lands).
+Produced atomically per tick by the Director (the canonical surface lives in `ai_stack/director/scene_director_goc.py` once PR-C lands).
 
 Required fields:
 
@@ -134,7 +134,7 @@ Invariants:
 
 ### Contract 3 — `canonical_path_hold_effect.v1`
 
-Carried in graph_state alongside the existing `canonical_path_control` block (the construction site lives at `ai_stack/langgraph_runtime_executor.py:4703`). Read by `world-engine/app/story_runtime/manager.py:8683-8687`.
+Carried in graph_state alongside the existing `canonical_path_control` block (the construction site lives at `ai_stack/langgraph/langgraph_runtime_executor.py:4703`). Read by `world-engine/app/story_runtime/manager.py:8683-8687`.
 
 Required fields:
 

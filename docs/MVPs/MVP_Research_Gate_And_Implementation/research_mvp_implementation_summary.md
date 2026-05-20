@@ -28,7 +28,7 @@ This implementation realizes the bounded Research-and-Canon-Improvement MVP defi
 - `ai_stack/canon_improvement_engine.py`
   - deterministic canon issue detection and taxonomy-bound proposal generation.
   - issues/proposals are persisted as review artifacts (`approved_research`) to avoid silent canon adoption semantics.
-- `ai_stack/research_langgraph.py`
+- `ai_stack/langgraph/research_langgraph.py`
   - orchestrates six pipeline phases (intake -> extraction -> exploration -> verification -> canon improvement -> review bundle) without owning classification truth.
   - review bundle now includes an explicit populated `aspects` section and computed `review_safe` posture.
   - canon relevance hint is derived deterministically from exploration content, not hardcoded.

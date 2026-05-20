@@ -65,7 +65,7 @@ Primary implementation anchors:
 - `ai_stack/symbolic_object_resonance_contracts.py`
 - `ai_stack/symbolic_object_resonance_engine.py`
 - `ai_stack/module_runtime_policy.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager.py`

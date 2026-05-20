@@ -11,7 +11,7 @@ import json
 from typing import Any
 
 from ai_stack.module_runtime_policy import minimum_actor_response_count_from_governance
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     coerce_dict_rows,
     dedupe_strings,
     is_forbidden_actor_id,

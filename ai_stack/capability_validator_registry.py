@@ -55,7 +55,7 @@ from ai_stack.goc_seam_mirror_validator_adapters import (
 )
 from ai_stack.information_disclosure_engine import validate_information_disclosure_realization
 from ai_stack.narrator_authority_validation import evaluate_narrator_authority_contract
-from ai_stack.npc_agency_realization import validate_npc_initiative_realization
+from ai_stack.npc_agency.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.player_turn_validator_evaluation import (
     evaluate_action_resolution_contract,
     evaluate_player_intent_contract,
@@ -179,7 +179,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="npc_agency_contract",
         capability=CAP_NPC_AGENCY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
-        source_file_or_symbol="ai_stack/npc_agency_realization.py::validate_npc_initiative_realization",
+        source_file_or_symbol="ai_stack/npc_agency/npc_agency_realization.py::validate_npc_initiative_realization",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",

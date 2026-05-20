@@ -343,5 +343,5 @@ assert "error" in result
 
 - **Implementation:** `ai_stack/mcp_agent_interface.py`
 - **Tests:** `ai_stack/tests/test_mcp_agent_interface.py`
-- **LangGraph Integration:** `ai_stack/langgraph_agent_nodes.py`
+- **LangGraph Integration:** `ai_stack/langgraph/langgraph_agent_nodes.py`
 - **MCP Surface:** `ai_stack/mcp_canonical_surface.py`

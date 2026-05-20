@@ -10,13 +10,24 @@ from typing import Any
 from pathlib import Path
 
 WORLD_ENGINE_ROOT = Path(__file__).resolve().parents[2] / "world-engine"
-if str(WORLD_ENGINE_ROOT) not in sys.path:
+
+
+def _ensure_world_engine_app_importable() -> None:
+    if str(WORLD_ENGINE_ROOT) in sys.path:
+        sys.path.remove(str(WORLD_ENGINE_ROOT))
     sys.path.insert(0, str(WORLD_ENGINE_ROOT))
-loaded_app = sys.modules.get("app")
-if loaded_app is not None:
-    loaded_app_file = Path(str(getattr(loaded_app, "__file__", "") or "")).resolve()
-    if loaded_app_file and not loaded_app_file.is_relative_to(WORLD_ENGINE_ROOT):
-        sys.modules.pop("app", None)
+    loaded_app = sys.modules.get("app")
+    if loaded_app is None:
+        return
+    world_engine_app = str(WORLD_ENGINE_ROOT / "app")
+    if hasattr(loaded_app, "__path__"):
+        if world_engine_app not in loaded_app.__path__:
+            loaded_app.__path__.insert(0, world_engine_app)
+        return
+    sys.modules.pop("app", None)
+
+
+_ensure_world_engine_app_importable()
 
 # W3.1 Tests: Responder-Set Realization
 
@@ -32,7 +43,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_secondary_responder_has_preferred_reaction_order_sequence(self):
         """Verify secondary responder in dict has preferred_reaction_order=1."""
-        from ai_stack.scene_director_goc import _build_responder_set
+        from ai_stack.director.scene_director_goc import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -54,7 +65,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_interrupter_has_preferred_reaction_order_2(self):
         """Verify interruption candidate has preferred_reaction_order=2."""
-        from ai_stack.scene_director_goc import _build_responder_set
+        from ai_stack.director.scene_director_goc import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -76,7 +87,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_low_pressure_produces_only_primary(self):
         """Verify low pressure scene has only primary responder."""
-        from ai_stack.scene_director_goc import _build_responder_set
+        from ai_stack.director.scene_director_goc import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -96,7 +107,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_high_pressure_escalate_conflict_includes_secondary(self):
         """Verify escalate_conflict triggers secondary reactor."""
-        from ai_stack.scene_director_goc import _build_responder_set
+        from ai_stack.director.scene_director_goc import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -179,7 +190,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_current_npc_agency_simulation(self):
         """Verify Pi7 emits the current simulation contract as the primary surface."""
-        from ai_stack.npc_agency_contracts import (
+        from ai_stack.npc_agency.npc_agency_contracts import (
             NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
             NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
         )
@@ -417,35 +428,35 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_has_unresolved_carry_forward_tension_true_when_notes_present(self):
         """Verify helper returns True when carry_forward_tension_notes non-empty."""
-        from ai_stack.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.director.scene_director_goc import _has_unresolved_carry_forward_tension
 
         prior = {"carry_forward_tension_notes": "unresolved pressure: high"}
         assert _has_unresolved_carry_forward_tension(prior) is True
 
     def test_has_unresolved_carry_forward_tension_true_when_escalated(self):
         """Verify helper returns True when social_pressure_shift is escalated."""
-        from ai_stack.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.director.scene_director_goc import _has_unresolved_carry_forward_tension
 
         prior = {"social_pressure_shift": "escalated"}
         assert _has_unresolved_carry_forward_tension(prior) is True
 
     def test_has_unresolved_carry_forward_tension_false_when_clean(self):
         """Verify helper returns False when no tension."""
-        from ai_stack.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.director.scene_director_goc import _has_unresolved_carry_forward_tension
 
         prior = {"social_pressure_shift": "held"}
         assert _has_unresolved_carry_forward_tension(prior) is False
 
     def test_has_unresolved_carry_forward_tension_false_when_whitespace_only_notes(self):
         """Verify whitespace-only notes don't count as tension."""
-        from ai_stack.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.director.scene_director_goc import _has_unresolved_carry_forward_tension
 
         prior = {"carry_forward_tension_notes": "   "}
         assert _has_unresolved_carry_forward_tension(prior) is False
 
     def test_thin_edge_silence_withdrawal_with_prior_tension_upgrades_to_probe_motive(self):
         """Verify thin_edge + silence_withdrawal + prior_tension routes to probe_motive."""
-        from ai_stack.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.director.scene_director_goc import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="silence_withdrawal",
@@ -461,7 +472,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_thin_edge_silence_withdrawal_no_prior_tension_stays_withhold_or_evade(self):
         """Verify thin_edge + silence_withdrawal WITHOUT tension stays as withhold_or_evade."""
-        from ai_stack.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.director.scene_director_goc import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="silence_withdrawal",
@@ -477,7 +488,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_build_pacing_accepts_prior_planner_truth_param(self):
         """Verify build_pacing_and_silence accepts prior_planner_truth parameter."""
-        from ai_stack.scene_director_goc import build_pacing_and_silence
+        from ai_stack.director.scene_director_goc import build_pacing_and_silence
 
         pacing, silence = build_pacing_and_silence(
             player_input="",
@@ -491,7 +502,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_non_thin_edge_cases_unaffected_by_prior_tension(self):
         """Verify non-thin_edge pacing modes are unaffected by prior tension."""
-        from ai_stack.scene_director_goc import build_pacing_and_silence
+        from ai_stack.director.scene_director_goc import build_pacing_and_silence
 
         pacing, silence = build_pacing_and_silence(
             player_input="hello there",
@@ -505,7 +516,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_thin_edge_non_silence_withdrawal_unaffected(self):
         """Verify thin_edge cases other than silence_withdrawal aren't affected."""
-        from ai_stack.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.director.scene_director_goc import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="repair_attempt",  # Not silence_withdrawal
@@ -531,6 +542,7 @@ class TestW33InitiativeFieldExtraction:
 
     @staticmethod
     def _planner_from_state(state: dict[str, Any]):
+        _ensure_world_engine_app_importable()
         from app.story_runtime.commit_models import _planner_truth_from_graph_state
 
         return _planner_truth_from_graph_state(
@@ -660,6 +672,7 @@ class TestW33InitiativeFieldExtraction:
 
     def test_planner_truth_has_three_new_fields_in_schema(self):
         """Verify PlannerTruth model has the three new fields."""
+        _ensure_world_engine_app_importable()
         from app.story_runtime.commit_models import PlannerTruth
 
         # Should be able to instantiate with new fields
@@ -683,6 +696,7 @@ class TestW33InitiativeWhitelist:
 
     @staticmethod
     def _session_with_planner_truth(planner_truth: dict[str, Any]):
+        _ensure_world_engine_app_importable()
         from app.story_runtime.manager import StorySession
 
         return StorySession(
@@ -694,6 +708,7 @@ class TestW33InitiativeWhitelist:
 
     def test_whitelist_includes_initiative_seizer_id(self):
         """Verify whitelist has initiative_seizer_id."""
+        _ensure_world_engine_app_importable()
         from app.story_runtime.manager import _prior_planner_truth_from_session
 
         planner_truth = {"initiative_seizer_id": "veronique_vallon"}
@@ -704,6 +719,7 @@ class TestW33InitiativeWhitelist:
 
     def test_snapshot_includes_populated_initiative_fields(self):
         """Verify snapshot includes populated initiative fields."""
+        _ensure_world_engine_app_importable()
         from app.story_runtime.manager import _prior_planner_truth_from_session
 
         planner_truth = {

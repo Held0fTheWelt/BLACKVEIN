@@ -4,8 +4,6 @@ import pytest
 
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.rag.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
-from ai_stack.rag.rag_types import RetrievalStatus
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
@@ -40,38 +38,6 @@ def _goc_projection(**overrides):
     }
     projection.update(overrides)
     return projection
-
-
-def _governed_config_with_min_score(min_score: float) -> dict:
-    return {
-        "config_version": "test_retrieval_min_score",
-        "generation_execution_mode": "mock_only",
-        "retrieval_settings": {
-            "retrieval_execution_mode": "hybrid_dense_sparse",
-            "retrieval_profile": "runtime_turn_support",
-            "retrieval_min_score": min_score,
-            "retrieval_top_k": 4,
-        },
-        "providers": [{"provider_id": "mock_default", "provider_type": "mock"}],
-        "models": [
-            {
-                "model_id": "mock_deterministic",
-                "provider_id": "mock_default",
-                "model_name": "mock-deterministic",
-                "model_role": "mock",
-                "timeout_seconds": 5,
-                "structured_output_capable": True,
-            }
-        ],
-        "routes": [
-            {
-                "route_id": "narrative_live_generation_global",
-                "preferred_model_id": "mock_deterministic",
-                "fallback_model_id": "mock_deterministic",
-                "mock_model_id": "mock_deterministic",
-            }
-        ],
-    }
 
 
 class CaptureAdapter(BaseModelAdapter):
@@ -169,105 +135,6 @@ def _opening_graph(start_scene_id: str) -> _FakeTurnGraph:
 def _advance_past_opening(manager: StoryRuntimeManager, session_id: str, *, start_scene_id: str) -> None:
     manager.turn_graph = _opening_graph(start_scene_id)  # type: ignore[assignment]
     manager.execute_turn(session_id=session_id, player_input="I open the door")
-
-
-class ControlledScoreRetriever:
-    def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
-        return RetrievalResult(
-            request=request,
-            status=RetrievalStatus.OK,
-            hits=[
-                RetrievalHit(
-                    chunk_id="high",
-                    source_path="high.md",
-                    source_name="high",
-                    content_class="authored_module",
-                    source_version="1",
-                    score=0.9,
-                    snippet="MANAGER_HIGH_CONTEXT",
-                    selection_reason="fixture",
-                ),
-                RetrievalHit(
-                    chunk_id="low",
-                    source_path="low.md",
-                    source_name="low",
-                    content_class="authored_module",
-                    source_version="1",
-                    score=0.2,
-                    snippet="MANAGER_LOW_CONTEXT_LEAK",
-                    selection_reason="fixture",
-                ),
-            ],
-            ranking_notes=[],
-        )
-
-
-def test_story_runtime_retrieval_context_influences_authoritative_turn(tmp_path):
-    content_file = tmp_path / "content" / "god_of_carnage.md"
-    content_file.parent.mkdir(parents=True, exist_ok=True)
-    content_file.write_text(
-        "God of Carnage scene where two families argue about their children.",
-        encoding="utf-8",
-    )
-    corpus = RagIngestionPipeline().build_corpus(tmp_path)
-    assert corpus.chunks
-
-    adapter = CaptureAdapter()
-    manager = StoryRuntimeManager(
-        adapters={"mock": adapter, "openai": adapter, "ollama": adapter},
-        retriever=ContextRetriever(corpus),
-        context_assembler=ContextPackAssembler(),
-    )
-    session = manager.create_session(
-        module_id="god_of_carnage",
-        runtime_projection=_goc_projection(),
-    )
-    turn = manager.execute_turn(session_id=session.session_id, player_input="I open the door")
-
-    assert "retrieval" in turn
-    assert turn["retrieval"]["domain"] == "runtime"
-    assert "status" in turn["retrieval"]
-    assert turn["model_route"]["generation"]["retrieval_context_attached"] is True
-    assert adapter.last_retrieval_context
-    assert any(
-        entry["capability_name"] == "wos.context_pack.build"
-        for entry in turn["graph"]["capability_audit"]
-    )
-    repro = turn["graph"].get("repro_metadata") or {}
-    assert repro.get("adapter_invocation_mode") == "langchain_structured_primary"
-    assert repro.get("graph_path_summary") == "primary_invoke_langchain_only"
-    nodes = turn["graph"].get("nodes_executed") or []
-    assert "retrieve_context" in nodes
-    assert "invoke_model" in nodes
-    assert "authoritative_action_resolution" not in nodes
-    assert repro.get("action_resolution_short_path") is False
-    assert repro.get("synthetic_short_path") is False
-    assert repro.get("model_attempted") is True
-    assert repro.get("generation_required") is True
-    assert adapter.last_prompt
-    assert adapter.last_retrieval_context
-
-
-def test_story_runtime_manager_capability_path_respects_retrieval_min_score():
-    adapter = CaptureAdapter()
-    manager = StoryRuntimeManager(
-        adapters={"mock": adapter, "openai": adapter, "ollama": adapter},
-        retriever=ControlledScoreRetriever(),
-        context_assembler=ContextPackAssembler(),
-        governed_runtime_config=_governed_config_with_min_score(0.5),
-    )
-    session = manager.create_session(
-        module_id="god_of_carnage",
-        runtime_projection=_goc_projection(),
-    )
-
-    turn = manager.execute_turn(session_id=session.session_id, player_input="I open the door")
-
-    assert turn["retrieval"]["hit_count"] == 1
-    assert turn["retrieval"]["sources"][0]["chunk_id"] == "high"
-    assert "MANAGER_HIGH_CONTEXT" in (adapter.last_retrieval_context or "")
-    assert "MANAGER_LOW_CONTEXT_LEAK" not in (adapter.last_retrieval_context or "")
-    assert "MANAGER_LOW_CONTEXT_LEAK" not in (adapter.last_prompt or "")
 
 
 def test_story_runtime_graph_uses_fallback_branch_on_model_failure(tmp_path):

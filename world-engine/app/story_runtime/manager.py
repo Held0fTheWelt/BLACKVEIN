@@ -27,7 +27,7 @@ SESSION_LOOP_LOG_LEVELS = {
     "error": logging.ERROR,
 }
 
-from ai_stack.w5_actor_situation import (
+from ai_stack.actor_situation import (
     W5Snapshot,
     build_w5_projection_for_narrator,
     extract_w5_snapshot_from_committed_event,
@@ -234,7 +234,7 @@ from ai_stack.runtime_cost_attribution import (
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 from ai_stack.goc_yaml_authority import goc_actor_identity
-from ai_stack.goc_npc_transcript_projection import (
+from ai_stack.npc_agency.goc_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
 )
@@ -474,6 +474,7 @@ def _scripted_quote(text: str, *, language: str) -> str:
 def _speech_token(value: Any, *, language: str) -> str:
     raw = str(value or "").strip()
     low = raw.lower()
+    bare_low = low.strip("?.!,;: ")
     lang = str(language or "").strip().lower()[:2]
     if lang == "de":
         replacements = {
@@ -482,6 +483,7 @@ def _speech_token(value: Any, *, language: str) -> str:
             "was carrying a stick": "trug einen Stock",
             "with it": "damit",
             "was carrying": "trug",
+            "january 11, 2:30 p.m.": "11. Januar, 14:30 Uhr",
             "swelling_and_bruise_upper_lip": "Schwellung und Bluterguss an der Oberlippe",
             "two_broken_incisors": "zwei gebrochene Schneidezähne",
             "nerve_injury_right_incisor": "eine Nervenverletzung am rechten Schneidezahn",
@@ -494,6 +496,9 @@ def _speech_token(value: Any, *, language: str) -> str:
         }
     if low in replacements:
         return replacements[low]
+    if bare_low in replacements:
+        suffix = raw[len(raw.rstrip("?.!,;: ")) :]
+        return f"{replacements[bare_low]}{suffix}"
     if "_" in raw:
         return raw.replace("_", " ")
     return raw
@@ -536,15 +541,27 @@ def _scripted_npc_speech_text(
         if not isinstance(proposals, list):
             proposals = ["with it", "was carrying", "was carrying a stick"]
         rendered = [_speech_token(item, language=lang) for item in proposals[:3]]
+        consult_token = str(facts.get("turn_to_michel_token") or "").strip()
+        consult_label = consult_token.split(",", 1)[0].strip()
         if lang == "de":
             armed = _speech_token("armed", language=lang)
-            return f"{armed} ... Michel, was könnten wir sagen? {' Oder '.join(rendered)}?"
-        return f"Armed ... Michel, what could we say? {' Or '.join(rendered)}?"
+            consult = f" {consult_label}, was könnten wir sagen?" if consult_label else " was könnten wir sagen?"
+            return f"{armed} ...{consult} {' Oder '.join(rendered)}?"
+        consult = f" {consult_label}, what could we say?" if consult_label else " what could we say?"
+        return f"Armed ...{consult} {' Or '.join(rendered)}?"
     if "read_aloud_first_half" in intent_l:
         date = _speech_token(facts.get("date_token") or "January 11, 2:30 p.m.", language=lang)
         location = _speech_token(facts.get("location_token") or "Parc Mont Sourire", language=lang)
-        aggressor = _speech_token(facts.get("aggressor_id") or "Ferdinand", language=lang).title()
-        victim = _speech_token(facts.get("victim_id") or "Bruno", language=lang).title()
+        fallback_aggressor = "der Angreifer" if lang == "de" else "the aggressor"
+        fallback_victim = "das andere Kind" if lang == "de" else "the other child"
+        aggressor_source = facts.get("aggressor_id")
+        victim_source = facts.get("victim_id")
+        aggressor = _speech_token(aggressor_source or fallback_aggressor, language=lang)
+        victim = _speech_token(victim_source or fallback_victim, language=lang)
+        if aggressor_source:
+            aggressor = aggressor.title()
+        if victim_source:
+            victim = victim.title()
         carried_word = _speech_token(facts.get("aggressor_carried_word") or "armed", language=lang)
         action = _speech_token(facts.get("struck_action") or "struck him in the face", language=lang)
         if lang == "de":
@@ -587,7 +604,7 @@ def _scripted_narration_frame(
         if "single_word_question" in intent_l:
             return f"{actor_name} hob knapp den Blick:"
         if "offer" in intent_l:
-            return f"{actor_name} hielt inne und sah zu Michel:"
+            return f"{actor_name} hielt inne und suchte den Blickkontakt:"
         if "accept" in intent_l:
             return f"{actor_name} gab knapp zurück:"
         if "echo" in intent_l:
@@ -595,7 +612,7 @@ def _scripted_narration_frame(
         if "typing" in intent_l or "read_back" in intent_l:
             return f"{actor_name} tippte die Korrektur ein und murmelte:"
         if "name_the_format" in intent_l:
-            return f"{actor_name} wandte sich kurz zu Annette und Alain:"
+            return f"{actor_name} wandte sich kurz zu den anderen:"
         return f"{actor_name} sagte:"
     if first_perception:
         return first_perception.rstrip(".") + ":"
@@ -2388,7 +2405,7 @@ def _split_merged_goc_actor_line_segments(
     runtime_projection: dict[str, Any] | None = None,
     story_runtime_experience: dict[str, Any] | None = None,
 ) -> list[tuple[str, str, str]]:
-    """Split one ``actor_line`` by roster speaker prefixes (``ai_stack.goc_npc_transcript_projection``)."""
+    """Split one ``actor_line`` by roster speaker prefixes (``ai_stack.npc_agency.goc_npc_transcript_projection``)."""
     return split_merged_goc_actor_line_segments(
         text,
         runtime_projection=runtime_projection,
@@ -7797,13 +7814,29 @@ def _build_live_scene_turn_envelope(
         for row in (responders if isinstance(responders, list) else [])
         if isinstance(row, dict) and str(row.get("actor_id") or row.get("responder_id") or "").strip()
     ]
+    embedded_speech_actor_ids: list[str] = []
+    for block in scene_blocks:
+        if not isinstance(block, dict):
+            continue
+        spans = block.get("embedded_speech_spans")
+        if not isinstance(spans, list):
+            continue
+        for span in spans:
+            if not isinstance(span, dict):
+                continue
+            actor_id = str(span.get("actor_id") or "").strip()
+            speech_text = str(span.get("speech_text") or "").strip()
+            if actor_id and speech_text and actor_id not in embedded_speech_actor_ids:
+                embedded_speech_actor_ids.append(actor_id)
+    if not responder_ids and embedded_speech_actor_ids:
+        responder_ids = embedded_speech_actor_ids
     primary_responder_id = responder_ids[0] if responder_ids else ""
     secondary_responder_ids = responder_ids[1:]
     visible_actor_response_present = any(
         str(block.get("block_type") or "") in {"actor_line", "actor_action"}
         for block in scene_blocks
         if isinstance(block, dict)
-    ) or bool(primary_responder_id)
+    ) or bool(embedded_speech_actor_ids) or bool(primary_responder_id)
     narrator_path_no_npc = (
         str(graph_state.get("director_path_mode") or "").strip() == "narrator_path"
         and not visible_actor_response_present
@@ -12031,7 +12064,7 @@ class StoryRuntimeManager:
                         is_dual_mode_enabled,
                         is_primary_enabled,
                     )
-                    from ai_stack.phase2_stream_readiness import (
+                    from ai_stack.stream_readiness import (
                         compute_primary_selection,
                         compute_stream_readiness,
                         extract_capability_outputs_from_graph_state,
@@ -14524,12 +14557,12 @@ class StoryRuntimeManager:
                 else None,
                 canonical_step_id=phase1_canonical_context.get("canonical_step_id"),
                 canonical_path=phase1_canonical_context.get("canonical_path"),
-                    current_step_scene_id=phase1_canonical_context.get("current_step_scene_id"),
-                    current_step_named_characters=phase1_canonical_context.get("current_step_named_characters"),
-                    prior_director_gathering_state=prior_director_gathering_state,
-                    w5_latest_snapshot=session.w5_latest_snapshot
-                    if isinstance(session.w5_latest_snapshot, dict)
-                    else None,
+                current_step_scene_id=phase1_canonical_context.get("current_step_scene_id"),
+                current_step_named_characters=phase1_canonical_context.get("current_step_named_characters"),
+                prior_director_gathering_state=prior_director_gathering_state,
+                w5_latest_snapshot=session.w5_latest_snapshot
+                if isinstance(session.w5_latest_snapshot, dict)
+                else None,
                 )
         except Exception as exc:
             if not _is_recoverable_graph_execution_exception(exc):

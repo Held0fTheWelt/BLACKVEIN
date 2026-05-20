@@ -23,7 +23,7 @@ from ai_stack.goc_frozen_vocab import (
     canonicalize_goc_actor_id,
     expand_goc_actor_id_aliases,
 )
-from ai_stack.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
+from ai_stack.npc_agency.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
 from ai_stack.goc_yaml_authority import (
     goc_actor_display_name,
     goc_actor_identity,

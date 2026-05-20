@@ -139,7 +139,7 @@ Beneath the **named world** is a **serious runtime**: **authored interactive dra
 
 - **World of Shadows** (the roadmap thesis) is **not a chatbot**: it is an **authored interactive dramatic runtime** with **truth-governed, scene-led** play ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2).
 -- **Play authority** lives in **`world-engine/`** per ADR-0001 ([`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md)).
-- **AI** fits as **proposal → validation → commit** ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)); GoC slice graphs and contracts are implemented around [`ai_stack/langgraph_runtime.py`](../../ai_stack/langgraph_runtime.py) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
+- **AI** fits as **proposal → validation → commit** ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)); GoC slice graphs and contracts are implemented around [`ai_stack/langgraph/langgraph_runtime.py`](../../ai_stack/langgraph/langgraph_runtime.py) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ### Why it matters
 

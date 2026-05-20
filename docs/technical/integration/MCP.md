@@ -51,7 +51,7 @@ Operators get **repeatable** access patterns; security reviews can reason about 
 - **Capabilities:** `ai_stack/capabilities.py` defines governed operations **inside** backend/graph processes; MCP mirrors catalog rows via `capability_records_for_mcp()` and tool `wos.capabilities.catalog`.
 - **Backend:** Session snapshot, diagnostics, logs, health, guarded turn execution—HTTP authority.
 - **World-engine:** Reachable **through** backend proxies, not by MCP talking directly to the engine socket in the current design.
-- **Research:** `wos-ai` tools call `ai_stack/research_langgraph.py` and `ResearchStore` on disk.
+- **Research:** `wos-ai` tools call `ai_stack/langgraph/research_langgraph.py` and `ResearchStore` on disk.
 
 ---
 
@@ -100,7 +100,7 @@ flowchart LR
 
 | Mechanism | MCP method | Purpose |
 |-----------|------------|---------|
-| Tools | `tools/list`, `tools/call` | Side-effecting or multi-step operations; may hit backend, FS, or in-process `ai_stack` (including `run_research_pipeline` in `ai_stack/research_langgraph.py`) |
+| Tools | `tools/list`, `tools/call` | Side-effecting or multi-step operations; may hit backend, FS, or in-process `ai_stack` (including `run_research_pipeline` in `ai_stack/langgraph/research_langgraph.py`) |
 | Resources | `resources/list`, `resources/read` | Read-only JSON mirrors; URI templates in `MCP_RESOURCE_SPECS` |
 | Prompts | `prompts/list`, `prompts/get` | Suggested step order for common operator workflows (`MCP_PROMPT_SPECS` in `ai_stack/mcp_static_catalog.py`, bodies in `tools/mcp_server/resource_prompt_support.py`) |
 

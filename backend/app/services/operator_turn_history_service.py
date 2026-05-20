@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+from ai_stack.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
 from ai_stack.runtime_readiness_consumer import (
     build_adr0041_readiness_projection_echo,
     runtime_intelligence_projection_from_turn_aspect_ledger,

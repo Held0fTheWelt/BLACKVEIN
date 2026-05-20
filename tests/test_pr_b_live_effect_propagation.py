@@ -380,7 +380,7 @@ PR_B_TOUCHED_FILES = (
     "ai_stack/canonical_path_hold_effect_contracts.py",
     "ai_stack/narrator_consequence_realization_contracts.py",
     "ai_stack/player_action_resolution.py",
-    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph/langgraph_runtime_executor.py",
     "world-engine/app/story_runtime/manager.py",
 )
 

@@ -18,7 +18,7 @@ Think of it as: **AI suggests** → **runtime decides** → **players see** vali
 
 ### Orchestration (LangGraph, GoC slice)
 
-For God of Carnage, `ai_stack/langgraph_runtime.py` defines `RuntimeTurnGraphExecutor` with a **single graph** whose high-level stages include interpretation, retrieval, canonical YAML resolution, scene direction, model invocation, **validation seam**, **commit seam**, visible render, and packaged output. The **normative node list and state fields** are anchored in `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3.
+For God of Carnage, `ai_stack/langgraph/langgraph_runtime.py` defines `RuntimeTurnGraphExecutor` with a **single graph** whose high-level stages include interpretation, retrieval, canonical YAML resolution, scene direction, model invocation, **validation seam**, **commit seam**, visible render, and packaged output. The **normative node list and state fields** are anchored in `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3.
 
 > Note: archived milestone-era stack summaries may lag the **implemented** GoC graph; when they differ, prefer the **vertical slice contract**, [`docs/technical/ai/ai-stack-overview.md`](../technical/ai/ai-stack-overview.md), and root `README.md` AI section for **current** GoC behavior.
 

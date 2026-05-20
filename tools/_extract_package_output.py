@@ -1,6 +1,6 @@
 from pathlib import Path
 
-p = Path("ai_stack/langgraph_runtime_executor.py")
+p = Path("ai_stack/langgraph/langgraph_runtime_executor.py")
 lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
 i0 = next(i for i, l in enumerate(lines) if l.startswith("    def _package_output"))
 body_lines = lines[i0:]
@@ -36,5 +36,5 @@ def package_runtime_graph_output(
 text = header + "".join(dedented)
 text = text.replace("self.graph_name", "graph_name")
 text = text.replace("self.graph_version", "graph_version")
-Path("ai_stack/langgraph_runtime_package_output.py").write_text(text, encoding="utf-8")
+Path("ai_stack/langgraph/langgraph_runtime_package_output.py").write_text(text, encoding="utf-8")
 print("ok", len(text))

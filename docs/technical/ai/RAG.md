@@ -16,7 +16,7 @@
 - **Persistence:** JSON corpus `.wos/rag/runtime_corpus.json` (`PersistentRagStore`); optional dense index `.wos/rag/runtime_embeddings.npz` + `runtime_embeddings.meta.json` (see below).
 - **Turn-level governance visibility:** `ai_stack/rag/retrieval_governance_summary.py` — aggregates lane/visibility histograms from hit rows for diagnostics **without** changing ranking (consumes `retrieval["sources"]` rows from the graph).
 
-**Anchors:** `ai_stack/rag/__init__.py`, `ai_stack/rag/retrieval_governance_summary.py`, `ai_stack/langgraph_runtime.py` (`_retrieve_context`).
+**Anchors:** `ai_stack/rag/__init__.py`, `ai_stack/rag/retrieval_governance_summary.py`, `ai_stack/langgraph/langgraph_runtime.py` (`_retrieve_context`).
 
 ## Why this matters in World of Shadows
 
@@ -172,7 +172,7 @@ Content-class boosts, canonical priority, module match, scene hints — applied 
 
 | Domain (enum) | Default profile | Typical callers (examples) |
 |---------------|-----------------|-----------------------------|
-| `runtime` | `runtime_turn_support` | `RuntimeTurnGraphExecutor._retrieve_context` (`ai_stack/langgraph_runtime.py`) |
+| `runtime` | `runtime_turn_support` | `RuntimeTurnGraphExecutor._retrieve_context` (`ai_stack/langgraph/langgraph_runtime.py`) |
 | `writers_room` | `writers_review` | `LangChainRetrieverBridge.get_writers_room_documents` (`ai_stack/langchain_integration/bridges.py`) |
 | `improvement` | `improvement_eval` | Improvement and eval scenarios; capability-driven packs when domain set |
 | `research` | `research_eval` | Defined end-to-end in `rag.py` for research-mode retrieval consistency; use when constructing `RetrievalRequest(domain=...)` for research tooling |
@@ -220,7 +220,7 @@ Outputs expose `source_evidence_lane`, `source_visibility_class`, `policy_note`,
 
 ## Active wiring (verified call sites)
 
-- **World-engine turn path:** `build_runtime_retriever(...)` / graph `retrieve_context` with `RetrievalDomain.RUNTIME` (`ai_stack/langgraph_runtime.py`).
+- **World-engine turn path:** `build_runtime_retriever(...)` / graph `retrieve_context` with `RetrievalDomain.RUNTIME` (`ai_stack/langgraph/langgraph_runtime.py`).
 - **Writers’ Room:** `wos.context_pack.build` in `writers_room` mode; retriever bridge shares semantics (`ai_stack/capabilities.py`, `bridges.py`).
 - **Improvement:** uses `RetrievalDomain.IMPROVEMENT` in tests and eval harnesses (`ai_stack/tests/test_rag.py`, `ai_stack/tests/retrieval_eval_scenarios.py`); improvement HTTP flows compose context via capabilities as described in [improvement_loop_in_world_of_shadows.md](improvement_loop_in_world_of_shadows.md).
 

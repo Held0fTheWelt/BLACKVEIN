@@ -14,7 +14,7 @@ COPY . .
 RUN python -m pip install --upgrade pip \
     && python -m pip install -e ./story_runtime_core \
     && python -m pip install -e "./ai_stack[test]" \
-    && python -c "import langchain_core, langgraph; import ai_stack.langgraph_runtime"
+    && python -c "import langchain_core, langgraph; import ai_stack.langgraph.langgraph_runtime"
 
 ENV PYTHONPATH=/workspace
 CMD ["python", "-m", "pytest", "ai_stack/tests", "-q", "--tb=short"]

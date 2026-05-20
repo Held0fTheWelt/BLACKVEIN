@@ -69,8 +69,8 @@ Forbidden primary oracles:
 - `ai_stack/goc_subtext_policy.py`
 - `ai_stack/semantic_move_contract.py`
 - `ai_stack/semantic_move_interpretation_goc.py`
-- `ai_stack/scene_director_goc.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/director/scene_director_goc.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `world-engine/app/story_runtime/manager.py`
 - `backend/app/services/inspector_turn_projection_assembly_helpers.py`
 - `backend/app/services/operator_turn_history_service.py`

@@ -9,7 +9,7 @@ Accepted
 **Accepted and implemented as a bounded GoC opening/runtime-state contract.**
 
 - Implemented opening contract surfaces: `content/modules/god_of_carnage/canonical_path/`, `locations/opening/`, `locations/building/`, `locations/appartment_vallon/`, `objects/`, `characters/`, `knowledge/opening_scene_sequence.yaml`, `knowledge/opening_quote_anchors.yaml`, `direction/opening_sequence.yaml`, `scene_graph.yaml`, and `phase_beat_policy.yaml` are loaded through the module runtime policy and GoC YAML slice.
-- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
+- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
 - Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
 - The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
 - GoC Turn-0 narrator-path openings are mechanically projected from

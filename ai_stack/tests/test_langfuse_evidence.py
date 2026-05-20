@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from ai_stack.adr0041_langfuse_evidence import (
+from ai_stack.langfuse_evidence import (
     ADR0041_LANGFUSE_EVIDENCE_SCHEMA_VERSION,
     build_adr0041_langfuse_evidence_payload,
     try_emit_adr0041_langfuse_runtime_intelligence_evidence,

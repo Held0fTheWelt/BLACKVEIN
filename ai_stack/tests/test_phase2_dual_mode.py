@@ -31,7 +31,7 @@ from ai_stack.block_stream_dual_mode import (
     compute_parity_diagnostics,
     is_dual_mode_enabled,
 )
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     LANE_PLAYER_HINT,
     LANE_VISIBLE_SCENE_OUTPUT,
     SCHEMA_BLOCK_STREAM_EVENT,

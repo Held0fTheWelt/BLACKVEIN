@@ -100,8 +100,8 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 
 **Implementation entry points**
 
-- `ai_stack/langgraph_runtime.py` — `RuntimeTurnGraphExecutor`, nodes through `package_output`
-- `ai_stack/scene_director_goc.py` — deterministic GoC scene director
+- `ai_stack/langgraph/langgraph_runtime.py` — `RuntimeTurnGraphExecutor`, nodes through `package_output`
+- `ai_stack/director/scene_director_goc.py` — deterministic GoC scene director
 - `ai_stack/goc_turn_seams.py` — validation, commit, visible render, `diagnostics_refs`
 - `ai_stack/goc_yaml_authority.py` — canonical YAML load for GoC slice surfaces
 
@@ -143,7 +143,7 @@ The **canonical** Writers-Room workflow is implemented on the **backend** (JWT, 
 | --- | --- |
 | HTTP API (create review, get review, decision, revision) | `backend/app/api/v1/writers_room_routes.py` — under `/api/v1/writers-room/...` |
 | Workflow orchestration (retrieval, LangGraph seed, proposals, review bundle) | `backend/app/services/writers_room_service.py` |
-| LangGraph seed + LangChain Writers-Room invocation | `ai_stack/langgraph_runtime.py` (`build_seed_writers_room_graph`), `ai_stack/langchain_integration/` (`invoke_writers_room_adapter_with_langchain`, …) |
+| LangGraph seed + LangChain Writers-Room invocation | `ai_stack/langgraph/langgraph_runtime.py` (`build_seed_writers_room_graph`), `ai_stack/langchain_integration/` (`invoke_writers_room_adapter_with_langchain`, …) |
 | Standalone browser UI (uses `BACKEND_API_URL` / `BACKEND_BASE_URL` + JWT) | `writers-room/app.py` and `writers-room/app/` |
 | Architecture (stages, HITL, shared stack) | [docs/technical/content/writers-room-and-publishing-flow.md](docs/technical/content/writers-room-and-publishing-flow.md) |
 | Governance / operator surfaces | `administration-tool` canonical Inspector Suite workbench: `/manage/inspector-workbench` (`templates/manage/inspector_workbench.html`, `static/manage_inspector_workbench.js`); read-only admin APIs under `/api/v1/admin/ai-stack/...` (see `backend/app/api/v1/ai_stack_governance_routes.py`) |

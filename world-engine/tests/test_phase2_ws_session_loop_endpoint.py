@@ -4,7 +4,7 @@ Exercises the WebSocket endpoint mounted at
 ``/api/story/sessions/{session_id}/stream`` with a FastAPI TestClient.
 
 Tests target the WS protocol layer (the orchestration between socket I/O
-and ai_stack/phase2_ws_session_loop helpers). The turn-execution layer is
+and ai_stack/ws_session_loop helpers). The turn-execution layer is
 a thin patch on ``StoryRuntimeManager.execute_turn`` because the WS layer's
 job is the streaming/cut-in protocol, not turn business logic — that is
 covered by the integration suite under tests/smoke.
@@ -29,13 +29,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_NARRATOR,
     CUT_IN_UNINTERRUPTED,
     build_block_stream_event,
 )
-from ai_stack.phase2_ws_session_loop import (
+from ai_stack.ws_session_loop import (
     PHASE2_WS_SESSION_LOOP_ENABLED,
     SCHEMA_PLAYER_CUT_IN_HANDOFF,
     is_ws_session_loop_enabled,
@@ -836,25 +836,25 @@ class TestPlayerInputPreservation:
 
 @pytest.fixture
 def autonomous_enabled(monkeypatch):
-    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_TICK_ENABLED
+    from ai_stack.autonomous_tick import PHASE2_AUTONOMOUS_TICK_ENABLED
     monkeypatch.setenv(PHASE2_AUTONOMOUS_TICK_ENABLED, "true")
 
 
 @pytest.fixture
 def autonomous_disabled(monkeypatch):
-    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_TICK_ENABLED
+    from ai_stack.autonomous_tick import PHASE2_AUTONOMOUS_TICK_ENABLED
     monkeypatch.setenv(PHASE2_AUTONOMOUS_TICK_ENABLED, "false")
 
 
 @pytest.fixture
 def autonomous_pause_loop_enabled(monkeypatch):
-    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
+    from ai_stack.autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
     monkeypatch.setenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "true")
 
 
 @pytest.fixture
 def autonomous_pause_loop_disabled(monkeypatch):
-    from ai_stack.phase2_autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
+    from ai_stack.autonomous_tick import PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED
     monkeypatch.setenv(PHASE2_AUTONOMOUS_PAUSE_LOOP_ENABLED, "false")
 
 

@@ -241,7 +241,7 @@
       "domain": "ai_stack",
       "tags": ["runtime-fragment", "runtime-turn", "important"],
       "description": "Final directive appended to the assembled runtime model context.",
-      "source_path": "ai_stack/langgraph_runtime_executor.py",
+      "source_path": "ai_stack/langgraph/langgraph_runtime_executor.py",
       "source_symbol": "RuntimeTurnGraphExecutor._assemble_model_context",
       "variables": [],
       "template_lines": [

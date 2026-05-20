@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.w5_actor_situation.models import (
+from ai_stack.actor_situation.models import (
     W5_FACT_SCHEMA_VERSION,
     W5_PROJECTION_SCHEMA_VERSION,
     W5_SNAPSHOT_SCHEMA_VERSION,

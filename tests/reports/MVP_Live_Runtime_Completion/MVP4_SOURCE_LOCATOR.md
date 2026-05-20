@@ -31,8 +31,8 @@ This document maps MVP4 Observability, Diagnostics, Langfuse, and Narrative Gov 
 | Span context tracking | `backend/app/observability/langfuse_adapter.py` | create_span_context() | 200-250 |
 | Token cost calculation | `backend/app/observability/langfuse_adapter.py` | calculate_token_cost() | 250-300 |
 | Cost summary in envelope | `ai_stack/diagnostics_envelope.py` | cost_summary field | DiagnosticsEnvelope dataclass |
-| LDSS span instrumentation | `ai_stack/langgraph_runtime.py` | graph execution with spans | 1-50 |
-| Narrator span instrumentation | `ai_stack/langgraph_runtime.py` | narrator block generation | 100-150 |
+| LDSS span instrumentation | `ai_stack/langgraph/langgraph_runtime.py` | graph execution with spans | 1-50 |
+| Narrator span instrumentation | `ai_stack/langgraph/langgraph_runtime.py` | narrator block generation | 100-150 |
 | Langfuse status tracking | `ai_stack/diagnostics_envelope.py` | langfuse_status, langfuse_trace_id | DiagnosticsEnvelope fields |
 
 ---

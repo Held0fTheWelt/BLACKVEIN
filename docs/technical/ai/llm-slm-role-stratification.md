@@ -83,7 +83,7 @@ flowchart TB
 
 **Anchors:** `backend/app/runtime/ai_turn_executor.py`, `backend/app/runtime/runtime_ai_stages.py`.
 
-**Authority note:** This backend path is **not** the same executable path as world-engine’s `RuntimeTurnGraphExecutor`, which applies routing **inside** the LangGraph turn graph via `story_runtime_core` (`ai_stack/langgraph_runtime.py`). Which surface is **primary** for live play is a product/deployment concern; the code keeps both paths explicit.
+**Authority note:** This backend path is **not** the same executable path as world-engine’s `RuntimeTurnGraphExecutor`, which applies routing **inside** the LangGraph turn graph via `story_runtime_core` (`ai_stack/langgraph/langgraph_runtime.py`). Which surface is **primary** for live play is a product/deployment concern; the code keeps both paths explicit.
 
 For the **importable map** of which backend surface owns “primary routing authority” vs translation layers, see `backend/app/runtime/area2_routing_authority.py` (`AREA2_AUTHORITY_REGISTRY`). Plain-language: it prevents two competing routing policies from silently applying to the same canonical HTTP handler.
 

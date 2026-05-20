@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.director_capability_manager import (
+from ai_stack.director.director_capability_manager import (
     DEFAULT_MAX_CAPABILITY_PATH_DEPTH,
     audit_director_capability_paths,
     executable_capabilities_from_manager_plan,

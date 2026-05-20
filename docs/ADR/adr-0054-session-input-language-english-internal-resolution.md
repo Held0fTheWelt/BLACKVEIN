@@ -163,7 +163,7 @@ Implemented as of 2026-05-17:
 
 - `story_runtime_core/language_adapter.py` exposes the input/output/internal
   language contract and instructs English normalization before grounding.
-- `ai_stack/langgraph_runtime_executor.py` carries `session_input_language`
+- `ai_stack/langgraph/langgraph_runtime_executor.py` carries `session_input_language`
   through runtime state and semantic interpretation.
 - `ai_stack/action_resolution_contracts.py` and
   `ai_stack/player_action_resolution.py` preserve normalized English resolution
@@ -177,14 +177,14 @@ Implemented as of 2026-05-17:
 
 Updated on 2026-05-18:
 
-- `ai_stack/langgraph_runtime_executor.py` now enters player turns through
+- `ai_stack/langgraph/langgraph_runtime_executor.py` now enters player turns through
   `translate_player_input` before `interpret_input`; successful semantic model
   output is attached as `semantic_action` / `semantic_move`, and retrieval
   prefers `normalized_english_text`.
 - `ai_stack/semantic_move_interpretation_goc.py` reads bounded AI semantic move
   payloads and runtime silence signals only; phrase synsets and priority-rule
   stacks were removed.
-- `ai_stack/scene_director_goc.py` no longer imports legacy keyword scene
+- `ai_stack/director/scene_director_goc.py` no longer imports legacy keyword scene
   candidates or actor alias matching from raw text. Missing semantic moves use
   `selection_source=semantic_move_required`.
 - `story_runtime_core/input_interpreter.py` and

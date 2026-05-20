@@ -38,7 +38,7 @@ import os
 import uuid
 from typing import Any
 
-from ai_stack.director_pulse_contracts import (
+from ai_stack.director.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_ACTION,
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,
@@ -54,7 +54,7 @@ from ai_stack.director_pulse_contracts import (
     build_director_tick_decision,
     build_npc_motivation_score,
 )
-from ai_stack.director_pulse_shadow import evaluate_director_tick
+from ai_stack.director.director_pulse_shadow import evaluate_director_tick
 
 # ── Feature flags ─────────────────────────────────────────────────────────────
 # Dual mode: block_stream_events produced in parallel with bundle (shadow only).
@@ -359,9 +359,9 @@ def augment_envelope_with_block_stream(
     }
 
     # Classify which inputs came from real capability outputs vs defaults.
-    # Imported here to avoid circular import (phase2_stream_readiness → director_pulse_contracts).
+    # Imported here to avoid circular import (stream_readiness → director_pulse_contracts).
     try:
-        from ai_stack.phase2_stream_readiness import classify_motivation_score_sources
+        from ai_stack.stream_readiness import classify_motivation_score_sources
         score_sources = classify_motivation_score_sources(None)
         # Override per actual inputs passed
         score_sources["scene_energy"] = "real_capability_output" if scene_energy_output else "default_score"
@@ -375,7 +375,7 @@ def augment_envelope_with_block_stream(
     # and compute the capability-availability tuple, so the WS endpoint can
     # surface them on the autonomous_tick_evaluated summary without recomputing.
     try:
-        from ai_stack.phase2_stream_readiness import (
+        from ai_stack.stream_readiness import (
             classify_capability_availability,
             classify_motivation_component_sources,
         )

@@ -234,8 +234,8 @@ has the correct rhythm.
 - `ai_stack/pacing_rhythm_contracts.py`
 - `ai_stack/pacing_rhythm_engine.py`
 - `ai_stack/module_runtime_policy.py`
-- `ai_stack/langgraph_runtime_state.py`
-- `ai_stack/langgraph_runtime_executor.py`
+- `ai_stack/langgraph/langgraph_runtime_state.py`
+- `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `ai_stack/story_runtime_playability.py`
 - `world-engine/app/story_runtime/manager.py`

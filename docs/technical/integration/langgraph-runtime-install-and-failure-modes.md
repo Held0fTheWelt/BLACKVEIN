@@ -13,7 +13,7 @@ Declared in:
 
 ## Runtime guard behavior
 
-`ai_stack/langgraph_runtime.py` now protects import and startup paths with explicit checks:
+`ai_stack/langgraph/langgraph_runtime.py` now protects import and startup paths with explicit checks:
 
 - module import captures LangGraph import exceptions in `LANGGRAPH_IMPORT_ERROR`
 - `ensure_langgraph_available()` raises a clear runtime error when dependency is unavailable

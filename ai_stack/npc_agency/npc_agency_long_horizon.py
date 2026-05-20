@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     NPC_INTENTION_THREAD_ACTIVE_STATUS,
     NPC_INTENTION_THREAD_SCHEMA_VERSION,

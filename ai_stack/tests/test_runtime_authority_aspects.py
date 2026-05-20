@@ -18,7 +18,7 @@ from ai_stack.dramatic_capability_contracts import (
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
     NPC_FORCE_PLAYER_SPEECH_FORBIDDEN,
 )
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
@@ -499,7 +499,7 @@ def test_movement_to_known_location_routes_to_narrator_location_transition() -> 
     narrator location_transition capability with outcome=success. Realization
     runs through the LLM (model realization), not through a deterministic
     synthetic short-path."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_NARRATOR_LOCATION_TRANSITION,
         REALIZATION_OWNER_NARRATOR,
         compose_realization_plan,
@@ -531,7 +531,7 @@ def test_inferred_plausible_object_interaction_keeps_model_realization() -> None
     """Thin-path invariant: a plausible-inference object interaction is still
     realized through the Director / model realization path. The composer does
     not route it to a deterministic surface and does not refuse it."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_NARRATOR_KANON_REFUSAL,
         compose_realization_plan,
     )
@@ -567,7 +567,7 @@ def test_needs_clarification_routes_to_narrator_clarification() -> None:
     """Thin-path invariant: when the resolver cannot identify a target,
     the composer routes to a narrator clarification capability with
     outcome=partial, instead of failing silently or refusing the turn."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_NARRATOR_CLARIFICATION,
         REALIZATION_OWNER_NARRATOR,
         compose_realization_plan,
@@ -601,7 +601,7 @@ def test_kanon_break_routes_to_refusal_with_outcome_fail() -> None:
     irreversibly destructive) is routed to the narrator refusal capability
     with outcome=fail. The refusal is realized through the narrator, not
     suppressed or rerouted to an actor lane."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_NARRATOR_KANON_REFUSAL,
         REALIZATION_OWNER_NARRATOR,
         compose_realization_plan,
@@ -632,7 +632,7 @@ def test_perception_question_about_location_routes_to_narrator_perception() -> N
     """Thin-path invariant: a perception question over a known target lands
     on the narrator perception capability — not on actor_line.speech.
     The world answers in narrator voice, the player did not address an NPC."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_NARRATOR_PERCEPTION,
         REALIZATION_OWNER_NARRATOR,
         compose_realization_plan,
@@ -662,7 +662,7 @@ def test_perception_question_about_location_routes_to_narrator_perception() -> N
 def test_speech_act_to_npc_routes_to_actor_line() -> None:
     """Thin-path invariant: a spoken line (commit_speech) lands on
     actor_line.speech, not on a narrator capability."""
-    from ai_stack.director_realization_composer import (
+    from ai_stack.director.director_realization_composer import (
         CAPABILITY_ACTOR_SPEECH,
         REALIZATION_OWNER_ACTOR_LINE,
         compose_realization_plan,

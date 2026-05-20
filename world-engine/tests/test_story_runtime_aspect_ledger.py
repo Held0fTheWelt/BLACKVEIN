@@ -208,7 +208,7 @@ def test_path_summary_propagates_environment_and_runtime_profile(monkeypatch) ->
 
     summary = turn["observability_path_summary"]
     assert summary["runtime_profile_id"] == "profile-for-summary"
-    assert summary["environment"] == "staging"
+    assert summary["environment"] == "local"
     assert summary["turn_aspect_ledger"]["runtime_profile_id"] == "profile-for-summary"
 
 

@@ -24,7 +24,7 @@ This document explains how to install test dependencies, run tests, understand t
 
 ### PYTHONPATH alone is not enough (LangGraph / GoC)
 
-Setting `PYTHONPATH` to the repo root only makes **source packages importable**; it does **not** install **PyPI** dependencies such as `langchain-core` or `langgraph`. Without those, `ai_stack.langgraph_runtime` cannot load and the GoC / LangGraph tests are **skipped** (by design).
+Setting `PYTHONPATH` to the repo root only makes **source packages importable**; it does **not** install **PyPI** dependencies such as `langchain-core` or `langgraph`. Without those, `ai_stack.langgraph.langgraph_runtime` cannot load and the GoC / LangGraph tests are **skipped** (by design).
 
 **Platform-neutral, CI-identical minimal install** (only `story_runtime_core` + `ai_stack[test]`, same commands as `.github/workflows/ai-stack-tests.yml`):
 
@@ -46,7 +46,7 @@ docker build -f docker/Dockerfile.ai-stack-test -t wos-ai-stack-test .
 docker run --rm wos-ai-stack-test
 ```
 
-After a successful install, `python -c "import langchain_core, langgraph; import ai_stack.langgraph_runtime"` must exit 0.
+After a successful install, `python -c "import langchain_core, langgraph; import ai_stack.langgraph.langgraph_runtime"` must exit 0.
 
 ## Quick Start
 

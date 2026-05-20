@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.npc_agency_contracts import (
+from ai_stack.npc_agency.npc_agency_contracts import (
     DEFAULT_ALLOWED_BLOCK_TYPES,
     DEFAULT_ALLOWED_OUTPUT_LANES,
     NPC_AGENCY_PLAN_PARTIAL_STATUS,
@@ -20,7 +20,7 @@ from ai_stack.npc_agency_contracts import (
     normalize_npc_agency_plan,
     npc_actor_ids_from_context,
 )
-from ai_stack.npc_agency_long_horizon import (
+from ai_stack.npc_agency.npc_agency_long_horizon import (
     build_npc_long_horizon_state,
     build_npc_private_plans,
     resolve_npc_private_plans,
@@ -81,6 +81,16 @@ def _mind_by_actor(character_mind_records: list[Any]) -> dict[str, dict[str, Any
         if actor_id and actor_id not in minds:
             minds[actor_id] = row
     return minds
+
+
+def _w5_situation_by_actor(npc_w5_situations: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    payload = npc_w5_situations if isinstance(npc_w5_situations, dict) else {}
+    for actor_id, projection in payload.items():
+        aid = canonical_actor_id(actor_id)
+        if aid and isinstance(projection, dict):
+            out[aid] = projection
+    return out
 
 
 def _unresolved_actor_ids_from_prior(prior_planner_truth: dict[str, Any] | None) -> list[str]:
@@ -367,6 +377,7 @@ def build_npc_agency_simulation(
     npc_actor_ids: list[Any] | None = None,
     npc_response_expected: bool | None = None,
     npc_context_bundle: dict[str, Any] | None = None,
+    npc_w5_situations: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     responders = _ordered_responder_rows(
         selected_responder_set,
@@ -398,6 +409,7 @@ def build_npc_agency_simulation(
 
     responder_rank = {actor_id: index for index, actor_id in enumerate(responder_ids)}
     minds = _mind_by_actor(character_mind_records or [])
+    w5_situations = _w5_situation_by_actor(npc_w5_situations)
     evidence = _source_evidence(
         selected_scene_function=selected_scene_function,
         semantic_move_record=semantic_move_record,
@@ -412,6 +424,14 @@ def build_npc_agency_simulation(
             "blocked_memory_lanes": list(npc_context_bundle.get("retrieval_plan", {}).get("blocked_memory_lanes") or []),
         }
         evidence.append(lane_notes)
+    if w5_situations:
+        evidence.append(
+            {
+                "source": "w5_npc_projection",
+                "field": "actor_w5_situation",
+                "actor_ids": sorted(w5_situations.keys()),
+            }
+        )
 
     scored: list[tuple[int, int, int, str, list[str]]] = []
     for index, actor_id in enumerate(candidate_actor_ids):
@@ -492,6 +512,11 @@ def build_npc_agency_simulation(
                 "tactical_posture": mind.get("tactical_posture"),
                 "pressure_response_bias": mind.get("pressure_response_bias"),
                 "source_evidence": list(evidence),
+                **(
+                    {"actor_w5_situation": w5_situations[actor_id]}
+                    if actor_id in w5_situations
+                    else {}
+                ),
             }
         )
 
@@ -613,6 +638,7 @@ def build_npc_agency_plan(
     actor_lane_context: dict[str, Any] | None = None,
     preferred_reaction_order_ids: list[str] | None = None,
     npc_context_bundle: dict[str, Any] | None = None,
+    npc_w5_situations: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     responders = _ordered_responder_rows(
         selected_responder_set,
@@ -637,6 +663,7 @@ def build_npc_agency_plan(
         [primary_id, *([first_secondary_id] if first_secondary_id else []), *unresolved_actor_ids]
     )
     minds = _mind_by_actor(character_mind_records or [])
+    w5_situations = _w5_situation_by_actor(npc_w5_situations)
     evidence = _source_evidence(
         selected_scene_function=selected_scene_function,
         semantic_move_record=semantic_move_record,
@@ -654,6 +681,14 @@ def build_npc_agency_plan(
                 "blocked_memory_lanes": list(
                     npc_context_bundle.get("retrieval_plan", {}).get("blocked_memory_lanes") or []
                 ),
+            }
+        )
+    if w5_situations:
+        evidence.append(
+            {
+                "source": "w5_npc_projection",
+                "field": "actor_w5_situation",
+                "actor_ids": sorted(w5_situations.keys()),
             }
         )
 
@@ -689,6 +724,11 @@ def build_npc_agency_plan(
                 "tactical_posture": mind.get("tactical_posture"),
                 "pressure_response_bias": mind.get("pressure_response_bias"),
                 "source_evidence": list(evidence),
+                **(
+                    {"actor_w5_situation": w5_situations[actor_id]}
+                    if actor_id in w5_situations
+                    else {}
+                ),
             }
         )
 

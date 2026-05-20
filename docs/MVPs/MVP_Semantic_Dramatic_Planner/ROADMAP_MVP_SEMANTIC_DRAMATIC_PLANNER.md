@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph_runtime_executor.py`, `ai_stack/semantic_move_contract.py`, `ai_stack/semantic_move_interpretation_goc.py`, `ai_stack/goc_subtext_policy.py`, `ai_stack/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/semantic_move_contract.py`, `ai_stack/semantic_move_interpretation_goc.py`, `ai_stack/goc_subtext_policy.py`, `ai_stack/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -37,7 +37,7 @@ The current repo state is already strong in several foundational ways.
 
 ### 2.1 Single graph truth surface already exists
 
-The GoC runtime already executes through one named `StateGraph(RuntimeTurnState)` path in `ai_stack/langgraph_runtime.py`, with explicit nodes including:
+The GoC runtime already executes through one named `StateGraph(RuntimeTurnState)` path in `ai_stack/langgraph/langgraph_runtime.py`, with explicit nodes including:
 
 - `director_assess_scene`
 - `director_select_dramatic_parameters`
@@ -62,7 +62,7 @@ That means the target architecture should evolve **inside** these seams rather t
 
 ### 2.4 Director logic exists, but remains heuristic
 
-`ai_stack/scene_director_goc.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
+`ai_stack/director/scene_director_goc.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
 
 ### 2.5 Dramatic alignment exists, but remains surface-oriented
 
@@ -290,7 +290,7 @@ This layer is planner-facing and derived. It is not the same as canonical world 
 
 **Owns:** short-horizon dramatic direction for the current turn and immediate scene progression.
 
-**Current basis:** `ai_stack/scene_director_goc.py`
+**Current basis:** `ai_stack/director/scene_director_goc.py`
 
 **New MVP responsibility:**
 
@@ -741,7 +741,7 @@ Recommended new modules:
 
 Recommended migration posture:
 
-- keep `ai_stack/scene_director_goc.py` as a façade during migration,
+- keep `ai_stack/director/scene_director_goc.py` as a façade during migration,
 - move existing heuristics behind explicit contracts step by step,
 - do not break existing operator or closure surfaces in one jump.
 

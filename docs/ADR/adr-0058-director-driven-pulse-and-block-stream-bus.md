@@ -216,9 +216,9 @@ is removed, weakened, or made secondary by this ADR.
 
 ### New modules
 
-- `ai_stack/director_pulse_contracts.py` — the four contract builders (pure functions, no I/O).
-- `ai_stack/npc_motivation_score_engine.py` — motivation score computation (ADR-0059).
-- `ai_stack/director_pulse_shadow.py` — shadow-path coordinator (`evaluate_director_tick()`).
+- `ai_stack/director/director_pulse_contracts.py` — the four contract builders (pure functions, no I/O).
+- `ai_stack/npc_agency/npc_motivation_score_engine.py` — motivation score computation (ADR-0059).
+- `ai_stack/director/director_pulse_shadow.py` — shadow-path coordinator (`evaluate_director_tick()`).
 
 ### Content change
 
@@ -232,7 +232,7 @@ is removed, weakened, or made secondary by this ADR.
 
 ### What this ADR does NOT change
 
-- `ai_stack/director_gathering_state_contracts.py` — unchanged (ADR-0061 domain).
+- `ai_stack/director/director_gathering_state_contracts.py` — unchanged (ADR-0061 domain).
 - Any existing `visible_scene_output.blocks.v1` or bundle path logic.
 - Any validation, commit, or readiness semantics.
 - Any MVP3 LDSS contracts or test gates.

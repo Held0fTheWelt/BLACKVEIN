@@ -31,7 +31,7 @@ If product language and file names differ, this text points to the **nearest rea
 
 ### What this means in the actual system
 
-- Story turns: `StoryRuntimeManager.execute_turn` in `world-engine/app/story_runtime/manager.py` calls `RuntimeTurnGraphExecutor.run` from `ai_stack/langgraph_runtime.py`, then `resolve_narrative_commit` in `world-engine/app/story_runtime/commit_models.py`.
+- Story turns: `StoryRuntimeManager.execute_turn` in `world-engine/app/story_runtime/manager.py` calls `RuntimeTurnGraphExecutor.run` from `ai_stack/langgraph/langgraph_runtime.py`, then `resolve_narrative_commit` in `world-engine/app/story_runtime/commit_models.py`.
 - Player-facing HTTP still goes through **`backend/`** for typical deployments (`backend/app/services/game_service.py` and related routes).
 
 ### Why it matters
@@ -86,7 +86,7 @@ flowchart TB
   MCP -.-> BE
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`, `backend/app/services/game_service.py`, `tools/mcp_server/`.
+**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `backend/app/services/game_service.py`, `tools/mcp_server/`.
 
 **What to notice:** **LangGraph / LangChain / RAG / models** sit **under** the **World Engine** for runtime turns, not beside it as a second game server.
 
@@ -106,7 +106,7 @@ An **LLM** (large language model) is a big general model, good for rich language
 
 ### Why it matters
 
-Cost, latency, and reliability can be balanced. A failed or missing key on one provider can degrade into **mock** or fallback paths while the graph still records what happened (`ai_stack/langgraph_runtime.py`).
+Cost, latency, and reliability can be balanced. A failed or missing key on one provider can degrade into **mock** or fallback paths while the graph still records what happened (`ai_stack/langgraph/langgraph_runtime.py`).
 
 ### What it is not
 
@@ -129,7 +129,7 @@ flowchart LR
   RP -->|otherwise_llm_track| LLM
 ```
 
-**Seams:** `story_runtime_core/model_registry.py`, `ai_stack/langgraph_runtime.py` (`route_model` node).
+**Seams:** `story_runtime_core/model_registry.py`, `ai_stack/langgraph/langgraph_runtime.py` (`route_model` node).
 
 **What to notice:** The **graph** asks “which model family?” before **`invoke_model`**.
 
@@ -144,7 +144,7 @@ flowchart LR
 ### What this means in the actual system
 
 - Implementation: `ai_stack/rag/__init__.py` — domains such as **`runtime`**, **`writers_room`**, **`improvement`**, **`research`** (`RetrievalDomain`).
-- On the **live turn graph**, the node **`retrieve_context`** builds a `RetrievalRequest` with domain **`RUNTIME`** (see `docs/technical/integration/LangGraph.md`, `ai_stack/langgraph_runtime.py`).
+- On the **live turn graph**, the node **`retrieve_context`** builds a `RetrievalRequest` with domain **`RUNTIME`** (see `docs/technical/integration/LangGraph.md`, `ai_stack/langgraph/langgraph_runtime.py`).
 - Governance and lanes (what may surface to which caller) are part of the same module’s design; comments describe corpus storage under `.wos/rag/` and policy-style gates.
 
 ### Why it matters
@@ -173,7 +173,7 @@ flowchart TB
   PROMPT --> VAL --> COM --> RT
 ```
 
-**Seams:** `ai_stack/rag/__init__.py`, `ai_stack/langgraph_runtime.py`, `ai_stack/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
+**Seams:** `ai_stack/rag/__init__.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
 
 **What to notice:** **RAG** feeds **prompt assembly**; **commit** sits **after** model proposals are checked.
 
@@ -189,7 +189,7 @@ flowchart TB
 
 #### What this means in the actual system
 
-- Primary area: `ai_stack/langchain_integration/` — e.g. `invoke_runtime_adapter_with_langchain` used from the LangGraph **`invoke_model`** node (`docs/technical/integration/LangChain.md`, `ai_stack/langgraph_runtime.py`).
+- Primary area: `ai_stack/langchain_integration/` — e.g. `invoke_runtime_adapter_with_langchain` used from the LangGraph **`invoke_model`** node (`docs/technical/integration/LangChain.md`, `ai_stack/langgraph/langgraph_runtime.py`).
 - Writers’ Room uses parallel helpers (`invoke_writers_room_adapter_with_langchain`) from **backend** services (`backend/app/services/writers_room_service.py`).
 
 #### Why it matters
@@ -210,7 +210,7 @@ LangChain **does not** define the **order** of turn steps and **does not** repla
 
 #### What this means in the actual system
 
-- `RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` builds a `StateGraph` over `RuntimeTurnState`; graph wiring lives in `ai_stack/langgraph_runtime_executor.py`.
+- `RuntimeTurnGraphExecutor` in `ai_stack/langgraph/langgraph_runtime.py` builds a `StateGraph` over `RuntimeTurnState`; graph wiring lives in `ai_stack/langgraph/langgraph_runtime_executor.py`.
 - Node order and branches match `docs/technical/integration/LangGraph.md` (`interpret_input` → story-play path or `meta_control_turn` → `package_output`).
 
 #### Why it matters
@@ -246,7 +246,7 @@ flowchart TB
   N3 --> B
 ```
 
-**Seams:** `ai_stack/langgraph_runtime.py`, `ai_stack/langchain_integration/bridges.py`.
+**Seams:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/langchain_integration/bridges.py`.
 
 **What to notice:** **LangChain** is **nested inside** a **single node**; the **graph** owns **before and after**.
 
@@ -353,7 +353,7 @@ flowchart TB
   WE --> AI
 ```
 
-**Seams:** `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`.
+**Seams:** `backend/app/services/game_service.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
 
 **What to notice:** **AI_stack** executes **inside** the **engine process** for story turns, not as a separate public microservice in the default design.
 
@@ -428,7 +428,7 @@ For **Meta/OOC input**, step 3 branches from **interpret** to **meta_control_tur
 
 ### What this means in the actual system
 
-Anchors: `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`, `ai_stack/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
+Anchors: `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
 
 ### Why it matters
 
@@ -467,7 +467,7 @@ sequenceDiagram
   Frontend-->>Player: new_scene_text_UI
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game_service.py`.
+**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game_service.py`.
 
 **What to notice:** **Models** return **before** **validate/commit**; **session update** happens **after** the graph returns to the manager.
 
@@ -527,7 +527,7 @@ Stories need **continuity** and **fair consequences**. Separating **gate** (back
 
 ### What this means in the actual system
 
-You can read **one public surface** for graph exports (`ai_stack/langgraph_runtime.py`), **one executor file** for graph order (`ai_stack/langgraph_runtime_executor.py`), **one file** for commit semantics (`commit_models.py`), and **one area** for retrieval policy (`ai_stack/rag/__init__.py`).
+You can read **one public surface** for graph exports (`ai_stack/langgraph/langgraph_runtime.py`), **one executor file** for graph order (`ai_stack/langgraph/langgraph_runtime_executor.py`), **one file** for commit semantics (`commit_models.py`), and **one area** for retrieval policy (`ai_stack/rag/__init__.py`).
 
 ### Why it matters
 
@@ -541,6 +541,6 @@ Not a claim that every future feature stays in this exact shape—check **contra
 
 ## Conclusion
 
-In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain_integration/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager.py`). The **player** sees **one experience** built from that whole chain.
+In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain_integration/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager.py`). The **player** sees **one experience** built from that whole chain.
 
 **Read next:** [How AI fits the platform](../start-here/how-ai-fits-the-platform.md) · [AI stack overview (technical)](../technical/ai/ai-stack-overview.md) · [Connected system reference](../ai/ai_system_in_world_of_shadows.md)

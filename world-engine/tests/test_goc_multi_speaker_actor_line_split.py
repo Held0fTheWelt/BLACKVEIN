@@ -2,7 +2,7 @@
 
 Repro path (megablock → split → finalize): a single ``actor_line`` with two roster
 ``Name:`` prefixes is segmented in ``_finalize_visible_blocks_with_goc_actor_split``
-via ``ai_stack.goc_npc_transcript_projection.split_merged_goc_actor_line_segments``
+via ``ai_stack.npc_agency.goc_npc_transcript_projection.split_merged_goc_actor_line_segments``
 (roster from ``runtime_projection``; policy from ``story_runtime_experience``).
 """
 

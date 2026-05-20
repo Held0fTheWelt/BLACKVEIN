@@ -45,7 +45,7 @@ No code behavior changes.
 
 **Goal:** produce W5 snapshots after every committed runtime event, persist them append-only, change no consumer behavior.
 
-- [x] `ai_stack/w5_actor_situation/` package created with:
+- [x] `ai_stack/actor_situation/` package created with:
   - `models.py` — closed enums (`W5Dimension`, `W5TruthLevel`, `W5Source`, `W5VisibilityScope`, `W5FactStatus`, `W5FreshnessStatus`, `W5ActorType`, `W5ProjectionConsumer`, `W5ActionState`, `W5ConflictResolutionStatus`, `W5ValidationFailureCode`) and records (`W5Fact`, `W5ActorSituation`, `W5Snapshot`, `W5Conflict`, `W5Projection`).
   - `extractor.py` — `extract_w5_snapshot_from_committed_event(...)` pure function.
 - [x] `StorySession` extended with append-only `w5_history: list[W5Snapshot]` and `w5_latest_snapshot: W5Snapshot | None`.
@@ -70,16 +70,63 @@ No code behavior changes.
 - Legacy localization helpers are **not** removed.
 - `environment_state` remains the low-level committed substrate.
 
-### Phase 2 — Bounded read-only projections for narrator / NPC consumers (planned)
+### Phase 2 — Bounded read-only projections for narrator (complete)
 
-- Define narrator and NPC `W5Projection` builders.
-- Wire dual-read in narrator/NPC code paths behind a feature flag.
-- Add equivalence tests comparing legacy actor-location reads against W5 projections.
-- No write-side changes.
+- [x] Define `build_w5_projection_for_narrator(...)`.
+- [x] Wire narrator `source_facts.w5_projection` behind `W5_AST_NARRATOR_PROJECTION_ENABLED`.
+- [x] Preserve legacy narrator transition/location fields as fallback.
+- [x] Keep How first-class and inferred Why soft-truth.
+- [x] Coerce persisted `w5_latest_snapshot` dicts through `W5Snapshot.from_dict()` inside the projection builder.
 
-### Phase 3 — Director / gathering / validation consumers (planned)
+No write-side changes.
 
-- Switch Director gathering composition and validation to read W5 projections.
+### Phase 2.5 — Director/Gathering baseline stabilization (complete)
+
+- [x] Reconfirmed ADR-0061 behavior before migrating Director/Gathering:
+  - actor-location absence can pause;
+  - actor return clears pause;
+  - same-room `participation_relevance="broken"` can pause;
+  - same-room `visibility_audibility="not_audible"` can pause;
+  - topology-confirmed presence does not suppress explicit resolver break evidence.
+- [x] Confirmed W5 does not feed Director/Gathering in the Phase 2.5 baseline.
+
+### Phase 3A — Director/Gathering W5 projection input (complete)
+
+- [x] Add `build_w5_projection_for_director(...)`.
+- [x] Director projection exposes compact per-actor `where.scene_location`, optional `where.visibility_audibility`, freshness/status, source/truth attribution, and a compatibility `derived_actor_locations` map.
+- [x] Director projection preserves all five W5 dimensions internally (`who_summary`, `where_summary`, `what_summary`, `how_summary`, `why_summary`) while Director/Gathering only depends on the location/visibility fields needed for ADR-0061 pause semantics.
+- [x] Wire Director/Gathering actor-location input behind `W5_AST_DIRECTOR_PROJECTION_ENABLED`.
+- [x] Keep `compute_gathering_state` semantics and signature unchanged.
+- [x] Keep `complete_actor_locations_for_gathering` and `gathering_scene_id`.
+- [x] Add compact diagnostics:
+  - `w5_director_projection_used`
+  - `w5_director_projection_failed`
+  - `w5_snapshot_id`
+  - `derived_actor_locations_source`
+  - `gathering_pause_source`
+
+ADR-0061 cross-reference: Phase 3A changes only the actor-location input source when the flag is enabled. The pause predicate remains the ADR-0061 composition over topology plus resolver participation / visibility / audibility evidence.
+
+### Phase 3B — NPC projection consumers (complete)
+
+- [x] Add `build_w5_projection_for_npc(snapshot, actor_id=...)`.
+- [x] NPC projections are actor-specific (`target_consumer="npc"`, `actor_id=<target NPC>`) and preserve all five W5 dimensions (`who_summary`, `where_summary`, `what_summary`, `how_summary`, `why_summary`).
+- [x] Keep How first-class; inferred Why remains soft truth.
+- [x] Preserve `source_attribution` and `truth_attribution` without exposing raw W5 fact ledgers to NPC planning prompts.
+- [x] Respect actor knowledge / privacy boundaries:
+  - the target NPC may receive its own private/inferred Why;
+  - another actor's private/inferred Why is exposed only when `actor_knowledge_scope` allows the target NPC;
+  - player-private facts do not leak to NPC projections.
+- [x] Wire NPC planning inputs behind `W5_AST_NPC_PROJECTION_ENABLED`.
+- [x] Disabled/unset flag behavior remains legacy-only.
+- [x] Projection failures are diagnostic-only and fall back to legacy NPC context.
+- [x] Legacy NPC context fields remain present as fallback.
+- [x] No validation, frontend/player shell, or admin migration in this phase.
+
+Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readiness semantics, `validation_outcome`, Canonical Path semantics, and ADR-0061 Director/Gathering pause behavior are unchanged.
+
+### Phase 3C — Director / validation follow-through (planned)
+
 - Migrate `validation_outcome` evidence to cite W5 facts where it currently cites raw environment fields.
 - Maintain dual-read until equivalence is proven.
 

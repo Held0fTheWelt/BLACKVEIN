@@ -4,7 +4,7 @@ adr_owner: Engineering / Runtime governance
 surfaces:
   - surface_id: ai_stack_langgraph_runtime_executor
     primary_files:
-      - ai_stack/langgraph_runtime_executor.py
+      - ai_stack/langgraph/langgraph_runtime_executor.py
     symbols:
       - RuntimeTurnGraphExecutor
     runtime_role: LangGraph turn execution, validation node wiring, ADR-0041 validate_seam sidecar attachment
@@ -176,7 +176,7 @@ surfaces:
   - surface_id: ai_stack_active_listening_envelope
     primary_files:
       - ai_stack/active_listening_contracts.py
-      - ai_stack/langgraph_runtime_executor.py
+      - ai_stack/langgraph/langgraph_runtime_executor.py
       - ai_stack/runtime_aspect_ledger.py
     symbols:
       - derive_broad_nlu_listening

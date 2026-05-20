@@ -1,5 +1,5 @@
 """
-``ai_stack/langgraph_runtime_state.py`` — expand purpose, primary
+``ai_stack/langgraph/langgraph_runtime_state.py`` — expand purpose, primary
 entrypoints, and invariants for maintainers.
 """
 from __future__ import annotations

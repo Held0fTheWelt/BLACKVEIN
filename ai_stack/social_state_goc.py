@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from ai_stack.scene_director_goc import prior_continuity_classes
+from ai_stack.director.scene_director_goc import prior_continuity_classes
 from ai_stack.social_state_contract import SocialStateRecord
 
 
