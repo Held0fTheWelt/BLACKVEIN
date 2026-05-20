@@ -54,7 +54,7 @@ HANDOFF_RECOMMENDED_BLOCKED = "blocked"
 CO_AUTHORITY_STAGE_SCOPED = "scoped_co_authority"
 CO_AUTHORITY_DECISION_READY = "validation_co_authority_ready"
 CO_AUTHORITY_LEGACY_SEAM = "run_validation_seam"
-CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.goc_turn_seams.run_validation_seam"
+CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.goc_turn_seams_validation.run_validation_seam"
 
 READINESS_POLICY_SHADOW_ONLY = "shadow_only"
 READINESS_POLICY_PREVIEW_CANDIDATE = "readiness_preview_candidate"

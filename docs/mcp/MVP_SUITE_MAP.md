@@ -4,7 +4,7 @@
 
 **Roadmap cross-reference:** [ROADMAP_MVP_WOS_VSL.md](../MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL.md) — suite expectations and pilot misrouting metrics are spelled out there (sections on MCP suites and review methodology).
 
-Canonical tool names and suite membership are defined in code: `ai_stack/mcp_canonical_surface.py` (`CANONICAL_MCP_TOOL_DESCRIPTORS`). Pilot reviewers classify misrouting against the tables below.
+Canonical tool names and suite membership are defined in code: `ai_stack/mcp/mcp_canonical_surface.py` (`CANONICAL_MCP_TOOL_DESCRIPTORS`). Pilot reviewers classify misrouting against the tables below.
 
 **Runtime rule:** MCP is **control plane only**. Reads reflect backend or filesystem authority; research outputs and bundles are **review-bound**; nothing here publishes canonical module YAML or replaces live session authority.
 
@@ -48,7 +48,7 @@ Canonical tool names and suite membership are defined in code: `ai_stack/mcp_can
 
 ## MCP resources (stable reads)
 
-Resources mirror read-only HTTP/FS paths **without** mixing read and write operations. URI scheme: `wos://…` (opaque to clients; resolved by `tools/mcp_server`). Specs: `ai_stack/mcp_static_catalog.py` (`MCP_RESOURCE_SPECS`).
+Resources mirror read-only HTTP/FS paths **without** mixing read and write operations. URI scheme: `wos://…` (opaque to clients; resolved by `tools/mcp_server`). Specs: `ai_stack/mcp/mcp_static_catalog.py` (`MCP_RESOURCE_SPECS`).
 
 | URI template | Suite | Source | Params |
 |--------------|-------|--------|--------|
@@ -64,7 +64,7 @@ Resources mirror read-only HTTP/FS paths **without** mixing read and write opera
 
 ## MCP prompts (recurring workflows)
 
-Declared in `ai_stack/mcp_static_catalog.py` (`MCP_PROMPT_SPECS`); bodies in `tools/mcp_server/resource_prompt_support.py`.
+Declared in `ai_stack/mcp/mcp_static_catalog.py` (`MCP_PROMPT_SPECS`); bodies in `tools/mcp_server/resource_prompt_support.py`.
 
 | Prompt name | Suite | Purpose |
 |-------------|-------|---------|

@@ -80,7 +80,7 @@ Further reading: [docs/architecture/README.md](docs/architecture/README.md) (red
 
 ## Prerequisites
 
-- **Python**: **3.10+** per `requires-python` in packages; **CI and the Dev Container pin 3.10** for reproducible test results. Newer interpreters often work but are not the merge bar.
+- **Python**: **3.13.x only** (`requires-python = ">=3.13,<3.14"`; repo root `.python-version` is `3.13`). **CI, Dev Container, and all Compose images** use **3.13**. Do not use **3.14** as the default interpreter on the host.
 - **Git** and a virtual environment per service (recommended).
 - **Docker Desktop** (or compatible engine) if you use Compose at the repo root.
 - For **AI stack / LangGraph tests**: editable installs of `story_runtime_core` and `ai_stack[test]` plus repo root on `PYTHONPATH` (see [Testing](#testing)).
@@ -321,7 +321,7 @@ python -m pip install -r backend/requirements-test.txt
 
 ### Matching CI, Dev Container, and your laptop
 
-GitHub Actions uses **Python 3.10** for backend and `ai_stack` jobs. The **Dev Container** (`.devcontainer/devcontainer.json`) uses the same **3.10** image and runs the **same** install sequence as the setup scripts, then adds `world-engine/requirements-dev.txt`. If you use **Python 3.11+** on the host, behavior can still differ (pip/setuptools); for the closest guarantee to CI green, use **3.10** or open the repo in the Dev Container.
+GitHub Actions uses **Python 3.13** for backend and `ai_stack` jobs. The **Dev Container** (`.devcontainer/devcontainer.json`) uses the same **3.13** image and runs the **same** install sequence as the setup scripts, then adds `world-engine/requirements-dev.txt`. For the closest guarantee to CI green, use **3.13** (see `.python-version`) or open the repo in the Dev Container—not **3.14**.
 
 Full write-up: [docs/testing-setup.md](docs/testing-setup.md) — **Environment parity (CI, Dev Container, local)**.
 

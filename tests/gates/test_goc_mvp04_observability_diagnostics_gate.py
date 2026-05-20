@@ -483,9 +483,9 @@ def test_mvp04_diagnostics_endpoint_returns_last_turn_evidence():
     ``GET /api/story/runtime/narrative-gov-summary`` — paths are parsed from ``http.py`` decorators.
     """
     http_path = REPO_ROOT / "world-engine" / "app" / "api" / "http.py"
-    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
+    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager"
     assert http_path.exists(), f"Expected world-engine HTTP router at {http_path}"
-    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    assert manager_path.is_dir(), f"Expected StoryRuntimeManager package at {manager_path}"
     assert_diagnostics_and_narrative_gov_routes_registered(http_path)
     assert_story_runtime_manager_exposes_diagnostics_api(manager_path)
 
@@ -658,8 +658,8 @@ def test_mvp04_execute_turn_includes_diagnostics_envelope():
     Subprocess runs the world-engine diagnostics-envelope integration tests so the gate
     validates the real response contract, not ``event['diagnostics_envelope']`` quote-style source matches.
     """
-    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager"
+    assert manager_path.is_dir(), f"Expected StoryRuntimeManager package at {manager_path}"
     assert_finalize_committed_turn_assigns_diagnostics_envelope(manager_path)
     assert_goc_module_gate_in_finalize(manager_path)
 
@@ -674,8 +674,8 @@ def test_mvp04_narrative_gov_summary_from_manager():
 
     Full execution proven in world-engine/tests/test_mvp4_diagnostics_integration.py.
     """
-    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager"
+    assert manager_path.is_dir(), f"Expected StoryRuntimeManager package at {manager_path}"
     # AST oracles: method presence + delegation to build_narrative_gov_summary (no raw source substring checks).
     assert_story_runtime_manager_exposes_diagnostics_api(manager_path)
     assert_manager_get_narrative_gov_summary_calls_builder(manager_path)

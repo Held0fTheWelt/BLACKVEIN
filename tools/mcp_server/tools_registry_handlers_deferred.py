@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ai_stack.mcp_canonical_surface import McpImplementationStatus
+from ai_stack.mcp.mcp_canonical_surface import McpImplementationStatus
 
 
 def deferred_stub_handler_factory(name: str) -> Callable[[dict[str, Any]], dict[str, Any]]:

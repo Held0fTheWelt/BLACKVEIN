@@ -7,8 +7,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MANAGER_PACKAGE = ROOT / "world-engine" / "app" / "story_runtime" / "manager"
 FILES = [
-    ROOT / "world-engine" / "app" / "story_runtime" / "manager.py",
+    *(path for path in MANAGER_PACKAGE.rglob("*.py") if "__pycache__" not in path.parts),
     ROOT / "ai_stack" / "langgraph" / "langgraph_runtime_executor.py",
 ]
 # Phrases that previously lived inline and must now come only from content/modules/.../locale/

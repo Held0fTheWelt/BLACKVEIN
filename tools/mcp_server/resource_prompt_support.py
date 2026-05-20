@@ -7,13 +7,13 @@ import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     McpSuite,
     build_compact_mcp_operator_truth,
     capability_records_for_mcp,
     verify_catalog_names_alignment,
 )
-from ai_stack.mcp_static_catalog import MCP_PROMPT_SPECS, MCP_RESOURCE_SPECS
+from ai_stack.mcp.mcp_static_catalog import MCP_PROMPT_SPECS, MCP_RESOURCE_SPECS
 
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.errors import JsonRpcError
@@ -138,7 +138,7 @@ class McpResourceReader:
                     backend_reachable = False
             align = verify_catalog_names_alignment()
             # Registry names: all canonical tools (suite filter does not shrink truth surface here)
-            from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+            from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 
             reg_names = [d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS]
             truth = build_compact_mcp_operator_truth(

@@ -4,7 +4,7 @@ import json
 from unittest.mock import Mock
 
 import pytest
-from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 
 from app.mcp_client.client import MCPEnrichmentClient, MCPToolError, OperatorEndpointClient
 from app.mcp_client.enrichment import _PREFLIGHT_TOOLS, build_mcp_enrichment

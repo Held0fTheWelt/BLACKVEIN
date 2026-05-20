@@ -1,4 +1,4 @@
-from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS, verify_catalog_names_alignment
+from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS, verify_catalog_names_alignment
 from tools.mcp_server.tools_registry import create_default_registry, cursor_safe_name
 
 

@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from ai_stack.mcp_canonical_surface import McpSuite, canonical_tool_names_for_suite
+from ai_stack.mcp.mcp_canonical_surface import McpSuite, canonical_tool_names_for_suite
 from tools.mcp_server.server import McpServer
 from tools.mcp_server.tools_registry import create_default_registry
 

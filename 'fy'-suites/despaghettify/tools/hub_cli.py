@@ -1071,7 +1071,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_sa.add_argument(
         "--check-json",
         default="",
-        help="Optional check --with-metrics JSON: Anteil % vs bars from MD canon.",
+        help="Optional check --with-metrics JSON: Anteil %% vs bars from MD canon.",
     )
     p_sa.add_argument("--json", action="store_true", help="Emit JSON report on stdout.")
     p_sa.set_defaults(func=cmd_setup_audit)

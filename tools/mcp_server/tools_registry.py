@@ -17,7 +17,7 @@ unit tests):
 import re
 from typing import Any, Callable, Optional
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpCanonicalToolDescriptor,
     McpSuite,

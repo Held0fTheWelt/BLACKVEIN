@@ -1,4 +1,4 @@
-"""Test that ai_stack.mcp_canonical_surface can be imported without numpy.
+"""Test that ai_stack.mcp.mcp_canonical_surface can be imported without numpy.
 
 This validates that the lightweight import path is truly lightweight and
 does not leak heavy optional dependencies.
@@ -25,7 +25,7 @@ def test_mcp_canonical_surface_imports_without_numpy():
     cached_modules = {k: sys.modules.pop(k) for k in modules_to_remove}
 
     try:
-        from ai_stack.mcp_canonical_surface import (
+        from ai_stack.mcp.mcp_canonical_surface import (
             CANONICAL_MCP_TOOL_DESCRIPTORS,
             McpOperatingProfile,
             build_compact_mcp_operator_truth,

@@ -50,7 +50,7 @@ This implementation realizes the bounded Research-and-Canon-Improvement MVP defi
     - `wos.canon.improvement.preview`
   - capability-level hard budget validation for exploration.
   - exploration audit summary includes compact consumed/effective budget evidence.
-- `ai_stack/mcp_canonical_surface.py`
+- `ai_stack/mcp/mcp_canonical_surface.py`
   - canonical MCP descriptors extended for full research/canon MVP tool surface.
 - `tools/mcp_server/tools_registry.py`
   - MCP handlers implemented for all new research/canon tools.

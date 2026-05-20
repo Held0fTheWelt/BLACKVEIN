@@ -14,7 +14,7 @@ The MCP Agent Interface provides a safe, fail-closed wrapper for LangGraph AI ag
 ### MCPAgentInterface Class
 
 ```python
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 
 # Initialize with MCP client
 interface = MCPAgentInterface(mcp_client=mcp_client)
@@ -227,7 +227,7 @@ interface.reset_diagnostics()
 ### Basic Turn Execution
 
 ```python
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 
 interface = MCPAgentInterface(mcp_client=mcp_client)
 
@@ -307,7 +307,7 @@ Tool call timeouts (from MCP client) are caught and returned as error dicts.
 All tool calls logged at:
 - INFO level: successful calls
 - WARNING level: failed calls
-- Logger: `ai_stack.mcp_agent_interface`
+- Logger: `ai_stack.mcp.mcp_agent_interface`
 
 ## Testing
 
@@ -341,7 +341,7 @@ assert "error" in result
 
 ## References
 
-- **Implementation:** `ai_stack/mcp_agent_interface.py`
+- **Implementation:** `ai_stack/mcp/mcp_agent_interface.py`
 - **Tests:** `ai_stack/tests/test_mcp_agent_interface.py`
 - **LangGraph Integration:** `ai_stack/langgraph/langgraph_agent_nodes.py`
-- **MCP Surface:** `ai_stack/mcp_canonical_surface.py`
+- **MCP Surface:** `ai_stack/mcp/mcp_canonical_surface.py`

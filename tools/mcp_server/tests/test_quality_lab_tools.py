@@ -17,7 +17,7 @@ from ai_stack.langfuse.langfuse_evaluator_catalog import (
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
 )
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     AUTH_QUALITY_LAB_ANALYSIS,
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpSuite,
@@ -29,7 +29,7 @@ from ai_stack.quality_lab.evaluator_catalog import (
     evaluator_views_for_scope,
     list_evaluator_views,
 )
-from ai_stack.quality_lab.mcp_exchange_interpreter import (
+from ai_stack.mcp.mcp_exchange_interpreter import (
     REQUIRED_REQUEST_CONTEXT_FIELDS,
 )
 from ai_stack.quality_lab.pattern_interpreter import (

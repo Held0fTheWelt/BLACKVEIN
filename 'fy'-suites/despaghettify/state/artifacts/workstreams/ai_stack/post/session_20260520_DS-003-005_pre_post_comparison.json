@@ -1,0 +1,18 @@
+{
+  "session": "20260520",
+  "ds_ids": ["DS-003", "DS-005"],
+  "workstream": "ai_stack",
+  "gates": {
+    "ai_stack_goc_quick": {"status": "passed"},
+    "ai_stack_retrieval_research_quick": {"status": "passed"},
+    "goc_seam_validation_tests": {"status": "passed", "count": 27}
+  },
+  "code_evidence": {
+    "DS-003": [
+      "ai_stack/rag/rag_*.py",
+      "ai_stack/tests/goc_yaml_cache_fixtures.py",
+      "ai_stack/research/research_langgraph_run_pipeline_phases.py"
+    ],
+    "DS-005": ["ai_stack/goc_turn_seams_validation.py", "ai_stack/goc_turn_seams.py re-export"]
+  }
+}

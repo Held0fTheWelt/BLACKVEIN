@@ -23078,7 +23078,7 @@ ai_stack/langchain/__pycache__/bridges.cpython-310.pyc	7141	1776722970000000000
 ai_stack/langchain/__pycache__/bridges.cpython-313.pyc	10295	1776724042000000000
 ai_stack/langchain/bridges.py	15515	1776718615110950700
 ai_stack/langgraph/langgraph_runtime.py	1370	1776718615112545100
-ai_stack/mcp_canonical_surface.py	17413	1776776374658224800
+ai_stack/mcp/mcp_canonical_surface.py	17413	1776776374658224800
 ai_stack/operational_profile.py	5076	1776718615132744400
 ai_stack/pyproject.toml	1955	1776776374658224800
 ai_stack/rag.py	4109	1776709079106903000
@@ -25432,7 +25432,7 @@ repo/ai_stack/goc_yaml_authority.py	8537	1776762160000000000
 repo/ai_stack/langchain/__init__.py	1357	1776711780000000000
 repo/ai_stack/langchain/bridges.py	8845	1776711780000000000
 repo/ai_stack/langgraph/langgraph_runtime.py	60159	1776711780000000000
-repo/ai_stack/mcp_canonical_surface.py	31594	1776711780000000000
+repo/ai_stack/mcp/mcp_canonical_surface.py	31594	1776711780000000000
 repo/ai_stack/operational_profile.py	3459	1776711780000000000
 repo/ai_stack/pyproject.toml	1407	1776711780000000000
 repo/ai_stack/rag.py	78097	1776711780000000000

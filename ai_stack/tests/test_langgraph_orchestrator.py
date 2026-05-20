@@ -5,7 +5,7 @@ Tests for LangGraph Orchestrator.
 import pytest
 from unittest.mock import Mock
 from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 from ai_stack.langgraph.langgraph_agent_state import AgentState
 

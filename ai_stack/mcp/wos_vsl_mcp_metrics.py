@@ -7,7 +7,7 @@ pilot table where noted.
 
 from __future__ import annotations
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpToolClass,
 )

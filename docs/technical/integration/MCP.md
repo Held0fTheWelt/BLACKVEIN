@@ -14,8 +14,8 @@ The **Model Context Protocol (MCP)** server in this repository is an **operator 
 
 | Layer | Location |
 |--------|----------|
-| Canonical tool descriptors, suites, operator-truth builder | `ai_stack/mcp_canonical_surface.py` |
-| Static resource + prompt catalog | `ai_stack/mcp_static_catalog.py` |
+| Canonical tool descriptors, suites, operator-truth builder | `ai_stack/mcp/mcp_canonical_surface.py` |
+| Static resource + prompt catalog | `ai_stack/mcp/mcp_static_catalog.py` |
 | JSON-RPC server (stdio), dispatch, rate limits | `tools/mcp_server/server.py` |
 | Tool handlers (backend HTTP, FS, research pipeline) | `tools/mcp_server/tools_registry.py` |
 | Resource/prompt resolution (`wos://` URIs) | `tools/mcp_server/resource_prompt_support.py` |
@@ -57,7 +57,7 @@ Operators get **repeatable** access patterns; security reviews can reason about 
 
 ## The five MVP suites (code-enumerated)
 
-`McpSuite` in `ai_stack/mcp_canonical_surface.py`:
+`McpSuite` in `ai_stack/mcp/mcp_canonical_surface.py`:
 
 | Suite id | Responsibility (from descriptors) |
 |----------|-------------------------------------|
@@ -102,7 +102,7 @@ flowchart LR
 |-----------|------------|---------|
 | Tools | `tools/list`, `tools/call` | Side-effecting or multi-step operations; may hit backend, FS, or in-process `ai_stack` (including `run_research_pipeline` in `ai_stack/research/research_langgraph.py`) |
 | Resources | `resources/list`, `resources/read` | Read-only JSON mirrors; URI templates in `MCP_RESOURCE_SPECS` |
-| Prompts | `prompts/list`, `prompts/get` | Suggested step order for common operator workflows (`MCP_PROMPT_SPECS` in `ai_stack/mcp_static_catalog.py`, bodies in `tools/mcp_server/resource_prompt_support.py`) |
+| Prompts | `prompts/list`, `prompts/get` | Suggested step order for common operator workflows (`MCP_PROMPT_SPECS` in `ai_stack/mcp/mcp_static_catalog.py`, bodies in `tools/mcp_server/resource_prompt_support.py`) |
 
 ### Diagram: three MCP mechanism classes
 

@@ -1,6 +1,6 @@
 {
   "name": "World of Shadows (full test parity)",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.14-bookworm",
   "postCreateCommand": "bash -lc 'python -m pip install --upgrade pip && python -m pip install -r backend/requirements-test.txt && python -m pip install -e ./story_runtime_core && python -m pip install -e ./ai_stack[test] && python -m pip install -r world-engine/requirements-dev.txt'",
   "remoteEnv": {
     "PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/world-engine"

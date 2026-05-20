@@ -141,7 +141,7 @@ Different people and programs need **different doors** into the system. Players 
 | **Writers’ Room UI** | Optional small Flask UI calling backend Writers’ Room routes | `writers-room/` |
 | **AI stack** | RAG, LangGraph runtime graph, bridges, capabilities | `ai_stack/` |
 | **Shared runtime core** | Shared interpretation/adapters consumed by engine (and related paths) | `story_runtime_core/` |
-| **MCP server** | Operator/agent control plane: tools, resources, prompts | `tools/mcp_server/server.py`, `ai_stack/mcp_canonical_surface.py` |
+| **MCP server** | Operator/agent control plane: tools, resources, prompts | `tools/mcp_server/server.py`, `ai_stack/mcp/mcp_canonical_surface.py` |
 
 ### Why this matters
 
@@ -354,7 +354,7 @@ flowchart TB
 
 ### What this means in the actual system
 
-`tools/mcp_server/server.py` exposes suites such as `wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, and `wos-runtime-control`, filtered via `ai_stack/mcp_canonical_surface.py` (`docs/technical/integration/MCP.md`, `docs/mcp/MVP_SUITE_MAP.md`). MCP reaches the play world **through backend policy and proxies**, not as a shadow runtime (`docs/technical/integration/MCP.md`).
+`tools/mcp_server/server.py` exposes suites such as `wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, and `wos-runtime-control`, filtered via `ai_stack/mcp/mcp_canonical_surface.py` (`docs/technical/integration/MCP.md`, `docs/mcp/MVP_SUITE_MAP.md`). MCP reaches the play world **through backend policy and proxies**, not as a shadow runtime (`docs/technical/integration/MCP.md`).
 
 ### Why this matters
 

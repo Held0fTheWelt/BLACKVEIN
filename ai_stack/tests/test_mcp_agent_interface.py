@@ -4,7 +4,7 @@ Tests for MCP Agent Interface - safe wrapper for AI to call MCP tools.
 
 import pytest
 from unittest.mock import Mock, MagicMock
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 
 
 class TestMCPAgentInterfaceBasic:

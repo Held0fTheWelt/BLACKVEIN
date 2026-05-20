@@ -6,11 +6,11 @@
 
 | Piece | Location |
 |-------|----------|
-| Canonical tool descriptors + `mcp_suite` | `ai_stack/mcp_canonical_surface.py` |
+| Canonical tool descriptors + `mcp_suite` | `ai_stack/mcp/mcp_canonical_surface.py` |
 | Suite ↔ tool ↔ resource map (human + pilot rubric) | `docs/mcp/MVP_SUITE_MAP.md` |
 | Stdio JSON-RPC server (tools, resources, prompts) | `tools/mcp_server/server.py` |
 | `wos://` resource handlers | `tools/mcp_server/resource_prompt_support.py` |
-| Pilot metrics helpers | `ai_stack/wos_vsl_mcp_metrics.py` |
+| Pilot metrics helpers | `ai_stack/mcp/wos_vsl_mcp_metrics.py` |
 
 ## Environment
 

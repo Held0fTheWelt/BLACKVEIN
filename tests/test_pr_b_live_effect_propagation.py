@@ -9,7 +9,8 @@ runtime gate the manager evaluates today:
    ineligible action classes.
 2. The frame keeps the existing ``canonical_path_effect == "hold_current_step"``
    literal so the manager's gate at
-   ``world-engine/app/story_runtime/manager.py:_turn_holds_canonical_path_for_free_player_action``
+   ``world-engine/app/story_runtime/manager`` runtime package:
+   ``_turn_holds_canonical_path_for_free_player_action``
    continues to return ``True`` for the same action classes.
 3. The simulated graph state carries the hold-effect dict at top level and
    the realization contract after rendering.
@@ -55,6 +56,20 @@ from story_runtime_core.language_adapter import clear_language_adapter_caches
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTENT_ROOT = REPO_ROOT / "content" / "modules"
+MANAGER_PACKAGE = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager"
+
+
+def _manager_package_source(*relative_parts: str) -> str:
+    path = MANAGER_PACKAGE.joinpath(*relative_parts)
+    return path.read_text(encoding="utf-8")
+
+
+def _manager_all_python_source() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(MANAGER_PACKAGE.rglob("*.py"))
+        if "__pycache__" not in path.parts
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -206,7 +221,8 @@ def test_resolver_hold_effect_carries_resolver_contract_payload() -> None:
 
 def _turn_holds_canonical_path_for_free_player_action(graph_state: dict) -> bool:
     """Mirror of the manager gate at
-    ``world-engine/app/story_runtime/manager.py:_turn_holds_canonical_path_for_free_player_action``
+    ``world-engine/app/story_runtime/manager``:
+    ``_turn_holds_canonical_path_for_free_player_action``
     so this test does not import the manager (which carries a heavy dep tree)."""
     frame = (
         graph_state.get("player_action_frame")
@@ -331,10 +347,7 @@ def test_manager_thin_path_summary_projects_pr_b_keys() -> None:
     keys when present on graph state. We verify by source-grep that the key
     names appear in the manager file, plus the per-row `get_thin_path_summary`
     surface includes them."""
-    manager_path = (
-        REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    )
-    text = manager_path.read_text(encoding="utf-8")
+    text = _manager_package_source("thin_path_snapshot_api.py")
     assert "canonical_path_hold_effect" in text, (
         "manager.py must project canonical_path_hold_effect into the "
         "thin-path summary"
@@ -353,10 +366,7 @@ def test_thin_path_summary_row_does_not_expose_mutation_fields() -> None:
     """The thin-path summary projects diagnostic data only. PR-B must not add
     UI control / mutation fields (this is the same constraint PR-0 placed on
     the diagnostic snapshot stub)."""
-    manager_path = (
-        REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    )
-    text = manager_path.read_text(encoding="utf-8")
+    text = _manager_all_python_source()
     # Locate the `def get_thin_path_summary` body and check the row keys are
     # read-only diagnostic. PR-B's only additions are projection keys.
     forbidden_mutation_terms = (
@@ -381,7 +391,8 @@ PR_B_TOUCHED_FILES = (
     "ai_stack/narrator/narrator_consequence_realization_contracts.py",
     "ai_stack/player_action_resolution.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/thin_path_snapshot_api.py",
+    "world-engine/app/story_runtime/manager/_legacy_sources/_build_langfuse_path_summary_001.py",
 )
 
 

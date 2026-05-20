@@ -63,7 +63,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`
-- **MCP control-plane surface** in `ai_stack/mcp_canonical_surface.py`
+- **MCP control-plane surface** in `ai_stack/mcp/mcp_canonical_surface.py`
 - **Governed retrieval and provenance shaping** in:
   - `ai_stack/rag.py`
   - `ai_stack/retrieval_governance_summary.py`

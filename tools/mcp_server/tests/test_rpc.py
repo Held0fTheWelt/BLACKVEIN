@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 from tools.mcp_server.call_tool_result import unwrap_call_tool_result
 from tools.mcp_server.server import McpServer
 

@@ -3972,6 +3972,166 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/admin/w5/{session_id}/actor/{actor_id}:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/actor/{actor_id}
+      operationId: get_api_v1_admin_w5_session_id_actor_actor_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: actor_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/w5/{session_id}/conflicts:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/conflicts
+      operationId: get_api_v1_admin_w5_session_id_conflicts
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/w5/{session_id}/narrator-projection:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/narrator-projection
+      operationId: get_api_v1_admin_w5_session_id_narrator_projection
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/w5/{session_id}/npc-projection/{actor_id}:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/npc-projection/{actor_id}
+      operationId: get_api_v1_admin_w5_session_id_npc_projection_actor_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: actor_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/w5/{session_id}/snapshot:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/snapshot
+      operationId: get_api_v1_admin_w5_session_id_snapshot
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/w5/{session_id}/validation:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/w5/{session_id}/validation
+      operationId: get_api_v1_admin_w5_session_id_validation
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          type: string
   /api/v1/admin/world-engine/control-center:
     get:
       tags:

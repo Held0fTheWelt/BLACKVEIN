@@ -1,7 +1,7 @@
 """MCP static catalog counts (cockpit + MCP server)."""
 
-from ai_stack.mcp_canonical_surface import McpSuite
-from ai_stack.mcp_static_catalog import mcp_exposure_counts_by_suite, mcp_suite_registry_rows
+from ai_stack.mcp.mcp_canonical_surface import McpSuite
+from ai_stack.mcp.mcp_static_catalog import mcp_exposure_counts_by_suite, mcp_suite_registry_rows
 
 
 def test_mcp_suite_registry_rows_covers_all_suites():

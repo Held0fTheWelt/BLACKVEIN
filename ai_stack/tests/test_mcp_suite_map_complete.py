@@ -1,6 +1,6 @@
 """MVP MCP suite map completeness — every canonical tool has a suite; every suite is non-empty."""
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     MCP_SUITES_ALL,
     McpSuite,

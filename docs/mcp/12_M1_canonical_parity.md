@@ -2,7 +2,7 @@
 
 ## Single truth strand
 
-- **Authoritative descriptors:** `ai_stack/mcp_canonical_surface.py` → `CANONICAL_MCP_TOOL_DESCRIPTORS`.
+- **Authoritative descriptors:** `ai_stack/mcp/mcp_canonical_surface.py` → `CANONICAL_MCP_TOOL_DESCRIPTORS`.
 - **Registry:** `tools/mcp_server/tools_registry.py` registers exactly those tools (no parallel MCP-only list).
 - **Capabilities:** Internal names and modes come from `capability_catalog()`; MCP exposes them only via `wos.capabilities.catalog`, which returns `capability_records_for_mcp()` (enriched rows, same names).
 

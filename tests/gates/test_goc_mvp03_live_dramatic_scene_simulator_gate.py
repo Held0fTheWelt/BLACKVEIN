@@ -731,9 +731,9 @@ def test_mvp3_gate_ldss_invoked_through_finalize_committed_turn():
     ``_finalize_committed_turn`` commits ``scene_turn_envelope`` under GoC gating.
     """
     repo_root = Path(__file__).resolve().parent.parent.parent
-    manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager.py"
+    manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager"
     ldss_path = repo_root / "ai_stack" / "live_dramatic_scene_simulator.py"
-    assert manager_path.exists(), f"world-engine/app/story_runtime/manager.py must exist at {manager_path}"
+    assert manager_path.is_dir(), f"world-engine/app/story_runtime/manager package must exist at {manager_path}"
     assert ldss_path.exists(), f"ai_stack/live_dramatic_scene_simulator.py must exist at {ldss_path}"
 
     assert_ldss_import_and_module_wiring(manager_path, ldss_path)
@@ -751,7 +751,7 @@ def test_mvp3_gate_non_goc_session_has_no_scene_envelope():
     Full execution is proven in world-engine/tests/test_mvp3_ldss_integration.py.
     """
     repo_root = Path(__file__).resolve().parent.parent.parent
-    manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager.py"
+    manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager"
     ldss_path = repo_root / "ai_stack" / "live_dramatic_scene_simulator.py"
     assert_ldss_scene_envelope_requires_human_actor(manager_path)
     assert_ldss_input_builder_preserves_human_actor_id(ldss_path)

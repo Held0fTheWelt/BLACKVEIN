@@ -10,7 +10,7 @@ Focuses on:
 import os
 import pytest
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     AUTH_BACKEND_HTTP,
     AUTH_FILESYSTEM_REPO,
     AUTH_AI_STACK_CAPABILITY_CATALOG,

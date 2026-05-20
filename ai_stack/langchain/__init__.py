@@ -14,26 +14,29 @@ exposes a ``CapabilityRegistry`` entry as a ``StructuredTool`` (e.g.
 writers-room flows).
 """
 
-from .bridges import (
-    LangChainRetrieverBridge,
-    RuntimeInvocationResult,
-    RuntimeTurnStructuredOutput,
-    WritersRoomInvocationResult,
-    WritersRoomStructuredOutput,
-    build_capability_tool_bridge,
-    build_langchain_retriever_bridge,
-    invoke_runtime_adapter_with_langchain,
-    invoke_writers_room_adapter_with_langchain,
-)
-
-__all__ = [
-    "LangChainRetrieverBridge",
-    "RuntimeInvocationResult",
-    "RuntimeTurnStructuredOutput",
-    "WritersRoomInvocationResult",
-    "WritersRoomStructuredOutput",
-    "build_capability_tool_bridge",
-    "build_langchain_retriever_bridge",
-    "invoke_runtime_adapter_with_langchain",
-    "invoke_writers_room_adapter_with_langchain",
-]
+try:
+    from .bridges import (
+        LangChainRetrieverBridge,
+        RuntimeInvocationResult,
+        RuntimeTurnStructuredOutput,
+        WritersRoomInvocationResult,
+        WritersRoomStructuredOutput,
+        build_capability_tool_bridge,
+        build_langchain_retriever_bridge,
+        invoke_runtime_adapter_with_langchain,
+        invoke_writers_room_adapter_with_langchain,
+    )
+except ImportError:
+    __all__: list[str] = []
+else:
+    __all__ = [
+        "LangChainRetrieverBridge",
+        "RuntimeInvocationResult",
+        "RuntimeTurnStructuredOutput",
+        "WritersRoomInvocationResult",
+        "WritersRoomStructuredOutput",
+        "build_capability_tool_bridge",
+        "build_langchain_retriever_bridge",
+        "invoke_runtime_adapter_with_langchain",
+        "invoke_writers_room_adapter_with_langchain",
+    ]

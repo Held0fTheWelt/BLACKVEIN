@@ -340,14 +340,14 @@ MCP is a **stdio JSON-RPC server** that exposes **tools** (actions), **resources
 
 ### Technical precision
 
-- **Descriptors and suites:** `ai_stack/mcp_canonical_surface.py` — `CANONICAL_MCP_TOOL_DESCRIPTORS`, `McpSuite` (`wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, `wos-runtime-control`), tool classes (`read_only`, `review_bound`, `write_capable`), `build_compact_mcp_operator_truth`.
+- **Descriptors and suites:** `ai_stack/mcp/mcp_canonical_surface.py` — `CANONICAL_MCP_TOOL_DESCRIPTORS`, `McpSuite` (`wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, `wos-runtime-control`), tool classes (`read_only`, `review_bound`, `write_capable`), `build_compact_mcp_operator_truth`.
 - **Server:** `tools/mcp_server/server.py` — `initialize` advertises tools, resources, prompts; `handle_tools_call` enforces `WOS_MCP_OPERATING_PROFILE` for write-capable tools.
-- **Resources and prompts:** `ai_stack/mcp_static_catalog.py` + `tools/mcp_server/resource_prompt_support.py`.
+- **Resources and prompts:** `ai_stack/mcp/mcp_static_catalog.py` + `tools/mcp_server/resource_prompt_support.py`.
 - **Capability mirror:** `wos.capabilities.catalog` tool uses `capability_records_for_mcp()` — **no** `CapabilityRegistry.invoke` through MCP (`mcp_canonical_surface.py` module docstring).
 
 ### Diagram: MCP vs runtime and backends
 
-*Anchored in:* `tools/mcp_server/server.py`, `tools/mcp_server/backend_client.py`, `ai_stack/mcp_canonical_surface.py`.
+*Anchored in:* `tools/mcp_server/server.py`, `tools/mcp_server/backend_client.py`, `ai_stack/mcp/mcp_canonical_surface.py`.
 
 ```mermaid
 flowchart TB

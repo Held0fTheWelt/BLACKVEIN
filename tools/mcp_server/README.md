@@ -5,7 +5,7 @@
 Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer tooling via stdio transport, with mutating tools gated by operating profile.
 
 **Features:**
-- Canonical descriptor-derived tool registry (`ai_stack/mcp_canonical_surface.py`) with per-tool **`mcp_suite`** (WOS_VSL five-suite map)
+- Canonical descriptor-derived tool registry (`ai_stack/mcp/mcp_canonical_surface.py`) with per-tool **`mcp_suite`** (WOS_VSL five-suite map)
 - **`resources/list`** + **`resources/read`** for stable reads (`wos://…` URIs — see `docs/mcp/MVP_SUITE_MAP.md`)
 - **`prompts/list`** + **`prompts/get`** for recurring operator/author/AI workflows
 - Explicit tool classes: `read_only`, `review_bound`, `write_capable` + operating profile gating

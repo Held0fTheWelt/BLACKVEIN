@@ -1,7 +1,8 @@
 """World-engine contract helpers for gate tests (AST + import oracles, no source substring greps).
 
-These utilities parse ``world-engine/app/api/http.py`` and ``manager.py`` as structured
-AST instead of scanning raw source text, and validate import boundaries for LDSS.
+These utilities parse ``world-engine/app/api/http.py`` and the package-based
+``story_runtime/manager`` sources as structured AST instead of scanning raw
+source text, and validate import boundaries for LDSS.
 """
 
 from __future__ import annotations
@@ -51,16 +52,111 @@ def assert_diagnostics_and_narrative_gov_routes_registered(http_py: Path) -> Non
     assert by_path[gov] == "get_narrative_gov_summary"
 
 
+def _manager_package_dir(manager_path: Path) -> Path | None:
+    """Return the package directory for the current manager layout, if present."""
+    if manager_path.is_dir():
+        return manager_path
+    if manager_path.name == "manager.py":
+        candidate = manager_path.with_suffix("")
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _read_ast(path: Path) -> ast.Module:
+    return ast.parse(path.read_text(encoding="utf-8"))
+
+
+def _literal_source_from_chunk(path: Path) -> str:
+    tree = _read_ast(path)
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name) and target.id == "SOURCE" for target in node.targets):
+            continue
+        value = ast.literal_eval(node.value)
+        if not isinstance(value, str):
+            raise AssertionError(f"SOURCE in {path} must be a string literal")
+        return value
+    raise AssertionError(f"SOURCE literal not found in {path}")
+
+
+def _legacy_method_tree(manager_path: Path, method_name: str) -> ast.Module:
+    package_dir = _manager_package_dir(manager_path)
+    if package_dir is None:
+        return _read_ast(manager_path)
+
+    legacy_dir = package_dir / "_legacy_sources"
+    chunk_prefix = f"method__{method_name}"
+    chunks = sorted(legacy_dir.glob(f"{chunk_prefix}_*.py"))
+    if not chunks:
+        raise AssertionError(f"Legacy source chunks for {method_name} not found in {legacy_dir}")
+    source = "".join(_literal_source_from_chunk(path) for path in chunks)
+    return ast.parse(source)
+
+
+def _find_function(tree: ast.Module, name: str) -> ast.FunctionDef | None:
+    fn = _module_function(tree, name)
+    if fn is not None:
+        return fn
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        for item in node.body:
+            if isinstance(item, ast.FunctionDef) and item.name == name:
+                return item
+    return None
+
+
+def _manager_import_tree(manager_path: Path) -> ast.Module:
+    package_dir = _manager_package_dir(manager_path)
+    if package_dir is None:
+        return _read_ast(manager_path)
+    return _read_ast(package_dir / "_imports_00.py")
+
+
+def _manager_ldss_builder_tree(manager_path: Path) -> ast.Module:
+    package_dir = _manager_package_dir(manager_path)
+    if package_dir is None:
+        return _read_ast(manager_path)
+    return _read_ast(package_dir / "ldss_narrative_queue.py")
+
+
+def _manager_diagnostics_tree(manager_path: Path) -> ast.Module:
+    package_dir = _manager_package_dir(manager_path)
+    if package_dir is None:
+        return _read_ast(manager_path)
+    return _read_ast(package_dir / "diagnostics_api.py")
+
+
 def assert_story_runtime_manager_exposes_diagnostics_api(manager_py: Path) -> None:
     """StoryRuntimeManager must define envelope / gov accessors (AST method names, not source layout)."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
-            methods = {n.name for n in node.body if isinstance(n, ast.FunctionDef)}
-            assert "get_last_diagnostics_envelope" in methods, "StoryRuntimeManager.get_last_diagnostics_envelope missing"
-            assert "get_narrative_gov_summary" in methods, "StoryRuntimeManager.get_narrative_gov_summary missing"
-            return
-    raise AssertionError("StoryRuntimeManager class not found in manager.py")
+    package_dir = _manager_package_dir(manager_py)
+    if package_dir is not None:
+        runtime_tree = _read_ast(package_dir / "runtime_manager.py")
+        runtime_class = next(
+            (node for node in runtime_tree.body if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager"),
+            None,
+        )
+        assert runtime_class is not None, "StoryRuntimeManager class not found in runtime_manager.py"
+        bases = {base.id for base in runtime_class.bases if isinstance(base, ast.Name)}
+        assert "_DiagnosticsApiMixin" in bases, "StoryRuntimeManager must include _DiagnosticsApiMixin"
+
+    tree = _manager_diagnostics_tree(manager_py)
+    methods = {
+        item.name
+        for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        for item in node.body
+        if isinstance(item, ast.FunctionDef)
+    }
+    if not methods:
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
+                methods = {n.name for n in node.body if isinstance(n, ast.FunctionDef)}
+                break
+    assert "get_last_diagnostics_envelope" in methods, "StoryRuntimeManager.get_last_diagnostics_envelope missing"
+    assert "get_narrative_gov_summary" in methods, "StoryRuntimeManager.get_narrative_gov_summary missing"
 
 
 def _import_names_from_live_dramatic_import(manager_tree: ast.Module) -> set[str]:
@@ -84,19 +180,16 @@ def assert_ldss_import_and_module_wiring(manager_py: Path, ldss_py: Path) -> Non
 
     assert callable(run_ldss) and callable(build_scene_turn_envelope_v2), "LDSS entrypoints must be importable"
 
-    mtree = ast.parse(manager_py.read_text(encoding="utf-8"))
+    mtree = _manager_import_tree(manager_py)
     imported = _import_names_from_live_dramatic_import(mtree)
-    assert "run_ldss" in imported, "manager.py must import run_ldss from ai_stack.live_dramatic_scene_simulator"
+    assert "run_ldss" in imported, "manager package must import run_ldss from ai_stack.live_dramatic_scene_simulator"
     assert "build_scene_turn_envelope_v2" in imported, (
-        "manager.py must import build_scene_turn_envelope_v2 from ai_stack.live_dramatic_scene_simulator"
+        "manager package must import build_scene_turn_envelope_v2 from ai_stack.live_dramatic_scene_simulator"
     )
 
-    ldss_fn: ast.FunctionDef | None = None
-    for node in mtree.body:
-        if isinstance(node, ast.FunctionDef) and node.name == "_build_ldss_scene_envelope":
-            ldss_fn = node
-            break
-    assert ldss_fn is not None, "_build_ldss_scene_envelope must exist at module scope in manager.py"
+    builder_tree = _manager_ldss_builder_tree(manager_py)
+    ldss_fn = _module_function(builder_tree, "_build_ldss_scene_envelope")
+    assert ldss_fn is not None, "_build_ldss_scene_envelope must exist in manager LDSS builder module"
 
     called = _collect_called_names(ldss_fn)
     assert "run_ldss" in called, "_build_ldss_scene_envelope must call run_ldss"
@@ -148,14 +241,8 @@ def _dict_entry_value(dict_node: ast.Dict, key_name: str) -> ast.AST | None:
 
 def assert_finalize_committed_turn_assigns_diagnostics_envelope(manager_py: Path) -> None:
     """``_finalize_committed_turn`` must call ``build_diagnostics_envelope`` and write ``event['diagnostics_envelope']``."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
-    finalize: ast.FunctionDef | None = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
-            for item in node.body:
-                if isinstance(item, ast.FunctionDef) and item.name == "_finalize_committed_turn":
-                    finalize = item
-                    break
+    tree = _legacy_method_tree(manager_py, "_finalize_committed_turn")
+    finalize = _find_function(tree, "_finalize_committed_turn")
     assert finalize is not None, "_finalize_committed_turn not found on StoryRuntimeManager"
 
     calls = _collect_called_names(finalize)
@@ -179,14 +266,8 @@ def assert_finalize_committed_turn_assigns_diagnostics_envelope(manager_py: Path
 
 def assert_finalize_committed_turn_calls_ldss_builder(manager_py: Path) -> None:
     """``_finalize_committed_turn`` must invoke ``_build_ldss_scene_envelope`` for LDSS wiring."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
-    finalize: ast.FunctionDef | None = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
-            for item in node.body:
-                if isinstance(item, ast.FunctionDef) and item.name == "_finalize_committed_turn":
-                    finalize = item
-                    break
+    tree = _legacy_method_tree(manager_py, "_finalize_committed_turn")
+    finalize = _find_function(tree, "_finalize_committed_turn")
     assert finalize is not None
     calls = _collect_called_names(finalize)
     assert "_build_ldss_scene_envelope" in calls, "_finalize_committed_turn must call _build_ldss_scene_envelope"
@@ -194,14 +275,8 @@ def assert_finalize_committed_turn_calls_ldss_builder(manager_py: Path) -> None:
 
 def assert_goc_module_gate_in_finalize(manager_py: Path) -> None:
     """``GOD_OF_CARNAGE_MODULE_ID`` must be referenced in ``_finalize_committed_turn`` (GoC-only diagnostics path)."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
-    finalize: ast.FunctionDef | None = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
-            for item in node.body:
-                if isinstance(item, ast.FunctionDef) and item.name == "_finalize_committed_turn":
-                    finalize = item
-                    break
+    tree = _legacy_method_tree(manager_py, "_finalize_committed_turn")
+    finalize = _find_function(tree, "_finalize_committed_turn")
     assert finalize is not None
     names = {n.id for n in ast.walk(finalize) if isinstance(n, ast.Name)}
     assert "GOD_OF_CARNAGE_MODULE_ID" in names, "_finalize_committed_turn must reference GOD_OF_CARNAGE_MODULE_ID"
@@ -209,14 +284,8 @@ def assert_goc_module_gate_in_finalize(manager_py: Path) -> None:
 
 def assert_scene_turn_envelope_committed_to_event(manager_py: Path) -> None:
     """``_finalize_committed_turn`` must assign ``event['scene_turn_envelope']`` when an envelope exists."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
-    finalize: ast.FunctionDef | None = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
-            for item in node.body:
-                if isinstance(item, ast.FunctionDef) and item.name == "_finalize_committed_turn":
-                    finalize = item
-                    break
+    tree = _legacy_method_tree(manager_py, "_finalize_committed_turn")
+    finalize = _find_function(tree, "_finalize_committed_turn")
     assert finalize is not None
     found = False
     for node in ast.walk(finalize):
@@ -236,9 +305,9 @@ def assert_scene_turn_envelope_committed_to_event(manager_py: Path) -> None:
 
 def assert_ldss_scene_envelope_requires_human_actor(manager_py: Path) -> None:
     """``_build_ldss_scene_envelope`` must return ``None`` when no human actor is projected."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
+    tree = _manager_ldss_builder_tree(manager_py)
     fn = _module_function(tree, "_build_ldss_scene_envelope")
-    assert fn is not None, "_build_ldss_scene_envelope must exist at module scope in manager.py"
+    assert fn is not None, "_build_ldss_scene_envelope must exist in manager LDSS builder module"
 
     human_assignment = _assignment_value(fn, "human_actor_id")
     assert human_assignment is not None, "_build_ldss_scene_envelope must derive human_actor_id"
@@ -375,9 +444,9 @@ MVP4_EXECUTE_TURN_INTEGRATION_TIMEOUT_SECONDS = 300
 
 def assert_manager_get_narrative_gov_summary_calls_builder(manager_py: Path) -> None:
     """``StoryRuntimeManager.get_narrative_gov_summary`` must call ``build_narrative_gov_summary`` (AST oracle)."""
-    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
+    tree = _manager_diagnostics_tree(manager_py)
     for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "StoryRuntimeManager":
+        if isinstance(node, ast.ClassDef):
             for item in node.body:
                 if isinstance(item, ast.FunctionDef) and item.name == "get_narrative_gov_summary":
                     calls = _collect_called_names(item)

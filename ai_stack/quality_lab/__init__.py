@@ -16,12 +16,6 @@ from ai_stack.quality_lab.evaluator_catalog import (
     list_evaluator_views,
 )
 from ai_stack.quality_lab.judgment_interpreter import interpret_judgments
-from ai_stack.quality_lab.mcp_exchange_interpreter import (
-    CANONICAL_TRACE_NAMES,
-    MCP_EXCHANGE_FOCUS_AREAS,
-    REQUIRED_REQUEST_CONTEXT_FIELDS,
-    interpret_mcp_exchange,
-)
 from ai_stack.quality_lab.pattern_interpreter import (
     PATTERN_CLUSTER_FIELDS,
     QUALITY_LAB_PATTERN_TOOL_NAMES,
@@ -46,6 +40,13 @@ from ai_stack.quality_lab.trace_interpreter import (
     classify_trace_kind,
     interpret_trace,
 )
+
+_MCP_EXPORTS = {
+    "CANONICAL_TRACE_NAMES",
+    "MCP_EXCHANGE_FOCUS_AREAS",
+    "REQUIRED_REQUEST_CONTEXT_FIELDS",
+    "interpret_mcp_exchange",
+}
 
 __all__ = [
     "ASPECT_NAMES",
@@ -75,3 +76,13 @@ __all__ = [
     "suggest_investigation",
     "user_decision_prompt",
 ]
+
+
+def __getattr__(name: str):
+    if name in _MCP_EXPORTS:
+        from ai_stack.mcp import mcp_exchange_interpreter
+
+        value = getattr(mcp_exchange_interpreter, name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

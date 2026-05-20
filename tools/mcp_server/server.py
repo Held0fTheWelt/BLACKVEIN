@@ -16,7 +16,7 @@ from .errors import (
     PermissionDeniedError,
     InvalidInputError,
 )
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     McpToolClass,
     operating_profile_allows_write_capable,
     resolve_active_mcp_suite_filter,

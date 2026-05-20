@@ -17,7 +17,7 @@
 | LangChain bridge | `ai_stack/langchain/` |
 | Capabilities | `ai_stack/capabilities/capabilities.py` |
 | Research / canon improvement | `ai_stack/research/research_langgraph.py`, `research_store.py`, `canon_improvement_engine.py` |
-| MCP operator server | `tools/mcp_server/server.py`, `ai_stack/mcp_canonical_surface.py` |
+| MCP operator server | `tools/mcp_server/server.py`, `ai_stack/mcp/mcp_canonical_surface.py` |
 
 **Normative slice contracts:** [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 

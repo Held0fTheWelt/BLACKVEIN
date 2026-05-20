@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS, McpSuite
+from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS, McpSuite
 
 # (uri, name, description, suite)
 MCP_RESOURCE_SPECS: tuple[tuple[str, str, str, McpSuite], ...] = (

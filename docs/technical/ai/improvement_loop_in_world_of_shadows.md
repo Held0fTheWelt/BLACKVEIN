@@ -85,7 +85,7 @@ flowchart TB
 
 Operators and agents invoke research tools through the MCP server; handlers call the same Python functions as in-process capabilities.
 
-**Anchors:** `tools/mcp_server/tools_registry.py` (`run_research_pipeline`, `build_research_bundle`, `propose_canon_improvement`, …), `ai_stack/mcp_canonical_surface.py` (suite `wos-ai`).
+**Anchors:** `tools/mcp_server/tools_registry.py` (`run_research_pipeline`, `build_research_bundle`, `propose_canon_improvement`, …), `ai_stack/mcp/mcp_canonical_surface.py` (suite `wos-ai`).
 
 **Note on `wos.research.validate`:** The MCP handler returns a **summary** of claim ids already produced for a run (`handle_research_validate` in `tools_registry.py`); **full** verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research/research_validation.py`). Treat the MCP tool as a **workflow checkpoint**, not a second verification engine.
 

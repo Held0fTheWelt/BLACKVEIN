@@ -548,7 +548,7 @@ def _catalog_stats_summary(catalog: dict[str, Any] | None) -> dict[str, Any]:
 def _build_limit_inventory_snapshot() -> dict[str, Any]:
     catalog = _build_info_api_catalog()
     route_summary = summarize_route_limit_inventory(catalog.get("endpoints", []) if catalog else [])
-    from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+    from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 
     mcp_tools = build_mcp_tool_limit_inventory(CANONICAL_MCP_TOOL_DESCRIPTORS)
     suite_counts: dict[str, int] = {}

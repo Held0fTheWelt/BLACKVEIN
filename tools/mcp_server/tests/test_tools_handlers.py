@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch
 from tools.mcp_server.tools_registry import create_default_registry
-from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+from ai_stack.mcp.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 
 
 @pytest.fixture
@@ -98,7 +98,7 @@ def test_search_content_tool_handler():
 
 
 def test_capability_catalog_tool_handler_enriched():
-    from ai_stack.mcp_canonical_surface import AUTH_AI_STACK_CAPABILITY_CATALOG
+    from ai_stack.mcp.mcp_canonical_surface import AUTH_AI_STACK_CAPABILITY_CATALOG
 
     with patch("tools.mcp_server.tools_registry.BackendClient"):
         with patch("tools.mcp_server.tools_registry.FileSystemTools"):

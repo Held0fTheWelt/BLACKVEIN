@@ -14,12 +14,12 @@ Accepted
 |-------|--------|----------|
 | **1 — Evaluator catalog and judgment interpretation** | Implemented | `ai_stack/quality_lab/evaluator_catalog.py`, `judgment_interpreter.py`, `schemas.py`; MCP tool `wos.quality_lab.review_judgments`; tests in `ai_stack/tests/test_quality_lab_judgment_interpreter.py`, `ai_stack/tests/test_quality_lab_evaluator_catalog.py`, and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
 | **2 — Trace and metadata analysis** | Implemented | `ai_stack/quality_lab/trace_interpreter.py`; MCP tool `wos.quality_lab.review_trace`; tests in `ai_stack/tests/test_quality_lab_trace_interpreter.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
-| **3 — MCP exchange analysis** | Implemented | `ai_stack/quality_lab/mcp_exchange_interpreter.py`; MCP tool `wos.quality_lab.review_mcp_exchange`; tests in `ai_stack/tests/test_quality_lab_mcp_exchange_interpreter.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+| **3 — MCP exchange analysis** | Implemented | `ai_stack/mcp/mcp_exchange_interpreter.py`; MCP tool `wos.quality_lab.review_mcp_exchange`; tests in `ai_stack/tests/test_quality_lab_mcp_exchange_interpreter.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
 | **4 — Problem clustering and investigation** | Implemented | `ai_stack/quality_lab/pattern_interpreter.py`; MCP tools `wos.quality_lab.find_patterns` and `wos.quality_lab.suggest_investigation`; tests in `ai_stack/tests/test_quality_lab_pattern_and_planning.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
 | **5 — Repair, judge-set, and content planning** | Implemented | `ai_stack/quality_lab/planning_interpreter.py`; MCP tools `wos.quality_lab.plan_repair_wave`, `wos.quality_lab.refine_judge_set`, and `wos.quality_lab.plan_content_revision`; tests in `ai_stack/tests/test_quality_lab_pattern_and_planning.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
 
 All implemented surfaces are read-only and registered in
-`ai_stack/mcp_canonical_surface.py` with `McpToolClass.read_only`,
+`ai_stack/mcp/mcp_canonical_surface.py` with `McpToolClass.read_only`,
 `McpSuite.wos_runtime_read`, and `AUTH_QUALITY_LAB_ANALYSIS`.
 
 ## Related ADRs
@@ -538,7 +538,7 @@ Implemented modules:
 - `ai_stack/quality_lab/evaluator_catalog.py` — loads per-evaluator markdown frontmatter and severity buckets from `docs/llm-as-a-judge/`
 - `ai_stack/quality_lab/judgment_interpreter.py`
 - `ai_stack/quality_lab/trace_interpreter.py`
-- `ai_stack/quality_lab/mcp_exchange_interpreter.py`
+- `ai_stack/mcp/mcp_exchange_interpreter.py`
 - `ai_stack/quality_lab/pattern_interpreter.py`
 - `ai_stack/quality_lab/planning_interpreter.py`
 
@@ -551,7 +551,7 @@ Register tools through the existing MCP registry and canonical surface:
 - `tools/mcp_server/tools_registry.py`
 - `tools/mcp_server/tools_registry_handlers.py`
 - `tools/mcp_server/tools_registry_metadata.py`
-- `ai_stack/mcp_canonical_surface.py`
+- `ai_stack/mcp/mcp_canonical_surface.py`
 
 ### Canonical-surface registration
 

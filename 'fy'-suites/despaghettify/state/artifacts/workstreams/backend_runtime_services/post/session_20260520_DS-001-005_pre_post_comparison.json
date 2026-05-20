@@ -1,0 +1,24 @@
+{
+  "session": "20260520",
+  "ds_ids": ["DS-001", "DS-002", "DS-004", "DS-005"],
+  "workstream": "backend_runtime_services",
+  "gates": {
+    "ds005_runtime_import_check": {"exit_code": 0},
+    "backend_runtime_quick": {"status": "passed", "note": "1112 tests via tests/run_tests.py --suite backend_runtime --quick"},
+    "backend_services_quick": {"status": "passed"},
+    "ds004_route_constants": {"status": "passed", "count": 16}
+  },
+  "code_evidence": {
+    "DS-001": [
+      "backend/app/runtime/turn_executor_decision_delta.py",
+      "backend/app/runtime/ai_turn_post_parse_pipeline.py",
+      "backend/app/runtime/turn_executor_validated_pipeline*.py"
+    ],
+    "DS-002": [
+      "backend/app/services/writers_room_pipeline_*",
+      "backend/app/runtime/narrative_threads_update_from_commit_phases.py"
+    ],
+    "DS-004": ["backend/app/config/route_constants.py"],
+    "DS-005": ["backend/app/runtime/relationship_context_derive.py"]
+  }
+}

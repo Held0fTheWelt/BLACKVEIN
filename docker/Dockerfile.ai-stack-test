@@ -1,4 +1,4 @@
-# Reproducible ai_stack test environment (Python 3.10, same as CI).
+# Reproducible ai_stack test environment (Python 3.14, same as CI).
 # Build from repository root:
 #   docker build -f docker/Dockerfile.ai-stack-test -t wos-ai-stack-test .
 # Run full ai_stack suite:
@@ -7,7 +7,7 @@
 #   docker run --rm wos-ai-stack-test python -m pytest ai_stack/tests/test_wos_vsl_mvp_closure.py ai_stack/tests/test_mcp_suite_map_complete.py -q --tb=short
 #
 # Requires a root .dockerignore to keep the build context lean (see .dockerignore).
-FROM python:3.10-bookworm
+FROM python:3.14-bookworm
 WORKDIR /workspace
 
 COPY . .

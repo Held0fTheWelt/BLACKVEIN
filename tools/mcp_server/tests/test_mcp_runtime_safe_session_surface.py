@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpImplementationStatus,
     McpOperatingProfile,

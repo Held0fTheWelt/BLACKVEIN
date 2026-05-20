@@ -32,7 +32,7 @@ Compiles and runs the LangGraph reasoning pipeline.
 
 ```python
 from ai_stack.langgraph.langgraph_orchestrator import GameOrchestrator
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
 # Initialize

@@ -25,7 +25,7 @@ The **AI stack** is not only “the turn graph.” It includes:
 | Capabilities | `ai_stack/capabilities/capabilities.py` | Context pack, transcript, review bundle, research explore — mode gates, audit |
 | Research store / pipeline | `ai_stack/research/research_store.py`, `research_langgraph.py`, `research_exploration.py`, `research_validation.py`, `canon_improvement_engine.py` | Bounded exploration, claims, review bundles, non-publish canon proposals |
 | Model routing | `backend/app/runtime/model_routing.py`, `routing_registry_bootstrap.py` | Adapter choice, degradation, traces — [llm-slm-role-stratification.md](llm-slm-role-stratification.md) |
-| MCP canonical surface | `ai_stack/mcp_canonical_surface.py`, `tools/mcp_server/` | Suite-scoped tools, resources, prompts |
+| MCP canonical surface | `ai_stack/mcp/mcp_canonical_surface.py`, `tools/mcp_server/` | Suite-scoped tools, resources, prompts |
 
 **Plain-language counterpart:** [how-ai-fits-the-platform.md](../../start-here/how-ai-fits-the-platform.md).
 

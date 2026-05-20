@@ -262,7 +262,7 @@ flowchart TB
 
 - Server: `tools/mcp_server/` (see `docs/technical/integration/MCP.md`, `docs/mcp/MVP_SUITE_MAP.md`).
 - Typical Phase A pattern: MCP runs **locally**, talks to **backend** over HTTPS (`docs/mcp/01_M0_host_and_runtime.md`).
-- Canonical surface helpers: `ai_stack/mcp_canonical_surface.py` (per `docs/technical/ai/ai-stack-overview.md`).
+- Canonical surface helpers: `ai_stack/mcp/mcp_canonical_surface.py` (per `docs/technical/ai/ai-stack-overview.md`).
 
 ### Why it matters
 

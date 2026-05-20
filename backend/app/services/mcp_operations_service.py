@@ -15,12 +15,12 @@ from sqlalchemy import and_, or_
 from app.extensions import db
 from app.models.mcp_diagnostic_case import McpDiagnosticCase
 from app.models.mcp_ops_telemetry import McpOpsTelemetry
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     build_compact_mcp_operator_truth,
     canonical_mcp_tool_descriptors_by_name,
     verify_catalog_names_alignment,
 )
-from ai_stack.mcp_static_catalog import mcp_exposure_counts_by_suite, mcp_suite_registry_rows
+from ai_stack.mcp.mcp_static_catalog import mcp_exposure_counts_by_suite, mcp_suite_registry_rows
 
 INGEST_MAX_BODY_BYTES = 65536
 ROW_PAYLOAD_MAX_BYTES = 16384

@@ -27,7 +27,7 @@ from ai_stack.with_ai_reasoning_decorator import (
     AIReasoningDiagnostics
 )
 from ai_stack.langgraph.langgraph_agent_state import AgentState
-from ai_stack.mcp_agent_interface import MCPAgentInterface
+from ai_stack.mcp.mcp_agent_interface import MCPAgentInterface
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
 

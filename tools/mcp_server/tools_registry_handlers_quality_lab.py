@@ -31,7 +31,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from ai_stack.quality_lab.judgment_interpreter import interpret_judgments
-from ai_stack.quality_lab.mcp_exchange_interpreter import interpret_mcp_exchange
+from ai_stack.mcp.mcp_exchange_interpreter import interpret_mcp_exchange
 from ai_stack.quality_lab.pattern_interpreter import (
     find_patterns,
     suggest_investigation,

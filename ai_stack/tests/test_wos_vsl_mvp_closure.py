@@ -1,6 +1,6 @@
 """Focused WOS_VSL MVP closure checks (Docker / CI entrypoint-friendly)."""
 
-from ai_stack.wos_vsl_mcp_metrics import (
+from ai_stack.mcp.wos_vsl_mcp_metrics import (
     MVP_HIGH_RISK_WRITE_TOOL_MAX,
     MVP_READ_VIA_RESOURCE_MIN,
     high_risk_mcp_mutation_tool_count,

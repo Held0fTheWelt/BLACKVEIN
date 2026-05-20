@@ -93,7 +93,7 @@ def test_pr_0_piv_artifact_required_sections() -> None:
 
     for verified_anchor in (
         "ai_stack/player_action_resolution.py:502",
-        "world-engine/app/story_runtime/manager.py:8683",
+        "world-engine/app/story_runtime/manager/dramatic_context_authority.py:229",
         "ai_stack/langgraph/langgraph_runtime_executor.py:3996",
         "ai_stack/langgraph/langgraph_runtime_executor.py:4703",
         "ai_stack/director/scene_director_goc.py:655",
@@ -359,7 +359,8 @@ RUNTIME_FILES_UNTOUCHED_BY_PR_0 = (
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/narrator/goc_narrator_path.py",
     "ai_stack/goc_souffleuse.py",
-    "world-engine/app/story_runtime/manager.py",
+    "world-engine/app/story_runtime/manager/dramatic_context_authority.py",
+    "world-engine/app/story_runtime/manager/ldss_narrative_queue.py",
 )
 
 

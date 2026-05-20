@@ -1,4 +1,4 @@
-"""Tests for ``ai_stack.quality_lab.mcp_exchange_interpreter`` (ADR-0040 Phase 3).
+"""Tests for ``ai_stack.mcp.mcp_exchange_interpreter`` (ADR-0040 Phase 3).
 
 Per ADR-0039-style discipline, focus areas, required context fields, and
 trace names are imported from canonical Quality Lab/runtime constants.
@@ -11,7 +11,7 @@ from ai_stack.langfuse.langfuse_evaluator_catalog import (
     WORLD_ENGINE_TURN_TRACE_NAME,
 )
 from ai_stack.quality_lab.evaluator_catalog import list_evaluator_views
-from ai_stack.quality_lab.mcp_exchange_interpreter import (
+from ai_stack.mcp.mcp_exchange_interpreter import (
     CANONICAL_TRACE_NAMES,
     MCP_EXCHANGE_FOCUS_AREAS,
     REQUIRED_REQUEST_CONTEXT_FIELDS,

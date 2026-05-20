@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from ai_stack.mcp_canonical_surface import canonical_mcp_tool_descriptors_by_name
+from ai_stack.mcp.mcp_canonical_surface import canonical_mcp_tool_descriptors_by_name
 
 from tools.mcp_server.tools_registry import create_default_registry
 

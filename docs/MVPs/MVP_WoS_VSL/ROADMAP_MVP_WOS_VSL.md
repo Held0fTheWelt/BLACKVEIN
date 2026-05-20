@@ -451,7 +451,7 @@ These should be postponed unless they directly unblock the MVP:
 
 ### 10.2 Core experiments
 
-**In-repo instruments:** operator review sheet — [pilot/MVP_OPERATOR_REVIEW_SHEET.md](../../pilot/MVP_OPERATOR_REVIEW_SHEET.md); MCP suite map for misrouting — [mcp/MVP_SUITE_MAP.md](../../mcp/MVP_SUITE_MAP.md); static metrics — `ai_stack/wos_vsl_mcp_metrics.py` and `ai_stack/tests/test_wos_vsl_mvp_closure.py`.
+**In-repo instruments:** operator review sheet — [pilot/MVP_OPERATOR_REVIEW_SHEET.md](../../pilot/MVP_OPERATOR_REVIEW_SHEET.md); MCP suite map for misrouting — [mcp/MVP_SUITE_MAP.md](../../mcp/MVP_SUITE_MAP.md); static metrics — `ai_stack/mcp/wos_vsl_mcp_metrics.py` and `ai_stack/tests/test_wos_vsl_mvp_closure.py`.
 
 #### Experiment 1 — Internal controlled playtest
 Measure:

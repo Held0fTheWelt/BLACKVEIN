@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ai_stack.mcp_canonical_surface import (
+from ai_stack.mcp.mcp_canonical_surface import (
     build_compact_mcp_operator_truth,
     capability_records_for_mcp,
     verify_catalog_names_alignment,
