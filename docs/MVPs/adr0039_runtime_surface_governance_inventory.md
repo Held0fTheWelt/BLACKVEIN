@@ -78,7 +78,7 @@ surfaces:
 
   - surface_id: world_engine_story_runtime_manager
     primary_files:
-      - world-engine/app/story_runtime/manager.py
+      - world-engine/app/story_runtime/manager/
     symbols:
       - StoryRuntimeManager
     runtime_role: Session lifecycle, turn execution host, LDSS integration, commit packaging

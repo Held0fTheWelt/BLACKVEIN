@@ -13,7 +13,7 @@
 | **Backend route** | Backend game/play turn execution | `backend/app/api/v1/session_routes.py` | `execute_session_turn()` at line 481 | ✅ FOUND |
 | **Backend service** | Backend game service logic | `backend/app/services/game_service.py` | `GameServiceError`, `_parse_create_run_v1()` | ✅ FOUND |
 | **World-Engine API** | HTTP handler for story turn execution | `world-engine/app/api/http.py` | `CreateRunRequest`, `TicketRequest`, `router` APIRouter | ✅ FOUND |
-| **World-Engine story manager** | Turn execution and LDSS invocation | `world-engine/app/story_runtime/manager.py` | `_build_ldss_scene_envelope()`, `_finalize_committed_turn()` | ✅ FOUND |
+| **World-Engine story manager** | Turn execution and LDSS invocation | `world-engine/app/story_runtime/manager/` | `_build_ldss_scene_envelope()`, `_finalize_committed_turn()` | ✅ FOUND |
 | **Frontend route** | Play shell route handler | `frontend/app/routes_play.py` | `session_view()`, `session_execute()` at line 986+ | ✅ FOUND |
 | **Frontend template (main)** | Session shell HTML template | `frontend/templates/session_shell.html` | `<div id="turn-transcript">`, `<form id="play-execute-form">` | ✅ FOUND |
 | **Frontend static - OLD renderer** | Current play shell (to be replaced) | `frontend/static/play_shell.js` | `renderEntries()`, `applyRuntimePayload()` | ✅ EXISTS (will rewrite) |

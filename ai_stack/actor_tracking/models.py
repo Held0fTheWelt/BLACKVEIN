@@ -1,6 +1,6 @@
-"""W5 Actor Situation Tracker — closed enums and record models.
+"""W5 Actor Tracking — closed enums and record models.
 
-See ADR-0063 (``docs/ADR/adr-0063-w5-actor-situation-tracker.md``).
+See ADR-0063 (``docs/ADR/adr-0063-w5-actor-tracking.md``).
 
 All enum *values* are ``lower_snake_case`` strings (Python member names may be
 ``UPPER_CASE``). Records are frozen dataclasses with ``to_dict`` / ``from_dict``

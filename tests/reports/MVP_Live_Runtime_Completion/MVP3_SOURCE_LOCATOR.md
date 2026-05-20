@@ -16,9 +16,9 @@
 | NPCAgencyPlan model | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `NPCAgencyPlan` dataclass | found | Primary/secondary responders, NPC initiatives |
 | run_ldss() function | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `run_ldss(ldss_input)` → `LDSSOutput` | found | LDSS orchestration entry point |
 | **MVP3-P02: Runtime Manager Integration** |
-| LDSS invocation | `world-engine/app/story_runtime/manager.py` | `world-engine/app/story_runtime/manager.py` | `_build_ldss_scene_envelope()` function | found | Called in `_finalize_committed_turn()` after validation/commit |
+| LDSS invocation | `world-engine/app/story_runtime/manager/` | `world-engine/app/story_runtime/manager/` | `_build_ldss_scene_envelope()` function | found | Called in `_finalize_committed_turn()` after validation/commit |
 | SceneTurnEnvelope response field | `world-engine/app/api/http.py` | `world-engine/app/api/http.py` | `ExecuteTurnResponse.scene_turn_envelope` | found | Final HTTP response includes envelope |
-| committed state seam | `world-engine/app/story_runtime/manager.py` | `world-engine/app/story_runtime/manager.py` | `_finalize_committed_turn()` | found | LDSS runs post-commit on validated state |
+| committed state seam | `world-engine/app/story_runtime/manager/` | `world-engine/app/story_runtime/manager/` | `_finalize_committed_turn()` | found | LDSS runs post-commit on validated state |
 | **MVP3-P03: NPC Agency Enforcement** |
 | responder candidate validation | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `validate_responder_candidates()` function | found | Rejects human actor and visitor from NPC responder set |
 | primary responder selection | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `_select_primary_responder()` function | found | Priority: veronique → alain → michel |
@@ -70,7 +70,7 @@
 ### MVP3-P02: Runtime Manager Integration
 
 **Files**:
-- `world-engine/app/story_runtime/manager.py` — `_build_ldss_scene_envelope()`, `_finalize_committed_turn()`
+- `world-engine/app/story_runtime/manager/` — `_build_ldss_scene_envelope()`, `_finalize_committed_turn()`
 - `world-engine/app/api/http.py` — `ExecuteTurnResponse` model with `scene_turn_envelope` field
 - `ai_stack/god_of_carnage_turn_seams.py` — LDSS context propagation
 

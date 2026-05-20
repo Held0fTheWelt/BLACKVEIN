@@ -7,7 +7,7 @@ Accepted
 
 **Implemented — matches ADR.**
 
-- `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`) is the single authoritative runtime host for story sessions, turn execution, and session lifecycle.
+- `world-engine/app/story_runtime/manager/` (`StoryRuntimeManager`) is the single authoritative runtime host for story sessions, turn execution, and session lifecycle.
 - `backend/app/api/v1/game_routes.py` proxies to world-engine; no competing session commit logic exists in the backend layer.
 - Backend AI-stack session evidence bundles resolve evidence through
   `game_service.get_story_state` / `get_story_diagnostics` for the
@@ -15,7 +15,7 @@ Accepted
   sessions.
 - `story_runtime_core` provides shared interpretation and registry/adapters consumed by the play service.
 - AI output proposal-only contract enforced: validation + commit seams in `world-engine/app/api/http.py`.
-- Governance investigation confirms: `CTR-ADR-0001-RUNTIME-AUTHORITY` implemented by `world-engine/app/story_runtime/manager.py` and `world-engine/app/api/http.py`, validated by `world-engine/tests/test_story_runtime_api.py`.
+- Governance investigation confirms: `CTR-ADR-0001-RUNTIME-AUTHORITY` implemented by `world-engine/app/story_runtime/manager/` and `world-engine/app/api/http.py`, validated by `world-engine/tests/test_story_runtime_api.py`.
 - Supersedes ADR-0021 (stub, moved to `docs/ADR/legacy/`).
 
 ## Date
@@ -97,5 +97,5 @@ flowchart LR
 - [`docs/ADR/README.md`](README.md) — ADR catalogue
 - `docs/technical/runtime/runtime-authority-and-state-flow.md`
 - `docs/archive/architecture-legacy/runtime_authority_decision.md` (archived original)
-- `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`)
+- `world-engine/app/story_runtime/manager/` (`StoryRuntimeManager`)
 - `docs/dev/architecture/runtime-authority-and-session-lifecycle.md`

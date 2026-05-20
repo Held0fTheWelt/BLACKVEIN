@@ -148,7 +148,7 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 ### Phase 4C — Package-runtime gate repair (complete)
 
-- [x] Repair stale flat `world-engine/app/story_runtime/manager.py` gate assumptions for the package-based `world-engine/app/story_runtime/manager/` runtime.
+- [x] Repair stale flat `world-engine/app/story_runtime/manager/` gate assumptions for the package-based `world-engine/app/story_runtime/manager/` runtime.
 - [x] Preserve LDSS, ADR-0033, observability, and no-fallback false-green assertions while updating symbol/file lookups.
 
 ### Phase 5A — Player-shell W5 projection (complete)
@@ -194,6 +194,21 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - No new imports of `ai_stack/actor_situation` or `ai_stack/w5_actor_situation` are introduced (and none existed prior).
 
 **Outcome:** Phase 6B is safe to begin once the four W5 consumer flags (Director, Narrator, NPC, Player Shell) are queued to default-on in a coordinated commit and the rename items (R1–R5 in the inventory) are sequenced as the first 6B commit. Substrate consolidation remains out of scope for 6B.
+
+### Phase 6B-0 — Rename pass for R1–R5 (complete)
+
+**Goal:** Apply the low-risk terminology cleanup items R1–R5 from the Phase 6A inventory before flipping any W5 flag to default-on or removing any legacy consumer. No runtime behavior is changed in Phase 6B-0.
+
+- [x] R1 — Function renamed: `validate_w5_actor_situation` → `validate_w5_actor_tracking`. Definition in `ai_stack/actor_tracking/validation.py`, re-export from `ai_stack/actor_tracking/__init__.py`, production callsite in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py`, and all twelve test callsites in `ai_stack/tests/test_w5_actor_tracking_validation.py` updated atomically. No backward alias retained; the call graph is enumerated and small.
+- [x] R2 — Diagnostic string renamed: `failure_class = "w5_actor_situation_validation"` → `"w5_actor_tracking_validation"` in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py`. No downstream consumer/filter in production code asserts the old value.
+- [x] R3 — Docstring path updated in `ai_stack/actor_tracking/models.py` from `docs/ADR/adr-0063-w5-actor-situation-tracker.md` to `docs/ADR/adr-0063-w5-actor-tracking.md`.
+- [x] R4 — Docstring paths updated in `ai_stack/actor_tracking/__init__.py` and `ai_stack/actor_tracking/extractor.py` from `docs/MVPs/w5_actor_situation_migration.md` to `docs/MVPs/w5_actor_tracking_migration.md`. `__init__.py` retains a single historical sentence noting the prior package names — historical context only, not a current-state claim.
+- [x] R5 — Docstring path updated in `ai_stack/actor_tracking/projection.py` from `docs/MVPs/w5_actor_situation_migration.md` to `docs/MVPs/w5_actor_tracking_migration.md`.
+- [x] Forbidden package scan still reports zero active imports of `ai_stack/actor_situation` or `ai_stack/w5_actor_situation`.
+- [x] No W5 feature flag was flipped; no legacy fallback or substrate writer was modified; no committed-event mutation introduced.
+- [x] Substrate fields `current_room`, `actor_locations`, `gathering_scene_id`, `transition_from_previous`, and `complete_actor_locations_for_gathering` are untouched.
+
+**Note on `player_actor_situation`:** The W5 player-shell projection payload retains the key `where_summary.player_actor_situation` (`ai_stack/actor_tracking/projection.py`). This is a runtime payload field, semantically *the situation an actor is in*, not a reference to the deprecated package name. It is **not** in the R1–R5 scope and was deliberately left untouched.
 
 ### Phase 6B — Legacy localization decommission (planned)
 
@@ -269,7 +284,7 @@ Source rules:
 ## Wire-in point (Phase 1)
 
 Shadow extraction is invoked from
-`world-engine/app/story_runtime/manager.py` in `StoryRuntimeManager._finalize_committed_turn`,
+`world-engine/app/story_runtime/manager/` in `StoryRuntimeManager._finalize_committed_turn`,
 between `committed_record["lifecycle_state"] = "observed"` /
 `session.diagnostics.append(event)` and `self._persist_session(session)`.
 

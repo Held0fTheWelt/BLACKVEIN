@@ -156,7 +156,7 @@ Ensure same `trace_id` flows through:
 | backend | `backend/app/observability/langfuse_adapter.py` | Implement LangfuseAdapter with v4 SDK |
 | ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Populate cost_summary with real values |
 | ai_stack | `ai_stack/langgraph/langgraph_runtime.py` | Instrument LDSS and Narrator with spans |
-| world-engine | `world-engine/app/story_runtime/manager.py` | Pass token counts to build_diagnostics_envelope |
+| world-engine | `world-engine/app/story_runtime/manager/` | Pass token counts to build_diagnostics_envelope |
 | backend | `backend/app/observability/logging_config.py` | Add trace_id to log context |
 | tests | `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` | 10 Phase B tests covering Langfuse spans and costs |
 

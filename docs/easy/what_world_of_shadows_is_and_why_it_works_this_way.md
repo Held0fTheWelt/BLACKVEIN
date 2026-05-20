@@ -64,7 +64,7 @@ A **single authoritative runtime host** for live narrative execution is an expli
 
 ### What it is not
 
-- **Not** “just a chat UI on top of an API.” Chat-shaped UX may exist, but **commit authority** is a separate concern (`world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`).
+- **Not** “just a chat UI on top of an API.” Chat-shaped UX may exist, but **commit authority** is a separate concern (`world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`).
 - **Not** a single monolith that happens to call OpenAI once. The repo is **several deployable apps** with clear seams (`docs/technical/architecture/service-boundaries.md`).
 
 ---
@@ -83,7 +83,7 @@ The platform separates:
 - **Checks** (contracts, validation seams),
 - **Commits** (what the session officially records after rules agree).
 
-That pattern is spelled out for the God of Carnage path in contract docs such as [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) and implemented around `resolve_narrative_commit` in the story runtime (`world-engine/app/story_runtime/manager.py`, `world-engine/app/story_runtime/commit_models.py`).
+That pattern is spelled out for the God of Carnage path in contract docs such as [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) and implemented around `resolve_narrative_commit` in the story runtime (`world-engine/app/story_runtime/manager/`, `world-engine/app/story_runtime/commit_models.py`).
 
 ### Why this matters
 
@@ -136,7 +136,7 @@ Different people and programs need **different doors** into the system. Players 
 |------|------------------|--------|
 | **Frontend** | Player/public web UI; talks to backend and browser-reachable play URLs | `frontend/`, [`service-boundaries.md`](../technical/architecture/service-boundaries.md) |
 | **Backend** | APIs, auth, persistence, content/compiler integration, proxies to play | `backend/` |
-| **World Engine** | Authoritative live play: sessions, WebSockets, story turn execution | `world-engine/app/main.py`, `world-engine/app/story_runtime/manager.py` |
+| **World Engine** | Authoritative live play: sessions, WebSockets, story turn execution | `world-engine/app/main.py`, `world-engine/app/story_runtime/manager/` |
 | **Administration tool** | Separate admin UI; backend APIs only | `administration-tool/` |
 | **Writers’ Room UI** | Optional small Flask UI calling backend Writers’ Room routes | `writers-room/` |
 | **AI stack** | RAG, LangGraph runtime graph, bridges, capabilities | `ai_stack/` |
@@ -205,7 +205,7 @@ Someone has to be the **referee** for a live session: “Did that move count? Wh
 
 ### What this means in the actual system
 
-The engine is a **FastAPI** app that hosts **`RuntimeManager`** (template/lobby/run experiences) and **`StoryRuntimeManager`** (guided story sessions), wired in `world-engine/app/main.py`. Story turns invoke graph execution (`ai_stack/langgraph/langgraph_runtime.py`) and then **narrative commit resolution**—see `world-engine/app/story_runtime/manager.py` and the easy runbook [`world_engine_runbook_easy.md`](world_engine_runbook_easy.md).
+The engine is a **FastAPI** app that hosts **`RuntimeManager`** (template/lobby/run experiences) and **`StoryRuntimeManager`** (guided story sessions), wired in `world-engine/app/main.py`. Story turns invoke graph execution (`ai_stack/langgraph/langgraph_runtime.py`) and then **narrative commit resolution**—see `world-engine/app/story_runtime/manager/` and the easy runbook [`world_engine_runbook_easy.md`](world_engine_runbook_easy.md).
 
 ### Why this matters
 
@@ -320,7 +320,7 @@ Without governance, **the last retrieved note** can **steer** the model as if it
 
 ### Diagram: truth boundaries — four kinds of “text”
 
-*Anchored in:* `docs/technical/ai/RAG.md` (truth table), `world-engine/app/story_runtime/manager.py` (session authority).
+*Anchored in:* `docs/technical/ai/RAG.md` (truth table), `world-engine/app/story_runtime/manager/` (session authority).
 
 ```mermaid
 flowchart TB
@@ -424,7 +424,7 @@ This section names the **most tempting shortcuts** and why the repository refuse
 
 ### Why not “frontend talks directly to the model”?
 
-**Simple** and **opaque**: you lose **server-side rules**, **consistent commits**, and **auditable diagnostics**. The implemented path routes play through **`world-engine`** with graph stages and seams (`ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py`).
+**Simple** and **opaque**: you lose **server-side rules**, **consistent commits**, and **auditable diagnostics**. The implemented path routes play through **`world-engine`** with graph stages and seams (`ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager/`).
 
 ### Why not “backend stores everything and is enough”?
 
@@ -496,7 +496,7 @@ Player-visible routes live in `frontend/`; live session behavior is owned by `wo
 
 ### Diagram: player benefit flow — inside work → outside feeling
 
-*Anchored in:* `world-engine/app/story_runtime/manager.py` (commit), `frontend/` (presentation).
+*Anchored in:* `world-engine/app/story_runtime/manager/` (commit), `frontend/` (presentation).
 
 ```mermaid
 flowchart LR

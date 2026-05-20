@@ -32,7 +32,7 @@ MVP4 introduces the DiagnosticsEnvelope contract to make quality and degradation
 ## Affected Services/Files
 
 - `ai_stack/telemetry/diagnostics_envelope.py` — `DiagnosticsEnvelope`, `validate_evidence_consistency()`, `build_diagnostics_envelope()`
-- `world-engine/app/story_runtime/manager.py` — `_finalize_committed_turn` adds `diagnostics_envelope` to event
+- `world-engine/app/story_runtime/manager/` — `_finalize_committed_turn` adds `diagnostics_envelope` to event
 - `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` — gate tests
 - `tests/gates/we_contract_helpers.py` — behavioral integration oracle for the world-engine diagnostics test
 

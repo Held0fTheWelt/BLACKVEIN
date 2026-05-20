@@ -20,7 +20,7 @@ MVP3 introduces LDSS as a non-optional live-path component that wraps the turn's
 
 4. **`LDSSOutput`** is the intermediate output: decision count, scene block count, visible actor response flag, NPC agency plan, and visible scene output.
 
-5. **LDSS invocation point**: `_finalize_committed_turn()` in `world-engine/app/story_runtime/manager.py` calls `_build_ldss_scene_envelope()` after validation and commit. LDSS runs on committed state only.
+5. **LDSS invocation point**: `_finalize_committed_turn()` in `world-engine/app/story_runtime/manager/` calls `_build_ldss_scene_envelope()` after validation and commit. LDSS runs on committed state only.
 
 6. **LDSS diagnostics status**: The diagnostics field `diagnostics.live_dramatic_scene_simulator.status` reports the active LDSS outcome. Direct canonical-step LDSS envelope builds report `"approved"` when the authored canonical path step produced valid visible blocks. Full story-turn manager routes may project that same successful LDSS evidence as `"evidenced_live_path"` in higher-level runtime diagnostics. The diagnostics include `story_session_id`, `turn_number`, `input_hash`, `output_hash`, `decision_count`, `scene_block_count`, and `legacy_blob_used=false`.
 
@@ -31,7 +31,7 @@ MVP3 introduces LDSS as a non-optional live-path component that wraps the turn's
 ## Affected Services/Files
 
 - `ai_stack/live_dramatic_scene_simulator.py` — `SceneTurnEnvelopeV2`, `SceneBlock`, `LDSSInput`, `LDSSOutput`, `run_ldss()`, `build_deterministic_ldss_output()`, `build_scene_turn_envelope_v2()`
-- `world-engine/app/story_runtime/manager.py` — `_build_ldss_scene_envelope()`, LDSS import, call in `_finalize_committed_turn`
+- `world-engine/app/story_runtime/manager/` — `_build_ldss_scene_envelope()`, LDSS import, call in `_finalize_committed_turn`
 - `tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py`
 - `world-engine/tests/test_mvp3_ldss_integration.py`
 

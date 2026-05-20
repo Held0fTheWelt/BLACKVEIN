@@ -90,7 +90,7 @@ Tests for this layer assert contract shape, provenance, diagnostic fields, and f
 
 ## Diagram: truth and retrieval boundaries
 
-*Anchored in:* `governance_view_for_chunk` and `DOMAIN_CONTENT_ACCESS` in `ai_stack/rag/__init__.py`; session authority in `world-engine/app/story_runtime/manager.py`.
+*Anchored in:* `governance_view_for_chunk` and `DOMAIN_CONTENT_ACCESS` in `ai_stack/rag/__init__.py`; session authority in `world-engine/app/story_runtime/manager/`.
 
 ```mermaid
 flowchart TB

@@ -40,7 +40,7 @@ World of Shadows uses **three distinguishable AI-related planes** that share lib
 
 | Plane | Role | Primary anchors |
 |--------|------|------------------|
-| **Runtime play AI** | Per-turn interpretation, retrieval, direction, model calls, validation/commit inside the live narrative pipeline | `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py` |
+| **Runtime play AI** | Per-turn interpretation, retrieval, direction, model calls, validation/commit inside the live narrative pipeline | `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager/` |
 | **Research / improvement AI** | Bounded exploration over sources, structured claims, optional canon-issue and **non-publish** proposal previews; **separate** sandbox experiment loop for module variants | `ai_stack/research/research_*.py`, `ai_stack/research/canon_improvement_engine.py`, `backend/app/api/v1/improvement_routes.py` |
 | **Operator / control-plane AI** | Tools and APIs for inspection, diagnostics, governance packages—not a second story runtime | `tools/mcp_server/`, backend governance and session APIs |
 
@@ -88,7 +88,7 @@ AI helps interpret input, retrieve relevant text, propose narrative structure, r
 
 - **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities/capabilities.py`), **research pipeline** (`ai_stack/research/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
 - **`story_runtime_core`:** Shared adapters, registry patterns used by world-engine and backend paths.
-- **`world-engine`:** Authoritative host for live `StorySession` lifecycle, turn execution, diagnostics, and bounded narrative commit after the graph returns (`world-engine/app/story_runtime/manager.py`).
+- **`world-engine`:** Authoritative host for live `StorySession` lifecycle, turn execution, diagnostics, and bounded narrative commit after the graph returns (`world-engine/app/story_runtime/manager/`).
 - **`backend`:** Policy, auth, Writers’ Room, improvement HTTP surfaces, proxy to play—**not** a parallel authoritative runtime for the canonical play path.
 
 ### Why this matters
@@ -264,7 +264,7 @@ flowchart LR
 
 ### Diagram: Proposal vs authority
 
-*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py`.
+*Anchored in:* `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/manager/`.
 
 ```mermaid
 flowchart TB

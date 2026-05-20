@@ -42,7 +42,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 **Technical precision.** The FastAPI app in `world-engine/` exposes:
 
 1. **Template / lobby / run runtime** — `RuntimeManager` + `RuntimeEngine` (`world-engine/app/runtime/manager.py`, `world-engine/app/runtime/engine.py`): nested runs, snapshots, transcripts, WebSocket command processing after ticket verification (`world-engine/app/api/ws.py`).
-2. **Story narrative runtime** — `StoryRuntimeManager` (`world-engine/app/story_runtime/manager.py`): in-memory `StorySession` map, `execute_turn` orchestration via `ai_stack.RuntimeTurnGraphExecutor`, narrative commit resolution (`world-engine/app/story_runtime/commit_models.py`), state and diagnostics HTTP endpoints under `/api/story/...` (`world-engine/app/api/http.py`).
+2. **Story narrative runtime** — `StoryRuntimeManager` (`world-engine/app/story_runtime/manager/`): in-memory `StorySession` map, `execute_turn` orchestration via `ai_stack.RuntimeTurnGraphExecutor`, narrative commit resolution (`world-engine/app/story_runtime/commit_models.py`), state and diagnostics HTTP endpoints under `/api/story/...` (`world-engine/app/api/http.py`).
 
 **Why this matters in World of Shadows.** Without a single authoritative host, you get duplicate turn logic, divergent session state between Flask and FastAPI, and “AI said it, so it must be true” failures. ADR-0001 and backend classification docs exist precisely to prevent that drift.
 
@@ -56,7 +56,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 
 ## The World Engine in one sentence
 
-The **World Engine** is the **FastAPI play service** (`world-engine/`) that hosts **authoritative live runtime state** for template runs (HTTP/WebSocket) and **authoritative story sessions** (HTTP story API), where **AI and interpreters produce proposals and context** until **runtime rules** select and **commit** what becomes session truth—most visibly as **narrative commit records** for scene progression in the story path. **Anchors:** `world-engine/app/main.py` (dual managers + routers), `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager.execute_turn`).
+The **World Engine** is the **FastAPI play service** (`world-engine/`) that hosts **authoritative live runtime state** for template runs (HTTP/WebSocket) and **authoritative story sessions** (HTTP story API), where **AI and interpreters produce proposals and context** until **runtime rules** select and **commit** what becomes session truth—most visibly as **narrative commit records** for scene progression in the story path. **Anchors:** `world-engine/app/main.py` (dual managers + routers), `world-engine/app/story_runtime/manager/` (`StoryRuntimeManager.execute_turn`).
 
 ---
 
@@ -90,7 +90,7 @@ Operators debugging “wrong scene” must know whether they are in **story sess
 
 It does not **author** canonical YAML modules; it does not **publish** content to production governance queues; it does not **authenticate end users** for the player site (backend JWT/session domain).
 
-**Repository anchors:** `world-engine/app/main.py`, `world-engine/app/runtime/manager.py`, `world-engine/app/story_runtime/manager.py`, `world-engine/README.md`.
+**Repository anchors:** `world-engine/app/main.py`, `world-engine/app/runtime/manager.py`, `world-engine/app/story_runtime/manager/`, `world-engine/README.md`.
 
 ---
 
@@ -179,7 +179,7 @@ flowchart TB
   SM --> SRC2[story_runtime_core]
 ```
 
-**What to notice.** **Story** path pulls in `ai_stack` and `story_runtime_core` at construction time (`StoryRuntimeManager.__init__` in `world-engine/app/story_runtime/manager.py`). **Run** path centers on `RuntimeEngine` and store configuration (`world-engine/app/runtime/store.py`, `world-engine/app/config.py`).
+**What to notice.** **Story** path pulls in `ai_stack` and `story_runtime_core` at construction time (`StoryRuntimeManager.__init__` in `world-engine/app/story_runtime/manager/`). **Run** path centers on `RuntimeEngine` and store configuration (`world-engine/app/runtime/store.py`, `world-engine/app/config.py`).
 
 **Seams:** `world-engine/app/main.py`, `world-engine/app/api/http.py`, `world-engine/app/api/ws.py`.
 
@@ -219,7 +219,7 @@ Prevents silent world drift and makes audits possible (`narrative_commit` in dia
 
 Downstream **analytics truth** or **moderation decisions** for user-generated forum content; **publishing approval** for modules (backend / admin domain).
 
-**Repository anchors:** `world-engine/app/story_runtime/commit_models.py`, `world-engine/app/story_runtime/manager.py`, [`runtime-authority-and-state-flow.md`](runtime-authority-and-state-flow.md).
+**Repository anchors:** `world-engine/app/story_runtime/commit_models.py`, `world-engine/app/story_runtime/manager/`, [`runtime-authority-and-state-flow.md`](runtime-authority-and-state-flow.md).
 
 ---
 
@@ -283,7 +283,7 @@ Each story session is a small, server-side record: which module, which scene you
 
 ### Technical precision
 
-- **Session map:** `StoryRuntimeManager.sessions: dict[str, StorySession]` (`world-engine/app/story_runtime/manager.py`).
+- **Session map:** `StoryRuntimeManager.sessions: dict[str, StorySession]` (`world-engine/app/story_runtime/manager/`).
 - **Turn execution:** increments `turn_counter`, runs `turn_graph.run(...)`, computes `narrative_commit`, updates `narrative_threads`, appends to `history` and `diagnostics`, returns a turn envelope including `visible_output_bundle` and graph diagnostics references.
 - **Runtime intelligence ledger:** records `turn_aspect_ledger` for input, selected beat, selected/required/blocked capabilities, narrator/NPC/player authority, voice consistency, information disclosure, expectation variation, dramatic irony, callback web, no-dead-end recovery, pacing rhythm, social pressure, relationship state, genre awareness, symbolic object resonance, sensory context, improvisational coherence, visible origin evidence, validation status, commit result, and hierarchical memory. The ledger is persisted with the canonical turn record and projected to diagnostics/path summaries; the frontend may render it only as backend-provided data.
 - **Voice consistency:** derives active character voice profiles from canonical module content and validates `spoken_lines` before commit. Policy-declared forbidden language markers can trigger recoverable rejection and rewrite feedback through `runtime_voice_consistency_v1`. The semantic classifier compares spoken lines to every active canonical profile, emits ranking/dimension evidence, and, in `strict_rule_engine`, can reject high-confidence cross-actor or mixed voice drift through `runtime_voice_consistency_v2`. The same evidence is projected to the `voice_consistency` aspect, Langfuse runtime-aspect spans/scores, and the MCP runtime-aspect matrix. Authoring `dialogue_examples` are excluded from runtime profile serialization and are not used as prose oracles.
@@ -317,7 +317,7 @@ Backend stores the World-Engine story-session id in the canonical player-session
 
 Persistent **cross-session player memory** or unbounded learned memory. The implemented hierarchical memory layer is a module-policy-driven, session-local projection of committed turn truth. The `long_term` tier is generic contract surface only until a durable store and explicit module policy enable it.
 
-**Repository anchors:** `world-engine/app/story_runtime/manager.py`, `world-engine/app/api/http.py`, `world-engine/app/story_runtime/callback_web_store.py`, `world-engine/app/story_runtime/consequence_cascade_store.py`, `ai_stack/module_runtime_policy.py`, `world-engine/tests/test_story_runtime_aspect_ledger.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`, `world-engine/tests/test_story_runtime_callback_web.py`, `world-engine/tests/test_story_runtime_consequence_cascade.py`.
+**Repository anchors:** `world-engine/app/story_runtime/manager/`, `world-engine/app/api/http.py`, `world-engine/app/story_runtime/callback_web_store.py`, `world-engine/app/story_runtime/consequence_cascade_store.py`, `ai_stack/module_runtime_policy.py`, `world-engine/tests/test_story_runtime_aspect_ledger.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`, `world-engine/tests/test_story_runtime_callback_web.py`, `world-engine/tests/test_story_runtime_consequence_cascade.py`.
 
 ---
 
@@ -472,7 +472,7 @@ AI can retrieve lore, interpret tone, and propose the next scene—but **the eng
 
 ### Technical precision
 
-- **Orchestration:** `RuntimeTurnGraphExecutor` from `ai_stack` (`world-engine/app/story_runtime/manager.py` imports).
+- **Orchestration:** `RuntimeTurnGraphExecutor` from `ai_stack` (`world-engine/app/story_runtime/manager/` imports).
 - **Interpretation:** `interpret_player_input` from `story_runtime_core` passed into the executor.
 - **Commit boundary:** After `turn_graph.run`, `resolve_narrative_commit` applies legality; model structured `proposed_scene_id` is only a **candidate** ([`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md), [`CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)).
 
@@ -488,7 +488,7 @@ Writers’ Room and improvement flows may share adapters/routing patterns (`ai-s
 
 **Model provider credentials** policy outside its env configuration; **training data** governance; **external LLM account** billing.
 
-**Repository anchors:** `ai_stack/langgraph/langgraph_runtime.py` (graph definition), `world-engine/app/story_runtime/manager.py`, `story_runtime_core` package root.
+**Repository anchors:** `ai_stack/langgraph/langgraph_runtime.py` (graph definition), `world-engine/app/story_runtime/manager/`, `story_runtime_core` package root.
 
 ---
 

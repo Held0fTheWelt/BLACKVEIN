@@ -1,6 +1,6 @@
 """Phase 4A W5 validation tests.
 
-These tests pin W5 actor-situation validation as a read-side addition to the
+These tests pin W5 actor-tracking validation as a read-side addition to the
 canonical validation seam. Actor Lane remains authoritative and W5 never rewrites
 proposed output.
 """
@@ -23,7 +23,7 @@ from ai_stack.actor_tracking import (
     W5TruthLevel,
     W5ValidationFailureCode,
     W5VisibilityScope,
-    validate_w5_actor_situation,
+    validate_w5_actor_tracking,
 )
 
 
@@ -194,7 +194,7 @@ def test_actor_lane_rejection_is_not_masked_by_w5(monkeypatch) -> None:
 
 
 def test_actor_absent_returns_w5_actor_not_present() -> None:
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", location=None)),
         generation=_generation(spoken=[{"speaker_id": "michel", "text": "No."}]),
     )
@@ -206,7 +206,7 @@ def test_actor_absent_returns_w5_actor_not_present() -> None:
 
 
 def test_legal_actor_present_has_no_presence_rejection() -> None:
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", location="salon")),
         generation=_generation(spoken=[{"speaker_id": "michel", "text": "No."}]),
     )
@@ -215,7 +215,7 @@ def test_legal_actor_present_has_no_presence_rejection() -> None:
 
 
 def test_narrator_only_output_does_not_trigger_actor_presence_rejection() -> None:
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", location=None)),
         generation={
             "success": True,
@@ -233,7 +233,7 @@ def test_narrator_only_output_does_not_trigger_actor_presence_rejection() -> Non
 
 
 def test_illegal_location_jump_returns_location_continuity_break() -> None:
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", location="salon")),
         generation=_generation(
             actions=[
@@ -257,7 +257,7 @@ def test_illegal_location_jump_returns_location_continuity_break() -> None:
 
 
 def test_committed_target_location_does_not_trigger_location_break() -> None:
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", location="salon")),
         generation=_generation(
             actions=[
@@ -285,7 +285,7 @@ def test_private_inaccessible_fact_returns_perception_break() -> None:
         source=W5Source.CHARACTER_MIND_RECORD,
         visibility=W5VisibilityScope.PRIVATE_TO_ACTOR,
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel"), _situation("alain", why=(secret,))),
         generation=_generation(
             spoken=[
@@ -315,7 +315,7 @@ def test_allowed_actor_knowledge_scope_does_not_trigger_perception_break() -> No
         visibility=W5VisibilityScope.PRIVATE_TO_ACTOR,
         actor_knowledge_scope=("michel",),
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel"), _situation("alain", why=(shared,))),
         generation=_generation(
             spoken=[
@@ -343,7 +343,7 @@ def test_player_private_fact_does_not_leak_to_npc_perception() -> None:
         visibility=W5VisibilityScope.PRIVATE_TO_ACTOR,
         actor_knowledge_scope=("michel",),
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(
             _situation("michel"),
             _situation("annette", actor_type=W5ActorType.HUMAN, why=(private,)),
@@ -372,7 +372,7 @@ def test_action_continuity_break_returns_w5_action_continuity_break() -> None:
         value="ongoing",
         truth=W5TruthLevel.OBSERVED,
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", what=(action_state,))),
         generation=_generation(
             actions=[{"actor_id": "michel", "text": "Michel starts over.", "action_state": "starting"}]
@@ -395,7 +395,7 @@ def test_stale_low_confidence_inferred_action_fact_warns_not_blocks() -> None:
         status=W5FactStatus.STALE,
         confidence=0.3,
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", what=(action_state,))),
         generation=_generation(
             actions=[{"actor_id": "michel", "text": "Michel starts over.", "action_state": "starting"}]
@@ -433,7 +433,7 @@ def test_unresolved_observed_conflict_blocks_commit() -> None:
         competing_fact_ids=("w5f_michel_salon", "w5f_michel_hallway"),
         resolution_status=W5ConflictResolutionStatus.UNRESOLVED,
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(
             W5ActorSituation(
                 actor_id="michel",
@@ -478,7 +478,7 @@ def test_inferred_why_conflict_warns_without_blocking_commit() -> None:
         competing_fact_ids=("w5f_michel_why_1", "w5f_michel_why_2"),
         resolution_status=W5ConflictResolutionStatus.UNRESOLVED,
     )
-    result = validate_w5_actor_situation(
+    result = validate_w5_actor_tracking(
         snapshot=_snapshot(_situation("michel", why=(f1, f2)), conflicts=(conflict,)),
         generation=_generation(spoken=[{"speaker_id": "michel", "text": "No."}]),
     )

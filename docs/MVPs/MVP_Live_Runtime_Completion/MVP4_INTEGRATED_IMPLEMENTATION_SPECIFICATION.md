@@ -209,7 +209,7 @@ except Exception as e:
 
 ### Phase B Gap 3: Cost Summary Aggregation
 
-**File**: `world-engine/app/story_runtime/manager.py` (lines ~2080-2115 in `_finalize_committed_turn()`)
+**File**: `world-engine/app/story_runtime/manager/` (lines ~2080-2115 in `_finalize_committed_turn()`)
 
 **Current State**: Aggregation code exists but iterates over `graph_costs` (all zeros, never populated from real spans):
 
@@ -318,8 +318,8 @@ Once Phase B is complete, work CANNOT begin on Phase C governance features. Inst
 |----------|---------|------------|----------|------------|
 | **P1** | **D-007: Actor Ownership Lost** | Contract 1 | `backend/app/services/game/game_service.py:353-360` | Backend must send `human_actor_id`, `npc_actor_ids`, `actor_lanes` to WE in turn response |
 | **P2** | **D-006: Empty Shell Playable** | Contract 3 | `backend/app/api/v1/game_routes.py:267` | Validate `story_entries.count > 0` before returning `can_execute=True` |
-| **P3** | **D-001: Turn 0 Not Live** | Contract 2 | `world-engine/app/story_runtime/manager.py:2150` | Turn 0 must use real provider (not deterministic LDSS); mark turn_type correctly |
-| **P4** | **D-013: Error Swallowing** | Contract 4 | `world-engine/app/story_runtime/manager.py:2114` | DiagnosticsEnvelope errors must fail fast + log to Langfuse, never suppressed |
+| **P3** | **D-001: Turn 0 Not Live** | Contract 2 | `world-engine/app/story_runtime/manager/` | Turn 0 must use real provider (not deterministic LDSS); mark turn_type correctly |
+| **P4** | **D-013: Error Swallowing** | Contract 4 | `world-engine/app/story_runtime/manager/` | DiagnosticsEnvelope errors must fail fast + log to Langfuse, never suppressed |
 | **P5** | **D-008: SSE Not Routed** | Contract 5 | `frontend/static/play_narrative_stream.js:17` | Add `narrator_streaming` flag to turn response; route EventSource to correct endpoint |
 
 **These 5 defects must be fixed before Phase C can be implemented.** They are not Phase C work — they are prerequisites that enable Phase C to satisfy Core Contracts.
@@ -337,7 +337,7 @@ Execution occurs in **3 sequential waves**:
 ├─ Task 1.1: Add calculate_token_cost() helper to langfuse_adapter.py
 ├─ Task 1.2: Update Narrator Token Attribution (ai_stack/story_runtime/narrative_runtime_agent.py)
 ├─ Task 1.3: Add LDSS Decision Spans (ai_stack/live_dramatic_scene_simulator.py)
-├─ Task 1.4: Wire Cost Summary Aggregation (world-engine/app/story_runtime/manager.py)
+├─ Task 1.4: Wire Cost Summary Aggregation (world-engine/app/story_runtime/manager/)
 ├─ Task 1.5: Add Phase B Tests (test_goc_mvp04_observability_diagnostics_gate.py)
 └─ GATE 1: test_goc_mvp04_observability_diagnostics_gate PASS → All 5 Phase B tests green
 ```
@@ -346,8 +346,8 @@ Execution occurs in **3 sequential waves**:
 ```
 ├─ Task 2.1: Fix P1 — Actor Ownership (backend/app/services/game/game_service.py)
 ├─ Task 2.2: Fix P2 — Empty Shell Validation (backend/app/api/v1/game_routes.py)
-├─ Task 2.3: Fix P3 — Turn 0 Truthfulness (world-engine/app/story_runtime/manager.py)
-├─ Task 2.4: Fix P4 — Error Handling (world-engine/app/story_runtime/manager.py)
+├─ Task 2.3: Fix P3 — Turn 0 Truthfulness (world-engine/app/story_runtime/manager/)
+├─ Task 2.4: Fix P4 — Error Handling (world-engine/app/story_runtime/manager/)
 ├─ Task 2.5: Fix P5 — SSE Routing (frontend/static/play_narrative_stream.js + routes)
 └─ GATE 2: All 5 Blocker tests PASS → All Core Contracts satisfied
 ```
@@ -409,7 +409,7 @@ MVP4 Deployment Ready
 
 ✅ `ai_stack/telemetry/diagnostics_envelope.py` — DiagnosticsEnvelope with `cost_summary` field and `to_response(context)` method
 
-✅ `world-engine/app/story_runtime/manager.py` — Span creation for phases, metadata collection readiness
+✅ `world-engine/app/story_runtime/manager/` — Span creation for phases, metadata collection readiness
 
 ✅ `backend/app/services/governance/observability_governance_service.py` — Token budget tracking (correct file path, not `backend/app/observability_governance_service.py`)
 
@@ -421,7 +421,7 @@ MVP4 Deployment Ready
 
 ❌ LDSS decision spans in `ai_stack/live_dramatic_scene_simulator.py`
 
-❌ Metadata aggregation in `world-engine/app/story_runtime/manager.py` (lines ~2080)
+❌ Metadata aggregation in `world-engine/app/story_runtime/manager/` (lines ~2080)
 
 ❌ Phase B tests in `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py`
 

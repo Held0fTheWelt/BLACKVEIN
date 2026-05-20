@@ -363,11 +363,11 @@ Set expectations: **there is no single “pick my model” screen in the player 
 
 ### What this means in the actual repository
 
-World-engine constructs the registry and adapters in **`StoryRuntimeManager.__init__`** (`world-engine/app/story_runtime/manager.py` imports `build_default_registry` / `build_default_model_adapters`).
+World-engine constructs the registry and adapters in **`StoryRuntimeManager.__init__`** (`world-engine/app/story_runtime/manager/` imports `build_default_registry` / `build_default_model_adapters`).
 
 **How to confirm what path is active without a UI:**
 
-- Run a story turn and inspect the **turn record / diagnostics** returned to the client (fields like **`model_route`**, **`graph`**, **`selected_provider`** in `StoryRuntimeManager.execute_turn` payload—`world-engine/app/story_runtime/manager.py`).
+- Run a story turn and inspect the **turn record / diagnostics** returned to the client (fields like **`model_route`**, **`graph`**, **`selected_provider`** in `StoryRuntimeManager.execute_turn` payload—`world-engine/app/story_runtime/manager/`).
 - For **operators**, read-only admin projections under backend routes such as **`/api/v1/admin/ai-stack/...`** (`backend/app/api/v1/ai_stack_governance_routes.py`) surface inspector-style health—not a casual “model dropdown” for players.
 
 ### Model / AI configuration discovery map
@@ -388,7 +388,7 @@ flowchart TB
   G --> OUT[turn_payload_routing_generation]
 ```
 
-**Seams:** `story_runtime_core/model_registry.py`, `story_runtime_core/adapters.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
+**Seams:** `story_runtime_core/model_registry.py`, `story_runtime_core/adapters.py`, `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`.
 
 **What to notice:** **Environment** keys enable real providers; **mock** is always available for deterministic tests.
 
@@ -413,7 +413,7 @@ Reach a **God of Carnage**-backed flow—the repo’s **MVP vertical slice** (`R
 
 - **Content authority:** `content/modules/god_of_carnage/` — `docs/start-here/god-of-carnage-as-an-experience.md`.
 - **Player expectations:** `docs/user/god-of-carnage-player-guide.md`.
-- **Runtime authority:** turns execute in **world-engine** story runtime (`world-engine/app/story_runtime/manager.py`), not “whatever the model said” without commit rules.
+- **Runtime authority:** turns execute in **world-engine** story runtime (`world-engine/app/story_runtime/manager/`), not “whatever the model said” without commit rules.
 
 ### What success looks like
 
@@ -445,7 +445,7 @@ sequenceDiagram
   Frontend-->>Browser: updated_UI
 ```
 
-**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`, `docs/technical/runtime/a1_free_input_primary_runtime_path.md` (for the documented primary path details).
+**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager/`, `docs/technical/runtime/a1_free_input_primary_runtime_path.md` (for the documented primary path details).
 
 **In plain words:** Your text hits **frontend → backend → world-engine**; the **engine** runs the heavy turn pipeline.
 
@@ -464,7 +464,7 @@ flowchart LR
   BE -->|JSON| FE
 ```
 
-**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`.
+**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager/`.
 
 **What to notice:** **Frontend** does not replace **world-engine**; it **shows** what the platform returns.
 

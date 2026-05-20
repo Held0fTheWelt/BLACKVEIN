@@ -104,7 +104,7 @@ Do not rebuild the following infrastructure:
 | World-Engine Langfuse adapter | `world-engine/app/observability/langfuse_adapter.py` | Runtime tracing, backend credential fetch, active span ContextVar |
 | Trace propagation | `backend/app/services/game/game_service.py`, `world-engine/app/middleware/trace_middleware.py` | `X-WoS-Trace-Id` and `X-Langfuse-Trace-Id` propagation |
 | Root turn spans | `world-engine/app/api/http.py` | `world-engine.turn.execute` root span for story/session and turn routes |
-| Phase spans | `world-engine/app/story_runtime/manager.py` | `story.phase.ldss`, `story.phase.narrator` |
+| Phase spans | `world-engine/app/story_runtime/manager/` | `story.phase.ldss`, `story.phase.narrator` |
 | LDSS execution | `ai_stack/live_dramatic_scene_simulator.py` | deterministic LDSS output and LDSS span metadata scaffold |
 | Narrator blocks | `ai_stack/story_runtime/narrative_runtime_agent.py` | narrator block spans and scaffold token metadata |
 | Diagnostics envelope | `ai_stack/telemetry/diagnostics_envelope.py` | response redaction, cost summary field, trace evidence |
@@ -229,7 +229,7 @@ Do not add pseudofunctions like `call_llm_for_narration(...)` unless the impleme
 
 File:
 
-`world-engine/app/story_runtime/manager.py`
+`world-engine/app/story_runtime/manager/`
 
 Current behavior:
 
@@ -279,7 +279,7 @@ record; text length must not be used as a token-count substitute.
 
 Files:
 
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 - `ai_stack/live_dramatic_scene_simulator.py`
 - `ai_stack/story_runtime/narrative_runtime_agent.py`
 

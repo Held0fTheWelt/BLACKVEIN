@@ -475,7 +475,7 @@ def validate_state_delta(delta, boundary) -> StateDeltaValidationResult:
 | NPC Agency | `ai_stack/live_dramatic_scene_simulator.py` | `NPCAgencyPlan` dataclass | Display in Narrative Gov UI |
 | Affordance Validation | `ai_stack/validators/affordance_validation.py` | `validate_environment_interaction()` | Add override hook |
 | State Delta Validation | `world-engine/app/story_runtime/state_delta.py` | `validate_state_delta()` | Add breakglass override hook |
-| Runtime Manager | `world-engine/app/story_runtime/manager.py` | `_build_ldss_scene_envelope()` | Pass override context to seams |
+| Runtime Manager | `world-engine/app/story_runtime/manager/` | `_build_ldss_scene_envelope()` | Pass override context to seams |
 | HTTP Response | `world-engine/app/api/http.py` | `ExecuteTurnResponse.scene_turn_envelope` | No changes; verify Langfuse tracing |
 
 ---

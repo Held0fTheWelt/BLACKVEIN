@@ -1,11 +1,15 @@
-"""W5 Actor Situation Tracker (W5-AST).
+"""W5 Actor Tracking (W5-AST).
 
-Append-only, source-tagged, truth-leveled actor-situation authority for
+Append-only, source-tagged, truth-leveled actor-tracking authority for
 Who / Where / What / How / Why. See ADR-0063 and
-``docs/MVPs/w5_actor_situation_migration.md`` for the full contract.
+``docs/MVPs/w5_actor_tracking_migration.md`` for the full contract.
 
-Phase 1 is shadow-only: extraction runs after committed runtime events and
-persists snapshots on ``StorySession``, but no consumer reads W5 yet.
+The package was previously named ``w5_actor_situation`` / ``actor_situation``
+during the migration; the current and only legal package is
+``ai_stack.actor_tracking``.
+
+Phase 1 was shadow-only; Phase 2/3/4/5 introduced typed projections,
+validation, and consumer-side wiring under feature flags.
 """
 
 from __future__ import annotations
@@ -43,7 +47,7 @@ from ai_stack.actor_tracking.projection import (
 )
 from ai_stack.actor_tracking.validation import (
     W5_VALIDATION_SCHEMA_VERSION,
-    validate_w5_actor_situation,
+    validate_w5_actor_tracking,
     w5_ast_validation_enabled,
     w5_validation_fallback,
 )
@@ -101,7 +105,7 @@ __all__ = [
     "build_w5_runtime_metadata",
     "coerce_w5_snapshot",
     "extract_w5_snapshot_from_committed_event",
-    "validate_w5_actor_situation",
+    "validate_w5_actor_tracking",
     "w5_ast_validation_enabled",
     "w5_projection_flag_states",
     "w5_validation_fallback",

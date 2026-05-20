@@ -14,7 +14,7 @@ Accepted
 4. `can_execute` derived from real story-window entry count; `narrator_streaming` propagated through backend and frontend payloads.
 5. Operator routes: `/api/v1/admin/mvp4/` exposes session summary, cost reports, token budget, evaluations.
 6. Shared governance storage: Redis-backed JSON storage initialized in `backend/app/factory_app.py`; `REDIS_URL` in bootstrap environment.
-- `world-engine/app/story_runtime/manager.py` and `world-engine/app/api/http.py` are the primary implementation files.
+- `world-engine/app/story_runtime/manager/` and `world-engine/app/api/http.py` are the primary implementation files.
 
 ## Date
 
@@ -198,7 +198,7 @@ MVP4 should be considered satisfied only when the following remain true:
 - `backend/app/api/v1/operational_governance_routes.py`
 - `backend/app/services/governance/observability_governance_service.py`
 - `frontend/app/routes_play.py`
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 - `world-engine/app/api/http.py`
 - `ai_stack/quality_lab/evaluation_pipeline.py`
 - `docker-compose.yml`

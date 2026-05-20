@@ -126,6 +126,7 @@ These select explicit files under `world-engine/tests/`. `engine_rest` runs the 
 | `engine_foundation` | Configuration, auth/security guards, bridge contracts, canonical runtime and package policy. |
 | `engine_http_ws` | HTTP endpoints, UI proxy/runtime pages, WebSocket session and isolation behavior. |
 | `engine_runtime` | Story-runtime internals, runtime manager, turn execution, shell/window projections, RAG/runtime world surfaces. |
+| `engine_story_manager_session` | Focused StoryRuntimeManager session package layout, payload round-trip, persistence, runtime projection and W5 player-view checks. |
 | `engine_opening_contracts` | MVP1-MVP4 opening, actor-lane, LDSS, GoC greeting/narrator-path and runtime-profile handoff contracts. |
 | `engine_persistence` | Stores, tickets, branching, persistence, recovery, JSON/SQLAlchemy storage. |
 | `engine_observability` | Langfuse payloads, trace propagation, diagnostics, runtime profiles, narrative governance API, thin-path summaries. |
@@ -209,6 +210,7 @@ Example fast lanes:
 ```bash
 python tests/run_tests.py --suite backend_observability --quick
 python tests/run_tests.py --suite backend_runtime --quick
+python tests/run_tests.py --suite engine_story_manager_session --quick
 python tests/run_tests.py --suite backend_service_identity backend_service_content --quick
 python tests/run_tests.py --suite engine_runtime --quick
 python tests/run_tests.py --suite ai_stack_graph --quick

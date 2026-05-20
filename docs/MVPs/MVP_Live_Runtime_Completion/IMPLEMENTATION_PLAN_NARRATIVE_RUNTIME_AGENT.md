@@ -50,7 +50,7 @@ The NarrativeRuntimeAgent is **not optional** for MVP 3. It transforms the runti
 
 ## Integration Points
 
-### 1. Story Runtime Manager (`world-engine/app/story_runtime/manager.py`)
+### 1. Story Runtime Manager (`world-engine/app/story_runtime/manager/`)
 
 **Current State**: Calls `_build_ldss_scene_envelope()` in `_finalize_committed_turn()`
 
@@ -303,9 +303,9 @@ class NarrativeRuntimeAgentConfig:
 | Patch ID | Area | Files | Required Change | Tests |
 |----------|------|-------|-----------------|-------|
 | NRA-P01 | NarrativeRuntimeAgent module | `ai_stack/story_runtime/narrative_runtime_agent.py` | Implement agent with streaming, motivation analysis, narrator validation. | `test_narrative_agent_streams_continuously`, `test_narrative_agent_respects_motivation_pressure` |
-| NRA-P02 | Story Runtime Manager orchestration | `world-engine/app/story_runtime/manager.py` | Orchestrate: LDSS → NarrativeRuntimeAgent; manage input queue; detect ruhepunkt. | `test_story_runtime_manager_orchestrates_ldss_and_narrative_agent`, `test_input_blocked_while_narrative_agent_streams` |
+| NRA-P02 | Story Runtime Manager orchestration | `world-engine/app/story_runtime/manager/` | Orchestrate: LDSS → NarrativeRuntimeAgent; manage input queue; detect ruhepunkt. | `test_story_runtime_manager_orchestrates_ldss_and_narrative_agent`, `test_input_blocked_while_narrative_agent_streams` |
 | NRA-P03 | HTTP streaming endpoint | `world-engine/app/api/http.py` | Add SSE or WebSocket endpoint for narrator streaming. | `test_narrator_stream_endpoint_emits_blocks`, `test_websocket_narrator_streaming` |
-| NRA-P04 | Input queue management | `world-engine/app/story_runtime/manager.py` | Queue player input during streaming; process queue after ruhepunkt signal. | `test_player_input_queued_during_streaming`, `test_input_queue_processed_after_ruhepunkt` |
+| NRA-P04 | Input queue management | `world-engine/app/story_runtime/manager/` | Queue player input during streaming; process queue after ruhepunkt signal. | `test_player_input_queued_during_streaming`, `test_input_queue_processed_after_ruhepunkt` |
 | NRA-P05 | Narrative validation | `ai_stack/validators/narrator_voice_validator.py` | Validate narrator blocks: no forced state, no hidden intent, no dialogue summary. | `test_narrative_validator_rejects_forced_state`, `test_narrative_validator_rejects_hidden_intent` |
 | NRA-P06 | Langfuse optional instrumentation | `ai_stack/story_runtime/narrative_runtime_agent.py` + `ai_stack/langfuse_integration.py` | Optional live Langfuse spans when enabled; default JSON scaffold. | `test_narrative_agent_accepts_enable_langfuse_tracing`, `test_narrative_agent_emits_trace_scaffold_by_default` |
 | NRA-P07 | Frontend streaming integration | `frontend/static/play_narrative_stream.js` | Receive narrator blocks; render typewriter effect; manage input-UI blocking. | `test_frontend_receives_narrator_blocks`, `test_frontend_blocks_input_during_streaming` |
@@ -411,7 +411,7 @@ Stop only when:
 4. Unit tests: narrator validation
 
 ### Phase 3: Story Runtime Manager Integration (Days 5-6)
-1. Modify `world-engine/app/story_runtime/manager.py`
+1. Modify `world-engine/app/story_runtime/manager/`
 2. Implement orchestration methods
 3. Implement input queue management
 4. Implement ruhepunkt detection

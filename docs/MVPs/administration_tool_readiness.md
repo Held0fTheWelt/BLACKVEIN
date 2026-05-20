@@ -284,7 +284,7 @@ backend/app/services/system/system_diagnosis_service.py
 backend/app/services/governance/governance_runtime_service.py
 backend/app/api/v1/operational_governance_routes.py
 world-engine/app/api/http.py
-world-engine/app/story_runtime/manager.py
+world-engine/app/story_runtime/manager/
 ```
 
 ## Umsetzung

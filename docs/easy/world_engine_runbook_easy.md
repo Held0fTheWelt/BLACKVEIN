@@ -49,7 +49,7 @@ Imagine a referee at a live match. Players act, coaches shout ideas, cameras rec
 In this repository, the World Engine is the **FastAPI application** in `world-engine/`. On startup it creates two hosts:
 
 - **`RuntimeManager`** — for **template / lobby / run** experiences: rooms, tickets, WebSocket play, snapshots (`world-engine/app/runtime/manager.py`, `world-engine/app/runtime/engine.py`).
-- **`StoryRuntimeManager`** — for **guided story sessions**: turns, AI graph execution, and **narrative commits** (`world-engine/app/story_runtime/manager.py`).
+- **`StoryRuntimeManager`** — for **guided story sessions**: turns, AI graph execution, and **narrative commits** (`world-engine/app/story_runtime/manager/`).
 
 Both live in one process, wired in `world-engine/app/main.py`. HTTP routes live in `world-engine/app/api/http.py`; WebSocket routes in `world-engine/app/api/ws.py`.
 
@@ -75,7 +75,7 @@ The engine **owns the live session clock and ledger** for the kinds of play it h
 
 | It owns / decides | Anchors |
 |---------------------|---------|
-| **Story session objects** in memory (`StorySession`: module, projection, scene id, history tail) | `world-engine/app/story_runtime/manager.py` |
+| **Story session objects** in memory (`StorySession`: module, projection, scene id, history tail) | `world-engine/app/story_runtime/manager/` |
 | **Turn execution** for story: calls `RuntimeTurnGraphExecutor.run`, then `resolve_narrative_commit` | `manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/commit_models.py` |
 | **Run / lobby state** for template experiences | `world-engine/app/runtime/engine.py`, `world-engine/app/runtime/store.py` |
 | **WebSocket command processing** after ticket checks | `world-engine/app/api/ws.py`, `world-engine/app/auth/tickets.py` |
@@ -103,7 +103,7 @@ The engine does **not** replace long-term platform accounts, billing, forums, or
 
 ### What this means in the actual system
 
-`StoryRuntimeManager.execute_turn` (`world-engine/app/story_runtime/manager.py`) increments the turn counter, calls `self.turn_graph.run(...)`, then builds a `StoryNarrativeCommitRecord` via `resolve_narrative_commit`, updates or preserves `current_scene_id`, and appends a rich event to `session.history`. Meta/OOC control turns may produce a no-op commit envelope for correlation while the graph marks `commit_not_applicable=true`.
+`StoryRuntimeManager.execute_turn` (`world-engine/app/story_runtime/manager/`) increments the turn counter, calls `self.turn_graph.run(...)`, then builds a `StoryNarrativeCommitRecord` via `resolve_narrative_commit`, updates or preserves `current_scene_id`, and appends a rich event to `session.history`. Meta/OOC control turns may produce a no-op commit envelope for correlation while the graph marks `commit_not_applicable=true`.
 
 ### Why it matters
 
@@ -236,7 +236,7 @@ flowchart TB
   NC --> SS[StorySession_update]
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/commit_models.py`.
+**Seams:** `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`, `world-engine/app/story_runtime/commit_models.py`.
 
 **What to notice:** **AI sits inside the graph**, but **narrative commit** is a distinct, engine-side resolution step.
 
@@ -315,7 +315,7 @@ flowchart LR
   PROJ --> WE
 ```
 
-**Seams:** `content/modules/`, `backend/app/content/compiler/compiler.py`, `world-engine/app/story_runtime/manager.py`.
+**Seams:** `content/modules/`, `backend/app/content/compiler/compiler.py`, `world-engine/app/story_runtime/manager/`.
 
 **What to notice:** **Compile** sits between **authoring** and **session memory**.
 

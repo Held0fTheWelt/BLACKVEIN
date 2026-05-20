@@ -1,8 +1,9 @@
-"""W5 Actor Situation Tracker validation helpers (Phase 4A).
+"""W5 Actor Tracking validation helpers (Phase 4A).
 
 The validation layer is read-side only: it inspects a typed ``W5Snapshot`` and
 proposed structured output, emits compact diagnostics, and never mutates output
-blocks or committed events.
+blocks or committed events. See ADR-0063 and
+``docs/MVPs/w5_actor_tracking_migration.md``.
 """
 
 from __future__ import annotations
@@ -271,7 +272,7 @@ def _is_hard_fact(fact: W5Fact) -> bool:
     )
 
 
-def validate_w5_actor_situation(
+def validate_w5_actor_tracking(
     *,
     snapshot: W5Snapshot | Mapping[str, Any] | None,
     generation: Mapping[str, Any] | None,
@@ -279,7 +280,7 @@ def validate_w5_actor_situation(
     player_action_frame: Mapping[str, Any] | None = None,
     affordance_resolution: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Validate proposed actor-situation claims against a typed W5 snapshot."""
+    """Validate proposed actor-tracking claims against a typed W5 snapshot."""
 
     typed_snapshot = _coerce_snapshot(snapshot)
     structured = _structured_output(generation)
@@ -437,7 +438,7 @@ def w5_validation_fallback(reason: str) -> dict[str, Any]:
 
 __all__ = [
     "W5_VALIDATION_SCHEMA_VERSION",
-    "validate_w5_actor_situation",
+    "validate_w5_actor_tracking",
     "w5_ast_validation_enabled",
     "w5_validation_fallback",
 ]

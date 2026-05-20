@@ -177,6 +177,6 @@ flowchart LR
 - `docs/technical/architecture/canonical-player-flow-contract.md`
 - `docs/technical/runtime/world_engine_authoritative_narrative_commit.md`
 - `live_runtime_empty_session_audit.md` (opening vs shell desync class)
-- `world-engine/app/story_runtime/manager.py` (commit and persist helpers)
+- `world-engine/app/story_runtime/manager/` (commit and persist helpers)
 - `world-engine/app/story_runtime/canonical_turn_lifecycle.py` (Phase B ordering guard)
 - `world-engine/tests/test_story_runtime_short_path_persist_convergence.py` (Phase C short-path bundle + observability parity)

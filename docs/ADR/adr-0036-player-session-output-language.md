@@ -11,9 +11,9 @@ Accepted
 **Core runtime implemented; frontend UI and AI stack turn-prompt injection still pending.**
 
 **Implemented (as of 2026-05-07):**
-- `world-engine/app/story_runtime/manager.py`: `create_session()` accepts `session_output_language: str = "en"` parameter; stored on `StorySession.session_output_language`.
+- `world-engine/app/story_runtime/manager/`: `create_session()` accepts `session_output_language: str = "en"` parameter; stored on `StorySession.session_output_language`.
 - `world-engine/app/api/http.py`: `CreateStorySessionRequest` accepts `session_output_language` parameter.
-- `world-engine/app/story_runtime/manager.py` (`_build_opening_prompt`): language directive prepended to opening prompt for `de` and `en`.
+- `world-engine/app/story_runtime/manager/` (`_build_opening_prompt`): language directive prepended to opening prompt for `de` and `en`.
 - Tests: `world-engine/tests/test_mvp1_experience_identity.py` asserts `session_output_language` round-trips and opening prompt contains "German" directive.
 - Backend: `game_routes.py` validates `session_output_language` with `invalid_output_language` / `unsupported_language` error codes; persists in `GameSaveSlot.metadata["session_output_language"]`; passes to `create_story_session()`.
 
@@ -303,7 +303,7 @@ flowchart TD
 ### World-Engine
 - `world-engine/app/runtime/session_manager.py` — add `session_output_language` field to `StorySession`
 - `world-engine/app/api/http.py` — accept `session_output_language` parameter in `CreateStorySessionRequest`
-- `world-engine/app/story_runtime/manager.py` — pass language to `_build_opening_prompt()` and downstream consumers
+- `world-engine/app/story_runtime/manager/` — pass language to `_build_opening_prompt()` and downstream consumers
 
 ### AI Stack
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — inject language directive into prompt context

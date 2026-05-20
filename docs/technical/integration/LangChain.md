@@ -26,7 +26,7 @@ One integration style avoids scattering ad-hoc “call OpenAI and regex JSON” 
 
 ## What LangChain is not
 
-- **Not** where committed story state is decided: `validate_seam` / `commit_seam` and the world-engine host still own authority ([LangGraph.md](LangGraph.md), `world-engine/app/story_runtime/manager.py`).
+- **Not** where committed story state is decided: `validate_seam` / `commit_seam` and the world-engine host still own authority ([LangGraph.md](LangGraph.md), `world-engine/app/story_runtime/manager/`).
 - **Not** LangGraph: LangChain does **not** define the turn node graph; it serves **single-step** adapter invocation helpers (plus retriever bridge utilities).
 
 ## Neighbors

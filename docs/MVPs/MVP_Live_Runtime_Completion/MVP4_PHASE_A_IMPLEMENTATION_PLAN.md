@@ -44,7 +44,7 @@ MVP4 Phase A ("Foundation & Data Collection") erweitert die bereits existierende
 
 **Was bereits existiert (nicht neu bauen):**
 - `ai_stack/telemetry/diagnostics_envelope.py` — `DiagnosticsEnvelope` dataclass + `build_diagnostics_envelope()` ✅
-- `world-engine/app/story_runtime/manager.py` — ruft bereits `build_diagnostics_envelope()` auf ✅
+- `world-engine/app/story_runtime/manager/` — ruft bereits `build_diagnostics_envelope()` auf ✅
 - `world-engine/app/api/http.py` — `/story/sessions/{session_id}/diagnostics-envelope` endpoint ✅
 - `ai_stack/quality_lab/runtime_quality_semantics.py` — `canonical_quality_summary()`, `canonical_quality_class()` ✅
 - `backend/app/observability/langfuse_adapter.py` — v4 SDK adapter, flush(), record_validation() ✅
@@ -59,7 +59,7 @@ MVP4 Phase A ("Foundation & Data Collection") erweitert die bereits existierende
 |---|---|---|
 | `ai_stack/telemetry/diagnostics_envelope.py` | ERWEITERN | DegradationEvent Dataclass + neue Felder + to_response() |
 | `ai_stack/quality_lab/runtime_quality_semantics.py` | ERWEITERN | DegradationEvent Sammlung während Turn |
-| `world-engine/app/story_runtime/manager.py` | ERWEITERN | DegradationEvents während Turn sammeln |
+| `world-engine/app/story_runtime/manager/` | ERWEITERN | DegradationEvents während Turn sammeln |
 | `world-engine/app/api/http.py` | ERWEITERN | to_response(context=...) aufrufen vor Response |
 | `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` | ERWEITERN | Tests für neue Felder |
 
@@ -150,7 +150,7 @@ Und im Body: `degradation_timeline=degradation_events or []`
 ---
 
 ### Schritt 2: Degradation Events während Turn sammeln
-**Datei**: `world-engine/app/story_runtime/manager.py`
+**Datei**: `world-engine/app/story_runtime/manager/`
 
 In `_finalize_committed_turn()` (Zeile ~1960 wo `build_diagnostics_envelope` aufgerufen wird):
 

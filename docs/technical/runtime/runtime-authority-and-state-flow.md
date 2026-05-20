@@ -25,7 +25,7 @@ Agency preservation is enforced at two levels:
 
 ## Code anchor (first read)
 
-`world-engine/app/story_runtime/manager.py` — `StoryRuntimeManager`:
+`world-engine/app/story_runtime/manager/` — `StoryRuntimeManager`:
 
 - Holds in-memory `StorySession` objects (`session_id`, `module_id`, `runtime_projection`, history, diagnostics, narrative threads, policy-driven hierarchical memory snapshot).
 - Builds default retriever and context assembler via `ai_stack` (`build_runtime_retriever`).

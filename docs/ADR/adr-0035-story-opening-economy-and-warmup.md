@@ -9,7 +9,7 @@ Accepted
 **Accepted and implemented as a bounded GoC opening/runtime-state contract.**
 
 - Implemented opening contract surfaces: `content/modules/god_of_carnage/canonical_path/`, `locations/opening/`, `locations/building/`, `locations/appartment_vallon/`, `objects/`, `characters/`, `knowledge/opening_scene_sequence.yaml`, `knowledge/opening_quote_anchors.yaml`, `direction/opening_sequence.yaml`, `scene_graph.yaml`, and `phase_beat_policy.yaml` are loaded through the module runtime policy and GoC YAML slice.
-- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime_executor.py`, and `ai_stack/story_runtime/god_of_carnage/god_of_carnage_knowledge_runtime_gates.py`.
+- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime_executor.py`, and `ai_stack/story_runtime/god_of_carnage/god_of_carnage_knowledge_runtime_gates.py`.
 - Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
 - The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
 - GoC Turn-0 narrator-path openings are mechanically projected from
@@ -216,7 +216,7 @@ Current verification uses structured/content-derived assertions:
 - `content/modules/god_of_carnage/scene_graph.yaml` — runtime node index that references canonical path/location ids; not a second scene description database
 - `content/modules/god_of_carnage/phase_beat_policy.yaml` — early-phase pacing and forbidden escalation policy
 - `content/modules/god_of_carnage/direction/system_prompt.md` — phase semantics (“structural, not stage directions”)
-- `world-engine/app/story_runtime/manager.py` — `_build_opening_prompt` (opening prompt construction)
+- `world-engine/app/story_runtime/manager/` — `_build_opening_prompt` (opening prompt construction)
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary
 - `ai_stack/story_runtime/god_of_carnage/god_of_carnage_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
 - `ai_stack/goc_opening_handover.py` — opening handover diagnostics and block-level normalization support

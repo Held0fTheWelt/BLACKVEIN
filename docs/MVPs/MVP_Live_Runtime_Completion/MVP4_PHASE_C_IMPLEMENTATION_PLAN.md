@@ -290,7 +290,7 @@ Expected result:
 
 Primary file:
 
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 
 Required work:
 
@@ -309,7 +309,7 @@ Primary files:
 
 - `backend/app/services/governance/observability_governance_service.py`
 - `backend/app/api/v1/game_routes.py`
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 
 Required work:
 

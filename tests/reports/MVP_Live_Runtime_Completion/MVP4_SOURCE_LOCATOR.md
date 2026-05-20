@@ -18,7 +18,7 @@ This document maps MVP4 Observability, Diagnostics, Langfuse, and Narrative Gov 
 | DegradationEvent dataclass | `ai_stack/diagnostics_envelope.py` | class DegradationEvent | 50-100 |
 | build_diagnostics_envelope() | `ai_stack/diagnostics_envelope.py` | def build_diagnostics_envelope | 400-600 |
 | to_response(context) method | `ai_stack/diagnostics_envelope.py` | def to_response | 150-200 |
-| Degradation event collection | `world-engine/app/story_runtime/manager.py` | _finalize_committed_turn() | 1900-2000 |
+| Degradation event collection | `world-engine/app/story_runtime/manager/` | _finalize_committed_turn() | 1900-2000 |
 | HTTP endpoint response | `world-engine/app/api/http.py` | GET /story/sessions/{session_id}/diagnostics-envelope | 500-600 |
 
 ---
@@ -70,7 +70,7 @@ This document maps MVP4 Observability, Diagnostics, Langfuse, and Narrative Gov 
 |---------|------|---|---|
 | NarrativeGovSummary dataclass | `ai_stack/diagnostics_envelope.py` | class NarrativeGovSummary | 500-550 |
 | build_narrative_gov_summary() | `ai_stack/diagnostics_envelope.py` | def build_narrative_gov_summary | 600-700 |
-| get_narrative_gov_summary() | `world-engine/app/story_runtime/manager.py` | def get_narrative_gov_summary | 2100-2150 |
+| get_narrative_gov_summary() | `world-engine/app/story_runtime/manager/` | def get_narrative_gov_summary | 2100-2150 |
 | HTTP health panels route | `world-engine/app/api/http.py` | GET /api/v1/admin/narrative-gov/{session_id} | 800-900 |
 
 ---

@@ -14,7 +14,7 @@
 
 This page keeps a **short developer anchor** only:
 
-- **First code read:** `world-engine/app/story_runtime/manager.py` — `StoryRuntimeManager`.
+- **First code read:** `world-engine/app/story_runtime/manager/` — `StoryRuntimeManager`.
 - **Normative product decision** (archived original): [`docs/archive/architecture-legacy/runtime_authority_decision.md`](../../archive/architecture-legacy/runtime_authority_decision.md)
 - **ADR:** [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../../ADR/adr-0001-runtime-authority-in-world-engine.md) — see also [`docs/ADR/README.md`](../../ADR/README.md) for the full ADR index
 

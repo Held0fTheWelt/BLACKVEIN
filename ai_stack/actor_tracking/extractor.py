@@ -1,8 +1,8 @@
-"""W5 Actor Situation Tracker — pure extractor.
+"""W5 Actor Tracking — pure extractor.
 
 The single legal producer of W5 facts. Pure, deterministic, no I/O, no LLM
 calls, no mutation of inputs. Phase 1: shadow-only. See ADR-0063 and
-``docs/MVPs/w5_actor_situation_migration.md``.
+``docs/MVPs/w5_actor_tracking_migration.md``.
 
 Truth/source rules enforced here:
 

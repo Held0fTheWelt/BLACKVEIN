@@ -14,7 +14,7 @@ It also records the narrated-speech rule added on 2026-05-20: a narrator card ma
 | Concept | Where it lives | Names like `premise`, `scene_setup`, `role_anchor` |
 |---------|----------------|-----------------------------------------------------|
 | **Literary opening slots** | `gm_narration` strings (model path) | Yes — text structure validated by `ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py` |
-| **Opening-shape evidence** | Langfuse subgates in `world-engine/app/story_runtime/manager.py` | Subgate keys `narrator_intro_present`, `role_anchor_present`, `scene_setup_present` are **historical labels** for “block 0/1/2 is narrator” — not values to write on blocks |
+| **Opening-shape evidence** | Langfuse subgates in `world-engine/app/story_runtime/manager/` | Subgate keys `narrator_intro_present`, `role_anchor_present`, `scene_setup_present` are **historical labels** for “block 0/1/2 is narrator” — not values to write on blocks |
 | **Shell block metadata** | `visible_scene_output.blocks[]` | **No** index-forced literary slot names on `narration_beat` |
 
 ---
@@ -111,8 +111,8 @@ Need to show NPC direct speech embedded in prose?
 ## Code pointers
 
 - Canonical opening blocks: `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py` (`build_goc_narrator_path_opening`)
-- Narrated actor speech realization: `world-engine/app/story_runtime/manager.py` (`_realize_npc_speak_block`)
-- Embedded-speech responder detection: `world-engine/app/story_runtime/manager.py` (`_build_live_scene_turn_envelope`)
+- Narrated actor speech realization: `world-engine/app/story_runtime/manager/` (`_realize_npc_speak_block`)
+- Embedded-speech responder detection: `world-engine/app/story_runtime/manager/` (`_build_live_scene_turn_envelope`)
 - gm_narration slots: `ai_stack/story_runtime/god_of_carnage/god_of_carnage_opening_transition.py` (`enforce_opening_transition_on_beats`)
 - Renderer: `frontend/static/play_block_renderer.js` (`narration_beat === 'role_anchor'` → CSS class)
 - Typewriter profiles: `frontend/static/play_typewriter_engine.js` (`DEFAULT_BEAT_PROFILES`)

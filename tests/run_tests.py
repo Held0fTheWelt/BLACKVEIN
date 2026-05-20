@@ -17,7 +17,7 @@ Optional ``--scope`` maps to ``pytest -m`` for backend, writers_room, improvemen
 administration, and engine (see ``--help``). Optional ``--domain`` selects backend
 pytest markers registered in ``backend/pytest.ini`` (combines with ``--scope``).
 Additional ``--suite`` choices ``backend_runtime``, ``engine_runtime``,
-``engine_opening_contracts``, ``ai_stack_graph``, … run strict focused blocks for
+``engine_story_manager_session``, ``engine_opening_contracts``, ``ai_stack_graph``, … run strict focused blocks for
 fast iteration; full component suites remain the gate. Optional ``--parallel``
 enables pytest-xdist (two-pass: parallel then
 ``@pytest.mark.serial``).
@@ -115,6 +115,7 @@ ENGINE_BLOCK_SUITES: tuple[str, ...] = (
     "engine_foundation",
     "engine_http_ws",
     "engine_runtime",
+    "engine_story_manager_session",
     "engine_opening_contracts",
     "engine_persistence",
     "engine_observability",
@@ -378,6 +379,13 @@ ENGINE_RUNTIME_TARGETS: tuple[str, ...] = (
     "tests/test_story_window_projection.py",
     "tests/test_turn_execution.py",
 )
+ENGINE_STORY_MANAGER_SESSION_TARGETS: tuple[str, ...] = (
+    "tests/test_story_runtime_manager_session_layout.py",
+    "tests/test_story_session_w5_round_trip.py",
+    "tests/test_story_session_persistence.py",
+    "tests/test_story_session_runtime_projection_contract.py",
+    "tests/test_story_runtime_w5_player_view.py",
+)
 ENGINE_OPENING_CONTRACT_TARGETS: tuple[str, ...] = (
     "tests/test_goc_narrator_path_opening.py",
     "tests/test_goc_player_input_greeting_imperative.py",
@@ -431,6 +439,7 @@ ENGINE_BLOCK_TARGETS: tuple[str, ...] = (
     *ENGINE_FOUNDATION_TARGETS,
     *ENGINE_HTTP_WS_TARGETS,
     *ENGINE_RUNTIME_TARGETS,
+    *ENGINE_STORY_MANAGER_SESSION_TARGETS,
     *ENGINE_OPENING_CONTRACT_TARGETS,
     *ENGINE_PERSISTENCE_TARGETS,
     *ENGINE_OBSERVABILITY_TARGETS,
@@ -876,6 +885,7 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "engine_foundation": "World engine foundation/config/security contracts",
     "engine_http_ws": "World engine HTTP and WebSocket API",
     "engine_runtime": "World engine story runtime internals",
+    "engine_story_manager_session": "World engine story manager session package and persistence",
     "engine_opening_contracts": "World engine opening and actor-lane contracts",
     "engine_persistence": "World engine persistence and branching",
     "engine_observability": "World engine observability and diagnostics",
@@ -1281,6 +1291,11 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
     "engine_runtime": _pytest_slice(
         cwd=WORLD_ENGINE_DIR,
         targets=ENGINE_RUNTIME_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_story_manager_session": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_STORY_MANAGER_SESSION_TARGETS,
         supports_scope=True,
     ),
     "engine_opening_contracts": _pytest_slice(
@@ -2311,6 +2326,7 @@ Examples (from repository root):
   python tests/run_tests.py --suite backend_service_story_runtime backend_service_inspector --quick
   python tests/run_tests.py --suite administration --scope security
   python tests/run_tests.py --suite engine --scope integration
+  python tests/run_tests.py --suite engine_story_manager_session --quick
   python tests/run_tests.py --suite engine_runtime engine_opening_contracts --quick
   python tests/run_tests.py --suite ai_stack_graph ai_stack_goc --quick --continue-on-failure
   python tests/run_tests.py --suite ai_stack_langgraph ai_stack_story_runtime_turn --quick

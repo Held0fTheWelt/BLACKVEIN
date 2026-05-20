@@ -1,36 +1,43 @@
 # Runtime Aspect Ledger
 
-This package owns the runtime-aspect ledger import surface:
-`ai_stack.story_runtime.runtime_aspect_ledger`.
+`ai_stack.story_runtime.runtime_aspect_ledger` is the public import surface for
+story-turn aspect records, runtime-intelligence projections, ADR-0041 authority
+diagnostics, readiness sidecars, and score metadata.
 
-The ledger records per-turn runtime intelligence for LangGraph, world-engine
-manager code, validation authority, readiness sidecars, diagnostics, governance
-views, and Langfuse/MCP inspection. Callers should continue importing from the
-package root, not from implementation submodules.
+Callers should import from the package root. The root facade keeps legacy import
+paths stable and preserves the package-level validator-registry hook used by
+tests and diagnostics.
 
-## Current Layout
+## Module Layout
 
-| File | Role |
-|------|------|
-| `__init__.py` | Compatibility-preserving package module. It contains the existing ledger implementation so direct imports and monkeypatch-based tests keep the same module-global semantics as the former `runtime_aspect_ledger.py` file. |
-| `README.md` | Package boundary and migration notes. |
+| File | Responsibility |
+|------|----------------|
+| `__init__.py` | Public compatibility facade. It wires monkeypatchable package hooks into the implementation modules. |
+| `constants.py` | Schema versions, aspect keys, status values, failure classes, and ADR-0041 feature-flag names. |
+| `records.py` | Canonical aspect-record construction, the `RuntimeAspectLedger` dataclass, JSON-safe conversion, and stable serialization. |
+| `normalization.py` | Ledger creation, normalization, record replacement, and state attachment. Projection building is injected so the facade can keep public hooks live. |
+| `projection_helpers.py` | Small accessors for repeated projection lookups on aspect records. |
+| `capability_projection.py` | Semantic capability selection, validator execution-plan projection, dry-run dispatch projection, and ADR-0041 turn-class inference. |
+| `feature_flags.py` | Environment-backed ADR-0041 feature-flag resolution. |
+| `authority_preview.py` | ADR-0041 validator registry selection, validation-authority drift classification, authority preview, readiness decisions, and graph-runtime dispatch sidecars. |
+| `runtime_intelligence_projection.py` | The nested diagnostic projection derived from canonical per-aspect records for LangGraph, Langfuse, backend inspection, and MCP tooling. |
+| `score_metadata.py` | Compact score metadata exported from normalized aspect records. |
 
-## Next Split
+## Data Flow
 
-The package boundary is now in place so later Despaghettify passes can move
-cohesive sections out of `__init__.py` without changing the public import path.
-Natural module candidates are:
+1. `initialize_runtime_aspect_ledger` creates canonical per-aspect records for a
+   turn and immediately normalizes them.
+2. `normalize_runtime_aspect_ledger` guarantees every known aspect key exists,
+   preserves runtime-only ADR sidecars, and rebuilds
+   `runtime_intelligence_projection`.
+3. Capability and validator-plan modules derive semantic selection and
+   dispatch diagnostics from turn context.
+4. ADR-0041 authority modules compare sidecar validator behavior with the
+   canonical validation seam and expose drift/readiness information as
+   diagnostics, not as commit truth.
+5. `aspect_score_metadata` reads the normalized ledger and returns compact
+   score payloads for governance and observability consumers.
 
-- `records.py` for `RuntimeAspectLedger`, aspect constants, and stable JSON
-  helpers.
-- `semantic_capability_projection.py` for capability selection, validator
-  plan, and validator dispatch projections.
-- `adr0041_authority.py` for ADR-0041 drift classification, feature flags,
-  validation authority preview, and harness reporting.
-- `runtime_intelligence_projection.py` for the large
-  `build_runtime_intelligence_projection` assembly.
-- `score_metadata.py` for aspect score metadata and projection labels.
-
-Until those moves happen, keep `__init__.py` as the compatibility module rather
-than a thin re-export facade; tests and diagnostic tools patch module globals on
-`ai_stack.story_runtime.runtime_aspect_ledger` directly.
+The canonical storage contract remains the per-aspect record map under
+`turn_aspect_ledger`; the runtime-intelligence tree is a derived diagnostic
+view.

@@ -201,7 +201,7 @@ The following **infrastructure was locked in MVP 2** (Option B: Admin Pattern wi
   - Sets `trace_id` in context via `set_trace_id(trace.id)`
   - Passes context through to story manager
 
-- **Story Manager** (`world-engine/app/story_runtime/manager.py`):
+- **Story Manager** (`world-engine/app/story_runtime/manager/`):
   - Reads trace context via `get_trace_id()`
   - Chains child spans for each phase:
     - `runtime_profile_resolution`
@@ -220,7 +220,7 @@ The following **infrastructure was locked in MVP 2** (Option B: Admin Pattern wi
 
 **Decision**: Manager collects, HTTP handler packages into final response
 
-- **Manager** (`world-engine/app/story_runtime/manager.py`):
+- **Manager** (`world-engine/app/story_runtime/manager/`):
   - Creates `DiagnosticsCollector` at turn start
   - LDSS writes to collector: `decision_count`, `scene_block_count`, `input_hash`, `output_hash`
   - Validators write to collector: `narrator_validation_outcome`, `affordance_validation_outcome`, `state_delta_validation_outcome`
@@ -779,7 +779,7 @@ with langfuse_context.set_attributes(
 
 **Implementation**:
 - `world-engine/app/api/http.py`: Set propagate_attributes() at turn entry
-- `world-engine/app/story_runtime/manager.py`: Add span-specific tags during execution
+- `world-engine/app/story_runtime/manager/`: Add span-specific tags during execution
 - Tests: Verify all spans have correct tags (no missing/orphaned tags)
 - Documentation: Tag naming convention + approved tag values
 
@@ -950,7 +950,7 @@ Three critical architectural decisions for Langfuse/DiagnosticsEnvelope integrat
 
 **Implementation**:
 - `backend/app/runtime/runtime_models.py`: Update `DegradedMarker` enum to include severity
-- `world-engine/app/story_runtime/manager.py`: Collect marker events with timestamps during turn execution
+- `world-engine/app/story_runtime/manager/`: Collect marker events with timestamps during turn execution
 - `world-engine/app/api/http.py`: Build degradation_timeline from marker events, compute quality_class from highest severity
 - `ai_stack/telemetry/diagnostics_envelope.py`: `degradation_timeline: list[DegradationEvent]` field
 
@@ -1014,7 +1014,7 @@ Override lifecycle with full traceability:
 - `backend/app/observability_governance_service.py`: Add `audit_logging_config` with granularity per override type
 - `backend/app/auth/admin_security.py`: Respect granularity settings when logging
 - `world-engine/app/api/admin_routes.py`: POST/DELETE override handlers with audit logging
-- `world-engine/app/story_runtime/manager.py`: Log applied_events when override actually applies during turn (if APPLIED events enabled)
+- `world-engine/app/story_runtime/manager/`: Log applied_events when override actually applies during turn (if APPLIED events enabled)
 - `administration-tool/templates/manage/admin-config/audit-granularity.html`: Multi-Select checkboxes per override type
 - `administration-tool/static/manage_audit_config.js`: Update granularity config on server when checkboxes change
 
@@ -1357,7 +1357,7 @@ POST /api/v1/admin/game/token-budget-override/{session_id}
 Logged: `_log_admin_action(action="token_budget_override", resource="session", details={...})`
 
 **Implementation**:
-- `world-engine/app/story_runtime/manager.py`: Track tokens consumed per session
+- `world-engine/app/story_runtime/manager/`: Track tokens consumed per session
 - `world-engine/app/story_runtime/commit_seam.py`: Cost-aware degradation decisions
 - `backend/app/services/governance/observability_governance_service.py`: Governed budget and cost tracking surface
 - `administration-tool/templates/narrative-gov/cost-dashboard.html`: Cost visualization

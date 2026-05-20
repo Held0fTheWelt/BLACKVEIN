@@ -139,5 +139,5 @@ Gate-style tests follow **[ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-byp
 
 - `ai_stack/actor_tracking/models.py` — closed enums and record models.
 - `ai_stack/actor_tracking/extractor.py` — pure extractor.
-- `world-engine/app/story_runtime/manager.py` — `StorySession`, `story_session_to_payload`, `story_session_from_payload`, `_finalize_committed_turn` (shadow extraction wire-in).
+- `world-engine/app/story_runtime/manager/` — `StorySession`, `story_session_to_payload`, `story_session_from_payload`, `_finalize_committed_turn` (shadow extraction wire-in).
 - `docs/MVPs/w5_actor_tracking_migration.md` — phase plan (Phase 0..6) and migration notes.

@@ -39,7 +39,7 @@ The product requirement is fixed: **Resolver classifies and translates; Director
 
 4. **Visible text** for thin-path narrator capabilities is produced only by LLM invocation in `session_output_language` (`ThinPathRuntimeOutput` parser variant). No echo of English `description` fields from affordance YAML.
 
-5. **Player shell fold (movement):** when the thin path realizes via `narrator.*`, the diegetic text is folded into the `player_input_outcome` card; duplicate standalone `narrator` blocks are suppressed for that turn when no NPC lines are present (`world-engine/app/story_runtime/manager.py`).
+5. **Player shell fold (movement):** when the thin path realizes via `narrator.*`, the diegetic text is folded into the `player_input_outcome` card; duplicate standalone `narrator` blocks are suppressed for that turn when no NPC lines are present (`world-engine/app/story_runtime/manager/`).
 
 6. **State propagation:** `RuntimeTurnState` and `observability_path_summary` carry `realization_plan`, `realize_via_capabilities_used_capability`, `realize_via_capabilities_outcome`, `kanon_break`, `kanon_break_reason`, `director_path_mode`.
 

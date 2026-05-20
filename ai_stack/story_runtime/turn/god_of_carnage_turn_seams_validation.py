@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 from ai_stack.actor_tracking.validation import (
-    validate_w5_actor_situation,
+    validate_w5_actor_tracking,
     w5_ast_validation_enabled,
     w5_validation_fallback,
 )
@@ -192,7 +192,7 @@ def _apply_w5_validation_to_outcome(
         return outcome
 
     try:
-        diagnostic = validate_w5_actor_situation(
+        diagnostic = validate_w5_actor_tracking(
             snapshot=w5_latest_snapshot,
             generation=generation if isinstance(generation, dict) else {},
             proposed_state_effects=proposed_state_effects,
@@ -224,7 +224,7 @@ def _apply_w5_validation_to_outcome(
         enriched["status"] = "rejected"
         enriched["reason"] = reason
         enriched["error_code"] = reason
-        enriched["failure_class"] = "w5_actor_situation_validation"
+        enriched["failure_class"] = "w5_actor_tracking_validation"
     return enriched
 
 

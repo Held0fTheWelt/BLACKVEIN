@@ -31,7 +31,7 @@ If product language and file names differ, this text points to the **nearest rea
 
 ### What this means in the actual system
 
-- Story turns: `StoryRuntimeManager.execute_turn` in `world-engine/app/story_runtime/manager.py` calls `RuntimeTurnGraphExecutor.run` from `ai_stack/langgraph/langgraph_runtime.py`, then `resolve_narrative_commit` in `world-engine/app/story_runtime/commit_models.py`.
+- Story turns: `StoryRuntimeManager.execute_turn` in `world-engine/app/story_runtime/manager/` calls `RuntimeTurnGraphExecutor.run` from `ai_stack/langgraph/langgraph_runtime.py`, then `resolve_narrative_commit` in `world-engine/app/story_runtime/commit_models.py`.
 - Player-facing HTTP still goes through **`backend/`** for typical deployments (`backend/app/services/game/game_service.py` and related routes).
 
 ### Why it matters
@@ -86,7 +86,7 @@ flowchart TB
   MCP -.-> BE
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `backend/app/services/game/game_service.py`, `tools/mcp_server/`.
+**Seams:** `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`, `backend/app/services/game/game_service.py`, `tools/mcp_server/`.
 
 **What to notice:** **LangGraph / LangChain / RAG / models** sit **under** the **World Engine** for runtime turns, not beside it as a second game server.
 
@@ -219,7 +219,7 @@ Debugging is **node-level** (“which step failed?”) using `nodes_executed`, `
 
 #### What it is not
 
-LangGraph is **not** the session host: counters, history append, and `resolve_narrative_commit` live in **`StoryRuntimeManager`** (`world-engine/app/story_runtime/manager.py`).
+LangGraph is **not** the session host: counters, history append, and `resolve_narrative_commit` live in **`StoryRuntimeManager`** (`world-engine/app/story_runtime/manager/`).
 
 **In plain words:** **LangGraph** is the **recipe**; **LangChain** is a **utensil** used in one cooking step; **neither** is the **restaurant license** (authority).
 
@@ -326,7 +326,7 @@ The **World Engine** (`world-engine/`) runs **live sessions**. For story mode it
 
 #### What this means in the actual system
 
-`StoryRuntimeManager` in `world-engine/app/story_runtime/manager.py` wires `ai_stack` at startup and runs `execute_turn`.
+`StoryRuntimeManager` in `world-engine/app/story_runtime/manager/` wires `ai_stack` at startup and runs `execute_turn`.
 
 #### Why it matters
 
@@ -353,7 +353,7 @@ flowchart TB
   WE --> AI
 ```
 
-**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`.
+**Seams:** `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`.
 
 **What to notice:** **AI_stack** executes **inside** the **engine process** for story turns, not as a separate public microservice in the default design.
 
@@ -395,7 +395,7 @@ flowchart LR
   PL --> FE --> BE --> WE --> G --> OUT
 ```
 
-**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager.py`.
+**Seams:** `frontend/` play routes, `backend/app/services/game/game_service.py`, `world-engine/app/story_runtime/manager/`.
 
 **What to notice:** **LangGraph** is **inside** `WE`, not a box the player visits.
 
@@ -428,7 +428,7 @@ For **Meta/OOC input**, step 3 branches from **interpret** to **meta_control_tur
 
 ### What this means in the actual system
 
-Anchors: `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
+Anchors: `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
 
 ### Why it matters
 
@@ -467,7 +467,7 @@ sequenceDiagram
   Frontend-->>Player: new_scene_text_UI
 ```
 
-**Seams:** `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game/game_service.py`.
+**Seams:** `world-engine/app/story_runtime/manager/`, `ai_stack/langgraph/langgraph_runtime.py`, `story_runtime_core/adapters.py`, `backend/app/services/game/game_service.py`.
 
 **What to notice:** **Models** return **before** **validate/commit**; **session update** happens **after** the graph returns to the manager.
 
@@ -480,7 +480,7 @@ sequenceDiagram
 - **Authored truth** — YAML modules under `content/modules/` (compiled/served via backend).
 - **Retrieved context** — evidence packs for prompts (`ai_stack/rag/__init__.py`); helpful, not automatically canonical.
 - **Model output** — **proposal** payload until seams allow more.
-- **Runtime session truth** — committed fields such as **current scene** after `resolve_narrative_commit` (`world-engine/app/story_runtime/commit_models.py`) and related session state in `StorySession` (`world-engine/app/story_runtime/manager.py`).
+- **Runtime session truth** — committed fields such as **current scene** after `resolve_narrative_commit` (`world-engine/app/story_runtime/commit_models.py`) and related session state in `StorySession` (`world-engine/app/story_runtime/manager/`).
 
 ### What this means in the actual system
 
@@ -541,6 +541,6 @@ Not a claim that every future feature stays in this exact shape—check **contra
 
 ## Conclusion
 
-In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager.py`). The **player** sees **one experience** built from that whole chain.
+In World of Shadows, **LLMs and SLMs** are **routed tools** (`story_runtime_core/model_registry.py`, `adapters.py`). **RAG** **feeds** prompts with **project text** (`ai_stack/rag/__init__.py`) but is **not** session truth. **LangGraph** **orders** turn steps (`ai_stack/langgraph/langgraph_runtime.py`). **LangChain** **helps** structured **model calls** inside a graph node (`ai_stack/langchain/`). **MCP** helps **operators** via **tools** (`tools/mcp_server/`), not as the **runtime**. The **backend** is the **main gate** for browsers and many APIs; the **World Engine** is the **authoritative play host** that **runs** the graph and **commits** what counts (`world-engine/app/story_runtime/manager/`). The **player** sees **one experience** built from that whole chain.
 
 **Read next:** [How AI fits the platform](../start-here/how-ai-fits-the-platform.md) · [AI stack overview (technical)](../technical/ai/ai-stack-overview.md) · [Connected system reference](../ai/ai_system_in_world_of_shadows.md)

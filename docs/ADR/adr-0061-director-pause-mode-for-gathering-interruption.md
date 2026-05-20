@@ -80,7 +80,7 @@ The contract field `presence_breaks_gathering` in `free_player_action_resolution
 When `paused == true`:
 
 - The NPC-agency / mandatory-beat-consumption path (canonical surface around `ai_stack/story_runtime/director/god_of_carnage_scene_director.py:655` `_build_responder_set()` and `ai_stack/langgraph/langgraph_runtime_executor.py:3996` `_build_npc_agency_plan_projection()`) is consulted with a `gathering_paused` gate. The gate **does not** suppress NPC mundane action; it only suppresses mandatory-beat consumption tied to the missing co-presence.
-- The canonical-step pointer does **not** advance while paused. This is observable at `world-engine/app/story_runtime/manager.py:8683-8687` (`_turn_holds_canonical_path_for_free_player_action`) and at `:8746` (the gate against `session.canonical_step_id` advance).
+- The canonical-step pointer does **not** advance while paused. This is observable at `world-engine/app/story_runtime/manager/` (`_turn_holds_canonical_path_for_free_player_action`) and at `:8746` (the gate against `session.canonical_step_id` advance).
 
 ### 6. Player remains free
 

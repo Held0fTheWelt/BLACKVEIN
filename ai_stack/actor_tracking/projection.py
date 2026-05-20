@@ -1,11 +1,11 @@
-"""W5 Actor Situation Tracker — typed projection builders (Phase 2/3A/3B/5A).
+"""W5 Actor Tracking — typed projection builders (Phase 2/3A/3B/5A).
 
 This module is the single legal place where consumers obtain a typed,
 prompt-ready ``W5Projection`` derived from a ``W5Snapshot``. Raw persisted
 ``w5_history`` dicts are coerced through ``W5Snapshot.from_dict`` first; the
 projection is never built from a free-form dict in consumer code.
 
-Phase 2 scope (ADR-0063 + ``docs/MVPs/w5_actor_situation_migration.md``):
+Phase 2 scope (ADR-0063 + ``docs/MVPs/w5_actor_tracking_migration.md``):
 
 - The narrator projection consumes only the five W5 dimensions.
 - ``how_summary`` is first-class and must not be folded into ``what_summary``.

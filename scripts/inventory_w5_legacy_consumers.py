@@ -49,6 +49,15 @@ LEGACY_SURFACES: list[tuple[str, str]] = [
     ("forbidden_ai_stack_actor_situation", r"ai_stack[\\/]actor_situation\b"),
     ("forbidden_ai_stack_w5_actor_situation", r"ai_stack[\\/]w5_actor_situation\b"),
     ("w5_actor_situation_term", r"w5_actor_situation"),
+    # Phase 6B-0 rename items. These should now be present (R1/R2) — they are
+    # the new names — and the old names (validate_w5_actor_situation,
+    # "w5_actor_situation_validation") should only appear in inventory/audit
+    # artifacts after the rename lands. The scanner reports both so future
+    # audits can confirm the rename did not regress.
+    ("validate_w5_actor_situation_old", r"\bvalidate_w5_actor_situation\b"),
+    ("validate_w5_actor_tracking_new", r"\bvalidate_w5_actor_tracking\b"),
+    ("w5_actor_situation_validation_old", r"\bw5_actor_situation_validation\b"),
+    ("w5_actor_tracking_validation_new", r"\bw5_actor_tracking_validation\b"),
 ]
 
 

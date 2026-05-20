@@ -29,7 +29,7 @@ The old minimum agency baseline (passive reactivity) is insufficient. NPCs must 
 ## Affected Services/Files
 
 - `ai_stack/live_dramatic_scene_simulator.py` — `PassivityValidation`, `validate_passivity()`, `validate_dramatic_mass()`, `build_deterministic_ldss_output()`
-- `world-engine/app/story_runtime/manager.py` — `_build_ldss_scene_envelope()` (LDSS entry point post-commit)
+- `world-engine/app/story_runtime/manager/` — `_build_ldss_scene_envelope()` (LDSS entry point post-commit)
 - `tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py` — gates proving passivity and dramatic mass enforcement
 
 ## Consequences

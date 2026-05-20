@@ -90,7 +90,7 @@ This amendment names the four runtime contracts that PR-A, PR-B, and PR-C of the
 - Contract **vocabularies** (e.g. `affordance_status ∈ {allowed, unknown_target}`, `canon_safety ∈ {canon_compatible, content_silent_mundane, non_load_bearing, reversible_local_detail}`, `canonical_risk ∈ {low, medium, high}`, `action_commit_policy ∈ {commit_action, needs_clarification}`) are part of the contract and are allowed. They are **closed enumerations** for that specific contract field; they are not module-data whitelists.
 - Semantic runtime names only. Π / Pi labels remain index-only in the Capability Matrix and must not appear as active runtime keys, MCP payload fields, Langfuse score names, or UI routing identifiers. See [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) and the production scans in `tests/gates/test_adr_0039_pi_scope.py` and `tests/gates/test_table_b_anti_hardcoding_gate.py`.
 - `presence_breaks_gathering` is **Director-derived from resolver output**, not raw Resolver authority. The Resolver answers _what does the action mean in the world_ (target type, target id, possibility, morality, target location). The Director answers _what does that mean for the gathering_ (paused or not). See §3.4 of the plan and ADR-0061 (Draft).
-- Director-Pause is **not** Player-Hold. Player-Hold is the legacy "the player must wait" reading; Director-Pause inverts it: the gathering waits while the player remains free. The two read sites differ — Player-Hold reads at `world-engine/app/story_runtime/manager.py:8683-8687` (canonical-step pointer hold for mundane player inference); Director-Pause is the new `director_gathering_state.v1` consulted by responder selection and mandatory-beat consumption. ADR-0061 owns the latter.
+- Director-Pause is **not** Player-Hold. Player-Hold is the legacy "the player must wait" reading; Director-Pause inverts it: the gathering waits while the player remains free. The two read sites differ — Player-Hold reads at `world-engine/app/story_runtime/manager/` (canonical-step pointer hold for mundane player inference); Director-Pause is the new `director_gathering_state.v1` consulted by responder selection and mandatory-beat consumption. ADR-0061 owns the latter.
 
 ### Contract 1 — `free_player_action_resolution.v1`
 
@@ -134,7 +134,7 @@ Invariants:
 
 ### Contract 3 — `canonical_path_hold_effect.v1`
 
-Carried in graph_state alongside the existing `canonical_path_control` block (the construction site lives at `ai_stack/langgraph/langgraph_runtime_executor.py:4703`). Read by `world-engine/app/story_runtime/manager.py:8683-8687`.
+Carried in graph_state alongside the existing `canonical_path_control` block (the construction site lives at `ai_stack/langgraph/langgraph_runtime_executor.py:4703`). Read by `world-engine/app/story_runtime/manager/`.
 
 Required fields:
 

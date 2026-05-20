@@ -2,6 +2,8 @@
 
 **Phase:** 6A — Inventory and planning only. **No code is removed in this phase.**
 
+**Phase 6B-0 status:** R1–R5 (the rename items) are **complete**. The function `validate_w5_actor_situation` is now `validate_w5_actor_tracking`, the `failure_class` string is now `"w5_actor_tracking_validation"`, and the four docstring/ADR/migration-doc references now point at the renamed-current files. No runtime behavior, fallback, substrate writer, or W5 flag was touched. The rest of this inventory (S, C, A, T, D, U entries) remains as written: Phase 6B-1 may now proceed to default-on flag rollout.
+
 **Authoritative ADR:** [ADR-0063 — W5 Actor Tracking](../ADR/adr-0063-w5-actor-tracking.md).
 
 **Migration plan:** [w5_actor_tracking_migration.md](./w5_actor_tracking_migration.md).
@@ -16,7 +18,7 @@
 - `ai_stack/actor_situation/` — not present in working tree; not referenced by any active import.
 - `ai_stack/w5_actor_situation/` — not present in working tree; not referenced by any active import.
 
-The only residual mentions of `actor_situation` / `w5_actor_situation` in active code are (a) a function name `validate_w5_actor_situation()`, (b) a `failure_class` string, and (c) docstring references to renamed-away doc files. All are inventoried below.
+As of Phase 6A, the residual mentions of `actor_situation` / `w5_actor_situation` in active code were (a) a function name `validate_w5_actor_situation()`, (b) a `failure_class` string, and (c) docstring references to renamed-away doc files. All were inventoried below and have since been resolved by Phase 6B-0 (see the "Phase 6B-0 status" note above). The only remaining mention is one historical sentence in `ai_stack/actor_tracking/__init__.py` that documents the prior package names for readers tracing the migration; it is not a current-state claim.
 
 ---
 
@@ -75,7 +77,7 @@ The `'fy'-suites/delagecy/` reports and `audit_*.json` snapshots are also exclud
 
 **Forbidden package imports found:** 0.
 
-**Phase 6B safe to begin:** Yes, conditionally — see *Recommended Phase 6B removal order* below. The conditions are: (1) Director gathering, NPC planning, narrator composition, and validation must each have their W5 flag enabled by default before their legacy fallback can be removed; (2) the `validate_w5_actor_situation` function and `failure_class = "w5_actor_situation_validation"` string must be renamed to `*_actor_tracking` analogues; (3) the four docstring/ADR references to renamed-away files must be repaired. Substrate writers (`apply_action_to_environment_state`, backend/world-engine `engine.py` MOVE_ACTOR effects, the Participant dataclass `current_room_id` field) are explicitly out of scope for 6B per the migration plan.
+**Phase 6B-1 safe to begin:** Yes, conditionally — see *Recommended Phase 6B removal order* below. Conditions (2) and (3) below are now satisfied by Phase 6B-0; only condition (1) remains as an operational decision: (1) Director gathering, NPC planning, narrator composition, validation, and player shell must each have their W5 flag enabled by default before their legacy fallback can be removed; ~~(2)~~ ✅ the `validate_w5_actor_situation` function and `failure_class = "w5_actor_situation_validation"` string have been renamed to their `*_actor_tracking` analogues; ~~(3)~~ ✅ the four docstring/ADR references to renamed-away files have been repaired. Substrate writers (`apply_action_to_environment_state`, backend/world-engine `engine.py` MOVE_ACTOR effects, the Participant dataclass `current_room_id` field) are explicitly out of scope for 6B per the migration plan.
 
 ---
 
@@ -124,7 +126,7 @@ These are the explicit Phase 5A/5B fallbacks that the migration plan keeps until
 |---|------|--------|-------------------|------|------------------------|--------------------|---------------------------|-------------------------------|
 | A1 | `world-engine/app/story_runtime/manager/actor_tracking/session_state_w5_view.py:50-59` | `_fallback_current_room_id` | reads `runtime_world.current_room_id`, `environment_state.current_room_id`, `environment_state.current_area` | Player-view fallback when `W5_AST_FRONTEND_PLAYER_VIEW_ENABLED` is off or W5 snapshot missing. Documented Phase 5B compatibility. | Yes — `build_w5_projection_for_player_shell`. | **Keep** until Phase 5C makes W5 the player-shell default. | Player UI shows blank room when flag disabled or W5 missing on the very next deploy. | `backend/tests/test_w5_player_shell_payload.py`, `world-engine/tests/test_story_runtime_w5_player_view.py`. |
 | A2 | `backend/app/api/v1/game_routes.py:486-549` | `_attach_w5_player_view_to_view` (effective) | reads `runtime_world.current_room_id`, then prefers `w5_player_view.where_summary.scene_location.value` | Backend route that prefers W5 over legacy when present. | Yes. | **Keep** the fallback. Remove the legacy fallback only when frontend supports W5-only payloads. | Frontend loses `current_room_id`. | `backend/tests/test_play_service_client.py`, `test_player_session_live_opening_contract.py`, `test_game_service_play_http.py`. |
-| A3 | `world-engine/app/story_runtime/manager/session_lifecycle.py:21` and `manager/runtime_config.py:221` | snapshot composers | `current_room_id` field on emitted snapshot | Snapshot serializers keep `current_room_id` for legacy WS subscribers. | Yes. | **Keep** until WebSocket subscribers consume W5. | WS clients lose `viewer_room_id`. | `world-engine/tests/test_ws_state_transitions.py`, `test_ws_runtime_commands_and_isolation.py`. |
+| A3 | `world-engine/app/story_runtime/manager/session/session_lifecycle.py:21` and `manager/runtime_config.py:221` | snapshot composers | `current_room_id` field on emitted snapshot | Snapshot serializers keep `current_room_id` for legacy WS subscribers. | Yes. | **Keep** until WebSocket subscribers consume W5. | WS clients lose `viewer_room_id`. | `world-engine/tests/test_ws_state_transitions.py`, `test_ws_runtime_commands_and_isolation.py`. |
 | A4 | `world-engine/app/story_runtime_shell_readout.py:147-180` | `_environment_state_readout`, `_environment_state_brief_readout` | `current_room_id`, `current_area`, `previous_room_id`, `visible_room_ids` | Operator/debug shell readout. | Indirect — admin W5 view exists, but shell readout is a separate diagnostic channel. | **Keep** but consider routing through W5 admin diagnostics in Phase 6C. | Operator readout loses room context. | Manual shell-readout regression. |
 | A5 | `world-engine/diagnostics/story_runtime/create_session_runtime_template.py:87-148,344` | template builder | `current_room_id`, `current_area` from world/state | Diagnostic creation template. | None — diagnostic substrate only. | **Keep.** | Diagnostic template build fails. | `world-engine/tests/test_story_runtime_runtime_world.py`. |
 | A6 | `world-engine/app/story_runtime/manager/diagnostics_api.py:70-94` | `_w5_runtime_metadata_for_session` | reads `transition_from_previous.location_changed` from any narrator block when computing W5 admin metadata | Phase 4B admin diagnostic bridge. | Yes (W5 itself), but the bridge keeps the legacy parity check. | **Keep**. The bridge intentionally inspects both. | Admin diagnostics loses parity check. | `world-engine/tests/test_story_runtime_w5_admin_diagnostics.py`. |
@@ -138,13 +140,13 @@ These are the explicit Phase 5A/5B fallbacks that the migration plan keeps until
 
 Naming-only items. They survive 6B but must be renamed for consistency with the new `actor_tracking` package name.
 
-| # | File | Symbol | Old name | New name | Note |
-|---|------|--------|----------|----------|------|
-| R1 | `ai_stack/actor_tracking/validation.py:274` (definition) and `__init__.py:46,104` (re-export) | function `validate_w5_actor_situation` | `validate_w5_actor_situation` | `validate_w5_actor_tracking` | Function name still uses the deprecated package term. Coordinate with `ai_stack/tests/test_w5_actor_tracking_validation.py` callsites (12 occurrences) and `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py:13,195`. |
-| R2 | `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py:227` | string literal `failure_class = "w5_actor_situation_validation"` | `"w5_actor_situation_validation"` | `"w5_actor_tracking_validation"` | Diagnostic string surfaces through Langfuse metadata; coordinate with any downstream consumer/filter. |
-| R3 | `ai_stack/actor_tracking/models.py:3` | docstring | `docs/ADR/adr-0063-w5-actor-situation-tracker.md` | `docs/ADR/adr-0063-w5-actor-tracking.md` | Renamed-away ADR path. Pure doc fix. |
-| R4 | `ai_stack/actor_tracking/__init__.py:5` and `ai_stack/actor_tracking/extractor.py:5` | docstring | `docs/MVPs/w5_actor_situation_migration.md` | `docs/MVPs/w5_actor_tracking_migration.md` | Renamed-away migration doc. Pure doc fix. |
-| R5 | `ai_stack/actor_tracking/projection.py:8` | docstring | `docs/MVPs/w5_actor_situation_migration.md` | `docs/MVPs/w5_actor_tracking_migration.md` | Same as R4. |
+| # | Status | File | Symbol | Old name | New name | Note |
+|---|--------|------|--------|----------|----------|------|
+| R1 | ✅ done (Phase 6B-0) | `ai_stack/actor_tracking/validation.py` (definition) and `__init__.py` (re-export) | function `validate_w5_actor_situation` | `validate_w5_actor_situation` | `validate_w5_actor_tracking` | Function and re-export renamed. Production callsite in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py` and all 12 test callsites in `ai_stack/tests/test_w5_actor_tracking_validation.py` updated atomically. No backward alias retained. |
+| R2 | ✅ done (Phase 6B-0) | `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py` | string literal `failure_class = "w5_actor_situation_validation"` | `"w5_actor_situation_validation"` | `"w5_actor_tracking_validation"` | Diagnostic string surfaces through Langfuse metadata. No production consumer/filter asserts the old value. |
+| R3 | ✅ done (Phase 6B-0) | `ai_stack/actor_tracking/models.py` | docstring | `docs/ADR/adr-0063-w5-actor-situation-tracker.md` | `docs/ADR/adr-0063-w5-actor-tracking.md` | Pure doc fix. |
+| R4 | ✅ done (Phase 6B-0) | `ai_stack/actor_tracking/__init__.py` and `ai_stack/actor_tracking/extractor.py` | docstring | `docs/MVPs/w5_actor_situation_migration.md` | `docs/MVPs/w5_actor_tracking_migration.md` | Pure doc fix. `__init__.py` retains one historical sentence noting prior package names. |
+| R5 | ✅ done (Phase 6B-0) | `ai_stack/actor_tracking/projection.py` | docstring | `docs/MVPs/w5_actor_situation_migration.md` | `docs/MVPs/w5_actor_tracking_migration.md` | Same as R4. |
 
 ---
 
@@ -249,6 +251,6 @@ Phase 6B may begin once:
 - [x] No active code imports either forbidden package. ✅
 - [x] Active W5 packages (`ai_stack/actor_tracking`, `world-engine/app/story_runtime/manager/actor_tracking`) are the only W5 surfaces. ✅
 - [ ] The four W5 flags (Director, Narrator, NPC, Player Shell) are ready to flip to default-on in a single coordinated commit. The codepath supports it today; the operational decision is the open prerequisite.
-- [ ] The rename items (R1–R5) are sequenced as Phase 6B's first commit so the rest of 6B can use the new names.
+- [x] The rename items (R1–R5) are landed as Phase 6B-0 (this commit). The rest of 6B (default-on flag rollout, then consumer migration) can now use the new names.
 
-When the two unchecked items above are decided, Phase 6B is safe to start. Substrate writers (S1–S8) remain out of scope for 6B and will be addressed by a separate, dedicated ADR.
+When the one unchecked item above is decided, Phase 6B-1 (default-on Director/Narrator/NPC/Validation/Player-Shell flag rollout) is safe to start. Substrate writers (S1–S8) remain out of scope for 6B and will be addressed by a separate, dedicated ADR.

@@ -726,7 +726,7 @@ Both checks are non-redundant by design:
 1. The named score `usage_present` proves that **the runtime computed and persisted** a usage verdict as a deterministic gate.
 2. The raw `usage_details.total > 0` on `story.model.generation` proves that **the underlying generation actually consumed tokens**.
 
-A failure of either check is a contract break; passing one but not the other indicates partial regression in either the score emission path (`world-engine/app/story_runtime/manager.py`, deterministic_scores block) or the generation-record path (`record_generation` in `world-engine/app/observability/langfuse_adapter.py`).
+A failure of either check is a contract break; passing one but not the other indicates partial regression in either the score emission path (`world-engine/app/story_runtime/manager/`, deterministic_scores block) or the generation-record path (`record_generation` in `world-engine/app/observability/langfuse_adapter.py`).
 
 **Regression guards:**
 
@@ -739,14 +739,14 @@ A failure of either check is a contract break; passing one but not the other ind
 
 **Problem:** §13.1 mandates `actor_lane=unknown → live_success=false`. That rule is enforced today at the **gate-payload bridge** (`ai_stack/story_runtime/live_runtime_commit_semantics.py:_actor_lane_unknown_flag` and the envelope→payload bridge that materializes `"actor_lane": actor_lane_status or "unknown"`). It is **not** enforceable from a fetched Langfuse trace today, because:
 
-1. The `actor_lane_safety_pass` score (`world-engine/app/story_runtime/manager.py`, deterministic_scores block) is binary `1.0`/`0.0`. Its metadata only carries `session_id`, `turn_number`, `quality_class`, `degradation_signals` — **not** `actor_lane_validation_status`.
+1. The `actor_lane_safety_pass` score (`world-engine/app/story_runtime/manager/`, deterministic_scores block) is binary `1.0`/`0.0`. Its metadata only carries `session_id`, `turn_number`, `quality_class`, `degradation_signals` — **not** `actor_lane_validation_status`.
 2. The current accept-set on the producer side is `{"approved", None}`, which silently treats a missing path-summary value as approved.
 3. No span statusMessage emits an `actor_lane=` token that the live-gate regex (`_status_field` in the live-gate test) could parse.
 4. The `traceable_decisions` builder (`ai_stack/telemetry/diagnostics_envelope.py:build_traceable_decisions`) defensively coerces unknown statuses to `"approved"`, masking the underlying state in any downstream consumer of that field.
 
 The literal value `"unknown"` exists exactly **once** in the codebase as a materialized string — at the gate-payload bridge — and is therefore never written into a Langfuse trace.
 
-**Required behavior — Producer side (World-Engine):** When `add_score(name="actor_lane_safety_pass", ...)` is called from `world-engine/app/story_runtime/manager.py`, the `metadata` block **must** additionally carry:
+**Required behavior — Producer side (World-Engine):** When `add_score(name="actor_lane_safety_pass", ...)` is called from `world-engine/app/story_runtime/manager/`, the `metadata` block **must** additionally carry:
 
 - `actor_lane_validation_status` (the literal `path_summary["actor_lane_validation_status"]` value, including `None`/missing as `null`)
 - `actor_lane_validation_reason` (literal reason string from validation, may be `null`)
@@ -787,7 +787,7 @@ Anything else — including missing, empty string, `None`, `"unknown"`, `"reject
 
 **Problem:** Operators need **why** a turn degraded beyond a single canonical token (for example only `non_factual_staging` on `score.metadata.degradation_signals`). Diagnostics envelopes and operator history aggregate **canonical** degradation signals (`ai_stack/contracts/runtime_turn_contracts.py::DEGRADATION_SIGNAL_VALUES`). Langfuse score metadata must preserve that contract **and** expose a richer operator surface without changing live-gate numeric semantics.
 
-**Required behavior (World-Engine, `LangfuseAdapter.add_score` metadata from `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager.py`):**
+**Required behavior (World-Engine, `LangfuseAdapter.add_score` metadata from `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager/`):**
 
 1. **`degradation_signals`** — Must remain the **canonical filtered list** (subset of `DEGRADATION_SIGNAL_VALUES`). Non-whitelisted markers (for example `ldss_fallback_after_live_opening_failure`) must **not** appear here; they belong in `degradation_chain`.
 
@@ -807,7 +807,7 @@ Anything else — including missing, empty string, `None`, `"unknown"`, `"reject
 
 **Problem:** On the LDSS-fallback-after-live-opening-failure path, prior trace shape made the live attempt invisible: `story.phase.model_route` showed primary `provider=openai` / `selected_model=openai_gpt_5_4_mini`, but `story.phase.model_invoke` reported `adapter=ldss_fallback` with `api_model=gpt-5-mini` and `success=True`, so operators could not tell from a trace alone that the OpenAI primary live opening was attempted, failed dramatic-effect validation, and was replaced by the LDSS fallback policy.
 
-**Required behavior (World-Engine, `_ldss_opening_fallback_state` + `_build_langfuse_path_summary` + `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager.py`):**
+**Required behavior (World-Engine, `_ldss_opening_fallback_state` + `_build_langfuse_path_summary` + `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager/`):**
 
 1. **Capture primary attempt before overwrite.** When `_ldss_opening_fallback_state` rebuilds `generation.metadata`, the prior adapter (when not already a fallback shell) is preserved as `primary_attempt_adapter`, `primary_attempt_model`, and `primary_attempt_invocation_mode`. The routing layer contributes `primary_attempt_provider` and `primary_attempt_selected_model`.
 

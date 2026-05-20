@@ -49,7 +49,7 @@ The allowed values are declared in `content/modules/god_of_carnage/direction/sub
 1. `god_of_carnage_semantic_move_interpretation.py` classifies the player move and builds `SubtextRecord` from `god_of_carnage_subtext_policy.py`.
 2. `god_of_carnage_scene_director.py` reads `semantic_move_record.subtext` for director resolution evidence and selected pacing pressure.
 3. `langgraph_runtime_executor.py` serializes `subtext_interpretation` into the dramatic generation packet and adds subtext rationale codes.
-4. `world-engine/app/story_runtime/manager.py` projects subtext into path summaries, Langfuse spans, deterministic scores, and score metadata.
+4. `world-engine/app/story_runtime/manager/` projects subtext into path summaries, Langfuse spans, deterministic scores, and score metadata.
 5. Backend inspector and operator-history services surface the same fields for diagnostics.
 
 ## ADR-0039 Boundary
@@ -71,6 +71,6 @@ Forbidden primary oracles:
 - `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`
 - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 - `backend/app/services/inspector/inspector_turn_projection_assembly_helpers.py`
 - `backend/app/services/story_runtime/operator_turn_history_service.py`

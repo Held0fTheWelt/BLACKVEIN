@@ -243,7 +243,7 @@ that a specific story sentence has the correct sensory quality.
 - `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `ai_stack/story_runtime/story_runtime_playability.py`
 - `world-engine/app/story_runtime/commit_models.py`
-- `world-engine/app/story_runtime/manager.py`
+- `world-engine/app/story_runtime/manager/`
 - `tools/mcp_server/tools_registry_handlers_langfuse_verify.py`
 
 ## Verification Anchors

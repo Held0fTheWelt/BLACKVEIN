@@ -273,7 +273,7 @@ def build_narrative_gov_summary(
 |---------|------|--------|
 | ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Add HealthPanel and NarrativeGovSummary dataclasses |
 | ai_stack | `ai_stack/telemetry/diagnostics_envelope.py` | Implement build_narrative_gov_summary() |
-| world-engine | `world-engine/app/story_runtime/manager.py` | Call build_narrative_gov_summary() after turn |
+| world-engine | `world-engine/app/story_runtime/manager/` | Call build_narrative_gov_summary() after turn |
 | world-engine | `world-engine/app/api/http.py` | Add /narrative-gov endpoints |
 | backend | `backend/app/auth/admin_security.py` | Audit trail for override tracking |
 | tests | `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` | 3 Phase C governance tests |

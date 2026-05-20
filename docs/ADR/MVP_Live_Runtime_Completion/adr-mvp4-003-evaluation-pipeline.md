@@ -240,7 +240,7 @@ if pipeline.check_baseline_regression(recent_score):
 |---------|------|--------|
 | ai_stack | `ai_stack/quality_lab/evaluation_pipeline.py` | Implement EvaluationPipeline, QualityRubric, TurnScore |
 | backend | `backend/app/evaluations/storage.py` | Persist rubrics and turn scores |
-| world-engine | `world-engine/app/story_runtime/manager.py` | Call record_turn_score() after turn evaluation |
+| world-engine | `world-engine/app/story_runtime/manager/` | Call record_turn_score() after turn evaluation |
 | backend | `backend/app/api/evaluations.py` | HTTP endpoints for rubric CRUD and score recording |
 | tests | `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py` | 6 Phase C evaluation tests |
 

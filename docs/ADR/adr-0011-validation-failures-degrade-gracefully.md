@@ -7,7 +7,7 @@ Accepted
 
 **Implemented — graceful degradation with LDSS fallback in place.**
 
-- `world-engine/app/story_runtime/manager.py`: `_ldss_opening_fallback_state()` provides a guaranteed safe fallback (LDSS deterministic output) when live opening fails validation — player never hits a hard dead end.
+- `world-engine/app/story_runtime/manager/`: `_ldss_opening_fallback_state()` provides a guaranteed safe fallback (LDSS deterministic output) when live opening fails validation — player never hits a hard dead end.
 - Fallback produces `quality_class=degraded`, `fallback_used=True`, and explicit `degradation_signals` — not silently treated as healthy.
 - `ai_stack/live_dramatic_scene_simulator.py`: deterministic fallback stubs serve as the safe content pool.
 - `world-engine` wraps opening execution in retry + fallback logic; `_opening_retry_count()` controls retry attempts before falling back.
