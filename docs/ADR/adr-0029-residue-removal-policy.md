@@ -36,6 +36,11 @@ An audit pass (Task 4 — Residue Removal Report) applied operational criteria t
 - Use priority tiers (`P0` keep; `P1` candidate demote/relocate) to sequence work.
 - For mixed-case collections (e.g., `docs/reports/*`) apply per-file evaluation and demote on a case-by-case basis.
 - Move executed removals or relocations to tracked fixtures/locations (e.g., `backend/fixtures/…`, `docs/reports/` corrected paths).
+- Legacy removal governance is executed through the `delagecy` fy-suite:
+  - Newly found legacy surfaces must be entered in `delagecy_registry.json` and reported before removal begins.
+  - Removal requires an explicit approval record; agents must not silently decide ambiguous removals.
+  - UI, route, test, docs, diagnostics, compatibility aliases, and hidden compatibility blocks are residue until removed or explicitly retained.
+  - If a removal risks system integrity or reveals conflicting ownership, pause and discuss rather than self-resolving the conflict.
 
 ## Consequences
 - Requires a downstream cleanup plan and owners to execute demotion/archival for `P1` candidates.
@@ -60,7 +65,14 @@ flowchart TD
 
 ## Testing
 
-Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
+Contract / unit coverage as cited in **References**. Dedicated gate:
+
+```bash
+PYTHONPATH="'fy'-suites" python -m delagecy.tools scan --out "'fy'-suites/delagecy/reports/latest_scan.json"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools check --scan-json "'fy'-suites/delagecy/reports/latest_scan.json"
+```
+
+Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

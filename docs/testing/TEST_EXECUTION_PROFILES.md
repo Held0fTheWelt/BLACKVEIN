@@ -55,6 +55,22 @@ cd administration-tool && python -m pytest tests/ -v
 
 ## World Engine Test Profiles
 
+### Modular World Engine Blocks
+
+Use these when a full `engine` run is too broad for the change under review. They are orchestrator suites, so run them from the repository root:
+
+```bash
+python tests/run_tests.py --suite engine_foundation --quick
+python tests/run_tests.py --suite engine_http_ws --quick
+python tests/run_tests.py --suite engine_runtime --quick
+python tests/run_tests.py --suite engine_opening_contracts --quick
+python tests/run_tests.py --suite engine_persistence --quick
+python tests/run_tests.py --suite engine_observability --quick
+python tests/run_tests.py --suite engine_rest --quick
+```
+
+`engine` remains the full coverage gate. The block suites are for isolating whether a failure belongs to foundation/config, HTTP/WS, runtime internals, opening/actor-lane contracts, persistence, observability, or uncategorized remainder tests.
+
 ### Fast World Engine Suite
 Core world engine tests excluding slow and WebSocket tests.
 
@@ -167,6 +183,22 @@ cd world-engine && python -m pytest tests/test_ws*.py -v
 ---
 
 ## Multi-Suite Test Execution
+
+### Modular AI Stack Blocks
+
+Run AI stack blocks from the repository root through the orchestrator; this avoids shadowing the installed external `langgraph` package with the local `ai_stack/langgraph` directory:
+
+```bash
+python tests/run_tests.py --suite ai_stack_graph --quick
+python tests/run_tests.py --suite ai_stack_goc --quick
+python tests/run_tests.py --suite ai_stack_capabilities --quick
+python tests/run_tests.py --suite ai_stack_narrative --quick
+python tests/run_tests.py --suite ai_stack_retrieval_research --quick
+python tests/run_tests.py --suite ai_stack_quality --quick
+python tests/run_tests.py --suite ai_stack_rest --quick
+```
+
+The full `ai_stack` suite remains the merge-oriented gate.
 
 ### Run All Tests Across All Suites
 
@@ -529,4 +561,3 @@ kill -9 <PID>
 - Use `-v` flag for verbose output (recommended during development)
 - Use `-q` flag for quiet mode (recommended in CI/CD pipelines)
 - All paths are absolute to avoid confusion with working directory
-

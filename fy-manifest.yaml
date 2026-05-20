@@ -77,6 +77,22 @@ suites:
       - story_runtime_core
       - frontend
       - writers-room
+  delagecy:
+    scan_roots:
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+      - administration-tool
+      - docs
+    ui_roots:
+      - frontend
+      - administration-tool/static
+      - administration-tool/templates
+      - world-engine/app
+    policy_adr: docs/ADR/adr-0029-residue-removal-policy.md
   despaghettify:
     scan_roots:
       - backend

@@ -1,0 +1,10 @@
+{
+  "schema_version": "delagecy.registry.v1",
+  "policy": {
+    "new_findings_must_be_registered_before_removal": true,
+    "approval_required_before_removal": true,
+    "ui_residue_must_be_removed": true,
+    "problems_require_user_discussion": true
+  },
+  "findings": []
+}

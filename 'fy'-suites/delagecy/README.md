@@ -1,0 +1,42 @@
+# Delagecy
+
+`delagecy` is the fy-suite for governed legacy removal.
+
+It does **not** delete code. It gives the repo a repeatable path for:
+
+- scanning for legacy surfaces in code, docs, tests, routes, and UI files;
+- registering every newly found legacy item before removal work starts;
+- recording the required discussion / approval state;
+- verifying that removed items no longer remain in code or UI surfaces;
+- exporting a human-readable tracker for reviews and ADR updates.
+
+## Commands
+
+```bash
+PYTHONPATH="'fy'-suites" python -m delagecy.tools scan --out "'fy'-suites/delagecy/reports/latest_scan.json"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools new --scan-json "'fy'-suites/delagecy/reports/latest_scan.json"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools register --scan-json "'fy'-suites/delagecy/reports/latest_scan.json" --fingerprint <hash> --title "Short title"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools approve --id DLG-001 --approved-by "<name>" --note "Removal approved after review"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools mark-removed --id DLG-001 --verification "tests + scan clean"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools check --scan-json "'fy'-suites/delagecy/reports/latest_scan.json"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools export-tracker
+```
+
+After editable install, use `delagecy ...`.
+
+## Hard rules
+
+1. New legacy findings must be registered and reported before any removal work.
+2. Removal requires an explicit approval entry in the registry.
+3. Problems, ambiguity, ownership conflicts, or integrity risk must be discussed with the user; the tool records blockers but does not auto-resolve them.
+4. A removal is not done until code, docs, tests, routes, and UI surfaces are clean.
+5. Redirects, compatibility aliases, hidden UI blocks, diagnostics fields, and tests count as residue unless explicitly retained.
+
+The active policy ADR is `docs/ADR/adr-0029-residue-removal-policy.md`; `delagecy` is the executable register and gate for that policy.
+
+## Internal self-test area
+
+`internal/` belongs to the suite itself. It may intentionally contain legacy
+markers as scanner fixtures. Generated control-plane files
+(`delagecy_registry.json`, `legacy_removal_tracker.md`) are skipped by default so
+the suite does not register its own bookkeeping as product residue.

@@ -443,7 +443,7 @@ def _known_module_literal_debt_reason(rel: str) -> str | None:
     if rel in KNOWN_MODULE_LITERAL_DEBT:
         return KNOWN_MODULE_LITERAL_DEBT[rel]
     filename = Path(rel).name
-    if rel.startswith("ai_stack/goc_") or (
+    if rel.startswith("ai_stack/goc_") or rel.startswith("ai_stack/semantic_planner/goc_") or (
         rel.startswith("ai_stack/") and filename.endswith("_goc.py")
     ):
         return "GoC-specific ai_stack module; generic Table B code must not depend on it."

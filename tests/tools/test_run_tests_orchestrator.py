@@ -51,3 +51,48 @@ def test_get_suite_configs_can_add_external_lanes() -> None:
     assert suites["playwright_e2e"].kind == "external"
     assert suites["compose_smoke"].kind == "external"
 
+
+def _suite_targets(cfg) -> tuple[str, ...]:
+    return (cfg.target, *cfg.extra_targets)
+
+
+def test_engine_blocks_are_first_class_partial_suites() -> None:
+    mod = _load_runner_module()
+    for suite in mod.ENGINE_BLOCK_SUITES:
+        cfg = mod.SUITE_CONFIGS[suite]
+        assert cfg.kind == "pytest"
+        assert cfg.cwd == mod.WORLD_ENGINE_DIR
+        assert cfg.supports_coverage is False
+
+    opening_targets = _suite_targets(mod.SUITE_CONFIGS["engine_opening_contracts"])
+    assert "tests/test_mvp4_contract_opening_truthfulness.py" in opening_targets
+    assert "tests/test_mvp2_runtime_state_actor_lanes.py" in opening_targets
+    assert mod.SUITE_CONFIGS["engine_runtime"].target == "tests/runtime"
+    assert set(mod.ENGINE_BLOCK_TARGETS).issubset(set(mod.SUITE_CONFIGS["engine_rest"].ignore_paths))
+    assert mod.marker_filter_for_suite("engine_runtime", "contracts") == "contract"
+    assert mod.marker_filter_for_suite("engine_runtime", "e2e") is None
+
+
+def test_ai_stack_blocks_run_from_repo_root_and_have_rest_slice() -> None:
+    mod = _load_runner_module()
+    for suite in mod.AI_STACK_BLOCK_SUITES:
+        cfg = mod.SUITE_CONFIGS[suite]
+        assert cfg.kind == "pytest"
+        assert cfg.cwd == mod.PROJECT_ROOT
+        assert cfg.supports_coverage is False
+
+    graph_targets = _suite_targets(mod.SUITE_CONFIGS["ai_stack_graph"])
+    assert "ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py" in graph_targets
+    assert "ai_stack/tests/test_langgraph_runtime.py" in graph_targets
+    assert set(mod.AI_STACK_BLOCK_TARGETS).issubset(set(mod.SUITE_CONFIGS["ai_stack_rest"].ignore_paths))
+    assert mod.marker_filter_for_suite("ai_stack_graph", "contracts") is None
+
+
+def test_backend_play_block_is_subtracted_from_backend_rest() -> None:
+    mod = _load_runner_module()
+    cfg = mod.SUITE_CONFIGS["backend_play"]
+    assert cfg.cwd == mod.BACKEND_DIR
+    assert cfg.supports_scope is True
+    assert cfg.supports_coverage is False
+    assert "tests/test_world_engine_backend_api_contracts.py" in _suite_targets(cfg)
+    assert set(mod.BACKEND_PLAY_TARGETS).issubset(set(mod.SUITE_CONFIGS["backend_rest"].ignore_paths))

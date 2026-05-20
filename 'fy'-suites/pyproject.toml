@@ -22,6 +22,7 @@ documentify = "documentify.tools.hub_cli:main"
 documentify-adapter = "documentify.adapter.cli:main"
 docify = "docify.tools.hub_cli:main"
 docify-adapter = "docify.adapter.cli:main"
+delagecy = "delagecy.tools.hub_cli:main"
 despag-check = "despaghettify.tools.hub_cli:main"
 despaghettify-adapter = "despaghettify.adapter.cli:main"
 dockerify = "dockerify.tools.hub_cli:main"
@@ -50,7 +51,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fy_platform*", "contractify*", "testify*", "documentify*", "docify*", "despaghettify*", "dockerify*", "postmanify*", "templatify*", "usabilify*", "securify*", "observifyfy*", "mvpify*", "metrify*", "diagnosta*", "coda*"]
+include = ["fy_platform*", "contractify*", "testify*", "documentify*", "docify*", "delagecy*", "despaghettify*", "dockerify*", "postmanify*", "templatify*", "usabilify*", "securify*", "observifyfy*", "mvpify*", "metrify*", "diagnosta*", "coda*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -62,6 +63,7 @@ testpaths = [
   "documentify/tools/tests",
   "docify/adapter/tests",
   "docify/tools/tests",
+  "delagecy/tools/tests",
   "despaghettify/adapter/tests",
   "dockerify/adapter/tests",
   "postmanify/adapter/tests",

@@ -67,7 +67,19 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 
 ---
 
-## Backend directory sub-suites (fast lanes)
+## Focused block suites
+
+The full component suites (`backend`, `engine`, `ai_stack`) remain the canonical gates. The focused block suites below are for faster, systematic diagnosis when one subsystem changes. They run with `--no-cov` under `--quick`, and partial runs do not enforce component-wide coverage thresholds.
+
+Example:
+
+```bash
+python tests/run_tests.py --suite engine_runtime --quick
+python tests/run_tests.py --suite engine_opening_contracts --quick --stats
+python tests/run_tests.py --suite ai_stack_graph ai_stack_goc --quick --continue-on-failure
+```
+
+### Backend directory sub-suites
 
 These select **strict subsets** of `backend/tests/` for iteration speed. They use `cwd=backend/` and share [`backend/pytest.ini`](../backend/pytest.ini). **They do not replace** the canonical full gate `python tests/run_tests.py --suite backend` (coverage fail-under is disabled on partial runs — see [`docs/testing/COVERAGE_SEMANTICS.md`](../docs/testing/COVERAGE_SEMANTICS.md)).
 
@@ -79,9 +91,38 @@ These select **strict subsets** of `backend/tests/` for iteration speed. They us
 | `backend_content` | `tests/content` |
 | `backend_routes_core` | `tests/routes`, `tests/web`, `tests/api` |
 | `backend_mcp` | `tests/mcp` |
+| `backend_play` | Play/session and world-engine bridge files (`test_game_routes.py`, MVP4 playability, world-engine console/control-center contracts, play-service client/control tests). |
 | `backend_rest` | `tests` with `--ignore=` for every path covered by the rows above (and `writers_room` / `improvement` trees), so flat files and uncategorized folders remain |
 
 `writers_room` and `improvement` remain dedicated component suites; their tests are also collected under full `backend`.
+
+### World-engine block suites
+
+These select explicit files under `world-engine/tests/`. `engine_rest` runs the remaining world-engine tests after subtracting the focused blocks.
+
+| CLI name | Focus |
+|----------|-------|
+| `engine_foundation` | Configuration, auth/security guards, bridge contracts, canonical runtime and package policy. |
+| `engine_http_ws` | HTTP endpoints, UI proxy/runtime pages, WebSocket session and isolation behavior. |
+| `engine_runtime` | Story-runtime internals, runtime manager, turn execution, shell/window projections, RAG/runtime world surfaces. |
+| `engine_opening_contracts` | MVP1-MVP4 opening, actor-lane, LDSS, GoC greeting/narrator-path and runtime-profile handoff contracts. |
+| `engine_persistence` | Stores, tickets, branching, persistence, recovery, JSON/SQLAlchemy storage. |
+| `engine_observability` | Langfuse payloads, trace propagation, diagnostics, runtime profiles, narrative governance API, thin-path summaries. |
+| `engine_rest` | Remaining `world-engine/tests` files not listed in the focused blocks. |
+
+### AI-stack block suites
+
+These run from the repository root. That is intentional: running from `ai_stack/` can shadow the installed external `langgraph` package with the local `ai_stack/langgraph` directory.
+
+| CLI name | Focus |
+|----------|-------|
+| `ai_stack_graph` | LangGraph runtime, ADR-0041 sidecar, thin-path graph contracts, graph authority and integration wiring. |
+| `ai_stack_goc` | God of Carnage contracts: opening, narrator path, frozen vocab, scene identity, W5 actor situation, visible attribution, actor vitality. |
+| `ai_stack_capabilities` | Capability registry, selector, validator, canonical path/prompt/step and player-action resolution. |
+| `ai_stack_narrative` | Narrative engines and player-facing runtime surfaces: consequence, dramatic effect, NPC agency, sensory/social/temporal/tonal engines. |
+| `ai_stack_retrieval_research` | RAG, semantic embedding, retrieval governance/runtime planner and research golden cases. |
+| `ai_stack_quality` | Quality Lab, Langfuse, MCP surface, runtime readiness/aspect/authority and package/config checks. |
+| `ai_stack_rest` | Remaining `ai_stack/tests` files not listed in the focused blocks. |
 
 ---
 
@@ -120,6 +161,8 @@ Example fast lanes:
 ```bash
 python tests/run_tests.py --suite backend_observability --quick
 python tests/run_tests.py --suite backend_runtime --quick
+python tests/run_tests.py --suite engine_runtime --quick
+python tests/run_tests.py --suite ai_stack_graph --quick
 ```
 
 ---

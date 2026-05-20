@@ -8,7 +8,7 @@ Audience split notice:
 - Admin release-governance guidance is being aligned under `docs/admin/README.md`.
 - Until relocation is complete, this directory contains mixed audience content.
 
-**Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, `--scope`, `--domain`, `--parallel`, Makefile). Architecture: [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md).
+**Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, focused block suites such as `engine_runtime` / `engine_opening_contracts` / `ai_stack_graph`, `--scope`, `--domain`, `--parallel`, Makefile). Architecture: [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md).
 
 ---
 

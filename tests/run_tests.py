@@ -16,9 +16,10 @@ isolated slices (their tests are also collected under ``backend/tests``).
 Optional ``--scope`` maps to ``pytest -m`` for backend, writers_room, improvement,
 administration, and engine (see ``--help``). Optional ``--domain`` selects backend
 pytest markers registered in ``backend/pytest.ini`` (combines with ``--scope``).
-Additional ``--suite`` choices ``backend_runtime``, ``backend_observability``, … run
-strict subsets of ``backend/tests`` for fast iteration; ``--suite backend`` remains the
-full-tree gate. Optional ``--parallel`` enables pytest-xdist (two-pass: parallel then
+Additional ``--suite`` choices ``backend_runtime``, ``engine_runtime``,
+``engine_opening_contracts``, ``ai_stack_graph``, … run strict focused blocks for
+fast iteration; full component suites remain the gate. Optional ``--parallel``
+enables pytest-xdist (two-pass: parallel then
 ``@pytest.mark.serial``).
 
 Optional non-Python lanes are opt-in: ``--with-playwright`` and
@@ -659,6 +660,27 @@ class SuiteConfig:
 
 STORY_RUNTIME_CORE_DIR = PROJECT_ROOT / "story_runtime_core"
 
+
+def _pytest_slice(
+    *,
+    cwd: Path,
+    targets: tuple[str, ...],
+    supports_scope: bool = False,
+    ignore_paths: tuple[str, ...] = (),
+) -> SuiteConfig:
+    """Build a partial-suite config from one or more explicit pytest targets."""
+    if not targets:
+        raise ValueError("pytest slice requires at least one target")
+    return SuiteConfig(
+        kind="pytest",
+        cwd=cwd,
+        target=targets[0],
+        supports_scope=supports_scope,
+        supports_coverage=False,
+        extra_targets=targets[1:],
+        ignore_paths=ignore_paths,
+    )
+
 SUITE_CONFIGS: dict[str, SuiteConfig] = {
     # Component suites
     "backend": SuiteConfig(kind="pytest", cwd=BACKEND_DIR, target="tests", supports_scope=True),
@@ -724,6 +746,11 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
         kind="pytest", cwd=BACKEND_DIR, target="tests/mcp",
         supports_scope=True, supports_coverage=False,
     ),
+    "backend_play": _pytest_slice(
+        cwd=BACKEND_DIR,
+        targets=BACKEND_PLAY_TARGETS,
+        supports_scope=True,
+    ),
     # ``backend_rest`` runs ``backend/tests`` but subtracts every directory and explicit
     # file already covered by the other sub-suites above (and writers_room/improvement
     # which have their own component suites). Coverage off; ordering preserved.
@@ -743,7 +770,61 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
             "tests/improvement",
             "tests/test_observability.py",
             "tests/test_m11_ai_stack_observability.py",
+            *BACKEND_PLAY_TARGETS,
         ),
+    ),
+    # --- World-engine focused blocks ---
+    # These are partial lanes for systematic checks while changing the runtime. The
+    # canonical ``engine`` suite remains the full coverage gate.
+    "engine_foundation": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_FOUNDATION_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_http_ws": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_HTTP_WS_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_runtime": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_RUNTIME_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_opening_contracts": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_OPENING_CONTRACT_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_persistence": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_PERSISTENCE_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_observability": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=ENGINE_OBSERVABILITY_TARGETS,
+        supports_scope=True,
+    ),
+    "engine_rest": _pytest_slice(
+        cwd=WORLD_ENGINE_DIR,
+        targets=("tests",),
+        supports_scope=True,
+        ignore_paths=ENGINE_BLOCK_TARGETS,
+    ),
+    # --- AI-stack focused blocks ---
+    # All run from the repository root so the installed external ``langgraph`` package is
+    # not shadowed by the local ``ai_stack/langgraph`` package directory.
+    "ai_stack_graph": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_GRAPH_TARGETS),
+    "ai_stack_goc": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_GOC_TARGETS),
+    "ai_stack_capabilities": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_CAPABILITIES_TARGETS),
+    "ai_stack_narrative": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_NARRATIVE_TARGETS),
+    "ai_stack_retrieval_research": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_RETRIEVAL_RESEARCH_TARGETS),
+    "ai_stack_quality": _pytest_slice(cwd=PROJECT_ROOT, targets=AI_STACK_QUALITY_TARGETS),
+    "ai_stack_rest": _pytest_slice(
+        cwd=PROJECT_ROOT,
+        targets=("ai_stack/tests",),
+        ignore_paths=AI_STACK_BLOCK_TARGETS,
     ),
     # Optional external lanes
     "playwright_e2e": SuiteConfig(kind="external", cwd=PROJECT_ROOT / "tests" / "e2e", target="npx playwright test"),
@@ -888,31 +969,24 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
 
     # --- Same import surface as backend / database / writers_room / improvement / frontend conftests ---
     needs_backend_stack = bool(
-        labels
-        & {
-            "backend",
-            "backend_runtime",
-            "backend_observability",
-            "backend_services",
-            "backend_content",
-            "backend_routes_core",
-            "backend_mcp",
-            "backend_rest",
-            "frontend",
-            "administration",
-            "writers_room",
-            "improvement",
-            "database",
-            "root_core",
-            "root_integration",
-            "root_branching",
-            "root_smoke",
-            "root_tools",
-            "root_requirements_hygiene",
-            "root_e2e_python",
-            "root_experience_scoring",
-            "gates",
-        }
+        (labels & set(BACKEND_SUITE_FAMILY))
+        or (
+            labels
+            & {
+                "frontend",
+                "administration",
+                "database",
+                "root_core",
+                "root_integration",
+                "root_branching",
+                "root_smoke",
+                "root_tools",
+                "root_requirements_hygiene",
+                "root_e2e_python",
+                "root_experience_scoring",
+                "gates",
+            }
+        )
     )
     if needs_backend_stack:
         print_info("Probing backend Flask stack (cwd=backend, PYTHONPATH=backend) …")
@@ -1002,7 +1076,7 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
                 print_info(ad_err)
 
     # --- World engine (FastAPI app package ``app`` under world-engine/) ---
-    if "engine" in labels:
+    if labels & set(ENGINE_SUITE_FAMILY):
         print_info("Probing world-engine stack (cwd=world-engine, PYTHONPATH=repo+world-engine) …")
         sep = os.pathsep
         we_py = f"{WORLD_ENGINE_DIR}{sep}{PROJECT_ROOT}"
@@ -1040,7 +1114,7 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
                 print_info(g_err)
 
     # --- ai_stack (repo root on PYTHONPATH; editable installs per CI) ---
-    if "ai_stack" in labels:
+    if labels & set(AI_STACK_SUITE_FAMILY):
         print_info("Probing ai_stack (cwd=repo root, PYTHONPATH=repo) …")
         sep = os.pathsep
         root_py = str(PROJECT_ROOT)
@@ -1110,23 +1184,22 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
 
 def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
     """Put repo root and/or world-engine on PYTHONPATH for suites that require them."""
-    if suite_name not in ("ai_stack", "engine", "gates", "story_runtime_core"):
+    if (
+        suite_name not in AI_STACK_SUITE_FAMILY
+        and suite_name not in ENGINE_SUITE_FAMILY
+        and suite_name not in ("gates", "story_runtime_core")
+    ):
         return None
     env = dict(os.environ)
     sep = os.pathsep
     existing = env.get("PYTHONPATH", "")
     parts = [p for p in existing.split(sep) if p]
-    root = str(PROJECT_ROOT)
-    if root not in parts:
-        parts.insert(0, root)
-    if suite_name in ("engine", "gates"):
-        we = str(WORLD_ENGINE_DIR)
-        if we not in parts:
-            parts.insert(0, we)
+    wanted = [str(PROJECT_ROOT)]
+    if suite_name in ENGINE_SUITE_FAMILY or suite_name in AI_STACK_SUITE_FAMILY or suite_name == "gates":
+        wanted.append(str(WORLD_ENGINE_DIR))
     if suite_name == "gates":
-        be = str(BACKEND_DIR)
-        if be not in parts:
-            parts.insert(0, be)
+        wanted.append(str(BACKEND_DIR))
+    parts = wanted + [p for p in parts if p not in wanted]
     env["PYTHONPATH"] = sep.join(parts)
     return env
 
@@ -1569,14 +1642,13 @@ def run_tests_for_suites(
         m = combined_marker_expression(suite_name, scope, domain)
         scope_only_marker = marker_filter_for_suite(suite_name, scope)
         if scope != "all" and scope_only_marker is None:
-            if suite_name in ("administration", "engine") and scope == "e2e":
+            if (suite_name == "administration" or suite_name in ENGINE_SUITE_FAMILY) and scope == "e2e":
                 print_info(
                     f"Suite '{suite_name}' has no ``e2e`` marker in pytest.ini; running full tests."
                 )
-            elif suite_name in (
+            elif suite_name in AI_STACK_SUITE_FAMILY or suite_name in (
                 "frontend",
                 "database",
-                "ai_stack",
                 "root_core",
                 "root_integration",
                 "root_branching",
@@ -1691,6 +1763,8 @@ Examples (from repository root):
   python tests/run_tests.py --suite backend --scope contracts
   python tests/run_tests.py --suite administration --scope security
   python tests/run_tests.py --suite engine --scope integration
+  python tests/run_tests.py --suite engine_runtime engine_opening_contracts --quick
+  python tests/run_tests.py --suite ai_stack_graph ai_stack_goc --quick --continue-on-failure
   python tests/run_tests.py --suite writers_room improvement --quick
   python tests/run_tests.py --suite ai_stack --quick
   python tests/run_tests.py --suite all --coverage
@@ -1705,36 +1779,7 @@ Optional non-Python lanes are opt-in:
         "--suite",
         nargs="+",
         default=["all"],
-        choices=[
-            "backend",
-            "backend_runtime",
-            "backend_observability",
-            "backend_services",
-            "backend_content",
-            "backend_routes_core",
-            "backend_mcp",
-            "backend_rest",
-            "frontend",
-            "administration",
-            "engine",
-            "database",
-            "writers_room",
-            "improvement",
-            "ai_stack",
-            "story_runtime_core",
-            "gates",
-            "root_core",
-            "root_integration",
-            "root_branching",
-            "root_smoke",
-            "root_tools",
-            "tools_mcp_server",
-            "root_requirements_hygiene",
-            "root_e2e_python",
-            "root_experience_scoring",
-            "mvp5",
-            "all",
-        ],
+        choices=[name for name in SUITE_CONFIGS if name not in {"playwright_e2e", "compose_smoke"}] + ["all"],
         help=(
             "Suite groups to run (default: all Python suites). "
             "Use --with-playwright / --with-compose-smoke to add optional external lanes."
@@ -1747,8 +1792,8 @@ Optional non-Python lanes are opt-in:
         help=(
             "Filter by pytest marker where supported: backend, writers_room, improvement "
             "(contract, integration, e2e, security); administration and engine "
-            "(contract, integration, security - no e2e marker). "
-            "frontend, database, ai_stack, and root_* suites ignore --scope and run full targets."
+            "including engine_* block suites (contract, integration, security - no e2e marker). "
+            "frontend, database, ai_stack/ai_stack_* blocks, and root_* suites ignore --scope and run full targets."
         ),
     )
     parser.add_argument(
