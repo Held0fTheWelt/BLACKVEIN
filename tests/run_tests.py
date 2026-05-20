@@ -1195,12 +1195,14 @@ def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
     existing = env.get("PYTHONPATH", "")
     parts = [p for p in existing.split(sep) if p]
     wanted = [str(PROJECT_ROOT)]
-    if suite_name in ENGINE_SUITE_FAMILY or suite_name in AI_STACK_SUITE_FAMILY or suite_name == "gates":
-        wanted.append(str(WORLD_ENGINE_DIR))
-    if suite_name == "gates":
+    # Backend ``app`` must precede world-engine on PYTHONPATH when both are needed (gates,
+    # engine, ai_stack). See tests/gates/conftest.py and repo-root conftest.py.
+    if suite_name == "gates" or suite_name in ENGINE_SUITE_FAMILY or suite_name in AI_STACK_SUITE_FAMILY:
         wanted.append(str(BACKEND_DIR))
+        wanted.append(str(WORLD_ENGINE_DIR))
     parts = wanted + [p for p in parts if p not in wanted]
     env["PYTHONPATH"] = sep.join(parts)
+    env["WOS_PYTEST_SUITE"] = suite_name
     return env
 
 
