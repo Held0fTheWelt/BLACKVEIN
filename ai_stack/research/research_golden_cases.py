@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.research.research_contract import (
+from ai_stack.contracts.research_contract import (
     CanonIssueType,
     ContradictionStatus,
     ImprovementProposalType,

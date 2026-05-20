@@ -14,7 +14,7 @@ from app.runtime.profiles import (
     assert_runtime_module_contains_no_story_truth,
     validate_selected_player_role,
 )
-from ai_stack.goc_yaml_authority import goc_actor_ids_from_content
+from ai_stack.god_of_carnage_yaml_authority import goc_actor_ids_from_content
 from tests.test_runtime_engine import _build_test_solo_template
 
 

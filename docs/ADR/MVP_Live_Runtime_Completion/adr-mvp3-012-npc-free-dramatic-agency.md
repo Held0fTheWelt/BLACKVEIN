@@ -29,7 +29,7 @@ A passive NPC that only responds when directly addressed violates the live drama
 ## Affected Services/Files
 
 - `ai_stack/live_dramatic_scene_simulator.py` — `NPCAgencyPlan`, `NPCInitiative`, `validate_responder_candidates()`, `_select_primary_responder()`, `build_deterministic_ldss_output()`
-- `ai_stack/story_runtime/npc_agency/npc_agency_contracts.py` — shared runtime contract normalization for the current `npc_agency_simulation.v1` surface, durable closure constants, human/visitor exclusion, and the internal `npc_agency_plan.v1` adapter.
+- `ai_stack/contracts/npc_agency_contracts.py` — shared runtime contract normalization for the current `npc_agency_simulation.v1` surface, durable closure constants, human/visitor exclusion, and the internal `npc_agency_plan.v1` adapter.
 - `ai_stack/story_runtime/npc_agency/npc_agency_planner.py` — deterministic independent NPC roster planner for `npc_agency_simulation.v1`, including candidate scoring, carry-forward pressure, and NPC-to-NPC target graph projection.
 - `ai_stack/story_runtime/npc_agency/npc_agency_long_horizon.py` — deterministic `npc_long_horizon_state.v1`, `npc_intention_thread.v1`, `npc_private_plan.v1`, and `npc_plan_conflict_resolution.v1` builders.
 - `ai_stack/story_runtime/npc_agency/npc_agency_claim_readiness.py` — evidence gate for bounded, live-staging-ready, and full long-horizon claim states.
@@ -37,7 +37,7 @@ A passive NPC that only responds when directly addressed violates the live drama
 - `ai_stack/runtime_aspect_ledger.py` — `npc_agency` runtime aspect projection for candidate, planned, realized, missing, carry-forward, closure, and scoring evidence.
 - `ai_stack/story_runtime/story_runtime_playability.py` — recoverable rewrite feedback for missing required NPC initiative without allowing degraded commit to hide it.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — model-visible current NPC agency simulation projection, bounded initiative directives, validation-aspect wiring, and self-correction trigger surface.
-- `ai_stack/actor_survival_telemetry.py` — vitality telemetry projection of candidate, planned, realized, missing, required, and carry-forward NPC initiatives.
+- `ai_stack/telemetry/actor_survival_telemetry.py` — vitality telemetry projection of candidate, planned, realized, missing, required, and carry-forward NPC initiatives.
 - `ai_stack/narrative_runtime_agent.py` — ruhepunkt pressure analysis reads the v1 `npc_initiatives` contract and remains backward-compatible with legacy `initiatives`.
 - `world-engine/app/story_runtime/commit_models.py` — persists `npc_agency_simulation`, long-horizon state, private plans, conflict resolution, `npc_agency_closure`, and unresolved carry-forward rows in committed planner truth.
 - `world-engine/app/story_runtime/manager.py` — rehydrates carry-forward planner truth and emits Langfuse NPC agency spans and deterministic scores.

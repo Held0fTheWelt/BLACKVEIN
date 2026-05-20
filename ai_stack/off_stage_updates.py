@@ -35,11 +35,11 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Final
 
-from ai_stack.hierarchical_memory_contracts import (
+from ai_stack.contracts.hierarchical_memory_contracts import (
     build_off_stage_hierarchical_memory_write,
     merge_hierarchical_memory_snapshot,
 )
-from ai_stack.relationship_state_contracts import (
+from ai_stack.contracts.relationship_state_contracts import (
     RELATIONSHIP_STATE_SCHEMA_VERSION,
     RelationshipDynamicsTarget,
     RelationshipStateEvidenceRef,

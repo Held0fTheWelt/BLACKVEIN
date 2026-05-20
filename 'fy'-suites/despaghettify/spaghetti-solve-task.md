@@ -81,7 +81,7 @@ Write **`session_YYYYMMDD_DS-0xx_wave_plan.json`** next to the markdown plan (sa
 
 **Generate / sync Markdown ↔ JSON:** [`despaghettify/tools/wave_plan_emit.py`](tools/wave_plan_emit.py) — `json2md` (emit fenced JSON + table from `wave_plan.json`), `md2json` (extract the first JSON code fence in the Markdown), or `md2json --from-wave-table` after `json2md --table-only` for a round-trip. Reduces drift between the prose table and the machine file.
 
-**Resume hints in JSON (optional):** set **`completed_wave_ids`** (subset of `sub_waves[].id`) and **`next_index`** (`k+1` to continue, or `N+1` when finished) so tooling can pick up the next sub-wave without parsing § *Progress / work log* alone — see [WAVE_PLAN_SCHEMA.md](superpowers/references/WAVE_PLAN_SCHEMA.md).
+**Resume hints in JSON (optional):** set **`completed_wave_ids`** (subset of `sub_waves[].id`) and **`next_index`** (`k+1` to continue, or `N+1` when finished) so tooling can pick up the next sub-wave without parsing § *Active progress* alone — see [WAVE_PLAN_SCHEMA.md](superpowers/references/WAVE_PLAN_SCHEMA.md).
 
 ## Autonomous loop (until DS finalization)
 
@@ -96,8 +96,8 @@ Write **`session_YYYYMMDD_DS-0xx_wave_plan.json`** next to the markdown plan (sa
 Assume sub-waves **1 … k** completed (**completion gate** satisfied for each), **k < N**, DS **not** finalised.
 
 1. **Truth:** do **not** mark the DS **CLOSED**; repo must reflect **partial** progress only.
-2. **Progress / work log (required):** add a row in [despaghettification_implementation_input.md](despaghettification_implementation_input.md) § *Progress / work log* with **DS-ID**, **`N`**, **`k` completed** (list `_w01`…`_w0k` or artefact stems), **next** sub-wave **`k+1` goal (one line)**, and **relative paths** to the **latest post** artefacts for wave **k**.
-3. **Next session:** user invokes again **`run spaghetti-solve-task DS-0xx`** (same ID). Agent **reads** persisted wave plan + work log + `WORKSTREAM_*_STATE.md`, runs **`python -m despaghettify.tools solve-preflight --ds …`** (optional), then starts **pre** for sub-wave **`k+1` only** — **do not** re-run completed waves unless a gate regressed.
+2. **Active progress (required):** add or update a row in [despaghettification_implementation_input.md](despaghettification_implementation_input.md) § *Active progress* with **DS-ID**, **`N`**, **`k` completed** (list `_w01`…`_w0k` or artefact stems), **next** sub-wave **`k+1` goal (one line)**, and **relative paths** to the **latest post** artefacts for wave **k**. Do **not** append partial progress to [despaghettification_completed_log.md](despaghettification_completed_log.md).
+3. **Next session:** user invokes again **`run spaghetti-solve-task DS-0xx`** (same ID). Agent **reads** persisted wave plan + § *Active progress* + `WORKSTREAM_*_STATE.md`, runs **`python -m despaghettify.tools solve-preflight --ds …`** (optional), then starts **pre** for sub-wave **`k+1` only** — **do not** re-run completed waves unless a gate regressed.
 4. If the wave plan is **missing** from the repo and cannot be reconstructed from artefacts + log → **contradiction stop**; restore the table in `WORKSTREAM_*_STATE.md` (or agreed file) before further code.
 
 #### External branch updates (merge / rebase between waves)
@@ -116,7 +116,7 @@ For **sub-wave** `k` in `1 … N`:
 2. **Pre:** artefacts under `despaghettify/state/artifacts/workstreams/<slug>/pre/` using the **DS-ID** plus a **unique** sub-wave stem fragment (e.g. `_w01_`, `_w02_`, …) for this `k` — at least one human-readable artefact and preferably one machine-readable (`.json`), per governance.
 3. **Implementation:** code/structure per the sub-wave row and DS **direction**; preserve behaviour; run the **gate** commands from the wave plan / phase **note**.
 4. **Post:** artefacts under `…/post/`; document **pre→post** comparison for this `k`.
-5. **State & input list:** update `WORKSTREAM_*_STATE.md` and [despaghettification_implementation_input.md](despaghettification_implementation_input.md) per § *Maintaining this file during structural waves* (optional work log row per sub-wave is allowed).
+5. **State & input list:** update `WORKSTREAM_*_STATE.md` and [despaghettification_implementation_input.md](despaghettification_implementation_input.md) per § *Maintaining this file during structural waves* (§ *Active progress* row per sub-wave when in-flight; completed log only on DS closure — step 2 below).
 6. **Open hotspots** (same rules as before, **per sub-wave** when relevant): Still in the **same** PR/commit as this sub-wave, edit **Open hotspots** under § *Latest structure scan* **without** waiting for a new [spaghetti-check-task.md](spaghetti-check-task.md) run. If this sub-wave **fully** fixes a named fragment: **remove** it or set **—** when nothing remains; if **partial**: **rewrite** to remaining risk; if **untouched**: leave unchanged. Do **not** invent new DS rows here — only narrow/close existing hotspot prose.
 7. **Next:** if `k < N` and no hard stop → proceed to sub-wave `k+1`. If `k = N` → go to **DS finalization**.
 
@@ -125,7 +125,7 @@ For **sub-wave** `k` in `1 … N`:
 After sub-wave **N** completes:
 
 1. **Verify** the DS **direction** / acceptance implied by the row is satisfied (tests and tools listed in the DS row and phase **note** have been run on the final tree unless explicitly deferred with recorded reason — deferral is **discouraged**).
-2. **Mark the DS row closed** in § *Information input list* (same strikethrough / **CLOSED** pattern as other rows); update § *Recommended implementation order* and Mermaid if the phase row must reflect completion; add § *Progress / work log* row with pre/post pointers and session ids for **all** sub-waves.
+2. **Mark the DS row closed** in § *Information input list* (strikethrough / **CLOSED** on the open row, or remove after the next hub CLI run); update § *Recommended implementation order*; **append one summary row** to [despaghettification_completed_log.md](despaghettification_completed_log.md) (pre/post pointers, session ids for **all** sub-waves); **remove** that wave from § *Active progress*. **Automatic:** any `python -m despaghettify.tools …` invocation runs **`sync-archive`** first — closed rows are moved to the completed log and § *Open* / § *Open phases* are normalized (see [`superpowers/references/CLI.md`](superpowers/references/CLI.md)).
 3. **Open hotspots:** final pass per step 6 above for any remaining fragments tied to this DS.
 4. **Success message (allowed only now for this invocation):** list **DS-ID**, that **N** sub-waves completed, where pre/post live (paths relative to `despaghettify/state/`), what tests/`ds005` ran on the final state, and optional pointer to a follow-up [spaghetti-check-task.md](spaghetti-check-task.md) run.
 

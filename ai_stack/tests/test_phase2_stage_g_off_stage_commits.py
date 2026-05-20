@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.hierarchical_memory_contracts import (
+from ai_stack.contracts.hierarchical_memory_contracts import (
     HIERARCHICAL_MEMORY_WRITE_SCHEMA_VERSION,
 )
 from ai_stack.autonomous_tick import (
@@ -27,7 +27,7 @@ from ai_stack.off_stage_updates import (
     build_off_stage_update_candidate,
     commit_off_stage_update_candidates,
 )
-from ai_stack.relationship_state_contracts import (
+from ai_stack.contracts.relationship_state_contracts import (
     RelationshipAxisState,
     RelationshipPairState,
     RelationshipStateRecord,

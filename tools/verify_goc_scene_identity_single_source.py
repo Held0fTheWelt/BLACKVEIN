@@ -9,25 +9,31 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Unique sentinel substring of the canonical dict (must only appear in goc_scene_identity.py)
+# Unique sentinel substring of the canonical dict (must only appear in god_of_carnage_scene_identity.py)
 _SENTINEL = '"courtesy": "phase_1_polite_opening"'
+_IGNORED_SCAN_PARTS = {
+    ".claude",
+    ".cursor",
+    ".git",
+    ".venv",
+    ".worktrees",
+    "__pycache__",
+    "node_modules",
+    "venv",
+}
 
 
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
     hits: list[str] = []
     for path in root.rglob("*.py"):
-        if "venv" in path.parts or ".venv" in path.parts or "__pycache__" in path.parts:
-            continue
-        if ".cursor" in path.parts or "node_modules" in path.parts:
-            continue
         try:
             rel = path.relative_to(root)
         except ValueError:
             continue
-        if rel.parts[:1] == (".git",):
+        if set(rel.parts) & _IGNORED_SCAN_PARTS:
             continue
-        if path.name == "goc_scene_identity.py" and rel.parts[0] == "ai_stack":
+        if path.name == "god_of_carnage_scene_identity.py" and rel.parts[0] == "ai_stack":
             continue
         if rel.parts == ("tools", "verify_goc_scene_identity_single_source.py"):
             continue

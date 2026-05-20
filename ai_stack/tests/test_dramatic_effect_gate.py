@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
+from ai_stack.contracts.dramatic_effect_contract import (
     ContinuitySupportPosture,
     DramaticEffectEvaluationContext,
     DramaticEffectGateResult,
@@ -12,8 +12,8 @@ from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import evaluate
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_branch_outcomes import (
     continuity_posture_for_social,
 )
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
-from ai_stack.story_runtime.semantic_planner.social_state_contract import SocialStateRecord
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
+from ai_stack.contracts.social_state_contract import SocialStateRecord
 
 
 def _ctx(
@@ -188,7 +188,7 @@ def test_goc_golden_path_not_legacy_dominated() -> None:
 
 def test_authority_commit_depends_on_validation_not_gate_outcome_alone() -> None:
     """Gate is advisory; seam mapping still requires validation_outcome (structural check)."""
-    from ai_stack.story_runtime.turn.goc_turn_seams import run_commit_seam
+    from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_commit_seam
 
     proposed = [{"effect_type": "narrative_beat", "description": "x"}]
     cr = run_commit_seam(

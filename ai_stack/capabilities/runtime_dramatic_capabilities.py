@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_EXECUTE_PLAYER_ACTION_FORBIDDEN,

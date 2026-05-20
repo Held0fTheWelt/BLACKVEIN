@@ -55,7 +55,7 @@ LLM-as-a-judge claims are not valid pass/fail evidence.
 
 Primary implementation anchors:
 
-- `ai_stack/active_listening_contracts.py`
+- `ai_stack/contracts/active_listening_contracts.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/runtime_aspect_ledger.py`
 - `ai_stack/capabilities/capability_selector.py`

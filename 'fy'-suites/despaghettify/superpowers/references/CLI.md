@@ -8,6 +8,19 @@
 - **Direct script:** `python "./'fy'-suites/despaghettify/tools/hub_cli.py" …` (path to the file).
 - **PYTHONPATH:** if not using editable install, prepend the `'fy'-suites` directory so `python -m despaghettify.tools` works.
 
+## Automatic archive sync
+
+Before **every** subcommand (except explicit `sync-archive --dry-run`), the hub runs **`sync_input_archive`**: closed **DS-*** rows (strikethrough / **CLOSED**) move from [`despaghettification_implementation_input.md`](../despaghettification_implementation_input.md) into [`despaghettification_completed_log.md`](../despaghettification_completed_log.md); § *Open* / § *Open phases* stay lean. Disable with `DESPAG_SKIP_ARCHIVE_SYNC=1`. `check` JSON includes an **`archive_sync`** object when sync ran.
+
+## `sync-archive`
+
+```bash
+python -m despaghettify.tools sync-archive
+python -m despaghettify.tools sync-archive --dry-run
+```
+
+Idempotent normalize + archive; same logic as the automatic pre-command hook.
+
 ## `check`
 
 Runs:

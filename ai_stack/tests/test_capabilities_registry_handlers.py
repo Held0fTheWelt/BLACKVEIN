@@ -318,7 +318,7 @@ class TestResearchExploreHandler:
             "seed_question": "Q?",
         }
 
-        with patch("ai_stack.research.research_contract.ExplorationBudget") as mock_budget_cls:
+        with patch("ai_stack.contracts.research_contract.ExplorationBudget") as mock_budget_cls:
             with patch("ai_stack.research.research_langgraph.run_research_pipeline") as mock_run:
                 mock_budget_cls.from_payload.return_value = MagicMock(to_dict=MagicMock(return_value={}))
                 mock_run.return_value = {"run_id": "run_x", "outputs": {"exploration_summary": {}}}

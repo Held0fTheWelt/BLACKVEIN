@@ -59,7 +59,7 @@ from ai_stack.context_synthesis_engine import (
     context_synthesis_prompt_lines,
     summarize_context_synthesis_for_diagnostics,
 )
-from ai_stack.active_listening_contracts import (
+from ai_stack.contracts.active_listening_contracts import (
     build_broad_nlu_listening_aspect_record,
     build_conversational_memory_aspect_record,
     build_prompt_authority_aspect_record,
@@ -68,7 +68,7 @@ from ai_stack.active_listening_contracts import (
     derive_conversational_memory_context,
 )
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_META_CONTROL,
@@ -123,9 +123,9 @@ from ai_stack.dramatic_irony_runtime import (
     compact_dramatic_irony_context,
     validate_dramatic_irony_realization,
 )
-from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
+from ai_stack.contracts.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
 from ai_stack.story_runtime.director.capabilities_manager.director_capability_manager import executable_capabilities_from_manager_plan
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     AI_CONTROLLED_HUMAN_ACTOR_REASON,
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
@@ -143,23 +143,23 @@ from ai_stack.capabilities.dramatic_capability_contracts import (
     NARRATOR_PERCEPTION_RESULT_DESCRIBE,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.environment_state_contracts import (
+from ai_stack.contracts.environment_state_contracts import (
     apply_action_to_environment_state,
     build_environment_generation_context,
     build_environment_model,
     build_environment_render_context,
     normalize_environment_state,
 )
-from ai_stack.story_runtime.narrator.narrator_consequence_contracts import (
+from ai_stack.contracts.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
     build_updated_player_local_context,
     normalize_scene_affordance_model_for_contracts,
 )
-from ai_stack.story_runtime.narrator.narrator_consequence_realization_contracts import (
+from ai_stack.contracts.narrator_consequence_realization_contracts import (
     build_narrator_consequence_realization,
 )
-from ai_stack.story_runtime.director.director_gathering_state_contracts import (
+from ai_stack.contracts.director_gathering_state_contracts import (
     DIAGNOSTIC_BLOCKER_MISSING_ACTOR_LOCATIONS,
     DIAGNOSTIC_BLOCKER_MISSING_NAMED_CHARACTERS,
     DIAGNOSTIC_BLOCKER_MISSING_PARTICIPATION_EVIDENCE,
@@ -167,28 +167,28 @@ from ai_stack.story_runtime.director.director_gathering_state_contracts import (
     gathering_pause_is_transition,
     should_suppress_mandatory_beat_consumption,
 )
-from ai_stack.actor_situation import (
+from ai_stack.actor_tracking import (
     build_w5_projection_for_director,
     build_w5_projection_for_npc,
 )
 from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
-from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
-from ai_stack.story_runtime.semantic_planner.goc_roadmap_semantic_surface import ROUTING_LABELS
-from ai_stack.goc_yaml_authority import (
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID, canonicalize_goc_actor_id
+from ai_stack.god_of_carnage_frozen_vocabulary import expand_goc_actor_id_aliases
+from ai_stack.story_runtime.semantic_planner.god_of_carnage_roadmap_semantic_surface import ROUTING_LABELS
+from ai_stack.god_of_carnage_yaml_authority import (
     detect_builtin_yaml_title_conflict,
     goc_character_profile_snippet,
     load_goc_canonical_module_yaml,
     load_goc_yaml_slice_bundle,
     scene_guidance_snippets,
 )
-from ai_stack.goc_knowledge_runtime_gates import (
+from ai_stack.god_of_carnage_knowledge_runtime_gates import (
     build_opening_scene_plan_metadata,
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
 )
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+from ai_stack.contracts.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_CLOSED_STATUS,
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
@@ -267,25 +267,25 @@ from ai_stack.symbolic_object_resonance_engine import (
     derive_symbolic_object_resonance,
     validate_symbolic_object_resonance_realization,
 )
-from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
-from ai_stack.story_runtime.npc_agency.character.character_mind_goc import build_character_mind_records_for_goc
-from ai_stack.story_runtime.npc_agency.character.character_voice_goc import build_character_voice_profiles_for_goc
+from ai_stack.god_of_carnage_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
+from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_mind import build_character_mind_records_for_goc
+from ai_stack.story_runtime.npc_agency.character.god_of_carnage_character_voice import build_character_voice_profiles_for_goc
 from ai_stack.story_runtime.npc_agency.character.character_voice_validation import validate_voice_consistency
-from ai_stack.story_runtime.director.scene_director_goc import (
+from ai_stack.story_runtime.director.god_of_carnage_scene_director import (
     build_pacing_and_silence,
     build_responder_and_function,
     build_scene_assessment,
     prior_continuity_classes,
 )
-from ai_stack.story_runtime.semantic_planner.scene_plan_contract import ScenePlanRecord
+from ai_stack.contracts.scene_plan_contract import ScenePlanRecord
 from ai_stack.story_runtime.semantic_planner.semantic_scene_planner import build_semantic_scene_plan_enrichment
-from ai_stack.story_runtime.semantic_planner.semantic_move_contract import SemanticMoveRecord
-from ai_stack.story_runtime.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
-from ai_stack.story_runtime.semantic_planner.social_state_contract import SocialStateRecord
-from ai_stack.story_runtime.semantic_planner.social_state_goc import build_social_state_record, social_state_fingerprint
+from ai_stack.contracts.semantic_move_contract import SemanticMoveRecord
+from ai_stack.story_runtime.semantic_planner.god_of_carnage_semantic_move_interpretation import interpret_goc_semantic_move, semantic_move_fingerprint
+from ai_stack.contracts.social_state_contract import SocialStateRecord
+from ai_stack.story_runtime.semantic_planner.god_of_carnage_social_state import build_social_state_record, social_state_fingerprint
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import build_evaluation_context_from_runtime_state
-from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
-from ai_stack.story_runtime.turn.goc_turn_seams import (
+from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import (
     build_diagnostics_refs,
     build_goc_continuity_impacts_on_commit,
     repro_metadata_complete,

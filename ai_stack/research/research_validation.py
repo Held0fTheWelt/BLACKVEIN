@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.research.research_claims import is_schema_valid_claim_payload
-from ai_stack.research.research_contract import (
+from ai_stack.contracts.research_contract import (
     ContradictionStatus,
     Perspective,
     ResearchClaimRecord,

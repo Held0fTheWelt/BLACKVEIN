@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
+from ai_stack.contracts.dramatic_effect_contract import (
     DramaticEffectEvaluationContext,
     DramaticEffectGateOutcome,
     DramaticEffectGateResult,

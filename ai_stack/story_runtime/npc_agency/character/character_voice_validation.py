@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ai_stack.story_runtime.npc_agency.character.character_voice_contract import (
+from ai_stack.contracts.character_voice_contract import (
     CharacterVoiceProfileRecord,
     VoiceConsistencyValidationResult,
     VoiceDriftFinding,
@@ -16,7 +16,7 @@ from ai_stack.story_runtime.npc_agency.character.character_voice_semantic_classi
     classify_voice_semantic_lines,
     semantic_policy_enabled,
 )
-from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 
 def _norm(text: str) -> str:

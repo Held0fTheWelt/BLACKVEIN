@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.improvisational_coherence_contracts import (
+from ai_stack.contracts.improvisational_coherence_contracts import (
     IMPROV_ACCEPT,
     IMPROV_FAILURE_PLAYER_CONTRIBUTION_DROPPED,
     IMPROV_FAILURE_SCENE_ANCHOR_MISSING,

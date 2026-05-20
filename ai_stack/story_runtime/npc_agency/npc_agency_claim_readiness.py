@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+from ai_stack.contracts.npc_agency_contracts import (
     NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS,
     NPC_AGENCY_CLAIM_FULL_LONG_HORIZON_READY_STATUS,
     NPC_AGENCY_CLAIM_LIVE_STAGING_READY_STATUS,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
-from ai_stack.story_runtime.turn.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS
+from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
+from ai_stack.contracts.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS
 
 
 def _sample_telemetry_fields() -> set[str]:

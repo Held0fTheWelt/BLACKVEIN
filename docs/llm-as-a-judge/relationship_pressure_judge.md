@@ -17,7 +17,7 @@ severity:
   insufficient_evidence: [insufficient_evidence]
 suggested_repair_areas:
   - relationship state tracking
-  - NPC reaction model (scene_director_goc, character_mind_goc)
+  - NPC reaction model (god_of_carnage_scene_director, god_of_carnage_character_mind)
   - beat pressure / scene function injection
   - content module relationship & social-tension affordances
 ---

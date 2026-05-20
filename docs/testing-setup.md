@@ -168,7 +168,7 @@ python -m pytest tests/experience_scoring_cli/ -q --tb=short
 **Automated runtime graph bundle** (from repository root, with `story_runtime_core` + `ai_stack[test]` installed and `PYTHONPATH` set to the repo root as for the ai_stack suite):
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_semantic_planner_graph_authority.py ai_stack/tests/test_semantic_scene_planner.py -q --tb=short
+python -m pytest ai_stack/tests/test_god_of_carnage_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_semantic_planner_graph_authority.py ai_stack/tests/test_semantic_scene_planner.py -q --tb=short
 ```
 
 The older Phase-2/3/4/5 GoC LangGraph scenario files were retired on
@@ -258,7 +258,7 @@ Authoritative example bundle: `tests/reports/evidence/g9_level_a_fullsix_2026041
 **GoC structural gate smoke (G1–G4 contract closure):** from repo root with `PYTHONPATH` set to the repository root, run:
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_frozen_vocab.py ai_stack/tests/test_goc_roadmap_semantic_surface.py ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_goc_field_initialization_envelope.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py -q --tb=short
+python -m pytest ai_stack/tests/test_god_of_carnage_frozen_vocabulary.py ai_stack/tests/test_god_of_carnage_roadmap_semantic_surface.py ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_god_of_carnage_field_initialization_envelope.py ai_stack/tests/test_god_of_carnage_runtime_graph_seams_and_diagnostics.py -q --tb=short
 python -m pytest story_runtime_core/tests/test_model_registry.py -q --tb=short
 ```
 
@@ -271,7 +271,7 @@ python -m pytest tests/test_goc_semantic_parity.py tests/runtime/test_model_rout
 **G5 / G6 (retrieval governance summary + admin semantic boundary):** from repo root with `story_runtime_core` and `ai_stack[test]` installed as for the ai_stack suite above,
 
 ```bash
-python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py -q --tb=short
+python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_god_of_carnage_runtime_graph_seams_and_diagnostics.py -q --tb=short
 ```
 
 From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
@@ -280,7 +280,7 @@ From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
 python -m pytest tests/test_goc_admin_semantic_boundary.py tests/test_goc_evidence_retrieval_governance.py -q --tb=short --no-cov
 ```
 
-**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so current modules such as `test_goc_runtime_graph_seams_and_diagnostics.py` and `test_semantic_planner_graph_authority.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/experience_scoring_cli/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
+**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so current modules such as `test_god_of_carnage_runtime_graph_seams_and_diagnostics.py` and `test_semantic_planner_graph_authority.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/experience_scoring_cli/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
 
 The root **`setup-test-environment.sh`** / **`setup-test-environment.bat`** scripts also install **`story_runtime_core`** and **`ai_stack[test]`** in editable mode after backend dependencies.
 

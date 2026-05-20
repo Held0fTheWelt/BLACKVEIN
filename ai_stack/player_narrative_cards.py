@@ -11,8 +11,8 @@ from __future__ import annotations
 import re
 from typing import Any, Sequence
 
-from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id
-from ai_stack.visible_narrative_contract import (
+from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id
+from ai_stack.contracts.visible_narrative_contract import (
     _goc_npc_action_redundant_vs_running_visible,
     _goc_visible_lane_text_fold,
     _is_name_only_actor_block,

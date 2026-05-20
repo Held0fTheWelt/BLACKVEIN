@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_ACTION,
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,

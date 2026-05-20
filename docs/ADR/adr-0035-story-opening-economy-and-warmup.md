@@ -9,7 +9,7 @@ Accepted
 **Accepted and implemented as a bounded GoC opening/runtime-state contract.**
 
 - Implemented opening contract surfaces: `content/modules/god_of_carnage/canonical_path/`, `locations/opening/`, `locations/building/`, `locations/appartment_vallon/`, `objects/`, `characters/`, `knowledge/opening_scene_sequence.yaml`, `knowledge/opening_quote_anchors.yaml`, `direction/opening_sequence.yaml`, `scene_graph.yaml`, and `phase_beat_policy.yaml` are loaded through the module runtime policy and GoC YAML slice.
-- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime_executor.py`, and `ai_stack/goc_knowledge_runtime_gates.py`.
+- Runtime prompt/support wiring now carries opening event ids, required establishment facts, handover phase, hard-forbidden detection policy, and no-forced-player-speech constraints through `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime_executor.py`, and `ai_stack/god_of_carnage_knowledge_runtime_gates.py`.
 - Runtime validation now records and gates opening event coverage, handover phase, summary-only absence, and hard-forbidden opening violations through structured diagnostics rather than narrator wording.
 - The bounded Pi15 environment-state slice initializes the opening room/object context in `StorySession.environment_state` and carries the same state into generation, render support, shell readout, and get-state projections.
 - GoC Turn-0 narrator-path openings are mechanically projected from
@@ -194,8 +194,8 @@ flowchart LR
 
 Current verification uses structured/content-derived assertions:
 
-- `ai_stack/tests/test_goc_knowledge_runtime_gates.py`
-- `ai_stack/tests/test_goc_structured_setting_knowledge.py`
+- `ai_stack/tests/test_god_of_carnage_knowledge_runtime_gates.py`
+- `ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py`
 - `ai_stack/tests/test_goc_opening_handover.py`
 - `world-engine/tests/test_goc_knowledge_runtime_path_summary.py`
 - `backend/tests/content/test_content_compiler.py`
@@ -218,14 +218,14 @@ Current verification uses structured/content-derived assertions:
 - `content/modules/god_of_carnage/direction/system_prompt.md` — phase semantics (“structural, not stage directions”)
 - `world-engine/app/story_runtime/manager.py` — `_build_opening_prompt` (opening prompt construction)
 - `ai_stack/live_dramatic_scene_simulator.py` — deterministic LDSS blocks and validation commentary
-- `ai_stack/goc_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
+- `ai_stack/god_of_carnage_knowledge_runtime_gates.py` — opening event coverage, hard-forbidden opening detection, and path-summary projection
 - `ai_stack/goc_opening_handover.py` — opening handover diagnostics and block-level normalization support
-- `ai_stack/story_runtime/narrator/goc_narrator_path.py` — canonical narrator-path projection from
+- `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py` — canonical narrator-path projection from
   mandatory beats; no localized prose database
-- `ai_stack/goc_souffleuse.py` — content-timed player guidance source blocks
+- `ai_stack/god_of_carnage_souffleuse.py` — content-timed player guidance source blocks
   with English internal resolution and output-module realization for non-English
   sessions
-- `ai_stack/environment_state_contracts.py` — bounded Pi15 room/object state initialized from canonical module content
+- `ai_stack/contracts/environment_state_contracts.py` — bounded Pi15 room/object state initialized from canonical module content
 - `world-engine/app/story_runtime_shell_readout.py` — player/operator projection of committed environment state
 - [ADR-0033](adr-0033-live-runtime-commit-semantics.md) — opening readiness / commit truth
 - [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) — player shell / narrator lane presentation

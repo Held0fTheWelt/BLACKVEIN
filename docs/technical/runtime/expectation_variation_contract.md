@@ -111,7 +111,7 @@ Forbidden primary oracles:
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/module.yaml`
-- `ai_stack/expectation_variation_contracts.py`
+- `ai_stack/contracts/expectation_variation_contracts.py`
 - `ai_stack/expectation_variation_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`

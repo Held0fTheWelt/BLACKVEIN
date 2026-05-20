@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_FAILURE_SOURCE_REF_MISMATCH,
     SYMBOLIC_OBJECT_RESONANCE_FAILURE_UNSELECTED_OBJECT,
     SYMBOLIC_OBJECT_RESONANCE_POLICY_VERSION,

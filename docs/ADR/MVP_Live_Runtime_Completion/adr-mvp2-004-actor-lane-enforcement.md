@@ -8,7 +8,7 @@
 
 MVP1 established that the player selects `annette` or `alain` and that the unselected canonical characters become NPC dramatic actors. However, there was no mechanism preventing the AI from generating lines, actions, emotional states, or decisions for the selected human actor. The AI had authority over all actor output slots, including the human player's slot.
 
-Additionally, the responder nomination seam (`build_responder_and_function()` in `ai_stack/story_runtime/director/scene_director_goc.py`) had no guard preventing the human actor from being nominated as a scene responder — an AI-generated response that would silently puppet the player.
+Additionally, the responder nomination seam (`build_responder_and_function()` in `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`) had no guard preventing the human actor from being nominated as a scene responder — an AI-generated response that would silently puppet the player.
 
 ## Decision
 
@@ -18,7 +18,7 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 
 3. **`validate_responder_plan()`** in `world-engine/app/runtime/actor_lane.py` rejects any responder plan where the `primary_responder_id` or any `secondary_responder_ids` entry is the human actor. Error code: `human_actor_selected_as_responder`.
 
-4. **`run_validation_seam()`** in `ai_stack/story_runtime/turn/goc_turn_seams.py` is extended with an optional `actor_lane_context` dict parameter. When provided, it scans the AI generation's structured output (spoken_lines, action_lines, emotional_shift, responder nominations) for human-actor violations **before** the dramatic-effect gate runs. This ensures enforcement happens before response packaging and before commit.
+4. **`run_validation_seam()`** in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` is extended with an optional `actor_lane_context` dict parameter. When provided, it scans the AI generation's structured output (spoken_lines, action_lines, emotional_shift, responder nominations) for human-actor violations **before** the dramatic-effect gate runs. This ensures enforcement happens before response packaging and before commit.
 
 5. **Enforcement order**: runtime bootstrap → ActorLaneContext assembly → AI candidate generation → actor-lane validation → responder validation → response packaging. Validation that only filters after commit is a gate failure.
 
@@ -32,8 +32,8 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 
 - `world-engine/app/runtime/models.py` — `ActorLaneContext`, `ActorLaneValidationResult`
 - `world-engine/app/runtime/actor_lane.py` — `build_actor_lane_context()`, `validate_actor_lane_output()`, `validate_responder_plan()`
-- `ai_stack/story_runtime/turn/goc_turn_seams.py` — `_check_human_actor_violations()`, `run_validation_seam()` extended with `actor_lane_context`
-- `ai_stack/story_runtime/director/scene_director_goc.py` — `build_responder_and_function()` (responder nomination seam — receives validation in MVP3)
+- `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — `_check_human_actor_violations()`, `run_validation_seam()` extended with `actor_lane_context`
+- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` — `build_responder_and_function()` (responder nomination seam — receives validation in MVP3)
 
 ## Consequences
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+from ai_stack.contracts.npc_agency_contracts import (
     DEFAULT_ALLOWED_BLOCK_TYPES,
     DEFAULT_ALLOWED_OUTPUT_LANES,
     NPC_AGENCY_PLAN_PARTIAL_STATUS,

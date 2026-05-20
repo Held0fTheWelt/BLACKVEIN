@@ -96,7 +96,7 @@ The engine does **not** replace long-term platform accounts, billing, forums, or
 
 1. Something happens: the player sends text (or a structured command is derived from it).
 2. The system **receives** the turn for a known session.
-3. The engine runs a **pipeline** (the LangGraph turn graph in `ai_stack/langgraph/langgraph_runtime.py`) that interprets input. Story-play input pulls context, calls models, and runs **validation** and **commit seams** (`goc_turn_seams.py` helpers); Meta/OOC control input takes a diagnostic branch instead.
+3. The engine runs a **pipeline** (the LangGraph turn graph in `ai_stack/langgraph/langgraph_runtime.py`) that interprets input. Story-play input pulls context, calls models, and runs **validation** and **commit seams** (`god_of_carnage_turn_seams.py` helpers); Meta/OOC control input takes a diagnostic branch instead.
 4. The engine **resolves** what scene is **allowed** to commit (`resolve_narrative_commit` in `commit_models.py`).
 5. It **updates** `StorySession` (scene id, history, threads, diagnostics).
 6. The **response** goes back through the backend to whatever UI is driving play.
@@ -336,8 +336,8 @@ You may hear **social semantic planner** or **semantic dramatic planner**. In th
 ### What this means in the actual system
 
 - Graph state carries planner fields such as `semantic_move_record`, `social_state_record`, `character_mind_records`, `scene_plan_record`, `dramatic_effect_outcome` (`RuntimeTurnState` in `ai_stack/langgraph/langgraph_runtime.py`; comment notes they are **advisory until validation/commit**).
-- Contracts include `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/social_state_contract.py`, `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py`.
-- GoC-specific builders include `ai_stack/story_runtime/semantic_planner/social_state_goc.py`, `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py`, and scene direction in `ai_stack/story_runtime/director/scene_director_goc.py`.
+- Contracts include `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/contracts/social_state_contract.py`, `ai_stack/contracts/scene_plan_contract.py`.
+- GoC-specific builders include `ai_stack/story_runtime/semantic_planner/god_of_carnage_social_state.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, and scene direction in `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`.
 - Module support level is explicit (`ai_stack/story_runtime/semantic_planner/semantic_planner_effect_surface.py`): full path for `god_of_carnage`, waived / not equivalent for other modules.
 
 ### Why it matters
@@ -369,7 +369,7 @@ flowchart TB
   COM --> NC
 ```
 
-**Seams:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/director/scene_director_goc.py`, `ai_stack/story_runtime/turn/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
+**Seams:** `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
 
 **What to notice:** **Planner-shaped stages** appear **before** commit, but **engine commit** still closes the loop.
 

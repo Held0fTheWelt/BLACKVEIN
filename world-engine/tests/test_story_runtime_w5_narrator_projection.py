@@ -127,7 +127,7 @@ def _snapshot_with_five_dimensions(
 
 
 def _legacy_block() -> dict[str, Any]:
-    """A narrator source_block as built by goc_narrator_path._block()."""
+    """A narrator source_block as built by god_of_carnage_narrator_path._block()."""
 
     return {
         "id": "opening-narrator-path-1",

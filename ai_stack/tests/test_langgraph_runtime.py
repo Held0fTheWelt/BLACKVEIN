@@ -19,7 +19,7 @@ from ai_stack.langgraph.langgraph_runtime import (
 )
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_META_CONTROL,
     EXECUTION_HEALTH_GRAPH_ERROR,

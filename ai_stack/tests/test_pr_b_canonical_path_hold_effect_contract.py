@@ -32,7 +32,7 @@ import re
 
 import pytest
 
-from ai_stack.story_runtime.canonical_path.canonical_path_hold_effect_contracts import (
+from ai_stack.contracts.canonical_path_hold_effect_contracts import (
     EFFECT_KIND_HOLD_CURRENT_STEP,
     EFFECT_KINDS,
     HOLD_EFFECT_SOURCES,
@@ -45,7 +45,7 @@ from ai_stack.story_runtime.canonical_path.canonical_path_hold_effect_contracts 
     UNTIL_CONDITION_CANONICAL_STEP_PROGRESSION_AUTHORIZED,
     build_canonical_path_hold_effect,
 )
-from ai_stack.free_player_action_resolution_contracts import (
+from ai_stack.contracts.free_player_action_resolution_contracts import (
     ACTION_COMMIT_POLICY_COMMIT_ACTION,
     ACTION_COMMIT_POLICY_NEEDS_CLARIFICATION,
     AFFORDANCE_STATUS_ALLOWED,
@@ -294,8 +294,7 @@ def test_hold_effect_derives_from_contract_fields_not_input_strings() -> None:
 _CONTRACT_MODULE_PATH = (
     REPO_ROOT
     / "ai_stack"
-    / "story_runtime"
-    / "canonical_path"
+    / "contracts"
     / "canonical_path_hold_effect_contracts.py"
 )
 
@@ -335,6 +334,8 @@ def test_pr_b_hold_module_does_not_define_pr_c_or_phase_2_symbols() -> None:
 def test_pr_b_hold_module_does_not_import_diagnostic_snapshot_stub() -> None:
     text = _CONTRACT_MODULE_PATH.read_text(encoding="utf-8")
     forbidden = re.compile(
+        r"from\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
+        r"import\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
         r"from\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b|"
         r"import\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b"
     )

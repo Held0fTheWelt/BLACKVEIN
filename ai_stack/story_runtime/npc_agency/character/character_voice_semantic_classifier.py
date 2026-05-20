@@ -6,12 +6,12 @@ import hashlib
 import re
 from typing import Any
 
-from ai_stack.story_runtime.npc_agency.character.character_voice_contract import (
+from ai_stack.contracts.character_voice_contract import (
     CharacterVoiceProfileRecord,
     VoiceSemanticLineClassification,
     VoiceValidationMode,
 )
-from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 SEMANTIC_CLASSIFICATION_POLICY_SOURCE = (
     "character_voice.voice_consistency.semantic_classification"

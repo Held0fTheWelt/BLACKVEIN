@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.environment_state_contracts import (
+from ai_stack.contracts.environment_state_contracts import (
     build_environment_model,
     initial_environment_state,
 )

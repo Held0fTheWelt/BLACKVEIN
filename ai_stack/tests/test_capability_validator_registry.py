@@ -25,15 +25,15 @@ from ai_stack.capabilities.capability_validator_registry import (
     get_turn_class_enforced_validators,
     unavailable_validator_result,
 )
-from ai_stack.environment_state_contracts import build_environment_model, initial_environment_state
-from ai_stack.environment_state_contracts import evaluate_environment_state_contract
+from ai_stack.contracts.environment_state_contracts import build_environment_model, initial_environment_state
+from ai_stack.contracts.environment_state_contracts import evaluate_environment_state_contract
 from ai_stack.story_runtime.narrator.narrator_authority_validation import evaluate_narrator_authority_contract
 from ai_stack.story_runtime.turn.player_turn_validator_evaluation import (
     evaluate_action_resolution_contract,
     evaluate_player_intent_contract,
 )
-from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
+from ai_stack.contracts.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.tests.test_capability_validator_dispatch_plan_enforced import _opening_plan
 
 

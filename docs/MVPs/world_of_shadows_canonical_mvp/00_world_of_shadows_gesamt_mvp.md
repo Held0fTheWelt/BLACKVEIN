@@ -1218,8 +1218,8 @@ A serious MVP-level runtime-maturity verdict still depends on all of the followi
 | `python -m pytest -q mvp/reference_scaffold/tests --tb=short` | PASS | 37 passed, 1 warning |
 | `python -m pytest -q world-engine/tests/test_story_runtime_shell_readout.py --tb=short` | PASS | 18 passed, 1 warning |
 | `python -m pytest -q world-engine/tests/test_story_runtime_narrative_commit.py --tb=short` | PASS | 18 passed, 1 warning |
-| `python -m pytest -q ai_stack/tests/test_goc_scene_identity.py ai_stack/tests/test_social_state_goc.py ai_stack/tests/test_semantic_move_interpretation_goc.py --tb=short` | PASS | 10 passed |
-| `python -m pytest -q ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_semantic_planner_graph_authority.py --tb=short` | CURRENT REPLACEMENT | ADR-0062 graph authority / thin-path contracts replace the retired GoC MVP breadth regression file |
+| `python -m pytest -q ai_stack/tests/test_god_of_carnage_scene_identity.py ai_stack/tests/test_god_of_carnage_social_state.py ai_stack/tests/test_god_of_carnage_semantic_move_interpretation.py --tb=short` | PASS | 10 passed |
+| `python -m pytest -q ai_stack/tests/test_god_of_carnage_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_semantic_planner_graph_authority.py --tb=short` | CURRENT REPLACEMENT | ADR-0062 graph authority / thin-path contracts replace the retired GoC MVP breadth regression file |
 | `python -m pytest -q backend/tests/test_session_routes.py -k 'shell_readout_projection or execute_turn_proxies_to_world_engine' --tb=short` | BLOCKED IN THIS CONTAINER | `ModuleNotFoundError: No module named 'flask'` |
 | `PYTHONPATH=frontend python -m pytest -q frontend/tests/test_routes_extended.py -k 'play_shell_frames_latest_transcript_with_runtime_response_prefix' --tb=short` | BLOCKED IN THIS CONTAINER | `ModuleNotFoundError: No module named 'flask'` |
 

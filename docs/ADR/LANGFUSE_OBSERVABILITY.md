@@ -69,7 +69,7 @@ Operators need to answer:
 3. **ai_stack**
    - langgraph_runtime_executor.py: Trace model invocation, fallback paths
    - runtime_quality_semantics.py: Trace quality assessment
-   - actor_survival_telemetry.py: Include trace_id in vitality telemetry
+   - telemetry/actor_survival_telemetry.py: Include trace_id in vitality telemetry
 
 4. **frontend** (optional)
    - routes_play.py: Include trace_id in diagnostics view (operator-facing)

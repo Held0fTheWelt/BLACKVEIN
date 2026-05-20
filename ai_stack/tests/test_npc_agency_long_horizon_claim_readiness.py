@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ai_stack.story_runtime.npc_agency.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+from ai_stack.contracts.npc_agency_contracts import (
     NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS,
     NPC_AGENCY_CLAIM_FULL_LONG_HORIZON_READY_STATUS,
     NPC_AGENCY_CLAIM_READINESS_SCHEMA_VERSION,

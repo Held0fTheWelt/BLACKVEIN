@@ -654,7 +654,7 @@ frontend card shape, and judge labels are never the pass/fail oracle.
 
 Subtext is implemented as a bounded `SubtextRecord` nested under `SemanticMoveRecord.subtext`. It is a diagnostic surface for what a player move appears to be doing and which scene-pressure function it may carry; it is not a fact store, hidden-state reveal, or free-form motive inference.
 
-The authoritative value source for GoC is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Runtime code builds records through `ai_stack/story_runtime/semantic_planner/goc_subtext_policy.py` and validates labels against the contract constants in `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`.
+The authoritative value source for GoC is `content/modules/god_of_carnage/direction/subtext_policy.yaml`. Runtime code builds records through `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py` and validates labels against the contract constants in `ai_stack/contracts/semantic_move_contract.py`.
 
 During a turn:
 
@@ -694,7 +694,7 @@ During a turn:
 ### Environmental Story / Pi15
 
 Environmental story is implemented as durable, bounded `EnvironmentState`, not as
-free-form descriptive memory. `ai_stack/environment_state_contracts.py` builds an
+free-form descriptive memory. `ai_stack/contracts/environment_state_contracts.py` builds an
 `EnvironmentModel` from canonical module content and normalizes
 `StorySession.environment_state` for persistence.
 

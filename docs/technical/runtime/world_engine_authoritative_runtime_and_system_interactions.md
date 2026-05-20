@@ -200,7 +200,7 @@ For **story runtime**, `resolve_narrative_commit` (`world-engine/app/story_runti
 | Kind | Meaning | Anchors |
 |------|---------|---------|
 | **Authored truth** | Canonical module YAML and compiled projections | `content/modules/`, `backend/app/content/compiler/compiler.py` (`compile_module`) |
-| **Runtime truth** | Committed session fields (`current_scene_id`, `environment_state`, turn history tail, narrative commit records) | `StorySession`, `session.history` in `manager.py`, `ai_stack/environment_state_contracts.py` |
+| **Runtime truth** | Committed session fields (`current_scene_id`, `environment_state`, turn history tail, narrative commit records) | `StorySession`, `session.history` in `manager.py`, `ai_stack/contracts/environment_state_contracts.py` |
 | **Retrieved context** | RAG / context packs feeding prompts | `ai_stack/rag/__init__.py`, graph retrieval stage ([`ai-stack-overview.md`](../ai/ai-stack-overview.md)) |
 | **AI proposal space** | Structured outputs, narration bundles, diagnostics | `graph_state` before commit; **not** authoritative alone |
 | **Player-visible consequence** | UI renders engine-returned bundles and `committed_state` summaries | [`a1_free_input_primary_runtime_path.md`](a1_free_input_primary_runtime_path.md) |

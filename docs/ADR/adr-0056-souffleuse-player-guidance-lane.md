@@ -162,15 +162,15 @@ German sentence in the runtime path.
 
 ## Verification
 
-- `ai_stack/tests/test_goc_souffleuse.py`
-- `world-engine/tests/test_goc_narrator_path_opening.py`
+- `ai_stack/tests/test_god_of_carnage_souffleuse.py`
+- `world-engine/tests/test_god_of_carnage_narrator_path_opening.py`
 - `ai_stack/tests/test_player_narrative_cards.py`
 - `frontend/tests/test_block_renderer.js`
 
 Current focused verification:
 
-- `pytest ai_stack/tests/test_goc_narrator_path.py ai_stack/tests/test_goc_souffleuse.py -q`
-- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest world-engine/tests/test_goc_narrator_path_opening.py -q`
+- `pytest ai_stack/tests/test_god_of_carnage_narrator_path.py ai_stack/tests/test_god_of_carnage_souffleuse.py -q`
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest world-engine/tests/test_god_of_carnage_narrator_path_opening.py -q`
 
 The AI-stack Souffleuse tests assert that German sessions still produce English
 source guidance before output realization, and that Annette and Alain receive

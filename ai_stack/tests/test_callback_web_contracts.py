@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.callback_web_contracts import (
+from ai_stack.contracts.callback_web_contracts import (
     CALLBACK_WEB_ASPECT_CONTRACT,
     CALLBACK_WEB_POLICY_SCHEMA_VERSION,
     CALLBACK_WEB_VALIDATION_SCHEMA_VERSION,

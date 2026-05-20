@@ -32,7 +32,7 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 8. `invoke_model` — structured invocation via LangChain bridge when configured (`invoke_runtime_adapter_with_langchain`).
 9. `fallback_model` — optional recovery when primary invocation fails.
 10. `proposal_normalize` — normalize model proposal payload.
-11. `validate_seam` — GoC validation seam (`ai_stack/story_runtime/turn/goc_turn_seams.py`).
+11. `validate_seam` — GoC validation seam (`ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`).
 12. `commit_seam` — GoC commit seam.
 13. `render_visible` — visible bundle for the player-facing layer.
 14. `package_output` — final packaging; graph ends at `END`.
@@ -41,7 +41,7 @@ LangGraph answers: **in what order** does a live turn interpret input and then e
 
 **Meta/OOC control markers:** `meta_control_turn` sets `generation_required=false`, `adapter_invocation_mode=meta_control_path`, `graph_path_summary=meta_control_deterministic`, and `commit_not_applicable=true`. These are diagnostics and repro fields, not story truth.
 
-**Anchors:** `ai_stack/langgraph/langgraph_runtime.py` (public graph surface), `ai_stack/langgraph/langgraph_runtime_executor.py` (graph wiring), `ai_stack/story_runtime/turn/runtime_turn_contracts.py` (turn state and health fields), `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
+**Anchors:** `ai_stack/langgraph/langgraph_runtime.py` (public graph surface), `ai_stack/langgraph/langgraph_runtime_executor.py` (graph wiring), `ai_stack/contracts/runtime_turn_contracts.py` (turn state and health fields), `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
 
 ## Why this matters in World of Shadows
 

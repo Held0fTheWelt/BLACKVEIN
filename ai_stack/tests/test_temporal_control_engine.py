@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.temporal_control_contracts import (
+from ai_stack.contracts.temporal_control_contracts import (
     TEMPORAL_CONTROL_FAILURE_HISTORY_REWRITE_ATTEMPT,
     TEMPORAL_CONTROL_FAILURE_UNCOMMITTED_SOURCE,
     TEMPORAL_CONTROL_POLICY_VERSION,

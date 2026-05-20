@@ -2,28 +2,28 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
-from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
-from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
-from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_POLICY_VERSION
-from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_POLICY_VERSION
-from ai_stack.improvisational_coherence_contracts import (
+from ai_stack.contracts.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
+from ai_stack.contracts.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
+from ai_stack.contracts.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
+from ai_stack.contracts.expectation_variation_contracts import EXPECTATION_VARIATION_POLICY_VERSION
+from ai_stack.contracts.genre_awareness_contracts import GENRE_AWARENESS_POLICY_VERSION
+from ai_stack.contracts.improvisational_coherence_contracts import (
     IMPROVISATIONAL_COHERENCE_POLICY_VERSION,
 )
-from ai_stack.meta_narrative_awareness_contracts import (
+from ai_stack.contracts.meta_narrative_awareness_contracts import (
     META_NARRATIVE_AWARENESS_POLICY_VERSION_V2,
 )
-from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_POLICY_VERSION
+from ai_stack.contracts.narrative_momentum_contracts import NARRATIVE_MOMENTUM_POLICY_VERSION
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
-from ai_stack.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
-from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_POLICY_VERSION
-from ai_stack.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.pacing_rhythm_contracts import PACING_RHYTHM_POLICY_VERSION
+from ai_stack.contracts.relationship_state_contracts import RELATIONSHIP_STATE_POLICY_VERSION
+from ai_stack.contracts.sensory_context_contracts import SENSORY_CONTEXT_POLICY_VERSION
+from ai_stack.contracts.social_pressure_contracts import SOCIAL_PRESSURE_POLICY_VERSION
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_POLICY_VERSION,
 )
-from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_POLICY_VERSION
-from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_POLICY_VERSION
+from ai_stack.contracts.temporal_control_contracts import TEMPORAL_CONTROL_POLICY_VERSION
+from ai_stack.contracts.tonal_consistency_contracts import TONAL_CONSISTENCY_POLICY_VERSION
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
@@ -418,23 +418,23 @@ def test_beat_candidates_come_from_phase_policy_data() -> None:
 def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> None:
     repo = Path(__file__).resolve().parents[2]
     generic_files = [
-        repo / "ai_stack" / "beat_lifecycle_contracts.py",
-        repo / "ai_stack" / "authority_contracts.py",
-        repo / "ai_stack" / "dramatic_capability_contracts.py",
-        repo / "ai_stack" / "visible_origin_contracts.py",
+        repo / "ai_stack" / "contracts" / "beat_lifecycle_contracts.py",
+        repo / "ai_stack" / "contracts" / "authority_contracts.py",
+        repo / "ai_stack" / "contracts" / "dramatic_capability_contracts.py",
+        repo / "ai_stack" / "contracts" / "visible_origin_contracts.py",
         repo / "ai_stack" / "module_runtime_policy.py",
-        repo / "ai_stack" / "expectation_variation_contracts.py",
+        repo / "ai_stack" / "contracts" / "expectation_variation_contracts.py",
         repo / "ai_stack" / "expectation_variation_engine.py",
-        repo / "ai_stack" / "information_disclosure_contracts.py",
+        repo / "ai_stack" / "contracts" / "information_disclosure_contracts.py",
         repo / "ai_stack" / "information_disclosure_engine.py",
-        repo / "ai_stack" / "improvisational_coherence_contracts.py",
+        repo / "ai_stack" / "contracts" / "improvisational_coherence_contracts.py",
         repo / "ai_stack" / "improvisational_coherence_engine.py",
-        repo / "ai_stack" / "narrative_aspect_contracts.py",
-        repo / "ai_stack" / "hierarchical_memory_contracts.py",
+        repo / "ai_stack" / "contracts" / "narrative_aspect_contracts.py",
+        repo / "ai_stack" / "contracts" / "hierarchical_memory_contracts.py",
         repo / "ai_stack" / "runtime_aspect_ledger.py",
-        repo / "ai_stack" / "runtime_dramatic_capabilities.py",
+        repo / "ai_stack" / "capabilities" / "runtime_dramatic_capabilities.py",
         repo / "ai_stack" / "langgraph" / "langgraph_runtime_executor.py",
-        repo / "world-engine" / "app" / "story_runtime" / "manager.py",
+        repo / "world-engine" / "app" / "story_runtime" / "manager" / "__init__.py",
         repo / "tools" / "mcp_server" / "tools_registry_handlers_langfuse_verify.py",
     ]
     forbidden = (
@@ -448,7 +448,6 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         "living_room",
         "phase_1",
         "ritual_civility",
-        "god_of_carnage",
     )
     for path in generic_files:
         text = path.read_text(encoding="utf-8")

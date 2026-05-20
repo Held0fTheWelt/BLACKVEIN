@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ai_stack.tonal_consistency_contracts import (
+from ai_stack.contracts.tonal_consistency_contracts import (
     TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE,
     TONAL_CONSISTENCY_SCHEMA_VERSION,
     TonalConsistencyClassification,

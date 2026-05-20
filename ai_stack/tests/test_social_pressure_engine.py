@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.social_pressure_contracts import (
+from ai_stack.contracts.social_pressure_contracts import (
     SOCIAL_PRESSURE_FAILURE_CODES,
     SOCIAL_PRESSURE_POLICY_VERSION,
     SOCIAL_PRESSURE_SCHEMA_VERSION,

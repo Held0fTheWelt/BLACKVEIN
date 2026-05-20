@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
     DEGRADATION_SIGNAL_FALLBACK_USED,

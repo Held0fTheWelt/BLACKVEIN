@@ -16,7 +16,7 @@ from ai_stack.capabilities.capability_validator_registry import (
     normalize_turn_class_key,
 )
 
-from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import (
+from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import (
     ACTOR_LANE_FORBIDDEN_CONTRACT,
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     HARD_FORBIDDEN_RUNTIME_CONTRACT,
@@ -54,7 +54,7 @@ HANDOFF_RECOMMENDED_BLOCKED = "blocked"
 CO_AUTHORITY_STAGE_SCOPED = "scoped_co_authority"
 CO_AUTHORITY_DECISION_READY = "validation_co_authority_ready"
 CO_AUTHORITY_LEGACY_SEAM = "run_validation_seam"
-CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.story_runtime.turn.goc_turn_seams_validation.run_validation_seam"
+CO_AUTHORITY_COMMITMENT_SEAM = "ai_stack.story_runtime.turn.god_of_carnage_turn_seams_validation.run_validation_seam"
 
 READINESS_POLICY_SHADOW_ONLY = "shadow_only"
 READINESS_POLICY_PREVIEW_CANDIDATE = "readiness_preview_candidate"
@@ -65,7 +65,7 @@ READINESS_POLICY_NOT_ELIGIBLE = "not_eligible"
 READINESS_ENFORCEMENT_SCHEMA_VERSION = "readiness_co_authority_enforcement.v1"
 READINESS_AGGREGATION_SCHEMA_VERSION = "readiness_aggregation_decision.v1"
 
-# Declarative map: canonical seam concern IDs (see ``ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam``)
+# Declarative map: canonical seam concern IDs (see ``ai_stack.story_runtime.turn.god_of_carnage_turn_seams.run_validation_seam``)
 # Seam concerns that must be explicitly delegated before ADR-0041 could share gate authority.
 CRITICAL_SEAM_CONCERN_IDS: frozenset[str] = frozenset(
     {
@@ -79,7 +79,7 @@ CRITICAL_SEAM_CONCERN_IDS: frozenset[str] = frozenset(
 SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     "actor_lane_forbidden_output": {
         "label": "Human/forbidden actor may not be spoken for by AI in structured output",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:actor_lane_context + _check_human_actor_violations",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:actor_lane_context + _check_human_actor_violations",
         "related_adr0041_validators": (ACTOR_LANE_FORBIDDEN_CONTRACT,),
         "authority_classification": AUTHORITY_CLASSIFICATION_MIRROR,
         "coverage_note": (
@@ -89,7 +89,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "authoritative_action_resolution_surface": {
         "label": "Waive dramatic gate when authoritative action-resolution surface is active",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:authoritative_action_resolution",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:authoritative_action_resolution",
         "related_adr0041_validators": ("action_resolution_contract",),
         "authority_classification": AUTHORITY_CLASSIFICATION_SEAM_OWNED,
         "coverage_note": (
@@ -99,7 +99,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "npc_lane_transcript_cap": {
         "label": "NPC spoken/action lane blob length cap (transcript shell)",
-        "seam_anchor": "goc_turn_seams._check_npc_spoken_action_lane_blob_cap",
+        "seam_anchor": "god_of_carnage_turn_seams._check_npc_spoken_action_lane_blob_cap",
         "related_adr0041_validators": (NPC_TRANSCRIPT_SHELL_CONTRACT,),
         "authority_classification": AUTHORITY_CLASSIFICATION_MIRROR,
         "coverage_note": (
@@ -108,7 +108,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "intent_surface_npc_narrated_player_action": {
         "label": "NPC narrated player action violation diagnostic",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:_detect_npc_narrated_player_action_violation",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:_detect_npc_narrated_player_action_violation",
         "related_adr0041_validators": ("player_intent_contract", "voice_consistency_contract"),
         "authority_classification": AUTHORITY_CLASSIFICATION_CANDIDATE,
         "coverage_note": (
@@ -117,7 +117,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "hard_forbidden_runtime": {
         "label": "Hard forbidden / opening knowledge runtime text+structured gates",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:detect_hard_forbidden_runtime",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:detect_hard_forbidden_runtime",
         "related_adr0041_validators": (
             HARD_FORBIDDEN_RUNTIME_CONTRACT,
             "environment_state_contract",
@@ -138,14 +138,14 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "proposed_effects_shape": {
         "label": "Proposed state effects must be well-formed dicts with description/effect_type",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:proposed_state_effects loop",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:proposed_state_effects loop",
         "related_adr0041_validators": (PROPOSED_EFFECTS_SHAPE_CONTRACT,),
         "authority_classification": AUTHORITY_CLASSIFICATION_MIRROR,
         "coverage_note": "Local shape check mirrors the seam loop logic.",
     },
     "opening_event_coverage": {
         "label": "Opening-event coverage / first playable (opening turn_input_class)",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:evaluate_opening_event_coverage",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:evaluate_opening_event_coverage",
         "related_adr0041_validators": (
             OPENING_EVENT_COVERAGE_CONTRACT,
             "narrator_authority_contract",
@@ -162,7 +162,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "dramatic_effect_gate": {
         "label": "Dramatic effect evaluation gate (fluency, plausibility, scene function, continuity)",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:evaluate_dramatic_effect_gate",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:evaluate_dramatic_effect_gate",
         "related_adr0041_validators": (
             DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
             "scene_energy_contract",
@@ -196,7 +196,7 @@ SEAM_CONCERN_SPECS: dict[str, dict[str, Any]] = {
     },
     "model_generation_success": {
         "label": "Generation.success / model error short-circuit",
-        "seam_anchor": "goc_turn_seams.run_validation_seam:generation success/error",
+        "seam_anchor": "god_of_carnage_turn_seams.run_validation_seam:generation success/error",
         "related_adr0041_validators": (MODEL_GENERATION_PRECHECK_CONTRACT,),
         "authority_classification": AUTHORITY_CLASSIFICATION_MIRROR,
         "coverage_note": "``model_generation_precheck_contract`` mirrors the seam pre-check.",

@@ -5,15 +5,15 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from ai_stack.expectation_variation_contracts import (
+from ai_stack.contracts.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_SCHEMA_VERSION,
 )
-from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_SCHEMA_VERSION
-from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
-from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.genre_awareness_contracts import GENRE_AWARENESS_SCHEMA_VERSION
+from ai_stack.contracts.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
+from ai_stack.contracts.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
+from ai_stack.contracts.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
 )
 from tools.mcp_server.tools_registry import create_default_registry

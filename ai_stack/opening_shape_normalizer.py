@@ -14,10 +14,10 @@ import json
 import re
 from typing import Any
 
-from ai_stack.goc_opening_transition import (
+from ai_stack.god_of_carnage_opening_transition import (
     enforce_opening_transition_on_beats,
 )
-from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
+from ai_stack.contracts.visible_narrative_contract import sanitize_gm_narration_beat_line
 
 GOD_OF_CARNAGE_MODULE_ID = "god_of_carnage"
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.hierarchical_memory_contracts import (
+from ai_stack.contracts.hierarchical_memory_contracts import (
     build_hierarchical_memory_write,
     merge_hierarchical_memory_snapshot,
     normalize_hierarchical_memory_policy,

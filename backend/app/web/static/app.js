@@ -87,10 +87,52 @@ function renderSelectOptions() {
     .join('');
 }
 
-function currentRoom() {
-  if (!state.snapshot) return null;
-  return state.snapshot.current_room || null;
+function w5FrontendPlayerViewEnabled(snapshot) {
+  const flags = snapshot && snapshot.feature_flags;
+  if (flags && flags.W5_AST_FRONTEND_PLAYER_VIEW_ENABLED === true) return true;
+  return Boolean(window.W5_AST_FRONTEND_PLAYER_VIEW_ENABLED === true);
 }
+
+function w5PlayerViewLocation(snapshot) {
+  const view = snapshot && snapshot.w5_player_view;
+  const where = view && view.where_summary;
+  if (!where) return null;
+  if (where.current_visible_location) return String(where.current_visible_location);
+  if (where.current_location) return String(where.current_location);
+  if (where.scene_location && where.scene_location.value) return String(where.scene_location.value);
+  if (where.facts && where.facts.scene_location) return String(where.facts.scene_location);
+  return null;
+}
+
+function roomFromW5PlayerView(snapshot) {
+  const roomId = w5PlayerViewLocation(snapshot);
+  if (!roomId) return null;
+  const legacyRoom = snapshot.current_room || null;
+  if (legacyRoom && legacyRoom.id === roomId) return legacyRoom;
+  const rooms = snapshot.rooms || null;
+  if (Array.isArray(rooms)) {
+    const found = rooms.find(room => room && room.id === roomId);
+    if (found) return found;
+  } else if (rooms && rooms[roomId]) {
+    return rooms[roomId];
+  }
+  return { id: roomId, name: roomId, description: '' };
+}
+
+function currentRoomFromSnapshot(snapshot) {
+  if (!snapshot) return null;
+  if (w5FrontendPlayerViewEnabled(snapshot)) {
+    const w5Room = roomFromW5PlayerView(snapshot);
+    if (w5Room) return w5Room;
+  }
+  return snapshot.current_room || null;
+}
+
+function currentRoom() {
+  return currentRoomFromSnapshot(state.snapshot);
+}
+
+window.__wosPlayerShellCurrentRoomFromSnapshot = currentRoomFromSnapshot;
 
 function renderLobby(snapshot) {
   const lobby = snapshot.lobby;

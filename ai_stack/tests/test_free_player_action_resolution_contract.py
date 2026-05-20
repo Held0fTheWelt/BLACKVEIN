@@ -25,7 +25,7 @@ import re
 
 import pytest
 
-from ai_stack.free_player_action_resolution_contracts import (
+from ai_stack.contracts.free_player_action_resolution_contracts import (
     ACTION_COMMIT_POLICIES,
     ACTION_COMMIT_POLICY_COMMIT_ACTION,
     ACTION_COMMIT_POLICY_NEEDS_CLARIFICATION,
@@ -712,7 +712,7 @@ def test_speech_only_short_circuit_emits_none_target_type() -> None:
 
 
 _CONTRACT_MODULE_PATH = (
-    REPO_ROOT / "ai_stack" / "free_player_action_resolution_contracts.py"
+    REPO_ROOT / "ai_stack" / "contracts" / "free_player_action_resolution_contracts.py"
 )
 _RESOLVER_MODULE_PATH = REPO_ROOT / "ai_stack" / "player_action_resolution.py"
 
@@ -758,6 +758,8 @@ def test_pr_a_does_not_implement_pr_b_pr_c_runtime_symbols() -> None:
 def test_contract_module_does_not_import_diagnostic_snapshot_stub() -> None:
     text = _CONTRACT_MODULE_PATH.read_text(encoding="utf-8")
     forbidden = re.compile(
+        r"from\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
+        r"import\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
         r"from\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b|"
         r"import\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b"
     )
@@ -769,6 +771,8 @@ def test_contract_module_does_not_import_diagnostic_snapshot_stub() -> None:
 def test_resolver_module_does_not_import_diagnostic_snapshot_stub() -> None:
     text = _RESOLVER_MODULE_PATH.read_text(encoding="utf-8")
     forbidden = re.compile(
+        r"from\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
+        r"import\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
         r"from\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b|"
         r"import\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b"
     )

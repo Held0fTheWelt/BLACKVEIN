@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.active_listening_contracts import (
+from ai_stack.contracts.active_listening_contracts import (
     BROAD_NLU_LISTENING_SCHEMA_VERSION,
     CONVERSATIONAL_MEMORY_SCHEMA_VERSION,
     PROMPT_AUTHORITY_SCHEMA_VERSION,

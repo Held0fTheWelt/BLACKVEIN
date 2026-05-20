@@ -103,7 +103,7 @@ def append_turn_baseline_provenance_entries(
         source_kind="runtime_derived",
         source_ref="operator_canonical_turn_record.pacing_mode",
         derivation_rule="pass_through_from_runtime_state_projection",
-        code_path="ai_stack/story_runtime/turn/goc_turn_seams.py:build_operator_canonical_turn_record",
+        code_path="ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py:build_operator_canonical_turn_record",
         influence_targets=["planner_state_projection"],
         decision_effect="informs pacing-related planner posture",
     )
@@ -139,7 +139,7 @@ def append_turn_baseline_provenance_entries(
         source_kind="runtime_derived",
         source_ref="diagnostics.graph.execution_health",
         derivation_rule="graph_summary_projection",
-        code_path="ai_stack/story_runtime/turn/goc_turn_seams.py:build_operator_canonical_turn_record",
+        code_path="ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py:build_operator_canonical_turn_record",
         influence_targets=["decision_trace_projection", "fallback_projection"],
         decision_effect="surfaces degraded or healthy runtime path",
     )
@@ -150,7 +150,7 @@ def append_turn_baseline_provenance_entries(
         source_kind="legacy_fallback",
         source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.legacy_fallback_used",
         derivation_rule="pass_through_if_supported_by_gate_outcome",
-        code_path="ai_stack/story_runtime/turn/goc_turn_seams.py:run_validation_seam",
+        code_path="ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py:run_validation_seam",
         influence_targets=["fallback_projection", "gate_projection"],
         decision_effect="shows if legacy dramatic fallback affected gate posture",
     )
@@ -200,7 +200,7 @@ def append_dramatic_gate_provenance_entries(
                 source_kind="runtime_derived",
                 source_ref="diagnostics.validation_outcome.dramatic_effect_gate_outcome.diagnostic_trace",
                 derivation_rule="pass_through_if_supported_by_gate_outcome",
-                code_path="ai_stack/story_runtime/dramatic_effect/dramatic_effect_contract.py",
+                code_path="ai_stack/contracts/dramatic_effect_contract.py",
                 influence_targets=["gate_projection", "provenance_projection"],
                 decision_effect="bounded diagnostic trace steps for operators",
             )
@@ -219,7 +219,7 @@ def append_character_mind_provenance_entry(
         source_kind="runtime_derived",
         source_ref="operator_canonical_turn_record.character_mind_records[].provenance",
         derivation_rule="aggregate_field_provenance_per_character_mind_record",
-        code_path="ai_stack/story_runtime/npc_agency/character/character_mind_contract.py",
+        code_path="ai_stack/contracts/character_mind_contract.py",
         influence_targets=["planner_state_projection", "provenance_projection"],
         decision_effect="shows authored vs fallback provenance for tactical identity fields",
     )

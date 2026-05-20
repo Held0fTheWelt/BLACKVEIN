@@ -149,7 +149,7 @@ remain Capability Matrix index vocabulary only.
 
 - ADR: [`ADR-0042`](../../ADR/adr-0042-meta-narrative-awareness-opt-in.md),
   [`ADR-0043`](../../ADR/adr-0043-adaptive-meta-narrative-awareness.md)
-- Contracts: `ai_stack/meta_narrative_awareness_contracts.py`
+- Contracts: `ai_stack/contracts/meta_narrative_awareness_contracts.py`
 - Engine: `ai_stack/meta_narrative_awareness_engine.py`
 - Graph: `ai_stack/langgraph/langgraph_runtime_executor.py`
 - Policy: `content/modules/god_of_carnage/module.yaml`

@@ -74,7 +74,7 @@ labels, and Pi-number runtime keys are not valid pass/fail evidence.
 
 Primary implementation anchors:
 
-- `ai_stack/genre_awareness_contracts.py`
+- `ai_stack/contracts/genre_awareness_contracts.py`
 - `ai_stack/genre_awareness_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`

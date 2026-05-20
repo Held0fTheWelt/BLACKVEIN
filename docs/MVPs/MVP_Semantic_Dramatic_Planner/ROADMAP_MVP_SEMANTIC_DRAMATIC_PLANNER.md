@@ -3,7 +3,7 @@
 **Status:** Active roadmap; the Pi19 subtext slice is implemented as a bounded surface-vs-intent contract
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py`, `ai_stack/story_runtime/semantic_planner/goc_subtext_policy.py`, `ai_stack/story_runtime/director/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
+**Related repo surfaces:** `ai_stack/langgraph/langgraph_runtime_executor.py`, `ai_stack/contracts/semantic_move_contract.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`, `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`, `ai_stack/god_of_carnage_dramatic_alignment.py`, `ai_stack/god_of_carnage_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/runtime/subtext_interpretation_contract.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 
@@ -50,7 +50,7 @@ This means the system already has a stable orchestration surface and does not ne
 
 ### 2.2 Canonical content authority already exists
 
-The GoC slice already has a canonical YAML authority through `ai_stack/goc_yaml_authority.py`, and the vertical slice contract already defines YAML-backed slice authority and truth handling.
+The GoC slice already has a canonical YAML authority through `ai_stack/god_of_carnage_yaml_authority.py`, and the vertical slice contract already defines YAML-backed slice authority and truth handling.
 
 This is a major strength because the semantic planner can be grounded in authored dramatic structure instead of inventing truth from scratch.
 
@@ -62,11 +62,11 @@ That means the target architecture should evolve **inside** these seams rather t
 
 ### 2.4 Director logic exists, but remains heuristic
 
-`ai_stack/story_runtime/director/scene_director_goc.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
+`ai_stack/story_runtime/director/god_of_carnage_scene_director.py` currently performs scene assessment and dramatic parameter selection through deterministic helper logic. It already works, but its core selection behavior remains largely heuristic and bounded by pattern and tie-break logic rather than explicit semantic scene planning.
 
 ### 2.5 Dramatic alignment exists, but remains surface-oriented
 
-`ai_stack/goc_dramatic_alignment.py` already protects the system from fluent but empty output. However, it does so through rule and token checks tied to scene-function support, minimum narrative mass, and banned weak-output patterns.
+`ai_stack/god_of_carnage_dramatic_alignment.py` already protects the system from fluent but empty output. However, it does so through rule and token checks tied to scene-function support, minimum narrative mass, and banned weak-output patterns.
 
 This is useful, but it is still not a true dramatic-effect evaluator.
 
@@ -290,7 +290,7 @@ This layer is planner-facing and derived. It is not the same as canonical world 
 
 **Owns:** short-horizon dramatic direction for the current turn and immediate scene progression.
 
-**Current basis:** `ai_stack/story_runtime/director/scene_director_goc.py`
+**Current basis:** `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 
 **New MVP responsibility:**
 
@@ -436,7 +436,7 @@ Pi19 is implemented as a bounded surface-vs-intent diagnostic contract:
 
 Runtime integration:
 
-- the semantic interpreter builds the record from `goc_subtext_policy.py`;
+- the semantic interpreter builds the record from `god_of_carnage_subtext_policy.py`;
 - the director reads it for resolution metadata and pacing pressure;
 - the generation packet exposes `subtext_interpretation`;
 - path summaries and Langfuse scores expose `subtext_contract_pass`;
@@ -732,25 +732,25 @@ This phase is explicitly post-MVP.
 
 Recommended new modules:
 
-- `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`
-- `ai_stack/story_runtime/npc_agency/character/character_mind_contract.py`
-- `ai_stack/story_runtime/semantic_planner/social_state_contract.py`
-- `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py`
+- `ai_stack/contracts/semantic_move_contract.py`
+- `ai_stack/contracts/character_mind_contract.py`
+- `ai_stack/contracts/social_state_contract.py`
+- `ai_stack/contracts/scene_plan_contract.py`
 - `ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py`
 - `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate.py`
 
 Recommended migration posture:
 
-- keep `ai_stack/story_runtime/director/scene_director_goc.py` as a façade during migration,
+- keep `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` as a façade during migration,
 - move existing heuristics behind explicit contracts step by step,
 - do not break existing operator or closure surfaces in one jump.
 
 Recommended tests (**current repository**, as of this roadmap revision — prefer these paths in runbooks; older filename stubs like `test_semantic_move_contract.py` were never added as standalone modules):
 
 - `ai_stack/tests/test_semantic_planner_contracts.py` — Pydantic roundtrips for `SemanticMoveRecord`, `SocialStateRecord`, `ScenePlanRecord`, `CharacterMindRecord`
-- `ai_stack/tests/test_character_mind_goc.py` — character-mind contract usage on the GoC path
-- `ai_stack/tests/test_social_state_goc.py` — social-state contract usage on the GoC path
-- `ai_stack/tests/test_semantic_move_interpretation_goc.py` — semantic move interpretation integration
+- `ai_stack/tests/test_god_of_carnage_character_mind.py` — character-mind contract usage on the GoC path
+- `ai_stack/tests/test_god_of_carnage_social_state.py` — social-state contract usage on the GoC path
+- `ai_stack/tests/test_god_of_carnage_semantic_move_interpretation.py` — semantic move interpretation integration
 - `ai_stack/tests/test_dramatic_effect_gate.py` — dramatic-effect gate contracts
 - `ai_stack/tests/test_semantic_planner_graph_authority.py` — ADR-0062 graph authority checks proving legacy planner fields are not default committed truth
 - `ai_stack/tests/test_semantic_scene_planner.py` — deterministic planner enrichment cases (fixture-backed)

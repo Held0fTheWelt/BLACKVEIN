@@ -33,18 +33,18 @@ import re
 
 import pytest
 
-from ai_stack.story_runtime.canonical_path.canonical_path_hold_effect_contracts import (
+from ai_stack.contracts.canonical_path_hold_effect_contracts import (
     EFFECT_KIND_HOLD_CURRENT_STEP,
     HOLD_EFFECT_SOURCES,
     SCHEMA_VERSION as HOLD_EFFECT_SCHEMA_VERSION,
 )
-from ai_stack.free_player_action_resolution_contracts import (
+from ai_stack.contracts.free_player_action_resolution_contracts import (
     ACTION_COMMIT_POLICY_COMMIT_ACTION,
     ACTION_COMMIT_POLICY_NEEDS_CLARIFICATION,
     AFFORDANCE_STATUS_ALLOWED,
     AFFORDANCE_STATUS_UNKNOWN_TARGET,
 )
-from ai_stack.story_runtime.narrator.narrator_consequence_realization_contracts import (
+from ai_stack.contracts.narrator_consequence_realization_contracts import (
     BLOCK_TYPE_NARRATOR,
     NON_REALIZATION_REASON_NO_NARRATOR_BLOCK_IN_BUNDLE,
     SCHEMA_VERSION as REALIZATION_SCHEMA_VERSION,
@@ -387,8 +387,8 @@ def test_thin_path_summary_row_does_not_expose_mutation_fields() -> None:
 
 
 PR_B_TOUCHED_FILES = (
-    "ai_stack/story_runtime/canonical_path/canonical_path_hold_effect_contracts.py",
-    "ai_stack/story_runtime/narrator/narrator_consequence_realization_contracts.py",
+    "ai_stack/contracts/canonical_path_hold_effect_contracts.py",
+    "ai_stack/contracts/narrator_consequence_realization_contracts.py",
     "ai_stack/player_action_resolution.py",
     "ai_stack/langgraph/langgraph_runtime_executor.py",
     "world-engine/app/story_runtime/manager/thin_path_snapshot_api.py",

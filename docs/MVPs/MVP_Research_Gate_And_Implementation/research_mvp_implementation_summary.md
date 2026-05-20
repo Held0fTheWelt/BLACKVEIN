@@ -4,7 +4,7 @@
 This implementation realizes the bounded Research-and-Canon-Improvement MVP defined in `docs/MVPs/MVP_Research_And_Canon_Improvement_System/ROADMAP_MVP_RESEARCH_AND_CANON_IMPROVEMENT_SYSTEM.md` with deterministic contracts, budget-enforced exploration, structured canon improvement outputs, and review-safe publication posture.
 
 ## Implemented modules
-- `ai_stack/research/research_contract.py`
+- `ai_stack/contracts/research_contract.py`
   - canonical owner for status model, contradiction classes, abort reasons, relation enums, issue/proposal taxonomies, legal transitions, and mandatory exploration-budget contract.
 - `ai_stack/research/research_store.py`
   - deterministic persistent structured store for source/anchor/aspect/exploration/claim/issue/proposal/run records.
@@ -23,7 +23,7 @@ This implementation realizes the bounded Research-and-Canon-Improvement MVP defi
 - `ai_stack/research/research_validation.py`
   - canonical owner for promotion decisions, block logic, and contradiction-aware verification flow.
   - promotion requires `kept_for_validation` exploration outcome and known anchor references.
-- `ai_stack/research/canon_improvement_contract.py`
+- `ai_stack/contracts/canon_improvement_contract.py`
   - canonical issue/proposal mapping contract.
 - `ai_stack/research/canon_improvement_engine.py`
   - deterministic canon issue detection and taxonomy-bound proposal generation.

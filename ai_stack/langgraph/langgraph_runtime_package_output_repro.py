@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.turn.goc_turn_seams import repro_metadata_complete
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import repro_metadata_complete
 from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 from ai_stack.langgraph.langgraph_runtime_tracking import _dist_version
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION,
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,

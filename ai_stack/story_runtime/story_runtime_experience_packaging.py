@@ -1,6 +1,6 @@
 """Experience-aware packaging of the visible output bundle.
 
-The bundle produced by ``goc_turn_seams.run_visible_render`` is narration-first.
+The bundle produced by ``god_of_carnage_turn_seams.run_visible_render`` is narration-first.
 This module takes that bundle plus a ``StoryRuntimeExperiencePolicy`` and
 re-packages it so recap, dramatic_turn, and live_dramatic_scene_simulator
 modes are *materially* different in what the player sees.

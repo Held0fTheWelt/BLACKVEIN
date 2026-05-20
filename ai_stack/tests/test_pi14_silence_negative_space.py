@@ -9,16 +9,16 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from ai_stack.goc_dramatic_alignment import (
+from ai_stack.god_of_carnage_dramatic_alignment import (
     _COMMENTARY_META_PHRASES,
     _FUNCTION_SUBSTRING_TOKENS,
     dramatic_alignment_legacy_fallback_only,
 )
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, SILENCE_BREVITY_MODES
-from ai_stack.story_runtime.director.scene_director_goc import build_pacing_and_silence
-from ai_stack.story_runtime.semantic_planner.semantic_move_contract import SEMANTIC_MOVE_TYPES, SemanticMoveRecord
-from ai_stack.story_runtime.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move
-from ai_stack.silence_negative_space_contract import (
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID, SILENCE_BREVITY_MODES
+from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_pacing_and_silence
+from ai_stack.contracts.semantic_move_contract import SEMANTIC_MOVE_TYPES, SemanticMoveRecord
+from ai_stack.story_runtime.semantic_planner.god_of_carnage_semantic_move_interpretation import interpret_goc_semantic_move
+from ai_stack.contracts.silence_negative_space_contract import (
     SILENCE_NEGATIVE_SPACE_CONTRACT_VERSION,
     SILENCE_NEGATIVE_SPACE_SOURCES,
     build_silence_negative_space_decision,

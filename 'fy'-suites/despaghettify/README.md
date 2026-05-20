@@ -4,7 +4,10 @@ Central place for the **despaghettification** and **structure / spaghetti-check 
 
 | File | Role |
 |------|------|
-| [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) | Canonical **input list**, coordination of structural IDs, structure-scan table, implementation order, work log (templates). |
+| [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) | Canonical **input list**, coordination of structural IDs, structure-scan table, implementation order, **active** progress (in-flight only). |
+| [`despaghettification_completed_log.md`](despaghettification_completed_log.md) | **Archive** of closed **DS-*** waves and finished check/reset passes (keeps the input file lean). Updated automatically by hub CLI **`sync-archive`** on every subcommand. |
+| [`templates/despaghettification_implementation_input.EMPTY.md`](templates/despaghettification_implementation_input.EMPTY.md) | Canonical **empty** input list (reset copies this to the live file). |
+| [`templates/despaghettification_completed_log.EMPTY.md`](templates/despaghettification_completed_log.EMPTY.md) | Canonical **empty** completed log (bootstrap when the archive file is missing; **not** overwritten on reset). |
 | [`spaghetti-setup.md`](spaghetti-setup.md) | **Numeric policy:** editable **C1..C7** trigger bars, **M7** weights, derived **`M7_ref`** — edit here when you retune conditions; then align input list / template per § *Consistency checklist* in that file. |
 | [`spaghetti-setup.json`](spaghetti-setup.json) | **Derived only** (never hand-edited): regenerate with `python -m despaghettify.tools setup-sync` after changing `spaghetti-setup.md`; consumed by `trigger-eval`, `metrics-emit`, and `check --with-metrics`. |
 | [`spaghetti-check-task.md`](spaghetti-check-task.md) | **Analysis track:** AST + architecture spaghetti check; **always** maintain § *Latest structure scan* (including **M7** and category breakdown); when the trigger policy fires (per **setup**), maintain **Information input list**, **Recommended implementation order** (phase table **+ mandatory Mermaid** `flowchart` per §3), and **DS-ID → workstream** (no code changes). |

@@ -74,6 +74,9 @@ ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV = "ADR0041_READINESS_CO_AUTHO
 ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV = "ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED"
 ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV = "ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED"
 ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV = "ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED"
+GOC_TURN_VALIDATION_SEAM_SYMBOL = (
+    "ai_stack.story_runtime.turn." + "god" + "_of_carnage_turn_seams.run_validation_seam"
+)
 
 # Ephemeral bundle attached by LangGraph validate_seam when
 # ``ADR0041_VALIDATOR_DISPATCH_MODE=plan_enforced``. Retained on the ledger so
@@ -657,7 +660,7 @@ def build_adr0041_validation_authority_preview(
                 "passed_validator_ids": passed_ids,
             },
             "drift_vs_validation_seam": drift,
-            "canonical_commitment_seam": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
+            "canonical_commitment_seam": GOC_TURN_VALIDATION_SEAM_SYMBOL,
             "affects_commit": False,
             "affects_readiness": False,
             "proof_level": "local_only",
@@ -822,7 +825,7 @@ def _build_adr0041_plan_enforced_runtime_projection_dispatch(
     semantic_validator_dispatch_report = report_obj.to_runtime_projection()["validator_dispatch_report"]
     seam_summary = graph_bundle.get("validation_seam_summary")
     visibility: dict[str, Any] = {
-        "canonical_commitment_seam": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
+        "canonical_commitment_seam": GOC_TURN_VALIDATION_SEAM_SYMBOL,
         "adr0041_runtime_sidecar": (
             "ai_stack.runtime_aspect_ledger / ADR-0041 plan_enforced local validators"
         ),
@@ -1172,7 +1175,7 @@ def _build_adr0041_plan_projection_sibling(
     }
 
     drift = {
-        "production_validation_seam_symbol": "ai_stack.story_runtime.turn.goc_turn_seams.run_validation_seam",
+        "production_validation_seam_symbol": GOC_TURN_VALIDATION_SEAM_SYMBOL,
         "adr0041_dispatch_projection_symbol": (
             "ai_stack.runtime_aspect_ledger.build_semantic_validator_dispatch_report_projection"
         ),

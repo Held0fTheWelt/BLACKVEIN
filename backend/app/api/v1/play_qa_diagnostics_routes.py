@@ -93,7 +93,7 @@ def get_qa_canonical_turn_diagnostics(session_id: str):
     Access: JWT + FEATURE_VIEW_QA_CANONICAL_TURN
     """
     try:
-        from ai_stack.story_runtime.turn.goc_turn_seams import build_operator_canonical_turn_record
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_operator_canonical_turn_record
         from ai_stack.story_runtime.turn.qa_canonical_turn_projection import build_qa_canonical_turn_projection
 
         runtime_state, runtime_session_id = _canonical_runtime_state_for_play_run(session_id)

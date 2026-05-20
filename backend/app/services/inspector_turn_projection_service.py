@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.turn.goc_turn_seams import build_operator_canonical_turn_record
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_operator_canonical_turn_record
 
 from app.contracts.inspector_turn_projection import build_inspector_turn_projection_root
 from app.services.ai_stack_evidence_service import build_session_evidence_bundle

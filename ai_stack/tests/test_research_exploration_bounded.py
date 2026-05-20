@@ -10,7 +10,7 @@ from ai_stack.research.research_exploration_bounded import (
     deterministic_contradiction_scan,
     run_bounded_exploration,
 )
-from ai_stack.research.research_contract import (
+from ai_stack.contracts.research_contract import (
     ContradictionStatus,
     ExplorationAbortReason,
     ExplorationBudget,

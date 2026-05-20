@@ -22,7 +22,7 @@ surfaces:
 
   - surface_id: ai_stack_goc_validation_seam
     primary_files:
-      - ai_stack/story_runtime/turn/goc_turn_seams.py
+      - ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py
     symbols:
       - run_validation_seam
     runtime_role: Canonical GoC validation outcome for proposals
@@ -176,7 +176,7 @@ surfaces:
 
   - surface_id: ai_stack_active_listening_envelope
     primary_files:
-      - ai_stack/active_listening_contracts.py
+      - ai_stack/contracts/active_listening_contracts.py
       - ai_stack/langgraph/langgraph_runtime_executor.py
       - ai_stack/runtime_aspect_ledger.py
     symbols:

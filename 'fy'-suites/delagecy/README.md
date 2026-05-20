@@ -19,8 +19,14 @@ PYTHONPATH="'fy'-suites" python -m delagecy.tools register --scan-json "'fy'-sui
 PYTHONPATH="'fy'-suites" python -m delagecy.tools approve --id DLG-001 --approved-by "<name>" --note "Removal approved after review"
 PYTHONPATH="'fy'-suites" python -m delagecy.tools mark-removed --id DLG-001 --verification "tests + scan clean"
 PYTHONPATH="'fy'-suites" python -m delagecy.tools check --scan-json "'fy'-suites/delagecy/reports/latest_scan.json"
+PYTHONPATH="'fy'-suites" python -m delagecy.tools report --scan-json "'fy'-suites/delagecy/reports/latest_scan.json" --out "'fy'-suites/delagecy/reports/latest_report.md"
 PYTHONPATH="'fy'-suites" python -m delagecy.tools export-tracker
 ```
+
+`scan` and `new` produce machine-readable JSON. `report` turns those artifacts
+into the readable working document for review: summary, gate status, scope
+warnings, top hit files, first unregistered findings, UI residue examples, and
+the required removal rules.
 
 After editable install, use `delagecy ...`.
 

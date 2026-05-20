@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.social_pressure_contracts import (
+from ai_stack.contracts.social_pressure_contracts import (
     SOCIAL_PRESSURE_BANDS,
     SOCIAL_PRESSURE_FAILURE_CODES,
     SOCIAL_PRESSURE_SCHEMA_VERSION,

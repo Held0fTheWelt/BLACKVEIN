@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.sensory_context_contracts import (
+from ai_stack.contracts.sensory_context_contracts import (
     SENSORY_CONTEXT_FAILURE_CODES,
     SENSORY_CONTEXT_INTENSITIES,
     SENSORY_CONTEXT_LAYER_KINDS,

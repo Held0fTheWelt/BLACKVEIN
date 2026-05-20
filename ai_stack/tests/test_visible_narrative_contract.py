@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.visible_narrative_contract import (
+from ai_stack.contracts.visible_narrative_contract import (
     detect_english_leak_in_german_session,
     finalize_visible_scene_blocks,
     prune_goc_actor_actions_subsumed_by_prior_actor_lines,

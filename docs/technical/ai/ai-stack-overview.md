@@ -19,7 +19,7 @@ The **AI stack** is not only “the turn graph.” It includes:
 | Piece | Location | Role |
 |-------|----------|------|
 | Turn graph | `ai_stack/langgraph/langgraph_runtime.py` | `RuntimeTurnGraphExecutor` — interpret → retrieve → resolve → director → model → validate/commit → render → package |
-| GoC YAML / seams | `ai_stack/goc_yaml_authority.py`, `goc_turn_seams.py`, `scene_director_goc.py` | Canonical slice wiring, validate/commit/render |
+| GoC YAML / seams | `ai_stack/god_of_carnage_yaml_authority.py`, `god_of_carnage_turn_seams.py`, `god_of_carnage_scene_director.py` | Canonical slice wiring, validate/commit/render |
 | RAG | `ai_stack/rag/__init__.py` | Ingestion, ranking, domains (`runtime`, `writers_room`, `improvement`, `research`), governance lanes — [RAG.md](RAG.md) |
 | LangChain bridge | `ai_stack/langchain/` | Prompt templates, structured parsers, retriever bridge — [LangChain.md](../integration/LangChain.md) |
 | Capabilities | `ai_stack/capabilities/capabilities.py` | Context pack, transcript, review bundle, research explore — mode gates, audit |

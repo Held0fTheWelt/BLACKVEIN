@@ -41,7 +41,7 @@ import uuid
 from dataclasses import dataclass, field, replace
 from typing import Any, Final
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     ACTION_SILENCE,
     ACTION_SPEAK,
     BLOCK_TYPE_ACTOR_LINE,
@@ -530,7 +530,7 @@ def evaluate_autonomous_tick(
     if not allowed:
         # Build a silence director_tick_decision so the audit trail is
         # complete even when emission is suppressed.
-        from ai_stack.story_runtime.director.director_pulse_contracts import build_director_tick_decision
+        from ai_stack.contracts.director_pulse_contracts import build_director_tick_decision
 
         composition_inputs: list[str] = []
         silent_decision = build_director_tick_decision(

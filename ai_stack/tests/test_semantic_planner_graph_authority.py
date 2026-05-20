@@ -21,7 +21,7 @@ from ai_stack.runtime_aspect_ledger import (
     normalize_runtime_aspect_ledger,
 )
 from ai_stack.tests.test_capability_validator_registry import _opening_dispatch_context
-from ai_stack.story_runtime.turn.goc_turn_seams import build_operator_canonical_turn_record
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_operator_canonical_turn_record
 
 
 class _OkAdapter(BaseModelAdapter):

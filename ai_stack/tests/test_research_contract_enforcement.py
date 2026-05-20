@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.research.research_contract import CopyrightPosture, ResearchSourceRecord
+from ai_stack.contracts.research_contract import CopyrightPosture, ResearchSourceRecord
 from ai_stack.research.research_exploration import run_bounded_exploration
 from ai_stack.research.research_ingestion import enforce_mvp_copyright_posture
 from ai_stack.research.research_store import ResearchStore

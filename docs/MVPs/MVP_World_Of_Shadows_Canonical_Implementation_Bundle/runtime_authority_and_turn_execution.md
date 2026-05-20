@@ -75,7 +75,7 @@ The complete turn flow from player input to rendered output:
 ## The Four Explicit Seams
 
 ### Seam 1: Proposal Seam (Candidate Only)
-- **Location:** `world-engine/app/invoke_model.py` → `ai_stack/story_runtime/turn/goc_turn_seams.py`
+- **Location:** `world-engine/app/invoke_model.py` → `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`
 - **What happens:** Model generates candidate dramatic output (dialogue, effects wording, narrative beats)
 - **Output:** `proposed_state_effects` (list of candidate effects), `generation` (text)
 - **Authority:** Proposal is a **candidate only**; it does not authorize world truth

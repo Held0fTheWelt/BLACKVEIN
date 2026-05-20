@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from ai_stack.player_action_resolution import resolve_player_action
-from ai_stack.story_runtime.semantic_planner.semantic_move_interpretation_goc import interpret_goc_semantic_move
-from ai_stack.story_runtime.semantic_planner.semantic_move_contract import SEMANTIC_MOVE_TYPES
+from ai_stack.story_runtime.semantic_planner.god_of_carnage_semantic_move_interpretation import interpret_goc_semantic_move
+from ai_stack.contracts.semantic_move_contract import SEMANTIC_MOVE_TYPES
 from story_runtime_core.player_input_intent_contract import (
     is_known_player_input_kind,
     normalize_player_input_kind,

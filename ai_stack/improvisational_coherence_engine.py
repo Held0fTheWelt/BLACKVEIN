@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Any
 
-from ai_stack.improvisational_coherence_contracts import (
+from ai_stack.contracts.improvisational_coherence_contracts import (
     IMPROV_ACCEPT,
     IMPROV_ACCEPTANCE_MODES,
     IMPROV_ADVANCE_CLASSES,

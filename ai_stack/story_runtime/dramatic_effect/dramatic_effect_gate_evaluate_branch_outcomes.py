@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
+from ai_stack.contracts.dramatic_effect_contract import (
     CharacterPlausibilityPosture,
     ContinuitySupportPosture,
     DramaticEffectEvaluationContext,
@@ -12,8 +12,8 @@ from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
     EmptyFluencyRisk,
 )
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate_evaluate_tags import scene_function_tags_satisfied, tag_active
-from ai_stack.goc_dramatic_alignment import _GENERIC_BOILERPLATE_PHRASES, dramatic_alignment_legacy_fallback_only
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.god_of_carnage_dramatic_alignment import _GENERIC_BOILERPLATE_PHRASES, dramatic_alignment_legacy_fallback_only
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 
 
 def outcome_not_goc(ctx: DramaticEffectEvaluationContext) -> DramaticEffectGateOutcome | None:

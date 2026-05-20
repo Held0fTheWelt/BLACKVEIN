@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
+from ai_stack.god_of_carnage_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 from story_runtime_core.player_input_intent_contract import (
     is_mixed_player_input_kind,

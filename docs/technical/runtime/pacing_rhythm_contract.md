@@ -125,7 +125,7 @@ The normalized policy contains:
 ```
 
 Cadence and target vocabularies are exported from
-`ai_stack/pacing_rhythm_contracts.py`:
+`ai_stack/contracts/pacing_rhythm_contracts.py`:
 
 - cadence: `breathe`, `hold`, `press`, `release`, `pivot`, `interrupt`;
 - tempo arc: `still`, `compressed`, `standard`, `accelerating`, `releasing`;
@@ -231,7 +231,7 @@ has the correct rhythm.
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/module.yaml`
-- `ai_stack/pacing_rhythm_contracts.py`
+- `ai_stack/contracts/pacing_rhythm_contracts.py`
 - `ai_stack/pacing_rhythm_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`

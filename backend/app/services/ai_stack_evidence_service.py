@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_stack import build_retrieval_trace
-from ai_stack.story_runtime.turn.runtime_turn_contracts import QUALITY_CLASS_VALUES
+from ai_stack.contracts.runtime_turn_contracts import QUALITY_CLASS_VALUES
 
 from app.services.improvement_service import list_recommendation_packages
 from app.services.game_service import GameServiceError, get_story_diagnostics, get_story_state

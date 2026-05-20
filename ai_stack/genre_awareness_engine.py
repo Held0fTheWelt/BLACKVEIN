@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.genre_awareness_contracts import (
+from ai_stack.contracts.genre_awareness_contracts import (
     GENRE_AWARENESS_FAILURE_EVENT_BUDGET_EXCEEDED,
     GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER,
     GENRE_AWARENESS_FAILURE_MISSING_REQUIRED_CONVENTION,

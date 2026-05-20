@@ -68,11 +68,11 @@ This roadmap assumes those assets are real and must be reused, not replaced.
   - `ai_stack/rag.py`
   - `ai_stack/retrieval_governance_summary.py`
 - **Scene direction and dramatic parameter logic** in:
-  - `ai_stack/story_runtime/director/scene_director_goc.py`
-  - `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py`
+  - `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
+  - `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`
   - `ai_stack/story_runtime/dramatic_effect/dramatic_effect_gate.py`
-  - `ai_stack/story_runtime/semantic_planner/social_state_goc.py`
-  - `ai_stack/story_runtime/npc_agency/character/character_mind_goc.py`
+  - `ai_stack/story_runtime/semantic_planner/god_of_carnage_social_state.py`
+  - `ai_stack/story_runtime/npc_agency/character/god_of_carnage_character_mind.py`
 - **Backend / frontend / administration-tool / world-engine service separation**
 - **Existing test and report discipline**, including slice, runtime, MCP, and acceptance-oriented artifacts
 
@@ -306,10 +306,10 @@ Owns:
 
 Primary implementation anchors:
 
-- `scene_director_goc.py`
-- `semantic_move_interpretation_goc.py`
-- `social_state_goc.py`
-- `character_mind_goc.py`
+- `god_of_carnage_scene_director.py`
+- `god_of_carnage_semantic_move_interpretation.py`
+- `god_of_carnage_social_state.py`
+- `god_of_carnage_character_mind.py`
 - `dramatic_effect_gate.py`
 
 #### D. Retrieval and context layer

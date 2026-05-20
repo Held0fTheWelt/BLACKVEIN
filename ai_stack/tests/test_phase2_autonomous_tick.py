@@ -34,7 +34,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     ACTION_SILENCE,
     ACTION_SPEAK,
     BLOCK_TYPE_ACTOR_LINE,

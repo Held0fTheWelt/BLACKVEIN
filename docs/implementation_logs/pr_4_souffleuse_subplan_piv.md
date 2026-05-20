@@ -2,7 +2,7 @@
 
 | Slice | Status | Delivery |
 |-------|--------|----------|
-| PR-4B Full voice YAML in `source_facts` | Done | `goc_souffleuse._full_character_voice_profile` |
+| PR-4B Full voice YAML in `source_facts` | Done | `god_of_carnage_souffleuse._full_character_voice_profile` |
 | PR-4D Shadow production judge | Done | `souffleuse_production_judge.py` + meta on `_realize_souffleuse_output` |
 | PR-4A Live tick composer (post-opening) | Open | Stage M WS template exists; Director compose tool not wired for every tick |
 | PR-4C Pressure escalation loop | Open | No director-driven presence ramp yet |

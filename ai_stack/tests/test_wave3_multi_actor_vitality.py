@@ -37,13 +37,13 @@ class TestW31ResponderSetStrengthening:
 
     @staticmethod
     def _yaml_slice() -> dict[str, Any]:
-        from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
+        from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
 
         return load_goc_yaml_slice_bundle()
 
     def test_secondary_responder_has_preferred_reaction_order_sequence(self):
         """Verify secondary responder in dict has preferred_reaction_order=1."""
-        from ai_stack.story_runtime.director.scene_director_goc import _build_responder_set
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -65,7 +65,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_interrupter_has_preferred_reaction_order_2(self):
         """Verify interruption candidate has preferred_reaction_order=2."""
-        from ai_stack.story_runtime.director.scene_director_goc import _build_responder_set
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -87,7 +87,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_low_pressure_produces_only_primary(self):
         """Verify low pressure scene has only primary responder."""
-        from ai_stack.story_runtime.director.scene_director_goc import _build_responder_set
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -107,7 +107,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_high_pressure_escalate_conflict_includes_secondary(self):
         """Verify escalate_conflict triggers secondary reactor."""
-        from ai_stack.story_runtime.director.scene_director_goc import _build_responder_set
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _build_responder_set
 
         responders, resolution = _build_responder_set(
             primary_actor="veronique_vallon",
@@ -153,7 +153,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_policy_backed_subtext_interpretation(self):
         """Verify Pi19 subtext reaches the generation packet as a bounded policy surface."""
-        from ai_stack.story_runtime.semantic_planner.goc_subtext_policy import rule_spec_for_subtext
+        from ai_stack.story_runtime.semantic_planner.god_of_carnage_subtext_policy import rule_spec_for_subtext
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         policy_rule_id = "direct_accusation"
@@ -190,7 +190,7 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_current_npc_agency_simulation(self):
         """Verify Pi7 emits the current simulation contract as the primary surface."""
-        from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+        from ai_stack.contracts.npc_agency_contracts import (
             NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
             NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
         )
@@ -262,9 +262,9 @@ class TestW31ResponderSetStrengthening:
 
     def test_dramatic_packet_includes_bounded_relationship_dynamics_context(self):
         """Verify Pi27 reaches generation as bounded structural context."""
-        from ai_stack.goc_yaml_authority import load_goc_yaml_slice_bundle
+        from ai_stack.god_of_carnage_yaml_authority import load_goc_yaml_slice_bundle
         from ai_stack.langgraph.langgraph_runtime_executor import _build_dramatic_generation_packet
-        from ai_stack.story_runtime.semantic_planner.social_state_goc import build_social_state_record
+        from ai_stack.story_runtime.semantic_planner.god_of_carnage_social_state import build_social_state_record
 
         yaml_slice = load_goc_yaml_slice_bundle()
         social_state = build_social_state_record(
@@ -428,35 +428,35 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_has_unresolved_carry_forward_tension_true_when_notes_present(self):
         """Verify helper returns True when carry_forward_tension_notes non-empty."""
-        from ai_stack.story_runtime.director.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _has_unresolved_carry_forward_tension
 
         prior = {"carry_forward_tension_notes": "unresolved pressure: high"}
         assert _has_unresolved_carry_forward_tension(prior) is True
 
     def test_has_unresolved_carry_forward_tension_true_when_escalated(self):
         """Verify helper returns True when social_pressure_shift is escalated."""
-        from ai_stack.story_runtime.director.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _has_unresolved_carry_forward_tension
 
         prior = {"social_pressure_shift": "escalated"}
         assert _has_unresolved_carry_forward_tension(prior) is True
 
     def test_has_unresolved_carry_forward_tension_false_when_clean(self):
         """Verify helper returns False when no tension."""
-        from ai_stack.story_runtime.director.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _has_unresolved_carry_forward_tension
 
         prior = {"social_pressure_shift": "held"}
         assert _has_unresolved_carry_forward_tension(prior) is False
 
     def test_has_unresolved_carry_forward_tension_false_when_whitespace_only_notes(self):
         """Verify whitespace-only notes don't count as tension."""
-        from ai_stack.story_runtime.director.scene_director_goc import _has_unresolved_carry_forward_tension
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import _has_unresolved_carry_forward_tension
 
         prior = {"carry_forward_tension_notes": "   "}
         assert _has_unresolved_carry_forward_tension(prior) is False
 
     def test_thin_edge_silence_withdrawal_with_prior_tension_upgrades_to_probe_motive(self):
         """Verify thin_edge + silence_withdrawal + prior_tension routes to probe_motive."""
-        from ai_stack.story_runtime.director.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="silence_withdrawal",
@@ -472,7 +472,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_thin_edge_silence_withdrawal_no_prior_tension_stays_withhold_or_evade(self):
         """Verify thin_edge + silence_withdrawal WITHOUT tension stays as withhold_or_evade."""
-        from ai_stack.story_runtime.director.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="silence_withdrawal",
@@ -488,7 +488,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_build_pacing_accepts_prior_planner_truth_param(self):
         """Verify build_pacing_and_silence accepts prior_planner_truth parameter."""
-        from ai_stack.story_runtime.director.scene_director_goc import build_pacing_and_silence
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_pacing_and_silence
 
         pacing, silence = build_pacing_and_silence(
             player_input="",
@@ -502,7 +502,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_non_thin_edge_cases_unaffected_by_prior_tension(self):
         """Verify non-thin_edge pacing modes are unaffected by prior tension."""
-        from ai_stack.story_runtime.director.scene_director_goc import build_pacing_and_silence
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import build_pacing_and_silence
 
         pacing, silence = build_pacing_and_silence(
             player_input="hello there",
@@ -516,7 +516,7 @@ class TestW32ThinEdgeTensionUpgrade:
 
     def test_thin_edge_non_silence_withdrawal_unaffected(self):
         """Verify thin_edge cases other than silence_withdrawal aren't affected."""
-        from ai_stack.story_runtime.director.scene_director_goc import semantic_move_to_scene_candidates
+        from ai_stack.story_runtime.director.god_of_carnage_scene_director import semantic_move_to_scene_candidates
 
         candidates, implied, trace = semantic_move_to_scene_candidates(
             move_type="repair_attempt",  # Not silence_withdrawal
@@ -742,7 +742,7 @@ class TestW31MultiActorRenderLabeling:
 
     def test_multi_actor_realized_marker_when_two_actors_in_spoken(self):
         """Verify multi_actor_realized marker added when 2+ actors in spoken_lines."""
-        from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
         bundle, markers = run_visible_render(
             module_id="god_of_carnage",
@@ -766,7 +766,7 @@ class TestW31MultiActorRenderLabeling:
 
     def test_multi_actor_render_bundle_carries_realized_actor_ids(self):
         """Verify bundle contains realized_actor_ids list."""
-        from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
         bundle, markers = run_visible_render(
             module_id="god_of_carnage",
@@ -791,7 +791,7 @@ class TestW31MultiActorRenderLabeling:
 
     def test_no_multi_actor_marker_when_single_actor(self):
         """Verify no multi_actor_realized marker when only one actor."""
-        from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
         bundle, markers = run_visible_render(
             module_id="god_of_carnage",
@@ -813,7 +813,7 @@ class TestW31MultiActorRenderLabeling:
 
     def test_jammed_multi_speaker_in_one_spoken_row_surfaces_diagnostic_marker(self) -> None:
         """ADR-0034: model may merge two speakers into one ``spoken_lines`` row — surface a marker."""
-        from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
         _bundle, markers = run_visible_render(
             module_id="god_of_carnage",
@@ -847,7 +847,7 @@ class TestW31MultiActorRenderLabeling:
 
     def test_multi_actor_excludes_empty_and_null_actor_ids(self):
         """Verify empty/None actor IDs are excluded from count."""
-        from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
+        from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
 
         bundle, markers = run_visible_render(
             module_id="god_of_carnage",

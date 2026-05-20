@@ -8,17 +8,17 @@ from ai_stack.langgraph.langgraph_runtime_executor import (
     _build_runtime_aspect_validation,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.narrative_momentum_contracts import (
+from ai_stack.contracts.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING,
     NARRATIVE_MOMENTUM_SCHEMA_VERSION,
 )
 from ai_stack.narrative_momentum_engine import derive_narrative_momentum
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_COERCIVE_ACTION_TYPES,
     NPC_ACTION_CONTROLS_HUMAN_ACTOR_REASON,
     NPC_FORCE_PLAYER_SPEECH_FORBIDDEN,
 )
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.contracts.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.capabilities.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
@@ -32,7 +32,7 @@ from ai_stack.runtime_aspect_ledger import (
     build_runtime_intelligence_projection,
     initialize_runtime_aspect_ledger,
 )
-from ai_stack.social_pressure_contracts import (
+from ai_stack.contracts.social_pressure_contracts import (
     SOCIAL_PRESSURE_BANDS,
     SOCIAL_PRESSURE_SCHEMA_VERSION,
 )

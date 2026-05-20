@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 from typing import Any
 
-from ai_stack.research.research_contract import utc_now_iso
+from ai_stack.contracts.research_contract import utc_now_iso
 
 
 RESEARCH_STORE_SCHEMA_VERSION = "research_store_v1"

@@ -284,7 +284,7 @@ class StateDeltaBoundary:
 
 ### Response Validation Seam
 
-**Location**: `ai_stack/goc_turn_seams.py` (run_validation_seam)
+**Location**: `ai_stack/god_of_carnage_turn_seams.py` (run_validation_seam)
 
 **Used By MVP 3**:
 - Actor lane validation before response packaging

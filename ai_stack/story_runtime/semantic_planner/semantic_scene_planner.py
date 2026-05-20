@@ -14,7 +14,7 @@ from ai_stack.story_runtime.director.capabilities_manager.director_capability_ma
     DIRECTOR_CAPABILITY_MANAGER_PLAN_SCHEMA_VERSION,
     audit_director_capability_paths,
 )
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_SOCIAL_REACTION_OPTIONAL,
@@ -24,7 +24,7 @@ from ai_stack.capabilities.dramatic_capability_contracts import (
     NARRATOR_PERCEPTION_RESULT_DESCRIBE,
     NARRATOR_SCENE_CONTEXT_ESTABLISH,
 )
-from ai_stack.goc_frozen_vocab import CONTINUITY_CLASSES, TRANSITION_PATTERNS
+from ai_stack.god_of_carnage_frozen_vocabulary import CONTINUITY_CLASSES, TRANSITION_PATTERNS
 
 SEMANTIC_SCENE_PLANNER_VERSION: Final[str] = "goc_semantic_scene_planner_v1"
 

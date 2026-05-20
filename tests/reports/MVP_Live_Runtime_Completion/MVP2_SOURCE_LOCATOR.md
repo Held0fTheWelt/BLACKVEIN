@@ -16,8 +16,8 @@
 | ActorLaneContext model | `world-engine/app/runtime/models.py` | `world-engine/app/runtime/models.py` | `ActorLaneContext` dataclass | found | human_actor_id, ai_allowed_actor_ids, ai_forbidden_actor_ids |
 | actor-lane validator | `world-engine/app/runtime/actor_lane.py` | `world-engine/app/runtime/actor_lane.py` | `validate_actor_lane_output()`, `validate_responder_plan()` | found | Rejects AI output for human actor, rejects human responder nomination |
 | ActorLaneValidationResult | `world-engine/app/runtime/models.py` | `world-engine/app/runtime/models.py` | `ActorLaneValidationResult` dataclass | found | Status, error_code, actor_id, block_kind |
-| validation seam | `ai_stack/goc_turn_seams.py` | `ai_stack/goc_turn_seams.py` | `run_validation_seam()` with actor_lane_context param | found | Enforces actor lanes before response packaging |
-| responder seam | `world-engine/app/story/scene_director_goc.py` | `world-engine/app/story/scene_director_goc.py` | `build_responder_and_function()` | found | Responder nomination validated before selection |
+| validation seam | `ai_stack/god_of_carnage_turn_seams.py` | `ai_stack/god_of_carnage_turn_seams.py` | `run_validation_seam()` with actor_lane_context param | found | Enforces actor lanes before response packaging |
+| responder seam | `world-engine/app/story/god_of_carnage_scene_director.py` | `world-engine/app/story/god_of_carnage_scene_director.py` | `build_responder_and_function()` | found | Responder nomination validated before selection |
 | **MVP2-P03: NPC Coercion Classifier** |
 | coercion validator | `world-engine/app/runtime/actor_lane.py` | `world-engine/app/runtime/actor_lane.py` | `validate_npc_action_coercion()` | found | Rejects NPC actions that force human state/action |
 | coercion detection | `world-engine/app/runtime/actor_lane.py` | `world-engine/app/runtime/actor_lane.py` | `_COERCIVE_ACTION_TYPES`, `_ALLOWED_PRESSURE_VERBS` | found | Classifies verbs and action types |
@@ -32,7 +32,7 @@
 | StateDeltaBoundary model | `world-engine/app/runtime/models.py` | `world-engine/app/runtime/models.py` | `StateDeltaBoundary` dataclass | found | protected_paths, allowed_runtime_paths, reject_unknown_paths |
 | state delta validator | `world-engine/app/runtime/state_delta.py` | `world-engine/app/runtime/state_delta.py` | `validate_state_delta()`, `validate_state_deltas()` | found | Rejects protected-path mutations |
 | StateDeltaValidationResult | `world-engine/app/runtime/models.py` | `world-engine/app/runtime/models.py` | `StateDeltaValidationResult` dataclass | found | status, error_code, path, operation |
-| commit seam enforcement | `ai_stack/goc_turn_seams.py` | `ai_stack/goc_turn_seams.py` | `run_commit_seam()` with state_delta_boundary param | found | Protected mutation rejected before commit |
+| commit seam enforcement | `ai_stack/god_of_carnage_turn_seams.py` | `ai_stack/god_of_carnage_turn_seams.py` | `run_commit_seam()` with state_delta_boundary param | found | Protected mutation rejected before commit |
 | **MVP2-P07: Operational Wiring** |
 | docker-up.py | `docker-up.py` | `docker-up.py` | startup sequence | found | Remains fully functional with MVP2 models |
 | test runner | `tests/run_tests.py` | `tests/run_tests.py` | `--mvp2` preset, `--suite engine` | found | Runs world-engine/tests/test_mvp2_* |
@@ -63,7 +63,7 @@
 **Files**:
 - `world-engine/app/runtime/models.py` — `ActorLaneContext`, `ActorLaneValidationResult`
 - `world-engine/app/runtime/actor_lane.py` — `validate_actor_lane_output()`, `validate_responder_plan()`
-- `ai_stack/goc_turn_seams.py` — `run_validation_seam(actor_lane_context=...)`
+- `ai_stack/god_of_carnage_turn_seams.py` — `run_validation_seam(actor_lane_context=...)`
 
 **Symbols**:
 - `ActorLaneContext(contract, content_module_id, runtime_profile_id, selected_player_role, human_actor_id, actor_lanes, ai_allowed_actor_ids, ai_forbidden_actor_ids)`
@@ -126,7 +126,7 @@
 **Files**:
 - `world-engine/app/runtime/models.py` — `StateDeltaBoundary`, `StateDeltaValidationResult`
 - `world-engine/app/runtime/state_delta.py` — `validate_state_delta()`, `validate_state_deltas()`
-- `ai_stack/goc_turn_seams.py` — `run_commit_seam(candidate_deltas=..., state_delta_boundary=...)`
+- `ai_stack/god_of_carnage_turn_seams.py` — `run_commit_seam(candidate_deltas=..., state_delta_boundary=...)`
 
 **Symbols**:
 - `StateDeltaBoundary(contract, protected_paths=[...], allowed_runtime_paths=[...], reject_unknown_paths=True)`

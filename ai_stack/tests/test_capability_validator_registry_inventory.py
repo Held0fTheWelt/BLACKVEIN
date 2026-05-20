@@ -12,7 +12,7 @@ from ai_stack.capabilities.capability_validator_registry import (
     VALIDATOR_REGISTRY_INVENTORY,
     inventory_rows_by_validator_id,
 )
-from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
+from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import SEAM_MIRROR_VALIDATOR_IDS
 
 
 def test_registry_inventory_matches_planned_local_validator_ids() -> None:

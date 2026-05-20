@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 import yaml
-from ai_stack.actor_situation import (
+from ai_stack.actor_tracking import (
     W5Snapshot,
     build_w5_admin_actor_view,
     build_w5_admin_conflicts_view,
@@ -141,14 +141,14 @@ from ai_stack.runtime_aspect_ledger import (
     normalize_runtime_aspect_ledger,
     set_aspect_record,
 )
-from ai_stack.callback_web_contracts import (
+from ai_stack.contracts.callback_web_contracts import (
     callback_web_aspect_blocks,
     callback_web_bounds_from_policy,
     callback_web_policy_from_module_runtime,
     normalize_callback_web_policy,
     validate_callback_web_record,
 )
-from ai_stack.consequence_cascade_contracts import (
+from ai_stack.contracts.consequence_cascade_contracts import (
     consequence_cascade_aspect_blocks,
     consequence_cascade_bounds_from_policy,
     consequence_cascade_policy_from_module_runtime,
@@ -156,19 +156,19 @@ from ai_stack.consequence_cascade_contracts import (
     validate_consequence_cascade_record,
 )
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.environment_state_contracts import (
+from ai_stack.contracts.environment_state_contracts import (
     build_environment_model,
     normalize_environment_state,
 )
-from ai_stack.hierarchical_memory_contracts import (
+from ai_stack.contracts.hierarchical_memory_contracts import (
     build_hierarchical_memory_write,
     empty_hierarchical_memory_snapshot,
     merge_hierarchical_memory_snapshot,
     normalize_hierarchical_memory_snapshot,
     project_hierarchical_memory_context,
 )
-from ai_stack.narrative_aspect_contracts import validate_narrative_aspects
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.narrative_aspect_contracts import validate_narrative_aspects
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_SOCIAL_REACTION_OPTIONAL,
@@ -183,7 +183,7 @@ from ai_stack.capabilities.dramatic_capability_contracts import (
     PLAYER_PERCEPTION_REQUEST,
     PLAYER_SPEECH_REQUEST,
 )
-from ai_stack.visible_origin_contracts import (
+from ai_stack.contracts.visible_origin_contracts import (
     EVIDENCE_REQUIRED,
     EVIDENCE_SUPPORTING,
     REQUIRED_VISIBLE_ORIGIN_KEYS,
@@ -191,7 +191,7 @@ from ai_stack.visible_origin_contracts import (
     preserve_folded_origin_metadata,
     visible_origin_from_block,
 )
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
     DEGRADATION_SIGNAL_FALLBACK_USED,
@@ -226,13 +226,13 @@ from ai_stack.runtime_cost_attribution import (
     build_unavailable_phase_cost,
 )
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
-from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
-from ai_stack.goc_yaml_authority import goc_actor_identity
-from ai_stack.story_runtime.npc_agency.goc_npc_transcript_projection import (
+from ai_stack.god_of_carnage_frozen_vocabulary import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.god_of_carnage_yaml_authority import goc_actor_identity
+from ai_stack.story_runtime.npc_agency.god_of_carnage_npc_transcript_projection import (
     goc_transcript_policy_flags,
     split_merged_goc_actor_line_segments,
 )
-from ai_stack.goc_opening_transition import (
+from ai_stack.god_of_carnage_opening_transition import (
     compute_opening_transition_from_scene_blocks,
     polish_first_opening_actor_block,
     role_display_name as _role_display_name,

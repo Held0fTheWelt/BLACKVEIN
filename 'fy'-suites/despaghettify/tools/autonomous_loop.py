@@ -162,32 +162,10 @@ def _git_dirty_paths(allowed_prefixes: tuple[str, ...]) -> list[str]:
 
 
 def collect_open_ds_ids_from_md(md: str) -> list[str]:
-    """Implement ``collect_open_ds_ids_from_md`` for the surrounding module
-    workflow.
+    """Return open **DS-*** ids from § *Open* in the implementation input list."""
+    from despaghettify.tools.input_list_archive import open_ds_ids_from_md  # noqa: PLC0415
 
-    The implementation iterates over intermediate items before it
-    returns. Control flow branches on the parsed state rather than
-    relying on one linear path.
-
-    Args:
-        md: Primary md used by this step.
-
-    Returns:
-        list[str]:
-            Collection produced from the parsed or
-            accumulated input data.
-    """
-    start = md.find("## Information input list")
-    end = md.find("## Recommended implementation order")
-    if start == -1 or end == -1 or end <= start:
-        return []
-    section = md[start:end]
-    seen: set[str] = set()
-    for line in section.splitlines():
-        m = OPEN_DS_ROW.match(line)
-        if m:
-            seen.add(m.group(1))
-    return sorted(seen, key=lambda s: int(s.split("-")[1]))
+    return open_ds_ids_from_md(md)
 
 
 def collect_open_ds_ids() -> list[str]:

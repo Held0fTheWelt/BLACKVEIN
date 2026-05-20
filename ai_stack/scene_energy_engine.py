@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.scene_energy_contracts import (
+from ai_stack.contracts.scene_energy_contracts import (
     SCENE_ENERGY_DENSITIES,
     SCENE_ENERGY_FAILURE_CODES,
     SCENE_ENERGY_LEVELS,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ai_stack.research.research_contract import ExplorationBudget
+from ai_stack.contracts.research_contract import ExplorationBudget
 from ai_stack.research.research_langgraph import (
     build_research_bundle,
     exploration_graph,

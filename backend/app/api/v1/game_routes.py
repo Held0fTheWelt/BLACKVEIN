@@ -10,7 +10,7 @@ from flask import current_app, g, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from sqlalchemy import select
 
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
 from ai_stack.runtime_readiness_consumer import (
     build_adr0041_readiness_projection_echo,
@@ -22,7 +22,7 @@ from ai_stack.player_narrative_cards import (
     build_player_facing_narrative_cards,
     player_shell_typewriter_start_index,
 )
-from ai_stack.visible_narrative_contract import polish_goc_scene_blocks_for_player_shell
+from ai_stack.contracts.visible_narrative_contract import polish_goc_scene_blocks_for_player_shell
 
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin
@@ -455,7 +455,7 @@ def _player_shell_state_view(
     if not isinstance(module_scope_truth, dict):
         module_scope_truth = state.get("module_scope_truth") if isinstance(state.get("module_scope_truth"), dict) else {}
     counter_proj = _shell_turn_counter_projection(state)
-    return {
+    view: dict[str, Any] = {
         "run_id": run_id,
         "template_id": template_id,
         "module_id": module_id,
@@ -475,6 +475,37 @@ def _player_shell_state_view(
         "player_shell_context": player_shell_context,
         "module_scope_truth": module_scope_truth,
     }
+    w5_player_view = state.get("w5_player_view")
+    if not isinstance(w5_player_view, dict):
+        w5_player_view = committed.get("w5_player_view")
+    w5_player_diag = state.get("w5_player_view_diagnostics")
+    if not isinstance(w5_player_diag, dict):
+        w5_player_diag = committed.get("w5_player_view_diagnostics")
+    if isinstance(w5_player_diag, dict):
+        runtime_world = state.get("runtime_world") if isinstance(state.get("runtime_world"), dict) else {}
+        current_room_id = str(runtime_world.get("current_room_id") or "").strip() or None
+        if isinstance(w5_player_view, dict):
+            where = w5_player_view.get("where_summary") if isinstance(w5_player_view.get("where_summary"), dict) else {}
+            current_room_id = (
+                str(where.get("current_visible_location") or "").strip()
+                or str(where.get("current_location") or "").strip()
+                or current_room_id
+            )
+            scene_location = where.get("scene_location")
+            if isinstance(scene_location, dict):
+                current_room_id = str(scene_location.get("value") or "").strip() or current_room_id
+        view["w5_player_view_diagnostics"] = w5_player_diag
+        if isinstance(w5_player_view, dict):
+            view["w5_player_view"] = w5_player_view
+        view["current_room_id"] = current_room_id
+        view["current_room_source"] = w5_player_diag.get("current_room_source") or "legacy_current_room"
+        feature_flags = state.get("feature_flags") if isinstance(state.get("feature_flags"), dict) else {}
+        view["feature_flags"] = {
+            "W5_AST_FRONTEND_PLAYER_VIEW_ENABLED": bool(
+                feature_flags.get("W5_AST_FRONTEND_PLAYER_VIEW_ENABLED")
+            )
+        }
+    return view
 
 
 def _session_loop_evidence_for_bundle(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.pacing_rhythm_contracts import (
+from ai_stack.contracts.pacing_rhythm_contracts import (
     PACING_RHYTHM_FAILURE_CODES,
     PACING_RHYTHM_POLICY_VERSION,
     PACING_RHYTHM_SCHEMA_VERSION,

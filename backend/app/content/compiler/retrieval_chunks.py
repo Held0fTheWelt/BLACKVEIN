@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_ASPECT_NAME,
 )
 from app.content.module_models import ContentModule

@@ -182,7 +182,7 @@ Implemented as of 2026-05-17:
   import while downstream callers migrate.
 - `ai_stack/langgraph/langgraph_runtime_executor.py` carries `session_input_language`
   through runtime state and semantic interpretation.
-- `ai_stack/action_resolution_contracts.py` and
+- `ai_stack/contracts/action_resolution_contracts.py` and
   `ai_stack/player_action_resolution.py` preserve normalized English resolution
   evidence on the player action frame.
 - `backend/app/api/v1/game_routes.py` accepts, validates, defaults, persists,
@@ -199,10 +199,10 @@ Updated on 2026-05-18:
   output is attached as `semantic_action` / `semantic_move`, and retrieval
   prefers normalized internal-language evidence (`normalized_english_text` for
   English-authored compatibility paths).
-- `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py` reads bounded AI semantic move
+- `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py` reads bounded AI semantic move
   payloads and runtime silence signals only; phrase synsets and priority-rule
   stacks were removed.
-- `ai_stack/story_runtime/director/scene_director_goc.py` no longer imports legacy keyword scene
+- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` no longer imports legacy keyword scene
   candidates or actor alias matching from raw text. Missing semantic moves use
   `selection_source=semantic_move_required`.
 - `story_runtime_core/input_interpreter.py` and

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.narrative_momentum_contracts import (
+from ai_stack.contracts.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_BUILDING,
     NARRATIVE_MOMENTUM_FAILURE_EVENT_MISSING,
     NARRATIVE_MOMENTUM_SCHEMA_VERSION,

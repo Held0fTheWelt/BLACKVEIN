@@ -9,11 +9,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_FAILURE_CODES
-from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_FAILURE_CODES
-from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
-from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
-from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_FAILURE_CODES
+from ai_stack.contracts.expectation_variation_contracts import EXPECTATION_VARIATION_FAILURE_CODES
+from ai_stack.contracts.narrative_momentum_contracts import NARRATIVE_MOMENTUM_FAILURE_CODES
+from ai_stack.contracts.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
+from ai_stack.contracts.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+from ai_stack.contracts.tonal_consistency_contracts import TONAL_CONSISTENCY_FAILURE_CODES
 
 REWRITEABLE_VALIDATION_REASONS = frozenset(
     {

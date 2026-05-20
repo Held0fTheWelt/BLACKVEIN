@@ -41,7 +41,7 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from starlette.concurrency import run_in_threadpool
 
-from ai_stack.story_runtime.director.director_pulse_contracts import ACTION_SILENCE, ACTION_SPEAK
+from ai_stack.contracts.director_pulse_contracts import ACTION_SILENCE, ACTION_SPEAK
 from ai_stack.autonomous_tick import (
     AutonomousTickInputs,
     AutonomousTickOutcome,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.temporal_control_contracts import (
+from ai_stack.contracts.temporal_control_contracts import (
     TEMPORAL_CONTROL_FAILURE_BRANCH_STATE_ADOPTION,
     TEMPORAL_CONTROL_FAILURE_CODES,
     TEMPORAL_CONTROL_FAILURE_HISTORY_REWRITE_ATTEMPT,

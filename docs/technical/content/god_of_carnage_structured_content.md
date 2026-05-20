@@ -50,8 +50,8 @@ The validation seam consumes `hard_forbidden_detection.reject_on` /
 `recover_on` from `knowledge/hard_forbidden_rules.yaml`. Detection keys that
 appear under `reject_on` block commit. Keys that appear under `recover_on`
 trigger bounded recovery before commit. Hard-forbidden violations must not
-silently commit as healthy. See `ai_stack/goc_knowledge_runtime_gates.py` /
-`ai_stack/story_runtime/turn/goc_turn_seams.py` for the wiring.
+silently commit as healthy. See `ai_stack/god_of_carnage_knowledge_runtime_gates.py` /
+`ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` for the wiring.
 
 ## Opening realization gate
 

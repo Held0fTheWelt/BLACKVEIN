@@ -6,7 +6,7 @@ assertions use policy-derived semantic profiles and structured contract fields.
 
 from __future__ import annotations
 
-from ai_stack.narrative_aspect_contracts import (
+from ai_stack.contracts.narrative_aspect_contracts import (
     normalize_narrative_aspect_policy,
     select_narrative_aspects,
     validate_narrative_aspects,

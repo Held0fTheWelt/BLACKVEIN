@@ -58,7 +58,7 @@ We will introduce the **W5 Actor Situation Tracker** with the following normativ
 
 3. **Closed source set.** `W5Source ∈ { canonical_content, committed_action, participant_state_move, free_player_action_resolution, director_gathering_state, director_composition, npc_agency_simulation, character_mind_record, sensory_context_engine, souffleuse, narrator_composition, admin_override }`. `committed_action` / `participant_state_move` may produce OBSERVED Where/What only after substrate commit. `free_player_action_resolution` typically produces DECLARED until committed. `character_mind_record` / `npc_agency_simulation` may produce INFERRED How/Why. `souffleuse` / `narrator_composition` are projection-lane only. `admin_override` is audited and must never produce OBSERVED.
 
-4. **Visibility, status, freshness, action state, conflict resolution, validation failure codes** are closed enums (see `ai_stack/actor_situation/models.py`).
+4. **Visibility, status, freshness, action state, conflict resolution, validation failure codes** are closed enums (see `ai_stack/actor_tracking/models.py`).
 
 5. **W5Fact, W5ActorSituation, W5Snapshot, W5Conflict, W5Projection** schemas with stable `schema_version` strings (`w5_fact.v1`, `w5_snapshot.v1`, `w5_projection.v1`). Required invariants:
    - `fact_id` stable and unique; `confidence ∈ [0.0, 1.0]`.
@@ -137,7 +137,7 @@ Gate-style tests follow **[ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-byp
 
 ## References
 
-- `ai_stack/actor_situation/models.py` — closed enums and record models.
-- `ai_stack/actor_situation/extractor.py` — pure extractor.
+- `ai_stack/actor_tracking/models.py` — closed enums and record models.
+- `ai_stack/actor_tracking/extractor.py` — pure extractor.
 - `world-engine/app/story_runtime/manager.py` — `StorySession`, `story_session_to_payload`, `story_session_from_payload`, `_finalize_committed_turn` (shadow extraction wire-in).
 - `docs/MVPs/w5_actor_situation_migration.md` — phase plan (Phase 0..6) and migration notes.

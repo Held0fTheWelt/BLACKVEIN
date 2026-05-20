@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ai_stack.research.research_contract import AspectRecord, Perspective, ResearchStatus
+from ai_stack.contracts.research_contract import AspectRecord, Perspective, ResearchStatus
 from ai_stack.research.research_perspectives import extract_perspective_aspects
 from ai_stack.research.research_store import ResearchStore
 

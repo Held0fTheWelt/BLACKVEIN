@@ -21,4 +21,4 @@ description: Routes agents to the correct Despaghettify task markdown — check 
 
 Optional CLI helpers (metrics / listing / preflight): [`references/CLI.md`](../references/CLI.md) — helpers only, not a second policy.
 
-Input list: `despaghettify/despaghettification_implementation_input.md`.
+Input list: `despaghettify/despaghettification_implementation_input.md` (open DS rows only). Closed wave history: `despaghettify/despaghettification_completed_log.md`. Hub CLI auto-runs archive sync on every subcommand (`sync-archive` / `DESPAG_SKIP_ARCHIVE_SYNC=1` to disable).

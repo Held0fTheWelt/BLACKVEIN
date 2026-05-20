@@ -22,7 +22,7 @@ Accepted
 
 ## Context
 
-The existing `goc_souffleuse.py` generates opening-phase Souffleuse blocks from
+The existing `god_of_carnage_souffleuse.py` generates opening-phase Souffleuse blocks from
 canonical_path cue content. That implementation is correct for Phase 1 (opening
 cues) but it does not specify:
 
@@ -121,9 +121,9 @@ The Souffleuse is a Phase-2 / ADR-0060 concern. The `director_gathering_state_co
 module (ADR-0061 domain) must not reference Souffleuse, motivation scores, or
 block stream concepts. This is enforced by existing PR-C guardrail tests.
 
-### 8. Existing `goc_souffleuse.py` unchanged
+### 8. Existing `god_of_carnage_souffleuse.py` unchanged
 
-`ai_stack/goc_souffleuse.py` and `build_goc_opening_souffleuse_projection()` are
+`ai_stack/god_of_carnage_souffleuse.py` and `build_goc_opening_souffleuse_projection()` are
 not modified by this ADR. The opening Souffleuse path continues to work as
 implemented under ADR-0035. This ADR governs the rules that any future Souffleuse
 composition path must follow.
@@ -213,7 +213,7 @@ ships:
 - The Souffleuse block-type / lane / cut-kind contract surface
   (`director_pulse_contracts.BLOCK_TYPE_SOUFFLEUSE`,
   `LANE_PLAYER_HINT`, `CUT_KIND_SKIP_TO_END`).
-- The opening Souffleuse path via `goc_souffleuse.py` (unchanged).
+- The opening Souffleuse path via `god_of_carnage_souffleuse.py` (unchanged).
 - The Stage M follow-up composition for NPC replies, sharing the
   voice-profile discipline and safety-gate vocabulary above.
 
@@ -239,8 +239,8 @@ explicit future work and are not part of Phase 2 closure.
 
 ## Implementation
 
-- `ai_stack/goc_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
-- `ai_stack/story_runtime/director/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
+- `ai_stack/god_of_carnage_souffleuse.py` — unchanged; existing opening-phase Souffleuse path.
+- `ai_stack/contracts/director_pulse_contracts.py` — `BLOCK_TYPE_SOUFFLEUSE`, `LANE_PLAYER_HINT`,
   and `CUT_KIND_SKIP_TO_END` constants define the Souffleuse's stream position.
 - `ai_stack/ws_session_loop.py` — Stage M follow-up composition
   dispatcher (`_compose_npc_follow_up`, `_compose_template_render_follow_up`,

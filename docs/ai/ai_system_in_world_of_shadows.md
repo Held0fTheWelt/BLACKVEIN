@@ -173,7 +173,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 **Plain:** After retrieval and director state are available, the runtime builds a bounded synthesis bundle: what evidence is present, what obligations should guide generation, what conflicts exist, and what context is missing. If validation rejects a proposal and self-correction is allowed, validation feedback is synthesized again as retry-only prompt support.
 
-**Technical:** `ContextSynthesisBundle` is defined in [`ai_stack/context_synthesis_contracts.py`](../../ai_stack/context_synthesis_contracts.py) and built by [`ai_stack/context_synthesis_engine.py`](../../ai_stack/context_synthesis_engine.py). The LangGraph runtime inserts `synthesize_context` between `director_select_dramatic_parameters` and `assemble_model_context`, then exposes the bounded summary at `graph_diagnostics.context_synthesis`. Self-correction retries call the same deterministic engine with `validation_feedback`; diagnostics retain `context_synthesis_retry_history`, `resynthesis_count`, and `used_for_self_correction`.
+**Technical:** `ContextSynthesisBundle` is defined in [`ai_stack/contracts/context_synthesis_contracts.py`](../../ai_stack/contracts/context_synthesis_contracts.py) and built by [`ai_stack/context_synthesis_engine.py`](../../ai_stack/context_synthesis_engine.py). The LangGraph runtime inserts `synthesize_context` between `director_select_dramatic_parameters` and `assemble_model_context`, then exposes the bounded summary at `graph_diagnostics.context_synthesis`. Self-correction retries call the same deterministic engine with `validation_feedback`; diagnostics retain `context_synthesis_retry_history`, `resynthesis_count`, and `used_for_self_correction`.
 
 **Why WoS:** This separates “retrieved text was appended to a prompt” from a reviewable synthesis step that can be inspected in diagnostics and tested by contract. It also makes recovery prompts explainable: a retry can show which feedback codes became obligations.
 
@@ -197,7 +197,7 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 ## Research, sandbox improvement, and canon improvement (first-class)
 
-This is a **real subsystem**, not a footnote: structured intake, exploration graphs, claims, validation promotion rules, review bundles, and deterministic canon-issue/proposal derivation live under `ai_stack/research/research_*.py`, `ai_stack/research/canon_improvement_engine.py`, and `ai_stack/research/research_contract.py`.
+This is a **real subsystem**, not a footnote: structured intake, exploration graphs, claims, validation promotion rules, review bundles, and deterministic canon-issue/proposal derivation live under `ai_stack/research/research_*.py`, `ai_stack/research/canon_improvement_engine.py`, and `ai_stack/contracts/research_contract.py`.
 
 ### Plain language
 
@@ -207,7 +207,7 @@ This is a **real subsystem**, not a footnote: structured intake, exploration gra
 
 ### Technical precision
 
-- **Contracts and enums:** `ai_stack/research/research_contract.py` — `ResearchStatus`, exploration relation types, abort reasons, canon issue and proposal types, legal status transitions.
+- **Contracts and enums:** `ai_stack/contracts/research_contract.py` — `ResearchStatus`, exploration relation types, abort reasons, canon issue and proposal types, legal status transitions.
 - **Persistence:** `ai_stack/research/research_store.py` — JSON store at `.wos/research/research_store.json` (schema `research_store_v1`), buckets for sources, anchors, aspects, exploration nodes/edges, claims, issues, proposals, runs.
 - **Pipeline orchestration:** `ai_stack/research/research_langgraph.py` — `run_research_pipeline` runs normalize/ingest (`research_ingestion.py`), aspect extraction (`research_aspect_extraction.py`), bounded exploration (`research_exploration.py`), claim verification (`research_validation.py`), canon improvement derivation (`canon_improvement_engine.py`), and embeds a **review bundle** in the run record (`build_review_bundle`). Bundle flags include `canon_mutation_permitted: false`.
 - **Canon improvement engine:** `ai_stack/research/canon_improvement_engine.py` — keyword-driven issue classification from validated claims, `ImprovementProposalRecord` with `preview_patch_ref` and `mutation_allowed: false` in previews.
@@ -258,7 +258,7 @@ flowchart LR
 
 ### Technical precision
 
-- **Inside the graph:** `validate_seam` → `commit_seam` (GoC slice seams; `ai_stack/story_runtime/turn/goc_turn_seams.py` and contract docs).
+- **Inside the graph:** `validate_seam` → `commit_seam` (GoC slice seams; `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` and contract docs).
 - **Host after `run()`:** `resolve_narrative_commit` builds `StoryNarrativeCommitRecord` (`world-engine/app/story_runtime/commit_models.py`).
 - **Backend `ai_turn_executor`:** Documented as **transitional** for in-process `SessionState` loops—not a parallel live runtime to world-engine.
 

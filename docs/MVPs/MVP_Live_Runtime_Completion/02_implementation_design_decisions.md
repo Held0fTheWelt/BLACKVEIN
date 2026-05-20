@@ -38,7 +38,7 @@
 - Requires: Langgraph node signature changes to accept `actor_lane_context` parameter
 
 **Seam 2: Late Validation (Response packaging seam)**
-- `run_validation_seam()` in `ai_stack/story_runtime/turn/goc_turn_seams.py` scans structured output
+- `run_validation_seam()` in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` scans structured output
 - Validation fires **before** response packaging and **before** commit
 - Catches any violations that escape early seam
 - Requires: `actor_lane_context` dict parameter to `run_validation_seam()`
@@ -214,7 +214,7 @@ allowed_runtime_paths = [
 **Rationale**: P04 is completely independent. P01 is the foundation for P02 and P06.
 
 ### Phase 2: Sequential (after P01, Week 1.5–2)
-- **P02: Actor-Lane Validator** (actor_lane.py, models.py, goc_turn_seams.py)
+- **P02: Actor-Lane Validator** (actor_lane.py, models.py, god_of_carnage_turn_seams.py)
   - Define `ActorLaneContext`, `ActorLaneValidationResult`
   - Implement `validate_actor_lane_output()`, `validate_responder_plan()`
   - Thread `actor_lane_context` through `run_validation_seam()`
@@ -232,7 +232,7 @@ allowed_runtime_paths = [
   - Implement `admit_object()`, `validate_object_admission()`
   - Define `ObjectAdmissionRecord`, `VALID_SOURCE_KINDS`
   - Tests: 2+
-- **P06: State Delta Boundary** (state_delta.py, models.py, goc_turn_seams.py)
+- **P06: State Delta Boundary** (state_delta.py, models.py, god_of_carnage_turn_seams.py)
   - Implement `validate_state_delta()`, `validate_state_deltas()`
   - Define `StateDeltaBoundary`, granular path enforcement
   - Thread boundary through `run_commit_seam()`
@@ -371,7 +371,7 @@ function saveStateDeltaBoundary() {
 - `world-engine/app/runtime/actor_lane.py` — must create or update for P02/P03
 - `world-engine/app/runtime/object_admission.py` — must create or update for P05
 - `world-engine/app/runtime/state_delta.py` — must create or update for P06
-- `ai_stack/story_runtime/turn/goc_turn_seams.py` — must update P02 and P06 seams
+- `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — must update P02 and P06 seams
 - `administration-tool/templates/manage/runtime_settings.html` — new sections for P05/P06 admin
 - `administration-tool/static/manage_runtime_settings.js` — new functions for P05/P06 admin
 - `tests/run_tests.py` — must register all MVP 2 tests under `--suite mvp2`

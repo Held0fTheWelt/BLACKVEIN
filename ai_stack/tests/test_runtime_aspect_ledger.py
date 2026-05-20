@@ -2,25 +2,25 @@ from __future__ import annotations
 
 import json
 
-from ai_stack.dramatic_irony_contracts import (
+from ai_stack.contracts.dramatic_irony_contracts import (
     DRAMATIC_IRONY_SCHEMA_VERSION,
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
     DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,
 )
-from ai_stack.expectation_variation_contracts import (
+from ai_stack.contracts.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_SCHEMA_VERSION,
 )
-from ai_stack.genre_awareness_contracts import (
+from ai_stack.contracts.genre_awareness_contracts import (
     GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER,
     GENRE_AWARENESS_SCHEMA_VERSION,
 )
-from ai_stack.improvisational_coherence_contracts import (
+from ai_stack.contracts.improvisational_coherence_contracts import (
     IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
     IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
 )
-from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
-from ai_stack.active_listening_contracts import (
+from ai_stack.contracts.narrative_momentum_contracts import NARRATIVE_MOMENTUM_SCHEMA_VERSION
+from ai_stack.contracts.active_listening_contracts import (
     BROAD_NLU_LISTENING_SCHEMA_VERSION,
     CONVERSATIONAL_MEMORY_SCHEMA_VERSION,
     PROMPT_AUTHORITY_SCHEMA_VERSION,
@@ -56,17 +56,17 @@ from ai_stack.runtime_aspect_ledger import (
     set_aspect_record,
     stable_ledger_json,
 )
-from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
-from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
-from ai_stack.sensory_context_contracts import (
+from ai_stack.contracts.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
+from ai_stack.contracts.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
+from ai_stack.contracts.sensory_context_contracts import (
     SENSORY_CONTEXT_FAILURE_CODES,
     SENSORY_CONTEXT_SCHEMA_VERSION,
 )
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
 )
-from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_SCHEMA_VERSION
-from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_SCHEMA_VERSION
+from ai_stack.contracts.temporal_control_contracts import TEMPORAL_CONTROL_SCHEMA_VERSION
+from ai_stack.contracts.tonal_consistency_contracts import TONAL_CONSISTENCY_SCHEMA_VERSION
 
 
 def _scene_energy_missing_pressure_code() -> str:

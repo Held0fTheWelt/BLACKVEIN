@@ -18,6 +18,7 @@
 - `[spaghetti-check-task.md](spaghetti-check-task.md)` — **Threshold** / trigger evaluation (by reference).
 - `[despaghettification_implementation_input.md](despaghettification_implementation_input.md)` — § *Score M7* **formula weights** and § *Trigger policy for check task updates* (must stay aligned after edits here).
 - `[templates/despaghettification_implementation_input.EMPTY.md](templates/despaghettification_implementation_input.EMPTY.md)` — same mirror for resets.
+- `[templates/despaghettification_completed_log.EMPTY.md](templates/despaghettification_completed_log.EMPTY.md)` — bootstrap for the completed archive (not wiped on reset).
 
 **Important:** **Bars and `M7_ref` apply to real measured shares** (`**Anteil %`** / `metrics_bundle.score.*.anteil_pct` / `condition_shares_pct`), **not** to the **heuristic trigger v2** scale (`category_scores` / `m7` from `ast_heuristic_v2`). Triggers are **advisory** (trend / saturation); see § *Heuristic trigger scale (advisory modes)* below.
 

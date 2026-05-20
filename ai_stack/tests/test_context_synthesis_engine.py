@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.context_synthesis_contracts import (
+from ai_stack.contracts.context_synthesis_contracts import (
     CONTEXT_SYNTHESIS_AUTHORITY,
     CONTEXT_SYNTHESIS_FORBIDDEN_TRUTH_FIELDS,
     CONTEXT_SYNTHESIS_SCHEMA_VERSION,

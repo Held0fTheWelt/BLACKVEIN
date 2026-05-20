@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_SOCIAL_REACTION_OPTIONAL,

@@ -12,7 +12,7 @@
 | Narrative Systems UI | `world-engine/app/web/static/ui_narrative_systems.js` | snapshot + thin-path-summary |
 | Tests | `world-engine/tests/test_runtime_diagnostic_snapshot_api.py` | envelope shape |
 
-Production graph / `langgraph_runtime_executor` — **no** import of `ai_stack.runtime_diagnostic_snapshot_contracts`.
+Production graph / `langgraph_runtime_executor` — **no** import of `ai_stack.contracts.runtime_diagnostic_snapshot_contracts`.
 
 ## 2. Existing-path probe
 

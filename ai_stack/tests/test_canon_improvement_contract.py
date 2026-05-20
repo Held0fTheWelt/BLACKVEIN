@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import pytest
 
-from ai_stack.research.canon_improvement_contract import (
+from ai_stack.contracts.canon_improvement_contract import (
     ensure_issue_type,
     ensure_proposal_type,
     proposal_for_issue,
     ISSUE_TO_PROPOSAL_DEFAULT,
 )
-from ai_stack.research.research_contract import CanonIssueType, ImprovementProposalType
+from ai_stack.contracts.research_contract import CanonIssueType, ImprovementProposalType
 
 
 def test_ensure_issue_type_raises_on_invalid_value() -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.expectation_variation_contracts import (
+from ai_stack.contracts.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_FAILURE_OVER_BUDGET,
     EXPECTATION_VARIATION_FAILURE_UNEARNED_EVENT,

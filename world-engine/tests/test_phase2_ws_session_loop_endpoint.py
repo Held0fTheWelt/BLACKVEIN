@@ -29,7 +29,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     BLOCK_TYPE_ACTOR_LINE,
     BLOCK_TYPE_NARRATOR,
     CUT_IN_UNINTERRUPTED,

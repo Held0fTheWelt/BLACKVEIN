@@ -45,7 +45,7 @@ No code behavior changes.
 
 **Goal:** produce W5 snapshots after every committed runtime event, persist them append-only, change no consumer behavior.
 
-- [x] `ai_stack/actor_situation/` package created with:
+- [x] `ai_stack/actor_tracking/` package created with:
   - `models.py` — closed enums (`W5Dimension`, `W5TruthLevel`, `W5Source`, `W5VisibilityScope`, `W5FactStatus`, `W5FreshnessStatus`, `W5ActorType`, `W5ProjectionConsumer`, `W5ActionState`, `W5ConflictResolutionStatus`, `W5ValidationFailureCode`) and records (`W5Fact`, `W5ActorSituation`, `W5Snapshot`, `W5Conflict`, `W5Projection`).
   - `extractor.py` — `extract_w5_snapshot_from_committed_event(...)` pure function.
 - [x] `StorySession` extended with append-only `w5_history: list[W5Snapshot]` and `w5_latest_snapshot: W5Snapshot | None`.
@@ -127,7 +127,7 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 ### Phase 4A — W5 validation checks (complete)
 
-- [x] Add `ai_stack/actor_situation/validation.py`.
+- [x] Add `ai_stack/actor_tracking/validation.py`.
 - [x] Register W5 validation in the canonical `run_validation_seam(...)` behind `W5_AST_VALIDATION_ENABLED`.
 - [x] Actor Lane and existing hard safety checks remain more authoritative: W5 validation is reached only after those checks have not rejected the turn, and Actor Lane rejection reasons are not converted or masked.
 - [x] W5 validation is detection / commit-gating only; it does not rewrite proposed blocks, mutate committed output, or mutate committed events.
@@ -137,7 +137,7 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 ### Phase 4B — Admin / diagnostics visibility (complete)
 
-- [x] Add compact typed diagnostic builders in `ai_stack/actor_situation/diagnostics.py`.
+- [x] Add compact typed diagnostic builders in `ai_stack/actor_tracking/diagnostics.py`.
 - [x] Add read-only world-engine internal W5 surfaces for snapshot, per-actor drill-in, conflicts, narrator projection preview, NPC projection preview, and latest validation diagnostics.
 - [x] Add backend admin proxy routes under `/api/v1/admin/w5/...` using existing moderator/admin and World-Engine `observe` capability checks.
 - [x] Extend the Narrative Runtime governance UI with W5 Actor Situation, per-actor, source/truth, visibility/perception, stale/contradicted, projection preview, and validation panels.
@@ -146,17 +146,31 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - [x] `admin_override`, where present in future repair flows, remains audited and cannot produce OBSERVED truth in this phase.
 - [x] W5 visibility in admin/governance remains diagnostic; no operator repair authority exists until a separate ADR defines it.
 
-### Phase 4C — Frontend / player-shell projections (planned)
+### Phase 4C — Package-runtime gate repair (complete)
 
-- Build `player_shell`, `admin`, and `diagnostics` projections with source/truth attribution metadata (no huge raw ledgers in player/admin views).
-- Remove direct reads of `environment_state.actor_locations` from frontend / admin surfaces.
+- [x] Repair stale flat `world-engine/app/story_runtime/manager.py` gate assumptions for the package-based `world-engine/app/story_runtime/manager/` runtime.
+- [x] Preserve LDSS, ADR-0033, observability, and no-fallback false-green assertions while updating symbol/file lookups.
 
-### Phase 5 — Legacy localization decommission (planned)
+### Phase 5A — Player-shell W5 projection (complete)
+
+- [x] Add `build_w5_projection_for_player_shell(...)` in `ai_stack/actor_tracking/projection.py`.
+- [x] Player-shell projection exposes compact Who / Where / What / How / Why summaries with How first-class and inferred Why marked through `truth_attribution`.
+- [x] Player-shell projection is player-visible only: private NPC inferred Why requires explicit actor knowledge scope, and other player-private facts do not leak.
+- [x] Story-runtime state exposes `w5_player_view` behind `W5_AST_FRONTEND_PLAYER_VIEW_ENABLED`; disabled/unset leaves the payload on the legacy path.
+- [x] Missing or malformed W5 snapshots fall back to legacy `current_room` / `current_room_id` behavior with compact diagnostics.
+- [x] Frontend room helpers prefer `w5_player_view.where_summary.scene_location.value` / current visible location when the flag is enabled, then fall back to legacy `current_room`.
+- [x] `snapshot.current_room` and legacy localization fields remain compatibility aliases/fallbacks. No legacy localization removal occurs in this phase.
+
+### Phase 5B — Legacy frontend/current-room fallback hardening (planned)
+
+- Audit every player-facing current-room/current-location consumer and ensure W5-first behavior is covered before removal work starts.
+
+### Phase 6 — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.
 - `environment_state` remains, but only as substrate input to the extractor.
 
-### Phase 6 — Retention / compaction (planned)
+### Phase 7 — Retention / compaction (planned)
 
 - Define retention policy for `w5_history` (e.g., compact prior snapshots into `superseded` status with bounded scrollback).
 - Until then, `w5_history` is unbounded per session.

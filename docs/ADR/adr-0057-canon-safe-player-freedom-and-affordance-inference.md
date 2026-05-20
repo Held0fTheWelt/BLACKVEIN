@@ -114,7 +114,7 @@ Invariants:
 
 ### Contract 2 — `director_gathering_state.v1`
 
-Produced atomically per tick by the Director (the canonical surface lives in `ai_stack/story_runtime/director/scene_director_goc.py` once PR-C lands).
+Produced atomically per tick by the Director (the canonical surface lives in `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` once PR-C lands).
 
 Required fields:
 
@@ -149,7 +149,7 @@ Invariants:
 
 ### Contract 4 — `narrator_consequence_realization.v1`
 
-Carried alongside `narrator_consequence_packet` in graph_state (the consumer surface lives in `ai_stack/story_runtime/narrator/narrator_consequence_contracts.py`).
+Carried alongside `narrator_consequence_packet` in graph_state (the consumer surface lives in `ai_stack/contracts/narrator_consequence_contracts.py`).
 
 Required fields:
 

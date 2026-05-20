@@ -13,7 +13,7 @@ It also records the narrated-speech rule added on 2026-05-20: a narrator card ma
 
 | Concept | Where it lives | Names like `premise`, `scene_setup`, `role_anchor` |
 |---------|----------------|-----------------------------------------------------|
-| **Literary opening slots** | `gm_narration` strings (model path) | Yes — text structure validated by `ai_stack/goc_opening_transition.py` |
+| **Literary opening slots** | `gm_narration` strings (model path) | Yes — text structure validated by `ai_stack/god_of_carnage_opening_transition.py` |
 | **Opening-shape evidence** | Langfuse subgates in `world-engine/app/story_runtime/manager.py` | Subgate keys `narrator_intro_present`, `role_anchor_present`, `scene_setup_present` are **historical labels** for “block 0/1/2 is narrator” — not values to write on blocks |
 | **Shell block metadata** | `visible_scene_output.blocks[]` | **No** index-forced literary slot names on `narration_beat` |
 
@@ -25,7 +25,7 @@ Presentation + typewriter metadata **on that block only**.
 
 | Source | Typical value | Shell / typewriter |
 |--------|---------------|-------------------|
-| **GoC narrator-path** | Canonical mandatory beat id, e.g. `park_edge_establishing_image`, `stick_strikes_face` | `ai_stack/story_runtime/narrator/goc_narrator_path.py` sets `narration_beat` to beat id → typewriter `default` profile unless id matches a profile key |
+| **GoC narrator-path** | Canonical mandatory beat id, e.g. `park_edge_establishing_image`, `stick_strikes_face` | `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py` sets `narration_beat` to beat id → typewriter `default` profile unless id matches a profile key |
 | **Runtime bootstrap** | `boot` | `play_runtime_bootstrap.js` → `boot` profile |
 | **Explicit dramaturgy** (rare) | `role_anchor`, `tension`, `dialogue`, `action`, `reflection` | Matching entry in `TYPEWRITER_BEAT_PROFILES`; `role_anchor` adds `scene-block--narrator-role-anchor` (sweep CSS) |
 | **Dramatic emphasis** | Use `visual_emphasis.kind` (e.g. `dramatic_moment`) | `scene-block--visual-emphasis-*` — **not** `narration_beat` |
@@ -93,7 +93,7 @@ Need slower typewriter on a role-orientation line?
   → NOT a post-projection loop over indices 0..2
 
 Need premise / room / role text order?
-  → goc_opening_transition + opening_shape_normalizer on gm_narration
+  → god_of_carnage_opening_transition + opening_shape_normalizer on gm_narration
   → NOT scene_blocks[].narration_beat
 
 Need Langfuse “opening shape” pass?
@@ -110,10 +110,10 @@ Need to show NPC direct speech embedded in prose?
 
 ## Code pointers
 
-- Canonical opening blocks: `ai_stack/story_runtime/narrator/goc_narrator_path.py` (`build_goc_narrator_path_opening`)
+- Canonical opening blocks: `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py` (`build_goc_narrator_path_opening`)
 - Narrated actor speech realization: `world-engine/app/story_runtime/manager.py` (`_realize_npc_speak_block`)
 - Embedded-speech responder detection: `world-engine/app/story_runtime/manager.py` (`_build_live_scene_turn_envelope`)
-- gm_narration slots: `ai_stack/goc_opening_transition.py` (`enforce_opening_transition_on_beats`)
+- gm_narration slots: `ai_stack/god_of_carnage_opening_transition.py` (`enforce_opening_transition_on_beats`)
 - Renderer: `frontend/static/play_block_renderer.js` (`narration_beat === 'role_anchor'` → CSS class)
 - Typewriter profiles: `frontend/static/play_typewriter_engine.js` (`DEFAULT_BEAT_PROFILES`)
-- Label leak in text (not field): `ai_stack/visible_narrative_contract.py` strips `role_anchor:` prefixes from visible strings
+- Label leak in text (not field): `ai_stack/contracts/visible_narrative_contract.py` strips `role_anchor:` prefixes from visible strings

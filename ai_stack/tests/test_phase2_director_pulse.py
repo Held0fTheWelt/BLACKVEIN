@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     ACTION_KINDS,
     ACTION_SILENCE,
     ACTION_SPEAK,
@@ -871,7 +871,7 @@ class TestADR0039Guardrails:
             )
 
     def test_no_pi_keys_in_director_pulse_contracts(self):
-        self._assert_no_pi("ai_stack.story_runtime.director.director_pulse_contracts")
+        self._assert_no_pi("ai_stack.contracts.director_pulse_contracts")
 
     def test_no_pi_keys_in_npc_motivation_score_engine(self):
         self._assert_no_pi("ai_stack.story_runtime.npc_agency.npc_motivation_score_engine")
@@ -880,7 +880,7 @@ class TestADR0039Guardrails:
         self._assert_no_pi("ai_stack.story_runtime.director.director_pulse_shadow")
 
     def test_no_hardcoded_npc_ids_in_contracts_module(self):
-        source = self._source("ai_stack.story_runtime.director.director_pulse_contracts")
+        source = self._source("ai_stack.contracts.director_pulse_contracts")
         for literal in ("veronique", "michel", "annette", "alain"):
             assert literal not in source, f"Hardcoded NPC ID '{literal}' in contracts module"
 
@@ -895,12 +895,12 @@ class TestADR0039Guardrails:
             assert literal not in source, f"Hardcoded NPC ID '{literal}' in shadow module"
 
     def test_no_verb_or_room_whitelist_in_contracts(self):
-        source = self._source("ai_stack.story_runtime.director.director_pulse_contracts")
+        source = self._source("ai_stack.contracts.director_pulse_contracts")
         for term in ("verb_whitelist", "action_whitelist", "room_whitelist"):
             assert term not in source.lower()
 
     def test_no_fixed_speaker_queue_in_contracts(self):
-        source = self._source("ai_stack.story_runtime.director.director_pulse_contracts")
+        source = self._source("ai_stack.contracts.director_pulse_contracts")
         for term in ("speaker_queue", "roundtable", "turn_order", "fixed_roster"):
             assert term not in source.lower()
 
@@ -924,7 +924,7 @@ class TestADR0039Guardrails:
 
     def test_gathering_state_contracts_unchanged(self):
         """Phase-2 concepts must not appear in the PR-C director_gathering_state_contracts module."""
-        import ai_stack.story_runtime.director.director_gathering_state_contracts as mod
+        import ai_stack.contracts.director_gathering_state_contracts as mod
         source = open(mod.__file__, "r", encoding="utf-8").read()
         for term in ("npc_pulse", "pulse_tick", "motivation_score",
                      "block_stream_bus", "event_stream"):

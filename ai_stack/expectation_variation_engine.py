@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Any
 
-from ai_stack.expectation_variation_contracts import (
+from ai_stack.contracts.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_CONSEQUENCE_RETURN,
     EXPECTATION_VARIATION_FAILURE_COOLDOWN_VIOLATION,

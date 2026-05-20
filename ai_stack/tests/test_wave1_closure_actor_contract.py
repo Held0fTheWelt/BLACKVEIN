@@ -19,8 +19,8 @@ from pydantic import BaseModel
 
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 from ai_stack.langchain.bridges import RuntimeTurnStructuredOutput
-from ai_stack.story_runtime.turn.goc_turn_seams import run_visible_render
-from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import run_visible_render
+from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
 
 class TestWave1ActorFirstPromptContract:

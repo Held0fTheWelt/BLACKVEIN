@@ -85,9 +85,9 @@ MVP 3 consumes runtime state provenance, human/NPC actor lanes, canonical conten
 - `world-engine/app/runtime/actor_lane.py` or create equivalent — `validate_ai_actor_output(actor_id, block_kind, actor_lanes, human_actor_id)`.
 - `world-engine/app/runtime/object_admission.py` or create equivalent — object/source-kind validator.
 - `world-engine/app/runtime/state_delta.py` or create equivalent — protected path and whitelist enforcement.
-- `ai_stack/story_runtime/turn/goc_turn_seams.py` — visible output/proposal packaging seam.
+- `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — visible output/proposal packaging seam.
 - `ai_stack/langgraph/langgraph_runtime.py` — graph construction and story turn path.
-- `world-engine/app/story/scene_director_goc.py` or equivalent — responder nomination call site.
+- `world-engine/app/story/god_of_carnage_scene_director.py` or equivalent — responder nomination call site.
 - `tests/` — existing runtime, ai_stack, and world-engine tests.
 
 ## Do Not Touch
@@ -197,7 +197,7 @@ test_source_locator_artifact_exists_for_mvp
 | Patch ID | Area | Files / Symbols | Required Change | Tests |
 |---|---|---|---|---|
 | MVP2-P01 | Runtime state provenance | `world-engine/app/runtime/models.py`, `manager.py` | Add versioned RuntimeState and StorySessionState with content/profile/runtime source hashes. | `test_runtime_state_contains_source_provenance` |
-| MVP2-P02 | Actor-lane validator | `actor_lane.py`, `goc_turn_seams.py`, responder seam | Reject AI line/action/responder nomination for human actor. | `test_ai_cannot_speak_or_act_for_human_role`, `test_ai_cannot_choose_human_responder` |
+| MVP2-P02 | Actor-lane validator | `actor_lane.py`, `god_of_carnage_turn_seams.py`, responder seam | Reject AI line/action/responder nomination for human actor. | `test_ai_cannot_speak_or_act_for_human_role`, `test_ai_cannot_choose_human_responder` |
 | MVP2-P03 | NPC coercion classifier | actor action validation seam | NPC may pressure/address human but cannot decide or force human state/action. | `test_npc_action_cannot_force_human_response` |
 | MVP2-P04 | Runtime/content boundary | runtime profile and runtime module builders | Forbid characters, roles, rooms, props, beats, scenes, endings, relationships in runtime profile/module. | `test_runtime_module_contains_no_goc_story_truth` |
 | MVP2-P05 | Object admission | `object_admission.py` or equivalent | Admit canonical, typical minor implied, and similar allowed objects with source kind/reason. | `test_environment_object_admission_requires_source_kind` |
@@ -709,9 +709,9 @@ Inspect first:
 world-engine/app/runtime/manager.py
 world-engine/app/runtime/models.py
 world-engine/app/api/http.py
-ai_stack/story_runtime/turn/goc_turn_seams.py
+ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py
 ai_stack/langgraph/langgraph_runtime.py
-world-engine/app/story/scene_director_goc.py
+world-engine/app/story/god_of_carnage_scene_director.py
 tests/run_tests.py
 .github/workflows/*.yml
 pyproject.toml

@@ -29,7 +29,7 @@
 | **MVP3-P05: Affordance & State Validation** |
 | environment interaction model | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `EnvironmentInteraction` dataclass | found | Canonical/typical/similar affordance tier |
 | affordance validation | `ai_stack/validators/affordance_validation.py` | `ai_stack/validators/affordance_validation.py` | `validate_environment_interaction()` function | found | Enforces object admission and affordance tiers |
-| object admission seam | `ai_stack/goc_turn_seams.py` | `ai_stack/goc_turn_seams.py` | `run_visible_render()` with object admission checks | found | Rejects unadmitted objects before LDSS |
+| object admission seam | `ai_stack/god_of_carnage_turn_seams.py` | `ai_stack/god_of_carnage_turn_seams.py` | `run_visible_render()` with object admission checks | found | Rejects unadmitted objects before LDSS |
 | **MVP3-P06: Live Path Evidence & Diagnostics** |
 | diagnostics scaffold | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `LiveDramaticSceneSimulatorDiagnostics` dataclass | found | live_path status, input/output hashes, decision/block counts |
 | evidenced_live_path status | `ai_stack/live_dramatic_scene_simulator.py` | `ai_stack/live_dramatic_scene_simulator.py` | `"evidenced_live_path"` status string in diagnostics | found | Set when LDSS runs through real turn route |
@@ -72,7 +72,7 @@
 **Files**:
 - `world-engine/app/story_runtime/manager.py` — `_build_ldss_scene_envelope()`, `_finalize_committed_turn()`
 - `world-engine/app/api/http.py` — `ExecuteTurnResponse` model with `scene_turn_envelope` field
-- `ai_stack/goc_turn_seams.py` — LDSS context propagation
+- `ai_stack/god_of_carnage_turn_seams.py` — LDSS context propagation
 
 **Key Symbols**:
 - `_build_ldss_scene_envelope(committed_state, runtime_state, actor_lane_context)` → `SceneTurnEnvelopeV2`

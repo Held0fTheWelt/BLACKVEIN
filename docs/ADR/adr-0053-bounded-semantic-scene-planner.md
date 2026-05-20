@@ -62,7 +62,7 @@ The God of Carnage runtime already had director nodes in the single LangGraph tu
 goc_resolve_canonical_content -> director_assess_scene -> director_select_dramatic_parameters -> ...
 ```
 
-Before this ADR, `ai_stack/story_runtime/director/scene_director_goc.py` selected scene function,
+Before this ADR, `ai_stack/story_runtime/director/god_of_carnage_scene_director.py` selected scene function,
 responder set, pacing, and silence/brevity through deterministic helper logic.
 Some of that logic was phrase-driven. That was useful during early slicing, but
 it made the director behave like a hidden keyword router. The current contract
@@ -235,11 +235,11 @@ flowchart TD
 
 Current verification:
 
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/goc_yaml_authority.py ai_stack/story_runtime/semantic_planner/scene_plan_contract.py ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m py_compile ai_stack/god_of_carnage_yaml_authority.py ai_stack/contracts/scene_plan_contract.py ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py ai_stack/langgraph/langgraph_runtime_executor.py`
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_director_capability_manager.py -q --tb=short`
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_scene_planner.py ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_goc_structured_setting_knowledge.py -q --tb=short` - 23 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_scene_planner.py ai_stack/tests/test_semantic_planner_contracts.py ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py -q --tb=short` - 23 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_semantic_planner_graph_authority.py -q --tb=short` - 7 passed
-- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_scene_director_goc_extended.py ai_stack/tests/test_scene_direction_subdecision_matrix.py -q --tb=short` - 159 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest ai_stack/tests/test_god_of_carnage_scene_director_extended.py ai_stack/tests/test_scene_direction_subdecision_matrix.py -q --tb=short` - 159 passed
 - `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest tests/smoke/test_repository_documented_paths_resolve.py tests/smoke/test_docs_truth.py -q --tb=short` - 48 passed
 
 Failure modes that require ADR review:
@@ -263,10 +263,10 @@ All tests must comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-by
 - [Canonical GoC turn contract](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - `ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py`
 - `ai_stack/story_runtime/director/capabilities_manager/director_capability_manager.py`
-- `ai_stack/story_runtime/semantic_planner/scene_plan_contract.py`
-- `ai_stack/goc_yaml_authority.py`
-- `ai_stack/story_runtime/director/scene_director_goc.py`
+- `ai_stack/contracts/scene_plan_contract.py`
+- `ai_stack/god_of_carnage_yaml_authority.py`
+- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/tests/test_semantic_scene_planner.py`
-- `ai_stack/tests/test_goc_structured_setting_knowledge.py`
+- `ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py`
 - `ai_stack/tests/test_semantic_planner_graph_authority.py`

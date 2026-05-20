@@ -143,7 +143,7 @@ def research_explore_handler(research_store: Any, payload: dict[str, Any]) -> di
         dict[str, Any]:
             Returns a value of type ``dict[str, Any]``; see the function body for structure, error paths, and sentinels.
     """
-    from ai_stack.research.research_contract import ExplorationBudget
+    from ai_stack.contracts.research_contract import ExplorationBudget
     from ai_stack.research.research_langgraph import run_research_pipeline
 
     budget = ExplorationBudget.from_payload(payload.get("budget", {}))

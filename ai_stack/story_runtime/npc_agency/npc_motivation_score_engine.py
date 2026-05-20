@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.story_runtime.director.director_pulse_contracts import (
+from ai_stack.contracts.director_pulse_contracts import (
     CAPABILITY_NAME_ACTOR_PRESSURE_PROFILES,
     CAPABILITY_NAME_NARRATIVE_MOMENTUM,
     CAPABILITY_NAME_PACING_RHYTHM,

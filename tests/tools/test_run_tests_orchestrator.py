@@ -82,7 +82,7 @@ def test_ai_stack_blocks_run_from_repo_root_and_have_rest_slice() -> None:
         assert cfg.supports_coverage is False
 
     graph_targets = _suite_targets(mod.SUITE_CONFIGS["ai_stack_graph"])
-    assert "ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py" in graph_targets
+    assert "ai_stack/tests/test_god_of_carnage_runtime_graph_seams_and_diagnostics.py" in graph_targets
     assert "ai_stack/tests/test_langgraph_runtime.py" in graph_targets
     assert set(mod.AI_STACK_BLOCK_TARGETS).issubset(set(mod.SUITE_CONFIGS["ai_stack_rest"].ignore_paths))
     assert mod.marker_filter_for_suite("ai_stack_graph", "contracts") is None

@@ -9,7 +9,7 @@ from collections import deque
 import time
 from typing import Any
 
-from ai_stack.research.research_contract import (
+from ai_stack.contracts.research_contract import (
     ContradictionStatus,
     ExplorationAbortReason,
     ExplorationBudget,

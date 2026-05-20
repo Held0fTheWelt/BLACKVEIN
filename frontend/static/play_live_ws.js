@@ -5,9 +5,39 @@
     return d.innerHTML;
   }
 
+  function w5FrontendPlayerViewEnabled(snapshot) {
+    const flags = snapshot && snapshot.feature_flags;
+    if (flags && flags.W5_AST_FRONTEND_PLAYER_VIEW_ENABLED === true) return true;
+    return Boolean(window.W5_AST_FRONTEND_PLAYER_VIEW_ENABLED === true);
+  }
+
+  function w5PlayerViewLocation(snapshot) {
+    const view = snapshot && snapshot.w5_player_view;
+    const where = view && view.where_summary;
+    if (!where) return null;
+    if (where.current_visible_location) return String(where.current_visible_location);
+    if (where.current_location) return String(where.current_location);
+    if (where.scene_location && where.scene_location.value) return String(where.scene_location.value);
+    if (where.facts && where.facts.scene_location) return String(where.facts.scene_location);
+    return null;
+  }
+
+  function roomFromSnapshot(snapshot) {
+    if (!snapshot) return null;
+    if (w5FrontendPlayerViewEnabled(snapshot)) {
+      const roomId = w5PlayerViewLocation(snapshot);
+      if (roomId) {
+        const legacyRoom = snapshot.current_room || null;
+        if (legacyRoom && legacyRoom.id === roomId) return legacyRoom;
+        return { id: roomId, name: roomId, description: "" };
+      }
+    }
+    return snapshot.current_room || null;
+  }
+
   function renderLiveSnapshot(root, snapshot) {
     if (!root || !snapshot) return;
-    const room = snapshot.current_room || null;
+    const room = roomFromSnapshot(snapshot);
     let html = `<div class="live-ws-meta runtime-meta">Run <code>${escapeHtml(snapshot.run_id)}</code> · ${escapeHtml(snapshot.template_title || "")} · beat ${escapeHtml(snapshot.beat_id)} · tension ${escapeHtml(String(snapshot.tension))}</div>`;
     if (room) {
       html += `<h4 class="live-ws-room-title">${escapeHtml(room.name)}</h4>`;

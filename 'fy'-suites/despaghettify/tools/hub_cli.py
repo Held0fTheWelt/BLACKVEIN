@@ -41,6 +41,36 @@ _GATE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 
 
+_LAST_ARCHIVE_SYNC: dict | None = None
+
+
+def _run_archive_sync() -> dict | None:
+    """Move closed DS rows from the input list into the completed log (idempotent)."""
+    import os
+
+    if os.environ.get("DESPAG_SKIP_ARCHIVE_SYNC", "").strip().lower() in ("1", "true", "yes"):
+        return None
+    from despaghettify.tools.input_list_archive import sync_input_archive  # noqa: PLC0415
+
+    global _LAST_ARCHIVE_SYNC
+    try:
+        result = sync_input_archive(HUB)
+    except OSError as exc:
+        _LAST_ARCHIVE_SYNC = {"error": str(exc), "changed": False}
+        print(f"despaghettify: archive sync failed: {exc}", file=sys.stderr)
+        return _LAST_ARCHIVE_SYNC
+    payload = {
+        "changed": result.changed,
+        "archived_ds": list(result.archived_ds),
+        "archived_active_rows": result.archived_active_rows,
+        "message": result.message,
+    }
+    _LAST_ARCHIVE_SYNC = payload
+    if result.changed:
+        print(f"despaghettify: {result.message}", file=sys.stderr)
+    return payload
+
+
 def _ensure_repo_root() -> None:
     """Ensure repo root.
 
@@ -170,14 +200,10 @@ def cmd_open_ds(_args: argparse.Namespace) -> int:
             Value produced by this callable as ``int``.
     """
     _ensure_repo_root()
+    from despaghettify.tools.input_list_archive import open_ds_ids_from_md  # noqa: PLC0415
+
     md = _load_input_list_text()
-    section = _information_input_section(md)
-    seen: set[str] = set()
-    for line in section.splitlines():
-        m = OPEN_DS_ROW.match(line)
-        if m:
-            seen.add(m.group(1))
-    for line in sorted(seen, key=lambda s: int(s.split("-")[1])):
+    for line in open_ds_ids_from_md(md):
         print(line)
     return 0
 
@@ -672,10 +698,15 @@ def cmd_check(args: argparse.Namespace) -> int:
         ds005_lines = [ln for ln in (ds005.stdout or "").splitlines() if ln.strip()]
         ds005_exit = ds005.returncode
         ds005_stderr = ds005.stderr or ""
+    if _LAST_ARCHIVE_SYNC is not None:
+        archive_sync = _LAST_ARCHIVE_SYNC
+    else:
+        archive_sync = _run_archive_sync()
     report: dict = {
         "kind": "despaghettify_check",
         "generated_at_utc": ts,
         "repo_root": ROOT.as_posix(),
+        "archive_sync": archive_sync,
         "ast": ast_stats,
         "ds005": {
             "enabled": runtime_import_gate_enabled,
@@ -1097,8 +1128,46 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     p_sy.set_defaults(func=cmd_setup_sync)
 
+    p_arch = sub.add_parser(
+        "sync-archive",
+        help="Archive closed DS rows from the input list into despaghettification_completed_log.md.",
+    )
+    p_arch.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would change without writing files.",
+    )
+    p_arch.set_defaults(func=cmd_sync_archive)
+
     args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.command != "sync-archive":
+        _run_archive_sync()
     return int(args.func(args))
+
+
+def cmd_sync_archive(args: argparse.Namespace) -> int:
+    """Run archive sync explicitly (also runs automatically before other subcommands)."""
+    import json
+
+    _ensure_repo_root()
+    from despaghettify.tools.input_list_archive import sync_input_archive  # noqa: PLC0415
+
+    result = sync_input_archive(HUB, dry_run=bool(args.dry_run))
+    print(
+        json.dumps(
+            {
+                "changed": result.changed,
+                "archived_ds": result.archived_ds,
+                "archived_active_rows": result.archived_active_rows,
+                "message": result.message,
+                "input_list": result.input_path,
+                "completed_log": result.completed_path,
+                "dry_run": bool(args.dry_run),
+            },
+            indent=2,
+        )
+    )
+    return 0
 
 
 if __name__ == "__main__":

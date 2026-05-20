@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Sequence
 
 from delagecy.tools.registry import approve, load_registry, mark_removed, registered_fingerprints, register_hit, save_registry, tracker_markdown
+from delagecy.tools.reporting import render_scan_report
 from delagecy.tools.repo_paths import default_tracker_path, registry_path, repo_root
 from delagecy.tools.scanner import scan
 
@@ -27,6 +28,7 @@ def _print_help() -> None:
         "  approve         Mark a finding approved for removal.\n"
         "  mark-removed    Mark an approved finding removed after verification.\n"
         "  check           Gate: no unregistered hits and no removed residue.\n"
+        "  report          Write a readable Markdown scan report.\n"
         "  export-tracker  Write legacy_removal_tracker.md.\n"
         "  policy          Print the hard removal rules.\n"
     )
@@ -120,6 +122,31 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 0 if result["ok"] else 1
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    root = repo_root(start=Path.cwd())
+    registry = load_registry(registry_path(root))
+    scan_path = Path(args.scan_json)
+    scan_payload = _load_scan(scan_path)
+    new_path = Path(args.new_json) if args.new_json else None
+    new_payload = _load_scan(new_path) if new_path else None
+    markdown = render_scan_report(
+        scan_payload,
+        registry=registry,
+        scan_path=scan_path,
+        new_payload=new_payload,
+        new_path=new_path,
+        title=args.title,
+    )
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(markdown, encoding="utf-8")
+        print(out.as_posix())
+    else:
+        print(markdown)
+    return 0
+
+
 def cmd_export_tracker(args: argparse.Namespace) -> int:
     root = repo_root(start=Path.cwd())
     registry = load_registry(registry_path(root))
@@ -166,6 +193,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_rm.add_argument("--verification", required=True)
     p_check = sub.add_parser("check")
     p_check.add_argument("--scan-json", required=True)
+    p_report = sub.add_parser("report")
+    p_report.add_argument("--scan-json", required=True)
+    p_report.add_argument("--new-json")
+    p_report.add_argument("--out")
+    p_report.add_argument("--title", default="Delagecy Legacy Scan Report")
     p_export = sub.add_parser("export-tracker")
     p_export.add_argument("--out")
     sub.add_parser("policy")

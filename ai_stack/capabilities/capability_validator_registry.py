@@ -41,8 +41,8 @@ from ai_stack.capabilities.capability_validator_plan import (
 )
 from ai_stack.story_runtime.npc_agency.character.character_voice_validation import validate_voice_consistency
 from ai_stack.dramatic_irony_runtime import validate_dramatic_irony_realization
-from ai_stack.environment_state_contracts import evaluate_environment_state_contract
-from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import (
+from ai_stack.contracts.environment_state_contracts import evaluate_environment_state_contract
+from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import (
     ACTOR_LANE_FORBIDDEN_CONTRACT,
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     HARD_FORBIDDEN_RUNTIME_CONTRACT,
@@ -146,7 +146,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="environment_state_contract",
         capability=CAP_ENVIRONMENT_STATE,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
-        source_file_or_symbol="ai_stack/environment_state_contracts.py::evaluate_environment_state_contract",
+        source_file_or_symbol="ai_stack/contracts/environment_state_contracts.py::evaluate_environment_state_contract",
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
@@ -212,7 +212,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="consequence_cascade_contract",
         capability=CAP_CONSEQUENCE_CASCADE,
         current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/consequence_cascade_contracts.py::validate_consequence_cascade_record",
+        source_file_or_symbol="ai_stack/contracts/consequence_cascade_contracts.py::validate_consequence_cascade_record",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="blocking",
@@ -234,7 +234,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="silence_negative_space_contract",
         capability=CAP_SILENCE_NEGATIVE_SPACE,
         current_status=STATUS_IMPLEMENTED_NEEDS_ADAPTER,
-        source_file_or_symbol="ai_stack/silence_negative_space_contract.py::build_silence_negative_space_decision",
+        source_file_or_symbol="ai_stack/contracts/silence_negative_space_contract.py::build_silence_negative_space_decision",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="blocking",
@@ -256,7 +256,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="thematic_tracking_diagnostic",
         capability=CAP_THEMATIC_TRACKING,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/narrative_aspect_contracts.py::validate_narrative_aspects",
+        source_file_or_symbol="ai_stack/contracts/narrative_aspect_contracts.py::validate_narrative_aspects",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="non_blocking",
@@ -267,7 +267,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="callback_web_diagnostic",
         capability=CAP_CALLBACK_WEB,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/callback_web_contracts.py::validate_callback_web_record",
+        source_file_or_symbol="ai_stack/contracts/callback_web_contracts.py::validate_callback_web_record",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="non_blocking",
@@ -289,7 +289,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="broad_nlu_listening_diagnostic",
         capability=CAP_BROAD_NLU_LISTENING,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/active_listening_contracts.py::derive_broad_nlu_listening",
+        source_file_or_symbol="ai_stack/contracts/active_listening_contracts.py::derive_broad_nlu_listening",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="non_blocking",
@@ -300,7 +300,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="conversational_memory_diagnostic",
         capability=CAP_CONVERSATIONAL_MEMORY,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/active_listening_contracts.py::derive_conversational_memory_context",
+        source_file_or_symbol="ai_stack/contracts/active_listening_contracts.py::derive_conversational_memory_context",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="non_blocking",
@@ -311,7 +311,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         validator_id="prompt_authority_diagnostic",
         capability=CAP_PROMPT_AUTHORITY,
         current_status=STATUS_OBSERVER_ONLY,
-        source_file_or_symbol="ai_stack/active_listening_contracts.py::build_prompt_authority_packet",
+        source_file_or_symbol="ai_stack/contracts/active_listening_contracts.py::build_prompt_authority_packet",
         adapter_needed=True,
         safe_for_local_plan_enforced=False,
         blocking_or_non_blocking="non_blocking",
@@ -323,33 +323,33 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_actor_lane_forbidden_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_actor_lane_forbidden_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Deterministic mirror of goc_turn_seams._check_human_actor_violations; plan_enforced sidecar only.",
+        notes="Deterministic mirror of god_of_carnage_turn_seams._check_human_actor_violations; plan_enforced sidecar only.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id=NPC_TRANSCRIPT_SHELL_CONTRACT,
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_npc_transcript_shell_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_npc_transcript_shell_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Deterministic mirror of goc_turn_seams._check_npc_spoken_action_lane_blob_cap.",
+        notes="Deterministic mirror of god_of_carnage_turn_seams._check_npc_spoken_action_lane_blob_cap.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id=PROPOSED_EFFECTS_SHAPE_CONTRACT,
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_proposed_effects_shape_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_proposed_effects_shape_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
@@ -362,7 +362,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_model_generation_precheck_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_model_generation_precheck_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
@@ -375,20 +375,20 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_hard_forbidden_runtime_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_hard_forbidden_runtime_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
         blocking_or_non_blocking="blocking",
         judge_required=False,
-        notes="Deterministic mirror of goc_knowledge_runtime_gates.detect_hard_forbidden_runtime.",
+        notes="Deterministic mirror of god_of_carnage_knowledge_runtime_gates.detect_hard_forbidden_runtime.",
     ),
     ValidatorRegistryInventoryRow(
         validator_id=OPENING_EVENT_COVERAGE_CONTRACT,
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_opening_event_coverage_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_opening_event_coverage_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,
@@ -401,7 +401,7 @@ VALIDATOR_REGISTRY_INVENTORY: tuple[ValidatorRegistryInventoryRow, ...] = (
         capability=GOC_SEAM_MIRROR_SUITE_CAPABILITY,
         current_status=STATUS_IMPLEMENTED_CALLABLE,
         source_file_or_symbol=(
-            "ai_stack/story_runtime/turn/goc_seam_mirror_validator_adapters.py::adapter_dramatic_effect_gate_mirror_contract"
+            "ai_stack/story_runtime/turn/god_of_carnage_seam_mirror_validator_adapters.py::adapter_dramatic_effect_gate_mirror_contract"
         ),
         adapter_needed=True,
         safe_for_local_plan_enforced=True,

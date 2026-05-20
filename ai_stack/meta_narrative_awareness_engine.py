@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.meta_narrative_awareness_contracts import (
+from ai_stack.contracts.meta_narrative_awareness_contracts import (
     META_NARRATIVE_AWARENESS_SCHEMA_VERSION,
     META_NARRATIVE_AWARENESS_SCHEMA_VERSION_V2,
     META_NARRATIVE_AWARENESS_TIERS,

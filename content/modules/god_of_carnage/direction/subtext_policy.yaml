@@ -1,4 +1,4 @@
-contract: goc_subtext_policy.v1
+contract: god_of_carnage_subtext_policy.v1
 description: >
   Bounded subtext policy for God of Carnage. Values in this file are the
   canonical oracle for Pi19 subtext interpretation tests; runtime code may

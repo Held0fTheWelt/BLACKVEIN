@@ -142,7 +142,7 @@ runtime_intelligence:
       - alliance_shift
 ```
 
-`ModuleRuntimePolicy` normalizes this into `runtime_governance_policy.consequence_cascade` through `ai_stack/consequence_cascade_contracts.py`. Invalid or out-of-range numbers are clamped to bounded minimums and maximums. The graph feedback export is separately bounded by `max_graph_items`.
+`ModuleRuntimePolicy` normalizes this into `runtime_governance_policy.consequence_cascade` through `ai_stack/contracts/consequence_cascade_contracts.py`. Invalid or out-of-range numbers are clamped to bounded minimums and maximums. The graph feedback export is separately bounded by `max_graph_items`.
 
 ## Flow
 
@@ -213,7 +213,7 @@ Tests may assert that evidence fields name structured sources such as `narrative
 - `content/modules/god_of_carnage/module.yaml`
 - `story_runtime_core/consequences/consequence_cascade.py`
 - `story_runtime_core/consequences/__init__.py`
-- `ai_stack/consequence_cascade_contracts.py`
+- `ai_stack/contracts/consequence_cascade_contracts.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/module_runtime_policy.py`

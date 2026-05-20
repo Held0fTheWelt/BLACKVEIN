@@ -3,15 +3,15 @@ Explicit scene-direction subdecision matrix for GoC (roadmap §4.2, gate
 G4).
 
 Machine-readable source of truth for frozen subdecision labels and G4
-seam metadata. Must stay consistent with ``ai_stack.story_runtime.director.scene_director_goc``
-and ``ai_stack.goc_frozen_vocab``.
+seam metadata. Must stay consistent with ``ai_stack.story_runtime.director.god_of_carnage_scene_director``
+and ``ai_stack.god_of_carnage_frozen_vocabulary``.
 """
 
 from __future__ import annotations
 
 from typing import Any, Final
 
-from ai_stack.goc_frozen_vocab import (
+from ai_stack.god_of_carnage_frozen_vocabulary import (
     CONTINUITY_CLASSES,
     PACING_MODES,
     SCENE_FUNCTIONS,
@@ -157,27 +157,27 @@ SCENE_DIRECTION_SUBDECISION_ROWS: Final[list[dict[str, Any]]] = (
     _rows_for_frozen_set(
         category="scene_function",
         members=SCENE_FUNCTIONS,
-        impl_ref="ai_stack.story_runtime.director.scene_director_goc:build_responder_and_function",
+        impl_ref="ai_stack.story_runtime.director.god_of_carnage_scene_director:build_responder_and_function",
     )
     + _rows_for_frozen_set(
         category="pacing_mode",
         members=PACING_MODES,
-        impl_ref="ai_stack.story_runtime.director.scene_director_goc:build_pacing_and_silence",
+        impl_ref="ai_stack.story_runtime.director.god_of_carnage_scene_director:build_pacing_and_silence",
     )
     + _rows_for_frozen_set(
         category="silence_brevity_mode",
         members=SILENCE_BREVITY_MODES,
-        impl_ref="ai_stack.story_runtime.director.scene_director_goc:build_pacing_and_silence",
+        impl_ref="ai_stack.story_runtime.director.god_of_carnage_scene_director:build_pacing_and_silence",
     )
     + _rows_for_frozen_set(
         category="continuity_class",
         members=CONTINUITY_CLASSES,
-        impl_ref="ai_stack.story_runtime.director.scene_director_goc:prior_continuity_classes,build_responder_and_function",
+        impl_ref="ai_stack.story_runtime.director.god_of_carnage_scene_director:prior_continuity_classes,build_responder_and_function",
     )
     + _rows_for_frozen_set(
         category="visibility_class",
         members=VISIBILITY_CLASSES,
-        impl_ref="ai_stack.story_runtime.turn.goc_turn_seams:run_visible_render",
+        impl_ref="ai_stack.story_runtime.turn.god_of_carnage_turn_seams:run_visible_render",
     )
     + _rows_for_frozen_set(
         category="transition_pattern",
@@ -200,10 +200,10 @@ def scene_direction_labels_from_matrix() -> frozenset[str]:
 
 
 def assert_matrix_aligned_with_roadmap_registry() -> None:
-    """Cross-check matrix coverage vs ``goc_roadmap_semantic_surface`` union
+    """Cross-check matrix coverage vs ``god_of_carnage_roadmap_semantic_surface`` union
         (development / tests).
     """
-    from ai_stack.story_runtime.semantic_planner.goc_roadmap_semantic_surface import SCENE_DIRECTION_SUBDECISION_LABELS
+    from ai_stack.story_runtime.semantic_planner.god_of_carnage_roadmap_semantic_surface import SCENE_DIRECTION_SUBDECISION_LABELS
 
     derived = scene_direction_labels_from_matrix()
     if derived != SCENE_DIRECTION_SUBDECISION_LABELS:

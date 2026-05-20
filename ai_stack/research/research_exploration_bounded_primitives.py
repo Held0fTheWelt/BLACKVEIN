@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import hashlib
 from typing import Any
 
-from ai_stack.research.research_contract import ExplorationRelationType, ResearchStatus, ExplorationOutcome
+from ai_stack.contracts.research_contract import ExplorationRelationType, ResearchStatus, ExplorationOutcome
 
 RELATION_ORDER: tuple[ExplorationRelationType, ...] = (
     ExplorationRelationType.EXTEND,

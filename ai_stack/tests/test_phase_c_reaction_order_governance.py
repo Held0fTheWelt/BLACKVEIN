@@ -223,7 +223,7 @@ class TestC21RealizedActorOrder:
 
     def test_realized_actor_order_in_telemetry(self):
         """Telemetry includes realized_spoken_order, realized_action_order, realized_actor_order."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -265,7 +265,7 @@ class TestC21RealizedActorOrder:
 
     def test_realized_actor_order_excludes_empty_ids(self):
         """Empty/null actor_ids are excluded from realized order."""
-        from ai_stack.actor_survival_telemetry import _collect_actor_ids_from_rows
+        from ai_stack.telemetry.actor_survival_telemetry import _collect_actor_ids_from_rows
 
         rows = [
             {"speaker_id": "alice", "text": "Hello"},
@@ -280,7 +280,7 @@ class TestC21RealizedActorOrder:
 
     def test_realized_actor_order_deduplicates(self):
         """Duplicate actor IDs appear only once."""
-        from ai_stack.actor_survival_telemetry import _collect_actor_ids_from_rows
+        from ai_stack.telemetry.actor_survival_telemetry import _collect_actor_ids_from_rows
 
         rows = [
             {"speaker_id": "alice", "text": "Hello"},
@@ -296,7 +296,7 @@ class TestC22DivergenceSignals:
 
     def test_no_divergence_when_order_matches(self):
         """Divergence=None when realized order matches preferred order."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -333,7 +333,7 @@ class TestC22DivergenceSignals:
 
     def test_divergence_when_secondary_not_realized(self):
         """Divergence=True when secondary responders nominated but not realized."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -364,7 +364,7 @@ class TestC22DivergenceSignals:
 
     def test_divergence_reason_single_actor_only(self):
         """Divergence reason: single_actor_only when only primary realized."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -394,7 +394,7 @@ class TestC22DivergenceSignals:
 
     def test_no_divergence_when_single_preferred_actor(self):
         """No divergence when only one responder was preferred."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -540,7 +540,7 @@ class TestC4IntegrationSanity:
 
     def test_full_pipeline_no_regression_healthy_turn(self):
         """Full pipeline: healthy multi-actor turn with aligned order."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         state = {
             "selected_responder_set": [
@@ -582,7 +582,7 @@ class TestC4IntegrationSanity:
 
     def test_full_pipeline_divergence_interruption(self):
         """Full pipeline: interruption-style divergence."""
-        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+        from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 
         # Scenario: alice was primary, bob nominated secondary, but bob interrupts first
         state = {

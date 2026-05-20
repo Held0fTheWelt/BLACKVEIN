@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.pacing_rhythm_contracts import (
+from ai_stack.contracts.pacing_rhythm_contracts import (
     PACING_RHYTHM_CADENCES,
     PACING_RHYTHM_FAILURE_CODES,
     PACING_RHYTHM_RESPONSE_SHAPES,

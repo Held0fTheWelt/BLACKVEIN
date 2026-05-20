@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     PASSIVITY_DIAGNOSIS_REQUIRED_FIELDS,
     VITALITY_TELEMETRY_REQUIRED_FIELDS,
 )

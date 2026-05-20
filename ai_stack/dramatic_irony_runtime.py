@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ai_stack.dramatic_irony_contracts import (
+from ai_stack.contracts.dramatic_irony_contracts import (
     DRAMATIC_IRONY_REALIZATION_NOT_EVALUATED,
     DRAMATIC_IRONY_REALIZATION_REALIZED,
     DRAMATIC_IRONY_REALIZATION_REJECTED,
@@ -25,7 +25,7 @@ from ai_stack.dramatic_irony_contracts import (
     KnowledgeFact,
     normalize_dramatic_irony_policy,
 )
-from ai_stack.story_runtime.npc_agency.npc_agency_contracts import (
+from ai_stack.contracts.npc_agency_contracts import (
     canonical_actor_id,
     coerce_dict_rows,
     dedupe_strings,

@@ -11,7 +11,7 @@ import logging
 
 import pytest
 
-from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
 from app.narrative.fallback_generator import build_safe_fallback_output
 from app.narrative.package_models import SceneFallbackBundle
 from app.narrative.runtime_health import RuntimeHealthCounters

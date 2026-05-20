@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
+from ai_stack.contracts.dramatic_effect_contract import (
     DramaticEffectEvaluationContext,
     DramaticEffectGateOutcome,
     DramaticEffectGateResult,
@@ -15,7 +15,7 @@ from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
     SemanticPlannerSupportLevel,
 )
 from ai_stack.story_runtime.dramatic_effect.dramatic_effect_gate import evaluate_dramatic_effect_gate
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 
 
 @runtime_checkable

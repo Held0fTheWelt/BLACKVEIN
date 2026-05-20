@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from ai_stack.callback_web_contracts import (
+from ai_stack.contracts.callback_web_contracts import (
     callback_web_bounds_from_policy,
     callback_web_policy_from_module_runtime,
     validate_callback_web_record,

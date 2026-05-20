@@ -72,7 +72,7 @@ packages = [
     "ai_stack.research",
     "ai_stack.rag",
     "ai_stack.langgraph",
-    "ai_stack.actor_situation",
+    "ai_stack.actor_tracking",
     "ai_stack.language_io",
     "ai_stack.langchain",
     "ai_stack.langfuse",

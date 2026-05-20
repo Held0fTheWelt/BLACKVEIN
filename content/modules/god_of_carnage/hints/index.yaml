@@ -7,7 +7,7 @@ director_surface_hints_catalog:
   player_visible_default: false
   note: >-
     Self-contained module authority for director_surface_hints. Hints merge at
-    render time (ai_stack/story_runtime/turn/goc_turn_seams.py); they are not player-visible prose.
+    render time (ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py); they are not player-visible prose.
     Reference owning surfaces via authority_refs; do not duplicate object, location,
     character, or beat_library prose here.
 

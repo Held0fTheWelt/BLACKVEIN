@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ai_stack.dramatic_irony_contracts import (
+from ai_stack.contracts.dramatic_irony_contracts import (
     DRAMATIC_IRONY_SOURCE_NPC_PRIVATE_PLAN_SELECTED,
     DRAMATIC_IRONY_STATUS_SELECTED,
     DRAMATIC_IRONY_SURFACE_MISREAD_REACTION,

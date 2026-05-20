@@ -7,7 +7,7 @@ import json
 import re
 from typing import Any
 
-from ai_stack.symbolic_object_resonance_contracts import (
+from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_FAILURE_BUDGET_EXCEEDED,
     SYMBOLIC_OBJECT_RESONANCE_FAILURE_CODES,
     SYMBOLIC_OBJECT_RESONANCE_FAILURE_MISSING_REQUIRED_EVENT,

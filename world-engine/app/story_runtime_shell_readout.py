@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
-from ai_stack.goc_yaml_authority import goc_actor_display_name, goc_actor_identity
+from ai_stack.god_of_carnage_yaml_authority import goc_actor_display_name, goc_actor_identity
 from ai_stack.prompt_store import render_prompt
 
 

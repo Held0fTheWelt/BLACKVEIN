@@ -209,7 +209,7 @@ sentence is the correct improvisational response.
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/module.yaml`
-- `ai_stack/improvisational_coherence_contracts.py`
+- `ai_stack/contracts/improvisational_coherence_contracts.py`
 - `ai_stack/improvisational_coherence_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`

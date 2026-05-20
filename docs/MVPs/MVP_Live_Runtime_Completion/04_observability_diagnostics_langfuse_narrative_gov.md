@@ -1418,7 +1418,7 @@ MVP 5 consumes the final diagnostics envelope, trace/export evidence, Narrative 
 - `world-engine/app/api/http.py` — turn response diagnostics and trace fields.
 - `world-engine/app/runtime/manager.py` — trace/diagnostic commit and packaging seam.
 - `ai_stack/langgraph/langgraph_runtime.py` — LangGraph node instrumentation.
-- `ai_stack/story_runtime/turn/goc_turn_seams.py` — LDSS output packaging and validation diagnostics.
+- `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — LDSS output packaging and validation diagnostics.
 - `ai_stack/tracing*`, `ai_stack/langfuse*`, or closest equivalent — Langfuse/local trace export integration.
 - `administration-tool/app/routes*` — Narrative Gov routes.
 - `administration-tool/templates/*` — Narrative Gov templates.
@@ -2033,7 +2033,7 @@ Inspect first:
 world-engine/app/api/http.py
 world-engine/app/runtime/manager.py
 ai_stack/langgraph/langgraph_runtime.py
-ai_stack/story_runtime/turn/goc_turn_seams.py
+ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py
 ai_stack/tracing*
 ai_stack/langfuse*
 administration-tool/app/routes*

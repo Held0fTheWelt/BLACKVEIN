@@ -33,7 +33,7 @@ tests that actually realize each stage.
 
 | Stage | Theme | Module(s) | Activation flag | Status |
 |---|---|---|---|---|
-| **A** | Director Pulse shadow (per-turn `director_tick_decision.v1`) | `ai_stack/story_runtime/director/director_pulse_shadow.py`, `ai_stack/story_runtime/director/director_pulse_contracts.py` | always on (shadow, `shadow_only=True`) | **complete** |
+| **A** | Director Pulse shadow (per-turn `director_tick_decision.v1`) | `ai_stack/story_runtime/director/director_pulse_shadow.py`, `ai_stack/contracts/director_pulse_contracts.py` | always on (shadow, `shadow_only=True`) | **complete** |
 | **B** | Dual mode block stream (parallel `block_stream_events` channel) | `ai_stack/block_stream_dual_mode.py` | `PHASE2_BLOCK_STREAM_DUAL_MODE_ENABLED` | **complete** |
 | **B→C** | Stream readiness diagnostics (`phase2_event_stream_readiness`) | `ai_stack/stream_readiness.py` | inherits Stage B | **complete** |
 | **C** | Primary event stream (event stream promoted over bundle on the frontend) | `ai_stack/stream_readiness.py` + `frontend/static/play_blocks_orchestrator.js` | server `PHASE2_BLOCK_STREAM_PRIMARY_ENABLED`, client `window.WOS_PHASE2_BLOCK_STREAM_PRIMARY_ENABLED` | **complete** |

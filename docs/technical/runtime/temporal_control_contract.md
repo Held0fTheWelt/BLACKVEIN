@@ -126,7 +126,7 @@ Forbidden primary oracles:
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/module.yaml`
-- `ai_stack/temporal_control_contracts.py`
+- `ai_stack/contracts/temporal_control_contracts.py`
 - `ai_stack/temporal_control_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`

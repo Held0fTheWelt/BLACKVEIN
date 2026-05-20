@@ -173,7 +173,7 @@ flowchart TB
   PROMPT --> VAL --> COM --> RT
 ```
 
-**Seams:** `ai_stack/rag/__init__.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
+**Seams:** `ai_stack/rag/__init__.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
 
 **What to notice:** **RAG** feeds **prompt assembly**; **commit** sits **after** model proposals are checked.
 
@@ -417,7 +417,7 @@ flowchart LR
    - **route_model** (**LLM/SLM** policy from `story_runtime_core`),
    - **invoke_model** (often **LangChain** bridge to adapter),
    - **proposal_normalize**,
-   - **validate_seam** / **commit_seam** (**GoC seams** — `ai_stack/story_runtime/turn/goc_turn_seams.py`),
+   - **validate_seam** / **commit_seam** (**GoC seams** — `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`),
    - **render_visible** / **package_output**.
 4. **World-engine** — **`resolve_narrative_commit`** updates **session truth** (scene id, commit record).
 5. **Response** bubbles to **frontend** for display.
@@ -428,7 +428,7 @@ For **Meta/OOC input**, step 3 branches from **interpret** to **meta_control_tur
 
 ### What this means in the actual system
 
-Anchors: `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
+Anchors: `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph/langgraph_runtime.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`, `docs/technical/ai/ai-stack-overview.md`.
 
 ### Why it matters
 
@@ -513,7 +513,7 @@ flowchart TB
   WE2 --> D
 ```
 
-**Seams:** `content/modules/`, `ai_stack/rag/__init__.py`, `ai_stack/story_runtime/turn/goc_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
+**Seams:** `content/modules/`, `ai_stack/rag/__init__.py`, `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py`, `world-engine/app/story_runtime/commit_models.py`.
 
 **What to notice:** **D** is the **narrow neck** for **session-local committed narrative state**.
 

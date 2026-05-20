@@ -7,7 +7,7 @@ from ai_stack.story_runtime.director.capabilities_manager.director_capability_ma
     audit_director_capability_paths,
     executable_capabilities_from_manager_plan,
 )
-from ai_stack.capabilities.dramatic_capability_contracts import (
+from ai_stack.contracts.dramatic_capability_contracts import (
     NPC_DIRECT_ANSWER_ALLOWED,
     NPC_SOCIAL_REACTION_OPTIONAL,
 )

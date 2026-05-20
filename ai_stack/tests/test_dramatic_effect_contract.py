@@ -7,14 +7,14 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from ai_stack.story_runtime.dramatic_effect.dramatic_effect_contract import (
+from ai_stack.contracts.dramatic_effect_contract import (
     DramaticEffectEvaluationContext,
     DramaticEffectGateOutcome,
     DramaticEffectGateResult,
     DramaticEffectTraceItem,
     SemanticPlannerSupportLevel,
 )
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.story_runtime.semantic_planner.semantic_planner_effect_surface import resolve_dramatic_effect_evaluator, support_level_for_module
 
 

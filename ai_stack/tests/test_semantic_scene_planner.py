@@ -6,7 +6,7 @@ from ai_stack.story_runtime.semantic_planner.semantic_scene_planner import (
     SEMANTIC_SCENE_PLANNER_VERSION,
     build_semantic_scene_plan_enrichment,
 )
-from ai_stack.goc_yaml_authority import load_goc_canonical_path_yaml
+from ai_stack.god_of_carnage_yaml_authority import load_goc_canonical_path_yaml
 
 
 def test_scene_planner_builds_pressure_target_beats_and_obligation() -> None:

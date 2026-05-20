@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Any
 
-from ai_stack.information_disclosure_contracts import (
+from ai_stack.contracts.information_disclosure_contracts import (
     DISCLOSURE_FAILURE_CODES,
     DISCLOSURE_MODES,
     DISCLOSURE_STAGES,

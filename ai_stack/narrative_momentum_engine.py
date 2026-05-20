@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.narrative_momentum_contracts import (
+from ai_stack.contracts.narrative_momentum_contracts import (
     NARRATIVE_MOMENTUM_BUILDING,
     NARRATIVE_MOMENTUM_CRESTING,
     NARRATIVE_MOMENTUM_DRIVING,

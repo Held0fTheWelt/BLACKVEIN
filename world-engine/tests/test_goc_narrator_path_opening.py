@@ -360,7 +360,7 @@ def test_goc_opening_de_survives_output_module_timeout_with_diagnostics() -> Non
     assert souffleuse_realization["fallback_reason"] == "The read operation timed out"
 
 
-def test_goc_scripted_continuation_after_statement_keeps_alain_speech_authority() -> None:
+def test_god_of_carnage_scripted_continuation_after_statement_keeps_alain_speech_authority() -> None:
     manager = StoryRuntimeManager(governed_runtime_config=_governed_config())
     session = manager.create_session(
         module_id="god_of_carnage",

@@ -56,3 +56,26 @@ def test_scanner_can_scan_delagecy_internal_selftest_area(tmp_path: Path) -> Non
 
     assert payload["hit_count"] == 1
     assert payload["hits"][0]["path"].endswith("delagecy/internal/fixture.py")
+
+
+def test_report_command_writes_readable_markdown(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "repo"
+    suite = root / "'fy'-suites" / "delagecy"
+    template = root / "frontend" / "templates"
+    suite.mkdir(parents=True)
+    template.mkdir(parents=True)
+    (root / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (template / "play.html").write_text("<button>Legacy mode</button>\n", encoding="utf-8")
+    monkeypatch.chdir(root)
+
+    scan_json = suite / "scan.json"
+    report_md = suite / "report.md"
+
+    assert main(["scan", "--out", str(scan_json)]) == 0
+    assert main(["report", "--scan-json", str(scan_json), "--out", str(report_md)]) == 0
+
+    text = report_md.read_text(encoding="utf-8")
+    assert "# Delagecy Legacy Scan Report" in text
+    assert "Gate status: **FAIL**" in text
+    assert "## First Unregistered Findings" in text
+    assert "## UI Residue Examples" in text

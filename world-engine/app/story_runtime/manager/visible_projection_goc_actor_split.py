@@ -32,7 +32,7 @@ def _split_merged_goc_actor_line_segments(
     runtime_projection: dict[str, Any] | None = None,
     story_runtime_experience: dict[str, Any] | None = None,
 ) -> list[tuple[str, str, str]]:
-    """Split one ``actor_line`` by roster speaker prefixes (``ai_stack.story_runtime.npc_agency.goc_npc_transcript_projection``)."""
+    """Split one ``actor_line`` by roster speaker prefixes (``ai_stack.story_runtime.npc_agency.god_of_carnage_npc_transcript_projection``)."""
     return split_merged_goc_actor_line_segments(
         text,
         runtime_projection=runtime_projection,

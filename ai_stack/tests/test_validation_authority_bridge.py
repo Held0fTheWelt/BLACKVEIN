@@ -5,7 +5,7 @@ from __future__ import annotations
 import ai_stack.capabilities.capability_validator_dispatch as capability_validator_dispatch
 import ai_stack.runtime_aspect_ledger as runtime_aspect_ledger
 from ai_stack.capabilities.capability_validator_dispatch import ValidatorDispatchMode
-from ai_stack.story_runtime.turn.goc_seam_mirror_validator_adapters import (
+from ai_stack.story_runtime.turn.god_of_carnage_seam_mirror_validator_adapters import (
     DRAMATIC_EFFECT_GATE_MIRROR_CONTRACT,
     adapter_dramatic_effect_gate_mirror_contract,
 )

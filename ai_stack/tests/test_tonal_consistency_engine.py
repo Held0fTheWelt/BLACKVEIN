@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.module_runtime_policy import load_module_runtime_policy
-from ai_stack.tonal_consistency_contracts import (
+from ai_stack.contracts.tonal_consistency_contracts import (
     TONAL_CONSISTENCY_DEFAULT_CLASSIFICATION_SOURCE,
     TONAL_CONSISTENCY_FAILURE_CODES,
     TONAL_CONSISTENCY_POLICY_VERSION,

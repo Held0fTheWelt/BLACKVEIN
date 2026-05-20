@@ -4,7 +4,7 @@ import pytest
 
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
-from ai_stack.story_runtime.turn.runtime_turn_contracts import (
+from ai_stack.contracts.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
     EXECUTION_HEALTH_MODEL_FALLBACK,

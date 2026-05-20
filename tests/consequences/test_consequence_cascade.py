@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.consequence_cascade_contracts import (
+from ai_stack.contracts.consequence_cascade_contracts import (
     consequence_cascade_bounds_from_policy,
     consequence_cascade_policy_from_module_runtime,
     validate_consequence_cascade_record,

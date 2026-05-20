@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.research.canon_improvement_contract import proposal_for_issue
-from ai_stack.research.research_contract import (
+from ai_stack.contracts.canon_improvement_contract import proposal_for_issue
+from ai_stack.contracts.research_contract import (
     CanonIssueRecord,
     CanonIssueType,
     ImprovementProposalRecord,

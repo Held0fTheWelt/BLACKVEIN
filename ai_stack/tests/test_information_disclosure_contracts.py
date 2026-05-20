@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_stack.information_disclosure_contracts import (
+from ai_stack.contracts.information_disclosure_contracts import (
     INFORMATION_DISCLOSURE_POLICY_VERSION,
     normalize_information_disclosure_policy,
 )

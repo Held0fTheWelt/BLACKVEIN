@@ -2,7 +2,7 @@
 
 **Status:** PR-0 envelope stub. Populated by PR-A/B/C.
 **Date:** 2026-05-19
-**Source code (stub):** [`ai_stack/runtime_diagnostic_snapshot_contracts.py`](../../../ai_stack/runtime_diagnostic_snapshot_contracts.py)
+**Source code (stub):** [`ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py`](../../../ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py)
 **Owning ADR(s):** [ADR-0057 (Phase-1 amendment)](../../ADR/adr-0057-canon-safe-player-freedom-and-affordance-inference.md), [ADR-0061 (Draft)](../../ADR/adr-0061-director-pause-mode-for-gathering-interruption.md), [ADR-0062 (composition path)](../../ADR/adr-0062-director-realization-thin-path.md)
 **PIV artifact:** [`docs/implementation_logs/pr_0_npc_interactivity_contracts_piv.md`](../../implementation_logs/pr_0_npc_interactivity_contracts_piv.md)
 **Roadmap source:** [`NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md`](../../../NPC_INTERACTION_AND_INTERACTIVITY_PLAN.md) §3.5
@@ -30,7 +30,7 @@ With a single envelope:
 
 ## 3. Envelope shape (PR-0 stub)
 
-Defined in [`ai_stack/runtime_diagnostic_snapshot_contracts.py`](../../../ai_stack/runtime_diagnostic_snapshot_contracts.py):
+Defined in [`ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py`](../../../ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py):
 
 | Key | Type (stub) | Source contract / origin | Populated by |
 |---|---|---|---|
@@ -55,7 +55,7 @@ The four placeholders each carry a `contract_name` constant and a `payload: dict
 
 ## 5. Lifecycle
 
-- **PR-0 (this commit):** the stub at `ai_stack/runtime_diagnostic_snapshot_contracts.py` declares the envelope shape and the four contract placeholder names. The stub is **not imported** by any production runtime path. No graph node constructs it. No endpoint serializes it.
+- **PR-0 (this commit):** the stub at `ai_stack/contracts/runtime_diagnostic_snapshot_contracts.py` declares the envelope shape and the four contract placeholder names. The stub is **not imported** by any production runtime path. No graph node constructs it. No endpoint serializes it.
 - **PR-A:** populates `resolver_output`, `canonical_step_id`, `visible_block_emitted`, `session_id`, `turn_number`, and partial `semantic_capability_consultation_names`. The serialization surface is the existing operator endpoint family established by [ADR-0062](../../ADR/adr-0062-director-realization-thin-path.md) (`GET /api/story/sessions/{session_id}/thin-path-summary`); the envelope nests under the existing payload.
 - **PR-B:** populates `canonical_path_hold_effect` and `narrator_consequence_realization`.
 - **PR-C:** populates `director_gathering_state`.

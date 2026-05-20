@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+pytest_plugins = ("ai_stack.tests.god_of_carnage_yaml_cache_fixtures",)
 
 import pytest
 

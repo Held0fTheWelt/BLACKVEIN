@@ -132,7 +132,7 @@ Forbidden primary oracles:
 
 ## Implementation Anchors
 
-- `ai_stack/relationship_state_contracts.py`
+- `ai_stack/contracts/relationship_state_contracts.py`
 - `ai_stack/relationship_state_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`

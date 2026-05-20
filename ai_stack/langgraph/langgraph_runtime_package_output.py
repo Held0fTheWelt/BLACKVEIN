@@ -5,8 +5,8 @@ langgraph_runtime_executor).
 
 from __future__ import annotations
 
-from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
-from ai_stack.story_runtime.turn.goc_turn_seams import build_diagnostics_refs
+from ai_stack.telemetry.actor_survival_telemetry import build_actor_survival_telemetry
+from ai_stack.story_runtime.turn.god_of_carnage_turn_seams import build_diagnostics_refs
 from ai_stack.langgraph.langgraph_runtime_package_output_repro import build_repro_metadata_and_health
 from ai_stack.langgraph.langgraph_runtime_package_output_sections import (
     append_goc_validation_reject_failure_marker,

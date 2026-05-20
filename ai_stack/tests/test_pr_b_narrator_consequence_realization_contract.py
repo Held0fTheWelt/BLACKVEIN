@@ -27,7 +27,7 @@ import re
 
 import pytest
 
-from ai_stack.story_runtime.narrator.narrator_consequence_realization_contracts import (
+from ai_stack.contracts.narrator_consequence_realization_contracts import (
     BLOCK_TYPE_ENVIRONMENT_INTERACTION,
     BLOCK_TYPE_NARRATOR,
     NON_REALIZATION_REASON_BUNDLE_MISSING,
@@ -284,8 +284,7 @@ def test_narrator_realization_does_not_require_actor_speech() -> None:
 _REALIZATION_MODULE_PATH = (
     REPO_ROOT
     / "ai_stack"
-    / "story_runtime"
-    / "narrator"
+    / "contracts"
     / "narrator_consequence_realization_contracts.py"
 )
 
@@ -324,6 +323,8 @@ def test_pr_b_realization_module_does_not_define_pr_c_or_phase_2_symbols() -> No
 def test_pr_b_realization_module_does_not_import_diagnostic_snapshot_stub() -> None:
     text = _REALIZATION_MODULE_PATH.read_text(encoding="utf-8")
     forbidden = re.compile(
+        r"from\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
+        r"import\s+ai_stack\.contracts\.runtime_diagnostic_snapshot_contracts\b|"
         r"from\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b|"
         r"import\s+ai_stack\.runtime_diagnostic_snapshot_contracts\b"
     )

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_stack.research.canon_improvement_engine import derive_canon_improvements
-from ai_stack.research.research_contract import ExplorationBudget, ResearchRunRecord, ResearchStatus, utc_now_iso
+from ai_stack.contracts.research_contract import ExplorationBudget, ResearchRunRecord, ResearchStatus, utc_now_iso
 from ai_stack.research.research_exploration import run_bounded_exploration
 from ai_stack.research.research_langgraph_run_pipeline_phases import (
     canon_relevance_hint,

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.god_of_carnage_frozen_vocabulary import GOC_MODULE_ID
 from ai_stack.langgraph.langgraph_runtime_package_output_dramatic_review import build_dramatic_review_section
 from ai_stack.langgraph.langgraph_runtime_state import RuntimeTurnState
 

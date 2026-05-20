@@ -12,7 +12,7 @@
 | Piece | Location |
 |-------|----------|
 | Turn graph executor | `ai_stack/langgraph/langgraph_runtime.py` |
-| GoC (God of Carnage) YAML / seams | `ai_stack/goc_yaml_authority.py`, `goc_turn_seams.py`, `scene_director_goc.py` |
+| GoC (God of Carnage) YAML / seams | `ai_stack/god_of_carnage_yaml_authority.py`, `god_of_carnage_turn_seams.py`, `god_of_carnage_scene_director.py` |
 | RAG | `ai_stack/rag/__init__.py` |
 | LangChain bridge | `ai_stack/langchain/` |
 | Capabilities | `ai_stack/capabilities/capabilities.py` |

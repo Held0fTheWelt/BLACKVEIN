@@ -127,7 +127,7 @@ The normalized policy contains:
 ```
 
 Layer and intensity vocabularies are exported from
-`ai_stack/sensory_context_contracts.py`:
+`ai_stack/contracts/sensory_context_contracts.py`:
 
 - layer kind: `mood`, `room_ambient`, `location_entry`, `object_perception`;
 - intensity: `low`, `medium`, `high`;
@@ -235,7 +235,7 @@ that a specific story sentence has the correct sensory quality.
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/module.yaml`
-- `ai_stack/sensory_context_contracts.py`
+- `ai_stack/contracts/sensory_context_contracts.py`
 - `ai_stack/sensory_context_engine.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
@@ -251,7 +251,7 @@ that a specific story sentence has the correct sensory quality.
 - `ai_stack/tests/test_sensory_context_engine.py`
 - `ai_stack/tests/test_module_runtime_policy.py`
 - `ai_stack/tests/test_runtime_aspect_ledger.py`
-- `ai_stack/tests/test_goc_structured_setting_knowledge.py`
+- `ai_stack/tests/test_god_of_carnage_structured_setting_knowledge.py`
 - `ai_stack/tests/test_narrator_consequence_contract.py`
 - `tools/mcp_server/tests/test_langfuse_verify_tools.py`
 - `tests/gates/test_table_b_anti_hardcoding_gate.py`

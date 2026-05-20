@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ai_stack.research.research_contract import Perspective
+from ai_stack.contracts.research_contract import Perspective
 
 
 _WORD_RE = re.compile(r"[a-z0-9_]+", re.IGNORECASE)

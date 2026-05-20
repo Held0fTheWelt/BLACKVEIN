@@ -123,6 +123,8 @@ cp -f despaghettify/templates/despaghettification_implementation_input.EMPTY.md 
 
 After copy, the input list contains **placeholders** (`—`) for **M7**, **C1–C7** (**`%`** on the next check), **AST telemetry** (main scan row + row **under C7** in § *Score M7*), tables, and open hotspots — ready for the next check pass.
 
+**Do not reset** [`despaghettification_completed_log.md`](despaghettification_completed_log.md): it is the long-term archive of **CLOSED** waves and finished check/reset passes. Reset only clears § *Active progress* in the input file (via the EMPTY template). To bootstrap a **new** archive file (e.g. fresh hub), copy [`templates/despaghettification_completed_log.EMPTY.md`](templates/despaghettification_completed_log.EMPTY.md) — or let hub CLI create it from that template on the first `sync-archive` / any subcommand.
+
 ---
 
 ## Step 3 — Run [`spaghetti-check-task.md`](spaghetti-check-task.md) exactly once

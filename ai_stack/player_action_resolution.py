@@ -15,21 +15,21 @@ from typing import Any
 
 import yaml
 
-from ai_stack.action_resolution_contracts import (
+from ai_stack.contracts.action_resolution_contracts import (
     AffordanceResolutionContract,
     PlayerActionFrameContract,
     ResolvedTarget,
     fold_unicode,
     fold_match,
 )
-from ai_stack.environment_state_contracts import (
+from ai_stack.contracts.environment_state_contracts import (
     environment_state_to_player_local_context,
     scene_affordance_model_with_environment_state,
 )
-from ai_stack.story_runtime.canonical_path.canonical_path_hold_effect_contracts import (
+from ai_stack.contracts.canonical_path_hold_effect_contracts import (
     build_canonical_path_hold_effect,
 )
-from ai_stack.free_player_action_resolution_contracts import (
+from ai_stack.contracts.free_player_action_resolution_contracts import (
     build_free_player_action_resolution,
 )
 from ai_stack.language_io.language_adapter import build_interaction_surface, resolve_content_modules_root

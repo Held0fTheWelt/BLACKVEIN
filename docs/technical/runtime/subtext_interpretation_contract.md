@@ -42,12 +42,12 @@ Subtext records are advisory until validation and commit. They may shape respond
 }
 ```
 
-The allowed values are declared in `content/modules/god_of_carnage/direction/subtext_policy.yaml` and mirrored by the bounded contract constants in `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`. Runtime code must not invent labels outside those sets.
+The allowed values are declared in `content/modules/god_of_carnage/direction/subtext_policy.yaml` and mirrored by the bounded contract constants in `ai_stack/contracts/semantic_move_contract.py`. Runtime code must not invent labels outside those sets.
 
 ## Flow
 
-1. `semantic_move_interpretation_goc.py` classifies the player move and builds `SubtextRecord` from `goc_subtext_policy.py`.
-2. `scene_director_goc.py` reads `semantic_move_record.subtext` for director resolution evidence and selected pacing pressure.
+1. `god_of_carnage_semantic_move_interpretation.py` classifies the player move and builds `SubtextRecord` from `god_of_carnage_subtext_policy.py`.
+2. `god_of_carnage_scene_director.py` reads `semantic_move_record.subtext` for director resolution evidence and selected pacing pressure.
 3. `langgraph_runtime_executor.py` serializes `subtext_interpretation` into the dramatic generation packet and adds subtext rationale codes.
 4. `world-engine/app/story_runtime/manager.py` projects subtext into path summaries, Langfuse spans, deterministic scores, and score metadata.
 5. Backend inspector and operator-history services surface the same fields for diagnostics.
@@ -66,10 +66,10 @@ Forbidden primary oracles:
 ## Implementation Anchors
 
 - `content/modules/god_of_carnage/direction/subtext_policy.yaml`
-- `ai_stack/story_runtime/semantic_planner/goc_subtext_policy.py`
-- `ai_stack/story_runtime/semantic_planner/semantic_move_contract.py`
-- `ai_stack/story_runtime/semantic_planner/semantic_move_interpretation_goc.py`
-- `ai_stack/story_runtime/director/scene_director_goc.py`
+- `ai_stack/story_runtime/semantic_planner/god_of_carnage_subtext_policy.py`
+- `ai_stack/contracts/semantic_move_contract.py`
+- `ai_stack/story_runtime/semantic_planner/god_of_carnage_semantic_move_interpretation.py`
+- `ai_stack/story_runtime/director/god_of_carnage_scene_director.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `world-engine/app/story_runtime/manager.py`
 - `backend/app/services/inspector_turn_projection_assembly_helpers.py`

@@ -25,7 +25,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 
 4. NPC-to-NPC coercive actions are not restricted by this rule (human actor boundary only).
 
-5. The live LangGraph validation path mirrors the same structured coercion taxonomy through `ai_stack.capabilities.dramatic_capability_contracts.NPC_COERCIVE_ACTION_TYPES`. When a structured NPC action targets the human actor and uses a coercive action/coercion type, `RuntimeAspectLedger.npc_authority` records `npc_action_controls_human_actor`, `RuntimeAspectLedger.capability_selection` records `npc.force_player_speech.forbidden`, and final validation rejects before commit.
+5. The live LangGraph validation path mirrors the same structured coercion taxonomy through `ai_stack.contracts.dramatic_capability_contracts.NPC_COERCIVE_ACTION_TYPES`. When a structured NPC action targets the human actor and uses a coercive action/coercion type, `RuntimeAspectLedger.npc_authority` records `npc_action_controls_human_actor`, `RuntimeAspectLedger.capability_selection` records `npc.force_player_speech.forbidden`, and final validation rejects before commit.
 
 6. `npc_action_controls_human_actor` is recoverable for self-correction feedback, but it is not eligible for degraded commit. The model may retry with corrected actor boundaries; the bad turn must not become committed story truth.
 
@@ -35,7 +35,7 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 
 8. **`validate_state_delta()`** in `world-engine/app/runtime/state_delta.py` rejects any delta whose path matches or is under a protected path. Error codes: `protected_state_mutation_rejected`, `state_delta_boundary_violation`.
 
-9. **`run_commit_seam()`** in `ai_stack/story_runtime/turn/goc_turn_seams.py` accepts `candidate_deltas` and `state_delta_boundary`. The live executor `_commit_seam()` forwards these fields from `RuntimeTurnState`, so protected path mutations are rejected at the commit seam before any write occurs.
+9. **`run_commit_seam()`** in `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` accepts `candidate_deltas` and `state_delta_boundary`. The live executor `_commit_seam()` forwards these fields from `RuntimeTurnState`, so protected path mutations are rejected at the commit seam before any write occurs.
 
 10. Protected paths include: `canonical_scene_order`, `canonical_characters`, `canonical_relationships`, `canonical_content_truth`, `content_module_id`, `selected_player_role`, `human_actor_id`, `actor_lanes`.
 
@@ -48,8 +48,8 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 - `world-engine/app/runtime/models.py` — `StateDeltaBoundary`, `StateDeltaValidationResult`
 - `world-engine/app/runtime/actor_lane.py` — `validate_npc_action_coercion()`, `_COERCIVE_ACTION_TYPES`, `_ALLOWED_PRESSURE_VERBS`
 - `world-engine/app/runtime/state_delta.py` — `validate_state_delta()`, `validate_state_deltas()`, `build_default_goc_boundary()`
-- `ai_stack/story_runtime/turn/goc_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
-- `ai_stack/capabilities/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
+- `ai_stack/story_runtime/turn/god_of_carnage_turn_seams.py` — `run_commit_seam()` extended with `candidate_deltas`
+- `ai_stack/contracts/dramatic_capability_contracts.py` — shared NPC coercion taxonomy and forbidden capability mapping
 - `ai_stack/langgraph/langgraph_runtime_executor.py` — live authority-aspect and commit-seam wiring
 - `ai_stack/story_runtime/story_runtime_playability.py` — retry/degraded-commit policy for coercion failures
 

@@ -132,7 +132,7 @@ runtime_governance_policy:
       - blame_pressure
 ```
 
-The runtime normalizes these values through `ai_stack/callback_web_contracts.py`. Invalid or out-of-range numbers are clamped to bounded minimums and maximums. The graph feedback export is separately bounded by `max_graph_edges`.
+The runtime normalizes these values through `ai_stack/contracts/callback_web_contracts.py`. Invalid or out-of-range numbers are clamped to bounded minimums and maximums. The graph feedback export is separately bounded by `max_graph_edges`.
 
 ## Flow
 
@@ -199,7 +199,7 @@ Tests may assert that evidence fields name structured sources such as `narrative
 
 - `story_runtime_core/callbacks/callback_web.py`
 - `story_runtime_core/callbacks/__init__.py`
-- `ai_stack/callback_web_contracts.py`
+- `ai_stack/contracts/callback_web_contracts.py`
 - `ai_stack/langgraph/langgraph_runtime_state.py`
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/module_runtime_policy.py`

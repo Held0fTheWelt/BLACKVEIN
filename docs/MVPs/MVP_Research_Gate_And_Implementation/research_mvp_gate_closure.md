@@ -13,7 +13,7 @@
 ### Gate 1 - Truth Separation
 Status: Pass
 - Distinct statuses implemented: `exploratory`, `candidate`, `validated`, `approved_research`, `canon_applicable`, `canon_adopted`.
-- Legal transitions are centralized and validated in `ai_stack/research/research_contract.py`.
+- Legal transitions are centralized and validated in `ai_stack/contracts/research_contract.py`.
 
 ### Gate 2 - Provenance
 Status: Pass

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ai_stack.research.research_aspect_extraction import extract_and_store_aspects
-from ai_stack.research.research_contract import ExplorationBudget
+from ai_stack.contracts.research_contract import ExplorationBudget
 from ai_stack.research.research_exploration import run_bounded_exploration
 from ai_stack.research.research_fixtures import fixture_b_aspect_input, fixture_c_exploration_budget
 from ai_stack.research.research_golden_cases import EXPECTED_EXPLORATION_ABORT_REASONS
