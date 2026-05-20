@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -119,9 +120,18 @@ def iter_files(root: Path, include: Iterable[str] | None = None) -> Iterable[Pat
             continue
         if not base.is_dir():
             continue
-        for path in base.rglob("*"):
-            if should_scan(path):
-                yield path
+        for dirpath, dirnames, filenames in os.walk(base):
+            current = Path(dirpath)
+            dirnames[:] = [
+                name
+                for name in dirnames
+                if name not in EXCLUDED_PARTS
+                and not (name == "reports" and "delagecy" in (current / name).parts)
+            ]
+            for filename in filenames:
+                path = current / filename
+                if should_scan(path):
+                    yield path
 
 
 def scan(root: Path, *, include: Iterable[str] | None = None, patterns: Iterable[str] | None = None) -> dict[str, object]:

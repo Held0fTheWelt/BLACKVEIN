@@ -12,8 +12,8 @@ physical lines.
 
 ## Transitional Loader
 
-`public.py` assembles the legacy executor source from `SOURCE_LINES` chunks and
-publishes the same symbols that callers already import from
+`public.py` assembles the legacy executor source from responsibility-specific
+`SOURCE_LINES` chunks and publishes the same symbols that callers already import from
 `ai_stack.langgraph.langgraph_runtime_executor`.
 
 This is deliberately transitional. It gives Despaghettify a low-risk cut point:
@@ -21,6 +21,11 @@ tests keep exercising the old runtime behaviour, while the next pass can
 promote each group into normal Python modules with real functions, imports, and
 unit seams. The compatibility facade
 `../langgraph_runtime_executor.py` points at `public.py`.
+
+Each segment file starts with a module docstring that names its responsibility.
+Those docstrings are not generation markers; they are the local reading guide
+for the slice until the next pass replaces the `SOURCE_LINES` chunk with normal
+module code.
 
 ## Responsibility Groups
 

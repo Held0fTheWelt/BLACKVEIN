@@ -1,6 +1,6 @@
-# ADR-0063: W5 Actor Situation Tracker
+# ADR-0063: W5 Actor Tracking
 
-Short title: a single source-tagged, truth-leveled, append-only actor-situation authority covering Who / Where / What / How / Why.
+Short title: a single source-tagged, truth-leveled, append-only actor-tracking authority covering Who / Where / What / How / Why.
 
 ## Status
 
@@ -28,7 +28,7 @@ This ADR contains no personal data. Implementers must follow the repository priv
 
 ## Context
 
-The runtime today carries actor-situation information across multiple disjoint surfaces: `environment_state.actor_locations`, narrator composition prose, NPC agency planning, Director gathering state, validation context, frontend cards, and admin/diagnostics views. Each surface has its own implicit notion of "who knows what about whom, when, and from where," and many of them collapse **How** (manner, tone, intensity) into **What** or lose it entirely. There is no single object answering "what is the current situation for actor X, what is its source, how confident is it, and is it OBSERVED, INFERRED, or only DECLARED?"
+The runtime today carries actor-tracking information across multiple disjoint surfaces: `environment_state.actor_locations`, narrator composition prose, NPC agency planning, Director gathering state, validation context, frontend cards, and admin/diagnostics views. Each surface has its own implicit notion of "who knows what about whom, when, and from where," and many of them collapse **How** (manner, tone, intensity) into **What** or lose it entirely. There is no single object answering "what is the current situation for actor X, what is its source, how confident is it, and is it OBSERVED, INFERRED, or only DECLARED?"
 
 This has concrete failure modes:
 
@@ -37,11 +37,11 @@ This has concrete failure modes:
 - How signals (tone, manner, intensity, pace, physicality, method, style) are dropped or coerced into What.
 - Validation, narrator composition, and NPC planning each re-derive situation from different bases, with no append-only audit trail of what was true at turn N.
 
-The W5 Actor Situation Tracker introduces a single, **purely derived, append-only, source-tagged, truth-leveled** actor-situation authority. It is shadow-only in Phase 1 — it changes no consumer behavior — but it is the target authority for narrator/NPC/Director/validation/frontend/admin/observability after migration.
+The W5 Actor Tracking introduces a single, **purely derived, append-only, source-tagged, truth-leveled** actor-tracking authority. It is shadow-only in Phase 1 — it changes no consumer behavior — but it is the target authority for narrator/NPC/Director/validation/frontend/admin/observability after migration.
 
 ## Decision
 
-We will introduce the **W5 Actor Situation Tracker** with the following normative properties:
+We will introduce the **W5 Actor Tracking** with the following normative properties:
 
 1. **Five closed dimensions.** `W5Dimension ∈ { who, where, what, how, why }`. `how` is a first-class dimension and must not be collapsed into `what`.
 
@@ -50,7 +50,7 @@ We will introduce the **W5 Actor Situation Tracker** with the following normativ
    - `observed` = derived from committed runtime substrate / committed event.
    - `declared` = stated/claimed by actor, resolver, or player input, not yet substrate truth.
    - `director_assigned` = assigned by Director / runtime planning authority.
-   - `inferred` = soft actor-situation inference (especially Why and How).
+   - `inferred` = soft actor-tracking inference (especially Why and How).
    - `projected` = consumer-facing projection only, never committed fact truth.
    - INFERRED `why.*` may exist; it must **never** become OBSERVED unless a future explicit engine-owned commit path / ADR defines that promotion.
    - PROJECTED is **not** a committed fact truth level.
@@ -81,14 +81,14 @@ We will introduce the **W5 Actor Situation Tracker** with the following normativ
 
 8. **Phase 1 is shadow-only.** Extraction is wired in after committed runtime events and persisted, but **no consumer is migrated yet**. Narrator, NPC, Director, frontend, admin, and validation continue to read their current sources. `environment_state` remains the low-level committed substrate.
 
-9. **Target architecture (later phases).** W5 becomes the actor-situation authority for higher-level consumers. After final migration, narrator composition, NPC planning, Director gathering, validation, frontend, admin, and observability read W5 projections rather than `environment_state.actor_locations` / `current_room` / `current_area` / `previous_room_id` directly. `environment_state` remains as low-level committed substrate only.
+9. **Target architecture (later phases).** W5 becomes the actor-tracking authority for higher-level consumers. After final migration, narrator composition, NPC planning, Director gathering, validation, frontend, admin, and observability read W5 projections rather than `environment_state.actor_locations` / `current_room` / `current_area` / `previous_room_id` directly. `environment_state` remains as low-level committed substrate only.
 
 10. **Non-weakening guarantees.** This ADR does not weaken ADR-0033 (live-commit gate), the Actor Lane / Commit / Readiness contract, `validation_outcome` semantics, or Canonical Path semantics. W5 is downstream of commit, not parallel to it.
 
 ## Consequences
 
 **Positive:**
-- Single source-tagged, truth-leveled actor-situation surface for higher-level consumers.
+- Single source-tagged, truth-leveled actor-tracking surface for higher-level consumers.
 - How becomes a first-class projected dimension; tone/manner/intensity are no longer dropped.
 - INFERRED Why is explicitly soft-truth and cannot be promoted by accident.
 - Append-only snapshots provide a per-turn audit trail of what was OBSERVED vs DECLARED vs INFERRED.

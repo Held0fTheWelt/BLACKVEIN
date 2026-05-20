@@ -1,6 +1,6 @@
-# W5 Actor Situation Tracker — Migration Plan
+# W5 Actor Tracking — Migration Plan
 
-**Authoritative ADR:** [ADR-0063](../ADR/adr-0063-w5-actor-situation-tracker.md) — W5 Actor Situation Tracker.
+**Authoritative ADR:** [ADR-0063](../ADR/adr-0063-w5-actor-tracking.md) — W5 Actor Tracking.
 
 **Status:** Proposed (Phase 0/1 in progress).
 
@@ -23,7 +23,7 @@ This note records the relationship without changing ADR-0033.
 
 ## Target architecture (post-migration)
 
-- W5 is the actor-situation authority for higher-level consumers.
+- W5 is the actor-tracking authority for higher-level consumers.
 - Narrator composition, NPC planning, Director gathering, validation, frontend, admin, and observability read **W5 projections**, not legacy `environment_state.actor_locations` / `current_room` / `current_area` / `previous_room_id` directly.
 - `environment_state` remains the **low-level committed substrate** only.
 
@@ -140,7 +140,7 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - [x] Add compact typed diagnostic builders in `ai_stack/actor_tracking/diagnostics.py`.
 - [x] Add read-only world-engine internal W5 surfaces for snapshot, per-actor drill-in, conflicts, narrator projection preview, NPC projection preview, and latest validation diagnostics.
 - [x] Add backend admin proxy routes under `/api/v1/admin/w5/...` using existing moderator/admin and World-Engine `observe` capability checks.
-- [x] Extend the Narrative Runtime governance UI with W5 Actor Situation, per-actor, source/truth, visibility/perception, stale/contradicted, projection preview, and validation panels.
+- [x] Extend the Narrative Runtime governance UI with W5 Actor Tracking, per-actor, source/truth, visibility/perception, stale/contradicted, projection preview, and validation panels.
 - [x] Add compact runtime diagnostics and Langfuse metadata (`w5.snapshot_id`, actor/conflict counts, How/Why presence, validation flags/failure codes) without emitting raw W5 ledgers or inferred Why prose.
 - [x] Admin panels are read-only and do not mutate runtime truth, committed events, validation state, or any projection feature flag.
 - [x] `admin_override`, where present in future repair flows, remains audited and cannot produce OBSERVED truth in this phase.

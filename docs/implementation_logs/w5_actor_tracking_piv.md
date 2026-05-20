@@ -1,4 +1,4 @@
-# W5 actor situation — parallel track (ADR-0063)
+# W5 actor tracking — parallel track (ADR-0063)
 
 **Date:** 2026-05-20  
 **Status:** In flight (does not block Phase-1 closure)

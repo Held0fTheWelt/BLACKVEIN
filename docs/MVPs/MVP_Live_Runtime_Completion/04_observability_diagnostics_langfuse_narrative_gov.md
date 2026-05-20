@@ -1359,7 +1359,7 @@ Logged: `_log_admin_action(action="token_budget_override", resource="session", d
 **Implementation**:
 - `world-engine/app/story_runtime/manager.py`: Track tokens consumed per session
 - `world-engine/app/story_runtime/commit_seam.py`: Cost-aware degradation decisions
-- `backend/app/services/cost_governance_service.py`: New service for budget tracking
+- `backend/app/services/governance/observability_governance_service.py`: Governed budget and cost tracking surface
 - `administration-tool/templates/narrative-gov/cost-dashboard.html`: Cost visualization
 - `administration-tool/static/manage_cost_governance.js`: Budget config + override UI
 - Tests: Budget enforcement, cost tracking, degradation signals
@@ -2008,7 +2008,7 @@ Required handoff artifact: `tests/reports/MVP4_HANDOFF_DIAGNOSTICS_AND_TRACE.md`
 
 ### W5 Actor-Situation Diagnostic Addendum
 
-W5 Phase 4B exposes actor-situation state through read-only Narrative Governance and World-Engine admin diagnostics. The panels and routes show compact typed views only: current snapshot, per-actor Who/Where/What/How/Why, source/truth levels, visibility/perception scope, stale/contradicted facts, conflicts, narrator/NPC projection previews, and W5 validation diagnostics.
+W5 Phase 4B exposes actor-tracking state through read-only Narrative Governance and World-Engine admin diagnostics. The panels and routes show compact typed views only: current snapshot, per-actor Who/Where/What/How/Why, source/truth levels, visibility/perception scope, stale/contradicted facts, conflicts, narrator/NPC projection previews, and W5 validation diagnostics.
 
 These surfaces do not mutate runtime truth, committed events, validation output, projection flags, or `admin_override` authority. Operator visibility is diagnostic until a future ADR defines explicit repair authority; `admin_override` remains audited and cannot produce OBSERVED W5 truth.
 

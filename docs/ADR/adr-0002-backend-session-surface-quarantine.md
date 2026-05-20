@@ -8,7 +8,7 @@ Accepted
 **Implemented — matches ADR (inventory complete; retirement ongoing).**
 
 - Backend transitional session surfaces are inventoried and classified; documented in `docs/technical/architecture/backend-runtime-classification.md`.
-- `backend/app/api/v1/session_routes.py`, `backend/app/runtime/session/session_store.py`, and `backend/app/services/session_service.py` are classified and labeled non-authoritative per the ADR.
+- The former backend session API route and flat session service surfaces are retired; the remaining backend-local compatibility store lives at `backend/app/runtime/session/session_store.py` and is classified non-authoritative per the ADR.
 - Governance investigation confirms `CTR-ADR-0002-BACKEND-SESSION-QUARANTINE` is implemented; validated by `backend/tests/test_session_routes.py` and `backend/tests/test_world_engine_console_routes.py`.
 - One open gap: the ADR cites "Appendix A" (normative surface list) as a living artifact — retirement timeline for remaining transitional shims is intentionally unresolved (`CNF-RUNTIME-SPINE-TRANSITIONAL-RETIREMENT`). No action required before marking Accepted; tracking continues in governance audit.
 
@@ -32,7 +32,7 @@ The platform historically exposed backend-local session and runtime-shaped APIs.
 **Package immutability (historical MVP ADR-002 wording):** A package version, once built and stored under `versions/<package_version>/`, is **immutable**. `active/` is a **pointer** to a version, never the storage location of mutable content. Consequences: package promotion is pointer movement plus event log; rollback is pointer movement; audit history is lossless; preview vs active comparisons are reliable. (Source: [`02_architecture_decisions.md`](../MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md) — index only; **operational detail lives in this ADR and linked architecture docs**.)
 
 ## Decision
-1. **Inventory** all backend routes and services under `backend/app/runtime/`, `session_service.py`, `session_start.py`, and session-related API modules (normative list: **Appendix A**).
+1. **Inventory** all backend routes and services under `backend/app/runtime/`, `session_start.py`, and session-related API modules (normative list: **Appendix A**).
 2. **Classify** each entry point as: **retire** (remove when no caller), **quarantine** (explicit non-authoritative labeling, narrow compatibility window), or **compat** (documented operator-only surface with no player truth claims).
 3. **Quarantine** non-authoritative surfaces in naming and documentation so they cannot be mistaken for production authority (prefixes, deprecation notices, ADR links).
 

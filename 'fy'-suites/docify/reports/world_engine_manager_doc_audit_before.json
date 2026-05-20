@@ -1,0 +1,14 @@
+{
+  "repo_root": "/mnt/d/WorldOfShadows/'fy'-suites",
+  "roots": [
+    "/mnt/d/WorldOfShadows/'fy'-suites/world-engine/app/story_runtime/manager"
+  ],
+  "summary": {
+    "findings": 0,
+    "files_with_findings": 0,
+    "parse_errors": 0
+  },
+  "parse_errors": [],
+  "findings": [],
+  "ruff": null
+}

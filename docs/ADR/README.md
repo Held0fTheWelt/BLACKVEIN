@@ -73,7 +73,7 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0056](adr-0056-souffleuse-player-guidance-lane.md) | Souffleuse player guidance lane | Accepted |
 | [ADR-0057](adr-0057-canon-safe-player-freedom-and-affordance-inference.md) | Canon-safe player freedom and affordance inference | Accepted |
 | [ADR-0062](adr-0062-director-realization-thin-path.md) | Director realization thin path (Resolver → Director → Narrator) | Accepted |
-| [ADR-0063](adr-0063-w5-actor-situation-tracker.md) | W5 actor situation tracker | Proposed |
+| [ADR-0063](adr-0063-w5-actor-tracking.md) | W5 actor tracking | Proposed |
 | [ADR-0064](adr-0064-python-314-unified-interpreter-standard.md) | Unified Python 3.14 interpreter standard | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
