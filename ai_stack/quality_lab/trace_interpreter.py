@@ -2,7 +2,7 @@
 
 Pure analysis of a Langfuse trace payload that has already been fetched
 and pre-extracted by ``fetch_langfuse_trace`` and the matrix-row builder
-in ``tools_registry_handlers_langfuse_verify``. Quality Lab does not call
+in ``langfuse_verify``. Quality Lab does not call
 Langfuse itself — the MCP handler composes with the existing tools and
 hands the extracted material to this module.
 

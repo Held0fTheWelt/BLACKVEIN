@@ -424,18 +424,18 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         repo / "ai_stack" / "contracts" / "visible_origin_contracts.py",
         repo / "ai_stack" / "module_runtime_policy.py",
         repo / "ai_stack" / "contracts" / "expectation_variation_contracts.py",
-        repo / "ai_stack" / "expectation_variation_engine.py",
+        repo / "ai_stack" / "story_runtime" / "narrative" / "expectation_variation_engine.py",
         repo / "ai_stack" / "contracts" / "information_disclosure_contracts.py",
-        repo / "ai_stack" / "information_disclosure_engine.py",
+        repo / "ai_stack" / "story_runtime" / "narrative" / "information_disclosure_engine.py",
         repo / "ai_stack" / "contracts" / "improvisational_coherence_contracts.py",
-        repo / "ai_stack" / "improvisational_coherence_engine.py",
+        repo / "ai_stack" / "story_runtime" / "narrative" / "improvisational_coherence_engine.py",
         repo / "ai_stack" / "contracts" / "narrative_aspect_contracts.py",
         repo / "ai_stack" / "contracts" / "hierarchical_memory_contracts.py",
-        repo / "ai_stack" / "runtime_aspect_ledger.py",
+        repo / "ai_stack" / "story_runtime" / "runtime_aspect_ledger" / "__init__.py",
         repo / "ai_stack" / "capabilities" / "runtime_dramatic_capabilities.py",
         repo / "ai_stack" / "langgraph" / "langgraph_runtime_executor.py",
         repo / "world-engine" / "app" / "story_runtime" / "manager" / "__init__.py",
-        repo / "tools" / "mcp_server" / "tools_registry_handlers_langfuse_verify.py",
+        repo / "tools" / "mcp_server" / "handlers" / "langfuse_verify",
     ]
     forbidden = (
         "Annette",
@@ -450,6 +450,11 @@ def test_generic_runtime_intelligence_modules_do_not_embed_goc_literals() -> Non
         "ritual_civility",
     )
     for path in generic_files:
-        text = path.read_text(encoding="utf-8")
+        if path.is_dir():
+            text = "\n".join(
+                child.read_text(encoding="utf-8") for child in sorted(path.glob("*.py"))
+            )
+        else:
+            text = path.read_text(encoding="utf-8")
         for token in forbidden:
             assert token not in text, f"{token!r} leaked into {path}"

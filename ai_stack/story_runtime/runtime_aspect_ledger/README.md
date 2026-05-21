@@ -20,8 +20,26 @@ tests and diagnostics.
 | `capability_projection.py` | Semantic capability selection, validator execution-plan projection, dry-run dispatch projection, and ADR-0041 turn-class inference. |
 | `feature_flags.py` | Environment-backed ADR-0041 feature-flag resolution. |
 | `authority_preview.py` | ADR-0041 validator registry selection, validation-authority drift classification, authority preview, readiness decisions, and graph-runtime dispatch sidecars. |
-| `runtime_intelligence_projection.py` | The nested diagnostic projection derived from canonical per-aspect records for LangGraph, Langfuse, backend inspection, and MCP tooling. |
+| `runtime_intelligence_projection/` | Package that builds the nested diagnostic projection from canonical per-aspect records for LangGraph, Langfuse, backend inspection, and MCP tooling. |
 | `score_metadata.py` | Compact score metadata exported from normalized aspect records. |
+
+### Runtime-Intelligence Projection Package
+
+`runtime_intelligence_projection/` is split by projection responsibility rather
+than by generated chunks:
+
+| File or directory | Responsibility |
+|-------------------|----------------|
+| `builder.py` | Coordinates source collection, payload assembly, and ADR-0041 sidecar attachment. |
+| `aspect_record_sources.py` | Resolves the canonical aspect records needed by the projection. |
+| `record_field_catalog.py` | Lists the expected, selected, and actual record blocks copied into builder context. |
+| `record_field_sources.py` | Reads the field catalog from canonical records. |
+| `capability_context.py` | Derives the semantic capability-selection context from turn and aspect evidence. |
+| `semantic_dispatch.py` | Builds local capability-selection, validator-plan, and dry-run dispatch diagnostics. |
+| `projection_payload.py` | Assembles named projection sections into the runtime-intelligence tree. |
+| `sections/` | Contains one section builder per top-level diagnostic surface, for example `narrative_momentum_section.py` and `temporal_control_section.py`. |
+| `adr_sidecar_projection.py` | Merges optional ADR-0041 graph dispatch, authority preview, handoff, co-authority, and readiness sidecars. |
+| `identity_fields.py` | Adds root schema, capability, validator, and source identity fields. |
 
 ## Data Flow
 

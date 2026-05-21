@@ -15,7 +15,7 @@ from tools.mcp_server.handlers.tools_registry_handlers_governance import build_g
 from tools.mcp_server.handlers.tools_registry_handlers_protocol import RegistryListToolNames
 from tools.mcp_server.handlers.tools_registry_handlers_research import build_research_mcp_handlers
 from tools.mcp_server.handlers.tools_registry_handlers_evaluators import build_evaluators_mcp_handlers
-from tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify import (
+from tools.mcp_server.handlers.langfuse_verify import (
     build_langfuse_verify_mcp_handlers,
 )
 from tools.mcp_server.handlers.tools_registry_handlers_quality_lab import (

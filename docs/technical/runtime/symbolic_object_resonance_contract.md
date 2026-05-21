@@ -69,4 +69,4 @@ Primary implementation anchors:
 - `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
 - `world-engine/app/story_runtime/commit_models.py`
 - `world-engine/app/story_runtime/manager/`
-- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py`
+- `tools/mcp_server/handlers/langfuse_verify/`

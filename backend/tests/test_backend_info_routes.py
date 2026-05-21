@@ -167,7 +167,7 @@ def test_security_features_page_explains_local_evidence_boundary(client):
     assert b"evidence_scope=local_langfuse" in r.data
     assert b"proof_level=local_only" in r.data
     assert b"live_or_staging_evidence=false" in r.data
-    assert b"tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py" in r.data
+    assert b"tools/mcp_server/handlers/langfuse_verify/" in r.data
     assert "Zentrales Limit-Inventar".encode() in r.data
     assert "Explizite Route-Limits".encode() in r.data
     assert b"/api/v1/auth/login" in r.data

@@ -88,7 +88,7 @@ False-green prevention for MCP/Langfuse gates requires structured result fields:
 
 ADR-0039 governs **runtime behavior and decision surfaces**, not only tests and documentation. Any path that can distort **runtime truth, readiness, player/session/turn flow, beat progression, or decision-tree behavior** is in scope, including:
 
-- **`ai_stack`** — LangGraph executor, `run_validation_seam`, `runtime_aspect_ledger` / `runtime_intelligence_projection`, ADR-0041 sidecar and flags (fail-closed defaults; projection must not impersonate seam or commit).
+- **`ai_stack`** — LangGraph executor, `run_validation_seam`, `runtime_aspect_ledger` / `runtime_aspect_ledger/runtime_intelligence_projection/`, ADR-0041 sidecar and flags (fail-closed defaults; projection must not impersonate seam or commit).
 - **`world-engine`** — `StoryRuntimeManager`, commit/readiness models, narrative commit seam.
 - **`backend`** — player-session bundle and readiness derivation (`evaluate_session_opening_readiness`, ADR-0041 veto-only consumer).
 - **`frontend` Play Shell** — must **not manufacture** readiness, live, or healthy semantics; display only fields the backend/runtime bundle proves.

@@ -223,7 +223,7 @@ payloads, and raw player input.
 ## Observability
 
 `environment` may be `staging` (no longer hardcoded `live`). MCP discovery
-(`tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces`)
+(`tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces`)
 accepts an `environment` argument. Backend root traces (`backend.turn.execute`)
 and world-engine spans (`world-engine.turn.execute`, `world-engine.session.create`)
 are filterable by environment, trace_origin, and canonical_player_flow.

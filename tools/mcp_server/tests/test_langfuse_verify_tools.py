@@ -17,7 +17,7 @@ from ai_stack.contracts.symbolic_object_resonance_contracts import (
     SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
 )
 from tools.mcp_server.tools_registry import create_default_registry
-from tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify import (
+from tools.mcp_server.handlers.langfuse_verify import (
     _extract_scores_split,
     _runtime_aspect_recommended_repair,
     _runtime_aspect_matrix_row,
@@ -310,7 +310,7 @@ def test_runtime_aspect_matrix_reads_symbolic_object_resonance_ledger_fields():
 def test_run_projection_tests_returns_structured_result():
     registry = _registry()
     tool = registry.get("run_projection_tests")
-    with patch("tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify.subprocess.run") as run_mock:
+    with patch("tools.mcp_server.handlers.langfuse_verify.subprocess.run") as run_mock:
         preflight_proc = MagicMock()
         preflight_proc.returncode = 0
         preflight_proc.stdout = "import_ok=app.story_runtime\n"
@@ -363,7 +363,7 @@ def test_run_projection_tests_returns_structured_result():
 def test_run_projection_tests_returns_preflight_diagnostics_on_import_error():
     registry = _registry()
     tool = registry.get("run_projection_tests")
-    with patch("tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify.subprocess.run") as run_mock:
+    with patch("tools.mcp_server.handlers.langfuse_verify.subprocess.run") as run_mock:
         preflight_proc = MagicMock()
         preflight_proc.returncode = 1
         preflight_proc.stdout = ""
@@ -387,8 +387,11 @@ def test_run_projection_tests_returns_preflight_diagnostics_on_import_error():
 
 
 def test_run_projection_tests_handler_has_no_machine_absolute_repo_paths():
-    source_path = Path(__file__).resolve().parents[3] / "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py"
-    source = source_path.read_text(encoding="utf-8")
+    source_dir = Path(__file__).resolve().parents[3] / "tools/mcp_server/handlers/langfuse_verify"
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(source_dir.glob("*.py"))
+    )
 
     assert "/mnt/" not in source
     assert "D:\\\\" not in source
@@ -417,7 +420,7 @@ def test_assert_live_opening_contract_reports_missing_field():
         ],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace_payload,
     ):
         out = tool.handler({"mode": "live", "langfuse_trace_id": "lf-live-1"})
@@ -441,7 +444,7 @@ def test_query_langfuse_traces_filters_canonical_player_flow_false():
         },
     ]
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=[rows[0]],
     ):
         out = tool.handler({"trace_origin": "pytest", "canonical_player_flow": False, "limit": 10})
@@ -453,7 +456,7 @@ def test_query_langfuse_traces_filters_canonical_player_flow_false():
 def test_langfuse_query_traces_filters_by_staging_environment():
     """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.4: MCP discovery must accept ``environment``
     so staging traces are findable when runtime is no longer ``live``."""
-    from tools.mcp_server.handlers import tools_registry_handlers_langfuse_verify as mod
+    from tools.mcp_server.handlers import langfuse_verify as mod
 
     rows = {
         "data": [
@@ -492,7 +495,7 @@ def test_langfuse_query_traces_filters_by_staging_environment():
 def test_query_langfuse_traces_handler_forwards_environment_argument():
     """The MCP-exposed query_langfuse_traces handler must forward ``environment`` to
     the underlying query so staging is discoverable via tool args."""
-    from tools.mcp_server.handlers import tools_registry_handlers_langfuse_verify as mod
+    from tools.mcp_server.handlers import langfuse_verify as mod
 
     registry = _registry()
     tool = registry.get("query_langfuse_traces")
@@ -565,7 +568,7 @@ def test_fetch_langfuse_trace_scores_returns_split_scores():
     registry = _registry()
     tool = registry.get("fetch_langfuse_trace_scores")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_live_trace_with_scores(),
     ):
         out = tool.handler({"trace_id": "lf-live-1"})
@@ -605,7 +608,7 @@ def test_fetch_langfuse_trace_scores_blocks_non_live_by_default():
         "scores": [],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=pytest_trace,
     ):
         out = tool.handler({"trace_id": "lf-pytest-1"})
@@ -623,7 +626,7 @@ def test_fetch_langfuse_trace_scores_allow_non_live_bypasses_filter():
         "scores": [{"name": "live_opening_contract_pass", "value": 0.0}],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=pytest_trace,
     ):
         out = tool.handler({"trace_id": "lf-pytest-1", "allow_non_live": True})
@@ -661,7 +664,7 @@ def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
         ],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace,
     ):
         out = tool.handler({"trace_id": "lf-label-1"})
@@ -722,7 +725,7 @@ def test_summarize_opening_judge_scores_builds_matrix():
         },
     ]
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=rows,
     ):
         out = tool.handler({"roles": ["annette", "alain"], "limit_per_role": 5})
@@ -741,7 +744,7 @@ def test_summarize_opening_judge_scores_passes_trace_name_to_query():
     registry = _registry()
     tool = registry.get("summarize_opening_judge_scores")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=[],
     ) as qm:
         tool.handler({"trace_name": "world-engine.session.create"})
@@ -766,7 +769,7 @@ def test_summarize_opening_judge_scores_respects_limit_per_role():
         for i in range(10)
     ]
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=rows,
     ):
         out = tool.handler({"limit_per_role": 3})
@@ -784,7 +787,7 @@ def test_build_opening_quality_context_recommends_style_card():
     tool = registry.get("build_opening_quality_context")
     trace = _live_trace_with_scores()
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace,
     ):
         out = tool.handler({"trace_id": "lf-live-1"})
@@ -815,7 +818,7 @@ def test_build_opening_quality_context_recommends_runtime_repair_when_gate_fails
         ],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace,
     ):
         out = tool.handler({"trace_id": "lf-live-fail"})
@@ -833,7 +836,7 @@ def test_build_opening_quality_context_blocks_non_live_traces():
         "scores": [],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace,
     ):
         out = tool.handler({"trace_id": "lf-pytest-1"})
@@ -845,7 +848,7 @@ def test_build_opening_quality_context_includes_reasoning_when_requested():
     registry = _registry()
     tool = registry.get("build_opening_quality_context")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_live_trace_with_scores(),
     ):
         out = tool.handler({"trace_id": "lf-live-1", "include_raw_reasoning": True})
@@ -872,7 +875,7 @@ def test_build_opening_quality_context_no_card_when_all_pass():
         ],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=clean_trace,
     ):
         out = tool.handler({"trace_id": "lf-clean"})
@@ -927,7 +930,7 @@ def test_fetch_langfuse_trace_includes_normalized_evidence():
     registry = _registry()
     tool = registry.get("fetch_langfuse_trace")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_sparse_metadata_trace(),
     ):
         out = tool.handler({"langfuse_trace_id": "lf-sparse-1"})
@@ -942,7 +945,7 @@ def test_fetch_langfuse_trace_extracts_role_from_score_metadata():
     registry = _registry()
     tool = registry.get("fetch_langfuse_trace")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_sparse_metadata_trace(),
     ):
         out = tool.handler({"langfuse_trace_id": "lf-sparse-1"})
@@ -959,7 +962,7 @@ def test_fetch_langfuse_trace_gate_scores_in_normalized_evidence():
     registry = _registry()
     tool = registry.get("fetch_langfuse_trace")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_sparse_metadata_trace(),
     ):
         out = tool.handler({"langfuse_trace_id": "lf-sparse-1"})
@@ -1028,7 +1031,7 @@ def test_fetch_langfuse_trace_includes_adr0041_normalized_evidence():
     )
 
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_trace_with_adr0041_langfuse_evidence(),
     ):
         out = tool.handler({"langfuse_trace_id": "lf-adr0041-1"})
@@ -1053,7 +1056,7 @@ def test_assert_opening_contract_extracts_role_from_score_metadata():
     registry = _registry()
     tool = registry.get("assert_langfuse_opening_contract")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=_sparse_metadata_trace(),
     ):
         out = tool.handler({"mode": "live", "langfuse_trace_id": "lf-sparse-1"})
@@ -1066,7 +1069,7 @@ def test_summarize_live_opening_matrix_enriches_from_score_metadata():
     tool = registry.get("summarize_live_opening_matrix")
     rows = [_sparse_metadata_trace("lf-s-1"), _sparse_metadata_trace("lf-s-2")]
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=rows,
     ):
         out = tool.handler({"limit": 10})
@@ -1523,7 +1526,7 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
         ],
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
         return_value=trace_payload,
     ):
         out = tool.handler({"trace_id": "trace-aspect-matrix"})
@@ -1643,7 +1646,7 @@ def test_summarize_runtime_aspect_matrix_defaults_to_backend_and_world_engine_tu
     registry = _registry()
     tool = registry.get("summarize_runtime_aspect_matrix")
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         return_value=[{"id": "backend-turn", "name": "backend.turn.execute", "observations": [{}]}],
     ) as query:
         out = tool.handler({"limit": 1, "environment": "staging"})
@@ -1700,14 +1703,14 @@ def test_summarize_runtime_aspect_matrix_recovers_combined_filters_from_full_tra
         },
     }
     with patch(
-        "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        "tools.mcp_server.handlers.langfuse_verify._langfuse_query_traces",
         side_effect=[
             [],
             [{"id": "trace-combined-filter", "name": "world-engine.turn.execute"}],
         ],
     ) as query:
         with patch(
-            "tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+            "tools.mcp_server.handlers.langfuse_verify._langfuse_get_trace",
             return_value=trace_payload,
         ):
             out = tool.handler(

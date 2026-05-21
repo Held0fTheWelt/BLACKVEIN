@@ -177,8 +177,9 @@ def test_verification_log_labels_local_absolute_paths_as_local_only() -> None:
 
 
 def test_mcp_projection_verification_declares_local_only_evidence_scope() -> None:
-    source = (REPO_ROOT / "tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py").read_text(
-        encoding="utf-8"
+    source_dir = REPO_ROOT / "tools/mcp_server/handlers/langfuse_verify"
+    source = "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(source_dir.glob("*.py"))
     )
 
     assert '"evidence_scope": "local_pytest"' in source

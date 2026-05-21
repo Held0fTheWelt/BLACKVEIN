@@ -42,7 +42,7 @@ from ai_stack.quality_lab.planning_interpreter import (
     refine_judge_set,
 )
 from ai_stack.quality_lab.trace_interpreter import interpret_trace
-from tools.mcp_server.handlers.tools_registry_handlers_langfuse_verify import (
+from tools.mcp_server.handlers.langfuse_verify import (
     _extract_metadata,
     _extract_path_summary_from_trace,
     _extract_runtime_aspect_ledger_from_trace,

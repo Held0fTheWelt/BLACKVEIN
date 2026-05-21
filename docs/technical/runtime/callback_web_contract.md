@@ -204,7 +204,7 @@ Tests may assert that evidence fields name structured sources such as `narrative
 - `ai_stack/langgraph/langgraph_runtime_executor.py`
 - `ai_stack/module_runtime_policy.py`
 - `ai_stack/story_runtime/runtime_aspect_ledger/__init__.py`
-- `tools/mcp_server/handlers/tools_registry_handlers_langfuse_verify.py`
+- `tools/mcp_server/handlers/langfuse_verify/`
 - `content/modules/god_of_carnage/module.yaml`
 - `world-engine/app/story_runtime/callback_web_store.py`
 - `world-engine/app/story_runtime/manager/`
