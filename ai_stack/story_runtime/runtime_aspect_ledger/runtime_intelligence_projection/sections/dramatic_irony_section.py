@@ -11,6 +11,7 @@ BUILD_DRAMATIC_IRONY_SECTION_PARAMS = ('dramatic_irony_actual', 'dramatic_irony_
 
 
 def build_dramatic_irony_section(**values: Any) -> dict[str, Any]:
+    """Return the dramatic irony diagnostic section from normalized ledger records."""
     dramatic_irony_actual = values['dramatic_irony_actual']
     dramatic_irony_expected = values['dramatic_irony_expected']
     dramatic_irony_rec = values['dramatic_irony_rec']

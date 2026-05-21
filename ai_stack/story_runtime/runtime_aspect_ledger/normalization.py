@@ -126,6 +126,7 @@ def ensure_runtime_aspect_ledger(
     trace_id: str | None = None,
     runtime_profile_id: str | None = None,
 ) -> dict[str, Any]:
+    """Return a normalized ledger, creating one when only turn metadata exists."""
     if isinstance(ledger, dict) and ledger.get("turn_aspect_ledger"):
         normalized = (normalizer or normalize_runtime_aspect_ledger)(ledger)
         if session_id and not normalized.get("session_id"):
@@ -166,6 +167,7 @@ def set_aspect_record(
     *,
     normalizer: Callable[[dict[str, Any] | None], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """Replace one canonical aspect record and rebuild derived projections."""
     out = (normalizer or normalize_runtime_aspect_ledger)(ledger)
     aspect = str(aspect_name or "").strip()
     if aspect not in ASPECT_KEYS:
@@ -218,6 +220,7 @@ def set_aspect_record(
     )
     return (normalizer or normalize_runtime_aspect_ledger)(out)
 def get_aspect_record(ledger: dict[str, Any] | None, aspect_name: str) -> dict[str, Any]:
+    """Read one normalized aspect record, falling back to an empty record."""
     normalized = normalize_runtime_aspect_ledger(ledger)
     aspect = str(aspect_name or "").strip()
     record = normalized["turn_aspect_ledger"].get(aspect)

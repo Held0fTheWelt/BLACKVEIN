@@ -43,6 +43,7 @@ def _pick(values: dict[str, Any], names: tuple[str, ...]) -> dict[str, Any]:
 
 
 def build_projection_payload(values: dict[str, Any]) -> dict[str, Any]:
+    """Assemble all named diagnostic sections into one projection payload."""
     payload = build_identity_fields(**_pick(values, IDENTITY_FIELD_PARAMS))
     payload['input'] = build_input_section(**_pick(values, BUILD_INPUT_SECTION_PARAMS))
     payload['broad_nlu_listening'] = build_broad_nlu_listening_section(**_pick(values, BUILD_BROAD_NLU_LISTENING_SECTION_PARAMS))

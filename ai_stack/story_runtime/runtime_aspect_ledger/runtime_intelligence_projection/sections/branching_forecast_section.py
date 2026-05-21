@@ -11,6 +11,7 @@ BUILD_BRANCHING_FORECAST_SECTION_PARAMS = ('branching_forecast',)
 
 
 def build_branching_forecast_section(**values: Any) -> dict[str, Any]:
+    """Return the branching forecast diagnostic section from normalized ledger records."""
     branching_forecast = values['branching_forecast']
     return {
                     "schema_version": branching_forecast.get("schema_version"),

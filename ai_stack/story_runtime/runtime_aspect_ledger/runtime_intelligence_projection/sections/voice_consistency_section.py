@@ -11,6 +11,7 @@ BUILD_VOICE_CONSISTENCY_SECTION_PARAMS = ('voice_actual', 'voice_expected', 'voi
 
 
 def build_voice_consistency_section(**values: Any) -> dict[str, Any]:
+    """Return the voice consistency diagnostic section from normalized ledger records."""
     voice_actual = values['voice_actual']
     voice_expected = values['voice_expected']
     voice_rec = values['voice_rec']

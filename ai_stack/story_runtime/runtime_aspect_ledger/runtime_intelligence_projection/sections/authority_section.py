@@ -11,6 +11,7 @@ BUILD_AUTHORITY_SECTION_PARAMS = ('narr_actual', 'narr_expected', 'narr_rec', 'n
 
 
 def build_authority_section(**values: Any) -> dict[str, Any]:
+    """Return the authority diagnostic section from normalized ledger records."""
     narr_actual = values['narr_actual']
     narr_expected = values['narr_expected']
     narr_rec = values['narr_rec']

@@ -15,6 +15,7 @@ IDENTITY_FIELD_PARAMS = (
 
 
 def build_identity_fields(**values: Any) -> dict[str, Any]:
+    """Build root projection identity and semantic validator summary fields."""
     semantic_capability_selection = values['semantic_capability_selection']
     semantic_validator_dispatch_report = values['semantic_validator_dispatch_report']
     semantic_validator_execution_plan = values['semantic_validator_execution_plan']

@@ -11,6 +11,7 @@ BUILD_SOCIAL_PRESSURE_SECTION_PARAMS = ('social_pressure_actual', 'social_pressu
 
 
 def build_social_pressure_section(**values: Any) -> dict[str, Any]:
+    """Return the social pressure diagnostic section from normalized ledger records."""
     social_pressure_actual = values['social_pressure_actual']
     social_pressure_expected = values['social_pressure_expected']
     social_pressure_rec = values['social_pressure_rec']

@@ -11,6 +11,7 @@ BUILD_CALLBACK_WEB_SECTION_PARAMS = ('callback_actual', 'callback_expected', 'ca
 
 
 def build_callback_web_section(**values: Any) -> dict[str, Any]:
+    """Return the callback web diagnostic section from normalized ledger records."""
     callback_actual = values['callback_actual']
     callback_expected = values['callback_expected']
     callback_rec = values['callback_rec']

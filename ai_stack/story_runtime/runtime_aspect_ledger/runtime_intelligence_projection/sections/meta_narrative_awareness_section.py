@@ -15,6 +15,7 @@ BUILD_META_NARRATIVE_AWARENESS_SECTION_PARAMS = (
 
 
 def build_meta_narrative_awareness_section(**values: Any) -> dict[str, Any]:
+    """Return the meta narrative awareness diagnostic section from normalized ledger records."""
     meta_narrative_actual = values['meta_narrative_actual']
     meta_narrative_expected = values['meta_narrative_expected']
     meta_narrative_rec = values['meta_narrative_rec']

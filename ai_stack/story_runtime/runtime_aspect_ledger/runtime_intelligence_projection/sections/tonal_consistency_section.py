@@ -11,6 +11,7 @@ BUILD_TONAL_CONSISTENCY_SECTION_PARAMS = ('tonal_actual', 'tonal_expected', 'ton
 
 
 def build_tonal_consistency_section(**values: Any) -> dict[str, Any]:
+    """Return the tonal consistency diagnostic section from normalized ledger records."""
     tonal_actual = values['tonal_actual']
     tonal_expected = values['tonal_expected']
     tonal_rec = values['tonal_rec']

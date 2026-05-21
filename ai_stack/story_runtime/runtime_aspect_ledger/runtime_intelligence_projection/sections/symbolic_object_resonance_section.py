@@ -11,6 +11,7 @@ BUILD_SYMBOLIC_OBJECT_RESONANCE_SECTION_PARAMS = ('symbolic_object_actual', 'sym
 
 
 def build_symbolic_object_resonance_section(**values: Any) -> dict[str, Any]:
+    """Return the symbolic object resonance diagnostic section from normalized ledger records."""
     symbolic_object_actual = values['symbolic_object_actual']
     symbolic_object_expected = values['symbolic_object_expected']
     symbolic_object_rec = values['symbolic_object_rec']

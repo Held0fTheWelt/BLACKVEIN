@@ -9,6 +9,7 @@ from .record_field_catalog import RECORD_FIELD_NAMES
 
 
 def collect_record_field_sources(values: dict[str, Any]) -> dict[str, Any]:
+    """Copy expected, selected, and actual record blocks named in the catalog."""
     return {
         output_name: _record_block(values[record_name], field_name)
         for output_name, record_name, field_name in RECORD_FIELD_NAMES

@@ -11,6 +11,7 @@ BUILD_PROMPT_AUTHORITY_SECTION_PARAMS = ('prompt_authority_actual', 'prompt_auth
 
 
 def build_prompt_authority_section(**values: Any) -> dict[str, Any]:
+    """Return the prompt authority diagnostic section from normalized ledger records."""
     prompt_authority_actual = values['prompt_authority_actual']
     prompt_authority_expected = values['prompt_authority_expected']
     prompt_authority_rec = values['prompt_authority_rec']

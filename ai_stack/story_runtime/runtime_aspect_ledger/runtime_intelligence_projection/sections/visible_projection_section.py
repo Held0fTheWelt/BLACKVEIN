@@ -11,6 +11,7 @@ BUILD_VISIBLE_PROJECTION_SECTION_PARAMS = ('visible_actual',)
 
 
 def build_visible_projection_section(**values: Any) -> dict[str, Any]:
+    """Return the visible projection diagnostic section from normalized ledger records."""
     visible_actual = values['visible_actual']
     return {
                     "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),

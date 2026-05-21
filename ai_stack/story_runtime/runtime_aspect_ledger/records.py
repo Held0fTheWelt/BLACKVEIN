@@ -36,6 +36,7 @@ class RuntimeAspectLedger:
     turn_aspect_ledger: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        """Return the dataclass payload using only JSON-safe values."""
         return _json_safe(asdict(self))
 def _json_safe(value: Any) -> Any:
     if isinstance(value, dict):
@@ -100,6 +101,7 @@ def make_aspect_record(
         record[str(key)] = _json_safe(value)
     return record
 def empty_aspect_record(*, applicable: bool = True, source: str = "runtime") -> dict[str, Any]:
+    """Create a placeholder aspect record for missing or unavailable evidence."""
     return make_aspect_record(
         applicable=applicable,
         status="missing" if applicable else "not_applicable",
@@ -110,6 +112,7 @@ def stable_ledger_json(
     *,
     normalizer: Any | None = None,
 ) -> str:
+    """Serialize a normalized ledger with deterministic key and separator order."""
     if normalizer is None:
         from .normalization import normalize_runtime_aspect_ledger as normalizer
 

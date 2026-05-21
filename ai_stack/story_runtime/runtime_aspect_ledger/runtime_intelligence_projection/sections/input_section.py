@@ -11,6 +11,7 @@ BUILD_INPUT_SECTION_PARAMS = ('action_actual', 'input_actual')
 
 
 def build_input_section(**values: Any) -> dict[str, Any]:
+    """Return the input diagnostic section from normalized ledger records."""
     action_actual = values['action_actual']
     input_actual = values['input_actual']
     return {

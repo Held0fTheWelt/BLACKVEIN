@@ -11,6 +11,7 @@ BUILD_CAPABILITY_SECTION_PARAMS = ('blocked_capabilities', 'cap_rec', 'realized_
 
 
 def build_capability_section(**values: Any) -> dict[str, Any]:
+    """Return the capability diagnostic section from normalized ledger records."""
     blocked_capabilities = values['blocked_capabilities']
     cap_rec = values['cap_rec']
     realized_capabilities = values['realized_capabilities']

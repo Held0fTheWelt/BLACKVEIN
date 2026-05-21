@@ -11,6 +11,7 @@ BUILD_GENRE_AWARENESS_SECTION_PARAMS = ('genre_awareness_actual', 'genre_awarene
 
 
 def build_genre_awareness_section(**values: Any) -> dict[str, Any]:
+    """Return the genre awareness diagnostic section from normalized ledger records."""
     genre_awareness_actual = values['genre_awareness_actual']
     genre_awareness_expected = values['genre_awareness_expected']
     genre_awareness_rec = values['genre_awareness_rec']

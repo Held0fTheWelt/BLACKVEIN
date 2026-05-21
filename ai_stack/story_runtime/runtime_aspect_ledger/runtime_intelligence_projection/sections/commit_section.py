@@ -11,6 +11,7 @@ BUILD_COMMIT_SECTION_PARAMS = ('commit_actual', 'commit_rec', 'validation_rec')
 
 
 def build_commit_section(**values: Any) -> dict[str, Any]:
+    """Return the commit diagnostic section from normalized ledger records."""
     commit_actual = values['commit_actual']
     commit_rec = values['commit_rec']
     validation_rec = values['validation_rec']

@@ -11,6 +11,7 @@ BUILD_NARRATIVE_ASPECT_SECTION_PARAMS = ('narrative_actual', 'narrative_expected
 
 
 def build_narrative_aspect_section(**values: Any) -> dict[str, Any]:
+    """Return the narrative aspect diagnostic section from normalized ledger records."""
     narrative_actual = values['narrative_actual']
     narrative_expected = values['narrative_expected']
     narrative_rec = values['narrative_rec']

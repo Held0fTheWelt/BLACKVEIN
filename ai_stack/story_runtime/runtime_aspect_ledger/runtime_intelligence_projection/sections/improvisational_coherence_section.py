@@ -11,6 +11,7 @@ BUILD_IMPROVISATIONAL_COHERENCE_SECTION_PARAMS = ('improvisational_actual', 'imp
 
 
 def build_improvisational_coherence_section(**values: Any) -> dict[str, Any]:
+    """Return the improvisational coherence diagnostic section from normalized ledger records."""
     improvisational_actual = values['improvisational_actual']
     improvisational_expected = values['improvisational_expected']
     improvisational_rec = values['improvisational_rec']

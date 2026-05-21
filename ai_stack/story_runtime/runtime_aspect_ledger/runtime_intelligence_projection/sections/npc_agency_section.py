@@ -11,6 +11,7 @@ BUILD_NPC_AGENCY_SECTION_PARAMS = ('npc_agency_actual', 'npc_agency_expected', '
 
 
 def build_npc_agency_section(**values: Any) -> dict[str, Any]:
+    """Return the npc agency diagnostic section from normalized ledger records."""
     npc_agency_actual = values['npc_agency_actual']
     npc_agency_expected = values['npc_agency_expected']
     npc_agency_rec = values['npc_agency_rec']

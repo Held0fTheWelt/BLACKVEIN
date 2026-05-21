@@ -11,6 +11,7 @@ BUILD_BROAD_NLU_LISTENING_SECTION_PARAMS = ('broad_nlu_actual', 'broad_nlu_expec
 
 
 def build_broad_nlu_listening_section(**values: Any) -> dict[str, Any]:
+    """Return the broad nlu listening diagnostic section from normalized ledger records."""
     broad_nlu_actual = values['broad_nlu_actual']
     broad_nlu_expected = values['broad_nlu_expected']
     broad_nlu_rec = values['broad_nlu_rec']

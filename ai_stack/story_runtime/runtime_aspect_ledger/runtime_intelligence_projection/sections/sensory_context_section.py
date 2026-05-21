@@ -11,6 +11,7 @@ BUILD_SENSORY_CONTEXT_SECTION_PARAMS = ('sensory_context_actual', 'sensory_conte
 
 
 def build_sensory_context_section(**values: Any) -> dict[str, Any]:
+    """Return the sensory context diagnostic section from normalized ledger records."""
     sensory_context_actual = values['sensory_context_actual']
     sensory_context_expected = values['sensory_context_expected']
     sensory_context_rec = values['sensory_context_rec']

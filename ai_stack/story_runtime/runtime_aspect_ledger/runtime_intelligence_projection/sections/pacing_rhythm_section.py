@@ -11,6 +11,7 @@ BUILD_PACING_RHYTHM_SECTION_PARAMS = ('pacing_rhythm_actual', 'pacing_rhythm_exp
 
 
 def build_pacing_rhythm_section(**values: Any) -> dict[str, Any]:
+    """Return the pacing rhythm diagnostic section from normalized ledger records."""
     pacing_rhythm_actual = values['pacing_rhythm_actual']
     pacing_rhythm_expected = values['pacing_rhythm_expected']
     pacing_rhythm_rec = values['pacing_rhythm_rec']

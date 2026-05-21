@@ -19,6 +19,7 @@ def _dict_or_empty(value: Any) -> dict[str, Any]:
 
 
 def build_narrative_momentum_section(**values: Any) -> dict[str, Any]:
+    """Return the narrative momentum diagnostic section from normalized ledger records."""
     narrative_momentum_actual = values['narrative_momentum_actual']
     narrative_momentum_expected = values['narrative_momentum_expected']
     narrative_momentum_rec = values['narrative_momentum_rec']

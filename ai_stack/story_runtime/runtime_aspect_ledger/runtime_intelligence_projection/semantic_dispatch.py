@@ -20,6 +20,7 @@ def build_semantic_dispatch_sources(
     *,
     registry_for_turn_class: Callable[[str], dict[str, Any]] | None,
 ) -> dict[str, Any]:
+    """Build capability selection, validator plan, and dispatch diagnostics."""
     src = values["src"]
     capability_context = values["capability_context"]
     semantic_capability_selection = build_semantic_capability_selection_projection(

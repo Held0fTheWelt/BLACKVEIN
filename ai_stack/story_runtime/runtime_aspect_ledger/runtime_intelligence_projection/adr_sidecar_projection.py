@@ -19,6 +19,7 @@ def attach_adr_sidecar_projections(
     capability_context: dict[str, Any],
     semantic_validator_dispatch_report: dict[str, Any],
 ) -> None:
+    """Attach opt-in ADR-0041 authority and readiness sidecars to the payload."""
     enabled_plan_projection, fp_warnings = resolve_adr0041_plan_projection_enabled()
     if enabled_plan_projection:
         sibling_sel, sibling_deriv = _select_semantic_capabilities_from_runtime_context(**capability_context)

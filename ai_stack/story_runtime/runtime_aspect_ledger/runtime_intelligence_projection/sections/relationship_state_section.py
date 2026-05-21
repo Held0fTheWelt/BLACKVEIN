@@ -11,6 +11,7 @@ BUILD_RELATIONSHIP_STATE_SECTION_PARAMS = ('relationship_state_actual', 'relatio
 
 
 def build_relationship_state_section(**values: Any) -> dict[str, Any]:
+    """Return the relationship state diagnostic section from normalized ledger records."""
     relationship_state_actual = values['relationship_state_actual']
     relationship_state_expected = values['relationship_state_expected']
     relationship_state_rec = values['relationship_state_rec']

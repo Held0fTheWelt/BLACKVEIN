@@ -11,6 +11,7 @@ BUILD_BEAT_SECTION_PARAMS = ('beat_actual', 'beat_expected', 'beat_rec', 'beat_s
 
 
 def build_beat_section(**values: Any) -> dict[str, Any]:
+    """Return the beat diagnostic section from normalized ledger records."""
     beat_actual = values['beat_actual']
     beat_expected = values['beat_expected']
     beat_rec = values['beat_rec']

@@ -11,6 +11,7 @@ BUILD_CONVERSATIONAL_MEMORY_SECTION_PARAMS = ('conversational_memory_actual', 'c
 
 
 def build_conversational_memory_section(**values: Any) -> dict[str, Any]:
+    """Return the conversational memory diagnostic section from normalized ledger records."""
     conversational_memory_actual = values['conversational_memory_actual']
     conversational_memory_expected = values['conversational_memory_expected']
     conversational_memory_rec = values['conversational_memory_rec']

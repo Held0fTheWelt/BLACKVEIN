@@ -11,6 +11,7 @@ BUILD_EXPECTATION_VARIATION_SECTION_PARAMS = ('expectation_variation_actual', 'e
 
 
 def build_expectation_variation_section(**values: Any) -> dict[str, Any]:
+    """Return the expectation variation diagnostic section from normalized ledger records."""
     expectation_variation_actual = values['expectation_variation_actual']
     expectation_variation_expected = values['expectation_variation_expected']
     expectation_variation_rec = values['expectation_variation_rec']

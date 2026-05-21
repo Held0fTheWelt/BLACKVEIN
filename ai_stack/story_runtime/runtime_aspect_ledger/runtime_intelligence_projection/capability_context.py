@@ -8,6 +8,7 @@ from ..projection_helpers import _first_text
 
 
 def build_capability_context_sources(values: dict[str, Any]) -> dict[str, Any]:
+    """Derive semantic capability-selection inputs from collected aspect evidence."""
     action_actual = values['action_actual']
     action_rec = values['action_rec']
     beat_rec = values['beat_rec']

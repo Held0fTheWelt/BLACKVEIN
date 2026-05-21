@@ -11,6 +11,7 @@ BUILD_HIERARCHICAL_MEMORY_SECTION_PARAMS = ('memory_actual', 'memory_expected', 
 
 
 def build_hierarchical_memory_section(**values: Any) -> dict[str, Any]:
+    """Return the hierarchical memory diagnostic section from normalized ledger records."""
     memory_actual = values['memory_actual']
     memory_expected = values['memory_expected']
     memory_rec = values['memory_rec']

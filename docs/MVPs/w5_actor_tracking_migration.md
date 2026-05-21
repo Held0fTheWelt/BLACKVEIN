@@ -242,6 +242,28 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 
 **Phase 6B-1 explicitly does not remove any legacy code path.** Legacy fallbacks remain temporarily so any operator who opts a flag out gets the pre-Phase-6B-1 behavior exactly. The next phase (Phase 6B-2, planned) is a fallback / dead-branch inventory that catalogs which legacy branches are now unreachable under the default config and which still serve as explicit-opt-out paths.
 
+### Phase 6B-2 — Fallback / dead-branch inventory under default-on W5 (complete)
+
+**Goal:** With all five W5 consumer flags now default-on, catalog every remaining legacy fallback branch and classify each one so Phase 6B-3 can remove or migrate only branches that are demonstrably safe to touch. **No legacy code is removed in Phase 6B-2.**
+
+- [x] Inventoried every fallback branch in: Director gathering (`director_w5_location_projection.py`, `director_location_completion.py`), narrator (`world-engine/.../actor_tracking/w5_projection.py`, `god_of_carnage_narrator_path.py`, `narrator_output_prompts.py`, `opening_fallback_observability.py`), NPC (`reaction_order_governance.py`, `npc_agency_projection.py`), validation (`validation.py`, `god_of_carnage_turn_seams_validation.py`), player-shell (`session_state_w5_view.py`, backend `game_routes.py::_player_shell_state_view`), admin diagnostics bridge (`diagnostics_api.py`), and the inline action-resolution substrate reads (`executor_action_resolution_start.py`, `executor_action_resolution_commit.py`).
+- [x] Classified all 25 catalogued branches against the 6B-2 taxonomy (`keep_explicit_opt_out_fallback`, `keep_malformed_w5_safety_fallback`, `remove_dead_default_path_in_6b3`, `migrate_to_w5_first_before_removal`, `substrate_keep`, `doc_only_update`, `unknown_needs_runtime_trace`). Result by classification: 5 opt-out, 5 malformed-W5 safety, 5 substrate, 8 migrate-to-W5-first, 2 doc-only, **0 dead-default-path**, 0 unknown.
+- [x] Recorded the result in [w5_legacy_consumer_removal_inventory.md](./w5_legacy_consumer_removal_inventory.md) with the per-branch fallback-condition matrix (D = default-on happy path, O = explicit opt-out, M = malformed/missing W5, L = legacy client / old session) plus the per-branch pre-removal test list.
+- [x] Documented why **no branch can be removed unconditionally in 6B-3**: every fallback that fires under default-on is either the opt-out short-circuit, the malformed-W5 safety net, substrate or substrate-derived, or still feeds a downstream consumer that has not been migrated to a W5-first contract.
+- [x] Recommended Phase 6B-3 ordering as four sequenced *consumer migrations* (not branch deletions): (1) F1 lazy re-order in `director_w5_location_projection.py`, (2) F21/F22 W5-first reads in the executor action-resolution split, (3) F8/F18/F19 sequenced removal of the narrator `transition_from_previous` fallback once the narrator prompt is W5-only and parity tests are rewritten, (4) F11 NPC planner W5-first migration once the planner test suites are pinned. F17/F23/F24 remain deferred to later ADRs.
+- [x] Added Phase 6B-2 classification-proof tests in `ai_stack/tests/test_w5_actor_tracking_phase_6b2_fallback_inventory.py` covering:
+  - default-on Director happy path uses `w5_projection` source (legacy-only fallback is not primary);
+  - explicit-opt-out Director path returns baseline (`environment_state_with_actor_lane_fallback`);
+  - malformed-W5 Director path returns baseline and emits `w5_director_projection_failed`;
+  - default-on narrator happy path does not emit `w5_narrator_projection_failed`;
+  - default-on validation happy path does not emit `w5_validation_fallback_reason`;
+  - default-on player-view happy path emits `current_room_source == "w5_player_view"` (not `"fallback"`);
+  - default-on NPC happy path emits `npc_projection_source == "w5_projection"` (not `"actor_lane_context"`);
+  - reporter `w5_projection_flag_states()` matches the live resolver state under default-on.
+- [x] Extended `scripts/inventory_w5_legacy_consumers.py` with a Phase 6B-2 informational header that labels each surface with its 6B-2 classification (substrate vs opt-out vs malformed vs alias). The script remains non-failing.
+
+**Phase 6B-2 explicitly does not change runtime behavior.** No flag default was changed. No legacy function was renamed or deleted. No committed-event output was modified. The only code additions are (a) the classification-proof tests, (b) the inventory script's informational labels, and (c) the documentation updates here and in the inventory doc.
+
 ### Phase 6B — Legacy localization decommission (planned)
 
 - Once all consumers read W5 projections, remove legacy localization / actor-location helpers that bypass W5.

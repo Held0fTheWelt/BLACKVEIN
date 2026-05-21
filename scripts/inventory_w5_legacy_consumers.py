@@ -61,6 +61,36 @@ LEGACY_SURFACES: list[tuple[str, str]] = [
 ]
 
 
+# Phase 6B-2 classification labels per surface. Informational only — the
+# authoritative classification lives in the inventory doc's per-branch table.
+# This map exists so the human-readable scan output can hint which surfaces
+# fire under explicit opt-out (`O`), missing/malformed W5 (`M`), substrate
+# reads (`S`), compatibility aliases for legacy clients (`L`), or are pure
+# documentation/comment mentions (`D`).
+PHASE_6B2_CLASSIFICATION: dict[str, str] = {
+    "current_room": "L/S — compatibility alias on player-shell + WS payloads; also substrate read in runtime_world/environment_state",
+    "current_room_id": "L/S — compatibility alias + Participant dataclass substrate field",
+    "current_area": "S/L — substrate field; read by C5/C8 affordance + sensory engines (migrate_to_w5_first_before_removal)",
+    "previous_room_id": "S — substrate field on environment_state",
+    "actor_locations": "S — substrate field on environment_state; read by W5 extractor + Director baseline completion",
+    "visible_room_ids": "S — substrate field on environment_state.visible_room_ids",
+    "visible_occupants": "S — RuntimeVisibilityPolicy substrate field",
+    "RuntimeVisibilityPolicy": "S — engine-level visibility substrate",
+    "complete_actor_locations_for_gathering": "S — Director baseline completion algorithm; called by F1/F4/F5",
+    "gathering_scene_id": "S — derived from actor_locations by F5; consumed by ADR-0061 pause predicate",
+    "derived_gathering_room_id": "S — Director alias (also produced by F5)",
+    "transition_from_previous": "migrate_to_w5_first_before_removal (F8) — narrator legacy fallback; prompt + parity tests still read it",
+    "location_changed": "S — W5 mirror of `transition_from_previous.location_changed`",
+    "forbidden_ai_stack_actor_situation": "FORBIDDEN — must be zero outside inventory docs/scripts",
+    "forbidden_ai_stack_w5_actor_situation": "FORBIDDEN — must be zero outside inventory docs/scripts",
+    "w5_actor_situation_term": "D/historical — only inventory/audit artifacts may mention this term",
+    "validate_w5_actor_situation_old": "D/historical — old function name; only inventory/audit artifacts may reference it (R1 in 6B-0)",
+    "validate_w5_actor_tracking_new": "current — Phase 6B-0 R1 rename target",
+    "w5_actor_situation_validation_old": "D/historical — old failure_class string (R2 in 6B-0)",
+    "w5_actor_tracking_validation_new": "current — Phase 6B-0 R2 rename target",
+}
+
+
 EXCLUDED_DIR_NAMES: set[str] = {
     ".git",
     "__pycache__",
@@ -201,6 +231,14 @@ def _format_human(report: ScanReport) -> str:
     out.append("Count by surface:")
     for key, count in report.by_surface().items():
         out.append(f"  {key:48s} {count:5d}")
+    out.append("")
+    out.append("Phase 6B-2 classification (informational; authoritative table in")
+    out.append("docs/MVPs/w5_legacy_consumer_removal_inventory.md §'Phase 6B-2'):")
+    out.append("  S = substrate_keep  O = opt-out fallback  M = malformed-W5 safety")
+    out.append("  L = compatibility alias  D = doc/comment only")
+    for key, _ in LEGACY_SURFACES:
+        label = PHASE_6B2_CLASSIFICATION.get(key, "—")
+        out.append(f"  {key:48s} {label}")
     out.append("")
     forbidden_keys = (
         "forbidden_ai_stack_actor_situation",

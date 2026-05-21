@@ -49,6 +49,7 @@ def _record_or_empty(aspects: dict[str, Any], aspect_key: str) -> dict[str, Any]
 
 
 def collect_aspect_record_sources(ledger: dict[str, Any] | None) -> dict[str, Any]:
+    """Collect canonical aspect records and root ledger fields for projection."""
     src = ledger if isinstance(ledger, dict) else {}
     aspect_map = src.get("turn_aspect_ledger")
     aspects = aspect_map if isinstance(aspect_map, dict) else {}

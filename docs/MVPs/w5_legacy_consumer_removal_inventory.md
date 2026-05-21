@@ -286,3 +286,120 @@ Reporter helper `ai_stack/actor_tracking/diagnostics.py::_flag_enabled` was upda
 - Reporter `w5_validation_fallback_reason` emissions that only fire when an operator explicitly opts out.
 
 Substrate writers (S1–S8) and the `Participant.current_room_id` dataclass field remain out of scope for 6B.
+
+---
+
+## Phase 6B-2 — Fallback / dead-branch inventory under default-on W5 (complete)
+
+**Goal:** With all five W5 consumer flags default-on (Phase 6B-1), produce a precise inventory of every remaining legacy fallback branch and classify each one so Phase 6B-3 can remove or migrate only the branches that are demonstrably safe to touch. **No legacy code is removed in Phase 6B-2.**
+
+### Phase 6B-2 classification taxonomy
+
+| Tag | Meaning |
+|-----|---------|
+| `keep_explicit_opt_out_fallback` | Branch is the path taken when an operator explicitly sets `W5_AST_*=0/false/no/off`. Must remain. |
+| `keep_malformed_w5_safety_fallback` | Branch fires when the W5 snapshot is missing, malformed, or cannot project the consumer-specific information. Must remain — this is the safety net the migration plan promises. |
+| `remove_dead_default_path_in_6b3` | Default-on never executes the branch; explicit opt-out and malformed-W5 safety are covered by *different* branches; deletion is safe and a small targeted test can pin it. |
+| `migrate_to_w5_first_before_removal` | Legacy branch still produces a *parallel* value that is wired into a downstream consumer (prompt text, planner input, frontend payload). The branch cannot be removed until the downstream consumer is migrated to a W5-first contract. Marked for sequenced removal in a later 6B-3.x step. |
+| `substrate_keep` | Substrate writer / reader / extractor input. Out of scope for 6B; deferred to a later substrate-consolidation ADR. |
+| `test_only_update` | Test asserts a legacy-only field. The producer of the field stays, so the assertion stays; tracked for evolution in lockstep with its producer. |
+| `doc_only_update` | Docstring, prompt paragraph, comment, or design-log entry that references the legacy fallback. Update or prune; no runtime impact. |
+| `unknown_needs_runtime_trace` | Coverage of the branch under default-on cannot be proven from static reading and requires a live trace before classification. |
+
+### Phase 6B-2 inventory method
+
+1. Read every fallback site enumerated by Phase 6B-1's Phase-6B-2 backlog plus the wider 6A consumer set (C1–C11, A1–A9, S8).
+2. For each site, decide which of four conditions actually fires the branch under the live Phase-6B-1 default-on configuration:
+   - **D** — default-on happy path (W5 snapshot present and well-formed for that consumer);
+   - **O** — explicit opt-out (`0/false/no/off`);
+   - **M** — malformed/missing W5 snapshot (default-on but extraction failed or projection raised);
+   - **L** — legacy/old-payload compatibility (sessions persisted before Phase 1 wire-in, or external clients that still expect the legacy field).
+3. Cross-check static reading against the existing Phase 6B-1 regression suites (`test_w5_actor_tracking_phase_6b1_default_on_flags.py`, `test_story_runtime_w5_narrator_projection.py`, `test_story_runtime_w5_player_view.py`, `test_w5_actor_tracking_validation.py`, `test_npc_agency_planner.py`, `test_w5_actor_tracking_projection.py`) to confirm the conditions are pinned by tests.
+4. Tag each branch with the 6B-2 taxonomy. A branch is only ever `remove_dead_default_path_in_6b3` when D ≠ taken AND O is covered by a *different* branch AND M is covered by a *different* branch AND L is either not applicable or covered separately.
+5. Order the safe removals.
+
+### Phase 6B-2 fallback branch table (default-on W5)
+
+Conditions: D = default-on happy path; O = explicit opt-out; M = missing/malformed W5; L = legacy client / old session. ✓ = branch fires for that condition. ✗ = branch does not fire.
+
+| # | File:Symbol | Branch | D | O | M | L | Classification | Required test before removal |
+|---|-------------|--------|---|---|---|---|----------------|------------------------------|
+| F1 | `ai_stack/langgraph/runtime_executor/director_w5_location_projection.py::complete_actor_locations_for_gathering_with_optional_w5_projection` — *eager* `baseline_completion = complete_actor_locations_for_gathering(...)` before the W5 attempt | Always-on baseline pre-compute | ✓ (wasted but its *output* is the safety net only when W5 fails) | ✓ (becomes the return value) | ✓ (becomes the return value) | n/a | `migrate_to_w5_first_before_removal` — the *function* is load-bearing for O+M; only the *eager* placement is wasted under D. Re-arrange to lazy (compute inside the `except` branch and inside the disabled-flag branch) is a 6B-3 optimization, not a 6B legacy removal. Output stays identical. | `test_phase1_live_wiring.py` happy-path assertion that `derived_actor_locations_source=="w5_projection"`; explicit-opt-out test in `test_w5_actor_tracking_phase_6b1_default_on_flags.py`; malformed-snapshot test that returns baseline. |
+| F2 | same file — `if not enabled: return {"location_completion": baseline_completion, ...}` | Explicit-opt-out short-circuit | ✗ | ✓ | n/a | n/a | `keep_explicit_opt_out_fallback` | (already pinned by Phase 6B-1 default-on flag test). |
+| F3 | same file — `except Exception as exc: diagnostics["w5_director_projection_failed"]=...; return baseline_completion` | Malformed-W5 safety return | ✗ | ✗ | ✓ | n/a | `keep_malformed_w5_safety_fallback` | (already pinned by `test_w5_actor_tracking_projection.py` Director failure cases). |
+| F4 | second `complete_actor_locations_for_gathering(...)` *inside* the W5-success branch (lines 56–63) | Substrate re-use of fallback-actor-id + target-location + gathering_scene_id logic with W5-derived actor_locations as input | ✓ | ✗ | ✗ | n/a | `substrate_keep` — not a fallback; it is the consolidation of W5 + actor-lane completion. ADR-0061 pause semantics depend on it. | n/a. |
+| F5 | `ai_stack/langgraph/runtime_executor/director_location_completion.py::complete_actor_locations_for_gathering` (legacy completion function itself, NPC fallback voting, gathering_scene_id derivation) | Legacy completion algorithm | ✓ (called from F1 and F4) | ✓ | ✓ | n/a | `substrate_keep` — single source of truth for actor-lane NPC fallback + gathering_scene_id derivation. F1/F4 both invoke it. Cannot be removed in 6B. | n/a. |
+| F6 | `world-engine/app/story_runtime/manager/actor_tracking/w5_projection.py::_maybe_enrich_blocks_with_w5_narrator_projection` — `if not self._w5_ast_narrator_projection_enabled(): return source_blocks` | Opt-out short-circuit (no `w5_projection` key added) | ✗ | ✓ | n/a | n/a | `keep_explicit_opt_out_fallback` | (already pinned by `test_story_runtime_w5_narrator_projection.py` opt-out test). |
+| F7 | same file — `except Exception as exc: session.diagnostics.append(...w5_narrator_projection_failed...); return source_blocks` | Malformed-W5 safety return | ✗ | ✗ | ✓ | n/a | `keep_malformed_w5_safety_fallback` | New Phase 6B-2 test: default-on happy path emits no `w5_narrator_projection_failed` diagnostic. |
+| F8 | `ai_stack/story_runtime/narrator/god_of_carnage_narrator_path.py::_block` line 376 — `source_facts["transition_from_previous"] = _transition_facts(...)` | Always-write legacy transition block | ✓ (written alongside `w5_projection`) | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — the narrator system prompt still names `transition_from_previous` as the canonical fallback (see A7), and the Phase 2 parity tests assert legacy parity. Removal requires (a) narrator prompt becomes W5-only, (b) parity tests are rewritten to drop legacy parity, (c) opening-fallback observability comment is pruned. Sequenced as 6B-3 step 3. | `test_story_runtime_w5_narrator_projection.py` Phase 2 parity tests; new W5-only narrator prompt test; `test_god_of_carnage_narrator_path.py` `opening_start` kind test. |
+| F9 | `ai_stack/langgraph/runtime_executor/reaction_order_governance.py::_build_w5_npc_projection_inputs` — `if not w5_ast_npc_projection_enabled(): return {}, []` | Opt-out short-circuit | ✗ | ✓ | n/a | n/a | `keep_explicit_opt_out_fallback` | (already pinned by Phase 6B-1 flag test). |
+| F10 | same file — `except Exception as exc: diagnostic["w5_npc_projection_failed"]=...` per-actor | Per-actor malformed-W5 safety | ✗ | ✗ | ✓ | n/a | `keep_malformed_w5_safety_fallback` | Existing `test_npc_agency_planner.py` failure-case coverage. |
+| F11 | `ai_stack/langgraph/runtime_executor/npc_agency_projection.py` — `npc_context_bundle=state.get("npc_context_bundle")` passed into `build_npc_agency_simulation(...)` and the fallback `build_npc_agency_plan(...)` | Legacy NPC context fed in parallel with `npc_w5_situations` | ✓ | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — the NPC planner consumes both; removing the bundle requires the planner to be W5-only and the long-horizon planner tests to be regrounded. Sequenced as 6B-3 step 4. | `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, `test_wave3_multi_actor_vitality.py` — all must remain green after planner W5-first migration. |
+| F12 | `ai_stack/story_runtime/turn/god_of_carnage_turn_seams_validation.py::_apply_w5_validation_to_outcome` — `if not w5_ast_validation_enabled(): return outcome` | Opt-out short-circuit | ✗ | ✓ | n/a | n/a | `keep_explicit_opt_out_fallback` | (already pinned by Phase 6B-1 validation flag test). |
+| F13 | same file — `except Exception as exc: diagnostic = w5_validation_fallback(text)` | Malformed-W5 safety with `w5_validation_fallback_reason` | ✗ | ✗ | ✓ | n/a | `keep_malformed_w5_safety_fallback` | New Phase 6B-2 test: default-on happy path never sets `w5_validation_fallback_reason`. |
+| F14 | `world-engine/app/story_runtime/manager/actor_tracking/session_state_w5_view.py::_maybe_build_w5_player_view_for_session` — `if not _w5_ast_frontend_player_view_enabled(): return None, None` | Opt-out short-circuit | ✗ | ✓ | n/a | n/a | `keep_explicit_opt_out_fallback` | (already pinned by Phase 6B-1 player-view flag test). |
+| F15 | same file — `except Exception as exc: return None, _player_view_diagnostics(used=False, failed=reason, ...)` | Malformed-W5 safety with `current_room_source="fallback"` | ✗ | ✗ | ✓ | n/a | `keep_malformed_w5_safety_fallback` | New Phase 6B-2 test: default-on happy path emits `current_room_source=="w5_player_view"` (not `"fallback"`). |
+| F16 | same file — `_fallback_current_room_id(session)` reads `runtime_world.current_room_id` → `environment_state.current_room_id` → `environment_state.current_area` | Substrate fallback location resolver | ✓ (always computed for the `current_room_fallback_value` diagnostic and mismatch check) | ✓ | ✓ | ✓ | `substrate_keep` — reads committed substrate to surface the mismatch diagnostic. Tied to substrate S1/S2; deferred to later substrate-consolidation ADR. | n/a. |
+| F17 | `backend/app/api/v1/game_routes.py::_player_shell_state_view` — `current_room_id` derivation chain (fallback first, then W5 override) | Compatibility alias on the player-shell payload | ✓ (frontend reads it) | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — the field itself is a legacy *alias*; the frontend `app.js` reads it. Removal requires frontend upgrade and a follow-up ADR (currently A2 in the Phase 6A inventory). Sequenced beyond 6B-3. | `backend/tests/test_w5_player_shell_payload.py` (parity + mismatch), `test_play_service_client.py`, `test_player_session_live_opening_contract.py`. |
+| F18 | `world-engine/app/story_runtime/manager/narrator_output_prompts.py` — narrator system-prompt paragraph instructing the LLM to use `transition_from_previous` as fallback | Prompt-text fallback instruction | ✓ (always sent in the prompt) | ✓ | ✓ | ✓ | `doc_only_update` — once F8 is removed, the paragraph is pruned alongside; no runtime branch. Sequenced as 6B-3 step 3 (paired with F8). | `test_story_runtime_w5_narrator_projection.py` prompt-string regression (must update assertion when the paragraph is pruned). |
+| F19 | `world-engine/app/story_runtime/manager/opening_fallback_observability.py` — comment-only mention of `transition_from_previous` | Comment-only legacy mention | n/a (comment) | n/a | n/a | n/a | `doc_only_update` — prune in 6B-3 step 3. | n/a. |
+| F20 | `world-engine/app/story_runtime/manager/diagnostics_api.py::_w5_runtime_metadata_for_session` — inspects `transition_from_previous.location_changed` from any narrator block when computing W5 admin metadata | Admin-side parity bridge | ✓ (intentional parity inspection) | ✓ | ✓ | ✓ | `substrate_keep` — diagnostic-only parity check; ADR-pinned as A6 in Phase 6A. Stays until F8 is removed *and* admin parity assertion is rewritten. | `world-engine/tests/test_story_runtime_w5_admin_diagnostics.py`. |
+| F21 | `ai_stack/langgraph/runtime_executor/executor_action_resolution_start.py` `L150-L182` — inline `environment_state.actor_locations` + `current_room_id` read that feeds Director-Pause inputs | C3 from Phase 6A: inline substrate read at action-resolution start | ✓ | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — same call seeds F1's `actor_locations` and `environment_current_room_id`. Migration requires reading `where_summary.derived_actor_locations` first. Sequenced as 6B-3 step 2. | `test_phase1_live_wiring.py`, `tests/smoke/test_thin_path_pr_c_director_pause_live_smoke.py`. |
+| F22 | `ai_stack/langgraph/runtime_executor/executor_action_resolution_commit.py` `L11-L96` — commit-side mirror of F21 | C4 from Phase 6A | ✓ | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — must move in lockstep with F21. Sequenced as 6B-3 step 2. | Same as F21. |
+| F23 | `ai_stack/contracts/narrator_consequence_contracts.py` (C7) — narrator-consequence payload composes `current_area` / `from_area` / `to_area` | Higher-level consumer still reading legacy area metadata | ✓ | ✓ | ✓ | ✓ | `migrate_to_w5_first_before_removal` — narrator-consequence and sensory engine (C8) read W5 only if a new builder is added. Sequenced beyond 6B-3 (deferred to a later phase ADR). | `ai_stack/tests/test_narrator_consequence_contract.py`. |
+| F24 | `world-engine/app/story_runtime/manager/session/session_lifecycle.py` and `manager/runtime_config.py` — snapshot composers emit `current_room_id` field on the live snapshot | A3 from Phase 6A: WebSocket transport compatibility | ✓ | ✓ | ✓ | ✓ | `compatibility_alias_keep_temporarily` (mapped to `migrate_to_w5_first_before_removal` for 6B-2 vocabulary) — old WS subscribers read `viewer_room_id`. Removal requires WS client upgrade. Sequenced beyond 6B-3. | `world-engine/tests/test_ws_state_transitions.py`. |
+| F25 | `world-engine/app/story_runtime/manager/actor_tracking/session_state_w5_view.py::_fallback_current_room_id` → `runtime_world.current_room_id` (legacy field) | Substrate read for diagnostics | ✓ | ✓ | ✓ | ✓ | `substrate_keep` — see F16. Reads the substrate emitted by C10 (`runtime_world.py`). | n/a. |
+
+### Phase 6B-2 summary by classification
+
+| Classification | Count | Branches |
+|----------------|------:|----------|
+| `keep_explicit_opt_out_fallback` | 5 | F2, F6, F9, F12, F14 |
+| `keep_malformed_w5_safety_fallback` | 5 | F3, F7, F10, F13, F15 |
+| `substrate_keep` | 5 | F4, F5, F16, F20, F25 |
+| `migrate_to_w5_first_before_removal` | 8 | F1, F8, F11, F17, F21, F22, F23, F24 |
+| `remove_dead_default_path_in_6b3` | **0** | — |
+| `doc_only_update` | 2 | F18, F19 |
+| `unknown_needs_runtime_trace` | 0 | — |
+
+### Phase 6B-2 result
+
+**No branch is safe for an unconditional default-path deletion in Phase 6B-3.** Every fallback path that fires under default-on either (a) is the explicit opt-out path, (b) is the malformed-W5 safety net, (c) is substrate or substrate-derived, or (d) still feeds a downstream consumer that is not yet W5-first.
+
+This is the **expected** result of Phase 6B-2: it confirms that Phase 6B-1's flag flips did not accidentally orphan any code, and that legacy fallback removal must proceed by *consumer migration*, not by branch deletion.
+
+### Phase 6B-3 — recommended order (no deletions, only consumer migrations + lazy re-ordering)
+
+Each step is independently testable. No step removes any legacy *function* — each step migrates a *call site* to read W5 first, with the legacy function still available as the malformed-W5 safety net.
+
+1. **F1 lazy re-order (low-risk optimization, no contract change).** Move the eager `baseline_completion = complete_actor_locations_for_gathering(...)` call inside the two paths that actually return it (disabled-flag branch and `except` branch). The W5-success path becomes the only baseline call (which is the second one, F4). Output dict is identical bit-for-bit on D, O, and M paths.
+   - **Test before:** add a Phase 6B-2 test asserting that on D, `derived_actor_locations_source == "w5_projection"` and `gathering_pause_source == "w5_projection"`; on M, `w5_director_projection_failed` is set and `source == "environment_state_with_actor_lane_fallback"`.
+2. **F21 / F22 migration (C3 / C4 of Phase 6A).** Make `executor_action_resolution_start` and `executor_action_resolution_commit` read `w5_latest_snapshot.where_summary.derived_actor_locations` first; fall back to `environment_state.actor_locations` only when no snapshot is present.
+   - **Test before:** assert in `test_phase1_live_wiring.py` that the Director-Pause input under D uses the W5-derived locations; under M reverts to legacy substrate.
+3. **F8 + F18 + F19 sequenced removal (narrator transition fallback).**
+   - First update `narrator_output_prompts.py` (F18) to drop the fallback paragraph behind a W5-narrator-strict flag, default-off.
+   - Then turn the flag on after `test_story_runtime_w5_narrator_projection.py` is rewritten to assert W5-only narrator prompts.
+   - Finally remove the `source_facts["transition_from_previous"] = …` line in `god_of_carnage_narrator_path.py` (F8) and prune the comment in `opening_fallback_observability.py` (F19).
+   - **Test before each sub-step:** the parity tests `test_story_runtime_w5_narrator_projection.py:test_w5_narrator_projection_legacy_parity_*` must be rewritten in lockstep with each sub-step. Admin diagnostics F20 must be updated when F8 is removed.
+4. **F11 migration (NPC planner W5-first).** Pass `npc_w5_situations` *first* into the planner contract; treat `npc_context_bundle` as a malformed-W5 fallback. Once `test_npc_agency_planner.py`, `test_npc_agency_contracts.py`, `test_npc_agency_long_horizon_claim_readiness.py`, and `test_wave3_multi_actor_vitality.py` all remain green with W5-first inputs, remove the bundle from the *non-fallback* call path (the bundle is still passed in malformed-W5 cases).
+5. **F17 + F24 (player-shell `current_room_id` and WS `viewer_room_id`).** Out of 6B-3 scope. Requires frontend / WS client upgrade. Track as a separate ADR.
+6. **F23 (`narrator_consequence_contracts.py` and C8 sensory engine).** Out of 6B-3 scope. Requires a new W5-first builder. Track as a separate ADR.
+
+### Phase 6B-2 branches that must remain until a later ADR
+
+- All five **opt-out short-circuits** (F2, F6, F9, F12, F14). They are the only paths that honor `W5_AST_*=0/false/no/off`. Removing them violates the Phase 6B-1 explicit-opt-out contract.
+- All five **malformed-W5 safety returns** (F3, F7, F10, F13, F15). They are the safety net the migration plan commits to (Phase 5B: *"missing or malformed W5 snapshots fall back to legacy current_room without failing the turn"*).
+- All **substrate reads** (F4, F5, F16, F20, F25) and the substrate writers S1–S8 from the Phase 6A inventory. Substrate consolidation is a separate, later ADR.
+- The **compatibility aliases** (F17, F24) until the frontend and WebSocket clients are upgraded.
+- The **narrator-consequence and sensory-engine legacy reads** (F23) until W5-first builders exist for those payloads.
+
+### Phase 6B-2 — is targeted fallback removal safe to begin in Phase 6B-3?
+
+**Yes, conditionally — and the conditions are scoped to consumer migration, not branch deletion.** Phase 6B-3 may begin with:
+
+- The F1 lazy re-order (optimization, no contract change, no legacy removal).
+- The F21 / F22 W5-first migration of the executor action-resolution inline reads.
+- Sequenced removal of F8 / F18 / F19 only after their parity tests are rewritten and the admin parity bridge F20 is updated in lockstep.
+- The F11 NPC planner W5-first migration once the planner test suites are confirmed green.
+
+Phase 6B-3 may **not** delete any opt-out short-circuit, any malformed-W5 safety return, any substrate read, or any compatibility alias on the public payload contract. Each such removal requires its own ADR with the gates listed above.

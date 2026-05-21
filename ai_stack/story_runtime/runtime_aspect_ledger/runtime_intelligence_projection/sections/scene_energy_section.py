@@ -11,6 +11,7 @@ BUILD_SCENE_ENERGY_SECTION_PARAMS = ('scene_energy_actual', 'scene_energy_expect
 
 
 def build_scene_energy_section(**values: Any) -> dict[str, Any]:
+    """Return the scene energy diagnostic section from normalized ledger records."""
     scene_energy_actual = values['scene_energy_actual']
     scene_energy_expected = values['scene_energy_expected']
     scene_energy_rec = values['scene_energy_rec']

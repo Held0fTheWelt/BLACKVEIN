@@ -11,6 +11,7 @@ BUILD_CONSEQUENCE_CASCADE_SECTION_PARAMS = ('cascade_actual', 'cascade_expected'
 
 
 def build_consequence_cascade_section(**values: Any) -> dict[str, Any]:
+    """Return the consequence cascade diagnostic section from normalized ledger records."""
     cascade_actual = values['cascade_actual']
     cascade_expected = values['cascade_expected']
     cascade_rec = values['cascade_rec']

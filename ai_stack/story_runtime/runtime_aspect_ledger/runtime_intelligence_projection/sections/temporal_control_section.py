@@ -11,6 +11,7 @@ BUILD_TEMPORAL_CONTROL_SECTION_PARAMS = ('temporal_control_actual', 'temporal_co
 
 
 def build_temporal_control_section(**values: Any) -> dict[str, Any]:
+    """Return the temporal control diagnostic section from normalized ledger records."""
     temporal_control_actual = values['temporal_control_actual']
     temporal_control_expected = values['temporal_control_expected']
     temporal_control_rec = values['temporal_control_rec']

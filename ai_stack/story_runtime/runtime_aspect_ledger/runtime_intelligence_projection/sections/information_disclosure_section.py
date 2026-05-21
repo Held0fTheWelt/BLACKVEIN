@@ -11,6 +11,7 @@ BUILD_INFORMATION_DISCLOSURE_SECTION_PARAMS = ('disclosure_actual', 'disclosure_
 
 
 def build_information_disclosure_section(**values: Any) -> dict[str, Any]:
+    """Return the information disclosure diagnostic section from normalized ledger records."""
     disclosure_actual = values['disclosure_actual']
     disclosure_expected = values['disclosure_expected']
     disclosure_rec = values['disclosure_rec']
