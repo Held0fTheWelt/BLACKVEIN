@@ -4,6 +4,8 @@
 
 **Phase 6B-0 status:** R1–R5 (the rename items) are **complete**. The function `validate_w5_actor_situation` is now `validate_w5_actor_tracking`, the `failure_class` string is now `"w5_actor_tracking_validation"`, and the four docstring/ADR/migration-doc references now point at the renamed-current files. No runtime behavior, fallback, substrate writer, or W5 flag was touched. The rest of this inventory (S, C, A, T, D, U entries) remains as written: Phase 6B-1 may now proceed to default-on flag rollout.
 
+**Phase 6B-5A status:** [ADR-0065](../ADR/adr-0065-w5-narrator-strict-mode-default-actor-situation-surface.md) is authored as the narrator strict default-on ADR and test plan. Phase 6B-5A changes documentation only: no runtime behavior changed, no flags were flipped, no legacy branches were removed, and the next executable step is the Phase 6B-5B strict-mode parity-test rewrite.
+
 **Authoritative ADR:** [ADR-0063 — W5 Actor Tracking](../ADR/adr-0063-w5-actor-tracking.md).
 
 **Migration plan:** [w5_actor_tracking_migration.md](./w5_actor_tracking_migration.md).
@@ -703,43 +705,30 @@ This result confirms that Phase 6B-3A/B/C migrated the consumers correctly witho
 
 ### Phase 6B-4 — recommended Phase 6B-5 plan
 
-Phase 6B-5 is **not** a branch-deletion phase. It is the *next* sequenced consumer migration plus a small doc-cleanup. Each step is independently testable.
+Phase 6B-5 is **not** a branch-deletion phase. It starts with the narrator strict default-on sequence and keeps each move independently testable.
 
-1. **Phase 6B-5 step A — narrator strict permanent flip ADR (precondition).** A dedicated ADR records the safety contract for permanently flipping `W5_AST_NARRATOR_STRICT_ENABLED` to default-on:
-   - rewrite `world-engine/tests/test_story_runtime_w5_narrator_projection.py::test_w5_narrator_projection_legacy_parity_*` to assert W5-only narrator prompts under default-on;
-   - rewrite `world-engine/tests/test_story_runtime_w5_admin_diagnostics.py` to expect `w5.legacy_transition_parity == "demoted_to_legacy_compat"` under default-on;
-   - update `ai_stack/tests/test_god_of_carnage_narrator_path.py` to expect `source_facts._legacy_compat["transition_from_previous"]` under default-on.
-   Only after the ADR lands and tests pass does step B remove the legacy block.
+1. **Phase 6B-5A — narrator strict default-on ADR and test plan.** ADR-0065 records the safety contract for promoting `W5_AST_NARRATOR_STRICT_ENABLED` from opt-in to default-on/permanent behavior. No runtime behavior changes, no flags flip, and no legacy branches are removed.
 
-2. **Phase 6B-5 step B — remove F8 / F18 / F19 / F20 strict-OFF branches.** With strict-on now default and the parity tests rewritten:
-   - delete the strict-OFF branch in `_block(...)` so `source_facts["transition_from_previous"]` is no longer written;
-   - delete the strict-OFF prompt paragraph in `narrator_output_prompts.py`;
-   - prune the historical sentence in `opening_fallback_observability.py`;
-   - delete the legacy parity label in `diagnostics_api.py::get_w5_langfuse_metadata` and the legacy_compat debug surface;
-   - the W5 narrator projection becomes the only narrator situation input on D / O / M / L.
+2. **Phase 6B-5B — strict-mode parity test rewrite.** Rewrite narrator projection, narrator prompt, and admin diagnostics tests so default-on strict mode is the expected semantic contract:
+   - narrator projection tests prove W5 supplies current location, `location_changed`, and hard-cut guidance replacement;
+   - narrator prompt tests prove no legacy `transition_from_previous` primary guidance remains;
+   - admin diagnostics tests prove W5 metadata is primary and legacy transition evidence is demoted;
+   - opt-out, malformed-W5, and old-payload compatibility remain covered while the rollback path exists.
 
-3. **Phase 6B-5 step C — narrator-consequence / sensory engine W5-first builder ADR (F23 + C9).** Out-of-band ADR adds a new W5-first builder for movement framing and stage-level area, with the legacy `current_area` / `from_area` / `to_area` reads as the fallback. No deletion in this step.
+3. **Phase 6B-5C — default-on flip.** Flip `W5_AST_NARRATOR_STRICT_ENABLED` to default-on only after 6B-5B gates are green. Explicit disable remains supported during rollout. No committed output may mutate.
 
-4. **Phase 6B-5 step D — frontend + WS client upgrade ADR (F17 + F24).** Out-of-band ADR upgrades `app.js` and the WebSocket subscribers to consume the W5 player view directly. Once shipped, the player-shell `current_room_id` alias and WS `viewer_room_id` alias can be retired in Phase 6B-5 step E.
+4. **Phase 6B-5D — remove strict-off prompt fallback paragraph.** Remove the prompt text that still teaches the narrator to use legacy `transition_from_previous` as fallback guidance, after strict default-on has stabilized.
 
-5. **Phase 6B-5 step E — retire F17 / F24 aliases.** Only after step D ships in production. Until then, the aliases stay.
+5. **Phase 6B-5E — remove or further demote `_legacy_compat["transition_from_previous"]`.** Decide whether the compatibility breadcrumb can be removed or must remain diagnostics-only. If public diagnostics change, record that decision in a follow-up ADR before removal.
 
-6. **Phase 6B-5 step F (optional) — F11 bundle retirement.** Out-of-band ADR retires the legacy `npc_context_bundle` even on O / M / L. Requires a Phase 4-style coverage decision for malformed-W5 NPC planning.
+6. **Phase 6B-5F — fresh post-default-on inventory.** Re-run the legacy-consumer inventory after strict default-on and reclassify all narrator strict branches as still-needed opt-out, malformed-W5 safety, old-payload compatibility, public compatibility, diagnostics-only, or newly dead.
 
-**Substrate consolidation (S1–S8, F4 / F5 / F16 / F25, C6 / C10) is explicitly out of Phase 6B-5 scope.** It remains deferred to a future, separately-scoped ADR. The migration plan's "`environment_state` remains the low-level committed substrate" guarantee continues to hold.
+**Narrator-consequence / sensory-engine W5-first builders (F23 + C9), frontend / WebSocket client upgrades (F17 + F24), NPC bundle retirement (F11), and substrate consolidation (S1–S8, F4 / F5 / F16 / F25, C6 / C10) are explicitly out of this narrator-strict sequence.** They remain deferred to future, separately scoped ADRs. The migration plan's "`environment_state` remains the low-level committed substrate" guarantee continues to hold.
 
 ### Phase 6B-4 — known unrelated issues observed during inventory
 
-The Phase 6B-4 inventory pass does not touch world-engine HTTP routing, does not modify `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py`, and does not modify any LDSS / Wave3 test. The following known unrelated failures were re-confirmed and are tracked separately:
-
-- `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py::test_mvp04_diagnostics_endpoint_returns_last_turn_evidence` — fails because the `GET /story/sessions/{session_id}/diagnostics-envelope` route is missing after an unrelated world-engine HTTP route refactor. Phase 6B-4 does not touch HTTP routing and does not weaken / skip / xfail the gate.
-- `tests/gates/test_goc_mvp03_live_dramatic_scene_simulator_gate.py` ↔ `ai_stack/tests/test_wave3_multi_actor_vitality.py` ordering pollution. Phase 6B-4 does not modify either suite.
+The Phase 6B-4 inventory pass did not touch world-engine HTTP routing, did not modify `tests/gates/test_goc_mvp04_observability_diagnostics_gate.py`, and did not modify any LDSS / Wave3 test. During that inventory, unrelated gate issues were recorded separately. Phase 6B-4.5 subsequently repaired the stale MVP04 diagnostics-envelope route-oracle logic without changing W5/runtime behavior.
 
 ### Phase 6B-4 — is Phase 6B-5 targeted removal safe to begin?
 
-**Yes, conditionally.** Phase 6B-5 may begin with:
-
-- **Step A (narrator-strict permanent-flip ADR).** Authoring the ADR + rewriting the parity tests is independently testable and does not touch runtime behavior.
-- **Step C / Step D ADRs.** Author the narrator-consequence W5-first builder ADR and the frontend / WS client upgrade ADR. No deletions.
-
-Phase 6B-5 may **not** start by deleting any opt-out short-circuit, any malformed-W5 safety net, any substrate read, any public payload alias, or the F8 / F18 / F19 / F20 strict-OFF branches before step A's ADR lands and the parity tests are rewritten. Each such deletion has its own gating conditions listed above.
+**Yes, conditionally.** Phase 6B-5 may begin with 6B-5A (ADR-0065, complete) and then 6B-5B (strict-mode parity-test rewrite). Phase 6B-5 may **not** start by deleting any opt-out short-circuit, malformed-W5 safety net, old-payload compatibility, substrate read, public payload alias, or F8 / F18 / F19 / F20 strict-OFF branch before the ADR lands, parity tests are rewritten, and the default-on safety gates are green.

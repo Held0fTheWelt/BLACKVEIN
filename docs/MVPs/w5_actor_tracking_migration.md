@@ -476,7 +476,27 @@ Phase 3B keeps W5 read-only for NPC planning. Actor Lane authority, commit/readi
 - ADR-0033, ADR-0061, ADR-0063, the Actor Lane, Commit/Readiness, `validation_outcome`, the Canonical Path, and W5 validation semantics are unchanged.
 - W5 remains the higher-level actor-situation authority. `environment_state` remains the low-level committed substrate. How remains first-class. Inferred Why remains soft truth.
 
-**Outcome:** Phase 6B-5 is **not** a branch-deletion phase. It is the next sequenced *consumer migration* (narrator strict permanent flip + narrator-consequence W5-first builder + frontend / WS client upgrade) plus small doc cleanups. The branch-by-branch deletion schedule is documented in the Phase 6B-4 inventory section. Substrate consolidation remains deferred to a future ADR.
+**Outcome:** Phase 6B-5 is **not** a branch-deletion phase. It begins with the narrator strict default-on planning sequence: 6B-5A ADR + test plan, 6B-5B strict-mode parity-test rewrite, 6B-5C default-on flip, 6B-5D strict-off prompt fallback paragraph removal, 6B-5E `_legacy_compat["transition_from_previous"]` removal/further demotion decision, and 6B-5F fresh inventory. Narrator-consequence W5-first builders, frontend / WebSocket client upgrades, NPC bundle retirement, and substrate consolidation remain separately scoped ADRs or later phases.
+
+### Phase 6B-5A — Narrator strict default-on ADR and test plan (complete)
+
+**Goal:** Record the future safety contract for making W5 narrator strict mode default-on/permanent behavior. This phase is ADR and planning only.
+
+- [x] Authored [ADR-0065](../ADR/adr-0065-w5-narrator-strict-mode-default-actor-situation-surface.md) as **Proposed**.
+- [x] Documented why `transition_from_previous` is no longer authoritative and why the W5 narrator projection becomes the actor-situation surface.
+- [x] Defined the future rollout sequence:
+  - 6B-5B — strict-mode parity test rewrite.
+  - 6B-5C — default-on flip for `W5_AST_NARRATOR_STRICT_ENABLED`.
+  - 6B-5D — removal of the strict-off narrator prompt fallback paragraph.
+  - 6B-5E — removal or further demotion of `_legacy_compat["transition_from_previous"]`.
+  - 6B-5F — fresh inventory pass after narrator strict default-on.
+- [x] Defined safety gates: W5 supplies current location / `location_changed` / hard-cut guidance replacement, narrator prompts contain no legacy primary guidance under default-on, admin diagnostics prove W5 metadata is primary, MVP03 / MVP04 remain green, no committed output mutates, Actor Lane / Canonical Path / Commit / Readiness / `validation_outcome` remain unchanged, inferred Why stays soft, and How is not folded into What.
+- [x] Defined rollback: `W5_AST_NARRATOR_STRICT_ENABLED` can be explicitly disabled during rollout; strict-off path stays until the removal phase; malformed/missing W5 narrator projection still falls back safely; `_legacy_compat` remains available for diagnostics until a later ADR or approved phase removes it.
+- [x] No runtime behavior changed.
+- [x] No W5 flag was flipped. `W5_AST_NARRATOR_STRICT_ENABLED` remains opt-in / default-off.
+- [x] No legacy branch was removed. `transition_from_previous`, `_legacy_compat`, strict-off prompts, malformed-W5 safety fallbacks, old-payload compatibility, and public aliases remain in place.
+
+**Next step:** Phase 6B-5B rewrites strict-mode parity tests so the future default-on flip is tested as a semantic W5 authority contract rather than a legacy field-presence check.
 
 ### Phase 6B — Legacy localization decommission (planned)
 

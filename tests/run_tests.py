@@ -643,6 +643,12 @@ AI_STACK_ACTOR_TRACKING_TARGETS: tuple[str, ...] = _ai_stack_tests(
     "test_actor_tracking_diagnostics.py",
     "test_w5_actor_tracking_extractor.py",
     "test_w5_actor_tracking_models.py",
+    "test_w5_actor_tracking_phase_6b1_default_on_flags.py",
+    "test_w5_actor_tracking_phase_6b2_fallback_inventory.py",
+    "test_w5_actor_tracking_phase_6b3a_consumer_migration.py",
+    "test_w5_actor_tracking_phase_6b3b_narrator_strict_migration.py",
+    "test_w5_actor_tracking_phase_6b3c_npc_planner_migration.py",
+    "test_w5_actor_tracking_phase_6b4_post_migration_inventory.py",
     "test_w5_actor_tracking_projection.py",
     "test_w5_actor_tracking_validation.py",
 )

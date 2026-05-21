@@ -41,6 +41,39 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 
 ---
 
+## Changed-file selector
+
+For day-to-day refactors, use the changed-file selector before reaching for a
+full component suite. It maps modified `backend/`, `ai_stack/`, and
+`world-engine/` paths to the smallest existing suite or direct pytest target it
+knows about.
+
+Dry run from the repository root:
+
+```bash
+python scripts/test_changed.py
+```
+
+Run the selected tests:
+
+```bash
+python scripts/test_changed.py --run
+```
+
+You can also pass paths explicitly:
+
+```bash
+python scripts/test_changed.py backend/app/services/governance/governance_runtime_service.py
+python scripts/test_changed.py ai_stack/story_runtime/semantic_planner/semantic_scene_planner.py
+python scripts/test_changed.py world-engine/app/story_runtime/manager/actor_tracking/
+```
+
+The selector deliberately keeps the full gates intact. Source changes map to
+focused `tests/run_tests.py --suite ... --quick` lanes; changed test files run
+directly. Use `--full` when you want the selected suites without `--quick`.
+
+---
+
 ## Canonical `--suite` list
 
 | CLI name | Working directory | Pytest path | Notes |
@@ -151,7 +184,7 @@ The reorganized `ai_stack/` source tree also has package-aligned slices. These o
 | CLI name | Focus |
 |----------|-------|
 | `ai_stack_core` | Core package/config/readiness smoke. |
-| `ai_stack_actor_tracking` | `actor_tracking/` W5 extraction, projection, validation, diagnostics. |
+| `ai_stack_actor_tracking` | `actor_tracking/` W5 extraction, projection, validation, diagnostics, and Phase 6B migration safety nets. |
 | `ai_stack_contracts` | `contracts/` data and behavioral contract surfaces. |
 | `ai_stack_langchain` | `langchain/` bridge and reviver compatibility. |
 | `ai_stack_langfuse` | `langfuse/` evaluator catalog and evidence helpers. |
