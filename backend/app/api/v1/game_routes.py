@@ -10,7 +10,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-_SEGMENT_FILES: tuple[str, ...] = (
+_IMPLEMENTATION_FILES: tuple[str, ...] = (
     "imports_and_dependencies.py",
     "trace_identity_and_auth_helpers.py",
     "error_response_and_bootstrap_helpers.py",
@@ -43,23 +43,26 @@ _SEGMENT_FILES: tuple[str, ...] = (
 )
 
 
-def _read_segment_source(base_dir: Path, filename: str) -> str:
+def _read_implementation_source(base_dir: Path, filename: str) -> str:
     """Load one game route implementation file without changing its namespace."""
     path = base_dir / filename
     spec = importlib.util.spec_from_file_location(f"{__name__}.{path.stem}", path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load game route slice: {path}")
+        raise RuntimeError(f"Cannot load game route implementation file: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return str(getattr(module, "SOURCE"))
 
 
-def _load_game_route_segments() -> None:
+def _load_game_route_implementation() -> None:
     """Execute the game route implementation files in this module namespace."""
     base_dir = Path(__file__).with_name("game")
-    source_parts = [_read_segment_source(base_dir, filename) for filename in _SEGMENT_FILES]
+    source_parts = [
+        _read_implementation_source(base_dir, filename)
+        for filename in _IMPLEMENTATION_FILES
+    ]
     compiled = compile("\n".join(source_parts), f"{__name__}.__generated__", "exec")
     exec(compiled, globals())
 
 
-_load_game_route_segments()
+_load_game_route_implementation()
